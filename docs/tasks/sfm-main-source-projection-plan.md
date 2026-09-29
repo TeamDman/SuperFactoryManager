@@ -228,6 +228,8 @@ Commit `f9acae89f` closes a promotion preflight hole found by a red regression: 
 
 ## Release-compatible preset audit
 
+The [29 September exploratory parity disposition](sfm-main-release-parity-disposition-20260929.md) accepts the measured 4.34.0 baseline for continued source-projection development only. It classifies compiler/packaging differences and explicitly retains unrun gameplay and public-release gates; it does not approve a future `released-X` preset, upload or default-branch change.
+
 For every supported version, compare its 4.34.0 tag with the generated `released-4.34.0` project. Catalogue changes to JAR entries and contents, registrations, assets, commands, config, network codecs, saves, public Java API and gameplay. Mark each difference as guarded, intentionally retained for compatibility/safety, or unresolved. A source diff or successful compile alone does not prove behaviour parity. Keep a current-feature preset distinct, so the unreleased Touch Display and Client Manager work is not deleted to obtain release compatibility. After the next release, a new immutable released preset becomes the checked-in output baseline.
 
 The old release tags use toolchain lockfile schema v2 while current 1.19.2 development uses v4. Record dependency resolution, wrapper/plugin versions and packaging rules from each tag; source flags alone cannot make a newer build release-equivalent. The existing `sfm-propagate-changes jar compare` command can compare normalized JAR entry names and content hashes, ignoring only the manifest implementation timestamp unless strict mode is selected. Use it as one measure, not as a substitute for gameplay and save compatibility tests.
