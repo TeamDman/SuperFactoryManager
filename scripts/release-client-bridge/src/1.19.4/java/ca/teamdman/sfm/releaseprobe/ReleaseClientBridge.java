@@ -61,6 +61,7 @@ public final class ReleaseClientBridge {
     private boolean worldSetupRequested;
     private boolean worldRenderObserved;
     private boolean clientBlockSynced;
+    private boolean clientAimLogged;
     private boolean rayHit;
     private volatile boolean serverBlockPlaced;
     private volatile BlockPos managerPosition;
@@ -239,9 +240,12 @@ public final class ReleaseClientBridge {
             System.out.println("SFM_RELEASE_CLIENT_BLOCK_SYNCED run_id=" + runId + " block=sfm:manager"
                     + " pos=" + position.m_123341_() + "," + position.m_123342_() + "," + position.m_123343_());
         }
-        if (!rayHit && isAimedAtManager(minecraft)) {
-            rayHit = true;
-            System.out.println("SFM_RELEASE_CLIENT_RAY_HIT_OBSERVED run_id=" + runId + " block=sfm:manager");
+        if (!rayHit) {
+            aimClientAtManager(minecraft, position);
+            if (isAimedAtManager(minecraft)) {
+                rayHit = true;
+                System.out.println("SFM_RELEASE_CLIENT_RAY_HIT_OBSERVED run_id=" + runId + " block=sfm:manager");
+            }
         }
     }
 
@@ -303,6 +307,23 @@ public final class ReleaseClientBridge {
         BlockPos position = managerPosition;
         return position != null && minecraft.f_91077_ instanceof BlockHitResult hit &&
                 hit.m_82425_().equals(position);
+    }
+
+    private void aimClientAtManager(Minecraft minecraft, BlockPos position) {
+        double dx = position.m_123341_() + 0.5 - minecraft.f_91074_.m_20185_();
+        double dy = position.m_123342_() + 0.5 - minecraft.f_91074_.m_20188_();
+        double dz = position.m_123343_() + 0.5 - minecraft.f_91074_.m_20189_();
+        double horizontal = Math.hypot(dx, dz);
+        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float pitch = (float) -Math.toDegrees(Math.atan2(dy, horizontal));
+        minecraft.f_91074_.m_146922_(yaw);
+        minecraft.f_91074_.m_146926_(pitch);
+        minecraft.f_91074_.m_5616_(yaw);
+        if (!clientAimLogged) {
+            clientAimLogged = true;
+            System.out.println("SFM_RELEASE_CLIENT_AIM_REQUESTED run_id=" + runId
+                    + " yaw=" + yaw + " pitch=" + pitch);
+        }
     }
 
     private String screenshotName() {
