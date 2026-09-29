@@ -689,8 +689,8 @@ fn inspect_root(root: &Path) -> Result<()> {
         match fs::symlink_metadata(ancestor) {
             Ok(metadata) => {
                 ensure!(
-                    !metadata.file_type().is_symlink(),
-                    "source projection destination traverses a symlink: '{}'",
+                    !is_reparse(&metadata),
+                    "source projection destination traverses a symlink or reparse point: '{}'",
                     ancestor.display()
                 );
                 ensure!(
@@ -712,10 +712,10 @@ fn nearest_existing_parent(root: &Path) -> Result<&Path> {
         .ok_or_else(|| eyre::eyre!("destination has no parent"))?;
     loop {
         match fs::symlink_metadata(current) {
-            Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => {
+            Ok(metadata) if metadata.is_dir() && !is_reparse(&metadata) => {
                 return Ok(current);
             }
-            Ok(_) => bail!("source projection staging parent is not a real directory"),
+            Ok(_) => bail!("source projection staging parent is a reparse point or non-directory"),
             Err(error) if error.kind() == ErrorKind::NotFound => {
                 current = current
                     .parent()
@@ -736,8 +736,8 @@ fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
         match fs::symlink_metadata(&parent) {
             Ok(metadata) => {
                 ensure!(
-                    !metadata.file_type().is_symlink() && metadata.is_dir(),
-                    "generated output '{path}' traverses a symlink or non-directory"
+                    !is_reparse(&metadata) && metadata.is_dir(),
+                    "generated output '{path}' traverses a symlink, reparse point or non-directory"
                 );
             }
             Err(error) if error.kind() == ErrorKind::NotFound => {}
@@ -758,8 +758,8 @@ fn read_regular_file_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
             ensure!(
-                metadata.is_file() && !metadata.file_type().is_symlink(),
-                "source projection path is not a regular file: '{}'",
+                metadata.is_file() && !is_reparse(&metadata),
+                "source projection path is not a regular non-reparse file: '{}'",
                 path.display()
             );
             Ok(Some(fs::read(path).wrap_err_with(|| {
@@ -773,9 +773,46 @@ fn read_regular_file_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
     }
 }
 
+fn is_reparse(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt as _;
+        metadata.file_attributes() & 0x0000_0400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(windows)]
+    fn create_junction(link: &Path, target: &Path) {
+        use std::os::windows::fs::MetadataExt as _;
+
+        let output = std::process::Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "junction setup failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_ne!(
+            fs::symlink_metadata(link).unwrap().file_attributes() & 0x0000_0400,
+            0,
+            "fixture must be a Windows reparse point"
+        );
+    }
 
     fn identity(preset: &str) -> ProjectionIdentity {
         ProjectionIdentity {
@@ -797,6 +834,60 @@ mod tests {
 
     fn files(output: &str) -> BTreeMap<String, ProjectedArtifact> {
         BTreeMap::from([("src/main/java/Example.java".to_owned(), artifact(output))])
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rejects_junction_in_generated_file_parent_without_writing_outside() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("generated");
+        let outside = temporary.path().join("outside");
+        fs::create_dir(&destination).unwrap();
+        fs::create_dir(&outside).unwrap();
+        let sentinel = outside.join("sentinel.txt");
+        fs::write(&sentinel, b"outside is unchanged\n").unwrap();
+        let junction = destination.join("src");
+        create_junction(&junction, &outside);
+
+        let result = sync_projection(
+            &destination,
+            &identity("released-4.34.0"),
+            &files("class Example {}\n"),
+            SyncMode::Apply,
+        );
+        // Remove this exact junction before TempDir cleans up either tree.
+        fs::remove_dir(&junction).unwrap();
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("reparse point"), "{error}");
+        assert_eq!(fs::read(sentinel).unwrap(), b"outside is unchanged\n");
+        assert!(!outside.join("main").exists());
+        assert!(!destination.join(MANIFEST_FILE).exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn rejects_junction_as_destination_root_without_writing_outside() {
+        let temporary = tempfile::tempdir().unwrap();
+        let outside = temporary.path().join("outside");
+        fs::create_dir(&outside).unwrap();
+        let sentinel = outside.join("sentinel.txt");
+        fs::write(&sentinel, b"outside is unchanged\n").unwrap();
+        let destination = temporary.path().join("generated");
+        create_junction(&destination, &outside);
+
+        let result = sync_projection(
+            &destination,
+            &identity("released-4.34.0"),
+            &files("class Example {}\n"),
+            SyncMode::Apply,
+        );
+        // Remove this exact junction before TempDir cleans up either tree.
+        fs::remove_dir(&destination).unwrap();
+        let error = result.unwrap_err().to_string();
+        assert!(error.contains("reparse point"), "{error}");
+        assert_eq!(fs::read(sentinel).unwrap(), b"outside is unchanged\n");
+        assert!(!outside.join("src").exists());
+        assert!(!outside.join(MANIFEST_FILE).exists());
     }
 
     #[cfg(unix)]
