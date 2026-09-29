@@ -6,6 +6,7 @@
 //! preset identity by itself proves that a generated JAR matches a release.
 
 use eyre::WrapErr;
+use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -146,6 +147,11 @@ pub struct ReleaseBaselineBinding {
     /// in place of a verified committed-head overlay.
     #[facet(default)]
     pub post_baseline_canonical_sources: BTreeMap<String, CanonicalSourceSelection>,
+    /// Release-only resources absent from the pinned tag source tree but
+    /// present in the published JAR. Paths are generated `src/main/resources/`
+    /// outputs; each declared input is copied only after a SHA-256 check.
+    #[facet(default)]
+    pub post_baseline_resources: BTreeMap<String, PostBaselineResource>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -154,6 +160,14 @@ pub struct CanonicalSourceSelection {
     pub source_sha256: String,
     /// SHA-256 of the rendered Java file, including its generated banner.
     pub output_sha256: String,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub struct PostBaselineResource {
+    /// Repository-relative fixture under `platform/minecraft/projection-resources/`.
+    pub source_path: String,
+    /// Bare lowercase SHA-256 of both fixture and projected output bytes.
+    pub sha256: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
@@ -543,6 +557,15 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
             hash_part(hasher, &baseline.tag_commit);
             hash_part(hasher, &baseline.import_manifest);
             hash_part(hasher, &baseline.import_manifest_sha256);
+            if !baseline.post_baseline_resources.is_empty() {
+                hash_part(hasher, "post_baseline_resources");
+                hash_part(hasher, &baseline.post_baseline_resources.len().to_string());
+                for (output_path, resource) in &baseline.post_baseline_resources {
+                    hash_part(hasher, output_path);
+                    hash_part(hasher, &resource.source_path);
+                    hash_part(hasher, &resource.sha256);
+                }
+            }
             if baseline.kind == BaselineKind::DevelopmentHead {
                 hash_part(hasher, "development_head");
                 hash_part(
@@ -645,8 +668,15 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
+                validate_post_baseline_resources(baseline)?;
             }
-            BaselineKind::DevelopmentHead => validate_development_binding(baseline)?,
+            BaselineKind::DevelopmentHead => {
+                ensure!(
+                    baseline.post_baseline_resources.is_empty(),
+                    "development import cannot declare post-baseline release resources"
+                );
+                validate_development_binding(baseline)?;
+            }
         }
         if !seen_manifests.insert(baseline.import_manifest.to_ascii_lowercase()) {
             eyre::bail!(
@@ -666,6 +696,31 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
             "preset `{}` must bind a release baseline for every selected target",
             preset.id
         );
+    }
+    Ok(())
+}
+
+fn validate_post_baseline_resources(baseline: &ReleaseBaselineBinding) -> eyre::Result<()> {
+    let mut casefolded = BTreeSet::new();
+    for (output_path, resource) in &baseline.post_baseline_resources {
+        validate_path(output_path, "post-baseline resource output")?;
+        ensure!(
+            output_path.starts_with("src/main/resources/"),
+            "post-baseline resource output `{output_path}` must be under src/main/resources/"
+        );
+        ensure!(
+            casefolded.insert(output_path.to_ascii_lowercase()),
+            "case-colliding post-baseline resource output `{output_path}`"
+        );
+        validate_path(&resource.source_path, "post-baseline resource input")?;
+        ensure!(
+            resource
+                .source_path
+                .starts_with("platform/minecraft/projection-resources/"),
+            "post-baseline resource input `{}` must be under platform/minecraft/projection-resources/",
+            resource.source_path
+        );
+        validate_lower_hex(&resource.sha256, 64, "post-baseline resource SHA-256")?;
     }
     Ok(())
 }
@@ -926,6 +981,7 @@ mod tests {
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
             post_baseline_canonical_sources: BTreeMap::new(),
+            post_baseline_resources: BTreeMap::new(),
         }
     }
 

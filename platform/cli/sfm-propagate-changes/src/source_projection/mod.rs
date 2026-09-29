@@ -4,6 +4,7 @@
 //! directives. A directive-free file is copied exactly; a conditional file is
 //! represented as a small Liquid skeleton with its Java chunks as values.
 
+pub mod candidate_lock;
 pub mod context;
 pub mod development_baseline;
 pub mod development_fixtures;
@@ -12,9 +13,12 @@ mod directive_scanner;
 pub mod inputs;
 pub mod manifest;
 pub mod project_layout;
+pub mod promotion;
 pub mod provenance;
 pub mod release_apply;
 pub mod release_baseline;
+pub mod release_jar_absence;
+pub mod release_resources;
 pub mod selection;
 pub mod sync;
 

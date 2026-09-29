@@ -116,11 +116,19 @@ pub fn select(
 
 #[cfg(test)]
 mod tests {
+    use super::super::inputs::apply_explicit_inputs;
+    use super::super::inputs::collect_projected_inputs;
     use super::super::manifest::PathEffect;
     use super::super::manifest::ProjectionFeature;
     use super::super::manifest::ProjectionPreset;
     use super::super::manifest::ProjectionTarget;
     use super::*;
+    use std::fs;
+
+    const RESOURCE_OUTPUT: &str =
+        "src/main/resources/assets/sfm/textures/block/touch_display_face.png";
+    const RESOURCE_INPUT: &str =
+        "platform/minecraft/src/main/resources/assets/sfm/textures/block/touch_display_face.png";
 
     fn manifest() -> SourceProjectionManifest {
         let mut manifest = SourceProjectionManifest {
@@ -172,6 +180,20 @@ mod tests {
         manifest
     }
 
+    fn manifest_with_resource() -> SourceProjectionManifest {
+        let mut manifest = manifest();
+        manifest.features[0].source_effects.clear();
+        manifest.features[0].resource_effects.push(PathEffect {
+            output_path: RESOURCE_OUTPUT.to_owned(),
+            kind: PathEffectKind::Include,
+            input_path: Some(RESOURCE_INPUT.to_owned()),
+        });
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest
+    }
+
     #[test]
     fn released_preset_omits_unreleased_file_and_exposes_false_flag() {
         let selected = select(&manifest(), "1.19.2", "released-4.34.0").unwrap();
@@ -207,6 +229,7 @@ mod tests {
                 post_baseline_test_sources: BTreeMap::new(),
                 post_baseline_gradle_sources: BTreeMap::new(),
                 post_baseline_canonical_sources: BTreeMap::new(),
+                post_baseline_resources: BTreeMap::new(),
             });
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])
@@ -232,6 +255,89 @@ mod tests {
             selected.explicit_inputs["src/main/java/TouchDisplay.java"],
             "platform/minecraft/src/main/java/TouchDisplay.java"
         );
+    }
+
+    #[test]
+    fn resource_include_is_absent_when_disabled_and_binary_preserving_when_enabled() {
+        let repo = tempfile::tempdir().unwrap();
+        let primary = repo.path().join("platform/minecraft/src");
+        let resource = repo.path().join(RESOURCE_INPUT);
+        fs::create_dir_all(resource.parent().unwrap()).unwrap();
+        let bytes = [0_u8, 255, 137, 80, 78, 71];
+        fs::write(&resource, bytes).unwrap();
+
+        let mut manifest = manifest_with_resource();
+        let disabled = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
+        assert!(disabled.excluded_paths.contains(RESOURCE_OUTPUT));
+        let mut artifacts =
+            collect_projected_inputs(&primary, &[], &disabled.context, &disabled.excluded_paths)
+                .unwrap();
+        apply_explicit_inputs(
+            repo.path(),
+            &mut artifacts,
+            &disabled.explicit_inputs,
+            &disabled.context,
+        )
+        .unwrap();
+        assert!(!artifacts.contains_key(RESOURCE_OUTPUT));
+
+        manifest.presets[0]
+            .enabled_features
+            .push("touch_display".to_owned());
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let enabled = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
+        assert_eq!(enabled.explicit_inputs[RESOURCE_OUTPUT], RESOURCE_INPUT);
+        let mut artifacts =
+            collect_projected_inputs(&primary, &[], &enabled.context, &enabled.excluded_paths)
+                .unwrap();
+        apply_explicit_inputs(
+            repo.path(),
+            &mut artifacts,
+            &enabled.explicit_inputs,
+            &enabled.context,
+        )
+        .unwrap();
+        let projected = &artifacts[RESOURCE_OUTPUT];
+        assert_eq!(projected.source_bytes, bytes);
+        assert_eq!(projected.output_bytes, bytes);
+    }
+
+    #[test]
+    fn resource_include_collision_fails_without_changing_existing_artifacts() {
+        let repo = tempfile::tempdir().unwrap();
+        let primary = repo.path().join("platform/minecraft/src");
+        let blocking_file = primary.join("main/resources/assets/sfm/textures/block");
+        fs::create_dir_all(blocking_file.parent().unwrap()).unwrap();
+        fs::write(&blocking_file, b"existing resource").unwrap();
+        let fixture = repo.path().join("fixture/touch_display_face.png");
+        fs::create_dir_all(fixture.parent().unwrap()).unwrap();
+        fs::write(&fixture, [0_u8, 255]).unwrap();
+
+        let mut manifest = manifest_with_resource();
+        manifest.features[0].resource_effects[0].input_path =
+            Some("fixture/touch_display_face.png".to_owned());
+        manifest.presets[0]
+            .enabled_features
+            .push("touch_display".to_owned());
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let enabled = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
+        let mut artifacts =
+            collect_projected_inputs(&primary, &[], &enabled.context, &enabled.excluded_paths)
+                .unwrap();
+        let before = artifacts.clone();
+        let error = apply_explicit_inputs(
+            repo.path(),
+            &mut artifacts,
+            &enabled.explicit_inputs,
+            &enabled.context,
+        )
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("conflicts with descendant"));
+        assert_eq!(artifacts, before);
     }
 
     #[test]

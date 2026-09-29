@@ -2,6 +2,7 @@
 name = "sfm-propagate-changes"
 version = "0.1.1"
 edition = "2024"
+default-run = "sfm-propagate-changes"
 authors = ["TeamDman"]
 description = "CLI tool for propagating git changes across Minecraft version worktrees"
 license = "MPL-2.0"
@@ -75,6 +76,10 @@ tracy_memory = ["tracy"]
 
 [build-dependencies]
 embed-resource = "3.0.6"
+
+[[bin]]
+name = "source-jar-absence"
+path = "src/source_jar_absence_bin.rs"
 
 [[test]]
 name = "java_analysis_scenarios"

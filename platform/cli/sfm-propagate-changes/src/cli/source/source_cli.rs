@@ -1,5 +1,7 @@
 //! Explicit, fail-closed source-projection commands.
 
+use super::candidate_lock_cli::CandidateVerifyArgs;
+use super::promotion_cli::PromotionArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
@@ -25,12 +27,14 @@ use crate::source_projection::release_baseline::insert_import_file;
 use crate::source_projection::release_baseline::materialize_released_4_34_0_imports;
 use crate::source_projection::release_baseline::preflight_imports;
 use crate::source_projection::release_baseline::read_pinned_blob;
+use crate::source_projection::release_resources::apply_post_baseline_resources;
 use crate::source_projection::selection::ProjectionSelection;
 use crate::source_projection::selection::select;
 use crate::source_projection::sync::MANIFEST_FILE;
 use crate::source_projection::sync::ProjectedArtifact;
 use crate::source_projection::sync::ProjectionIdentity;
 use crate::source_projection::sync::SyncMode;
+use crate::source_projection::sync::SyncReport;
 use crate::source_projection::sync::sync_projection;
 use crate::terminal_output::stdout_line;
 use eyre::Result;
@@ -77,6 +81,10 @@ pub enum SourceCommand {
     Build(SourceGradleArgs),
     /// Run a caller-owned development projection, retaining its saves and configuration.
     Run(SourceGradleArgs),
+    /// Review or explicitly apply a guarded, ten-target checked-in projection transition.
+    Promote(PromotionArgs),
+    /// Verify a portable ten-target lock against local candidate artifacts without writing.
+    CandidateVerify(CandidateVerifyArgs),
 }
 
 #[derive(Debug, Facet)]
@@ -236,6 +244,10 @@ impl SourceArgs {
             }
             SourceCommand::Run(args) => {
                 return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Run);
+            }
+            SourceCommand::Promote(args) => return args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::CandidateVerify(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
             }
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),
@@ -804,6 +816,34 @@ impl SourceProjectArgs {
         invocation_dir: &Path,
         mode: SyncMode,
     ) -> Result<CliOutput> {
+        let (target, preset, report) = self.project_in(cancellation, invocation_dir, mode)?;
+        stdout_line(format!(
+            "source projection {target} {preset}: {} created, {} updated, {} unchanged, manifest_changed={}",
+            report.created.len(),
+            report.updated.len(),
+            report.unchanged.len(),
+            report.manifest_changed
+        ))?;
+        Ok(CliOutput::none())
+    }
+
+    /// Reuse the exact source-check renderer without printing into a caller's
+    /// machine-readable verification report.
+    pub(super) fn check_candidate_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> Result<()> {
+        self.project_in(cancellation, invocation_dir, SyncMode::Check)?;
+        Ok(())
+    }
+
+    fn project_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+        mode: SyncMode,
+    ) -> Result<(String, String, SyncReport)> {
         cancellation.bail_if_cancelled()?;
         let repo_root = resolve_repository_root(self.repo_root.clone(), invocation_dir)?;
 
@@ -859,16 +899,7 @@ impl SourceProjectArgs {
             preset_definition_identity: preset.identity.clone(),
         };
         let report = sync_projection(&output_root, &identity, &artifacts, mode)?;
-        stdout_line(format!(
-            "source projection {} {}: {} created, {} updated, {} unchanged, manifest_changed={}",
-            target.id,
-            preset.id,
-            report.created.len(),
-            report.updated.len(),
-            report.unchanged.len(),
-            report.manifest_changed
-        ))?;
-        Ok(CliOutput::none())
+        Ok((target.id.clone(), preset.id.clone(), report))
     }
 
     fn collect_source_artifacts(
@@ -914,6 +945,7 @@ impl SourceProjectArgs {
         )?;
         if let Some(binding) = &selection.release_baseline {
             apply_release_baseline(repo_root, binding, &selection.context, &mut artifacts)?;
+            apply_post_baseline_resources(repo_root, binding, &selection.context, &mut artifacts)?;
         }
         if let Some(hash) = &selection.canonical_project_fixture_provenance_sha256 {
             ensure!(
