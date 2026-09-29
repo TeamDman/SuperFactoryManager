@@ -176,6 +176,17 @@ fn apply_unchanged_sources(
     target: &ReleaseBaselineTargetReport,
     pending: &mut BTreeMap<String, ProjectedArtifact>,
 ) -> Result<(usize, BTreeSet<String>)> {
+    // An unchanged development record has the same pinned blob in the
+    // canonical tree. Reading that tree keeps projections independent of
+    // target-version branch refs; read_pinned_blob still checks path, pinned
+    // OID, regular-file mode, and SHA-256. Releases still read their tag tree.
+    let unchanged_commit = match binding.kind {
+        BaselineKind::DevelopmentHead => binding
+            .canonical_commit
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+        BaselineKind::ReleaseTag => &target.tag_commit,
+    };
     let mut pinned_tag_fallback_files = 0;
     let mut verified_template_drift = BTreeSet::new();
     for (path, record) in &target.paths {
@@ -194,7 +205,7 @@ fn apply_unchanged_sources(
             let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
                 eyre::eyre!("post-baseline test source '{path}' has no pinned Git blob ID")
             })?;
-            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            let bytes = read_pinned_blob(repo_root, unchanged_commit, path, oid, expected)?;
             let mut pinned = ProjectedArtifact {
                 source_path: format!(
                     "platform/minecraft/development-baselines/{}/committed-tree/{path}",
@@ -218,7 +229,7 @@ fn apply_unchanged_sources(
             let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
                 eyre::eyre!("development source `{path}` has no pinned Git blob OID")
             })?;
-            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            let bytes = read_pinned_blob(repo_root, unchanged_commit, path, oid, expected)?;
             let mut pinned = ProjectedArtifact {
                 source_path: format!(
                     "platform/minecraft/development-baselines/{}/committed-tree/{path}",
@@ -247,7 +258,7 @@ fn apply_unchanged_sources(
             let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
                 eyre::eyre!("development source `{path}` has no pinned Git blob OID")
             })?;
-            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            let bytes = read_pinned_blob(repo_root, unchanged_commit, path, oid, expected)?;
             ensure!(
                 pending
                     .get(path)
@@ -1339,6 +1350,7 @@ mod tests {
             .remove(0);
         let mut binding = write_report(root.path(), &report(&commit, target.paths.clone()));
         binding.kind = BaselineKind::DevelopmentHead;
+        binding.canonical_commit = Some(commit);
         let mut enabled = context();
         enabled
             .features
@@ -1553,6 +1565,241 @@ mod tests {
             String::from_utf8_lossy(&output.stderr)
         );
         String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    }
+
+    #[test]
+    fn development_unchanged_sources_use_canonical_tree_without_target_commit() {
+        let root = tempfile::tempdir().unwrap();
+        git(root.path(), &["init", "-q"]);
+        let ordinary = "src/main/java/example/Ordinary.java";
+        let reviewed = "src/main/java/example/Reviewed.java";
+        let test = "src/test/java/example/PortableTest.java";
+        let old_ordinary = b"class Ordinary {\n    void retained() {}\n}\n";
+        let old_reviewed = b"class Reviewed {}\n";
+        let old_test = b"class PortableTest {}\n";
+        let mut paths = BTreeMap::new();
+        for (path, bytes) in [
+            (ordinary, old_ordinary.as_slice()),
+            (reviewed, old_reviewed.as_slice()),
+            (test, old_test.as_slice()),
+        ] {
+            let source = root.path().join("platform/minecraft").join(path);
+            fs::create_dir_all(source.parent().unwrap()).unwrap();
+            fs::write(&source, bytes).unwrap();
+            git(root.path(), &["add", &format!("platform/minecraft/{path}")]);
+        }
+        git(
+            root.path(),
+            &[
+                "-c",
+                "user.name=SFM Test",
+                "-c",
+                "user.email=sfm@example.invalid",
+                "commit",
+                "-qm",
+                "canonical",
+            ],
+        );
+        let canonical = git(root.path(), &["rev-parse", "HEAD"]);
+        for (path, bytes) in [
+            (ordinary, old_ordinary.as_slice()),
+            (reviewed, old_reviewed.as_slice()),
+            (test, old_test.as_slice()),
+        ] {
+            let mut pinned = record(BaselinePathClass::Unchanged, Some(bytes), Some(bytes), None);
+            pinned.release_blob_oid = Some(git(
+                root.path(),
+                &["rev-parse", &format!("HEAD:platform/minecraft/{path}")],
+            ));
+            paths.insert(path.to_owned(), pinned);
+        }
+        let absent_target = "f".repeat(40);
+        let target = report(&absent_target, paths.clone()).targets.remove(0);
+        let mut binding = write_report(root.path(), &report(&absent_target, paths));
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.canonical_commit = Some(canonical);
+        binding.post_baseline_test_sources.insert(
+            test.to_owned(),
+            sha256(b"class NewTest {}\n")
+                .trim_start_matches("sha256:")
+                .to_owned(),
+        );
+        let mut rendering_context = context();
+        rendering_context
+            .features
+            .insert("portable".to_owned(), true);
+        rendering_context
+            .features
+            .insert("reviewed_change".to_owned(), true);
+        let mut old_reviewed_artifact = artifact(reviewed, old_reviewed);
+        render_java_artifact(reviewed, &mut old_reviewed_artifact, &rendering_context).unwrap();
+        let mut reviewed_primary = artifact(reviewed, b"class NewReviewed {}\n");
+        render_java_artifact(reviewed, &mut reviewed_primary, &rendering_context).unwrap();
+        binding.post_baseline_canonical_sources.insert(
+            reviewed.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: sha256(&reviewed_primary.source_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+                output_sha256: sha256(&reviewed_primary.output_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+                imported_output_sha256: Some(
+                    sha256(&old_reviewed_artifact.output_bytes)
+                        .trim_start_matches("sha256:")
+                        .to_owned(),
+                ),
+                required_feature: Some("reviewed_change".to_owned()),
+            },
+        );
+        let mut templated = artifact(
+            ordinary,
+            b"class Ordinary {\n{% if features.portable %}\n    void retained() {}\n{% endif %}\n}\n",
+        );
+        render_java_artifact(ordinary, &mut templated, &rendering_context).unwrap();
+        let mut pending = BTreeMap::from([
+            (ordinary.to_owned(), templated.clone()),
+            (reviewed.to_owned(), reviewed_primary),
+            (test.to_owned(), artifact(test, b"class NewTest {}\n")),
+        ]);
+        let (fallbacks, verified_drift) = apply_unchanged_sources(
+            root.path(),
+            &binding,
+            &rendering_context,
+            &target,
+            &mut pending,
+        )
+        .unwrap();
+        assert_eq!(fallbacks, 0);
+        assert_eq!(verified_drift, BTreeSet::from([ordinary.to_owned()]));
+        assert_eq!(pending[ordinary], templated);
+        assert_eq!(pending[reviewed].source_bytes, old_reviewed);
+        assert_eq!(pending[test].source_bytes, old_test);
+    }
+
+    #[test]
+    fn development_canonical_fallback_rejects_wrong_identity_and_release_stays_tag_bound() {
+        let root = tempfile::tempdir().unwrap();
+        git(root.path(), &["init", "-q"]);
+        let path = "src/main/java/example/Ordinary.java";
+        let source = root.path().join("platform/minecraft").join(path);
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        let old = b"class Ordinary {\n    void retained() {}\n}\n";
+        fs::write(&source, old).unwrap();
+        git(
+            root.path(),
+            &[
+                "add",
+                "platform/minecraft/src/main/java/example/Ordinary.java",
+            ],
+        );
+        git(
+            root.path(),
+            &[
+                "-c",
+                "user.name=SFM Test",
+                "-c",
+                "user.email=sfm@example.invalid",
+                "commit",
+                "-qm",
+                "canonical",
+            ],
+        );
+        let canonical = git(root.path(), &["rev-parse", "HEAD"]);
+        let oid = git(
+            root.path(),
+            &[
+                "rev-parse",
+                "HEAD:platform/minecraft/src/main/java/example/Ordinary.java",
+            ],
+        );
+        let mut pinned = record(BaselinePathClass::Unchanged, Some(old), Some(old), None);
+        pinned.release_blob_oid = Some(oid.clone());
+        let absent_target = "f".repeat(40);
+        let target = report(&absent_target, BTreeMap::from([(path.to_owned(), pinned)]))
+            .targets
+            .remove(0);
+        let mut binding = write_report(root.path(), &report(&absent_target, target.paths.clone()));
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.canonical_commit = Some(canonical);
+        let mut rendering_context = context();
+        rendering_context
+            .features
+            .insert("portable".to_owned(), true);
+        let mut templated = artifact(
+            path,
+            b"class Ordinary {\n{% if features.portable %}\n    void retained() {}\n{% endif %}\n}\n",
+        );
+        render_java_artifact(path, &mut templated, &rendering_context).unwrap();
+        let original = BTreeMap::from([(path.to_owned(), templated)]);
+        let mut pending = original.clone();
+        apply_unchanged_sources(
+            root.path(),
+            &binding,
+            &rendering_context,
+            &target,
+            &mut pending,
+        )
+        .unwrap();
+
+        let mut wrong_oid = target.clone();
+        wrong_oid.paths.get_mut(path).unwrap().release_blob_oid = Some("a".repeat(40));
+        let mut pending = original.clone();
+        assert!(
+            apply_unchanged_sources(
+                root.path(),
+                &binding,
+                &rendering_context,
+                &wrong_oid,
+                &mut pending,
+            )
+            .is_err()
+        );
+        assert_eq!(pending, original);
+
+        let mut wrong_hash = target.clone();
+        wrong_hash.paths.get_mut(path).unwrap().release_sha256 =
+            Some(format!("sha256:{}", "a".repeat(64)));
+        let mut pending = original.clone();
+        assert!(
+            apply_unchanged_sources(
+                root.path(),
+                &binding,
+                &rendering_context,
+                &wrong_hash,
+                &mut pending,
+            )
+            .is_err()
+        );
+        assert_eq!(pending, original);
+
+        binding.canonical_commit = None;
+        let mut pending = original.clone();
+        assert!(
+            apply_unchanged_sources(
+                root.path(),
+                &binding,
+                &rendering_context,
+                &target,
+                &mut pending,
+            )
+            .is_err()
+        );
+        assert_eq!(pending, original);
+
+        binding.kind = BaselineKind::ReleaseTag;
+        let mut pending = original.clone();
+        assert!(
+            apply_unchanged_sources(
+                root.path(),
+                &binding,
+                &rendering_context,
+                &target,
+                &mut pending,
+            )
+            .is_err()
+        );
+        assert_eq!(pending, original);
     }
 
     #[test]
