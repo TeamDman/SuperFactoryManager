@@ -30,6 +30,7 @@ public final class ReleaseServerRegistryProbe {
     private static final String TARGET_PROPERTY = "sfm.releaseWitness.target";
     private static final String LOADER_PROPERTY = "sfm.releaseWitness.loader";
     private static final String COMMAND_OUTPUT_PROPERTY = "sfm.releaseWitness.commandSnapshot";
+    private static final String NETWORK_OUTPUT_PROPERTY = "sfm.releaseWitness.networkSnapshot";
 
     public ReleaseServerRegistryProbe() {
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
@@ -76,9 +77,23 @@ public final class ReleaseServerRegistryProbe {
             if (!commandOutput.isBlank()) {
                 writeCommandSnapshot(event.getServer().getCommands().getDispatcher(), commandOutput, target, loader);
             }
+            String networkOutput = System.getProperty(NETWORK_OUTPUT_PROPERTY, "");
+            if (!networkOutput.isBlank()) {
+                writeNetworkSnapshot(networkOutput);
+            }
         } catch (Exception failure) {
             throw new IllegalStateException("SFM release registry snapshot failed", failure);
         }
+    }
+
+    private static void writeNetworkSnapshot(String configuredPath) throws Exception {
+        Path output = Path.of(configuredPath).toAbsolutePath().normalize();
+        if (!Files.isDirectory(output.getParent()) || Files.exists(output)) {
+            throw new IllegalStateException("Network snapshot parent is missing or output already exists");
+        }
+        String json = ReleaseNetworkProbe.captureJson();
+        Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+        System.out.println("SFM_NETWORK_SNAPSHOT_V1 payloads_written=true");
     }
 
     private static void writeCommandSnapshot(CommandDispatcher<CommandSourceStack> dispatcher,

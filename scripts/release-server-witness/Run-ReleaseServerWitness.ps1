@@ -14,7 +14,7 @@ param(
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
     [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0', '1.21.1', '26.1.2')] [string] $Target = '1.19.4',
-    [ValidateSet('registry-save', 'vanilla-barrel-transfer', 'command-dispatcher')] [string] $Mode = 'registry-save',
+    [ValidateSet('registry-save', 'vanilla-barrel-transfer', 'command-dispatcher', 'network-registration')] [string] $Mode = 'registry-save',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -27,8 +27,12 @@ Set-StrictMode -Version Latest
 $target = $Target
 $transferMode = $Mode -eq 'vanilla-barrel-transfer'
 $commandMode = $Mode -eq 'command-dispatcher'
+$networkMode = $Mode -eq 'network-registration'
 if ($commandMode -and $target -notin @('1.19.2', '26.1.2')) {
     throw 'The command-dispatcher witness is only validated for exact 1.19.2 and 26.1.2'
+}
+if ($networkMode -and $target -notin @('1.19.2', '26.1.2')) {
+    throw 'The network-registration witness is only validated for exact 1.19.2 and 26.1.2'
 }
 if ($transferMode -and $target -notin @('1.20.2', '1.21.0', '26.1.2')) {
     throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.20.2, 1.21.0 and 26.1.2'
@@ -317,10 +321,13 @@ $diskErrorPattern = '(?i)no space left|not enough space|insufficient disk|disk[ 
 $worldName = 'sfm-release-witness-world'
 $probeRoot = $PSScriptRoot
 $probeSource = Join-Path $probeRoot $version.probe_source
+$networkProbeSource = if ($target -in @('1.19.2', '26.1.2')) {
+    Join-Path (Split-Path -Parent $probeSource) 'ReleaseNetworkProbe.java'
+} else { '' }
 $probeResources = Join-Path $probeRoot $version.resources
 $probeManifest = Join-Path $probeResources $version.mod_manifest
 $fixture = $null
-if ($version.ContainsKey('fixture_source') -and -not $transferMode -and -not $commandMode) {
+if ($version.ContainsKey('fixture_source') -and -not $transferMode -and -not $commandMode -and -not $networkMode) {
     $fixtureScript = Join-Path $probeRoot $version.fixture_source
     if (-not [IO.File]::Exists($fixtureScript)) { throw 'Version-specific fixture script is missing' }
     . $fixtureScript
@@ -586,6 +593,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
     $transcript = Join-Path $BootDirectory 'commands.txt'
     $snapshot = Join-Path $BootDirectory 'registry-snapshot.json'
     $commandSnapshot = Join-Path $BootDirectory 'command-snapshot.json'
+    $networkSnapshot = Join-Path $BootDirectory 'network-snapshot.json'
     $stdout = Join-Path $BootDirectory 'java.stdout.log'
     $stderr = Join-Path $BootDirectory 'java.stderr.log'
     $start = [Diagnostics.ProcessStartInfo]::new()
@@ -604,6 +612,9 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
     $start.ArgumentList.Add('-Dsfm.releaseWitness.loader=' + $loaderIdentity)
     if ($commandMode) {
         $start.ArgumentList.Add('-Dsfm.releaseWitness.commandSnapshot=' + $commandSnapshot.Replace('\', '/'))
+    }
+    if ($networkMode) {
+        $start.ArgumentList.Add('-Dsfm.releaseWitness.networkSnapshot=' + $networkSnapshot.Replace('\', '/'))
     }
     $start.ArgumentList.Add('@' + $launchArgs.Replace('\', '/'))
     $start.ArgumentList.Add('nogui')
@@ -658,6 +669,26 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
                 throw "$Role command snapshot identity or non-vacuity mismatch"
             }
         }
+        $parsedNetwork = $null
+        if ($networkMode) {
+            $networkDeadline = [DateTime]::UtcNow.AddSeconds(30)
+            while (-not [IO.File]::Exists($networkSnapshot) -and [DateTime]::UtcNow -lt $networkDeadline) {
+                $currentLog = Read-IfExists $log
+                Assert-NoDiskError $currentLog
+                if ($currentLog.Contains('SFM release registry snapshot failed')) {
+                    throw "$Role network probe failed after Done; see retained server log"
+                }
+                $process.Refresh()
+                if ($process.HasExited) { break }
+                Start-Sleep -Milliseconds 250
+            }
+            if (-not [IO.File]::Exists($networkSnapshot)) { throw "$Role probe did not emit a network snapshot" }
+            $parsedNetwork = [IO.File]::ReadAllText($networkSnapshot) | ConvertFrom-Json
+            $entries = if ($target -eq '1.19.2') { @($parsedNetwork.messages) } else { @($parsedNetwork.payloads) }
+            if ($parsedNetwork.schema -ne 'sfm:release_network_snapshot@1' -or $entries.Count -ne 37) {
+                throw "$Role network snapshot schema or non-vacuity mismatch"
+            }
+        }
 
         $transferBefore = $null
         $transferAfter = $null
@@ -706,7 +737,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
                 $transferAfter = Read-TransferFinalState $process $log $transcript $Role $true
             }
         }
-        $values = if ($CreateSeed -or $transferMode -or $commandMode) { $null } else { Read-SelectedValues $process $log $transcript }
+        $values = if ($CreateSeed -or $transferMode -or $commandMode -or $networkMode) { $null } else { Read-SelectedValues $process $log $transcript }
         Send-ServerCommand $process $log $transcript 'save-all flush' 'Saved the game' | Out-Null
         [IO.File]::AppendAllText($transcript, "stop`n")
         $process.StandardInput.WriteLine('stop')
@@ -738,10 +769,14 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
             $bootResult['command_snapshot_sha256'] = Get-Sha256 $commandSnapshot
             $bootResult['command_nodes'] = $parsedCommand.nodes
         }
+        if ($networkMode) {
+            $bootResult['network_snapshot_sha256'] = Get-Sha256 $networkSnapshot
+            $bootResult['network_snapshot'] = $parsedNetwork
+        }
         if ($transferMode) {
             if ($transferBefore) { $bootResult['transfer_before'] = $transferBefore }
             if ($transferAfter) { $bootResult['transfer_after'] = $transferAfter }
-        } elseif (-not $commandMode) {
+        } elseif (-not $commandMode -and -not $networkMode) {
             $bootResult['selected_values'] = $values
         }
         return $bootResult
@@ -809,6 +844,7 @@ $expectedJavaSha256 = if ($target -eq '26.1.2') {
 }
 Assert-Hash $java SHA256 $expectedJavaSha256 | Out-Null
 Assert-File $probeSource | Out-Null
+if ($networkProbeSource) { Assert-File $networkProbeSource | Out-Null }
 Assert-File $probeManifest | Out-Null
 Assert-File (Join-Path $probeResources 'pack.mcmeta') | Out-Null
 $javaVersionOutput = (& $java -version 2>&1) -join "`n"
@@ -899,7 +935,8 @@ $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
 $compileClasspath = (@($compileJar, $fml, $language, $eventBus) + $compileExtras.ToArray() |
     Where-Object { $_ }) -join ';'
-& $javac -proc:none -source $version.java_source -target $version.java_source -classpath $compileClasspath -d $probeClasses $probeSource
+$probeSources = if ($networkProbeSource) { @($probeSource, $networkProbeSource) } else { @($probeSource) }
+& $javac -proc:none -source $version.java_source -target $version.java_source -classpath $compileClasspath -d $probeClasses $probeSources
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe javac failed: $LASTEXITCODE" }
 $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
 & $jarTool --create --file $probeJar -C $probeClasses . -C $probeResources .
@@ -962,6 +999,45 @@ if ($commandMode) {
     Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
     Write-Host "SFM_RELEASE_SERVER_COMMAND_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
     if (-not $equal) { throw 'Official/projected command subtree comparison failed; see result.json' }
+    return
+}
+
+if ($networkMode) {
+    $officialBoot = New-BootDirectory 'official-network' $official $OfficialSha256
+    $projectedBoot = New-BootDirectory 'projected-network' $projected $ProjectedSha256
+    $officialResult = Invoke-ServerBoot 'official-network' $officialBoot $OfficialSha256.ToLowerInvariant() $false
+    $projectedResult = Invoke-ServerBoot 'projected-network' $projectedBoot $ProjectedSha256.ToLowerInvariant() $false
+    $equal = $officialResult.network_snapshot_sha256 -ceq $projectedResult.network_snapshot_sha256
+    $report = [ordered]@{
+        schema = 'sfm:release_server_network_witness@1'
+        status = if ($equal) { 'PASS' } else { 'FAIL' }
+        target = $target
+        loader = $loaderIdentity
+        loader_install_mode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
+        runner_script_sha256 = Get-Sha256 $PSCommandPath
+        probe_source_sha256 = Get-Sha256 $probeSource
+        network_probe_source_sha256 = Get-Sha256 $networkProbeSource
+        probe_mods_toml_sha256 = Get-Sha256 $probeManifest
+        probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
+        probe_jar_sha256 = $probeHash
+        probe_compile_extra_sha256 = $compileExtraHashes
+        loader_installer_sha1 = $expectedInstallerSha1
+        loader_installer_sha256 = $expectedInstallerSha256
+        loader_compile_jar_sha256 = $version.compile_jar_sha256
+        loader_launch_args_sha256 = Get-Sha256 $launchArgs
+        java_exe_sha256 = Get-Sha256 $java
+        official_jar_sha256 = $OfficialSha256.ToLowerInvariant()
+        projected_jar_sha256 = $ProjectedSha256.ToLowerInvariant()
+        network_snapshots_equal = $equal
+        boots = @($officialResult, $projectedResult)
+        scope = 'Two fresh exact-loader server boots; SFM network registration topology and codec presence. No encode, decode, packet delivery, permission, client or release parity claim.'
+    }
+    $reportPath = Join-Path $run 'result.json'
+    [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 15) + "`n", [Text.UTF8Encoding]::new($false))
+    Assert-Hash $official SHA256 $OfficialSha256 | Out-Null
+    Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
+    Write-Host "SFM_RELEASE_SERVER_NETWORK_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
+    if (-not $equal) { throw 'Official/projected network registration comparison failed; see result.json' }
     return
 }
 
