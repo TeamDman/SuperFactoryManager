@@ -13,6 +13,7 @@ use super::syntax::is_type_declaration;
 use super::syntax::named_children;
 use facet::Facet;
 use std::collections::BTreeSet;
+use std::rc::Rc;
 use tree_sitter_patched_arborium::Node;
 
 pub(crate) const JAVA_FILE_FACTS_SCHEMA: &str = "sfm.java-file-facts/1";
@@ -288,27 +289,28 @@ fn collect_syntax_referenced_types(
     node: Node<'_>,
     names: &mut BTreeSet<String>,
 ) {
-    if is_nonsemantic_literal_or_comment(node.kind()) {
-        return;
-    }
-    match node.kind() {
-        "type_identifier" | "scoped_type_identifier" => {
-            if let Some(raw_type) = file.text(node) {
-                remember_referenced_type(raw_type, names);
-            }
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if is_nonsemantic_literal_or_comment(node.kind()) {
+            continue;
         }
-        "marker_annotation" | "annotation" => {
-            let name = node
-                .child_by_field_name("name")
-                .or_else(|| named_children(node).into_iter().next());
-            if let Some(raw_type) = name.and_then(|name| file.text(name)) {
-                remember_referenced_type(raw_type.trim_start_matches('@'), names);
+        match node.kind() {
+            "type_identifier" | "scoped_type_identifier" => {
+                if let Some(raw_type) = file.text(node) {
+                    remember_referenced_type(raw_type, names);
+                }
             }
+            "marker_annotation" | "annotation" => {
+                let name = node
+                    .child_by_field_name("name")
+                    .or_else(|| named_children(node).into_iter().next());
+                if let Some(raw_type) = name.and_then(|name| file.text(name)) {
+                    remember_referenced_type(raw_type.trim_start_matches('@'), names);
+                }
+            }
+            _ => {}
         }
-        _ => {}
-    }
-    for child in named_children(node) {
-        collect_syntax_referenced_types(file, child, names);
+        pending.extend(named_children(node).into_iter().rev());
     }
 }
 
@@ -323,77 +325,87 @@ fn collect_declaration_facts(
     detail: JavaFileFactDetail,
     facts: &mut DeclarationFacts,
 ) {
-    if is_nonsemantic_literal_or_comment(node.kind()) {
-        return;
-    }
-
-    if detail == JavaFileFactDetail::Declarations
-        && let Some(owner) = direct_member_owner
-    {
-        match node.kind() {
-            "field_declaration" | "constant_declaration" => {
-                collect_raw_fields(file, owner, node, facts);
-            }
-            "method_declaration" | "constructor_declaration" => {
-                collect_raw_callable(file, owner, node, facts);
-            }
-            "enum_constant" => collect_enum_constant(file, owner, node, facts),
-            _ => {}
+    // `Rc<str>` shares the owner across pending siblings. Generated parser
+    // expressions can be hundreds of syntax nodes deep, so traversal state
+    // belongs on the heap rather than on the CLI main thread's call stack.
+    let mut pending = vec![(
+        node,
+        enclosing_owner.map(Rc::<str>::from),
+        direct_member_owner.map(Rc::<str>::from),
+    )];
+    while let Some((node, enclosing_owner, direct_member_owner)) = pending.pop() {
+        if is_nonsemantic_literal_or_comment(node.kind()) {
+            continue;
         }
-    }
 
-    if is_type_declaration(node.kind()) {
-        let Some(name_node) = declaration_name_node(node) else {
-            return;
-        };
-        let Some(name) = file.text(name_node) else {
-            return;
-        };
-        let qualified_name = enclosing_owner.map_or_else(
-            || qualify_name(&file.package_name, name),
-            |owner| format!("{owner}${name}"),
-        );
-        let owner = enclosing_owner.map_or_else(|| file.package_name.clone(), ToOwned::to_owned);
-        facts.types.push(JavaSymbolDefinitionOutput {
-            symbol: JavaSymbolIdentityOutput {
-                kind: java_type_kind(node.kind()),
-                owner,
-                name: name.to_owned(),
-                descriptor: None,
-                qualified_name: qualified_name.clone(),
-            },
-            identifier_span: file.span(name_node),
-            declaration_span: file.span(node),
-            confidence: ResolutionConfidence::Resolved,
-        });
-
-        let body_range = node
-            .child_by_field_name("body")
-            .map(|body| body.byte_range());
-        for child in named_children(node) {
-            if body_range
-                .as_ref()
-                .is_some_and(|range| *range == child.byte_range())
-            {
-                for member in named_children(child) {
-                    collect_declaration_facts(
-                        file,
-                        member,
-                        Some(&qualified_name),
-                        Some(&qualified_name),
-                        detail,
-                        facts,
-                    );
+        if detail == JavaFileFactDetail::Declarations
+            && let Some(owner) = direct_member_owner.as_deref()
+        {
+            match node.kind() {
+                "field_declaration" | "constant_declaration" => {
+                    collect_raw_fields(file, owner, node, facts);
                 }
-            } else {
-                collect_declaration_facts(file, child, Some(&qualified_name), None, detail, facts);
+                "method_declaration" | "constructor_declaration" => {
+                    collect_raw_callable(file, owner, node, facts);
+                }
+                "enum_constant" => collect_enum_constant(file, owner, node, facts),
+                _ => {}
             }
         }
-        return;
-    }
 
-    for child in named_children(node) {
-        collect_declaration_facts(file, child, enclosing_owner, None, detail, facts);
+        if is_type_declaration(node.kind()) {
+            let Some(name_node) = declaration_name_node(node) else {
+                continue;
+            };
+            let Some(name) = file.text(name_node) else {
+                continue;
+            };
+            let qualified_name = enclosing_owner.as_deref().map_or_else(
+                || qualify_name(&file.package_name, name),
+                |owner| format!("{owner}${name}"),
+            );
+            let owner = enclosing_owner
+                .as_deref()
+                .map_or_else(|| file.package_name.clone(), ToOwned::to_owned);
+            facts.types.push(JavaSymbolDefinitionOutput {
+                symbol: JavaSymbolIdentityOutput {
+                    kind: java_type_kind(node.kind()),
+                    owner,
+                    name: name.to_owned(),
+                    descriptor: None,
+                    qualified_name: qualified_name.clone(),
+                },
+                identifier_span: file.span(name_node),
+                declaration_span: file.span(node),
+                confidence: ResolutionConfidence::Resolved,
+            });
+
+            let qualified_owner: Rc<str> = Rc::from(qualified_name);
+            let body_range = node
+                .child_by_field_name("body")
+                .map(|body| body.byte_range());
+            for child in named_children(node).into_iter().rev() {
+                if body_range
+                    .as_ref()
+                    .is_some_and(|range| *range == child.byte_range())
+                {
+                    for member in named_children(child).into_iter().rev() {
+                        pending.push((
+                            member,
+                            Some(Rc::clone(&qualified_owner)),
+                            Some(Rc::clone(&qualified_owner)),
+                        ));
+                    }
+                } else {
+                    pending.push((child, Some(Rc::clone(&qualified_owner)), None));
+                }
+            }
+            continue;
+        }
+
+        for child in named_children(node).into_iter().rev() {
+            pending.push((child, enclosing_owner.clone(), None));
+        }
     }
 }
 
@@ -846,6 +858,22 @@ mod tests {
             facts.referenced_type_names,
             ["Inner", "List", "String", "p.Outer$Kind"]
         );
+    }
+
+    #[test]
+    fn java_file_facts_preserve_symbols_in_deep_antlr_style_concatenation() {
+        let fragments = vec!["\"x\""; 450].join(" + ");
+        let source = format!("class Generated {{ static final String ATN = {fragments}; }}");
+        let facts = extract(&source);
+
+        assert!(facts.diagnostics.is_empty(), "{:?}", facts.diagnostics);
+        assert_eq!(facts.types.len(), 1);
+        assert_eq!(facts.types[0].symbol.qualified_name, "Generated");
+        assert_eq!(facts.fields.len(), 1);
+        assert_eq!(facts.fields[0].owner, "Generated");
+        assert_eq!(facts.fields[0].name, "ATN");
+        assert_eq!(facts.fields[0].raw_type, "String");
+        assert!(facts.referenced_type_names.contains(&"String".to_owned()));
     }
 
     #[test]

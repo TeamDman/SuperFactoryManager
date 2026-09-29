@@ -212,26 +212,30 @@ fn collect_parse_gaps(
     parse_gap_count: &mut usize,
     diagnostic_limit: Option<usize>,
 ) {
-    if node.kind() == "ERROR" || node.is_missing() {
-        *parse_gap_count += 1;
-        if diagnostic_limit.is_none_or(|limit| diagnostics.len() < limit) {
-            diagnostics.push(JavaAnalysisDiagnosticOutput {
-                code: "java.parse-gap".to_owned(),
-                severity: DiagnosticSeverity::Warning,
-                message: if node.is_missing() {
-                    format!(
-                        "Arborium inserted missing Java syntax node `{}`",
-                        node.kind()
-                    )
-                } else {
-                    "Arborium encountered unparsed Java syntax".to_owned()
-                },
-                span: Some(file.span(node)),
-            });
+    // ANTLR-generated Java can contain hundreds of left-associated string
+    // concatenations. The syntax tree is valid, but a recursive walk can
+    // exhaust the CLI main thread's Windows stack before any query runs.
+    let mut pending = vec![node];
+    while let Some(node) = pending.pop() {
+        if node.kind() == "ERROR" || node.is_missing() {
+            *parse_gap_count += 1;
+            if diagnostic_limit.is_none_or(|limit| diagnostics.len() < limit) {
+                diagnostics.push(JavaAnalysisDiagnosticOutput {
+                    code: "java.parse-gap".to_owned(),
+                    severity: DiagnosticSeverity::Warning,
+                    message: if node.is_missing() {
+                        format!(
+                            "Arborium inserted missing Java syntax node `{}`",
+                            node.kind()
+                        )
+                    } else {
+                        "Arborium encountered unparsed Java syntax".to_owned()
+                    },
+                    span: Some(file.span(node)),
+                });
+            }
         }
-    }
-    for child in named_children(node) {
-        collect_parse_gaps(child, file, diagnostics, parse_gap_count, diagnostic_limit);
+        pending.extend(named_children(node).into_iter().rev());
     }
 }
 
@@ -384,5 +388,32 @@ mod tests {
         assert!(file.diagnostics.iter().all(|diagnostic| {
             diagnostic.code == "java.parse-gap" && diagnostic.span.is_some()
         }));
+    }
+
+    #[test]
+    fn java_syntax_handles_deep_antlr_style_string_concatenation() {
+        // Recent generated ANTLR lexers have more than 400 string fragments
+        // in `_serializedATN`. Arborium represents their left-associated `+`
+        // expression as a correspondingly deep syntax tree.
+        let fragments = vec!["\"x\""; 450].join(" + ");
+        let source = format!("class Generated {{ static final String ATN = {fragments}; }}");
+        let file = JavaSyntaxFile::parse_text("Generated.java", "main", source)
+            .expect("valid generated-style Java should parse");
+        assert!(file.diagnostics.is_empty(), "{:?}", file.diagnostics);
+
+        let mut pending = vec![(file.tree.root_node(), 0_usize)];
+        let mut maximum_depth = 0;
+        while let Some((node, depth)) = pending.pop() {
+            maximum_depth = maximum_depth.max(depth);
+            pending.extend(
+                named_children(node)
+                    .into_iter()
+                    .map(|child| (child, depth + 1)),
+            );
+        }
+        assert!(
+            maximum_depth > 400,
+            "unexpected syntax depth {maximum_depth}"
+        );
     }
 }
