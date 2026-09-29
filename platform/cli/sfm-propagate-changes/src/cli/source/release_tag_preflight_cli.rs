@@ -117,6 +117,15 @@ impl ReleaseTagPreflightArgs {
 
         let local_tag = format!("{}-{}", verified.manifest.mod_version, self.target_id);
         let (local_tag_state, local_tag_object_id) = inspect_local_tag(&root, &local_tag, &head)?;
+        ensure_unconcealed_index(&root)?;
+        ensure!(
+            git_text(
+                &root,
+                &["status", "--porcelain=v1", "--untracked-files=all"]
+            )?
+            .is_empty(),
+            "reviewed release worktree changed during local tag preflight"
+        );
         ensure!(
             git_text(&root, &["rev-parse", "HEAD"])? == head,
             "current HEAD changed during local tag preflight"
@@ -162,6 +171,7 @@ fn ensure_reviewed_release_checkout(
         head == reviewed_release_commit,
         "current HEAD differs from --reviewed-release-commit"
     );
+    ensure_unconcealed_index(root)?;
     ensure!(
         git_text(root, &["status", "--porcelain=v1", "--untracked-files=all"])?.is_empty(),
         "reviewed release worktree is not clean"
@@ -209,6 +219,26 @@ fn ensure_reviewed_release_checkout(
         "committed non-generated files changed since package source commit"
     );
     Ok(head)
+}
+
+fn ensure_unconcealed_index(root: &Path) -> Result<()> {
+    let entries = git_bytes(root, &["ls-files", "--cached", "-v", "-z"])?;
+    ensure!(
+        entries.last() == Some(&0),
+        "reviewed release index has no terminal NUL"
+    );
+    for entry in entries[..entries.len() - 1].split(|byte| *byte == 0) {
+        ensure!(
+            entry.len() >= 3 && entry[1] == b' ',
+            "reviewed release index has a malformed tracked entry"
+        );
+        let relative = std::str::from_utf8(&entry[2..])?;
+        ensure!(
+            entry[0] == b'H',
+            "reviewed release index has a concealed or non-normal tracked entry '{relative}'"
+        );
+    }
+    Ok(())
 }
 
 fn ensure_selected_promoted_root(
@@ -352,17 +382,49 @@ fn inspect_local_tag(root: &Path, local_tag: &str, head: &str) -> Result<(String
             .success(),
         "derived local tag has an invalid Git ref name"
     );
-    if !git_bool(root, &["show-ref", "--verify", "--quiet", &tag_ref])? {
-        return Ok(("absent".to_owned(), None));
+    let existence = git_output(root, &["show-ref", "--exists", &tag_ref])?;
+    match existence.status.code() {
+        Some(0) => {}
+        Some(2) => {
+            ensure!(
+                git_output(root, &["show-ref", "--exists", &tag_ref])?
+                    .status
+                    .code()
+                    == Some(2),
+                "local tag changed during preflight"
+            );
+            return Ok(("absent".to_owned(), None));
+        }
+        _ => eyre::bail!(
+            "cannot inspect local tag '{local_tag}': {}",
+            String::from_utf8_lossy(&existence.stderr).trim()
+        ),
     }
     let object = git_text(root, &["rev-parse", "--verify", &tag_ref])?;
+    inspect_captured_local_tag(root, local_tag, head, object)
+}
+
+fn inspect_captured_local_tag(
+    root: &Path,
+    local_tag: &str,
+    head: &str,
+    object: String,
+) -> Result<(String, Option<String>)> {
+    ensure_commit(&object, "local tag object")?;
     let peeled = git_text(
         root,
-        &["rev-parse", "--verify", &format!("{tag_ref}^{{commit}}")],
+        &["rev-parse", "--verify", &format!("{object}^{{commit}}")],
     )?;
     ensure!(
         peeled == head,
         "local tag '{local_tag}' does not point to reviewed release commit"
+    );
+    ensure!(
+        git_text(
+            root,
+            &["rev-parse", "--verify", &format!("refs/tags/{local_tag}")]
+        )? == object,
+        "local tag '{local_tag}' changed during preflight"
     );
     Ok(("matches-reviewed-release-commit".to_owned(), Some(object)))
 }
@@ -843,7 +905,7 @@ mod tests {
             args.preflight_in(&CancellationToken::new())
                 .unwrap_err()
                 .to_string()
-                .contains("release HEAD blob differs from provenance")
+                .contains("concealed or non-normal tracked entry")
         );
     }
 
@@ -867,7 +929,105 @@ mod tests {
             args.preflight_in(&CancellationToken::new())
                 .unwrap_err()
                 .to_string()
-                .contains("HEAD tree does not exactly match provenance-owned paths")
+                .contains("concealed or non-normal tracked entry")
+        );
+    }
+
+    #[test]
+    fn rejects_assume_unchanged_authored_edit_hidden_from_git_status() {
+        let (fixture, mut args) = packaged_candidate();
+        args.reviewed_release_commit = promoted_commit(&fixture);
+        assert!(args.clone().preflight_in(&CancellationToken::new()).is_ok());
+        let relative = "platform/minecraft/src/main/java/Candidate.java";
+        git(
+            fixture.repo(),
+            &["update-index", "--assume-unchanged", "--", relative],
+        );
+        fs::write(
+            fixture.repo().join(relative),
+            b"class Candidate { int hidden; }\n",
+        )
+        .unwrap();
+        assert!(git(fixture.repo(), &["status", "--porcelain"]).is_empty());
+        assert!(
+            args.preflight_in(&CancellationToken::new())
+                .unwrap_err()
+                .to_string()
+                .contains("concealed or non-normal tracked entry")
+        );
+    }
+
+    #[test]
+    fn rejects_skip_worktree_on_unmodified_unselected_tracked_file() {
+        let (fixture, mut args) = packaged_candidate();
+        args.reviewed_release_commit = promoted_commit(&fixture);
+        assert!(args.clone().preflight_in(&CancellationToken::new()).is_ok());
+        git(
+            fixture.repo(),
+            &["update-index", "--skip-worktree", "--", ".gitignore"],
+        );
+        assert!(git(fixture.repo(), &["status", "--porcelain"]).is_empty());
+        assert!(
+            args.preflight_in(&CancellationToken::new())
+                .unwrap_err()
+                .to_string()
+                .contains("concealed or non-normal tracked entry")
+        );
+    }
+
+    #[test]
+    fn corrupt_local_tag_ref_is_not_reported_as_absent() {
+        let (fixture, mut args) = packaged_candidate();
+        args.reviewed_release_commit = promoted_commit(&fixture);
+        let tag_ref = fixture.repo().join(".git/refs/tags/4.35.0-1.21.0");
+        fs::create_dir_all(tag_ref.parent().unwrap()).unwrap();
+        fs::write(tag_ref, b"not-a-Git-object\n").unwrap();
+        assert!(
+            args.preflight_in(&CancellationToken::new())
+                .unwrap_err()
+                .to_string()
+                .contains("cannot inspect local tag")
+        );
+    }
+
+    #[test]
+    fn captured_tag_object_cannot_be_mixed_with_a_retargeted_ref() {
+        let fixture = Fixture::new();
+        let reviewed_release_commit = promoted_commit(&fixture);
+        let local_tag = "4.35.0-1.21.0";
+        let tag_ref = format!("refs/tags/{local_tag}");
+        let source_commit = fixture.lock().source_commit.clone();
+
+        git(fixture.repo(), &["tag", local_tag, &source_commit]);
+        let stale_object = git(fixture.repo(), &["rev-parse", &tag_ref]);
+        git(
+            fixture.repo(),
+            &["tag", "-f", local_tag, &reviewed_release_commit],
+        );
+        assert!(
+            inspect_captured_local_tag(
+                fixture.repo(),
+                local_tag,
+                &reviewed_release_commit,
+                stale_object,
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("does not point to reviewed release commit")
+        );
+
+        let matching_object = git(fixture.repo(), &["rev-parse", &tag_ref]);
+        git(fixture.repo(), &["tag", "-f", local_tag, &source_commit]);
+        assert!(
+            inspect_captured_local_tag(
+                fixture.repo(),
+                local_tag,
+                &reviewed_release_commit,
+                matching_object,
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("changed during preflight")
         );
     }
 
