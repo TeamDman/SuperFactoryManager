@@ -28,6 +28,8 @@ use std::path::PathBuf;
 
 const PLAN_SCHEMA: &str = "sfm:source_release_provider_plan@1";
 const PLAN_SCOPE: &str = "read-only reviewed-provider-intent for one verified ten-JAR package; no credentials, remote checks, tag, upload, promotion or publication";
+const MODRINTH_PREVIEW_SCHEMA: &str = "sfm:source_release_modrinth_request_preview@1";
+const MODRINTH_PREVIEW_SCOPE: &str = "read-only exact Modrinth request metadata and verified package asset pairs; no credentials, network, tag, upload or publication";
 const MAX_CHANGELOG_BYTES: u64 = 1024 * 1024;
 const DUAL_1201_POLICY: &str = "dual-forge-neoforge";
 const NEOFORGE_ONLY_1201_POLICY: &str = "neoforge-only";
@@ -64,6 +66,44 @@ pub struct ReleaseProviderPlanArgs {
     /// Explicit 1.20.1 Modrinth choice: dual-forge-neoforge or neoforge-only.
     #[facet(args::named)]
     pub modrinth_1201_loader_policy: String,
+}
+
+#[derive(Clone, Debug, Facet)]
+pub struct ReleaseModrinthRequestPreviewArgs {
+    /// Reuse the complete reviewed provider-plan input and verification gate.
+    #[facet(flatten)]
+    pub provider_plan: ReleaseProviderPlanArgs,
+}
+
+struct ReviewedProviderPlan {
+    report: ReleaseProviderPlanReport,
+    changelog: String,
+}
+
+#[derive(Debug, Facet)]
+struct ReleaseModrinthRequestPreviewReport {
+    schema: String,
+    scope: String,
+    completion_manifest_sha256: String,
+    inventory_sha256: String,
+    package_source_commit: String,
+    candidate_preset_id: String,
+    mod_version: String,
+    modrinth_project: String,
+    loader_policy_1201: String,
+    changelog_sha256: String,
+    publication_authorized: bool,
+    target_count: usize,
+    targets: Vec<ModrinthRequestPreviewTarget>,
+}
+
+#[derive(Debug, Facet)]
+struct ModrinthRequestPreviewTarget {
+    target_id: String,
+    file_name: String,
+    jar_sha256: String,
+    request_metadata_json: String,
+    request_metadata_sha256: String,
 }
 
 #[derive(Debug, Facet)]
@@ -114,7 +154,7 @@ struct CurseForgeProviderIntent {
     game_version_ids_require_remote_resolution: bool,
 }
 
-#[derive(Debug, Facet)]
+#[derive(Clone, Debug, Facet)]
 struct ReleaseProviderTarget {
     target_id: String,
     minecraft_version: String,
@@ -142,6 +182,10 @@ impl ReleaseProviderPlanArgs {
     }
 
     fn plan_in(self, cancellation: &CancellationToken) -> Result<ReleaseProviderPlanReport> {
+        Ok(self.review_in(cancellation)?.report)
+    }
+
+    fn review_in(self, cancellation: &CancellationToken) -> Result<ReviewedProviderPlan> {
         validate_provider_identity(&self)?;
         let verified = ReleasePackageVerifyArgs {
             package_root: self.package_root.clone(),
@@ -160,8 +204,100 @@ impl ReleaseProviderPlanArgs {
             "--reviewed-tag does not identify the verified package mod version"
         );
         let changelog = read_reviewed_changelog(&self.changelog_file, &self.changelog_sha256)?;
-        ReleaseProviderPlanReport::from_verified(self, verified, &changelog)
+        let report = ReleaseProviderPlanReport::from_verified(self, verified, &changelog)?;
+        Ok(ReviewedProviderPlan { report, changelog })
     }
+}
+
+impl ReleaseModrinthRequestPreviewArgs {
+    /// Render the exact, reviewed Modrinth metadata beside each verified JAR.
+    ///
+    /// # Errors
+    ///
+    /// Rejects changed package or changelog bytes and invalid provider mapping.
+    pub(super) fn invoke_in(self, cancellation: &CancellationToken) -> Result<CliOutput> {
+        Ok(CliOutput::facet(self.preview_in(cancellation)?))
+    }
+
+    fn preview_in(
+        self,
+        cancellation: &CancellationToken,
+    ) -> Result<ReleaseModrinthRequestPreviewReport> {
+        let ReviewedProviderPlan { report, changelog } =
+            self.provider_plan.review_in(cancellation)?;
+        let mut targets = Vec::with_capacity(report.target_count);
+        for target in report.targets {
+            cancellation.bail_if_cancelled()?;
+            validate_modrinth_request_mapping(&target, &report.modrinth.loader_policy_1201)?;
+            let payload = ModrinthCreateVersionPayload::for_release(
+                &target.display_name,
+                &target.modrinth_version_number,
+                &changelog,
+                &target.modrinth_game_versions,
+                &target.modrinth_loaders,
+                &report.modrinth.project,
+            );
+            let request_metadata_json = facet_json::to_string(&payload)?;
+            targets.push(ModrinthRequestPreviewTarget {
+                target_id: target.target_id,
+                file_name: target.file_name,
+                jar_sha256: target.sha256,
+                request_metadata_sha256: sha256(request_metadata_json.as_bytes()),
+                request_metadata_json,
+            });
+        }
+        ensure!(
+            targets.len() == 10,
+            "Modrinth preview requires all ten verified package targets"
+        );
+        Ok(ReleaseModrinthRequestPreviewReport {
+            schema: MODRINTH_PREVIEW_SCHEMA.to_owned(),
+            scope: MODRINTH_PREVIEW_SCOPE.to_owned(),
+            completion_manifest_sha256: report.completion_manifest_sha256,
+            inventory_sha256: report.inventory_sha256,
+            package_source_commit: report.package_source_commit,
+            candidate_preset_id: report.candidate_preset_id,
+            mod_version: report.mod_version,
+            modrinth_project: report.modrinth.project,
+            loader_policy_1201: report.modrinth.loader_policy_1201,
+            changelog_sha256: report.changelog_sha256,
+            publication_authorized: false,
+            target_count: targets.len(),
+            targets,
+        })
+    }
+}
+
+fn validate_modrinth_request_mapping(
+    target: &ReleaseProviderTarget,
+    loader_policy_1201: &str,
+) -> Result<()> {
+    let expected_loaders = if target.target_id == "1.20.1" {
+        ensure!(
+            target.minecraft_version == "1.20.1" && target.package_loader == "neoforge",
+            "Modrinth 1.20.1 request differs from the verified transitional target"
+        );
+        match loader_policy_1201 {
+            DUAL_1201_POLICY => vec!["forge", "neoforge"],
+            NEOFORGE_ONLY_1201_POLICY => vec!["neoforge"],
+            _ => eyre::bail!("invalid reviewed Modrinth 1.20.1 loader policy"),
+        }
+    } else {
+        vec![target.package_loader.as_str()]
+    };
+    if target.target_id == "1.21.0" {
+        ensure!(
+            target.minecraft_version == "1.21" && target.package_loader == "neoforge",
+            "Modrinth 1.21.0 request must use Minecraft 1.21 and NeoForge"
+        );
+    }
+    ensure!(
+        target.modrinth_game_versions == [target.minecraft_version.as_str()]
+            && target.modrinth_loaders == expected_loaders,
+        "Modrinth request metadata differs from the verified target mapping for '{}'",
+        target.target_id
+    );
+    Ok(())
 }
 
 impl ReleaseProviderPlanReport {
@@ -520,6 +656,198 @@ mod tests {
             .into_result()
             .is_err()
         );
+    }
+
+    #[test]
+    fn modrinth_preview_cli_reuses_all_explicit_provider_review_inputs() {
+        let parsed = figue::from_slice::<Cli>(&[
+            "source",
+            "release-modrinth-request-preview",
+            "--package-root",
+            "C:/reviewed/package",
+            "--completion-manifest-sha256",
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--reviewed-source-commit",
+            "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "--reviewed-tag",
+            "9.99.99-fixture",
+            "--github-repo",
+            "example/sfm",
+            "--modrinth-project",
+            "example-project",
+            "--curseforge-project",
+            "123",
+            "--changelog-file",
+            "C:/reviewed/changelog.md",
+            "--changelog-sha256",
+            "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "--modrinth-1201-loader-policy",
+            DUAL_1201_POLICY,
+        ])
+        .into_result()
+        .unwrap()
+        .get_silent();
+        let Command::Source(SourceArgs {
+            command: SourceCommand::ReleaseModrinthRequestPreview(args),
+        }) = parsed.command
+        else {
+            panic!("expected source release-modrinth-request-preview command");
+        };
+        assert_eq!(args.provider_plan.modrinth_project, "example-project");
+        assert_eq!(
+            args.provider_plan.modrinth_1201_loader_policy,
+            DUAL_1201_POLICY
+        );
+        assert!(
+            figue::from_slice::<Cli>(&[
+                "source",
+                "release-modrinth-request-preview",
+                "--package-root",
+                "C:/reviewed/package",
+            ])
+            .into_result()
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn modrinth_preview_binds_ten_verified_jars_to_exact_request_json_without_writing() {
+        let (fixture, provider_plan) = packaged_candidate();
+        let before_entries = fs::read_dir(&provider_plan.package_root).unwrap().count();
+        let notes = fs::read_to_string(&provider_plan.changelog_file).unwrap();
+        let args = ReleaseModrinthRequestPreviewArgs { provider_plan };
+        let preview = args.clone().preview_in(&CancellationToken::new()).unwrap();
+        assert_eq!(preview.schema, MODRINTH_PREVIEW_SCHEMA);
+        assert_eq!(preview.target_count, 10);
+        assert_eq!(preview.targets.len(), fixture.lock().targets.len());
+        assert_eq!(preview.package_source_commit, fixture.lock().source_commit);
+        assert_eq!(preview.changelog_sha256, sha256(notes.as_bytes()));
+        assert!(!preview.publication_authorized);
+        for (target, locked) in preview.targets.iter().zip(&fixture.lock().targets) {
+            assert_eq!(target.target_id, locked.target_id);
+            assert_eq!(target.jar_sha256, locked.production_jar_sha256);
+            assert_eq!(
+                target.file_name,
+                locked
+                    .production_jar_relative_path
+                    .split('/')
+                    .next_back()
+                    .unwrap()
+            );
+            assert_eq!(
+                target.request_metadata_sha256,
+                sha256(target.request_metadata_json.as_bytes())
+            );
+            let payload: ModrinthCreateVersionPayload =
+                facet_json::from_str(&target.request_metadata_json).unwrap();
+            assert_eq!(payload.version_number, fixture.lock().mod_version);
+            assert_eq!(payload.changelog, notes);
+            assert_eq!(payload.project_id, "example-project");
+            assert_eq!(payload.version_type, "release");
+            assert_eq!(payload.file_parts, ["file"]);
+            assert_eq!(payload.game_versions, [locked.minecraft_version.clone()]);
+            assert_eq!(
+                target.request_metadata_json,
+                facet_json::to_string(&payload).unwrap()
+            );
+        }
+        let transitional = &preview.targets[3];
+        let transitional_payload: ModrinthCreateVersionPayload =
+            facet_json::from_str(&transitional.request_metadata_json).unwrap();
+        assert_eq!(transitional.target_id, "1.20.1");
+        assert_eq!(transitional_payload.loaders, ["forge", "neoforge"]);
+        let minecraft_121 = &preview.targets[7];
+        let minecraft_121_payload: ModrinthCreateVersionPayload =
+            facet_json::from_str(&minecraft_121.request_metadata_json).unwrap();
+        assert_eq!(minecraft_121.target_id, "1.21.0");
+        assert_eq!(minecraft_121_payload.game_versions, ["1.21"]);
+        assert_eq!(minecraft_121_payload.loaders, ["neoforge"]);
+
+        let rendered = args
+            .clone()
+            .invoke_in(&CancellationToken::new())
+            .unwrap()
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        assert!(rendered.contains(MODRINTH_PREVIEW_SCHEMA));
+        assert!(!rendered.contains(&args.provider_plan.package_root.display().to_string()));
+        assert!(!rendered.contains(&args.provider_plan.changelog_file.display().to_string()));
+        assert!(!rendered.contains(&fixture.repo().display().to_string()));
+        assert_eq!(
+            fs::read_dir(&args.provider_plan.package_root)
+                .unwrap()
+                .count(),
+            before_entries
+        );
+        assert_eq!(
+            fs::read_to_string(&args.provider_plan.changelog_file).unwrap(),
+            notes
+        );
+    }
+
+    #[test]
+    fn modrinth_preview_serializes_explicit_neoforge_only_1201_choice() {
+        let (_fixture, mut provider_plan) = packaged_candidate();
+        provider_plan.modrinth_1201_loader_policy = NEOFORGE_ONLY_1201_POLICY.to_owned();
+        let preview = ReleaseModrinthRequestPreviewArgs { provider_plan }
+            .preview_in(&CancellationToken::new())
+            .unwrap();
+        assert_eq!(preview.loader_policy_1201, NEOFORGE_ONLY_1201_POLICY);
+        let transitional = &preview.targets[3];
+        assert_eq!(transitional.target_id, "1.20.1");
+        let payload: ModrinthCreateVersionPayload =
+            facet_json::from_str(&transitional.request_metadata_json).unwrap();
+        assert_eq!(payload.loaders, ["neoforge"]);
+        assert_eq!(payload.game_versions, ["1.20.1"]);
+    }
+
+    #[test]
+    fn modrinth_preview_rejects_package_notes_and_mapping_drift() {
+        let (_fixture, provider_plan) = packaged_candidate();
+        let args = ReleaseModrinthRequestPreviewArgs { provider_plan };
+        let preview = args.clone().preview_in(&CancellationToken::new()).unwrap();
+        let mut changed_digest = args.clone();
+        changed_digest.provider_plan.completion_manifest_sha256 = sha256(b"other manifest");
+        assert!(
+            changed_digest
+                .preview_in(&CancellationToken::new())
+                .is_err()
+        );
+        let jar = args
+            .provider_plan
+            .package_root
+            .join(&preview.targets[0].file_name);
+        fs::write(&jar, b"changed packaged JAR").unwrap();
+        assert!(args.clone().preview_in(&CancellationToken::new()).is_err());
+        let (_fixture, provider_plan) = packaged_candidate();
+        let args = ReleaseModrinthRequestPreviewArgs { provider_plan };
+        fs::write(&args.provider_plan.changelog_file, b"changed notes\n").unwrap();
+        assert!(args.preview_in(&CancellationToken::new()).is_err());
+
+        let (_fixture, provider_plan) = packaged_candidate();
+        let mut args = provider_plan;
+        args.modrinth_1201_loader_policy = NEOFORGE_ONLY_1201_POLICY.to_owned();
+        let report = args.plan_in(&CancellationToken::new()).unwrap();
+        let transitional = &report.targets[3];
+        assert!(validate_modrinth_request_mapping(transitional, NEOFORGE_ONLY_1201_POLICY).is_ok());
+        let mut wrong_loaders = transitional.clone();
+        wrong_loaders.modrinth_loaders = vec!["forge".to_owned()];
+        assert!(
+            validate_modrinth_request_mapping(&wrong_loaders, NEOFORGE_ONLY_1201_POLICY).is_err()
+        );
+        wrong_loaders.modrinth_loaders = vec!["neoforge".to_owned()];
+        wrong_loaders.modrinth_game_versions = vec!["1.21".to_owned()];
+        assert!(
+            validate_modrinth_request_mapping(&wrong_loaders, NEOFORGE_ONLY_1201_POLICY).is_err()
+        );
+        let minecraft_121 = &report.targets[7];
+        let mut wrong_121 = minecraft_121.clone();
+        wrong_121.minecraft_version = "1.21.0".to_owned();
+        assert!(validate_modrinth_request_mapping(&wrong_121, DUAL_1201_POLICY).is_err());
+        wrong_121.minecraft_version = "1.21".to_owned();
+        wrong_121.modrinth_loaders = vec!["forge".to_owned()];
+        assert!(validate_modrinth_request_mapping(&wrong_121, DUAL_1201_POLICY).is_err());
     }
 
     #[test]

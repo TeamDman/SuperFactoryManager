@@ -6,6 +6,7 @@ use super::release_inventory_cli::ReleaseInventoryArgs;
 use super::release_package_cli::ReleasePackageArgs;
 use super::release_package_verify_cli::ReleasePackageVerifyArgs;
 use super::release_plan_cli::ReleasePlanArgs;
+use super::release_provider_plan_cli::ReleaseModrinthRequestPreviewArgs;
 use super::release_provider_plan_cli::ReleaseProviderPlanArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
@@ -101,6 +102,8 @@ pub enum SourceCommand {
     ReleasePlan(ReleasePlanArgs),
     /// Preflight reviewed GitHub, Modrinth and `CurseForge` intent from the verified package.
     ReleaseProviderPlan(ReleaseProviderPlanArgs),
+    /// Preview exact reviewed Modrinth request metadata and ten packaged JAR identities only.
+    ReleaseModrinthRequestPreview(ReleaseModrinthRequestPreviewArgs),
     /// Show one generated file's recorded owner and current edit state.
     Trace(SourceTraceArgs),
 }
@@ -278,6 +281,9 @@ impl SourceArgs {
             }
             SourceCommand::ReleasePlan(args) => return args.invoke_in(cancellation),
             SourceCommand::ReleaseProviderPlan(args) => return args.invoke_in(cancellation),
+            SourceCommand::ReleaseModrinthRequestPreview(args) => {
+                return args.invoke_in(cancellation);
+            }
             SourceCommand::Trace(args) => return args.invoke_in(),
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),
