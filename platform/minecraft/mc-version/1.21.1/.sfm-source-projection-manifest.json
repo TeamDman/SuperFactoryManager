@@ -3,7 +3,7 @@
   "target_id": "1.21.1",
   "minecraft_version": "1.21.1",
   "preset_id": "released-4.34.0",
-  "preset_definition_identity": "blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd",
+  "preset_definition_identity": "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6",
   "tool_version": "0.1.1",
   "files": {
     "build.gradle": {
@@ -6695,6 +6695,12 @@
       "source_sha256": "sha256:5ae70f46c403f6db9a7493783b39be16c250c712ddd1ef9661fb5120cbf9d980",
       "overlay": null,
       "output_sha256": "sha256:5ae70f46c403f6db9a7493783b39be16c250c712ddd1ef9661fb5120cbf9d980"
+    },
+    "src/main/resources/sfm.refmap.json": {
+      "source_path": "platform/minecraft/projection-resources/released-4.34.0/sfm.refmap.json",
+      "source_sha256": "sha256:2c94879b9e943b34c562f6966f9e0aa88c1a30b39bc8e17bd18772b66af24523",
+      "overlay": "release-resource",
+      "output_sha256": "sha256:2c94879b9e943b34c562f6966f9e0aa88c1a30b39bc8e17bd18772b66af24523"
     },
     "src/test/java/ca/teamdman/ai/FileImportWalker.java": {
       "source_path": "src/test/java/ca/teamdman/ai/FileImportWalker.java",

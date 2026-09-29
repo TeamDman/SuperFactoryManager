@@ -3,7 +3,7 @@
   "target_id": "26.1.2",
   "minecraft_version": "26.1.2",
   "preset_id": "released-4.34.0",
-  "preset_definition_identity": "blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd",
+  "preset_definition_identity": "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6",
   "tool_version": "0.1.1",
   "files": {
     "build.gradle": {
