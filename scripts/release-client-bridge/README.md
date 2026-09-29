@@ -24,3 +24,16 @@ On 29 September 2026, the exact Forge 45.0.9/Minecraft 1.19.4 runtime passed the
 The official input JAR SHA-256 was `09b8c7d2ae6453d39444c61174979d1938d25d4f24282f8396711f329c5b5fba`; the projected input was `4a39e9512a47925639a1ba7126ea903576917b120d43dcedfa66563ebcea9735`. The runner confirmed the same source hashes after every run.
 
 One earlier projected title attempt timed out before bridge readiness during Forge class transformation, without an ERROR/FATAL or disk-space diagnostic; its single fresh-root retry passed. Startup reliability from that first attempt remains inconclusive. Both successful world runs logged the same nonblocking `sfm:blocks/buffer` loot-table parse error, with no candidate-only ERROR/FATAL. This is bounded packaged-client startup and one block-rendering comparison, not broader gameplay or save compatibility.
+
+## Exact 1.20 packaged-client witness
+
+On 29 September 2026, four separate clients passed under cached Minecraft 1.20, exact Forge 46.0.10, LWJGL 3.3.1, asset index `5`, and JBR 17. The official 4.34.0 JAR SHA-256 was `9943c04e04f7afc433e3f9ccea223ab15f42ba0930c4cebe31b2008ad3b35ecd`; the checked-in projected JAR was `90227fa968cd7351adcc5a1e8939c29ee6b3d4109c50d66c48d824425508a583`. The runner rechecked both source hashes after their runs. All four 1024×768 screenshots were visually inspected: both title screens showed the complete menu and four loaded mods, and both world views showed the manager block. Each world result also confirmed server placement, client block sync, ray targeting, and at least 30 rendered world frames.
+
+| JAR | Mode | Rendered frames | Screenshot SHA-256 |
+| --- | --- | ---: | --- |
+| Official | title | 96 | `de00fac8fcaee9a19c50578e6b78015c4ac773f93aed1e22143a4f8dc4bad200` |
+| Projected | title | 95 | `8a78c459c0c2d154fddcc0d332fdbebc666fef24a3c02ab9e069bc8ccdd6abb0` |
+| Official | world | 37 | `113e71434ecb1e92e3976287207ccac6f0735fcdd886fd2e499446096a8ccac7` |
+| Projected | world | 42 | `edbffea180e8a8aa8e43cfa1c37dbf5985d5ca0dac43c922aec7ec58ec2def0a` |
+
+The first official title attempt opened 1.20's accessibility onboarding screen because the fresh scratch game had no options file. That attempt was stopped before its watchdog, and a new scratch-root run passed after the runner seeded `onboardAccessibility:false`; it was a bridge fixture correction, not an SFM failure. An independent rehash confirmed all four result identities and PNG digests, and a separate visual review found both title and world pairs materially equivalent for this bounded witness. Both successful sides logged the same offline Yggdrasil key-fetch error, and both world sides logged the same `sfm:blocks/buffer` loot-table parse error. There was no candidate-only ERROR/FATAL or disk-space diagnostic. JBR17 also emitted a sandbox cache-JAR close diagnostic after compiling the bridge; the class file was asserted and loaded in all successful runs. These witnesses cover bounded packaged-client startup and one targeted block render, not general gameplay, transfers, or save compatibility.
