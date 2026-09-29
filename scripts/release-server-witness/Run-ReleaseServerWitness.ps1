@@ -28,14 +28,17 @@ $target = $Target
 $transferMode = $Mode -eq 'vanilla-barrel-transfer'
 $commandMode = $Mode -eq 'command-dispatcher'
 $networkMode = $Mode -eq 'network-registration'
+$legacyTransferTargets = @('1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4')
+$componentTransferTargets = @('1.21.0', '1.21.1', '26.1.2')
+$legacyTransfer = $transferMode -and $target -in $legacyTransferTargets
 if ($commandMode -and $target -notin @('1.19.2', '26.1.2')) {
     throw 'The command-dispatcher witness is only validated for exact 1.19.2 and 26.1.2'
 }
 if ($networkMode -and $target -notin @('1.19.2', '26.1.2')) {
     throw 'The network-registration witness is only validated for exact 1.19.2 and 26.1.2'
 }
-if ($transferMode -and $target -notin @('1.20.2', '1.21.0', '26.1.2')) {
-    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.20.2, 1.21.0 and 26.1.2'
+if ($transferMode -and $target -notin ($legacyTransferTargets + $componentTransferTargets)) {
+    throw 'The opt-in vanilla-barrel transfer fixture is not validated for this exact target'
 }
 $version = switch ($target) {
     '1.19.2' {
@@ -339,13 +342,20 @@ if ($version.ContainsKey('fixture_source') -and -not $transferMode -and -not $co
 }
 $transferFixture = $null
 if ($transferMode) {
-    $transferFixtureScript = Join-Path $probeRoot "versions/$target/TransferFixture.ps1"
+    $transferFixtureSource = if ($legacyTransfer) {
+        'versions/1.20.2/TransferFixture.ps1'
+    } elseif ($target -in @('1.21.0', '1.21.1')) {
+        'versions/1.21.0/TransferFixture.ps1'
+    } else {
+        'versions/26.1.2/TransferFixture.ps1'
+    }
+    $transferFixtureScript = Join-Path $probeRoot $transferFixtureSource
     if (-not [IO.File]::Exists($transferFixtureScript)) { throw 'Transfer fixture script is missing' }
     . $transferFixtureScript
-    $transferFixture = switch ($target) {
-        '1.20.2' { Get-ReleaseServerTransferFixture1202 }
-        '1.21.0' { Get-ReleaseServerTransferFixture1210 }
-        '26.1.2' { Get-ReleaseServerTransferFixture2612 }
+    $transferFixture = switch ($transferFixtureSource) {
+        'versions/1.20.2/TransferFixture.ps1' { Get-ReleaseServerTransferFixture1202 }
+        'versions/1.21.0/TransferFixture.ps1' { Get-ReleaseServerTransferFixture1210 }
+        'versions/26.1.2/TransferFixture.ps1' { Get-ReleaseServerTransferFixture2612 }
     }
     foreach ($key in @('manager', 'source', 'destination', 'source_nbt',
                        'disk_nbt', 'expected_program', 'expected_label_a', 'expected_label_b',
@@ -519,7 +529,7 @@ function Read-TransferData($Process, [string] $LogPath, [string] $TranscriptPath
 }
 
 function Test-TransferDirt64([string] $Items) {
-    $countIs64 = if ($target -eq '1.20.2') {
+    $countIs64 = if ($legacyTransfer) {
         $Items -cmatch '(?<!\w)Count:\s*64b(?!\w)'
     } else {
         $Items -cmatch '(?<!\w)count:\s*64(?!\w)'
@@ -559,8 +569,8 @@ function Read-TransferFinalState($Process, [string] $LogPath, [string] $Transcri
         Start-Sleep -Seconds 1
     } while ($true)
     $manager = $transferFixture.manager
-    $itemData = if ($target -eq '1.20.2') { 'tag' } else { 'components' }
-    $labelsPath = if ($target -eq '1.20.2') { '"sfm:labels"' } else { '"sfm:labels".labels' }
+    $itemData = if ($legacyTransfer) { 'tag' } else { 'components' }
+    $labelsPath = if ($legacyTransfer) { '"sfm:labels"' } else { '"sfm:labels".labels' }
     $program = Read-TransferData $Process $LogPath $TranscriptPath `
         "data get block $manager Items[0].$itemData.`"sfm:program`""
     $labelA = Read-TransferData $Process $LogPath $TranscriptPath `
@@ -1168,6 +1178,7 @@ if ($transferMode) {
     $report.schema = 'sfm:release_server_transfer_witness@1'
     $report.Remove('selected_values_equal')
     $report.Remove('official_reverse_equal')
+    $report['transfer_fixture_source'] = $transferFixtureSource
     $report['transfer_fixture_source_sha256'] = Get-Sha256 $transferFixtureScript
     $report['transfer_seed_equal'] = $transferSeedEqual
     $report['transfer_control_candidate_equal'] = $valuesEqual
