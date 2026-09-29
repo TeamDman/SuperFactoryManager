@@ -22,10 +22,11 @@ You may edit a generated Java file and submit a normal pull request. The header 
 
 Before the next generated-source update, a maintainer must:
 
-1. Review the contributor's change. `sfm-propagate-changes source trace --project-root <absolute-generated-project> --file src/main/java/Example.java` reports the file's recorded logical source path, overlay and whether its current bytes still match provenance. For a release-tag fallback, that logical path belongs to the pinned tag snapshot and may not name today's editable canonical file; choose the canonical source or a new version overlay deliberately. Do not edit the pinned tag import. The trace is not an automatic backpropagation tool.
-2. Render the same target and preset. `source sync` refuses to overwrite a generated file that has changed since its last recorded hash.
-3. Run `source reconcile` only if the newly rendered bytes exactly match the contributor-edited file. Reconciliation updates provenance but never overwrites that file.
-4. Run `source check` and a relevant Gradle build before committing the updated source and manifest.
+1. Review the contributor's change. `sfm-propagate-changes source trace --project-root <absolute-generated-project> --file src/main/java/Example.java` reports the file's recorded logical source path, overlay and whether its current bytes still match provenance. For a release-tag fallback, that logical path belongs to the pinned tag snapshot and may not name today's editable canonical file. The trace is not an automatic backpropagation tool.
+2. Classify the path and choose its authored owner using the workflow below. Do not edit a pinned tag or development import to make the old preset render new behavior. A changed release output needs a new, reviewed immutable preset.
+3. Render the intended target and preset. `source sync` refuses to overwrite a generated file that has changed since its last recorded hash.
+4. Run `source reconcile` on the contributor's project only if it retains the same target and preset identity and the newly rendered bytes exactly match the contributor-edited file. Reconciliation updates provenance but never overwrites that file. A new preset must use a separate project root.
+5. Run `source check` and a relevant Gradle build before committing the authored source and any reconciled manifest.
 
 If rendered bytes differ, resolve the authored-source discrepancy manually. There is no automatic inversion of arbitrary Java edits or templates.
 
@@ -36,6 +37,39 @@ If a file has been intentionally removed from the authored source, `source sync`
 The canonical tree is `platform/minecraft/src`. Every `.java` file passes through the projection pipeline, even if it contains no Liquid control lines. The current limited template syntax permits whole-line `{% if features.name %}`, `{% elsif ... %}`, `{% else %}` and `{% endif %}` directives. Larger version differences should live in separately selected implementation files. Do not use a runtime boolean to hide code that must be absent from a JAR: Java still compiles both sides of an ordinary `if`.
 
 Use `sfm-propagate-changes source dry-run`, `sync` and `check` with explicit `--repo-root`, `--target`, `--preset` and `--output-root` values. Put development outputs in a separate local root, never over a checked-in `mc-version` project. `current-development-head-<target>` selects the pinned committed development tree for each noncanonical target; the 1.19.2 canonical tree uses `current-development-pilot`. The `current-development-no-echo` and `current-development-no-touch-terminal` presets demonstrate compiling specific unreleased code out of 1.19.2. The 1.19.2 development presets currently need Gradle's `-PsfmProfile=rust-toolchain` profile because the newer canonical Java source imports Vox/Phon classes excluded by its default Gradle profile. This is a development-profile mismatch, not a property of the 4.34.0 release preset.
+
+## Choose the owner of a future edit
+
+Start with the generated `src/...` path and the target and preset from `source trace`. Inspect the matching entry under `targets[0].paths` in `platform/minecraft/development-baselines/<target>/import.json` for each noncanonical development target. This committed manifest is the path-by-path ownership ledger. Its hashes describe the pinned comparison, not the current working tree. A passing check of an old pinned preset proves reproduction of that snapshot, not propagation of a future primary edit. For 1.19.2, which has no development-head import, start with `platform/minecraft/src` and the feature effects in `platform/minecraft/source-projection.json`.
+
+| Import classification | Present owner and action for a new edit |
+| --- | --- |
+| `unchanged` | The target matched the pinned canonical commit. Keep shared logic in `platform/minecraft/src`, but verify the new output explicitly. A semantic change does not automatically flow into a pinned development preset. |
+| `changed` | The pinned target implementation is under `platform/minecraft/development-baselines/<target>/overlays/src/...`. Keep an API-specific implementation separate unless a reviewed canonical template renders the required target bytes. Do not rewrite the hash-bound import. |
+| `release_only` | The file exists only in that target's pinned tree. Treat it as target-only; do not add it to all versions by copying it into the primary tree. |
+| `canonical_only` | The target deliberately omits the primary file. Keep it absent unless a reviewed source-membership change explicitly includes it. A feature flag alone cannot widen a pinned import's source mask. |
+
+For `changed` or `release_only`, `release_overlay_path` names the exact frozen import, not a normal edit destination. These entries remain owned by their pinned overlays until a separate review selects another source. `source trace` shows the owner of one generated file and whether it was edited; it does not classify paths that are absent. Check the import manifest for absence and for every affected target.
+
+Current pinned presets have no general route for changing a divergent or target-only Java overlay in place. If a new target implementation is needed, add and review an explicit version-selected source and its selection mechanism before treating that target as updated.
+
+Use a primary Java template for small shared differences, with whole-line `features.<id>` or `targets.<template_key>` guards. Use a separately selected implementation when the APIs differ substantially. The target keys are defined in `source-projection.json`; for example, the dotted target `26.1.2` has template key `mc_26_1_2`. A runtime feature boolean cannot remove an unavailable API from compiled Java or from a JAR.
+
+For a new build-time feature, declare its `supported_targets` and exact `source_effects` or `resource_effects` in `source-projection.json`. `Template` changes an existing file, `Include` adds a conditional file, `Replace` selects a different input for an output, and `Exclude` omits an output. Set `enabled_features` only when every target in the preset should enable the feature. Use `target_features` to select specific targets in a multi-target preset. Create a new preset ID for a changed definition and calculate its identity with `source preset-identity`; never repurpose `released-4.34.0`.
+
+A pinned development `src/main/java` file selected from the primary tree needs a `post_baseline_canonical_sources` entry with exact source and rendered-output SHA-256 values. When the output intentionally differs from the verified import, also bind its `imported_output_sha256` and `required_feature`. Projection validates that the feature is enabled for that target and templates that path. Byte-preserving ownership changes must render exactly the imported output. A pinned development test selected from the primary tree needs its own exact-hash `post_baseline_test_sources` entry.
+
+The reviewed `RegexCache.java` overlap fix shows this route. Commit `09eec0034` changed one primary template. The `regex_overlap_fix` feature supports 1.19.2 and 26.1.2. The reviewed development proof used a new enabled preset for each target. On 26.1.2, `post_baseline_canonical_sources` pins the old imported output, the new primary source and rendered output, and the required feature. `post_baseline_test_sources` selects the updated primary test.
+
+The enabled predicate rejects `abc` for `ab.*bc` because the prefix and suffix would overlap; `abbc` remains a match. The focused `RegexCacheTests.wildcardPrefixAndSuffixMustNotOverlap` passed on both enabled targets. Separate disabled controls retained the old behavior. Pre-existing development presets and `released-4.34.0` stayed disabled. This is one opt-in cross-version edit, not consolidation of all historical overlays or approval for a release.
+
+## Check an authored change across targets
+
+1. Record each affected generated path, its import classification and the selected owner for every supported target. Review the rendered Java and absent files against that list, including API splits and resource effects.
+2. Run `source preset-identity --repo-root <repo-root> --preset <new-preset>` after changing the definition. Set the reported identity in the new preset. Keep development outputs in distinct absolute roots outside the repository.
+3. Run `source dry-run`, then `source sync`, then `source check` with `--repo-root <repo-root> --target <target> --preset <new-preset> --output-root <absolute-external-root>` for each enabled target. Repeat with a disabled preset for the same relevant targets. A fresh root needs `sync` before `check`; an existing root must have the same preset identity.
+4. Build and test the projected targets with their listed JDKs. Use `source build` with the same selectors and `--task compileJava` or `--task test`, then run the relevant focused JUnit or GameTest where behavior changed. Inspect the generated files and test results, not just task exit codes or cached-task reports.
+5. Run `source check` for all ten checked-in `released-4.34.0` roots and confirm zero file or manifest changes. Record the exact target/preset matrix, enabled and disabled results, skipped or cached work, and remaining overlays in the review. These checks do not authorize a release-root update.
 
 The integrated `source build` and `source run` commands first project the selected preset, then invoke the projected Gradle wrapper. Both require an absolute `--output-root` **outside the repository**. `source build` defaults to `jar`; `source run` defaults to `runClient` and keeps the output root, including any world saves or settings the client writes. For the current 1.19.2 development pilot, add `--gradle-profile rust-toolchain`. A development build passes a distinct `-dev.<projection-hash>` mod version to Gradle, so its JAR cannot be mistaken for the published 4.34.0 file by name.
 
