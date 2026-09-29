@@ -30,6 +30,7 @@ const PLAN_SCHEMA: &str = "sfm:source_release_provider_plan@1";
 const PLAN_SCOPE: &str = "read-only reviewed-provider-intent for one verified ten-JAR package; no credentials, remote checks, tag, upload, promotion or publication";
 const MODRINTH_PREVIEW_SCHEMA: &str = "sfm:source_release_modrinth_request_preview@1";
 const MODRINTH_PREVIEW_SCOPE: &str = "read-only exact Modrinth request metadata and verified package asset pairs; no credentials, network, tag, upload or publication";
+const MODRINTH_PREVIEW_NOTES_WARNING: &str = "Generated local paths are absent. Each request_metadata_json contains the complete caller-supplied reviewed notes in its changelog field. Notes may contain sensitive data or local paths. Review this output before storing or sharing it.";
 const MAX_CHANGELOG_BYTES: u64 = 1024 * 1024;
 const DUAL_1201_POLICY: &str = "dual-forge-neoforge";
 const NEOFORGE_ONLY_1201_POLICY: &str = "neoforge-only";
@@ -81,12 +82,20 @@ struct ReviewedProviderPlan {
 }
 
 #[derive(Debug, Facet)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "these independent unchecked and authorization flags must match the provider-plan safety boundary"
+)]
 struct ReleaseModrinthRequestPreviewReport {
     schema: String,
     scope: String,
+    reviewed_notes_disclosure_warning: String,
     completion_manifest_sha256: String,
     inventory_sha256: String,
     package_source_commit: String,
+    current_head_checked: bool,
+    tag_object_checked: bool,
+    remote_project_ownership_checked: bool,
     candidate_preset_id: String,
     mod_version: String,
     modrinth_project: String,
@@ -253,15 +262,19 @@ impl ReleaseModrinthRequestPreviewArgs {
         Ok(ReleaseModrinthRequestPreviewReport {
             schema: MODRINTH_PREVIEW_SCHEMA.to_owned(),
             scope: MODRINTH_PREVIEW_SCOPE.to_owned(),
+            reviewed_notes_disclosure_warning: MODRINTH_PREVIEW_NOTES_WARNING.to_owned(),
             completion_manifest_sha256: report.completion_manifest_sha256,
             inventory_sha256: report.inventory_sha256,
             package_source_commit: report.package_source_commit,
+            current_head_checked: report.current_head_checked,
+            tag_object_checked: report.tag_object_checked,
+            remote_project_ownership_checked: report.remote_project_ownership_checked,
             candidate_preset_id: report.candidate_preset_id,
             mod_version: report.mod_version,
             modrinth_project: report.modrinth.project,
             loader_policy_1201: report.modrinth.loader_policy_1201,
             changelog_sha256: report.changelog_sha256,
-            publication_authorized: false,
+            publication_authorized: report.publication_authorized,
             target_count: targets.len(),
             targets,
         })
@@ -722,6 +735,13 @@ mod tests {
         assert_eq!(preview.targets.len(), fixture.lock().targets.len());
         assert_eq!(preview.package_source_commit, fixture.lock().source_commit);
         assert_eq!(preview.changelog_sha256, sha256(notes.as_bytes()));
+        assert_eq!(
+            preview.reviewed_notes_disclosure_warning,
+            MODRINTH_PREVIEW_NOTES_WARNING
+        );
+        assert!(!preview.current_head_checked);
+        assert!(!preview.tag_object_checked);
+        assert!(!preview.remote_project_ownership_checked);
         assert!(!preview.publication_authorized);
         for (target, locked) in preview.targets.iter().zip(&fixture.lock().targets) {
             assert_eq!(target.target_id, locked.target_id);
@@ -771,6 +791,16 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(rendered.contains(MODRINTH_PREVIEW_SCHEMA));
+        let rendered_report: ReleaseModrinthRequestPreviewReport =
+            facet_json::from_str(&rendered).unwrap();
+        assert_eq!(
+            rendered_report.reviewed_notes_disclosure_warning,
+            MODRINTH_PREVIEW_NOTES_WARNING
+        );
+        assert!(!rendered_report.current_head_checked);
+        assert!(!rendered_report.tag_object_checked);
+        assert!(!rendered_report.remote_project_ownership_checked);
+        assert!(!rendered_report.publication_authorized);
         assert!(!rendered.contains(&args.provider_plan.package_root.display().to_string()));
         assert!(!rendered.contains(&args.provider_plan.changelog_file.display().to_string()));
         assert!(!rendered.contains(&fixture.repo().display().to_string()));
