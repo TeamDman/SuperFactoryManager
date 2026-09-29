@@ -678,8 +678,11 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
+    use crate::cli::source::CandidateVerifyArgs;
     use crate::cli::source::SourceArgs;
     use crate::cli::source::SourceCommand;
+    use crate::cli::source::SourceProjectArgs;
+    use crate::source_projection::candidate_lock::CandidateTargetLock;
     use crate::source_projection::candidate_lock::tests::Fixture as CandidateFixture;
     use crate::source_projection::manifest::SourceProjectionManifest;
     use crate::source_projection::provenance::ProjectionProvenance;
@@ -1482,6 +1485,270 @@ mod tests {
                 sha256(&fs::read(destination_manifest).unwrap()),
                 candidate.reviewed_manifest_sha256,
                 "candidate manifest was not installed for '{target}'"
+            );
+        }
+    }
+
+    #[test]
+    fn real_pinned_tag_inputs_flow_through_fictional_ten_target_immutable_apply() {
+        const VERSION: &str = "9.99.99-fixture";
+        const PRESET: &str = "released-9.99.99-fixture";
+        const EVIDENCE: &str = "synthetic-compatibility-evidence.md";
+        let source_repo = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
+        let git_source_repo = source_repo.to_string_lossy();
+        let git_source_repo = git_source_repo
+            .strip_prefix(r"\\?\")
+            .unwrap_or(&git_source_repo)
+            .replace('\\', "/");
+        let scratch = tempfile::tempdir().unwrap();
+        let repo = scratch.path().join("repo");
+        let clone = std::process::Command::new("git")
+            .args(["clone", "--quiet", "--shared", "--sparse"])
+            .arg(&git_source_repo)
+            .arg(&repo)
+            .output()
+            .unwrap();
+        assert!(
+            clone.status.success(),
+            "temporary fixture clone failed: {}",
+            String::from_utf8_lossy(&clone.stderr)
+        );
+        let git = |args: &[&str]| {
+            let output = std::process::Command::new("git")
+                .arg("-C")
+                .arg(&repo)
+                .args(args)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "temporary fixture git {args:?} failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            String::from_utf8(output.stdout).unwrap().trim().to_owned()
+        };
+        git(&["config", "core.longpaths", "true"]);
+        git(&[
+            "sparse-checkout",
+            "set",
+            "--cone",
+            "platform/minecraft/src",
+            "platform/minecraft/gradle",
+            "platform/minecraft/release-baselines",
+            "platform/minecraft/projection-resources",
+            "platform/minecraft/mc-version",
+        ]);
+        git(&["config", "user.name", "SFM Fixture"]);
+        git(&["config", "user.email", "sfm-fixture@example.invalid"]);
+        let manifest_path = repo.join("platform/minecraft/source-projection.json");
+        let mut manifest =
+            SourceProjectionManifest::from_json(&fs::read_to_string(&manifest_path).unwrap())
+                .unwrap();
+        let mut future = manifest.preset("released-4.34.0").unwrap().clone();
+        future.id = PRESET.to_owned();
+        future.release_mod_version = Some(VERSION.to_owned());
+        future.identity = manifest.compute_preset_identity(&future).unwrap();
+        manifest.presets.push(future.clone());
+        let manifest_bytes = manifest.to_json().unwrap();
+        fs::write(&manifest_path, &manifest_bytes).unwrap();
+        let evidence = b"Synthetic fixture only; no build or public compatibility claim.\n";
+        fs::write(repo.join(EVIDENCE), evidence).unwrap();
+        git(&[
+            "add",
+            "--",
+            "platform/minecraft/source-projection.json",
+            EVIDENCE,
+        ]);
+        git(&["commit", "-qm", "fictional future preset fixture"]);
+        let source_commit = git(&["rev-parse", "HEAD"]);
+        assert_eq!(manifest.targets.len(), 10);
+
+        let mut roots = BTreeMap::new();
+        let mut targets = Vec::new();
+        let mut candidates = BTreeMap::new();
+        for target in &manifest.targets {
+            let root = scratch.path().join("candidates").join(&target.id);
+            SourceArgs {
+                command: SourceCommand::Sync(SourceProjectArgs {
+                    repo_root: repo.clone(),
+                    target: target.id.clone(),
+                    preset: PRESET.to_owned(),
+                    manifest: None,
+                    primary_src_root: None,
+                    gradle_project_root: None,
+                    output_root: root.clone(),
+                    overlay: Vec::new(),
+                    gradle_overlay: Vec::new(),
+                }),
+            }
+            .invoke_in(&CancellationToken::new(), &repo)
+            .unwrap();
+            let properties = fs::read_to_string(root.join("gradle.properties")).unwrap();
+            assert_eq!(
+                properties
+                    .matches(&format!("mod_version={VERSION}"))
+                    .count(),
+                1
+            );
+            let loader_version = properties
+                .lines()
+                .find_map(|line| line.strip_prefix("neo_version="))
+                .unwrap()
+                .to_owned();
+            let old_properties =
+                fs::read_to_string(repo.join(&target.project_dir).join("gradle.properties"))
+                    .unwrap();
+            assert!(old_properties.contains("mod_version=4.34.0"));
+            let provenance_bytes = fs::read(root.join(MANIFEST_FILE)).unwrap();
+            let provenance =
+                ProjectionProvenance::from_json(std::str::from_utf8(&provenance_bytes).unwrap())
+                    .unwrap();
+            let version_file = &provenance.files["gradle.properties"];
+            assert_ne!(version_file.source_sha256, version_file.output_sha256);
+            let jar_name = format!("SFM-MC{}-{VERSION}.jar", target.minecraft_version);
+            let jar_relative = format!("build/libs/{jar_name}");
+            let jar_bytes = format!("synthetic fixture JAR, not Gradle-built: {}\n", target.id);
+            fs::create_dir_all(root.join("build/libs")).unwrap();
+            fs::write(root.join(&jar_relative), &jar_bytes).unwrap();
+            let production_task = match target.id.as_str() {
+                "1.19.2" | "1.19.4" | "1.20" | "1.20.1" => "reobfJar",
+                "26.1.2" => "jarJar",
+                _ => "jar",
+            };
+            let jdk_build_id = format!("JBRSDK-{}.0.1", target.java_major);
+            let locked = CandidateTargetLock {
+                target_id: target.id.clone(),
+                minecraft_version: target.minecraft_version.clone(),
+                loader: target.loader.clone(),
+                loader_version,
+                gradle_profile: "default".to_owned(),
+                production_task: production_task.to_owned(),
+                jdk_major: target.java_major,
+                jdk_build_id: jdk_build_id.clone(),
+                provenance_manifest_sha256: sha256(&provenance_bytes),
+                production_jar_relative_path: jar_relative.clone(),
+                production_jar_sha256: sha256(jar_bytes.as_bytes()),
+            };
+            candidates.insert(
+                target.id.clone(),
+                PromotionCandidate {
+                    project_root: root.clone(),
+                    reviewed_manifest_sha256: locked.provenance_manifest_sha256.clone(),
+                    production_jar_relative_path: jar_relative,
+                    production_jar_sha256: locked.production_jar_sha256.clone(),
+                    production_task: production_task.to_owned(),
+                    jdk_major: target.java_major,
+                    jdk_build_id,
+                },
+            );
+            roots.insert(target.id.clone(), root);
+            targets.push(locked);
+        }
+        let lock = SourceCandidateLock {
+            schema: "sfm:source_candidate_lock@1".to_owned(),
+            source_commit: source_commit.clone(),
+            source_manifest_sha256: sha256(manifest_bytes.as_bytes()),
+            mod_version: VERSION.to_owned(),
+            candidate_preset_id: PRESET.to_owned(),
+            candidate_definition_identity: future.identity.clone(),
+            compatibility_evidence_relative_path: EVIDENCE.to_owned(),
+            compatibility_evidence_sha256: sha256(evidence),
+            targets,
+        };
+        let lock_path = scratch.path().join("fictional-candidate-lock.json");
+        let lock_bytes = facet_json::to_string_pretty(&lock).unwrap();
+        fs::write(&lock_path, &lock_bytes).unwrap();
+        let lock_sha256 = sha256(lock_bytes.as_bytes());
+        let candidate_roots = roots
+            .iter()
+            .map(|(target, root)| format!("{target}={}", root.display()))
+            .collect::<Vec<_>>();
+        let mut incomplete_roots = candidate_roots.clone();
+        incomplete_roots.pop();
+        assert!(
+            SourceArgs {
+                command: SourceCommand::CandidateVerify(CandidateVerifyArgs {
+                    repo_root: repo.clone(),
+                    lock: lock_path.clone(),
+                    candidate_root: incomplete_roots,
+                }),
+            }
+            .invoke_in(&CancellationToken::new(), &repo)
+            .unwrap_err()
+            .to_string()
+            .contains("local candidate roots do not match complete locked target matrix")
+        );
+        let verification = SourceArgs {
+            command: SourceCommand::CandidateVerify(CandidateVerifyArgs {
+                repo_root: repo.clone(),
+                lock: lock_path.clone(),
+                candidate_root: candidate_roots,
+            }),
+        }
+        .invoke_in(&CancellationToken::new(), &repo)
+        .unwrap()
+        .render(Some(OutputFormat::Json), false)
+        .unwrap()
+        .unwrap();
+        assert!(verification.contains("\"deterministic_source_check\": true"));
+
+        let request = PromotionRequest {
+            repository_root: repo.clone(),
+            reviewed_head_commit: source_commit,
+            reviewed_source_manifest_sha256: lock.source_manifest_sha256.clone(),
+            compatibility_evidence_relative_path: EVIDENCE.to_owned(),
+            reviewed_compatibility_evidence_sha256: lock.compatibility_evidence_sha256.clone(),
+            candidates,
+            candidate_preset_id: PRESET.to_owned(),
+            candidate_definition_identity: future.identity,
+            transition: PromotionTransition::NewImmutablePreset,
+            accept_identical_edits: false,
+        };
+        let request_path = scratch.path().join("fictional-promotion-request.json");
+        fs::write(&request_path, request_file_json(&request)).unwrap();
+        let output = PromotionArgs {
+            request: request_path,
+            apply: true,
+            ack_pre_acceptance_baseline_repair: false,
+            ack_new_immutable_preset: true,
+            candidate_lock: Some(lock_path),
+            candidate_lock_sha256: Some(lock_sha256),
+        }
+        .invoke_in(&CancellationToken::new(), scratch.path())
+        .unwrap()
+        .render(Some(OutputFormat::Json), false)
+        .unwrap()
+        .unwrap();
+        assert!(output.contains("\"mode\": \"apply\""));
+        assert!(output.contains(&format!("\"candidate_preset_id\": \"{PRESET}\"")));
+        let stages = fs::read_dir(repo.join("platform/minecraft"))
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name().is_some_and(|name| {
+                    name.to_string_lossy()
+                        .starts_with(".sfm-source-promotion-stage-")
+                })
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(stages.len(), 1);
+        assert!(stages[0].join("journal.json").is_file());
+        assert!(stages[0].join("complete").is_file());
+        for (target, candidate) in &request.candidates {
+            let promoted = repo.join("platform/minecraft/mc-version").join(target);
+            assert_eq!(
+                sha256(&fs::read(promoted.join(MANIFEST_FILE)).unwrap()),
+                candidate.reviewed_manifest_sha256,
+                "{target}"
+            );
+            assert!(
+                fs::read_to_string(promoted.join("gradle.properties"))
+                    .unwrap()
+                    .contains(&format!("mod_version={VERSION}")),
+                "{target}"
             );
         }
     }
