@@ -18,10 +18,12 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-/** Test-only Forge 45.0.9 server probe, never part of an SFM production JAR. */
+/** Test-only Forge 45.0.9/46.0.10 server probe, never part of an SFM production JAR. */
 @Mod("sfmreleaseprobe")
 public final class ReleaseServerRegistryProbe {
     private static final String OUTPUT_PROPERTY = "sfm.releaseWitness.registrySnapshot";
+    private static final String TARGET_PROPERTY = "sfm.releaseWitness.target";
+    private static final String LOADER_PROPERTY = "sfm.releaseWitness.loader";
     private static final String[] CUSTOM_REGISTRIES = {
             "program_linters", "resource_type", "capability_provider_mappers"
     };
@@ -39,6 +41,8 @@ public final class ReleaseServerRegistryProbe {
             if (configuredPath.isBlank()) {
                 throw new IllegalStateException("Missing " + OUTPUT_PROPERTY);
             }
+            String target = requiredIdentity(TARGET_PROPERTY);
+            String loader = requiredIdentity(LOADER_PROPERTY);
             Path output = Path.of(configuredPath).toAbsolutePath().normalize();
             if (!Files.isDirectory(output.getParent()) || Files.exists(output)) {
                 throw new IllegalStateException("Registry snapshot parent is missing or output already exists");
@@ -51,8 +55,16 @@ public final class ReleaseServerRegistryProbe {
             require(registries, "minecraft:block", "sfm:manager");
             require(registries, "minecraft:item", "sfm:disk");
             require(registries, "forge:creative_mode_tab", "sfm:main");
+            for (String category : new String[]{
+                    "minecraft:block_entity_type", "minecraft:menu",
+                    "minecraft:recipe_serializer", "minecraft:recipe_type"
+            }) {
+                if (!registries.containsKey(category)) {
+                    throw new IllegalStateException("Missing SFM registry category " + category);
+                }
+            }
 
-            String json = toJson(registries);
+            String json = toJson(registries, target, loader);
             Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
             System.out.println("SFM_REGISTRY_SNAPSHOT_V1 " + json);
         } catch (Exception failure) {
@@ -61,8 +73,8 @@ public final class ReleaseServerRegistryProbe {
     }
 
     /**
-     * The dedicated 1.19.4 production runtime uses SRG members. Keep these
-     * names in this isolated version adapter; a later target needs its own.
+     * The 1.19.4 and 1.20 production runtimes use these SRG members. This
+     * isolated probe must be checked again before another target is added.
      */
     private static void captureBuiltInRegistries(TreeMap<String, TreeSet<String>> registries) throws Exception {
         Class<?> builtIns = Class.forName("net.minecraft.core.registries.BuiltInRegistries");
@@ -131,9 +143,20 @@ public final class ReleaseServerRegistryProbe {
         }
     }
 
-    private static String toJson(TreeMap<String, TreeSet<String>> registries) {
-        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_registry_snapshot@1\","
-                + "\"target\":\"1.19.4\",\"loader\":\"forge-45.0.9\",\"registries\":{");
+    private static String requiredIdentity(String property) {
+        String value = System.getProperty(property, "");
+        if (value.isBlank() || !value.matches("[a-z0-9_.:/-]+")) {
+            throw new IllegalStateException("Missing or invalid " + property);
+        }
+        return value;
+    }
+
+    private static String toJson(TreeMap<String, TreeSet<String>> registries, String target, String loader) {
+        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_registry_snapshot@1\",\"target\":");
+        appendId(json, target);
+        json.append(",\"loader\":");
+        appendId(json, loader);
+        json.append(",\"registries\":{");
         boolean firstRegistry = true;
         for (var entry : registries.entrySet()) {
             if (!firstRegistry) json.append(',');
