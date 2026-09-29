@@ -373,6 +373,8 @@ Commit `4dd49d63c` implements `source frozen-inventory-matrix-preview`. It requi
 
 Twenty-four `frozen_` tests, five `selection_seed` tests and the release-ID test passed. Strict all-features library Clippy, Rust formatting and diff checks passed. A real read-only preview at source commit `74a8fe59abb98d5be9a6c661c46161f72088fd15` with fictional version `9.99.99-fixture` returned ten independently rehashed canonical inventories; its captured JSON SHA-256 was `91153f02f1d875b4b797c21190c1cdbea038a04db239254a394056a6deaffb5a`. No frozen-inventory directory was created. This is an authoring contract and a matrix-membership check, not release approval, generated-root promotion or gameplay parity. The later process-isolated full Rust suite above passed. No disk-space error occurred.
 
+A post-M6.12 read-only regression at commit `74c50f83a` passed `source check` on all ten checked-in `released-4.34.0` projects. It reported 11,495 unchanged files in total, zero created or updated files and `manifest_changed=false` for every target; Git status was clean before and after. The per-target unchanged counts were 1,146 for 1.19.2, 1.19.4 and 1.20; 1,148 for 1.20.1; 1,149 for 1.20.2 through 1.20.4; 1,151 for 1.21.0; 1,152 for 1.21.1; and 1,159 for 26.1.2. The local test CLI executable was newer than the last CLI source edit. This checks output stability, not future-release behaviour. No disk-space error occurred.
+
 ### Future release-preset promotion boundary
 
 Ordinary `source sync` intentionally rejects a change to an existing generated root's preset ID or definition identity. A future `released-X` candidate therefore needs an explicit, guarded promotion path; do not treat a new release as an in-place sync of `released-4.34.0`.
