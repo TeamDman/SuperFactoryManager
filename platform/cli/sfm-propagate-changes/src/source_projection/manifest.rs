@@ -298,9 +298,8 @@ impl SourceProjectionManifest {
         for preset in &self.presets {
             validate_id(&preset.id, "preset")?;
             if let Some(version) = &preset.release_mod_version {
-                validate_id(version, "release mod version")?;
                 ensure!(
-                    !version.contains("-dev.") && preset.id == format!("released-{version}"),
+                    preset.id == released_preset_id(version)?,
                     "release mod version requires a matching released-<version> preset ID without a development suffix"
                 );
             }
@@ -1313,6 +1312,23 @@ fn unique_known_ids(ids: &[String], known: &BTreeSet<&str>, description: &str) -
     Ok(())
 }
 
+/// Return the only valid preset ID for a caller-supplied release version.
+/// The same syntax applies to committed presets and frozen-inventory previews.
+///
+/// # Errors
+///
+/// Rejects unsafe/nonportable IDs or a development version suffix.
+pub fn released_preset_id(version: &str) -> eyre::Result<String> {
+    validate_id(version, "release mod version")?;
+    ensure!(
+        !version.contains("-dev."),
+        "release mod version cannot contain a development suffix"
+    );
+    let preset_id = format!("released-{version}");
+    validate_id(&preset_id, "preset")?;
+    Ok(preset_id)
+}
+
 fn validate_id(id: &str, description: &str) -> eyre::Result<()> {
     if id.is_empty()
         || !id.bytes().all(|byte| {
@@ -1644,6 +1660,17 @@ mod tests {
             .compute_preset_identity(&manifest.presets[0])
             .unwrap();
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn released_preset_id_uses_the_same_portable_version_syntax_as_the_manifest() {
+        assert_eq!(
+            released_preset_id("9.99.99-fixture").unwrap(),
+            "released-9.99.99-fixture"
+        );
+        for invalid in ["", "foo/bar", "Foo", "9.99.99-dev.1"] {
+            assert!(released_preset_id(invalid).is_err(), "{invalid:?}");
+        }
     }
 
     #[test]

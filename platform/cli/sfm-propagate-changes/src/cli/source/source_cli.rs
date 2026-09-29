@@ -22,6 +22,7 @@ use crate::source_projection::development_fixtures::collect_verified_development
 use crate::source_projection::development_fixtures::materialize_development_project_fixtures;
 use crate::source_projection::development_gradle::apply_post_baseline_gradle_sources;
 use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
+use crate::source_projection::frozen_authoring::FrozenAuthoringPreview;
 use crate::source_projection::frozen_authoring::FrozenSelectionRoots;
 use crate::source_projection::frozen_authoring::preview_frozen_inventory_from_selection;
 use crate::source_projection::frozen_authoring::verify_committed_selection_manifest;
@@ -31,6 +32,7 @@ use crate::source_projection::inputs::apply_explicit_inputs;
 use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
 use crate::source_projection::manifest::BaselineKind;
 use crate::source_projection::manifest::SourceProjectionManifest;
+use crate::source_projection::manifest::released_preset_id;
 use crate::source_projection::project_layout::collect_gradle_project_inputs;
 use crate::source_projection::project_layout::collect_gradle_project_inputs_for_target;
 use crate::source_projection::project_layout::validate_target_project;
@@ -91,6 +93,8 @@ pub enum SourceCommand {
     DryRun(SourceProjectArgs),
     /// Print a canonical commit-frozen inventory seeded from selected development inputs.
     FrozenInventoryPreview(SourceFrozenInventoryPreviewArgs),
+    /// Preview a complete, commit-frozen ten-target inventory matrix without writing.
+    FrozenInventoryMatrixPreview(SourceFrozenInventoryMatrixPreviewArgs),
     /// Require an existing projection to match the selected inputs.
     Check(SourceProjectArgs),
     /// Synchronize a generated source root after conflict checks.
@@ -257,6 +261,60 @@ pub struct SourceFrozenInventoryPreviewArgs {
     pub gradle_overlay: Vec<String>,
 }
 
+const FROZEN_MATRIX_SCHEMA: &str = "sfm:frozen_inventory_matrix_preview@1";
+const FROZEN_MATRIX_SCOPE: &str = "read-only authoring preview; no project or inventory writes; no promotion, tag or publication authorization";
+const FROZEN_MATRIX_TARGETS: [&str; 10] = [
+    "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1",
+    "26.1.2",
+];
+
+#[derive(Debug, Facet)]
+pub struct SourceFrozenInventoryMatrixPreviewArgs {
+    /// Authored Git worktree containing all ten selected development inputs.
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+    /// One exact lowercase authored commit shared by every inventory.
+    #[facet(args::named)]
+    pub source_commit: String,
+    /// One version shared by every future released-<version> inventory.
+    #[facet(args::named)]
+    pub release_mod_version: String,
+    /// Selection manifest relative to the authored repository root.
+    #[facet(default, args::named)]
+    pub manifest: Option<PathBuf>,
+    /// Explicit target=current-development-preset selection; repeat exactly ten times.
+    #[facet(default, args::named)]
+    pub selection: Vec<String>,
+}
+
+#[derive(Debug, Facet)]
+#[facet(deny_unknown_fields)]
+struct FrozenInventoryMatrixPreviewReport {
+    schema: String,
+    scope: String,
+    source_commit: String,
+    /// Prefixed `sha256:<hex>` digest of the exact committed selection manifest.
+    source_manifest_sha256: String,
+    release_mod_version: String,
+    release_preset_id: String,
+    targets: Vec<FrozenInventoryMatrixTargetPreview>,
+}
+
+#[derive(Debug, Facet)]
+#[facet(deny_unknown_fields)]
+struct FrozenInventoryMatrixTargetPreview {
+    target_id: String,
+    minecraft_version: String,
+    development_preset_id: String,
+    development_preset_identity: String,
+    enabled_features: Vec<String>,
+    inventory_path: String,
+    /// Bare lowercase hex, matching `FrozenSourceBinding.inventory_sha256`.
+    inventory_sha256: String,
+    /// Exact canonical JSON, including its terminal newline; hash these bytes.
+    canonical_inventory_json: String,
+}
+
 #[derive(Debug, Facet)]
 pub struct SourceGradleArgs {
     /// Projection selection and the caller-owned output root.
@@ -317,6 +375,9 @@ impl SourceArgs {
             SourceCommand::FrozenInventoryPreview(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
+            SourceCommand::FrozenInventoryMatrixPreview(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
             SourceCommand::Build(args) => {
                 return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Build);
             }
@@ -363,40 +424,32 @@ impl SourceFrozenInventoryPreviewArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
+        let preview = self.preview_in(cancellation, invocation_dir)?;
+        stderr_line(format!(
+            "reviewed binding: {} sha256:{}",
+            preview.binding.inventory_path, preview.binding.inventory_sha256
+        ))?;
+        stdout_line(preview.canonical_json.trim_end_matches('\n'))?;
+        Ok(CliOutput::none())
+    }
+
+    fn preview_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> Result<FrozenAuthoringPreview> {
         cancellation.bail_if_cancelled()?;
+        released_preset_id(&self.release_mod_version)?;
         ensure!(
             self.preset.starts_with("current-development-"),
             "frozen inventory seeding requires a current-development preset"
         );
         let repo_root = resolve_repository_root(self.repo_root.clone(), invocation_dir)?;
-        let manifest_path = source_path(
+        let (manifest, _) = read_committed_frozen_selection_manifest(
             &repo_root,
-            self.manifest
-                .as_deref()
-                .unwrap_or(Path::new("platform/minecraft/source-projection.json")),
-        )?;
-        let manifest_text = fs::read_to_string(&manifest_path)
-            .wrap_err("cannot read source-projection manifest for frozen preview")?;
-        let manifest_repo_path = manifest_path
-            .strip_prefix(&repo_root)
-            .wrap_err("selection manifest escapes authored repository")?
-            .components()
-            .map(|component| match component {
-                Component::Normal(name) => name
-                    .to_str()
-                    .map(str::to_owned)
-                    .ok_or_else(|| eyre::eyre!("selection manifest path is not UTF-8")),
-                _ => Err(eyre::eyre!("selection manifest path is not portable")),
-            })
-            .collect::<Result<Vec<_>>>()?
-            .join("/");
-        verify_committed_selection_manifest(
-            &repo_root,
+            self.manifest.as_deref(),
             &self.source_commit,
-            &manifest_repo_path,
-            manifest_text.as_bytes(),
         )?;
-        let manifest = SourceProjectionManifest::from_json(&manifest_text)?;
         let target = manifest.target(&self.target)?;
         let selection = select(&manifest, &self.target, &self.preset)?;
         let project = SourceProjectArgs {
@@ -443,13 +496,163 @@ impl SourceFrozenInventoryPreviewArgs {
                 "proposed frozen inventory differs from complete selection-derived preview"
             );
         }
-        stderr_line(format!(
-            "reviewed binding: {} sha256:{}",
-            preview.binding.inventory_path, preview.binding.inventory_sha256
-        ))?;
-        stdout_line(preview.canonical_json.trim_end_matches('\n'))?;
-        Ok(CliOutput::none())
+        Ok(preview)
     }
+}
+
+fn read_committed_frozen_selection_manifest(
+    repo_root: &Path,
+    manifest: Option<&Path>,
+    source_commit: &str,
+) -> Result<(SourceProjectionManifest, String)> {
+    let manifest_path = source_path(
+        repo_root,
+        manifest.unwrap_or(Path::new("platform/minecraft/source-projection.json")),
+    )?;
+    let bytes = fs::read(&manifest_path)
+        .wrap_err("cannot read source-projection manifest for frozen preview")?;
+    let manifest_repo_path = manifest_path
+        .strip_prefix(repo_root)
+        .wrap_err("selection manifest escapes authored repository")?
+        .components()
+        .map(|component| match component {
+            Component::Normal(name) => name
+                .to_str()
+                .map(str::to_owned)
+                .ok_or_else(|| eyre::eyre!("selection manifest path is not UTF-8")),
+            _ => Err(eyre::eyre!("selection manifest path is not portable")),
+        })
+        .collect::<Result<Vec<_>>>()?
+        .join("/");
+    verify_committed_selection_manifest(repo_root, source_commit, &manifest_repo_path, &bytes)?;
+    let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&bytes)?)?;
+    Ok((manifest, sha256(&bytes)))
+}
+
+impl SourceFrozenInventoryMatrixPreviewArgs {
+    /// # Errors
+    ///
+    /// Rejects an incomplete matrix, a changed authored selection or any
+    /// target preview failure before emitting a single report.
+    pub fn invoke_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> Result<CliOutput> {
+        cancellation.bail_if_cancelled()?;
+        let release_preset_id = released_preset_id(&self.release_mod_version)?;
+        let repo_root = resolve_repository_root(self.repo_root, invocation_dir)?;
+        let (manifest, manifest_sha256) = read_committed_frozen_selection_manifest(
+            &repo_root,
+            self.manifest.as_deref(),
+            &self.source_commit,
+        )?;
+        let selections = parse_frozen_matrix_selections(&manifest, &self.selection)?;
+        let mut targets = Vec::with_capacity(FROZEN_MATRIX_TARGETS.len());
+        for target_id in FROZEN_MATRIX_TARGETS {
+            cancellation.bail_if_cancelled()?;
+            let preset_id = &selections[target_id];
+            let preset = manifest.preset(preset_id)?;
+            let preview = SourceFrozenInventoryPreviewArgs {
+                repo_root: repo_root.clone(),
+                target: target_id.to_owned(),
+                preset: preset_id.clone(),
+                source_commit: self.source_commit.clone(),
+                release_mod_version: self.release_mod_version.clone(),
+                manifest: self.manifest.clone(),
+                proposed_inventory: None,
+                primary_src_root: None,
+                overlay: Vec::new(),
+                gradle_project_root: None,
+                gradle_overlay: Vec::new(),
+            }
+            .preview_in(cancellation, invocation_dir)
+            .wrap_err_with(|| format!("frozen matrix preview failed for '{target_id}'"))?;
+            ensure!(
+                preview.inventory.target_id == target_id
+                    && preview.inventory.source_commit == self.source_commit,
+                "frozen matrix target identity differs from shared authored commit"
+            );
+            targets.push(FrozenInventoryMatrixTargetPreview {
+                target_id: target_id.to_owned(),
+                minecraft_version: preview.inventory.context.minecraft_version.clone(),
+                development_preset_id: preset_id.clone(),
+                development_preset_identity: preset.identity.clone(),
+                enabled_features: preset
+                    .effective_features(target_id)
+                    .into_iter()
+                    .map(str::to_owned)
+                    .collect(),
+                inventory_path: preview.binding.inventory_path,
+                inventory_sha256: preview.binding.inventory_sha256,
+                canonical_inventory_json: preview.canonical_json,
+            });
+        }
+        Ok(CliOutput::facet(FrozenInventoryMatrixPreviewReport {
+            schema: FROZEN_MATRIX_SCHEMA.to_owned(),
+            scope: FROZEN_MATRIX_SCOPE.to_owned(),
+            source_commit: self.source_commit,
+            source_manifest_sha256: manifest_sha256,
+            release_preset_id,
+            release_mod_version: self.release_mod_version,
+            targets,
+        }))
+    }
+}
+
+fn parse_frozen_matrix_selections(
+    manifest: &SourceProjectionManifest,
+    values: &[String],
+) -> Result<BTreeMap<String, String>> {
+    let required = FROZEN_MATRIX_TARGETS.into_iter().collect::<BTreeSet<_>>();
+    ensure!(
+        manifest.targets.len() == required.len()
+            && manifest
+                .targets
+                .iter()
+                .map(|target| target.id.as_str())
+                .collect::<BTreeSet<_>>()
+                == required,
+        "frozen matrix requires the exact ten supported target IDs"
+    );
+    ensure!(
+        values.len() == required.len(),
+        "frozen matrix requires exactly ten target=preset selections"
+    );
+    let mut selections = BTreeMap::new();
+    for value in values {
+        let (target_id, preset_id) = value
+            .split_once('=')
+            .ok_or_else(|| eyre::eyre!("frozen matrix selection must use target=preset"))?;
+        ensure!(
+            required.contains(target_id),
+            "unknown frozen matrix target '{target_id}'"
+        );
+        ensure!(
+            preset_id.starts_with("current-development-"),
+            "frozen matrix requires current-development presets"
+        );
+        let preset = manifest.preset(preset_id)?;
+        ensure!(
+            preset.targets.len() == 1 && preset.targets[0] == target_id,
+            "frozen matrix preset '{preset_id}' must select only '{target_id}'"
+        );
+        ensure!(
+            selections
+                .insert(target_id.to_owned(), preset_id.to_owned())
+                .is_none(),
+            "duplicate frozen matrix selection for '{target_id}'"
+        );
+    }
+    ensure!(
+        selections
+            .keys()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>()
+            == required,
+        "frozen matrix selections omit a required target"
+    );
+    Ok(selections)
 }
 
 impl SourceProjectArgs {
@@ -1495,6 +1698,10 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
+    use crate::cli::output::OutputFormat;
+    use crate::source_projection::manifest::PathEffect;
+    use crate::source_projection::manifest::PathEffectKind;
+    use crate::source_projection::manifest::ProjectionFeature;
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
     use std::process::Command as TestCommand;
@@ -1517,6 +1724,380 @@ mod tests {
         let destination = root.join(path);
         fs::create_dir_all(destination.parent().unwrap()).unwrap();
         fs::write(destination, bytes).unwrap();
+    }
+
+    fn real_frozen_matrix_selections() -> Vec<String> {
+        FROZEN_MATRIX_TARGETS
+            .into_iter()
+            .map(|target| {
+                let preset = match target {
+                    "1.19.2" | "26.1.2" => {
+                        format!("current-development-regex-overlap-{target}")
+                    }
+                    other => format!("current-development-head-{other}"),
+                };
+                format!("{target}={preset}")
+            })
+            .collect()
+    }
+
+    #[test]
+    fn frozen_matrix_requires_exact_explicit_development_selections() {
+        let manifest = SourceProjectionManifest::from_json(include_str!(
+            "../../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let complete = real_frozen_matrix_selections();
+        let selected = parse_frozen_matrix_selections(&manifest, &complete).unwrap();
+        assert_eq!(selected.len(), 10);
+        assert_eq!(
+            selected["1.19.2"],
+            "current-development-regex-overlap-1.19.2"
+        );
+        let mut missing = complete.clone();
+        missing.pop();
+        assert!(parse_frozen_matrix_selections(&manifest, &missing).is_err());
+        let mut duplicate = complete.clone();
+        duplicate[9] = duplicate[0].clone();
+        assert!(parse_frozen_matrix_selections(&manifest, &duplicate).is_err());
+        let mut foreign = complete.clone();
+        foreign[9] = "1.21.2=current-development-head-1.21.2".to_owned();
+        assert!(parse_frozen_matrix_selections(&manifest, &foreign).is_err());
+        let mut wrong_target = complete.clone();
+        wrong_target[1] = "1.19.4=current-development-head-1.20".to_owned();
+        assert!(parse_frozen_matrix_selections(&manifest, &wrong_target).is_err());
+        let mut release = complete;
+        release[0] = "1.19.2=released-4.34.0".to_owned();
+        assert!(parse_frozen_matrix_selections(&manifest, &release).is_err());
+        let mut malformed = real_frozen_matrix_selections();
+        malformed[0] = "1.19.2".to_owned();
+        assert!(parse_frozen_matrix_selections(&manifest, &malformed).is_err());
+        let mut incomplete_manifest = manifest;
+        incomplete_manifest.targets.pop();
+        assert!(parse_frozen_matrix_selections(&incomplete_manifest, &release).is_err());
+    }
+
+    #[test]
+    fn frozen_matrix_command_parses_repeated_explicit_selections() {
+        let parsed = figue::from_slice::<Cli>(&[
+            "source",
+            "frozen-inventory-matrix-preview",
+            "--repo-root",
+            ".",
+            "--source-commit",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--release-mod-version",
+            "9.99.99-fixture",
+            "--selection",
+            "1.19.2=current-development-head-1.19.2",
+            "--selection",
+            "1.19.4=current-development-head-1.19.4",
+        ])
+        .into_result()
+        .unwrap()
+        .get_silent();
+        let Command::Source(SourceArgs {
+            command: SourceCommand::FrozenInventoryMatrixPreview(args),
+        }) = parsed.command
+        else {
+            panic!("expected frozen-inventory-matrix-preview command");
+        };
+        assert_eq!(args.selection.len(), 2);
+    }
+
+    #[test]
+    fn frozen_previews_reject_invalid_release_ids_before_repository_inspection() {
+        for invalid in ["", "foo/bar", "Foo", "9.99.99-dev.1"] {
+            let matrix = SourceFrozenInventoryMatrixPreviewArgs {
+                repo_root: PathBuf::from("missing-authored-repository"),
+                source_commit: "a".repeat(40),
+                release_mod_version: invalid.to_owned(),
+                manifest: None,
+                selection: real_frozen_matrix_selections(),
+            };
+            let error = matrix
+                .invoke_in(&CancellationToken::new(), Path::new("."))
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("release mod version"),
+                "{invalid:?}: {error}"
+            );
+
+            let target = SourceFrozenInventoryPreviewArgs {
+                repo_root: PathBuf::from("missing-authored-repository"),
+                target: "1.19.2".to_owned(),
+                preset: "current-development-pilot".to_owned(),
+                source_commit: "a".repeat(40),
+                release_mod_version: invalid.to_owned(),
+                manifest: None,
+                proposed_inventory: None,
+                primary_src_root: None,
+                overlay: vec![],
+                gradle_project_root: None,
+                gradle_overlay: vec![],
+            };
+            let error = target
+                .preview_in(&CancellationToken::new(), Path::new("."))
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("release mod version"),
+                "{invalid:?}: {error}"
+            );
+        }
+    }
+
+    fn frozen_matrix_fixture() -> (
+        tempfile::TempDir,
+        String,
+        SourceFrozenInventoryMatrixPreviewArgs,
+    ) {
+        let temp = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(temp.path()).unwrap();
+        git_test(&root, &["init", "--quiet"]);
+        git_test(&root, &["config", "user.name", "SFM matrix fixture"]);
+        git_test(
+            &root,
+            &["config", "user.email", "sfm-matrix@example.invalid"],
+        );
+        write_test(
+            &root,
+            "platform/minecraft/src/main/java/example/Proof.java",
+            b"class Proof {\n{% if features.matrix_probe %}\n int enabled = 1;\n{% endif %}\n}\n",
+        );
+        write_test(
+            &root,
+            "platform/minecraft/version-sources/26.1.2/src/main/java/example/Last.java",
+            b"class Last {}\n",
+        );
+        for name in [
+            "build.gradle",
+            "settings.gradle",
+            "gradlew",
+            "gradlew.bat",
+            "sfm-toolchain.lock.json",
+        ] {
+            write_test(
+                &root,
+                &format!("platform/minecraft/{name}"),
+                name.as_bytes(),
+            );
+        }
+        write_test(
+            &root,
+            "platform/minecraft/gradle.properties",
+            b"minecraft_version=1.19.2\nmod_version=4.34.0\n",
+        );
+        write_test(
+            &root,
+            "platform/minecraft/gradle/wrapper/gradle-wrapper.jar",
+            b"wrapper",
+        );
+        write_test(
+            &root,
+            "platform/minecraft/gradle/wrapper/gradle-wrapper.properties",
+            b"distributionUrl=https://example.invalid/gradle-7.5-bin.zip\n",
+        );
+        let targets = FROZEN_MATRIX_TARGETS
+            .into_iter()
+            .map(|id| ProjectionTarget {
+                id: id.to_owned(),
+                template_key: format!("mc_{}", id.replace('.', "_")),
+                minecraft_version: "1.19.2".to_owned(),
+                loader: "forge".to_owned(),
+                java_major: 17,
+                project_dir: format!("platform/minecraft/mc-version/{id}"),
+            })
+            .collect();
+        let presets = FROZEN_MATRIX_TARGETS
+            .into_iter()
+            .map(|id| ProjectionPreset {
+                id: format!("current-development-head-{id}"),
+                release_mod_version: None,
+                targets: vec![id.to_owned()],
+                enabled_features: match id {
+                    "1.19.2" => vec!["matrix_probe".to_owned()],
+                    "26.1.2" => vec!["last_target_probe".to_owned()],
+                    _ => vec![],
+                },
+                target_features: BTreeMap::new(),
+                release_baselines: vec![],
+                frozen_source_commit: None,
+                frozen_sources: vec![],
+                canonical_project_fixture_provenance_sha256: None,
+                identity: String::new(),
+            })
+            .collect();
+        let mut manifest = SourceProjectionManifest {
+            schema_version: 1,
+            targets,
+            features: vec![
+                ProjectionFeature {
+                    id: "matrix_probe".to_owned(),
+                    supported_targets: vec!["1.19.2".to_owned()],
+                    requires: vec![],
+                    source_effects: vec![PathEffect {
+                        output_path: "src/main/java/example/Proof.java".to_owned(),
+                        kind: PathEffectKind::Template,
+                        input_path: None,
+                    }],
+                    resource_effects: vec![],
+                    dependency_effects: vec![],
+                },
+                ProjectionFeature {
+                    id: "last_target_probe".to_owned(),
+                    supported_targets: vec!["26.1.2".to_owned()],
+                    requires: vec![],
+                    source_effects: vec![PathEffect {
+                        output_path: "src/main/java/example/Last.java".to_owned(),
+                        kind: PathEffectKind::Include,
+                        input_path: Some(
+                            "platform/minecraft/version-sources/26.1.2/src/main/java/example/Last.java"
+                                .to_owned(),
+                        ),
+                    }],
+                    resource_effects: vec![],
+                    dependency_effects: vec![],
+                },
+            ],
+            presets,
+        };
+        for index in 0..manifest.presets.len() {
+            manifest.presets[index].identity = manifest
+                .compute_preset_identity(&manifest.presets[index])
+                .unwrap();
+        }
+        write_test(
+            &root,
+            "platform/minecraft/source-projection.json",
+            manifest.to_json().unwrap().as_bytes(),
+        );
+        git_test(&root, &["add", "--", "platform/minecraft"]);
+        git_test(
+            &root,
+            &["commit", "--quiet", "-m", "authored matrix inputs"],
+        );
+        let commit = git_test(&root, &["rev-parse", "HEAD"]);
+        let args = SourceFrozenInventoryMatrixPreviewArgs {
+            repo_root: root,
+            source_commit: commit.clone(),
+            release_mod_version: "9.99.99-fixture".to_owned(),
+            manifest: None,
+            selection: FROZEN_MATRIX_TARGETS
+                .into_iter()
+                .map(|id| format!("{id}=current-development-head-{id}"))
+                .collect(),
+        };
+        (temp, commit, args)
+    }
+
+    #[test]
+    fn frozen_matrix_previews_ten_canonical_inventories_without_writes() {
+        let (temp, commit, args) = frozen_matrix_fixture();
+        let output = args
+            .invoke_in(&CancellationToken::new(), temp.path())
+            .unwrap();
+        let json = output
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        let report: FrozenInventoryMatrixPreviewReport = facet_json::from_str(&json).unwrap();
+        assert_eq!(report.schema, FROZEN_MATRIX_SCHEMA);
+        assert_eq!(report.scope, FROZEN_MATRIX_SCOPE);
+        assert_eq!(report.source_commit, commit);
+        assert_eq!(report.release_mod_version, "9.99.99-fixture");
+        assert_eq!(report.release_preset_id, "released-9.99.99-fixture");
+        assert_eq!(
+            report.source_manifest_sha256,
+            sha256(
+                &fs::read(
+                    temp.path()
+                        .join("platform/minecraft/source-projection.json")
+                )
+                .unwrap()
+            )
+        );
+        assert_eq!(report.targets.len(), 10);
+        assert_eq!(
+            report.targets[0].enabled_features,
+            vec!["matrix_probe".to_owned()]
+        );
+        assert!(report.targets[1].enabled_features.is_empty());
+        assert_eq!(
+            report.targets[9].enabled_features,
+            vec!["last_target_probe".to_owned()]
+        );
+        for target in &report.targets {
+            assert!(
+                target.development_preset_identity.starts_with("blake3:"),
+                "{}",
+                target.target_id
+            );
+            assert_eq!(
+                sha256(target.canonical_inventory_json.as_bytes()),
+                format!("sha256:{}", target.inventory_sha256)
+            );
+            assert_eq!(
+                target.inventory_path,
+                format!(
+                    "platform/minecraft/frozen-releases/released-9.99.99-fixture/{}/inventory.json",
+                    target.target_id
+                )
+            );
+            assert!(target.canonical_inventory_json.ends_with('\n'));
+        }
+        assert!(
+            !temp
+                .path()
+                .join("platform/minecraft/frozen-releases")
+                .exists()
+        );
+        assert_eq!(git_test(temp.path(), &["status", "--porcelain"]), "");
+    }
+
+    #[test]
+    fn frozen_matrix_rejects_manifest_drift_before_preview() {
+        let (temp, _, args) = frozen_matrix_fixture();
+        write_test(
+            temp.path(),
+            "platform/minecraft/source-projection.json",
+            b"{}\n",
+        );
+        let error = args
+            .invoke_in(&CancellationToken::new(), temp.path())
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("exact authored commit"), "{error}");
+        assert!(
+            !temp
+                .path()
+                .join("platform/minecraft/frozen-releases")
+                .exists()
+        );
+    }
+
+    #[test]
+    fn frozen_matrix_late_target_failure_returns_no_report_or_written_inventory() {
+        let (temp, _, args) = frozen_matrix_fixture();
+        write_test(
+            temp.path(),
+            "platform/minecraft/version-sources/26.1.2/src/main/java/example/Last.java",
+            b"class Last { int drift = 1; }\n",
+        );
+        // The first nine targets are valid; only the final target's exact
+        // authored input has changed. A typed report exists only on success.
+        let error = args
+            .invoke_in(&CancellationToken::new(), temp.path())
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("26.1.2"), "{error}");
+        assert!(
+            !temp
+                .path()
+                .join("platform/minecraft/frozen-releases")
+                .exists()
+        );
     }
 
     #[test]

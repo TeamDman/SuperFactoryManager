@@ -18,6 +18,7 @@ use super::frozen_release::verify_frozen_outputs;
 use super::inputs::render_java_artifact;
 use super::manifest::BaselineKind;
 use super::manifest::FrozenSourceBinding;
+use super::manifest::released_preset_id;
 use super::project_layout::append_project_name_override;
 use super::project_layout::validate_target_project;
 use super::promotion::validate_relative_path;
@@ -147,6 +148,7 @@ pub fn preview_frozen_inventory_from_selection(
     release_mod_version: &str,
     proposed_files: Option<&BTreeMap<String, FrozenAuthoringInput>>,
 ) -> Result<FrozenAuthoringPreview> {
+    let release_preset_id = released_preset_id(release_mod_version)?;
     ensure!(
         selection.frozen_source.is_none() && selection.frozen_source_commit.is_none(),
         "frozen authoring requires a current-development selection"
@@ -169,7 +171,7 @@ pub fn preview_frozen_inventory_from_selection(
         );
     }
     let mut context = selection.context.clone();
-    context.preset = format!("released-{release_mod_version}");
+    context.preset = release_preset_id;
     let request = FrozenAuthoringRequest {
         target_id: target_id.to_owned(),
         source_commit: source_commit.to_owned(),
@@ -373,13 +375,13 @@ fn preview_frozen_inventory_and_artifacts(
     repo_root: &Path,
     request: &FrozenAuthoringRequest,
 ) -> Result<(FrozenAuthoringPreview, BTreeMap<String, ProjectedArtifact>)> {
+    let release_preset_id = released_preset_id(&request.release_mod_version)?;
     ensure!(
         is_lower_hex(&request.source_commit, 40),
         "frozen authoring requires an exact lowercase authored commit SHA"
     );
     ensure!(
-        request.context.preset == format!("released-{}", request.release_mod_version)
-            && !request.release_mod_version.contains("-dev."),
+        request.context.preset == release_preset_id,
         "frozen authoring requires a matching released-<version> context"
     );
     let inventory_path = format!(
@@ -1387,6 +1389,29 @@ mod tests {
                 .exists()
         );
         assert!(git(root.path(), &["status", "--porcelain"]).is_empty());
+    }
+
+    #[test]
+    fn frozen_authoring_rejects_unsafe_release_version_before_inventory_path() {
+        let (root, commit) = setup();
+        for invalid in ["", "foo/bar", "Foo", "9.99.99-dev.1"] {
+            let mut candidate = request(&commit, "1.20");
+            candidate.release_mod_version = invalid.to_owned();
+            candidate.context.preset = format!("released-{invalid}");
+            let error = preview_frozen_inventory(root.path(), &candidate)
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("release mod version"),
+                "{invalid:?}: {error}"
+            );
+        }
+        assert!(
+            !root
+                .path()
+                .join("platform/minecraft/frozen-releases")
+                .exists()
+        );
     }
 
     #[test]
