@@ -321,7 +321,7 @@ $diskErrorPattern = '(?i)no space left|not enough space|insufficient disk|disk[ 
 $worldName = 'sfm-release-witness-world'
 $probeRoot = $PSScriptRoot
 $probeSource = Join-Path $probeRoot $version.probe_source
-$networkProbeSource = if ($target -in @('1.19.2', '26.1.2')) {
+$networkProbeSource = if ($networkMode) {
     Join-Path (Split-Path -Parent $probeSource) 'ReleaseNetworkProbe.java'
 } else { '' }
 $probeResources = Join-Path $probeRoot $version.resources
@@ -685,8 +685,38 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
             if (-not [IO.File]::Exists($networkSnapshot)) { throw "$Role probe did not emit a network snapshot" }
             $parsedNetwork = [IO.File]::ReadAllText($networkSnapshot) | ConvertFrom-Json
             $entries = if ($target -eq '1.19.2') { @($parsedNetwork.messages) } else { @($parsedNetwork.payloads) }
-            if ($parsedNetwork.schema -ne 'sfm:release_network_snapshot@1' -or $entries.Count -ne 37) {
-                throw "$Role network snapshot schema or non-vacuity mismatch"
+            if ($parsedNetwork.schema -cne 'sfm:release_network_snapshot@1' -or
+                $parsedNetwork.target -cne $target -or $parsedNetwork.loader -cne $loaderIdentity -or
+                $entries.Count -ne 37) {
+                throw "$Role network snapshot identity or non-vacuity mismatch"
+            }
+            if ($target -eq '1.19.2') {
+                if ($parsedNetwork.channel -cne 'sfm:manager' -or
+                    $parsedNetwork.protocolVersion -cne '1.0.0') {
+                    throw "$Role Forge network channel identity mismatch"
+                }
+                for ($i = 0; $i -lt $entries.Count; $i++) {
+                    $entry = $entries[$i]
+                    if ($entry.index -ne $i -or $entry.class -cnotmatch '^ca\.teamdman\.sfm\.common\.net\.' -or
+                        $entry.direction -cne 'unspecified' -or
+                        $entry.encoderPresent -isnot [bool] -or $entry.encoderPresent -ne $true -or
+                        $entry.decoderPresent -isnot [bool] -or $entry.decoderPresent -ne $true) {
+                        throw "$Role Forge network registration shape mismatch"
+                    }
+                }
+            } else {
+                $seenIds = @{}
+                foreach ($entry in $entries) {
+                    if ($entry.id -cnotmatch '^sfm:[a-z0-9_]+$' -or
+                        $entry.direction -cnotin @('clientbound', 'serverbound') -or
+                        $entry.protocol -cne 'play' -or $entry.version -cne '1.0.0' -or
+                        $entry.optional -isnot [bool] -or $entry.optional -ne $false -or
+                        $entry.codecPresent -isnot [bool] -or $entry.codecPresent -ne $true -or
+                        $seenIds.ContainsKey($entry.id)) {
+                        throw "$Role NeoForge network registration shape mismatch"
+                    }
+                    $seenIds[$entry.id] = $true
+                }
             }
         }
 

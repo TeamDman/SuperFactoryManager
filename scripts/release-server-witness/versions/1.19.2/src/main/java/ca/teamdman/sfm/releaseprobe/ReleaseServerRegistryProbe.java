@@ -80,19 +80,22 @@ public final class ReleaseServerRegistryProbe {
             }
             String networkOutput = System.getProperty(NETWORK_OUTPUT_PROPERTY, "");
             if (!networkOutput.isBlank()) {
-                writeNetworkSnapshot(networkOutput);
+                writeNetworkSnapshot(networkOutput, target, loader);
             }
         } catch (Exception failure) {
             throw new IllegalStateException("SFM release registry snapshot failed", failure);
         }
     }
 
-    private static void writeNetworkSnapshot(String configuredPath) throws Exception {
+    private static void writeNetworkSnapshot(String configuredPath, String target, String loader) throws Exception {
         Path output = Path.of(configuredPath).toAbsolutePath().normalize();
         if (!Files.isDirectory(output.getParent()) || Files.exists(output)) {
             throw new IllegalStateException("Network snapshot parent is missing or output already exists");
         }
-        String json = ReleaseNetworkProbe.captureJson();
+        // Keep registry and command modes independent of the optional network helper.
+        String json = (String) Class.forName("ca.teamdman.sfm.releaseprobe.ReleaseNetworkProbe")
+                .getMethod("captureJson", String.class, String.class)
+                .invoke(null, target, loader);
         Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
         System.out.println("SFM_NETWORK_SNAPSHOT_V1 messages_written=true");
     }
