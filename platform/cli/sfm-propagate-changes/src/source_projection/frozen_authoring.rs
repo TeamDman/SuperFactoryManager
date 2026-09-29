@@ -392,6 +392,7 @@ mod tests {
     use super::super::sync::SyncMode;
     use super::super::sync::sync_projection;
     use super::*;
+    use std::env;
     use std::process::Command;
 
     const JAVA: &str = "src/main/java/example/Proof.java";
@@ -708,5 +709,45 @@ mod tests {
         apply_release_mod_version(&mut replay, &request.release_mod_version).unwrap();
         verify_frozen_outputs(&parsed, &replay).unwrap();
         assert_eq!(replay[JAVA].source_bytes, original);
+    }
+
+    #[test]
+    fn inherited_git_repository_overrides_cannot_redirect_preview() {
+        let (root, commit) = setup();
+        let bogus = tempfile::tempdir().unwrap();
+        let output = Command::new(env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "source_projection::frozen_authoring::tests::frozen_child_probe_from_env",
+                "--nocapture",
+            ])
+            .env("SFM_FROZEN_TEST_REPO_ROOT", root.path())
+            .env("SFM_FROZEN_TEST_COMMIT", commit)
+            .env("GIT_DIR", bogus.path())
+            .env("GIT_WORK_TREE", bogus.path())
+            .env("GIT_CONFIG_COUNT", "1")
+            .env("GIT_CONFIG_KEY_0", "core.repositoryformatversion")
+            .env("GIT_CONFIG_VALUE_0", "900")
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success()
+                && String::from_utf8_lossy(&output.stdout).contains("FROZEN_PROBE_OK"),
+            "hostile-env child failed:\nstdout: {}\nstderr: {}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn frozen_child_probe_from_env() {
+        let Ok(root) = env::var("SFM_FROZEN_TEST_REPO_ROOT") else {
+            return;
+        };
+        let commit = env::var("SFM_FROZEN_TEST_COMMIT").unwrap();
+        let candidate = request(&commit, "1.19.4");
+        let preview = preview_frozen_inventory(Path::new(&root), &candidate).unwrap();
+        assert_eq!(preview.inventory.source_commit, commit);
+        println!("FROZEN_PROBE_OK");
     }
 }
