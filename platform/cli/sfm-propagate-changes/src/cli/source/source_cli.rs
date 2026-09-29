@@ -1262,36 +1262,87 @@ mod tests {
                 .unwrap(),
         )
         .unwrap();
-        let selection = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
-        let mut args = fixture_args(&repo_root);
-        let mut artifacts = args
-            .collect_gradle_artifacts(&repo_root, &selection, "1.19.2", "1.19.2")
-            .unwrap();
-        let tagged = artifacts["gradle.properties"].source_bytes.clone();
-        assert_eq!(
-            artifacts["gradle.properties"].overlay.as_deref(),
-            Some("release-tag")
-        );
-        assert_eq!(artifacts["gradle.properties"].output_bytes, tagged);
-        apply_release_mod_version(&mut artifacts, "9.99.99-fixture").unwrap();
-        let projected = &artifacts["gradle.properties"];
-        assert_eq!(projected.source_bytes, tagged);
-        assert_eq!(
-            std::str::from_utf8(&projected.output_bytes)
-                .unwrap()
-                .replace("mod_version=9.99.99-fixture", "mod_version=4.34.0")
-                .as_bytes(),
-            tagged
-        );
+        let expected_targets = [
+            "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1",
+            "26.1.2",
+        ];
+        let preset_targets = manifest
+            .preset("released-4.34.0")
+            .unwrap()
+            .targets
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        assert_eq!(preset_targets, expected_targets);
 
-        args.gradle_overlay
-            .push("manual=platform/minecraft".to_owned());
-        assert!(
-            args.collect_gradle_artifacts(&repo_root, &selection, "1.19.2", "1.19.2")
+        for target_id in expected_targets {
+            let target = manifest.target(target_id).unwrap();
+            let selection = select(&manifest, target_id, "released-4.34.0").unwrap();
+            assert!(selection.release_baseline.is_some(), "{target_id}");
+            let generated_properties = repo_root
+                .join(&target.project_dir)
+                .join("gradle.properties");
+            let generated_before = fs::read(&generated_properties).unwrap();
+            let mut args = fixture_args(&repo_root);
+            let mut artifacts = args
+                .collect_gradle_artifacts(
+                    &repo_root,
+                    &selection,
+                    target_id,
+                    &target.minecraft_version,
+                )
+                .unwrap();
+            let original_artifacts = artifacts.clone();
+            let tagged = &original_artifacts["gradle.properties"].source_bytes;
+            let tagged_text = std::str::from_utf8(tagged).unwrap();
+            assert_eq!(
+                tagged_text.matches("mod_version=4.34.0").count(),
+                1,
+                "{target_id}"
+            );
+            assert_eq!(
+                original_artifacts["gradle.properties"].overlay.as_deref(),
+                Some("release-tag"),
+                "{target_id}"
+            );
+            assert_eq!(
+                original_artifacts["gradle.properties"].output_bytes, *tagged,
+                "{target_id}"
+            );
+
+            apply_release_mod_version(&mut artifacts, "9.99.99-fixture").unwrap();
+            let projected = &artifacts["gradle.properties"];
+            assert_eq!(projected.source_bytes, *tagged, "{target_id}");
+            assert_eq!(
+                projected.output_bytes,
+                tagged_text
+                    .replacen("mod_version=4.34.0", "mod_version=9.99.99-fixture", 1)
+                    .as_bytes(),
+                "{target_id}"
+            );
+            assert_eq!(projected.overlay.as_deref(), Some("release-tag"));
+            for (path, original) in &original_artifacts {
+                if path != "gradle.properties" {
+                    assert_eq!(artifacts.get(path), Some(original), "{target_id}: {path}");
+                }
+            }
+
+            args.gradle_overlay
+                .push("manual=platform/minecraft".to_owned());
+            assert!(
+                args.collect_gradle_artifacts(
+                    &repo_root,
+                    &selection,
+                    target_id,
+                    &target.minecraft_version,
+                )
                 .unwrap_err()
                 .to_string()
-                .contains("manual Gradle overrides are not permitted")
-        );
+                .contains("manual Gradle overrides are not permitted"),
+                "{target_id}"
+            );
+            assert_eq!(fs::read(&generated_properties).unwrap(), generated_before);
+        }
     }
 
     fn development_import_fixture() -> (tempfile::TempDir, SourceImportDevelopmentArgs) {
