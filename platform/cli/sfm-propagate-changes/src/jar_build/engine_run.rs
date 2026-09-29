@@ -4064,14 +4064,20 @@ fn create_game_puppet_preview_run_root(
     let run_base = format!(
         "{}-{}",
         safe_game_puppet_preview_run_name(puppet_selection.unwrap_or("puppet")),
-        Local::now().format("%Y%m%d-%H%M%S-%3f")
+        Local::now().format("%Y%m%d-%H%M%S")
     );
+    allocate_game_puppet_preview_run_root(&run_parent, &run_base)
+}
+
+fn allocate_game_puppet_preview_run_root(
+    run_parent: &Path,
+    run_base: &str,
+) -> eyre::Result<(String, PathBuf)> {
+    // A 16-character hint, 15-character full-year timestamp and fixed-width
+    // counter keep every run ID inside the legacy Windows file-URL budget.
+    eyre::ensure!(run_base.len() + 4 <= 36, "game-puppet preview run ID is too long");
     for index in 0..1000_u32 {
-        let run_id = if index == 0 {
-            run_base.clone()
-        } else {
-            format!("{run_base}-{index:03}")
-        };
+        let run_id = format!("{run_base}-{index:03}");
         let candidate = run_parent.join(&run_id);
         match fs::create_dir(&candidate) {
             Ok(()) => return Ok((run_id, candidate)),
@@ -4720,6 +4726,7 @@ mod game_puppet_preview_tests {
     use super::GamePuppetPreviewViewportCrop;
     use super::MAX_GAME_PUPPET_ARTIFACT_BYTES;
     use super::RunKind;
+    use super::allocate_game_puppet_preview_run_root;
     use super::apply_game_puppet_control_cli_property;
     use super::captioned_viewport_geometry;
     use super::client_automation_requires_control_cli;
@@ -5013,6 +5020,25 @@ mod game_puppet_preview_tests {
         assert!(second_id.starts_with("title_screen_com-"));
         assert!(first_id.len() <= 36);
         assert!(second_id.len() <= 36);
+    }
+
+    #[test]
+    fn preview_run_collision_keeps_nonce_within_legacy_path_budget() {
+        let temporary = tempdir().expect("temporary artifact root");
+        let run_parent = temporary.path().join("runs");
+        fs::create_dir(&run_parent).unwrap();
+        let run_base = "title_screen_com-20260929-201530";
+        assert_eq!(run_base.len(), 32);
+        assert_eq!(format!("{run_base}-999").len(), 36);
+
+        let (first_id, first_root) =
+            allocate_game_puppet_preview_run_root(&run_parent, run_base).unwrap();
+        let (second_id, second_root) =
+            allocate_game_puppet_preview_run_root(&run_parent, run_base).unwrap();
+        assert_eq!(first_id, format!("{run_base}-000"));
+        assert_eq!(second_id, format!("{run_base}-001"));
+        assert!(first_root.is_dir() && second_root.is_dir());
+        assert!(first_id.len() <= 36 && second_id.len() <= 36);
     }
 
     #[test]
