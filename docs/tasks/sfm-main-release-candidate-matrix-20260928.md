@@ -80,7 +80,7 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | 1.20.2 | Pass, NeoForge 20.2.86 | Pass, 10 categories/72 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 20.2.86 |
 | 1.20.3 | Pass, NeoForge 20.3.8-beta | Pass, 10 categories/72 IDs | Not run | Not run |
 | 1.20.4 | Pass, NeoForge 20.4.231 | Pass, 10 categories/72 IDs | Not run | Not run |
-| 1.21.0 | Pass, NeoForge 21.0.143 | Pass, 11 categories/84 IDs | Pass, one vanilla-barrel path | Not run |
+| 1.21.0 | Pass, NeoForge 21.0.143 | Pass, 11 categories/84 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 21.0.143 |
 | 1.21.1 | Pass, NeoForge 21.1.206 | Pass, 11 categories/84 IDs | Not run | Pass, exact NeoForge 21.1.206 |
 | 26.1.2 | Pass, NeoForge 26.1.2.72 | Pass, 11 categories/83 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 26.1.2.72 |
 
@@ -102,6 +102,17 @@ Commit `d95d49648` then used those exact inputs to run the unchanged official an
 | Projected world | `c8d3686d3482ee33be54cfc742df0ba9079a08f977972fe92881bf35f9e09b1a` | `37b5e647bcfe8f91505b50570d7f6281e24781ae5fd96c3897f8883086960951` |
 
 Both successful title runs logged the same offline Yggdrasil and Realms errors; both world runs additionally logged the same buffer-loot-table parse error. No candidate-only ERROR/FATAL or disk-space diagnostic appeared. Two earlier official-only attempts stopped at bridge compilation before a client launched, so they were fixture corrections, not parity verdicts. This covers startup, replication and one block render, not manager execution, transfer, save compatibility or broad gameplay parity. The [test-only client bridge](../../scripts/release-client-bridge/README.md) records the exact command contract.
+
+The exact NeoForge 21.0.143/Minecraft 1.21.0 bridge then ran unchanged official and projected 4.34.0 JARs in four separate scratch clients. It verified and staged the installer's 90 effective launcher libraries, avoiding read-only cache ZipFS failures and duplicate inherited Maven versions. Both title images visibly show complete four-mod menus after 97/95 frames; both fresh flat-world images show the same centered `sfm:manager` after 37/39 frames, with server placement, client block sync and ray hit asserted on both sides. Independent review rehashed all four result/PNG pairs and visually inspected both pairs:
+
+| 1.21.0 mode | Result SHA-256 | PNG SHA-256 |
+| --- | --- | --- |
+| Official title | `2d84f27cac13ff63baec93f843945b8e3f95e453e6093bb048dfb9366d40b61e` | `ac5b813204b13bf9187e14058b4f6482a0e40fb597b391b1dd3bf72e232734b0` |
+| Projected title | `9d7d50c7dd268722387046bfcd1e302a9bbbdc43f0a7e38f721c4171871afeed` | `25962029293037da50fd446f4922fb557fceae71c113a927c7df25d53af29759` |
+| Official world | `d0bfbf6d8585e3d44ed1ecfd082d5aae88871e2d07ec4fbacddcccff8edb86eb` | `f00299d76609b7bd5b8038ba34ab64864552f2160810a95f2eca12ccc076d53d` |
+| Projected world | `b4aee069a229bfc050b8a26f2f8aa14f5b9041ceba7fd37c3878c6ceb82ade82` | `8e0e78b1e42fae4fc1b646cb94890a3d012221ff6fae66025d7acb2b8893b7a7` |
+
+The unchanged official/projected SFM JARs retained SHA-256 `c76399b2456daccd88050ef45d36cac7f5d4bf60535adb2dd0d0ffeab19daa5f` and `e233d788e54db4078fa90a8324c4132fc3fbfbe103b78ca03003d51d9a0e947b`. Both title logs shared only the offline Yggdrasil error; both world logs also shared the buffer-loot-table error. No candidate-only ERROR/FATAL or disk-space diagnostic appeared. Two earlier official-only roots stopped before bridge readiness because the test harness could not read cached ZipFS libraries and then admitted duplicate versions; they were fixture failures, not candidate verdicts. This proves one bounded startup, block replication and render path, not general client or gameplay parity.
 
 The exact 1.21.0 NeoForge 21.0.143 transfer witness ran unchanged official and projected 4.34.0 JARs from byte-identical copies of a fresh official seed world. The seed, official control and projected candidate each began with 64 dirt in the source barrel, an empty destination barrel and no manager disk. After both controls received the same disk program and absolute labels, each moved the stack to the destination with empty errors and warnings; the final official boot read the candidate-saved world with the same post-transfer state, program and labels. All four boots exited zero, reached `Done`, logged the exact loader and saved. Their common 11-category/84-ID registry snapshot SHA-256 is `7e88541bffdfee4cf4ec8d972c95fd595afbf21240e4c36cb0567dd7f0d97c90`, with an empty diff. The report independently rehashes to `fe106e3f5bf0d14c8e91188b71addc7fab04218669f6bf5e41a1888c8d9e0109`; the three transfer equality flags are true. An earlier official-only scratch run already moved the dirt but stopped on the fixture's incorrect expectation of single rather than double outer quotes in Minecraft's program response. The corrected fixture passed in a new scratch root. No disk-space error occurred. This proves one vanilla adjacent-barrel path, not modded capability or general gameplay parity.
 
