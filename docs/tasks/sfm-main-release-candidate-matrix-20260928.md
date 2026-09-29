@@ -76,7 +76,7 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | 1.19.2 | Pass, Forge 43.4.0 | Not run | Pass, one vanilla-barrel path | Pass, one manager-block view |
 | 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Not run | Pass, exact Forge 45.0.9 |
 | 1.20 | Pass, Forge 46.0.10 | Pass, 11 categories/73 IDs | Not run | Pass, exact Forge 46.0.10 |
-| 1.20.1 | Not run | Not run | Not run | Not run |
+| 1.20.1 | Pass, NeoForge 47.1.65 | Pass, 11 categories/73 IDs | Not run | Not run |
 | 1.20.2 | Pass, NeoForge 20.2.86 | Not run | Not run | Not run |
 | 1.20.3 | Not run | Not run | Not run | Not run |
 | 1.20.4 | Not run | Not run | Not run | Not run |
@@ -84,7 +84,9 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | 1.21.1 | Pass, NeoForge 21.1.206 | Not run | Not run | Not run |
 | 26.1.2 | Pass, NeoForge 26.1.2.72 | Not run | Not run | Not run |
 
-The 1.19.4 and 1.20 dedicated-server witnesses record paired runtime registry-ID snapshots. The next extension needs the 1.20.1 transitional loader and a NeoForge-specific probe for later registry APIs, as well as representative transfer and client witnesses. A source or JAR hash match cannot substitute for those runtime checks. None of these open cells authorizes release or default-branch promotion.
+The 1.19.4, 1.20 and transitional 1.20.1 dedicated-server witnesses record paired runtime registry-ID snapshots. The next extension needs a NeoForge-specific probe for later registry APIs, as well as representative transfer and client witnesses. A source or JAR hash match cannot substitute for those runtime checks. None of these open cells authorizes release or default-branch promotion.
+
+The exact 1.20.1 witness used the release-pinned transitional `net.neoforged:forge:1.20.1-47.1.65` installer, verified against its published SHA-1 and SHA-256 sidecars, with JBRSDK 17.0.14. Official seed/control, projected candidate and official reverse-load boots all reached `Done`, saved and exited zero. The same registry snapshot SHA-256 `c3a466fa1eb291b073f8c40854c12457a28fe89b7eceb3a93be0b4eb1314db27` appeared in all four, covering 11 categories and 73 `sfm:` IDs. Six selected disk/program/label/error/warning/facade values matched control, candidate and reverse. The independently rehashed report SHA-256 is `ceffab7cc7c57512ead4ac4a14aeab172d99b8a6042fe896007489bf9624bd70`; official and projected input JARs retained their matrix hashes. This establishes selected save-field, registry-ID and reverse-load parity on one exact loader, not a transfer, client or comprehensive gameplay comparison. No disk-space diagnostic occurred.
 
 ### Exact 1.19.4 packaged-client title and world witness, 29 September 2026
 
