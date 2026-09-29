@@ -22,6 +22,9 @@ pub mod release_resources;
 pub mod selection;
 pub mod sync;
 
+#[cfg(test)]
+mod release_source_parity_test;
+
 use context::ProjectionContext;
 use context::to_liquid_object;
 use directive_scanner::ScannedSource;
