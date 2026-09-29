@@ -152,6 +152,11 @@ pub struct ReleaseBaselineBinding {
     /// selections require an enabled feature and both output hashes.
     #[facet(default)]
     pub post_baseline_canonical_sources: BTreeMap<String, CanonicalSourceSelection>,
+    /// Reviewed Java selected from an authored, target-specific source tree
+    /// after verifying a pinned import. Empty legacy mappings retain their
+    /// published preset identities.
+    #[facet(default)]
+    pub post_baseline_version_sources: BTreeMap<String, VersionSourceSelection>,
     /// Release-only resources absent from the pinned tag source tree but
     /// present in the published JAR. Paths are generated `src/main/resources/`
     /// outputs; each declared input is copied only after a SHA-256 check.
@@ -170,6 +175,24 @@ pub struct CanonicalSourceSelection {
     #[facet(default)]
     pub imported_output_sha256: Option<String>,
     /// Enabled build-time feature authorizing the output difference above.
+    #[facet(default)]
+    pub required_feature: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub struct VersionSourceSelection {
+    /// Exact authored path under `platform/minecraft/version-sources/<target>/`.
+    /// The checked-in `mc-version` project is generated output, never input.
+    pub source_path: String,
+    pub source_sha256: String,
+    /// SHA-256 of Java after Liquid rendering and the generated banner.
+    pub output_sha256: String,
+    /// Required when replacing an imported `Changed` or `ReleaseOnly` path.
+    /// An absent hash selects a new output path instead.
+    #[facet(default)]
+    pub imported_output_sha256: Option<String>,
+    /// Required for a new path or a changed rendered output. A byte-preserving
+    /// replacement can omit it while retaining the imported-output guard.
     #[facet(default)]
     pub required_feature: Option<String>,
 }
@@ -281,28 +304,7 @@ impl SourceProjectionManifest {
                 }
             }
             validate_release_baselines(preset)?;
-            for baseline in &preset.release_baselines {
-                for (path, selected) in &baseline.post_baseline_canonical_sources {
-                    if let Some(feature_id) = &selected.required_feature {
-                        ensure!(
-                            preset.feature_enabled_for(&baseline.target_id, feature_id),
-                            "preset `{}` selects changed canonical source `{path}` without enabled feature `{feature_id}`",
-                            preset.id
-                        );
-                        let feature = self.feature(feature_id)?;
-                        ensure!(
-                            feature.supported_targets.contains(&baseline.target_id)
-                                && feature.source_effects.iter().any(|effect| {
-                                    effect.output_path == *path
-                                        && effect.kind == PathEffectKind::Template
-                                }),
-                            "preset `{}` feature `{feature_id}` does not template `{path}` for target `{}`",
-                            preset.id,
-                            baseline.target_id
-                        );
-                    }
-                }
-            }
+            self.validate_preset_source_features(preset)?;
             if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
                 if !preset.release_baselines.is_empty()
                     || preset.targets.len() != 1
@@ -315,48 +317,7 @@ impl SourceProjectionManifest {
                 validate_lower_hex(digest, 64, "canonical project fixture provenance SHA-256")?;
             }
 
-            for target in &preset.targets {
-                let active = preset.effective_features(target);
-                let mut path_owners: BTreeMap<String, (&str, PathEffectKind)> = BTreeMap::new();
-                for feature_id in &active {
-                    let feature = self.feature(feature_id)?;
-                    if !feature.supported_targets.contains(target) {
-                        eyre::bail!(
-                            "preset `{}` enables feature `{feature_id}` on unsupported target `{target}`",
-                            preset.id
-                        );
-                    }
-                    for required in &feature.requires {
-                        if !active.contains(required.as_str()) {
-                            eyre::bail!(
-                                "preset `{}` enables feature `{feature_id}` without required feature `{required}`",
-                                preset.id
-                            );
-                        }
-                    }
-                    for effect in feature
-                        .source_effects
-                        .iter()
-                        .chain(&feature.resource_effects)
-                    {
-                        let path = effect.output_path.to_ascii_lowercase();
-                        if let Some((owner, previous_kind)) = path_owners.get(&path) {
-                            // Several flags may gate different regions of one template.
-                            if *previous_kind != PathEffectKind::Template
-                                || effect.kind != PathEffectKind::Template
-                            {
-                                eyre::bail!(
-                                    "preset `{}` has conflicting effects on `{}` from features `{owner}` and `{feature_id}`",
-                                    preset.id,
-                                    effect.output_path
-                                );
-                            }
-                        } else {
-                            path_owners.insert(path, (*feature_id, effect.kind));
-                        }
-                    }
-                }
-            }
+            self.validate_preset_feature_effects(preset)?;
 
             let expected = self.compute_preset_identity(preset)?;
             if preset.identity != expected {
@@ -365,6 +326,106 @@ impl SourceProjectionManifest {
                     preset.id,
                     preset.identity
                 );
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_preset_source_features(&self, preset: &ProjectionPreset) -> eyre::Result<()> {
+        for baseline in &preset.release_baselines {
+            for (path, selected) in &baseline.post_baseline_canonical_sources {
+                if let Some(feature_id) = &selected.required_feature {
+                    ensure!(
+                        preset.feature_enabled_for(&baseline.target_id, feature_id),
+                        "preset `{}` selects changed canonical source `{path}` without enabled feature `{feature_id}`",
+                        preset.id
+                    );
+                    let feature = self.feature(feature_id)?;
+                    ensure!(
+                        feature.supported_targets.contains(&baseline.target_id)
+                            && feature.source_effects.iter().any(|effect| {
+                                effect.output_path == *path
+                                    && effect.kind == PathEffectKind::Template
+                            }),
+                        "preset `{}` feature `{feature_id}` does not template `{path}` for target `{}`",
+                        preset.id,
+                        baseline.target_id
+                    );
+                }
+            }
+            for (path, selected) in &baseline.post_baseline_version_sources {
+                if let Some(feature_id) = &selected.required_feature {
+                    ensure!(
+                        preset.feature_enabled_for(&baseline.target_id, feature_id),
+                        "preset `{}` selects version source `{path}` without enabled feature `{feature_id}`",
+                        preset.id
+                    );
+                    let feature = self.feature(feature_id)?;
+                    let expected_kind = if selected.imported_output_sha256.is_some() {
+                        PathEffectKind::Replace
+                    } else {
+                        PathEffectKind::Include
+                    };
+                    ensure!(
+                        feature.supported_targets.len() == 1
+                            && feature.supported_targets[0] == baseline.target_id
+                            && feature.source_effects.iter().any(|effect| {
+                                effect.output_path == *path
+                                    && effect.kind == expected_kind
+                                    && effect.input_path.as_deref()
+                                        == Some(selected.source_path.as_str())
+                            }),
+                        "preset `{}` feature `{feature_id}` must be target-specific and select version source `{path}` for target `{}`",
+                        preset.id,
+                        baseline.target_id
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_preset_feature_effects(&self, preset: &ProjectionPreset) -> eyre::Result<()> {
+        for target in &preset.targets {
+            let active = preset.effective_features(target);
+            let mut path_owners: BTreeMap<String, (&str, PathEffectKind)> = BTreeMap::new();
+            for feature_id in &active {
+                let feature = self.feature(feature_id)?;
+                if !feature.supported_targets.contains(target) {
+                    eyre::bail!(
+                        "preset `{}` enables feature `{feature_id}` on unsupported target `{target}`",
+                        preset.id
+                    );
+                }
+                for required in &feature.requires {
+                    if !active.contains(required.as_str()) {
+                        eyre::bail!(
+                            "preset `{}` enables feature `{feature_id}` without required feature `{required}`",
+                            preset.id
+                        );
+                    }
+                }
+                for effect in feature
+                    .source_effects
+                    .iter()
+                    .chain(&feature.resource_effects)
+                {
+                    let path = effect.output_path.to_ascii_lowercase();
+                    if let Some((owner, previous_kind)) = path_owners.get(&path) {
+                        // Several flags may gate different regions of one template.
+                        if *previous_kind != PathEffectKind::Template
+                            || effect.kind != PathEffectKind::Template
+                        {
+                            eyre::bail!(
+                                "preset `{}` has conflicting effects on `{}` from features `{owner}` and `{feature_id}`",
+                                preset.id,
+                                effect.output_path
+                            );
+                        }
+                    } else {
+                        path_owners.insert(path, (*feature_id, effect.kind));
+                    }
+                }
             }
         }
         Ok(())
@@ -711,51 +772,93 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
                         hash_part(hasher, digest);
                     }
                 }
-                if !baseline.post_baseline_canonical_sources.is_empty() {
-                    hash_part(hasher, "post_baseline_canonical_sources");
-                    hash_part(
-                        hasher,
-                        &baseline.post_baseline_canonical_sources.len().to_string(),
-                    );
-                    for (path, selected) in &baseline.post_baseline_canonical_sources {
-                        hash_part(hasher, path);
-                        hash_part(hasher, &selected.source_sha256);
-                        hash_part(hasher, &selected.output_sha256);
-                        if let Some(imported) = &selected.imported_output_sha256 {
-                            hash_part(hasher, "imported_output_sha256");
-                            hash_part(hasher, imported);
-                        }
-                        if let Some(feature) = &selected.required_feature {
-                            hash_part(hasher, "required_feature");
-                            hash_part(hasher, feature);
-                        }
-                    }
-                }
-            } else if !baseline.post_baseline_canonical_sources.is_empty() {
-                // Empty release selections retain every published identity.
-                hash_part(hasher, "release_post_baseline_canonical_sources");
-                hash_part(
-                    hasher,
-                    &baseline.post_baseline_canonical_sources.len().to_string(),
-                );
-                for (path, selected) in &baseline.post_baseline_canonical_sources {
-                    hash_part(hasher, path);
-                    hash_part(hasher, &selected.source_sha256);
-                    hash_part(hasher, &selected.output_sha256);
-                    hash_part(
-                        hasher,
-                        selected
-                            .imported_output_sha256
-                            .as_deref()
-                            .unwrap_or_default(),
-                    );
-                    hash_part(
-                        hasher,
-                        selected.required_feature.as_deref().unwrap_or_default(),
-                    );
-                }
+            }
+            hash_post_baseline_canonical_sources(hasher, baseline);
+            hash_post_baseline_version_sources(hasher, baseline);
+        }
+    }
+}
+
+fn hash_post_baseline_canonical_sources(
+    hasher: &mut blake3::Hasher,
+    baseline: &ReleaseBaselineBinding,
+) {
+    if baseline.post_baseline_canonical_sources.is_empty() {
+        return;
+    }
+    if baseline.kind == BaselineKind::DevelopmentHead {
+        hash_part(hasher, "post_baseline_canonical_sources");
+        hash_part(
+            hasher,
+            &baseline.post_baseline_canonical_sources.len().to_string(),
+        );
+        for (path, selected) in &baseline.post_baseline_canonical_sources {
+            hash_part(hasher, path);
+            hash_part(hasher, &selected.source_sha256);
+            hash_part(hasher, &selected.output_sha256);
+            if let Some(imported) = &selected.imported_output_sha256 {
+                hash_part(hasher, "imported_output_sha256");
+                hash_part(hasher, imported);
+            }
+            if let Some(feature) = &selected.required_feature {
+                hash_part(hasher, "required_feature");
+                hash_part(hasher, feature);
             }
         }
+    } else {
+        // Empty release selections retain every published identity.
+        hash_part(hasher, "release_post_baseline_canonical_sources");
+        hash_part(
+            hasher,
+            &baseline.post_baseline_canonical_sources.len().to_string(),
+        );
+        for (path, selected) in &baseline.post_baseline_canonical_sources {
+            hash_part(hasher, path);
+            hash_part(hasher, &selected.source_sha256);
+            hash_part(hasher, &selected.output_sha256);
+            hash_part(
+                hasher,
+                selected
+                    .imported_output_sha256
+                    .as_deref()
+                    .unwrap_or_default(),
+            );
+            hash_part(
+                hasher,
+                selected.required_feature.as_deref().unwrap_or_default(),
+            );
+        }
+    }
+}
+
+fn hash_post_baseline_version_sources(
+    hasher: &mut blake3::Hasher,
+    baseline: &ReleaseBaselineBinding,
+) {
+    if baseline.post_baseline_version_sources.is_empty() {
+        return;
+    }
+    hash_part(hasher, "post_baseline_version_sources");
+    hash_part(
+        hasher,
+        &baseline.post_baseline_version_sources.len().to_string(),
+    );
+    for (path, selected) in &baseline.post_baseline_version_sources {
+        hash_part(hasher, path);
+        hash_part(hasher, &selected.source_path);
+        hash_part(hasher, &selected.source_sha256);
+        hash_part(hasher, &selected.output_sha256);
+        hash_part(
+            hasher,
+            selected
+                .imported_output_sha256
+                .as_deref()
+                .unwrap_or_default(),
+        );
+        hash_part(
+            hasher,
+            selected.required_feature.as_deref().unwrap_or_default(),
+        );
     }
 }
 
@@ -813,8 +916,9 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                 );
                 ensure!(
                     preset.id != "released-4.34.0"
-                        || baseline.post_baseline_canonical_sources.is_empty(),
-                    "published released-4.34.0 cannot gain canonical overrides"
+                        || (baseline.post_baseline_canonical_sources.is_empty()
+                            && baseline.post_baseline_version_sources.is_empty()),
+                    "published released-4.34.0 cannot gain source overrides"
                 );
                 validate_post_baseline_resources(baseline)?;
             }
@@ -838,6 +942,7 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
             64,
             "release import manifest SHA-256",
         )?;
+        validate_post_baseline_version_sources(baseline)?;
     }
     if seen_targets.len() != preset.targets.len() {
         eyre::bail!(
@@ -961,6 +1066,64 @@ fn validate_post_baseline_canonical_sources(baseline: &ReleaseBaselineBinding) -
             _ => eyre::bail!(
                 "changed canonical selection requires both imported output SHA-256 and required feature"
             ),
+        }
+    }
+    Ok(())
+}
+
+fn validate_post_baseline_version_sources(baseline: &ReleaseBaselineBinding) -> eyre::Result<()> {
+    let mut paths = BTreeSet::new();
+    let canonical_paths: BTreeSet<_> = baseline
+        .post_baseline_canonical_sources
+        .keys()
+        .map(|path| path.to_ascii_lowercase())
+        .collect();
+    for (path, selected) in &baseline.post_baseline_version_sources {
+        validate_path(path, "post-baseline version source output")?;
+        ensure!(
+            path.starts_with("src/main/java/") && has_exact_extension(path, "java"),
+            "post-baseline version source output `{path}` must be a src/main/java/... .java path"
+        );
+        let folded = path.to_ascii_lowercase();
+        ensure!(
+            paths.insert(folded.clone()),
+            "case-colliding post-baseline version source output `{path}`"
+        );
+        ensure!(
+            !canonical_paths.contains(&folded),
+            "post-baseline version source `{path}` conflicts with a canonical selection"
+        );
+        validate_path(&selected.source_path, "post-baseline version source input")?;
+        ensure!(
+            selected.source_path
+                == format!(
+                    "platform/minecraft/version-sources/{}/{path}",
+                    baseline.target_id
+                ),
+            "post-baseline version source `{path}` must use the exact authored target path"
+        );
+        validate_lower_hex(&selected.source_sha256, 64, "version source SHA-256")?;
+        validate_lower_hex(&selected.output_sha256, 64, "version output SHA-256")?;
+        match (&selected.imported_output_sha256, &selected.required_feature) {
+            (Some(imported), Some(feature)) => {
+                validate_lower_hex(imported, 64, "imported version output SHA-256")?;
+                validate_template_key(feature, "required feature")?;
+                ensure!(
+                    imported != &selected.output_sha256,
+                    "feature-gated version output `{path}` must differ from imported output"
+                );
+            }
+            (Some(imported), None) => {
+                validate_lower_hex(imported, 64, "imported version output SHA-256")?;
+                ensure!(
+                    imported == &selected.output_sha256,
+                    "changed version output `{path}` requires a feature gate"
+                );
+            }
+            (None, Some(feature)) => {
+                validate_template_key(feature, "required feature")?;
+            }
+            (None, None) => eyre::bail!("new version output `{path}` requires a feature gate"),
         }
     }
     Ok(())
@@ -1144,8 +1307,200 @@ mod tests {
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
             post_baseline_canonical_sources: BTreeMap::new(),
+            post_baseline_version_sources: BTreeMap::new(),
             post_baseline_resources: BTreeMap::new(),
         }
+    }
+
+    fn version_source_manifest(imported: bool) -> SourceProjectionManifest {
+        let mut manifest = sample();
+        let path = "src/main/java/example/VersionAdapter.java";
+        let source_path = format!("platform/minecraft/version-sources/1.19.2/{path}");
+        manifest.presets[0].id = "future-version-source".to_owned();
+        manifest.features[0].source_effects[0] = PathEffect {
+            output_path: path.to_owned(),
+            kind: if imported {
+                PathEffectKind::Replace
+            } else {
+                PathEffectKind::Include
+            },
+            input_path: Some(source_path.clone()),
+        };
+        let mut binding = release_binding("1.19.2");
+        binding.post_baseline_version_sources.insert(
+            path.to_owned(),
+            VersionSourceSelection {
+                source_path,
+                source_sha256: "a".repeat(64),
+                output_sha256: "b".repeat(64),
+                imported_output_sha256: imported.then(|| "c".repeat(64)),
+                required_feature: Some("touch_display".to_owned()),
+            },
+        );
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest
+    }
+
+    #[test]
+    fn version_source_selection_is_target_scoped_feature_gated_and_identity_bound() {
+        for imported in [false, true] {
+            let manifest = version_source_manifest(imported);
+            manifest.validate().unwrap();
+            assert_eq!(
+                SourceProjectionManifest::from_json(&manifest.to_json().unwrap()).unwrap(),
+                manifest
+            );
+            let identity = manifest.presets[0].identity.clone();
+            let path = "src/main/java/example/VersionAdapter.java";
+            for field in [
+                "source_path",
+                "source",
+                "output",
+                "imported",
+                "feature",
+                "path",
+            ] {
+                let mut changed = manifest.clone();
+                let selections =
+                    &mut changed.presets[0].release_baselines[0].post_baseline_version_sources;
+                match field {
+                    "source_path" => selections.get_mut(path).unwrap().source_path.push('x'),
+                    "source" => selections.get_mut(path).unwrap().source_sha256 = "d".repeat(64),
+                    "output" => selections.get_mut(path).unwrap().output_sha256 = "d".repeat(64),
+                    "imported" => {
+                        selections.get_mut(path).unwrap().imported_output_sha256 =
+                            Some("d".repeat(64));
+                    }
+                    "feature" => {
+                        selections.get_mut(path).unwrap().required_feature = Some("other".into());
+                    }
+                    "path" => {
+                        let selection = selections.remove(path).unwrap();
+                        selections.insert("src/main/java/example/Other.java".into(), selection);
+                    }
+                    _ => unreachable!(),
+                }
+                assert_ne!(
+                    changed
+                        .compute_preset_identity(&changed.presets[0])
+                        .unwrap(),
+                    identity,
+                    "{field} is absent from the preset identity"
+                );
+                assert!(changed.validate().is_err(), "{field} drift was accepted");
+            }
+        }
+    }
+
+    #[test]
+    fn version_source_rejects_disabled_feature_unsafe_input_and_conflicting_selection() {
+        let path = "src/main/java/example/VersionAdapter.java";
+        let mut manifest = version_source_manifest(true);
+        manifest.presets[0].enabled_features.clear();
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("without enabled feature")
+        );
+
+        let mut manifest = version_source_manifest(true);
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_version_sources
+            .get_mut(path)
+            .unwrap()
+            .source_path =
+            "platform/minecraft/mc-version/1.19.2/src/main/java/example/VersionAdapter.java"
+                .to_owned();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("exact authored target path")
+        );
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_version_sources
+            .get_mut(path)
+            .unwrap()
+            .source_path = "platform/minecraft/version-sources/1.19.2/src/../escape.java".into();
+        assert!(manifest.validate().is_err());
+
+        let mut manifest = version_source_manifest(true);
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_canonical_sources
+            .insert(
+                path.to_owned(),
+                CanonicalSourceSelection {
+                    source_sha256: "a".repeat(64),
+                    output_sha256: "b".repeat(64),
+                    imported_output_sha256: Some("c".repeat(64)),
+                    required_feature: Some("touch_display".to_owned()),
+                },
+            );
+        assert!(
+            validate_post_baseline_version_sources(&manifest.presets[0].release_baselines[0])
+                .unwrap_err()
+                .to_string()
+                .contains("conflicts with a canonical selection")
+        );
+
+        let mut manifest = version_source_manifest(false);
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_version_sources
+            .get_mut(path)
+            .unwrap()
+            .required_feature = None;
+        assert!(manifest.validate().is_err());
+        let mut manifest = version_source_manifest(true);
+        manifest.targets.push(ProjectionTarget {
+            id: "26.1.2".into(),
+            template_key: "mc_26_1_2".into(),
+            minecraft_version: "26.1.2".into(),
+            loader: "neoforge".into(),
+            java_major: 25,
+            project_dir: "platform/minecraft/mc-version/26.1.2".into(),
+        });
+        manifest.features[0]
+            .supported_targets
+            .push("26.1.2".to_owned());
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("target-specific")
+        );
+    }
+
+    #[test]
+    fn published_release_preset_cannot_gain_version_sources() {
+        let checked_in = SourceProjectionManifest::from_json(include_str!(
+            "../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let published = checked_in.preset("released-4.34.0").unwrap();
+        assert_eq!(
+            checked_in.compute_preset_identity(published).unwrap(),
+            "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6"
+        );
+
+        let mut manifest = version_source_manifest(true);
+        manifest.presets[0].id = "released-4.34.0".to_owned();
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(manifest.validate().is_err());
     }
 
     #[test]

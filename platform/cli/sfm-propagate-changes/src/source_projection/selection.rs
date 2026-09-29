@@ -230,6 +230,7 @@ mod tests {
                 post_baseline_test_sources: BTreeMap::new(),
                 post_baseline_gradle_sources: BTreeMap::new(),
                 post_baseline_canonical_sources: BTreeMap::new(),
+                post_baseline_version_sources: BTreeMap::new(),
                 post_baseline_resources: BTreeMap::new(),
             });
         manifest.presets[0].identity = manifest
