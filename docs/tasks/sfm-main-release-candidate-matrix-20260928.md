@@ -2,7 +2,7 @@
 
 This is build and artifact evidence for external `released-4.34.0` projections from the exploratory source-projection branch. It is not a release, a promoted checked-in source tree, or proof of gameplay/save compatibility. The preset definition identity is `blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6`; the candidate source-definition SHA-256 is `1761a1419d4a778d908a3b5b29e3f5fe18abf149b443211c01c156e90277b616`.
 
-Each fresh external project ran its ordinary Gradle production task, without Rust driving the build, and exited successfully. The JDKs were JBRSDK 17.0.14 for 1.19.2–1.20.4, JBR 21.0.11 for 1.21.0–1.21.1, and JBR 25.0.3 for 26.1.2. All ten projects then passed `source check` with zero created or updated files and `manifest_changed=false`; their provenance-manifest hashes remained unchanged by the build.
+Each fresh external project ran its ordinary Gradle production task, without Rust driving the build, and exited successfully. The candidate lock records JBRSDK 17.0.14 for 1.19.2–1.20.4, JBR 21.0.11 for 1.21.0–1.21.1, and JBR 25.0.3 for 26.1.2. A later audit of the production-build daemon logs found matching launch JDKs except for 1.20.2, whose daemon used JBRSDK 17.0.6; the lock fields are review assertions, not process attestation. All ten projects then passed `source check` with zero created or updated files and `manifest_changed=false`; their provenance-manifest hashes remained unchanged by the build.
 
 After recording the table, a separate read-only pass found exactly one production JAR per candidate root and rehashed every candidate manifest and JAR. All twenty hashes matched the values below.
 
@@ -18,6 +18,44 @@ After recording the table, a separate read-only pass found exactly one productio
 | 1.21.0 | `jar` | `babba23e5889d9bdf22fca385138fa33b36d879884d7b57fe1af17c280ccd125` | 1,623,885 | `0c128e6c5140fa41435e4b10064e1596b3fee7a891a5a119034bef88cceeae3b` |
 | 1.21.1 | `jar` | `f8c139a9324f92b493f82723e588d705b565605a9879db9c6d23f1160d9ed0df` | 1,614,498 | `e018018ff71612b5e1c5904f42f15c18c1f6cebb9711a26b374d58e576dda169` |
 | 26.1.2 | `jarJar` | `81cad4d24066a5f4ea7c6f8eb9f70cf01ac3040645d7e0ff80cf69f0a1f41466` | 1,926,793 | `cd9a89ae8c53e14cd83498a8292bdd04cfaddcb304301f1abe6770440bcca1e4` |
+
+## Post-repair checked-in Gradle build
+
+After commit `dffb9369b`, each checked-in `platform/minecraft/mc-version/<target>` root ran its ordinary Gradle `assemble` task directly with the pinned Gradle distribution and JDK, without Rust driving the build. All ten commands exited zero and ran the production artifact task shown below. The command was `gradle --no-daemon --console=plain assemble` from each root; 26.1.2 also used `--offline`. The 1.19.2–1.20.4 runs used JBRSDK 17.0.14, 1.21.0–1.21.1 used JBR 21.0.11, and 26.1.2 used JBR 25.0.3. The JARs are under each root's `build/libs/`; the 1.21.0 project names its JAR `MC1.21` because its `minecraft_version` property is `1.21`.
+
+| Target | Gradle | Production task in `assemble` | JAR bytes | JAR SHA-256 |
+| --- | --- | --- | ---: | --- |
+| 1.19.2 | 7.5 | `reobfJar` | 1,642,065 | `024e9b10463235f10e61cb0e7285f8a082e90800ead8c3f5146b58c51146eccf` |
+| 1.19.4 | 7.5 | `reobfJar` | 1,594,374 | `4a39e9512a47925639a1ba7126ea903576917b120d43dcedfa66563ebcea9735` |
+| 1.20 | 8.1.1 | `reobfJar` | 1,597,313 | `90227fa968cd7351adcc5a1e8939c29ee6b3d4109c50d66c48d824425508a583` |
+| 1.20.1 | 8.1.1 | `reobfJar` | 1,641,448 | `6813401aeeeca8f0d1d1608e732f601b94c0eff181ba125f5bfc5dccaa6aabb9` |
+| 1.20.2 | 8.1.1 | `jar` | 1,571,977 | `46214688a0b51b5033782d7f7e718ce13895ef4f7d61cbcc8559563dcf711170` |
+| 1.20.3 | 8.1.1 | `jar` | 1,573,079 | `3cd66ed27313c067f3529f94765dfc2a51d36b376bbbf841b0f95c8874389d58` |
+| 1.20.4 | 8.1.1 | `jar` | 1,601,332 | `3964a8742211e9cc39b44ee61b4402387382c948ba7c17b1d887c013f764813e` |
+| 1.21.0 | 8.8 | `jar` | 1,623,886 | `e233d788e54db4078fa90a8324c4132fc3fbfbe103b78ca03003d51d9a0e947b` |
+| 1.21.1 | 8.14.3 | `jar` | 1,614,497 | `544fc4344a9cf3cd73ab97173a41b97ce1c8e16cdbd3eb8c4389a4b2bcbe344c` |
+| 26.1.2 | 9.5.0 | `jarJar` | 1,926,793 | `9b2ff101e1158f42bf9218177c1f063375ce58254ff0de629db4dc52ef3c15b6` |
+
+The first `assemble` in each existing root reported `compileJava UP-TO-DATE`, so those runs alone did not prove a fresh recompile. A scoped 1.20.2 `assemble --rerun-tasks` then exited zero with all 41 tasks executed, including `compileJava` and `jar`, without `clean`; the table records this fresh JAR. Initial offline attempts for 1.19.2 and 1.19.4 lacked dynamic plugin version listings; 1.20.2 and 1.21.1 lacked cached Foojay plugin metadata. Their later online `assemble` runs succeeded. The checked-in 1.19.2 wrapper initially tried to download its distribution despite an installed copy, so the successful runs used the exact-version cached Gradle executables; a fresh-checkout wrapper run is still open under SP-02. The sandbox denied access to JBR 25's `java.security` file, so the 26.1.2 offline build ran with normal JDK access. No disk-space error occurred.
+
+Read-only ZIP-entry comparison against each external candidate in the first table found identical entry-name sets for all ten pairs. Every shared non-class/non-manifest file has identical content. Every manifest differs only in `Implementation-Timestamp` after normalizing that field. Raw JAR hashes differ, so this is not byte-for-byte equality.
+
+| Target | Entries in each JAR | Equal non-class files | Differing shared classes |
+| --- | ---: | ---: | ---: |
+| 1.19.2 | 1,161 | 215/215 | 0/837 |
+| 1.19.4 | 1,140 | 215/215 | 0/817 |
+| 1.20 | 1,140 | 215/215 | 0/817 |
+| 1.20.1 | 1,159 | 215/215 | 0/834 |
+| 1.20.2 | 1,132 | 215/215 | 82/809 |
+| 1.20.3 | 1,135 | 215/215 | 0/812 |
+| 1.20.4 | 1,145 | 215/215 | 0/821 |
+| 1.21.0 | 1,149 | 215/215 | 0/823 |
+| 1.21.1 | 1,147 | 215/215 | 0/821 |
+| 26.1.2 | 1,161 | 222/222 | 0/825 |
+
+The 1.19.2 checked-in JAR is one byte smaller than its external candidate, despite identical class and resource contents; ZIP timestamps and the manifest timestamp differ. The 82 differing 1.20.2 classes persisted after the forced recompile, ruling out stale Gradle task output alone. They comprise 30 under `ca/teamdman/sfm/`, 21 under `ca/teamdman/sfml/`, and 31 under bundled `org/simmetrics/`. The two roots have byte-identical projection manifests and exact Java source bytes for representative `BlockNetworkManager` and `MongeElkan`, as well as byte-identical Gradle build, Java-17 toolchain and compiler/encoding scripts. Those scripts specify Java language version 17, `-Xmaxerrs 0` and UTF-8. `javap -p -s` found identical declarations for those two classes, while `javap -v/-c` found classfile major 61 in both and different string-concatenation lowering: the checked-in classes call `String.valueOf` before a String-typed `makeConcatWithConstants`, while the external classes use direct object-typed concatenation. The checked-in Gradle daemon launched on JBRSDK 17.0.14; the external 1.20.2 candidate daemon launched on 17.0.6. The selected compiler JDK and complete javac command were not captured, so the daemon difference is a plausible explanation, not proof of cause. Full class semantics, behavior parity, M3 release parity and the SP-02 fresh-checkout/wrapper gate remain open.
+
+The post-repair `source-jar-absence` check passed on the checked-in 1.19.2 JAR for `echo_action` and `touch_display_terminal_mount` (14 forbidden rules, 1,161 entries), and on 1.19.4 for `touch_display_terminal_mount` (13 rules, 1,140 entries). The other eight targets returned `NO_APPLICABLE_FEATURES`: zero derivable disabled runtime includes, so those results are not absence proofs.
 
 The first offline build of the new 1.20.3 root lacked NeoGradle launcher metadata; an ordinary online run filled that project-local input and passed. Later new roots ran online first. A separate NeoGradle issue makes 1.21.1 offline repetition unreliable, so this table does not claim an offline-only matrix. No disk-space error occurred.
 
