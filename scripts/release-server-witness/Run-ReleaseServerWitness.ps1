@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.4/1.20 production-JAR registry/save witness.
+Test-only 1.19.4/1.20/1.20.1 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.4', '1.20')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.4', '1.20', '1.20.1')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -28,6 +28,13 @@ $version = switch ($target) {
     '1.19.4' {
         @{
             loader = '45.0.9'
+            loader_brand = 'Forge'
+            loader_id = 'forge'
+            forge_group_path = 'net/minecraftforge'
+            fml_group_path = 'net/minecraftforge'
+            fml_core_artifact = 'fmlcore'
+            fml_language_artifact = 'javafmllanguage'
+            fml_library_version = '1.19.4-45.0.9'
             event_bus = '6.0.5'
             installer_sha1 = 'b1cdd5fa1cc50fa23a32c9b38fd9d1f8a9a6c5e9'
             installer_sha256 = '58e32beb55e0117bba1d34a89ffa74f8130de41b762d2c20ae9adf3a1342b007'
@@ -40,6 +47,13 @@ $version = switch ($target) {
     '1.20' {
         @{
             loader = '46.0.10'
+            loader_brand = 'Forge'
+            loader_id = 'forge'
+            forge_group_path = 'net/minecraftforge'
+            fml_group_path = 'net/minecraftforge'
+            fml_core_artifact = 'fmlcore'
+            fml_language_artifact = 'javafmllanguage'
+            fml_library_version = '1.20-46.0.10'
             event_bus = '6.0.3'
             installer_sha1 = 'b87fb7da06335a907a59d32dc22698f3f2a1f885'
             installer_sha256 = 'e94cf05d3fe16b772372848e3fb66892789731a96781b652f76598bc25f2fb39'
@@ -49,9 +63,29 @@ $version = switch ($target) {
             resources = 'versions/1.20/resources'
         }
     }
+    '1.20.1' {
+        @{
+            loader = '47.1.65'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            forge_group_path = 'net/neoforged'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'core'
+            fml_language_artifact = 'language-java'
+            fml_library_version = '47.1.47'
+            event_bus = '6.0.5'
+            installer_sha1 = '63f215c2608ff0c3451a3d64c3ece283a1198d27'
+            installer_sha256 = 'c0056d398ccc685db87f98939ecd22d54e4a556fcb943cee00df56ed2015b6d9'
+            srg_sha256 = '7072059572222849ee76e4ae182173ce6fbd74d9170de967905fb277d2d0b3ad'
+            official_sha256 = '34ee6eab2783b0b3a53450a6700c215e21dc653357862b24be7888e95554ef56'
+            projected_sha256 = '6813401aeeeca8f0d1d1608e732f601b94c0eff181ba125f5bfc5dccaa6aabb9'
+            resources = 'versions/1.20.1/resources'
+        }
+    }
 }
 $loaderVersion = $version.loader
 $forgeCoordinate = "$target-$loaderVersion"
+$loaderIdentity = "$($version.loader_id)-$loaderVersion"
 $expectedInstallerSha1 = $version.installer_sha1
 $expectedInstallerSha256 = $version.installer_sha256
 $diskErrorPattern = '(?i)no space left|not enough space|insufficient disk|disk[ -]full|there is not enough space|ENOSPC'
@@ -233,7 +267,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
     $start.ArgumentList.Add('-Dfile.encoding=UTF-8')
     $start.ArgumentList.Add('-Dsfm.releaseWitness.registrySnapshot=' + $snapshot.Replace('\', '/'))
     $start.ArgumentList.Add('-Dsfm.releaseWitness.target=' + $target)
-    $start.ArgumentList.Add('-Dsfm.releaseWitness.loader=forge-' + $loaderVersion)
+    $start.ArgumentList.Add('-Dsfm.releaseWitness.loader=' + $loaderIdentity)
     $start.ArgumentList.Add('@' + $launchArgs.Replace('\', '/'))
     $start.ArgumentList.Add('nogui')
     $process = [Diagnostics.Process]::new()
@@ -245,10 +279,10 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
         $errTask = $process.StandardError.ReadToEndAsync()
         Wait-ForLog $log $process 'Done \([0-9.]+s\)!' 0 $StartupTimeoutSeconds | Out-Null
         $startupLog = Read-IfExists $log
-        $startupIdentity = 'Forge mod loading, version ' + [regex]::Escape($loaderVersion) +
+        $startupIdentity = $version.loader_brand + ' mod loading, version ' + [regex]::Escape($loaderVersion) +
             ', for MC ' + [regex]::Escape($target)
         if ($startupLog -notmatch $startupIdentity) {
-            throw "$Role did not log exact Forge $loaderVersion and Minecraft $target"
+            throw "$Role did not log exact $($version.loader_brand) $loaderVersion and Minecraft $target"
         }
         $snapshotDeadline = [DateTime]::UtcNow.AddSeconds(30)
         while (-not [IO.File]::Exists($snapshot) -and [DateTime]::UtcNow -lt $snapshotDeadline) {
@@ -265,7 +299,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
         $snapshotText = [IO.File]::ReadAllText($snapshot)
         $parsed = $snapshotText | ConvertFrom-Json
         if ($parsed.schema -ne 'sfm:release_registry_snapshot@1' -or $parsed.target -ne $target -or
-            $parsed.loader -ne "forge-$loaderVersion") { throw "$Role registry snapshot identity mismatch" }
+            $parsed.loader -ne $loaderIdentity) { throw "$Role registry snapshot identity mismatch" }
 
         if ($CreateSeed) {
             Send-ServerCommand $process $log $transcript 'forceload add 0 0' `
@@ -414,10 +448,13 @@ if ($reusedInstall) {
     }
 }
 $classpathRoot = if ($launcher) { $launcher } else { $install }
-$fmlRoot = Join-Path $classpathRoot 'libraries/net/minecraftforge'
-$fml = Assert-File (Join-Path $fmlRoot "fmlcore/$forgeCoordinate/fmlcore-$forgeCoordinate.jar")
-$language = Assert-File (Join-Path $fmlRoot "javafmllanguage/$forgeCoordinate/javafmllanguage-$forgeCoordinate.jar")
-$eventBus = Assert-File (Join-Path $fmlRoot "eventbus/$($version.event_bus)/eventbus-$($version.event_bus).jar")
+$fmlRoot = Join-Path $classpathRoot "libraries/$($version.fml_group_path)"
+$fmlVersion = $version.fml_library_version
+$coreArtifact = $version.fml_core_artifact
+$languageArtifact = $version.fml_language_artifact
+$fml = Assert-File (Join-Path $fmlRoot "$coreArtifact/$fmlVersion/$coreArtifact-$fmlVersion.jar")
+$language = Assert-File (Join-Path $fmlRoot "$languageArtifact/$fmlVersion/$languageArtifact-$fmlVersion.jar")
+$eventBus = Assert-File (Join-Path $classpathRoot "libraries/net/minecraftforge/eventbus/$($version.event_bus)/eventbus-$($version.event_bus).jar")
 $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
 $compileClasspath = @($srg, $fml, $language, $eventBus) -join ';'
@@ -428,11 +465,11 @@ $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe jar failed: $LASTEXITCODE" }
 $probeHash = Get-Sha256 $probeJar
 
-$winArgs = Assert-File (Join-Path $install "libraries/net/minecraftforge/forge/$forgeCoordinate/win_args.txt")
+$winArgs = Assert-File (Join-Path $install "libraries/$($version.forge_group_path)/forge/$forgeCoordinate/win_args.txt")
 $originalArgs = [IO.File]::ReadAllText($winArgs)
 if ($originalArgs -notmatch ('--fml\.forgeVersion\s+' + [regex]::Escape($loaderVersion)) -or
     $originalArgs -notmatch ('--fml\.mcVersion\s+' + [regex]::Escape($target))) {
-    throw 'Installed Forge server arguments have the wrong loader or Minecraft version'
+    throw 'Installed server arguments have the wrong loader or Minecraft version'
 }
 $libraries = (Join-Path $install 'libraries').Replace('\', '/')
 $argsLines = [Collections.Generic.List[string]]::new()
@@ -501,7 +538,7 @@ $report = [ordered]@{
     probe_mods_toml_sha256 = Get-Sha256 (Join-Path $probeResources 'META-INF/mods.toml')
     probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
     target = $target
-    loader = "forge-$loaderVersion"
+    loader = $loaderIdentity
     forge_install_mode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
     java_version = $javaVersionOutput
     java_exe_sha256 = Get-Sha256 $java
