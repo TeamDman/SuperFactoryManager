@@ -74,7 +74,7 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | Target | Selected save and reverse load | Runtime `sfm:` registry IDs | Official-versus-candidate transfer | Packaged-client title and world render |
 | --- | --- | --- | --- | --- |
 | 1.19.2 | Pass, Forge 43.4.0 | Not run | Pass, one vanilla-barrel path | Pass, one manager-block view |
-| 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Not run | Not run |
+| 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Not run | Pass, exact Forge 45.0.9 |
 | 1.20 | Not run | Not run | Not run | Not run |
 | 1.20.1 | Not run | Not run | Not run | Not run |
 | 1.20.2 | Pass, NeoForge 20.2.86 | Not run | Not run | Not run |
@@ -85,6 +85,12 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | 26.1.2 | Pass, NeoForge 26.1.2.72 | Not run | Not run | Not run |
 
 The 1.19.4 dedicated-server witness now records one paired runtime registry-ID snapshot. The next extension should adapt its test-only probe at later API/loader boundaries and add representative transfer and client witnesses. A source or JAR hash match cannot substitute for those runtime checks. None of these open cells authorizes release or default-branch promotion.
+
+### Exact 1.19.4 packaged-client title and world witness, 29 September 2026
+
+The test-only [client bridge](../../scripts/release-client-bridge/README.md) ran unchanged official and checked-in projected 4.34.0 JARs under Forge 45.0.9 in separate new scratch clients. Both produced complete 1024×768 title menus with four loaded mods. Both created isolated flat worlds, placed the production `sfm:manager` on the server thread, observed its client-side block state, targeted it with the client's ray, and captured a visibly rendered manager after 39 official and 40 projected world frames. The four successful screenshot SHA-256 values are recorded in the bridge README. A separate read-only inspection of both world PNGs confirmed the block was visible and similarly presented. Both JAR input hashes remained unchanged. Both world logs reported the same nonblocking buffer loot-table parse error; there was no candidate-only fatal or disk-space diagnostic.
+
+One earlier projected title launch timed out before bridge readiness during Forge class transformation, but its single fresh-root retry passed. An initial official-world run reached block sync yet timed out before ray targeting because the test bridge's fixed server-side camera orientation did not persist on 1.19.4; the corrected test-only client aim passed for both world runs. These failures are retained as harness/startup-reliability caveats. The passing comparison proves a bounded packaged-client startup and manager-render path, not transfer, arbitrary world rendering, or general gameplay parity.
 
 ### Exact 1.19.4 production-server registry and selected-save witness, 29 September 2026
 
