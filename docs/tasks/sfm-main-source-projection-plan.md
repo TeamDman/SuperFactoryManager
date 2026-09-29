@@ -399,9 +399,34 @@ Commit `e3b802580` adds the public command. It hashes and bounds the raw saved p
 
 Formatting, strict offline/locked/all-features library Clippy and binary build passed. The bounded Rust runner listed 1,115 library tests, assigned each to one of 48 shards, and finished with 1,105 runnable library tests passing, ten intentionally ignored, and 68 integration tests passing. Its first Java-analysis integration attempt stopped on the network sandbox while fetching the exact pinned JBRSDK; that one shard passed 13/13 with host access. The isolated ten-target promotion fixture passed 1/1. Separate bin and doc test commands passed with zero runnable tests. The rebuilt CLI passed read-only `source check` on all ten checked-in `released-4.34.0` roots: 11,495 unchanged files, zero creates or updates, and `manifest_changed=false` on every target. No disk-space error occurred. These are source/staging-control proofs, not production-build, gameplay-parity, real-release or publication evidence.
 
-### [ ] M6.16 Rehearse the public stage-to-replay boundary with real authored inputs
+### [x] M6.16 Rehearse the public stage-to-replay boundary with real authored inputs
 
 At a clean exact authored commit A, independently save and hash a ten-target M6.12 report for a fictional release version. In a distinct clean candidate checkout at A, run the public stage command in preflight and Apply modes, review its exact eleven-file change set, and make a separate local commit B only after that review. Require the ten inventories and new preset to bind A, preserve all prior preset identities, and leave B distinct from A. From B, sync into ten fresh roots external to both repositories and zero-write-check each root; compare features, version, provenance and output hashes with the reviewed report. Recheck all ten checked-in 4.34.0 roots for unchanged output. This closes the public-writer-to-replay integration missing from the test-only M6.13/M6.14 bridges. Production Gradle/JAR builds, compatibility acceptance, a real candidate lock, promotion, tags, publication and default-branch changes remain later decisions and gates.
+
+The first real-input preflight found a format-only defect: the checked-in source-selection manifest uses compact JSON for some entries, while the new stage command required fully pretty-printed input. That preflight made no writes. Commit `88f94aaba` removed only that input-format restriction; the exact reviewed manifest SHA-256, candidate/authored byte equality, typed validation and canonical staged output remain enforced. A noncanonical-input regression and the full staging set passed 10/10; formatting, strict offline/locked/all-features library Clippy and the binary build passed. The source manifest itself was not reformatted to work around the guard.
+
+The subsequent reviewed preview bound authored commit A `88f94aabaf35795ba3049506647d33b80cfc98b7`, the existing source-manifest SHA-256 `731a93de2076a9e9abebf91d311e8ea4373998d4a610d5d78a346cd8419c9879`, and the fictional `released-9.99.99-rehearsal` preset. The saved preview was 11,059,368 bytes with SHA-256 `7344c68bb5e7bc66d94d592670edb96ca84a865a63a72c8f7ceb9c1052d0b865`. All ten embedded canonical inventory digests and target/feature selections were independently checked. Public staging preflight reported ready without writes. Apply wrote exactly ten inventory files and replaced one candidate manifest last, at SHA-256 `0735d20283abd892b6f024a18f650e904e8181314eb2480beeb4641c32a5ddd1`. The reviewed eleven-path diff preserved every pre-existing target, feature, preset identity and explicit value; canonical serialization expanded omitted null/empty defaults. A separate local candidate commit B `b9926dc49181804fe5e9fe4f6a9052112aed8ce8` has A as its direct parent. Both checkouts remained clean after replay. This candidate is local rehearsal evidence, not a published or selected release.
+
+From B, all ten fresh external roots synchronized the fictional preset and passed a second `source check` with zero creates/updates and `manifest_changed=false`. Every generated regular-file path and SHA-256, provenance source/output record and fictional Gradle `mod_version` matched the reviewed preview; no extra output files appeared. The preset has no global enabled features: only 1.19.2 enables `echo_action` and `touch_display_terminal_mount`, only 1.19.4 enables `touch_display_terminal_mount`, and the other eight enable none. Target 1.21.0 correctly records Minecraft version `1.21`. Provenance-manifest SHA-256 values provide a compact per-target witness:
+
+| Target | Generated files | Provenance SHA-256 |
+| --- | ---: | --- |
+| 1.19.2 | 2,976 | `b1935d68f9b97c4c5eadc079590aba78d4434d23f24052cde6dd36e5363a122d` |
+| 1.19.4 | 2,942 | `c539c2111bf982750d92e2a34179afd9674203cdf58b7329bb53bd98c8dec1b7` |
+| 1.20 | 1,541 | `149c38e14499e390711de0d5b89c0bb4c220f82743d8f796f38877b9a58b7d0f` |
+| 1.20.1 | 1,543 | `90416283a74fa3f7974b9f22b500b441446000282f8c91c54a7a0c6515576820` |
+| 1.20.2 | 1,542 | `dc0fd9177f8991637f434f96062322f3e259c3096e19756c3eb51419806ab217` |
+| 1.20.3 | 1,542 | `b4a976b16b316135fbd22292abc2939c969de071cbe339f2956a174b2bcf78fa` |
+| 1.20.4 | 1,542 | `4e7a9c3010688ccb6f22802c51bfc93cf69c988c29f3e8e0b3ce9719d1ac8162` |
+| 1.21.0 | 1,544 | `73db8c16e40a857fa06f239e4594351c04011e39e5b0bbc69bd1be5a861fb415` |
+| 1.21.1 | 1,546 | `6718e8a5061fe73e475de44c35a26b3b16872c14d61bbb2d271e712f5f9f6c69` |
+| 26.1.2 | 1,554 | `c4106a0d1be9d2e734d0e61ee67716651936710818bca3c3bde0b4bda5a4bd22` |
+
+The external matrix contains 18,272 generated files. Separate read-only `source check` runs on all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files in total, zero creates/updates and no manifest changes; the authored tree stayed clean. No disk-space error occurred. This proves real-input public staging and source replay, not Java compilation, runtime behaviour, candidate-lock validity or release compatibility.
+
+### [ ] M6.17 Compile the fictional frozen preset without release packaging
+
+Use the already staged local candidate B and M6.16 external roots only. Run each root's ordinary Gradle `compileJava` under its declared, pinned JDK with the existing dependency graph; record the actual compiler/JDK selection and whether tasks executed or came from cache. Confirm the fictional `mod_version`, then repeat zero-write `source check` for each target and verify the authored/candidate Git trees and checked-in `released-4.34.0` roots remain unchanged. Run target builds sequentially so disk-space errors can be attributed and stopped immediately for the user. Do not use `source build`, which appends a development version suffix. Do not choose a real release version, build or upload production JARs, create a candidate lock, promote, tag, push, change the default branch or change dependency declarations in this milestone. Compiler success is not gameplay or release-compatibility acceptance.
 
 ### Future release-preset promotion boundary
 
