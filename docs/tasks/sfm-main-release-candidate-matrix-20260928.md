@@ -75,7 +75,7 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | --- | --- | --- | --- | --- |
 | 1.19.2 | Pass, Forge 43.4.0 | Not run | Pass, one vanilla-barrel path | Pass, one manager-block view |
 | 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Not run | Pass, exact Forge 45.0.9 |
-| 1.20 | Pass, Forge 46.0.10 | Pass, 11 categories/73 IDs | Not run | Not run |
+| 1.20 | Pass, Forge 46.0.10 | Pass, 11 categories/73 IDs | Not run | Pass, exact Forge 46.0.10 |
 | 1.20.1 | Not run | Not run | Not run | Not run |
 | 1.20.2 | Pass, NeoForge 20.2.86 | Not run | Not run | Not run |
 | 1.20.3 | Not run | Not run | Not run | Not run |
@@ -89,6 +89,10 @@ The 1.19.4 and 1.20 dedicated-server witnesses record paired runtime registry-ID
 ### Exact 1.19.4 packaged-client title and world witness, 29 September 2026
 
 The test-only [client bridge](../../scripts/release-client-bridge/README.md) ran unchanged official and checked-in projected 4.34.0 JARs under Forge 45.0.9 in separate new scratch clients. Both produced complete 1024×768 title menus with four loaded mods. Both created isolated flat worlds, placed the production `sfm:manager` on the server thread, observed its client-side block state, targeted it with the client's ray, and captured a visibly rendered manager after 39 official and 40 projected world frames. The four successful screenshot SHA-256 values are recorded in the bridge README. A separate read-only inspection of both world PNGs confirmed the block was visible and similarly presented. Both JAR input hashes remained unchanged. Both world logs reported the same nonblocking buffer loot-table parse error; there was no candidate-only fatal or disk-space diagnostic.
+
+### Exact 1.20 packaged-client title and world witness, 29 September 2026
+
+The same test-only bridge then ran the exact Forge 46.0.10/Minecraft 1.20 packaged clients. Official and projected title views passed after 96 and 95 frames, with screenshot SHA-256 `de00fac8fcaee9a19c50578e6b78015c4ac773f93aed1e22143a4f8dc4bad200` and `8a78c459c0c2d154fddcc0d332fdbebc666fef24a3c02ab9e069bc8ccdd6abb0`. Both fresh scratch worlds placed, synchronized, ray-targeted and visibly rendered the production `sfm:manager`; official and projected world screenshots followed 37 and 42 frames, SHA-256 `113e71434ecb1e92e3976287207ccac6f0735fcdd886fd2e499446096a8ccac7` and `edbffea180e8a8aa8e43cfa1c37dbf5985d5ca0dac43c922aec7ec58ec2def0a`. The four `passed` result files and PNG hashes were independently read; both title pairs and world pairs were visually inspected. Both unchanged JARs retained their matrix hashes. The first official title attempt stopped at Minecraft's accessibility onboarding because the empty scratch options file omitted its dismissal setting; the corrected fixture passed from a new run root. Both successful title logs had the same nonblocking offline profile-key error; no disk-space diagnostic appeared. This remains one bounded client startup/render/synchronization path, not general gameplay parity.
 
 One earlier projected title launch timed out before bridge readiness during Forge class transformation, but its single fresh-root retry passed. An initial official-world run reached block sync yet timed out before ray targeting because the test bridge's fixed server-side camera orientation did not persist on 1.19.4; the corrected test-only client aim passed for both world runs. These failures are retained as harness/startup-reliability caveats. The passing comparison proves a bounded packaged-client startup and manager-render path, not transfer, arbitrary world rendering, or general gameplay parity.
 
