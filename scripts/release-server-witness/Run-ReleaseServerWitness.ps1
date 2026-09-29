@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.2/1.20.3/1.20.4/1.21.0 production-JAR registry/save witness.
+Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.2/1.20.3/1.20.4/1.21.0/1.21.1 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0', '1.21.1')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -203,6 +203,36 @@ $version = switch ($target) {
             installer_sha256 = '02e511f97bcfd2985937fc205aa95c93588bf3d9939c6ef18100add57d1e8bec'
             official_sha256 = 'c76399b2456daccd88050ef45d36cac7f5d4bf60535adb2dd0d0ffeab19daa5f'
             projected_sha256 = 'e233d788e54db4078fa90a8324c4132fc3fbfbe103b78ca03003d51d9a0e947b'
+            probe_source = 'versions/1.21.0/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.21.0/resources'
+            mod_manifest = 'META-INF/neoforge.mods.toml'
+            fixture_source = 'versions/1.21.0/Fixture.ps1'
+            java_source = '21'
+        }
+    }
+    '1.21.1' {
+        @{
+            loader = '21.1.206'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            minecraft = '1.21.1'
+            forge_group_path = 'net/neoforged'
+            artifact_module = 'neoforge'
+            artifact_version = '21.1.206'
+            launch_version_flag = '--fml.neoForgeVersion'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'loader'
+            fml_language_artifact = ''
+            fml_library_version = '4.0.41'
+            event_bus_path = 'libraries/net/neoforged/bus/8.0.5/bus-8.0.5.jar'
+            compile_extra_paths = @('libraries/com/mojang/datafixerupper/8.0.16/datafixerupper-8.0.16.jar')
+            compile_jar_name = 'raw.jar'
+            compile_jar_kind = 'neoform_joined_1.21.1-20240808.144430'
+            compile_jar_sha256 = 'cef91058da78da95ac888fb9056d258ac29f7dd7712d7450029c56d80f31dda6'
+            installer_sha1 = 'ebefa4c23076b622b232ed8a1bcf8ff549deacec'
+            installer_sha256 = '479d540cd2d1cea09d8b8cb63266578db9c58ed174546121a43a4bb4084454be'
+            official_sha256 = '4b589e0b310133998f26f0c12c3ee8d367360be1771e0e96c951322cea6c7ad0'
+            projected_sha256 = '544fc4344a9cf3cd73ab97173a41b97ce1c8e16cdbd3eb8c4389a4b2bcbe344c'
             probe_source = 'versions/1.21.0/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
             resources = 'versions/1.21.0/resources'
             mod_manifest = 'META-INF/neoforge.mods.toml'
@@ -558,7 +588,7 @@ if ((Get-Item -LiteralPath $compileJar).Name -cne $version.compile_jar_name) {
     throw "Probe compile input is not the exact $($version.compile_jar_kind) JAR"
 }
 Assert-Hash $compileJar SHA256 $version.compile_jar_sha256 | Out-Null
-$expectedJavaSha256 = if ($target -eq '1.21.0') {
+$expectedJavaSha256 = if ($target -in @('1.21.0', '1.21.1')) {
     'cd23f1d9b3ba8f99370503e3f13b057c3ca3b0cb32b926f1a39637a34e11ebc1'
 } else {
     '186d651179d34ce21d857597bb88a7b1e244973e64f3a9bec1e9daaffd919e31'
@@ -568,7 +598,7 @@ Assert-File $probeSource | Out-Null
 Assert-File $probeManifest | Out-Null
 Assert-File (Join-Path $probeResources 'pack.mcmeta') | Out-Null
 $javaVersionOutput = (& $java -version 2>&1) -join "`n"
-if ($target -eq '1.21.0') {
+if ($target -in @('1.21.0', '1.21.1')) {
     $javaRelease = [IO.File]::ReadAllText((Assert-File (Join-Path $JavaHome 'release')))
     if ($LASTEXITCODE -ne 0 -or $javaVersionOutput -notmatch 'version "21\.0\.11"' -or
         $javaRelease -notmatch 'IMPLEMENTOR_VERSION="JBRSDK-21\.0\.11\+1-1163\.116-nomod"') {
@@ -579,7 +609,7 @@ if ($target -eq '1.21.0') {
     throw "Expected release-pinned JBRSDK 17.0.14 b1367.22; observed: $javaVersionOutput"
 }
 $javacVersionOutput = (& $javac -version 2>&1) -join "`n"
-$expectedJavacVersion = if ($target -eq '1.21.0') { '21.0.11' } else { '17.0.14' }
+$expectedJavacVersion = if ($target -in @('1.21.0', '1.21.1')) { '21.0.11' } else { '17.0.14' }
 if ($LASTEXITCODE -ne 0 -or $javacVersionOutput -notmatch ('javac ' + [regex]::Escape($expectedJavacVersion))) {
     throw "Expected release-pinned javac; observed: $javacVersionOutput"
 }
