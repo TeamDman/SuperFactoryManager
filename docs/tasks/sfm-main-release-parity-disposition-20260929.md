@@ -1,5 +1,7 @@
 # 4.34.0 exploratory parity disposition, 29 September 2026
 
+Historical checkpoint: the later [30 September migration acceptance](sfm-main-migration-acceptance-20260930.md) supersedes this record's exploratory-only decision after the direct-tag source and endpoint command-effect audits. The original measured evidence and limitations below are retained, not retroactively relabelled as exhaustive compatibility or publication approval.
+
 Decision: the checked-in `released-4.34.0` projects are a sufficiently faithful baseline for continued **exploratory source-projection development** on this branch. This is a bounded engineering decision, not approval to publish their JARs, replace a default branch, promote a future preset, or claim general gameplay compatibility. The [candidate matrix](sfm-main-release-candidate-matrix-20260928.md) records the exact official and projected production-JAR SHA-256 values used by the comparisons, including the later controlled 1.20.2 rebuild. Do not substitute the opt-in RegexCache candidate for this released baseline.
 
 | Observed difference or limit | Exploratory disposition | What remains unproved for a public release |
