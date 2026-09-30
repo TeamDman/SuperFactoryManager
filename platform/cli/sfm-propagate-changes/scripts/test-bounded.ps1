@@ -63,6 +63,59 @@ $commonCargoArgs = @(
     '--manifest-path', $manifest
 )
 
+function Assert-IntegrationTargets {
+    $metadataArgs = @(
+        'metadata', '--no-deps', '--offline', '--locked', '--format-version', '1',
+        '--manifest-path', $manifest
+    )
+    $jsonLines = [System.Collections.Generic.List[string]]::new()
+    $tail = [System.Collections.Generic.Queue[string]]::new()
+    & cargo @metadataArgs 2>&1 | ForEach-Object {
+        $line = $_.ToString()
+        if ($line -match $diskErrorPattern) {
+            throw "Disk-space error while reading integration targets: $line. Stop and wait for the user."
+        }
+        if ($tail.Count -ge 20) { [void]$tail.Dequeue() }
+        $tail.Enqueue($line)
+        # Cargo metadata emits one compact JSON object; stderr diagnostics
+        # must not become part of the document passed to ConvertFrom-Json.
+        if ($line.TrimStart().StartsWith('{')) { $jsonLines.Add($line) }
+    }
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        foreach ($line in $tail) { Write-Host $line }
+        throw "Could not read Cargo integration targets (exit $exitCode)."
+    }
+    if ($jsonLines.Count -ne 1) {
+        throw 'Cargo metadata must return exactly one JSON document.'
+    }
+    $metadata = $jsonLines[0] | ConvertFrom-Json
+    $packages = @($metadata.packages | Where-Object { $_.name -eq 'sfm-propagate-changes' })
+    if ($packages.Count -ne 1) {
+        throw 'Cargo metadata must contain exactly one sfm-propagate-changes package.'
+    }
+    $actualTargets = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal
+    )
+    foreach ($target in $packages[0].targets) {
+        if ($target.kind -contains 'test') { [void]$actualTargets.Add($target.name) }
+    }
+    $configuredTargets = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal
+    )
+    foreach ($target in $integrationTargets) { [void]$configuredTargets.Add($target) }
+    if ($configuredTargets.Count -ne $integrationTargets.Count) {
+        throw 'The configured integration target list contains duplicates.'
+    }
+    if (-not $configuredTargets.SetEquals($actualTargets)) {
+        $omitted = @($actualTargets | Where-Object { -not $configuredTargets.Contains($_) } | Sort-Object)
+        $unknown = @($configuredTargets | Where-Object { -not $actualTargets.Contains($_) } | Sort-Object)
+        throw ("Integration target partition differs from Cargo metadata; omitted: [{0}]; unknown: [{1}]." -f
+            ($omitted -join ', '), ($unknown -join ', '))
+    }
+    Write-Host "Integration target partition: $($actualTargets.Count) exact Cargo targets."
+}
+
 function Assert-LibraryPartition {
     $listArgs = $commonCargoArgs + @('--lib', '--', '--list')
     # Keep test names for coverage and only a short tail for failure details.
@@ -89,7 +142,7 @@ function Assert-LibraryPartition {
 
     # libtest filters are substrings, so verify this partition against the
     # current test list before any shard runs. The two skips remove the known
-    # fixture duplication and cli::curseforge:: overlap.
+    # fixture duplication and any cli::<module>:: namespace overlap.
     $coverage = [System.Collections.Generic.Dictionary[string, int]]::new(
         [System.StringComparer]::Ordinal
     )
@@ -98,8 +151,8 @@ function Assert-LibraryPartition {
         $filter = "${root}::"
         foreach ($name in $names) {
             if (-not $name.Contains($filter)) { continue }
-            if ($root -eq 'cli' -and $name -eq $fixture) { continue }
-            if ($root -eq 'curseforge' -and $name.StartsWith('cli::curseforge::')) {
+            if ($root -eq 'cli' -and $name.Contains($fixture)) { continue }
+            if ($root -ne 'cli' -and $name.Contains("cli::${root}::")) {
                 continue
             }
             $coverage[$name]++
@@ -180,7 +233,7 @@ foreach ($root in $moduleRoots) {
     if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
     $cargoArgs = $commonCargoArgs + @('--lib', "${root}::", '--', '--test-threads=1')
     if ($root -eq 'cli') { $cargoArgs += @('--skip', $fixture) }
-    if ($root -eq 'curseforge') { $cargoArgs += @('--skip', 'cli::curseforge::') }
+    if ($root -ne 'cli') { $cargoArgs += @('--skip', "cli::${root}::") }
     $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
 }
 foreach ($target in $integrationTargets) {
@@ -215,7 +268,10 @@ try {
     $env:GIT_CONFIG_KEY_0 = 'safe.directory'
     $env:GIT_CONFIG_VALUE_0 = $repositoryRoot
 
-    if ($Shard -eq 'all') { Assert-LibraryPartition }
+    if ($Shard -eq 'all') {
+        Assert-IntegrationTargets
+        Assert-LibraryPartition
+    }
     for ($index = 0; $index -lt $jobs.Count; $index++) {
         $job = $jobs[$index]
         Invoke-CargoShard -Name $job.Name -Arguments $job.Arguments `

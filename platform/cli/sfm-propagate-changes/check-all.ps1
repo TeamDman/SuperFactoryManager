@@ -37,6 +37,22 @@ Write-Host -ForegroundColor Yellow "Running build..."
 cargo build --all-features --quiet
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host -ForegroundColor Yellow "Running tests..."
-cargo test --all-features --quiet
+Write-Host -ForegroundColor Yellow "Running bounded library and integration tests..."
+# The memory-profiler feature retains substantial tracing state in a single
+# long-lived harness. The runner verifies exact-once library coverage before
+# starting a fresh process for each module, integration target and fixture.
+try {
+    & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1')
+} catch {
+    Write-Error $_
+    exit 1
+}
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host -ForegroundColor Yellow "Running bin tests..."
+cargo test --offline --locked --all-features --bins --quiet
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host -ForegroundColor Yellow "Running doc tests..."
+cargo test --offline --locked --all-features --doc --quiet
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
