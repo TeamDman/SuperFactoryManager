@@ -31,6 +31,7 @@ public final class ReleaseServerRegistryProbe {
     private static final String LOADER_PROPERTY = "sfm.releaseWitness.loader";
     private static final String COMMAND_OUTPUT_PROPERTY = "sfm.releaseWitness.commandSnapshot";
     private static final String NETWORK_OUTPUT_PROPERTY = "sfm.releaseWitness.networkSnapshot";
+    private static final String PERMISSION_EFFECT_OUTPUT_PROPERTY = "sfm.releaseWitness.commandPermissionEffect";
 
     public ReleaseServerRegistryProbe() {
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
@@ -81,6 +82,10 @@ public final class ReleaseServerRegistryProbe {
             if (!networkOutput.isBlank()) {
                 writeNetworkSnapshot(networkOutput, target, loader);
             }
+            String permissionEffectOutput = System.getProperty(PERMISSION_EFFECT_OUTPUT_PROPERTY, "");
+            if (!permissionEffectOutput.isBlank()) {
+                writePermissionEffectSnapshot(event.getServer(), permissionEffectOutput, target, loader);
+            }
         } catch (Exception failure) {
             throw new IllegalStateException("SFM release registry snapshot failed", failure);
         }
@@ -97,6 +102,20 @@ public final class ReleaseServerRegistryProbe {
                 .invoke(null, target, loader);
         Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
         System.out.println("SFM_NETWORK_SNAPSHOT_V1 payloads_written=true");
+    }
+
+    private static void writePermissionEffectSnapshot(Object server, String configuredPath,
+                                                     String target, String loader) throws Exception {
+        Path output = Path.of(configuredPath).toAbsolutePath().normalize();
+        if (!Files.isDirectory(output.getParent()) || Files.exists(output)) {
+            throw new IllegalStateException("Permission/effect snapshot parent is missing or output already exists");
+        }
+        // This optional helper is not compiled or loaded in the existing modes.
+        String json = (String) Class.forName("ca.teamdman.sfm.releaseprobe.ReleaseCommandPermissionEffectProbe")
+                .getMethod("captureJson", Object.class, String.class, String.class)
+                .invoke(null, server, target, loader);
+        Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
+        System.out.println("SFM_COMMAND_PERMISSION_EFFECT_V1 assertions_passed=true");
     }
 
     private static void writeCommandSnapshot(CommandDispatcher<CommandSourceStack> dispatcher,

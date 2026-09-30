@@ -14,7 +14,8 @@ param(
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
     [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0', '1.21.1', '26.1.2')] [string] $Target = '1.19.4',
-    [ValidateSet('registry-save', 'vanilla-barrel-transfer', 'command-dispatcher', 'network-registration')] [string] $Mode = 'registry-save',
+    [ValidateSet('registry-save', 'vanilla-barrel-transfer', 'command-dispatcher', 'network-registration', 'command-permission-effect')] [string] $Mode = 'registry-save',
+    [switch] $PreflightOnly,
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -28,6 +29,16 @@ $target = $Target
 $transferMode = $Mode -eq 'vanilla-barrel-transfer'
 $commandMode = $Mode -eq 'command-dispatcher'
 $networkMode = $Mode -eq 'network-registration'
+$permissionEffectMode = $Mode -eq 'command-permission-effect'
+if ($PreflightOnly -and -not $permissionEffectMode) {
+    throw 'PreflightOnly is available only for the separate command-permission-effect mode'
+}
+if ($permissionEffectMode -and $target -notin @('1.19.2', '26.1.2')) {
+    throw 'The command-permission-effect witness is only validated for exact 1.19.2 and 26.1.2'
+}
+if ($permissionEffectMode -and -not $InstalledForgeRoot) {
+    throw 'The command-permission-effect witness requires a verified existing InstalledLoaderRoot; it does not install or acquire dependencies'
+}
 $legacyTransferTargets = @('1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4')
 $componentTransferTargets = @('1.21.0', '1.21.1', '26.1.2')
 $legacyTransfer = $transferMode -and $target -in $legacyTransferTargets
@@ -327,10 +338,16 @@ $probeSource = Join-Path $probeRoot $version.probe_source
 $networkProbeSource = if ($networkMode) {
     Join-Path (Split-Path -Parent $probeSource) 'ReleaseNetworkProbe.java'
 } else { '' }
+$permissionEffectProbeSource = if ($permissionEffectMode) {
+    Join-Path $probeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseCommandPermissionEffectProbe.java'
+} else { '' }
+$permissionEffectValidator = if ($permissionEffectMode) {
+    Join-Path $probeRoot 'CommandPermissionEffectReport.ps1'
+} else { '' }
 $probeResources = Join-Path $probeRoot $version.resources
 $probeManifest = Join-Path $probeResources $version.mod_manifest
 $fixture = $null
-if ($version.ContainsKey('fixture_source') -and -not $transferMode -and -not $commandMode -and -not $networkMode) {
+if ($version.ContainsKey('fixture_source') -and -not $transferMode -and -not $commandMode -and -not $networkMode -and -not $permissionEffectMode) {
     $fixtureScript = Join-Path $probeRoot $version.fixture_source
     if (-not [IO.File]::Exists($fixtureScript)) { throw 'Version-specific fixture script is missing' }
     . $fixtureScript
@@ -604,6 +621,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
     $snapshot = Join-Path $BootDirectory 'registry-snapshot.json'
     $commandSnapshot = Join-Path $BootDirectory 'command-snapshot.json'
     $networkSnapshot = Join-Path $BootDirectory 'network-snapshot.json'
+    $permissionEffectSnapshot = Join-Path $BootDirectory 'command-permission-effect-snapshot.json'
     $stdout = Join-Path $BootDirectory 'java.stdout.log'
     $stderr = Join-Path $BootDirectory 'java.stderr.log'
     $start = [Diagnostics.ProcessStartInfo]::new()
@@ -625,6 +643,9 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
     }
     if ($networkMode) {
         $start.ArgumentList.Add('-Dsfm.releaseWitness.networkSnapshot=' + $networkSnapshot.Replace('\', '/'))
+    }
+    if ($permissionEffectMode) {
+        $start.ArgumentList.Add('-Dsfm.releaseWitness.commandPermissionEffect=' + $permissionEffectSnapshot.Replace('\', '/'))
     }
     $start.ArgumentList.Add('@' + $launchArgs.Replace('\', '/'))
     $start.ArgumentList.Add('nogui')
@@ -730,6 +751,26 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
             }
         }
 
+        $parsedPermissionEffect = $null
+        if ($permissionEffectMode) {
+            $permissionDeadline = [DateTime]::UtcNow.AddSeconds(30)
+            while (-not [IO.File]::Exists($permissionEffectSnapshot) -and [DateTime]::UtcNow -lt $permissionDeadline) {
+                $currentLog = Read-IfExists $log
+                Assert-NoDiskError $currentLog
+                if ($currentLog.Contains('SFM release registry snapshot failed')) {
+                    throw "$Role command permission/effect probe failed; see retained server log"
+                }
+                $process.Refresh()
+                if ($process.HasExited) { break }
+                Start-Sleep -Milliseconds 250
+            }
+            if (-not [IO.File]::Exists($permissionEffectSnapshot)) {
+                throw "$Role did not emit command permission/effect evidence"
+            }
+            $parsedPermissionEffect = [IO.File]::ReadAllText($permissionEffectSnapshot) | ConvertFrom-Json
+            Assert-CommandPermissionEffectSnapshot $parsedPermissionEffect $target $loaderIdentity
+        }
+
         $transferBefore = $null
         $transferAfter = $null
         if ($CreateSeed) {
@@ -777,7 +818,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
                 $transferAfter = Read-TransferFinalState $process $log $transcript $Role $true
             }
         }
-        $values = if ($CreateSeed -or $transferMode -or $commandMode -or $networkMode) { $null } else { Read-SelectedValues $process $log $transcript }
+        $values = if ($CreateSeed -or $transferMode -or $commandMode -or $networkMode -or $permissionEffectMode) { $null } else { Read-SelectedValues $process $log $transcript }
         Send-ServerCommand $process $log $transcript 'save-all flush' 'Saved the game' | Out-Null
         [IO.File]::AppendAllText($transcript, "stop`n")
         $process.StandardInput.WriteLine('stop')
@@ -813,10 +854,14 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
             $bootResult['network_snapshot_sha256'] = Get-Sha256 $networkSnapshot
             $bootResult['network_snapshot'] = $parsedNetwork
         }
+        if ($permissionEffectMode) {
+            $bootResult['command_permission_effect_snapshot_sha256'] = Get-Sha256 $permissionEffectSnapshot
+            $bootResult['command_permission_effect_snapshot'] = $parsedPermissionEffect
+        }
         if ($transferMode) {
             if ($transferBefore) { $bootResult['transfer_before'] = $transferBefore }
             if ($transferAfter) { $bootResult['transfer_after'] = $transferAfter }
-        } elseif (-not $commandMode -and -not $networkMode) {
+        } elseif (-not $commandMode -and -not $networkMode -and -not $permissionEffectMode) {
             $bootResult['selected_values'] = $values
         }
         return $bootResult
@@ -885,8 +930,69 @@ $expectedJavaSha256 = if ($target -eq '26.1.2') {
 Assert-Hash $java SHA256 $expectedJavaSha256 | Out-Null
 Assert-File $probeSource | Out-Null
 if ($networkProbeSource) { Assert-File $networkProbeSource | Out-Null }
+if ($permissionEffectProbeSource) {
+    Assert-File $permissionEffectProbeSource | Out-Null
+    Assert-File $permissionEffectValidator | Out-Null
+    . $permissionEffectValidator
+}
 Assert-File $probeManifest | Out-Null
 Assert-File (Join-Path $probeResources 'pack.mcmeta') | Out-Null
+if ($permissionEffectMode) {
+    # This mode never installs a loader. Complete its read-only input review
+    # before Java version probes, compilation, directory creation or launch.
+    if (-not [IO.Directory]::Exists($reusedInstall)) { throw 'InstalledLoaderRoot is missing' }
+    $reviewClasspathRoot = if ($launcher) { $launcher } else { $reusedInstall }
+    $reviewLibraries = [ordered]@{}
+    $reviewFml = "libraries/$($version.fml_group_path)/$($version.fml_core_artifact)/$($version.fml_library_version)/$($version.fml_core_artifact)-$($version.fml_library_version).jar"
+    $reviewPaths = @($reviewFml, $version.event_bus_path) + $version.compile_extra_paths
+    if ($version.fml_language_artifact) {
+        $reviewPaths += "libraries/$($version.fml_group_path)/$($version.fml_language_artifact)/$($version.fml_library_version)/$($version.fml_language_artifact)-$($version.fml_library_version).jar"
+    }
+    $reviewBrigadier = "libraries/com/mojang/brigadier/$($version.brigadier_version)/brigadier-$($version.brigadier_version).jar"
+    $reviewPaths += $reviewBrigadier
+    foreach ($relative in $reviewPaths) {
+        $inputLibrary = Assert-File (Join-Path $reviewClasspathRoot $relative)
+        if ($relative -ceq $reviewBrigadier) { Assert-Hash $inputLibrary SHA256 $version.brigadier_sha256 | Out-Null }
+        if ($version.compile_extra_expected_sha256.ContainsKey($relative)) {
+            Assert-Hash $inputLibrary SHA256 $version.compile_extra_expected_sha256[$relative] | Out-Null
+        }
+        $reviewLibraries[$relative] = Get-Sha256 $inputLibrary
+    }
+    $reviewArgs = Assert-File (Join-Path $reusedInstall "libraries/$($version.forge_group_path)/$($version.artifact_module)/$($version.artifact_version)/win_args.txt")
+    $reviewArgText = [IO.File]::ReadAllText($reviewArgs)
+    if ($reviewArgText -notmatch ([regex]::Escape($version.launch_version_flag) + '\s+' + [regex]::Escape($loaderVersion)) -or
+        $reviewArgText -notmatch ('--fml\.mcVersion\s+' + [regex]::Escape($minecraftVersion))) {
+        throw 'Installed server arguments have the wrong loader or Minecraft version'
+    }
+    if ($PreflightOnly) {
+        [ordered]@{
+            schema = 'sfm:release_command_permission_effect_preflight@1'
+            target = $target
+            loader = $loaderIdentity
+            mode = $Mode
+            read_only = $true
+            java_started = $false
+            run_root_created = $false
+            runner_script_sha256 = Get-Sha256 $PSCommandPath
+            probe_source_sha256 = Get-Sha256 $probeSource
+            permission_effect_probe_source_sha256 = Get-Sha256 $permissionEffectProbeSource
+            permission_effect_validator_sha256 = Get-Sha256 $permissionEffectValidator
+            probe_mods_toml_sha256 = Get-Sha256 $probeManifest
+            probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
+            official_jar_sha256 = Get-Sha256 $official
+            projected_jar_sha256 = Get-Sha256 $projected
+            loader_installer_sha256 = Get-Sha256 $installer
+            loader_compile_jar_sha256 = Get-Sha256 $compileJar
+            original_loader_launch_args_sha256 = Get-Sha256 $reviewArgs
+            java_exe_sha256 = Get-Sha256 $java
+            javac_exe_sha256 = Get-Sha256 $javac
+            jar_exe_sha256 = Get-Sha256 $jarTool
+            probe_compile_library_sha256 = $reviewLibraries
+            scope = 'Read-only exact-input hash and path-boundary review; no compile, Java process, game root or runtime verdict.'
+        } | ConvertTo-Json -Depth 8
+        return
+    }
+}
 $javaVersionOutput = (& $java -version 2>&1) -join "`n"
 if ($target -eq '26.1.2') {
     $javaRelease = [IO.File]::ReadAllText((Assert-File (Join-Path $JavaHome 'release')))
@@ -975,7 +1081,9 @@ $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
 $compileClasspath = (@($compileJar, $fml, $language, $eventBus) + $compileExtras.ToArray() |
     Where-Object { $_ }) -join ';'
-$probeSources = if ($networkProbeSource) { @($probeSource, $networkProbeSource) } else { @($probeSource) }
+$probeSources = if ($networkProbeSource) { @($probeSource, $networkProbeSource) } elseif ($permissionEffectProbeSource) {
+    @($probeSource, $permissionEffectProbeSource)
+} else { @($probeSource) }
 & $javac -proc:none -source $version.java_source -target $version.java_source -classpath $compileClasspath -d $probeClasses $probeSources
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe javac failed: $LASTEXITCODE" }
 $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
@@ -1005,6 +1113,49 @@ foreach ($line in ([IO.File]::ReadAllLines($winArgs))) {
 }
 $launchArgs = Join-Path $run "$($version.artifact_module)-launch.args"
 [IO.File]::WriteAllLines($launchArgs, $argsLines, [Text.UTF8Encoding]::new($false))
+
+if ($permissionEffectMode) {
+    $officialBoot = New-BootDirectory 'official-permission-effect' $official $OfficialSha256
+    $projectedBoot = New-BootDirectory 'projected-permission-effect' $projected $ProjectedSha256
+    $officialResult = Invoke-ServerBoot 'official-permission-effect' $officialBoot $OfficialSha256.ToLowerInvariant() $false
+    $projectedResult = Invoke-ServerBoot 'projected-permission-effect' $projectedBoot $ProjectedSha256.ToLowerInvariant() $false
+    $equal = $officialResult.command_permission_effect_snapshot_sha256 -ceq $projectedResult.command_permission_effect_snapshot_sha256
+    $registryEqual = $officialResult.registry_snapshot_sha256 -ceq $projectedResult.registry_snapshot_sha256
+    $report = [ordered]@{
+        schema = 'sfm:release_server_command_permission_effect_witness@1'
+        status = if ($equal -and $registryEqual) { 'PASS' } else { 'FAIL' }
+        target = $target
+        loader = $loaderIdentity
+        loader_install_mode = 'verified_exact_existing_install_read_only'
+        runner_script_sha256 = Get-Sha256 $PSCommandPath
+        probe_source_sha256 = Get-Sha256 $probeSource
+        permission_effect_probe_source = 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseCommandPermissionEffectProbe.java'
+        permission_effect_probe_source_sha256 = Get-Sha256 $permissionEffectProbeSource
+        permission_effect_validator_sha256 = Get-Sha256 $permissionEffectValidator
+        probe_mods_toml_sha256 = Get-Sha256 $probeManifest
+        probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
+        probe_jar_sha256 = $probeHash
+        probe_compile_extra_sha256 = $compileExtraHashes
+        loader_installer_sha1 = $expectedInstallerSha1
+        loader_installer_sha256 = $expectedInstallerSha256
+        loader_compile_jar_sha256 = $version.compile_jar_sha256
+        loader_launch_args_sha256 = Get-Sha256 $launchArgs
+        java_exe_sha256 = Get-Sha256 $java
+        official_jar_sha256 = $OfficialSha256.ToLowerInvariant()
+        projected_jar_sha256 = $ProjectedSha256.ToLowerInvariant()
+        command_permission_effect_equal = $equal
+        registry_ids_equal = $registryEqual
+        boots = @($officialResult, $projectedResult)
+        scope = 'Two fresh exact-loader boots; actual server-console permission replacements, node.canUse and ancestor access, one seeded cable-cache command effect. No logged-in player, other command effect, client, modded interaction, general gameplay or release acceptance claim.'
+    }
+    $reportPath = Join-Path $run 'result.json'
+    [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 15) + "`n", [Text.UTF8Encoding]::new($false))
+    Assert-Hash $official SHA256 $OfficialSha256 | Out-Null
+    Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
+    Write-Host "SFM_RELEASE_SERVER_COMMAND_PERMISSION_EFFECT_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
+    if ($report.status -cne 'PASS') { throw 'Official/projected command permission/effect comparison failed; see result.json' }
+    return
+}
 
 if ($commandMode) {
     $officialBoot = New-BootDirectory 'official-command' $official $OfficialSha256
