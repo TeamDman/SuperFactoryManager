@@ -2,6 +2,8 @@
 
 Status: original ten-version migration complete at its technical acceptance boundary on the isolated exploratory branch. Last reviewed: 2026-09-30. Public release, default-branch adoption and version-branch retirement remain separately gated.
 
+The user's later layout and ownership correction is now governed by the [shared Liquid consolidation plan](sfm-core-liquid-consolidation-plan.md). This record's completed infrastructure evidence remains valid, but it does not establish full consolidation into shared authored templates. New work must use `core-liquid-template/src/`, a projection-keyed `projections.json` and `projections/<key>/`, and finish without historical production-source overrides. The later plan supersedes this record's source-layout and optional-consolidation disposition; preserve the historical checkpoints below.
+
 ## Outcome
 
 Maintain one SFM development branch that can produce buildable, checked-in Minecraft projects for every supported version. A Rust sync command treats the primary Java source tree as Liquid input and projects it, version-specific implementations and feature presets into ordinary Java, resources and Gradle files. Contributors can build a generated version project with Gradle without installing the Rust toolchain. The generated projects remain reviewable and debuggable in their own right.
