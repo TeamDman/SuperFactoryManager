@@ -5,17 +5,18 @@
 //! https://modrinth.com/mod/super-factory-manager/versions Project ID - aecUorJQ
 
 use crate::branch_targets::select_required_minecraft_versions;
+use crate::modrinth::MODRINTH_API_ROOT;
 use crate::modrinth::ModrinthAmendVersionPayload;
 use crate::modrinth::ModrinthCreateVersionPayload;
-use crate::modrinth::ModrinthCreateVersionResponse;
 use crate::modrinth::ModrinthProjectVersion;
 use crate::modrinth::ModrinthProjectVersionFile;
 use crate::modrinth::ModrinthReleasePlan;
+use crate::modrinth::ModrinthVersionUpload;
+use crate::modrinth::create_version;
 use crate::terminal_output::stdout_prompt;
 use crate::worktree::parse_version;
 use eyre::Context;
 use reqwest::blocking::Client;
-use reqwest::blocking::multipart;
 use sha1::Digest;
 use sha1::Sha1;
 use std::collections::BTreeSet;
@@ -25,7 +26,6 @@ use std::path::Path;
 use std::path::PathBuf;
 use tracing::debug;
 
-pub(super) const MODRINTH_API_ROOT: &str = "https://api.modrinth.com/v2";
 pub(super) const MODRINTH_DEFAULT_PROJECT_ID: &str = "aecUorJQ";
 pub(super) const MODRINTH_VERSIONS_URL_PREFIX: &str = "https://modrinth.com/mod";
 
@@ -101,6 +101,20 @@ pub(super) fn create_project_version(
     plan: &ModrinthReleasePlan,
     changelog_section: &str,
 ) -> eyre::Result<String> {
+    let upload = prepare_project_version(project_id, plan, changelog_section)?;
+    create_version(client, upload).wrap_err_with(|| {
+        format!(
+            "Failed to upload jar to Modrinth: {}",
+            plan.jar_path.display()
+        )
+    })
+}
+
+fn prepare_project_version(
+    project_id: &str,
+    plan: &ModrinthReleasePlan,
+    changelog_section: &str,
+) -> eyre::Result<ModrinthVersionUpload> {
     let payload = ModrinthCreateVersionPayload::for_release(
         &plan.display_name,
         &plan.version_number,
@@ -113,41 +127,19 @@ pub(super) fn create_project_version(
     let payload_json = facet_json::to_string(&payload)
         .wrap_err("Failed to encode Modrinth upload metadata JSON")?;
 
-    let form = multipart::Form::new()
-        .text("data", payload_json)
-        .file("file", &plan.jar_path)
-        .wrap_err_with(|| {
-            format!(
-                "Failed to attach jar file to Modrinth upload form: {}",
-                plan.jar_path.display()
-            )
-        })?;
-
-    let url = format!("{MODRINTH_API_ROOT}/version");
-    let response = client.post(&url).multipart(form).send().wrap_err_with(|| {
+    let file_name = plan
+        .jar_path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| eyre::eyre!("Invalid jar filename: {}", plan.jar_path.display()))?
+        .to_owned();
+    let file_bytes = std::fs::read(&plan.jar_path).wrap_err_with(|| {
         format!(
-            "Failed to upload jar to Modrinth: {}",
+            "Failed to read jar for Modrinth upload: {}",
             plan.jar_path.display()
         )
     })?;
-
-    let status = response.status();
-    let body = response
-        .text()
-        .wrap_err("Failed to read upload response from Modrinth")?;
-
-    debug!(body, url, ?status);
-
-    if !status.is_success() {
-        eyre::bail!(
-            "Modrinth upload failed for {} ({status}): {body}",
-            plan.jar_path.display()
-        );
-    }
-
-    let parsed: ModrinthCreateVersionResponse =
-        facet_json::from_str(&body).wrap_err("Failed to parse Modrinth upload response JSON")?;
-    Ok(parsed.id)
+    ModrinthVersionUpload::new(payload_json, file_name, file_bytes)
 }
 
 pub(super) fn fetch_project_versions(
@@ -486,4 +478,82 @@ pub(super) fn compute_wrapped_release_changelog(
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
     let changelog_section = read_changelog_section(&changelog_path, mod_version)?;
     Ok(format!("```\n{}\n```", changelog_section.trim()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::modrinth::create_version_with;
+    use reqwest::StatusCode;
+    use std::fs;
+
+    #[test]
+    fn legacy_upload_keeps_metadata_and_owns_file_before_transport() {
+        let scratch = tempfile::tempdir().unwrap();
+        let jar_path = scratch.path().join("SFM-MC1.20.1-4.35.0.jar");
+        let original = b"original legacy JAR\x00\xff";
+        fs::write(&jar_path, original).unwrap();
+        let plan = ModrinthReleasePlan {
+            jar_path: jar_path.clone(),
+            mc_version: "1.20.1".to_owned(),
+            display_name: "Super Factory Manager MC1.20.1 v4.35.0".to_owned(),
+            version_number: "4.35.0".to_owned(),
+            game_versions: vec!["1.20.1".to_owned()],
+            loaders: vec!["forge".to_owned(), "neoforge".to_owned()],
+        };
+        let notes = "```\nReviewed legacy notes\n```";
+        let upload = prepare_project_version("legacy-project", &plan, notes).unwrap();
+        fs::write(&jar_path, b"replacement legacy JAR").unwrap();
+        let metadata = facet_json::to_string(&ModrinthCreateVersionPayload::for_release(
+            &plan.display_name,
+            &plan.version_number,
+            notes,
+            &plan.game_versions,
+            &plan.loaders,
+            "legacy-project",
+        ))
+        .unwrap();
+        let client = Client::builder().no_proxy().build().unwrap();
+        let id = create_version_with(&client, upload, |mut request| {
+            let body = request.body_mut().as_mut().unwrap().buffer().unwrap();
+            assert!(
+                body.windows(metadata.len())
+                    .any(|window| window == metadata.as_bytes())
+            );
+            assert!(
+                body.windows(original.len())
+                    .any(|window| window == original)
+            );
+            let replacement = b"replacement legacy JAR";
+            assert!(
+                !body
+                    .windows(replacement.len())
+                    .any(|window| window == replacement)
+            );
+            let file_name = b"SFM-MC1.20.1-4.35.0.jar";
+            assert!(
+                body.windows(file_name.len())
+                    .any(|window| window == file_name)
+            );
+            Ok((StatusCode::CREATED, r#"{"id":"Legacy123"}"#.to_owned()))
+        })
+        .unwrap();
+        assert_eq!(id, "Legacy123");
+    }
+
+    #[test]
+    fn legacy_preparation_rejects_missing_or_empty_file() {
+        let scratch = tempfile::tempdir().unwrap();
+        let plan = ModrinthReleasePlan {
+            jar_path: scratch.path().join("SFM-MC1.21-4.35.0.jar"),
+            mc_version: "1.21".to_owned(),
+            display_name: "Super Factory Manager MC1.21 v4.35.0".to_owned(),
+            version_number: "4.35.0".to_owned(),
+            game_versions: vec!["1.21".to_owned()],
+            loaders: vec!["neoforge".to_owned()],
+        };
+        assert!(prepare_project_version("legacy-project", &plan, "Reviewed notes").is_err());
+        fs::write(&plan.jar_path, []).unwrap();
+        assert!(prepare_project_version("legacy-project", &plan, "Reviewed notes").is_err());
+    }
 }

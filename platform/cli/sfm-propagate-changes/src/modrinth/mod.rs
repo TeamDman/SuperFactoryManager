@@ -8,6 +8,7 @@ mod modrinth_project_version;
 mod modrinth_project_version_file;
 mod modrinth_project_version_file_hashes;
 mod modrinth_release_plan;
+mod modrinth_release_service;
 
 pub use modrinth_amend_version_payload::*;
 pub use modrinth_api_secret::*;
@@ -19,3 +20,4 @@ pub use modrinth_project_version::*;
 pub use modrinth_project_version_file::*;
 pub use modrinth_project_version_file_hashes::*;
 pub use modrinth_release_plan::*;
+pub(crate) use modrinth_release_service::*;

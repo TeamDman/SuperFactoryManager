@@ -4,6 +4,7 @@ use super::candidate_lock_cli::CandidateVerifyArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
+use super::release_modrinth_cli::ReleaseModrinthArgs;
 use super::release_package_cli::ReleasePackageArgs;
 use super::release_package_verify_cli::ReleasePackageVerifyArgs;
 use super::release_plan_cli::ReleasePlanArgs;
@@ -128,6 +129,8 @@ pub enum SourceCommand {
     ReleaseTagPreflight(ReleaseTagPreflightArgs),
     /// Join one verified package target, promoted local tag state and reviewed provider intent.
     ReleaseTargetPlan(ReleaseTargetPlanArgs),
+    /// Prepare one verified Modrinth request with a selected JAR of at most 64 MiB; never upload.
+    ReleaseModrinth(ReleaseModrinthArgs),
     /// Show one generated file's recorded owner and current edit state.
     Trace(SourceTraceArgs),
 }
@@ -410,6 +413,7 @@ impl SourceArgs {
             }
             SourceCommand::ReleaseTagPreflight(args) => return args.invoke_in(cancellation),
             SourceCommand::ReleaseTargetPlan(args) => return args.invoke_in(cancellation),
+            SourceCommand::ReleaseModrinth(args) => return args.invoke_in(cancellation),
             SourceCommand::Trace(args) => return args.invoke_in(),
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),

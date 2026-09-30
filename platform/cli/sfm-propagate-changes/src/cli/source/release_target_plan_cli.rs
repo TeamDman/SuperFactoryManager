@@ -49,7 +49,7 @@ pub struct ReleaseTargetPlanArgs {
     clippy::struct_excessive_bools,
     reason = "independent local checks and explicit remote/publication limits are part of the handoff"
 )]
-struct ReleaseTargetPlanReport {
+pub(super) struct ReleaseTargetPlanReport {
     schema: String,
     scope: String,
     reviewed_notes_disclosure_warning: String,
@@ -63,14 +63,14 @@ struct ReleaseTargetPlanReport {
     authored_tree_unchanged_outside_generated_roots: bool,
     selected_root_provenance_checked: bool,
     selected_root_commit_tree_checked: bool,
-    target: ReleaseProviderTarget,
+    pub(super) target: ReleaseProviderTarget,
     local_tag: String,
     local_tag_state: String,
     local_tag_object_id: Option<String>,
     github: GitHubProviderIntent,
     modrinth: ModrinthProviderIntent,
-    modrinth_request_metadata_json: String,
-    modrinth_request_metadata_sha256: String,
+    pub(super) modrinth_request_metadata_json: String,
+    pub(super) modrinth_request_metadata_sha256: String,
     curseforge: CurseForgeProviderIntent,
     changelog_sha256: String,
     remote_tag_checked: bool,
@@ -90,7 +90,10 @@ impl ReleaseTargetPlanArgs {
         Ok(CliOutput::facet(self.plan_in(cancellation)?))
     }
 
-    fn plan_in(self, cancellation: &CancellationToken) -> Result<ReleaseTargetPlanReport> {
+    pub(super) fn plan_in(
+        self,
+        cancellation: &CancellationToken,
+    ) -> Result<ReleaseTargetPlanReport> {
         cancellation.bail_if_cancelled()?;
         let ReviewedProviderPlan { report, changelog } =
             self.provider_plan.clone().review_in(cancellation)?;
@@ -179,7 +182,7 @@ impl ReleaseTargetPlanArgs {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
@@ -197,7 +200,7 @@ mod tests {
     use std::path::Path;
     use std::process::Command as ProcessCommand;
 
-    fn git(repo: &Path, args: &[&str]) -> String {
+    pub(in crate::cli::source) fn git(repo: &Path, args: &[&str]) -> String {
         let output = ProcessCommand::new("git")
             .args(args)
             .current_dir(repo)
@@ -249,7 +252,7 @@ mod tests {
         git(fixture.repo(), &["rev-parse", "HEAD"])
     }
 
-    fn packaged_candidate() -> (Fixture, ReleaseTargetPlanArgs) {
+    pub(in crate::cli::source) fn packaged_candidate() -> (Fixture, ReleaseTargetPlanArgs) {
         let fixture = Fixture::new();
         let scratch = fixture.repo().parent().unwrap();
         let lock = scratch.join("reviewed-candidate-lock.json");
