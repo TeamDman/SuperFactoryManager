@@ -449,9 +449,32 @@ All ten fictional external roots passed ordinary `compileJava` using the exact G
 
 Each root retained exactly one `mod_version=9.99.99-rehearsal`, produced no production JAR, and passed a post-build public `source check` with zero creates/updates and `manifest_changed=false`; the unchanged counts and provenance SHA-256 values are exactly the M6.16 table above (18,272 files total). Separate read-only checks of all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files, zero creates/updates and no manifest changes. The authored tree and candidate B were clean at their recorded commits. No disk-space error occurred. This closes the fictional `compileJava` task-success matrix with nine fresh compiler runs and one cache-only result; fresh 26.1.2 compiler execution, a real candidate's JDK lock, packaging, GameTests, compatibility review, release-preset promotion and publication remain unproved.
 
-### [ ] M6.18 Exercise the fictional frozen preset's Gradle unit tests
+### [x] M6.18 Exercise the fictional frozen preset's Gradle unit tests
 
 On the same ten external roots, run each project's ordinary Gradle `test` sequentially under its M6.17 Java selection and matching Gradle version. Keep the 1.19.2 `rust-toolchain` profile; do not force 1.21.1 offline or use `--rerun-tasks` merely to discard valid dependency caches. Record whether `compileTestJava` and `test` executed or came from cache, exact JUnit XML totals and named failures/skips, selected JDK, exit status and ignored-log hash. A compile-only success is not a test pass. After each run, verify the fictional version, absence of a production JAR, exact provenance and a zero-write `source check`; at the end, recheck Git cleanliness and the ten checked-in 4.34.0 roots. Investigate ordinary test failures before advancing; on any disk-space error, stop immediately for the user. This milestone does not package a release, run all GameTests, promote roots or establish gameplay compatibility.
+
+All ten generated projects passed `test` under their M6.17 Gradle and Java selections. Nine `compileTestJava` tasks executed with the recorded compiler; 26.1.2 loaded test classes `FROM-CACHE` under JBR 25.0.3, so it is not a fresh Java 25 compiler witness. All ten `test` tasks executed, including 26.1.2. Independent aggregation of fresh `TEST-*.xml` files found 1,460 suites and 8,525 cases: zero failures, zero errors, ten skipped, and 8,515 passing. The skipped cases are the same five opt-in/installed-companion coverage tests on each 1.19.x root, listed below. The ignored test logs contain the full local JDK paths; this table retains path-free identities and exact log hashes.
+
+| Target | Java | XML suites | Cases | Skipped | Test-source compile | Ignored log SHA-256 |
+| --- | --- | ---: | ---: | ---: | --- | --- |
+| 1.19.2 | JBRSDK 17.0.14 | 456 | 2,550 | 5 | executed | `5beb6b6b258d2a938bb88a34ebad09059d8618dd57903fa7b99845e086070128` |
+| 1.19.4 | JBRSDK 17.0.14 | 452 | 2,535 | 5 | executed | `cfe36ba6f0ec68bdea94880c7194d6e709606a5ba594f2821e3635f2998a417f` |
+| 1.20 | JBRSDK 17.0.14 | 69 | 430 | 0 | executed | `7dba5823d071408a3e42f4fbd41e02690e522cae58b8af8ffa73e80225ea492c` |
+| 1.20.1 | JBRSDK 17.0.14 | 69 | 430 | 0 | executed | `089427079cdf079b1898bf6fb23695363c0a6dea997b990fca1b4021f72df153` |
+| 1.20.2 | JBRSDK 17.0.14 | 69 | 430 | 0 | executed | `fe9d7de1ab9cac4d788fc6b09c76e72ebf699974ac960bf0a5e6777cbbcaa654` |
+| 1.20.3 | JBRSDK 17.0.14 | 69 | 430 | 0 | executed | `2cc306b9b08364abff386162c4480d2c1909c6d932aa44c6e735a320eae79363` |
+| 1.20.4 | JBRSDK 17.0.14 | 69 | 430 | 0 | executed | `9c8af00508e0bf7d0ad6c41fe9d7accc676a6bfb04d71d9eed565c1450425a3f` |
+| 1.21.0 | JBR 21.0.11 | 69 | 430 | 0 | executed | `e98fd96fe48ad49db8b39576610e81f55a26999c387d4b10705b290ca78e5d39` |
+| 1.21.1 | JBR 21.0.11 | 69 | 430 | 0 | executed | `024464c338e74e2c72f2710a782731b94281107318a90948d9c26e67a156fc31` |
+| 26.1.2 | JBR 25.0.3 | 69 | 430 | 0 | `FROM-CACHE` | `a3f7ae0fd0ab0d31fc9e4788b8226be986b3b8a5473a8742ece7cae2eb07b2e9` |
+
+The five skipped test names on both 1.19.x targets were `SFMReleaseReviewLedgerStoreTests.installedCompanionRetainsDisplayedBytesAfterDiskChanges`, `SFMReleaseReviewScaleTests.completeSearchOnCapturedReleaseReview`, `SFMReviewChangesCacheTests.optionalReleaseScaleProjectionMeasurements`, `SFMSymbolServerInstalledIntegrationTests.installedWorkerResolvesDefinitionsAndDecodesTheLargeInteractionMap`, and `SFMItemstackPreviewCoverageTests.repositoryCoverage`. Their JUnit XML records no skip reason; this milestone does not silently count them as passes.
+
+Each fictional root retained exactly one `mod_version=9.99.99-rehearsal`, no production JAR and its M6.16 provenance hash. Public post-test `source check` passed on all ten with 18,272 unchanged files in total, zero creates/updates and `manifest_changed=false` throughout. A final read-only check of all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files, zero creates/updates and no manifest changes; authored and candidate-B Git trees stayed clean. No disk-space error occurred. This is unit-test and projection-stability evidence, not a GameTest or real-release compatibility claim.
+
+### [ ] M6.19 Run selected headless GameTests from the fictional frozen preset
+
+Use the external 1.19.4 project first because dedicated-server discovery filters client-only tests there. Run `sfm:block_network_grow` for a no-window cable-topology smoke, then `sfm:move_1_stack_direct` for a real manager inventory transfer, using the repository's `forge-game-test-no-force-exit.init.gradle` and a single selected test per invocation. Require the selected test to run and pass, no unrelated failure, and a clean server exit; inspect the retained log rather than treating process exit alone as proof. If both pass, consider representative 1.19.2 and 26.1.2 runs under their declared Java/Gradle versions. After each run, require fictional version/provenance, no production JAR, public zero-write `source check`, and clean Git trees. Stop immediately on any disk-space error. This does not exercise a client-only Touch Display or Client Manager test, the player's own window, or full gameplay parity.
 
 ### Future release-preset promotion boundary
 
