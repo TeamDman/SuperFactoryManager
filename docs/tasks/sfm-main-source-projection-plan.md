@@ -472,9 +472,24 @@ The five skipped test names on both 1.19.x targets were `SFMReleaseReviewLedgerS
 
 Each fictional root retained exactly one `mod_version=9.99.99-rehearsal`, no production JAR and its M6.16 provenance hash. Public post-test `source check` passed on all ten with 18,272 unchanged files in total, zero creates/updates and `manifest_changed=false` throughout. A final read-only check of all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files, zero creates/updates and no manifest changes; authored and candidate-B Git trees stayed clean. No disk-space error occurred. This is unit-test and projection-stability evidence, not a GameTest or real-release compatibility claim.
 
-### [ ] M6.19 Run selected headless GameTests from the fictional frozen preset
+### [x] M6.19 Run selected headless GameTests from the fictional frozen preset
 
 Use the external 1.19.4 project first because dedicated-server discovery filters client-only tests there. Run `sfm:block_network_grow` for a no-window cable-topology smoke, then `sfm:move_1_stack_direct` for a real manager inventory transfer, using the repository's `forge-game-test-no-force-exit.init.gradle` and a single selected test per invocation. Require the selected test to run and pass, no unrelated failure, and a clean server exit; inspect the retained log rather than treating process exit alone as proof. If both pass, consider representative 1.19.2 and 26.1.2 runs under their declared Java/Gradle versions. After each run, require fictional version/provenance, no production JAR, public zero-write `source check`, and clean Git trees. Stop immediately on any disk-space error. This does not exercise a client-only Touch Display or Client Manager test, the player's own window, or full gameplay parity.
+
+The frozen candidate B supplied all four selected runs. The 1.19.x projects used the repository-owned test-only ForgeGradle `forceExit=false` init script, JBRSDK 17.0.14 and cached Gradle 7.5; 1.19.2 also used its `rust-toolchain` profile. The 26.1.2 project used JBR 25.0.3 and cached Gradle 9.5.0 without the Forge init script. These were direct, offline, plain Gradle GameTest runs from external generated roots, not `source run` or a production packaging task. Each selected SFM test matched exactly one definition, ran on a headless server, passed, shut down cleanly and returned Gradle exit zero:
+
+| Target | Selected SFM test | Discovery | Required passed | Success-log SHA-256 |
+| --- | --- | ---: | ---: | --- |
+| 1.19.4 | `sfm:block_network_grow` | 1 of 267 | 1 of 1 | `4c3e05924161b3a154243cce74cc462f83ae1ed0a8197ccffa0c67509a81dabe` |
+| 1.19.4 | `sfm:move_1_stack_direct` | 1 of 267 | 1 of 1 | `4fad44ae95d3b42c5ea58eff5306ec131e41ea6e512dc6dd3966fa3eab71ecc6` |
+| 1.19.2 | `sfm:move_1_stack_direct` | 1 of 341 | 1 of 1 | `f4f93998112e42dec38ae1e08858b1bf8ae8e4eb17f5bba2f9f05a0c5d593b4d` |
+| 26.1.2 | `sfm:move_1_stack_direct` | 1 of 190 | 2 of 2 | `c28892cbda1e8de54778954a8bc687dab26a63315f69f1b6042a54d51c7d8d28` |
+
+The 26.1.2 loader contributed the second required test; only one SFM test was selected. Targeted scans found no failed-test, failed-build or disk-space error in any success log. Public post-run `source check` reported 2,976 unchanged files for 1.19.2, 2,942 for 1.19.4 and 1,554 for 26.1.2, with zero creates/updates and `manifest_changed=false` in each root. Their provenance hashes still match the M6.16 table, each retained exactly `mod_version=9.99.99-rehearsal`, and none produced `build/libs/*.jar`. The authored checkout and candidate-B clone remained Git-clean. This proves representative frozen-source runtime behavior and post-run projection stability, not all ten fictional targets, the complete GameTest catalogs, client-only features, a real release candidate or gameplay/save compatibility.
+
+### [ ] M6.20 Rehearse production packaging and a dry-run candidate lock from frozen sources
+
+Inspect each target's existing production packaging task and build the fictional frozen preset in its external generated root under the selected Java/Gradle versions. Bind the resulting actual JAR hashes, source-projection manifests and reviewed build inputs into a **local rehearsal-only** candidate lock; run the public read-only inventory/preflight and compare its claims with the retained artifacts. Require all ten targets, no source drift, exact fictional versioning, clean authored/candidate Git trees and no disk-space errors. Do not promote checked-in roots, tag, publish, push, choose a real release version or claim 4.34.0 behavior parity from this mechanical rehearsal. Stop immediately if disk space runs out.
 
 ### Future release-preset promotion boundary
 
