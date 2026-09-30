@@ -4,6 +4,7 @@ use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::promotion::validate_relative_path;
+use crate::source_projection::provenance::CatalogProjectionOwner;
 use crate::source_projection::provenance::ProjectionProvenance;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::sync::MANIFEST_FILE;
@@ -32,6 +33,8 @@ pub struct SourceTraceArgs {
 struct SourceTraceReport {
     schema: String,
     target_id: String,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    catalog: Option<CatalogProjectionOwner>,
     preset_id: String,
     preset_definition_identity: String,
     generated_file: String,
@@ -78,8 +81,13 @@ fn trace(args: &SourceTraceArgs) -> Result<SourceTraceReport> {
     let output_path = checked_file(&root, &args.file)?;
     let current_sha256 = sha256(&fs::read(output_path).wrap_err("cannot read generated file")?);
     Ok(SourceTraceReport {
-        schema: TRACE_SCHEMA.to_owned(),
+        schema: if manifest.catalog.is_some() {
+            "sfm:source_projection_trace@2".to_owned()
+        } else {
+            TRACE_SCHEMA.to_owned()
+        },
         target_id: manifest.target_id,
+        catalog: manifest.catalog,
         preset_id: manifest.preset_id,
         preset_definition_identity: manifest.preset_definition_identity,
         generated_file: args.file.clone(),
@@ -142,6 +150,48 @@ mod tests {
         assert_eq!(
             fs::read(args.project_root.join(MANIFEST_FILE)).unwrap(),
             manifest_before
+        );
+    }
+
+    #[test]
+    fn traces_nested_catalog_owner_without_inventing_a_flat_preset() {
+        let (_temp, args) = fixture();
+        let mut manifest = ProjectionProvenance::new_catalog(
+            "1.19.2",
+            "1.19.2",
+            CatalogProjectionOwner {
+                projection_key: "custom/nested/project".to_owned(),
+                environment:
+                    crate::source_projection::projection_catalog::ProjectionEnvironment::Dev,
+                context_identity: format!("blake3:{}", "a".repeat(64)),
+            },
+        );
+        manifest.files.insert(
+            args.file.clone(),
+            ProjectedFileProvenance {
+                source_path: format!("platform/minecraft/core-liquid-template/{}", args.file),
+                source_sha256: sha256(b"class Example {}\n"),
+                overlay: None,
+                output_sha256: sha256(b"class Example {}\n"),
+            },
+        );
+        fs::write(
+            args.project_root.join(MANIFEST_FILE),
+            manifest.to_json().unwrap(),
+        )
+        .unwrap();
+        let before = fs::read(args.project_root.join(MANIFEST_FILE)).unwrap();
+        let report = trace(&args).unwrap();
+        assert_eq!(report.schema, "sfm:source_projection_trace@2");
+        assert_eq!(
+            report.catalog.unwrap().projection_key,
+            "custom/nested/project"
+        );
+        assert!(report.preset_id.is_empty() && report.preset_definition_identity.is_empty());
+        assert!(report.generated_file_matches_manifest);
+        assert_eq!(
+            fs::read(args.project_root.join(MANIFEST_FILE)).unwrap(),
+            before
         );
     }
 

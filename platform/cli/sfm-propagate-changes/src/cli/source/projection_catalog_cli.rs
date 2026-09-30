@@ -5,14 +5,11 @@
 //! project generation, release-compatibility proof, or compilation operation.
 
 use crate::cli::output::CliOutput;
-use crate::source_projection::candidate_lock::checked_directory;
-use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::context::ProjectionContext;
+use crate::source_projection::core_catalog::CoreCatalog as LoadedCatalog;
+use crate::source_projection::core_catalog::read_bounded_catalog_input;
+use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
-use crate::source_projection::projection_catalog::ProjectionCatalog;
-use crate::source_projection::projection_catalog::ProjectionEntry;
-use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
-use crate::source_projection::projection_catalog::reject_duplicate_catalog_keys;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::render_java_source;
@@ -22,16 +19,10 @@ use eyre::ensure;
 use facet::Facet;
 use figue::{self as args};
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
-use std::fs;
-use std::io::Read as _;
 use std::path::Path;
 use std::path::PathBuf;
 
 const CORE_ROOT: &str = "platform/minecraft/core-liquid-template";
-const FEATURE_DEFINITIONS_PATH: &str =
-    "platform/minecraft/core-liquid-template/feature-definitions.json";
-const MAX_INPUT_BYTES: u64 = 1024 * 1024;
 const CATALOG_SCOPE: &str = "read_only_projection_catalog_inspection";
 const RENDER_SCOPE: &str = "read_only_single_java_template_proof_not_project_generation_or_build";
 
@@ -64,17 +55,6 @@ pub struct SourceRenderArgs {
     #[facet(args::named)]
     pub file: String,
 }
-
-#[derive(Clone, Debug, Facet)]
-#[facet(deny_unknown_fields)]
-struct FeatureDefinition {
-    supported_targets: Vec<String>,
-    requires: Vec<String>,
-}
-
-#[derive(Debug, Facet)]
-#[facet(transparent)]
-struct FeatureDefinitions(BTreeMap<String, FeatureDefinition>);
 
 #[derive(Debug, Facet)]
 struct CatalogInputsReport {
@@ -128,14 +108,6 @@ struct SourceRenderReport {
     writes_performed: bool,
     full_project_generated: bool,
     compiled: bool,
-}
-
-struct LoadedCatalog {
-    repo_root: PathBuf,
-    catalog: ProjectionCatalog,
-    registered_features: BTreeSet<String>,
-    catalog_sha256: String,
-    feature_definitions_sha256: String,
 }
 
 impl SourceListArgs {
@@ -214,7 +186,7 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
     let loaded = load_catalog(&args.repo_root, invocation_dir)?;
     let context = loaded.context(&args.projection)?;
     let source_path = format!("{CORE_ROOT}/{}", args.file);
-    let source = read_bounded(&loaded.repo_root, &source_path)?;
+    let source = read_bounded_catalog_input(&loaded.repo_root, &source_path)?;
     let source_text = std::str::from_utf8(&source).wrap_err("core Java template is not UTF-8")?;
     let rendered = render_java_source(source_text, &context)
         .wrap_err_with(|| format!("could not render core Java template `{}`", args.file))?;
@@ -264,199 +236,20 @@ impl LoadedCatalog {
                 .replace('\\', "/"),
         })
     }
-
-    fn context(&self, key: &str) -> Result<ProjectionContext> {
-        let entry = self.catalog.entry(key)?;
-        let target = entry.target_id()?;
-        let mut targets = SUPPORTED_TARGETS
-            .iter()
-            .map(|(id, _)| (format!("mc_{}", id.replace('.', "_")), *id == target))
-            .collect::<BTreeMap<_, _>>();
-        let forge_loader = matches!(target, "1.19.2" | "1.19.4" | "1.20");
-        targets.insert("forge".to_owned(), forge_loader);
-        targets.insert("neoforge".to_owned(), !forge_loader);
-        Ok(ProjectionContext {
-            minecraft_version: entry.minecraft_version.clone(),
-            preset: key.to_owned(),
-            environment: entry.environment.as_str().to_owned(),
-            projection_key: key.to_owned(),
-            features: entry.feature_flags(&self.registered_features)?,
-            targets,
-        })
-    }
 }
 
 fn load_catalog(repo_root: &Path, invocation_dir: &Path) -> Result<LoadedCatalog> {
-    let candidate = if repo_root == Path::new(".") {
-        invocation_dir.to_path_buf()
-    } else if repo_root.is_absolute() {
-        repo_root.to_path_buf()
-    } else {
-        invocation_dir.join(repo_root)
-    };
-    let repo_root = checked_directory(&candidate).wrap_err("invalid source repository root")?;
-    let registry_bytes = read_bounded(&repo_root, FEATURE_DEFINITIONS_PATH)?;
-    let registry_text =
-        std::str::from_utf8(&registry_bytes).wrap_err("core feature definitions are not UTF-8")?;
-    reject_duplicate_catalog_keys(registry_text)
-        .wrap_err("duplicate core feature-definition key")?;
-    let definitions: FeatureDefinitions =
-        facet_json::from_str(registry_text).wrap_err("could not parse core feature definitions")?;
-    definitions.validate()?;
-    let registered_features = definitions.0.keys().cloned().collect();
-    let catalog_bytes = read_bounded(&repo_root, CATALOG_PATH)?;
-    let catalog_text =
-        std::str::from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
-    let catalog = ProjectionCatalog::from_json(catalog_text, &registered_features)?;
-    for (key, entry) in &catalog.0 {
-        definitions
-            .validate_entry(entry)
-            .wrap_err_with(|| format!("projection `{key}`"))?;
-    }
-    Ok(LoadedCatalog {
-        repo_root,
-        catalog,
-        registered_features,
-        catalog_sha256: sha256(&catalog_bytes),
-        feature_definitions_sha256: sha256(&registry_bytes),
-    })
-}
-
-fn read_bounded(root: &Path, relative: &str) -> Result<Vec<u8>> {
-    let path = checked_file(root, relative)?;
-    let file =
-        fs::File::open(&path).wrap_err_with(|| format!("cannot open source input `{relative}`"))?;
-    ensure!(
-        file.metadata()?.len() <= MAX_INPUT_BYTES,
-        "source input `{relative}` exceeds the {MAX_INPUT_BYTES}-byte limit"
-    );
-    let mut bytes = Vec::new();
-    file.take(MAX_INPUT_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .wrap_err_with(|| format!("cannot read source input `{relative}`"))?;
-    ensure!(
-        bytes.len() as u64 <= MAX_INPUT_BYTES,
-        "source input `{relative}` exceeds the {MAX_INPUT_BYTES}-byte limit"
-    );
-    Ok(bytes)
-}
-
-impl FeatureDefinitions {
-    fn validate(&self) -> Result<()> {
-        let supported = SUPPORTED_TARGETS
-            .iter()
-            .map(|(id, _)| *id)
-            .collect::<BTreeSet<_>>();
-        for (id, definition) in &self.0 {
-            ensure!(
-                id.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
-                    && id.bytes().all(|byte| byte.is_ascii_lowercase()
-                        || byte.is_ascii_digit()
-                        || byte == b'_'),
-                "feature `{id}` must use lowercase snake_case and start with a letter"
-            );
-            ensure!(
-                !definition.supported_targets.is_empty(),
-                "feature `{id}` supports no targets"
-            );
-            let mut declared_targets = BTreeSet::new();
-            for target in &definition.supported_targets {
-                ensure!(
-                    supported.contains(target.as_str()),
-                    "feature `{id}` declares unsupported target `{target}`"
-                );
-                ensure!(
-                    declared_targets.insert(target),
-                    "feature `{id}` repeats target `{target}`"
-                );
-            }
-            let mut prerequisites = BTreeSet::new();
-            for required in &definition.requires {
-                let dependency = self.0.get(required).ok_or_else(|| {
-                    eyre::eyre!("feature `{id}` requires unknown feature `{required}`")
-                })?;
-                ensure!(
-                    prerequisites.insert(required),
-                    "feature `{id}` repeats prerequisite `{required}`"
-                );
-                for target in &definition.supported_targets {
-                    ensure!(
-                        dependency.supported_targets.contains(target),
-                        "feature `{id}` requires `{required}` which does not support target `{target}`"
-                    );
-                }
-            }
-        }
-        self.validate_acyclic()
-    }
-
-    fn validate_acyclic(&self) -> Result<()> {
-        let mut counts = BTreeMap::new();
-        let mut dependants: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
-        let mut ready = BTreeSet::new();
-        for (id, definition) in &self.0 {
-            counts.insert(id.as_str(), definition.requires.len());
-            if definition.requires.is_empty() {
-                ready.insert(id.as_str());
-            }
-            for required in &definition.requires {
-                dependants.entry(required.as_str()).or_default().push(id);
-            }
-        }
-        let mut visited = 0;
-        while let Some(id) = ready.pop_first() {
-            visited += 1;
-            for dependant in dependants.get(id).into_iter().flatten() {
-                let count = counts
-                    .get_mut(dependant)
-                    .expect("validated prerequisite graph contains every feature");
-                *count -= 1;
-                if *count == 0 {
-                    ready.insert(*dependant);
-                }
-            }
-        }
-        ensure!(
-            visited == self.0.len(),
-            "core feature prerequisites contain a cycle"
-        );
-        Ok(())
-    }
-
-    fn validate_entry(&self, entry: &ProjectionEntry) -> Result<()> {
-        let target = entry.target_id()?;
-        let enabled = entry
-            .features
-            .iter()
-            .map(String::as_str)
-            .collect::<BTreeSet<_>>();
-        for id in &entry.features {
-            let definition = self
-                .0
-                .get(id)
-                .ok_or_else(|| eyre::eyre!("unknown enabled feature `{id}`"))?;
-            ensure!(
-                definition
-                    .supported_targets
-                    .iter()
-                    .any(|supported| supported == target),
-                "enabled feature `{id}` does not support target `{target}`"
-            );
-            for required in &definition.requires {
-                ensure!(
-                    enabled.contains(required.as_str()),
-                    "enabled feature `{id}` requires enabled feature `{required}`"
-                );
-            }
-        }
-        Ok(())
-    }
+    LoadedCatalog::load(repo_root, invocation_dir)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
+    use crate::source_projection::candidate_lock::checked_file;
+    use crate::source_projection::core_catalog::MAX_CATALOG_INPUT_BYTES as MAX_INPUT_BYTES;
+    use std::collections::BTreeSet;
+    use std::fs;
 
     const JAVA_PATH: &str = "src/main/java/example/Example.java";
     const ITEM_PATH: &str =

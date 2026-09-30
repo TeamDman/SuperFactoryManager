@@ -104,8 +104,9 @@ pub(crate) fn resolve_java_for_lockfile(
     }
 }
 
-/// Prism historically requires an exact Java major even on unpinned targets.
-/// Preserve that rule while using the same exact SDK catalog when present.
+/// Project builds and Prism require an exact Java major on unpinned targets.
+/// Preserve that rule for legacy release locks while using the same exact SDK
+/// catalog when present; reading the catalog never migrates lockfile contents.
 pub(crate) fn resolve_exact_java_for_minecraft_dir(
     minecraft_dir: &Path,
     required_major: u32,

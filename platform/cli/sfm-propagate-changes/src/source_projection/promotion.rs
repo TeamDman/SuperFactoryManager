@@ -1619,6 +1619,7 @@ fn rollback(
 fn parse_manifest(bytes: &[u8]) -> Result<ProjectionProvenance> {
     let text = std::str::from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
     let manifest = ProjectionProvenance::from_json(text)?;
+    manifest.require_legacy_owner()?;
     ensure!(
         manifest.to_json()?.as_bytes() == bytes,
         "noncanonical projection manifest bytes"

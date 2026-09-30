@@ -1,0 +1,23 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+}
+
+// The version checkout keeps this project under platform/minecraft; a source
+// projection instead places it under mc-version/<version>. Both layouts must
+// retain the same Gradle project name for IDE imports and artifact naming.
+def sfmVersionLabel = settingsDir.name == 'minecraft'
+        ? settingsDir.parentFile.parentFile.name
+        : settingsDir.name
+rootProject.name = "sfm-${sfmVersionLabel}"
+
+// Core-owned project identity; projection directory names are not inputs.
+{% case minecraft_version %}
+{% when "1.19.2" %}
+rootProject.name = 'sfm-1.19.2'
+{% else %}
+throw new GradleException('Unsupported core settings target')
+{% endcase %}

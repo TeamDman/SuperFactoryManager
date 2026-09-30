@@ -445,3 +445,157 @@ The former registers much more than palette actions: panels, clipboard operation
 The latter also registers explorers, overlays, packet actions, program consent/read actions, symbols, review tools and workspace history features. Its setup listener initializes multiplayer, menus, command history and the action tree. Registration calls and setup members require the same ownership as the feature being registered. A common shell can belong to the union of client features that need registration; it must not become a mandatory dependency on every registered feature.
 
 Next, enter these exact paths and member boundaries into the ownership ledger, reconcile the baseline classifier, consolidate the shared helpers once, and validate a small supported action-plus-palette combination. No independent flag combination or cross-target compile is claimed by this appendix.
+
+## Reviewed subset: common-side integration hunks
+
+This review read the complete 1.19.2 release-to-source-checkpoint diffs of 39 existing files, covering 144 zero-context diff hunks. It inspected selected callers and new value, transport and ownership helpers to distinguish their functional owners. The other 47 existing files and 212 hunks are outside this bounded review. These are inspection counts, not a reconciled ownership ledger: the earlier checkpoint of 86 existing classes and 356 unresolved hunks remains unchanged until each hunk is assigned and verified in the machine-readable ledger.
+
+The comparison is release commit `31135b8e86801b862d5cb2283c7c5878b7cc5bb4` to source checkpoint `f3ff2f6425434f36c7c680fa909c977b158e1860`. The paths and anchors below refer to these Git objects, not moving working-tree files. A hunk can contain several owners, imports or line-ending changes. Do not use hunk counts as feature counts.
+
+### Exact inspected path set
+
+Paths in this table are relative to `platform/minecraft/src/main/java/ca/teamdman/`. Anchors are method or member names in the source checkpoint; the hunk count comes from `git diff --unified=0` for the complete file.
+
+| Existing path | Hunks | Inspected anchors and proposed member owners |
+| --- | ---: | --- |
+| `sfm/common/block/BufferBlock.java` | 6 | Analog output and comparator updates: `redstone_buffer_storage`; `ContainedResource.Image`, serialization and resource-name mapping: `image_resources` |
+| `sfm/common/block_network/CableNetwork.java` | 2 | `getManagers()` and its comparator import: `computercraft` |
+| `sfm/common/block_network/CableNetworkManager.java` | 1 | `getNetworkFromCablePosition()`: `computercraft` |
+| `sfm/common/blockentity/BufferBlockEntity.java` | 5 | Redstone load/save: `redstone_buffer_storage`; image and interaction-state load/save: `buffer_image_persistence`; shared change callback: union of actual storage consumers |
+| `sfm/common/blockentity/BufferBlockEntityContents.java` | 7 | `getStoredRedstone()`, `loadRedstone()`, `onRedstoneChanged()`: `redstone_buffer_storage`; callback constructor and `markChanged()`: shared storage infrastructure |
+| `sfm/common/blockentity/ManagerBlockEntity.java` | 1 | `getStateReadOnly()`: `computercraft` observation helper |
+| `sfm/common/capability/IRedstoneSignalStorage.java` | 2 | Corrected `canExtract()` and `canReceive()` comments: nonsemantic documentation corrections |
+| `sfm/common/capability/RedstoneSignalCapabilityProvider.java` | 5 | Provider priority, `WorldSignal`, live measurement, side inversion and buffer exclusion: `redstone_live_read` |
+| `sfm/common/capability/RedstoneSignalStorage.java` | 8 | Change notifications and bounded deserialization: `redstone_buffer_storage`; public-to-private `value` field is also an API change, not a comment-only edit |
+| `sfm/common/capability/SFMBlockCapabilityDiscovery.java` | 2 | `hasAnyCapabilityAnyDirection()`: signal-source membership for `redstone_live_read`, buffer membership for `redstone_buffer_storage` |
+| `sfm/common/capability/SFMWellKnownCapabilities.java` | 1 | `IMAGE_HANDLER`: `image_resources`; preserve the existing redstone declaration |
+| `sfm/common/config/SFMConfigTracker.java` | 1 | `saveClientConfig()`: `command_history` persistence action |
+| `sfm/common/event_bus/SFMAutomaticEventSubscriber.java` | 2 | `requiredModId` filter before class resolution: optional-mod subscriber integration currently used by `computercraft` |
+| `sfm/common/event_bus/SFMSubscribeEvent.java` | 1 | `requiredModId()`: same subscriber integration |
+| `sfm/common/item/DiskItem.java` | 7 | Read-only accessors: shared observation/text adapters; server host binding: `sfml_execution_side`; semantic tooltip mode: `tooltip_mode_override` |
+| `sfm/common/item/LabelGunItem.java` | 2 | `getViewModeReadOnly()`: `computercraft`; tooltip predicate: `tooltip_mode_override` |
+| `sfm/common/label/LabelPositionHolder.java` | 1 | `fromReadOnly()`: `client_manager` label projection |
+| `sfm/common/net/SFMPacketDaddy.java` | 1 | Wrong-direction rejection in `handleOuter()`: proposed `packet_direction_validation` fix |
+| `sfm/common/net/SFMPacketHandlingContext.java` | 5 | Connection identity: `multiplayer_packets`; direction check: same validation fix; menu validity and exact-position checks: proposed `manager_menu_request_validation` fix; server host binding: `sfml_execution_side` |
+| `sfm/common/net/ServerboundInputInspectionRequestPacket.java` | 2 | `WorldProgramInputSource` and scoped cleanup: `packet_computation` runtime integration, with cleanup behavior noted below |
+| `sfm/common/net/ServerboundOutputInspectionRequestPacket.java` | 1 | Optional originating input statement and generic input-source gathering: same runtime integration |
+| `sfm/common/program/ExecuteProgramBehaviour.java` | 1 | `allowsRuntimeMaterialization()`: `packet_computation` execution policy |
+| `sfm/common/program/ProgramBehaviour.java` | 1 | Default materialization contract: same execution policy |
+| `sfm/common/program/ProgramContext.java` | 15 | `ProgramExecutionScope`, input-source list, variables, ephemeral owner and isolated forks: coherent `packet_computation` runtime foundation; detached factory is a test-support member |
+| `sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java` | 2 | World-statement projection from generic inputs and disabled materialization during simulation: same runtime integration |
+| `sfm/common/program/linting/ProblemTracker.java` | 2 | `SFMConfig.getOrDefault()` reads: proposed `unloaded_config_defaults` fix, not packet-value ownership |
+| `sfm/common/registry/registration/SFMBlockEntities.java` | 2 | `CLIENT_MANAGER`: `client_manager`; `TOUCH_DISPLAY`: `touch_display` |
+| `sfm/common/registry/registration/SFMBlocks.java` | 2 | Same two block registrations with their respective owners |
+| `sfm/common/registry/registration/SFMCapabilities.java` | 2 | Image handler import and registration: `image_resources` |
+| `sfm/common/registry/registration/SFMItems.java` | 3 | Client Manager and Touch Display block items: their owners; packet item: `packet_values` |
+| `sfm/common/registry/registration/SFMMenus.java` | 3 | `CLIENT_MANAGER` menu, imports and factories: `client_manager_gui`, not basic Client Manager ticking |
+| `sfm/common/registry/registration/SFMPackets.java` | 9 | Message registrations: five transport/query owners below; direction-aware registration: validation fix; channel version: negotiated layout integration |
+| `sfm/common/registry/registration/SFMProgramLinters.java` | 1 | `LEGACY_INTERVAL_OFFSET`: `sfml_worded_intervals` |
+| `sfm/common/registry/registration/SFMResourceTypes.java` | 1 | `IMAGE`: `image_resources` |
+| `sfm/common/resourcetype/RedstoneResourceType.java` | 5 | Real insertion/extraction, capability permissions, storage capacity and change notifications: `redstone_buffer_storage` |
+| `sfm/common/util/SFMEntityUtils.java` | 4 | Existing Liquid target branches around level access: version adapters only, not an unreleased functional feature |
+| `sfm/common/util/SFMItemUtils.java` | 5 | Mode service, compact hint, reminder policy and semantic predicate: `tooltip_mode_override`; keep the old physical-key predicate available |
+| `sfml/ast/Program.java` | 13 | Definitions: `packet_computation`; declared host and host assertion: `sfml_execution_side`; frame/client-operation clauses: Client Manager runtime; exception-safe freeing: proposed `runtime_resource_cleanup` fix |
+| `sfml/program_builder/ProgramBuilder.java` | 10 | Host-sensitive cache, `forExecutionSide()` and post-parse validation: `sfml_execution_side` |
+| Total | 144 | 39 exact existing paths |
+
+The four new fix IDs in this table are proposals, not registered flags. A separately reviewed fix may be enabled for a release candidate, but the release-parity preset must not silently adopt its behavior merely because it shares a file with an enabled feature. Documentation-only corrections do not need a runtime flag. Exact source-byte comparisons may still require restoring their original text.
+
+The anchors and counts can be reproduced without checking out or rendering a historical tree:
+
+```text
+git diff --unified=0 31135b8e86801b862d5cb2283c7c5878b7cc5bb4 f3ff2f6425434f36c7c680fa909c977b158e1860 -- <exact table paths with repository prefix>
+git show f3ff2f6425434f36c7c680fa909c977b158e1860:<repository-relative path>
+git grep -n -F '<member or caller>' f3ff2f6425434f36c7c680fa909c977b158e1860 -- platform/minecraft/src/main/java
+```
+
+Count each `@@` line of the zero-context diff. Use the source witness table above for equivalent release and development probes in other targets. These commands are reconnaissance only; production source rendering must not perform historical lookup.
+
+### Witnessed support is not automatic propagation
+
+Exact member-marker probes across all twenty witnesses found the following support. `D1` means 1.19.2 development only; `D2` and `D10` retain the definitions from the action appendix. None of these probed new markers occur in a release witness.
+
+| Proposed unit or fix | Support | Exact probe anchor |
+| --- | --- | --- |
+| `computercraft` network query helpers | D10 | `CableNetwork.getManagers()` and `CableNetworkManager.getNetworkFromCablePosition()` |
+| `client_manager` | D2 | `SFMBlocks`: `ClientManagerBlock::new` |
+| `client_manager_gui` | D1 | `SFMMenus`: `ClientManagerContainerMenu` |
+| `touch_display` | D2 | `SFMBlocks`: `TouchDisplayBlock::new` |
+| `packet_values` | D2 | `SFMItems`: `PacketItem::new` |
+| `image_resources` | D2 | `SFMResourceTypes`: `ImageResourceType::new` |
+| `redstone_live_read` | D2 | `RedstoneSignalCapabilityProvider`: `private record WorldSignal` |
+| `redstone_buffer_storage` | D2 | `BufferBlock`: `getStoredRedstone` |
+| `buffer_image_persistence` | D2 | `BufferBlockEntity`: `image_interaction_state` |
+| `tooltip_mode_override` | D2 | `SFMItemUtils`: `SFMTooltipModeService` |
+| `sfml_execution_side` | D2 | `ProgramBuilder`: `forExecutionSide` |
+| `packet_computation` runtime | D2 | `ProgramContext`: `ProgramExecutionScope` |
+| `packet_transport_private` | D2 | `SFMPackets`: `ClientboundPacketObservationPacket` |
+| `client_inbox` | D2 | `SFMPackets`: `ClientboundClientInboxValuePacket` |
+| `client_program_signing` | D2 | `SFMPackets`: `ServerboundClientManagerSignaturePacket` |
+| `multiplayer_packets` | D2 | `SFMPackets`: `ServerboundMultiplayerPacket` |
+| `manager_operator_queries` | D1 | `SFMPackets`: `ServerboundManagerShowPacket` |
+| `packet_direction_validation` | D2 | `SFMPacketDaddy`: `hasExpectedDirection` |
+| `manager_menu_request_validation` | D1 | `SFMPacketHandlingContext`: `menu.stillValid` |
+| `sfml_worded_intervals` | D2 | `SFMProgramLinters`: `LegacyIntervalOffsetProgramLinter` |
+| `unloaded_config_defaults` | D2 | `ProblemTracker`: `getOrDefault` |
+| `runtime_resource_cleanup` | D2 | `Program`: `triggerFailure.addSuppressed` |
+
+Marker presence proves a source witness, not an independently compiling combination, compatible loader API or gameplay validation. In particular, the menu must not be included for all D2 targets merely because Client Manager blocks exist in both. Remaining target adapters must be authored and verified explicitly before increasing support.
+
+### Packet registration and transport boundaries
+
+The primary `SFMPackets.register()` appends eleven messages after the existing released messages. Their exact owners are:
+
+| Owner | Appended classes |
+| --- | --- |
+| `packet_transport_private` | `ClientboundPacketObservationPacket`, `ServerboundPacketInsertionPacket` |
+| `client_inbox` | `ClientboundClientInboxValuePacket`, `ServerboundClientInboxSubscriptionPacket` |
+| `client_program_signing` | `ServerboundClientManagerSigningRequestPacket`, `ServerboundClientManagerSignaturePacket`, `ClientboundClientManagerSigningResponsePacket` |
+| `multiplayer_packets` | `multiplayer/ServerboundMultiplayerPacket`, `multiplayer/ClientboundMultiplayerPacket` |
+| `manager_operator_queries` | `ServerboundManagerShowPacket`, `ClientboundManagerShowPacket` |
+
+The primary Forge channel changes from `1.0.0` to `1.5.0`; the 1.19.4 development witness uses `1.4.0` and lacks the manager-query addition. Later payload-API implementations do not expose this Forge channel constant. Do not infer one global version string from 1.19.2 or mistake a loader adapter for a feature.
+
+Release-parity output must restore the exact released registration order, version and handler behavior for that target. Full witnessed development layouts must preserve their own recorded layout. Omitting an earlier appended registration shifts later discriminators: two independently enabled subsets cannot both advertise `1.5.0` with different layouts. Unsupported partial-network combinations must fail closed, or use a distinct negotiated fingerprint covering the complete ordered message layout and relevant codec semantics. That is a required integration gate, not an already proven capability of the flags.
+
+Direction hardening is a separate change: `SFMPackets.registerPacket()` supplies the expected Forge direction, while `SFMPacketDaddy.handleOuter()` rejects a wrong direction using `SFMPacketHandlingContext.hasExpectedDirection()`. These three members belong together. The connection identity accessor in the same context instead serves `ClientboundMultiplayerPacket` and must not pull multiplayer into all packet handling.
+
+The two menu checks in `handleServerboundContainerPacket()` reject a no-longer-valid menu and a position different from the open manager. They are a validation fix, not inherent ownership of every new packet. The same context's `compileAndThen()` server execution-side binding is another independent integration with the program header assertion.
+
+`SFMPackets.sendPacketObservation()` and `SFMServerPacketTransport` use `SFMPacketEffectGate`: private, unpublished integrated world owned by the sender. Consent must not bypass this gate. `SFMServerClientInboxTransport.publish()` contains both the private-world path and a separate `SFMMultiplayerServerRuntime.publish()` branch. The latter call and its result mapping require a multiplayer-owned guard even if the containing inbox class remains. Removing a message registration while leaving this caller is not feature exclusion.
+
+The manager-query classes reuse the bounded `ClientManagerProgramProjection` helper. That helper should be shared by its actual consumers, not force the complete Client Manager runtime into an operator query. Client Manager-specific target authorization branches still need their own guards. This review does not prove those units independently compile.
+
+### Values, execution scopes and cleanup
+
+`SFMValue`, `SFMValueJsonCodec` and `SFMPacketValueEnvelope` are additions, not part of the 86 existing-class checkpoint. Their inspected bodies confirm distinct ownership boundaries: packet values are the common immutable foundation; finite doubles are a codec extension; wire transport uses the versioned envelope. The JSON codec writes version 2, reads versions 1 and 2, rejects decimal or exponent numbers in version 1 and normalizes negative zero. All packet, image-state and touch consumers must agree on those semantics. A proposed integral-only projection cannot retain a writer claiming version 2 while removing its double reader.
+
+`ProgramExecutionScope` owns active inputs, variables and ephemeral resources together. Its generic `ProgramInputSource` abstraction replaces the old AST-owned input list across execution, simulation and inspection. `GeneratedItemProgramInputSource` creates packet items lazily and uses the scope's ephemeral owner; simulation disables materialization. These are a coherent runtime foundation for `packet_computation`, not unrelated helpers that can safely be toggled one by one. The remaining AST, slot and tracker changes are outside this subset and still require review before claiming its closure.
+
+`ProgramContext.fork()` now creates an empty scope instead of copying the old input list. `Program.tick()` and input inspection also introduce exception-safe freeing. These are observable ownership and failure-path changes, not merely imports for a new grammar. Preserve the original released runtime path when the runtime and cleanup owners are disabled. If the new runtime requires its cleanup behavior, declare that dependency rather than claim the combination without it has been proved.
+
+`Program` additionally mixes definitions, optional side declarations and client-only operation checks. The `FrameTrigger`, `RenderImageStatement`, `ClientValueExpression` and frame-condition references must follow their own Client Manager/rendering owners; they must not make a server-only header assertion import the entire client runtime. `ProgramBuilder`'s side-sensitive cache and the server host supplied by `DiskItem` and packet handling belong with execution-side validation. No header must retain the released host behavior when all new flags are disabled.
+
+### Resource registration, redstone and durable buffer contents
+
+Block, block-entity, item, menu and resource registries are integration points, not whole-file feature owners. Each added field, factory, referenced type and associated resource must be excluded with its actual owner. Wildcard imports do not remove this obligation. The existing manager, buffer and redstone registrations remain when packet, image, display and Client Manager units are off.
+
+Image capability registration and `SFMWellKnownCapabilities.IMAGE_HANDLER` belong with `image_resources`. The `BufferBlock.ContainedResource.Image` enum value and mapping do too. Durable image data is separate: `BufferBlockEntity` stores a complete bounded snapshot and interaction state together using the image snapshot codec and SFM value codec. It does not make all generic buffer resources durable.
+
+The buffer constructor callback and `BufferBlockEntityContents.markChanged()` have both redstone and image consumers. Include that small shared infrastructure for the union of real consumers. Do not make image persistence require redstone storage just because their current `load()` and `saveAdditional()` implementations share a method. Split the sections and preserve their witnessed precedence when both are enabled: clear an old image, restore redstone in place, then attempt image restoration; occupied redstone wins over malformed NBT containing both. With both disabled, restore the released transient buffer behavior.
+
+The live redstone provider replaces a cached sampled storage object with a read-only handler that measures current world state on each query. It also changes direction interpretation and avoids masking a buffer's real storage capability. This is not a tunnel-cache fix. Redstone buffer storage separately adds real insertion/extraction, notifications, capacity reporting, persistence and comparator output. Those behavior changes need their own feature or reviewed fix ownership; retaining them unconditionally would alter the baseline.
+
+`SFMBlockCapabilityDiscovery.hasAnyCapabilityAnyDirection()` feeds both `FancyCableBlock` connection rendering and `LabelNotConnectedProgramLinter` validation and cleanup. Signal sources and redstone-only buffers becoming valid endpoints therefore change labels and connections as well as capability queries. Gate those endpoint branches with the matching redstone owners. The source-checkpoint `SFMBlockCapabilityCacheForLevel` itself has no release-to-development diff. The two new cable-network methods are called by ComputerCraft handles and do not establish implementation or completion of the separately preserved tunnel-invalidation incident fix.
+
+### Small shared helpers and baseline restoration
+
+`DiskItem.getProgramStringReadOnly()` has Client Manager, ComputerCraft and text-resource-adapter callers. `getProgramNameReadOnly()` has no production caller in this checkpoint. `LabelPositionHolder.fromReadOnly()` has a Client Manager caller; `LabelGunItem.getViewModeReadOnly()` has a ComputerCraft caller. Keep only the helper union required by actual enabled consumers, without rewriting the old mutating accessors used by the released runtime.
+
+The optional-mod annotation property and discovery filter keep ComputerCraft signatures out of class resolution when the optional dependency is absent. If that integration is the sole enabled consumer, they can stay with it or a small shared optional-subscriber unit. They do not justify a dependency cycle through every feature using the event bus.
+
+The mode override changes the disk name, disk tooltip, label-gun tooltip and shared reminder policy. The old physical configured-key method remains as an external compatibility accessor. An all-flags-off projection must restore physical-key-driven behavior and omit the compact-mode localization and service dependency; keeping the deprecated method alone does not restore its callers.
+
+`SFMEntityUtils` is a different case: the inspected changes are already target-conditional Liquid adapters for Minecraft level access. They must stay version-dependent regardless of the feature set. `ProblemTracker`'s unloaded-config fallback and redstone NBT clamping are actual behavior changes, even though they are useful for testing or malformed data. Record them as reviewed fixes rather than hide them in a general development preset.
+
+Next, record the exact anchors as member-level ledger entries, collect the unreviewed dependency closure, author target adapters and original off branches, then prove release parity before enabling a coherent first feature set. This appendix has not registered flags, changed Java sources or validated new independent combinations.

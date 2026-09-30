@@ -279,6 +279,7 @@ fn ensure_selected_promoted_root(
         "selected checked-in provenance differs from package or reviewed release HEAD"
     );
     let provenance = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    provenance.require_legacy_owner()?;
     ensure!(
         provenance.target_id == target.target_id
             && provenance.minecraft_version == target.minecraft_version

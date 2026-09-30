@@ -1,0 +1,62 @@
+package ca.teamdman.sfm.gametest.tests.migrated;
+
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.world.entity.item.ItemEntity;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
+{% when '1.21', '1.21.1', '26.1.2' %}
+import net.minecraft.world.item.Item;
+{% endcase %}
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.phys.Vec3;
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
+import java.util.ArrayList;
+
+{% when '26.1.2' %}
+{% endcase %}
+/**
+ * Migrated from SFMCorrectnessGameTests.disk_item_clientside_regression
+ */
+@SuppressWarnings({
+        "RedundantSuppression",
+        "DataFlowIssue",
+        "OptionalGetWithoutIsPresent",
+        "DuplicatedCode",
+        "ArraysAsListWithZeroOrOneArgument"
+})
+@SFMGameTest
+public class DiskItemClientsideRegressionGameTest extends SFMGameTestDefinition {
+
+    @Override
+    public String template() {
+        return "1x2x1";
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        var stack = new ItemStack(SFMItems.DISK.get());
+        stack.getDisplayName();
+        stack.getHoverName();
+        stack.getItem().getName(stack);
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
+        stack.getItem().appendHoverText(stack, helper.getLevel(), new ArrayList<>(), TooltipFlag.Default.NORMAL);
+{% when '1.21', '1.21.1' %}
+        stack
+                .getItem()
+                .appendHoverText(stack, Item.TooltipContext.EMPTY, new ArrayList<>(), TooltipFlag.Default.NORMAL);
+{% when '26.1.2' %}
+        stack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.Default.NORMAL);
+{% endcase %}
+        Vec3 pos = helper.absoluteVec(new Vec3(0.5, 2, 0.5));
+        ItemEntity itemEntity = new ItemEntity(helper.getLevel(), pos.x, pos.y, pos.z, stack, 0, 0, 0);
+        helper.getLevel().addFreshEntity(itemEntity);
+        helper.succeed();
+    }
+}

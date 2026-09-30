@@ -144,15 +144,15 @@ pub(crate) fn read_current(input: &str) -> eyre::Result<ArtifactLockfileV3> {
     }
 }
 
-/// Read v4-only exact JDK pins without projecting them through the v3
-/// dependency view. An absent catalog preserves legacy JDK discovery.
+/// Read exact JDK pins without projecting them through a dependency profile.
+/// Validated schemas 1 through 3 and v4 documents without a pin catalog preserve
+/// legacy JDK discovery; reading never migrates the dependency lockfile.
 pub(crate) fn read_jdk_pins(input: &str) -> eyre::Result<Option<Vec<JdkPinV4>>> {
     match parse_document(input)? {
         ToolchainLockfileDocument::V4(lockfile) => Ok(lockfile.jdk_pins),
-        ToolchainLockfileDocument::V3(_) => Ok(None),
-        ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
-            "JDK pins require schema version 3 or 4; migrate the toolchain lockfile first"
-        ),
+        ToolchainLockfileDocument::V1(_)
+        | ToolchainLockfileDocument::V2 { .. }
+        | ToolchainLockfileDocument::V3(_) => Ok(None),
     }
 }
 
@@ -216,6 +216,84 @@ mod tests {
                 .to_string()
                 .contains("newer than supported schema_version 4")
         );
+    }
+
+    #[test]
+    fn jdk_reader_accepts_legacy_release_locks_without_migration() {
+        for version in [1, 2] {
+            let input = MINIMAL_V1.replace(
+                "\"schema_version\": 1",
+                &format!("\"schema_version\": {version}"),
+            );
+            assert!(read_jdk_pins(&input).unwrap().is_none());
+            for required_major in [17, 21, 25] {
+                assert!(matches!(
+                    crate::jdk::select_jdk_source(None, None, required_major, "unsupported-host")
+                        .unwrap(),
+                    crate::jdk::JdkSource::LegacyDiscovery
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn jdk_reader_accepts_a_validated_v3_dependency_view_without_pins() {
+        let current = read_current(include_str!(
+            "../../../../minecraft/sfm-toolchain.lock.json"
+        ))
+        .unwrap();
+        let input = facet_json::to_string(&current).unwrap();
+        assert!(matches!(
+            parse_document(&input).unwrap(),
+            ToolchainLockfileDocument::V3(_)
+        ));
+        assert!(read_jdk_pins(&input).unwrap().is_none());
+    }
+
+    #[test]
+    fn jdk_reader_preserves_v4_pins_and_allows_an_absent_catalog() {
+        let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
+        let ToolchainLockfileDocument::V4(mut lockfile) = parse_document(input).unwrap() else {
+            panic!("checked-in SDK fixture requires schema 4");
+        };
+        assert_eq!(read_jdk_pins(input).unwrap(), lockfile.jdk_pins);
+        lockfile.jdk_pins = None;
+        let unpinned = facet_json::to_string(&lockfile).unwrap();
+        assert!(read_jdk_pins(&unpinned).unwrap().is_none());
+    }
+
+    #[test]
+    fn jdk_reader_rejects_invalid_v4_pin_checksums_without_legacy_fallback() {
+        let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
+        let ToolchainLockfileDocument::V4(mut lockfile) = parse_document(input).unwrap() else {
+            panic!("checked-in SDK fixture requires schema 4");
+        };
+        lockfile.jdk_pins.as_mut().unwrap()[0].artifacts[0].sha512 = "invalid".to_owned();
+        let invalid = facet_json::to_string(&lockfile).unwrap();
+        assert!(read_jdk_pins(&invalid).is_err());
+    }
+
+    #[test]
+    fn jdk_reader_rejects_malformed_and_unsupported_documents() {
+        for invalid in [
+            "not json",
+            r#"{"schema_version": 0}"#,
+            r#"{"schema_version": 5}"#,
+            r#"{"schema_version": 1}"#,
+            r#"{"schema_version": 2}"#,
+            r#"{"schema_version": 3}"#,
+            r#"{"schema_version": 4}"#,
+            r#"{"schema_version": "2"}"#,
+        ] {
+            assert!(
+                read_jdk_pins(invalid).is_err(),
+                "unexpected fallback for {invalid}"
+            );
+        }
+        let malformed_v2 = MINIMAL_V1
+            .replace("\"schema_version\": 1", "\"schema_version\": 2")
+            .replace("\"artifacts\": []", "\"artifacts\": 12");
+        assert!(read_jdk_pins(&malformed_v2).is_err());
     }
 
     #[test]

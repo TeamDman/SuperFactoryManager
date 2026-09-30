@@ -6,6 +6,12 @@
 
 pub mod candidate_lock;
 pub mod context;
+pub mod core_build_seed;
+pub mod core_catalog;
+pub mod core_features;
+pub mod core_inputs;
+pub mod core_seed;
+pub mod core_version_seed;
 pub mod development_baseline;
 pub mod development_fixtures;
 pub mod development_gradle;
@@ -14,6 +20,7 @@ pub mod frozen_authoring;
 pub mod frozen_release;
 pub mod inputs;
 pub mod manifest;
+pub mod named_root;
 pub mod project_layout;
 pub mod projection_catalog;
 pub mod promotion;
@@ -25,6 +32,7 @@ pub mod release_resources;
 pub mod release_version;
 pub mod selection;
 pub mod sync;
+pub mod variant_consolidation;
 
 #[cfg(test)]
 mod release_source_parity_test;

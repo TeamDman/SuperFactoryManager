@@ -1,5 +1,13 @@
 //! Deterministic, fail-closed writes for one projected source root.
 
+use super::core_inputs::CORE_ROOT;
+use super::projection_catalog::ProjectionCatalog;
+use super::projection_catalog::ProjectionEnvironment;
+use super::projection_catalog::validate_projection_key;
+use super::provenance::CATALOG_MANIFEST_SCHEMA;
+use super::provenance::CatalogProjectionOwner;
+use super::provenance::LEGACY_MANIFEST_SCHEMA;
+use super::provenance::MAX_MANIFEST_BYTES;
 use super::provenance::ProjectedFileProvenance;
 use super::provenance::ProjectionProvenance;
 use super::provenance::sha256;
@@ -11,6 +19,7 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
+use std::io::Read as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
@@ -24,6 +33,81 @@ pub struct ProjectionIdentity {
     pub minecraft_version: String,
     pub preset_id: String,
     pub preset_definition_identity: String,
+}
+
+/// Explicit catalog ownership. Nested paths are not flattened into presets.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CatalogProjectionIdentity {
+    pub target_id: String,
+    pub minecraft_version: String,
+    pub projection_key: String,
+    pub environment: ProjectionEnvironment,
+    pub context_identity: String,
+}
+
+impl CatalogProjectionIdentity {
+    /// Derive ownership only from a validated catalog's authoritative values.
+    ///
+    /// # Errors
+    /// Rejects absent/unsafe keys, unsupported versions and invalid features.
+    pub fn from_catalog(catalog: &ProjectionCatalog, key: &str) -> Result<Self> {
+        let entry = catalog.entry(key)?;
+        let identity = Self {
+            target_id: entry.target_id()?.to_owned(),
+            minecraft_version: entry.minecraft_version.clone(),
+            projection_key: key.to_owned(),
+            environment: entry.environment,
+            context_identity: catalog.context_identity(key)?,
+        };
+        identity
+            .owner()
+            .validate(&identity.target_id, &identity.minecraft_version)?;
+        Ok(identity)
+    }
+
+    fn owner(&self) -> CatalogProjectionOwner {
+        CatalogProjectionOwner {
+            projection_key: self.projection_key.clone(),
+            environment: self.environment,
+            context_identity: self.context_identity.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum SyncIdentity<'a> {
+    Legacy(&'a ProjectionIdentity),
+    Catalog(&'a CatalogProjectionIdentity),
+}
+
+impl SyncIdentity<'_> {
+    fn validate(self) -> Result<()> {
+        match self {
+            Self::Legacy(identity) => validate_identity(identity),
+            Self::Catalog(identity) => identity
+                .owner()
+                .validate(&identity.target_id, &identity.minecraft_version),
+        }
+    }
+
+    fn matches(self, manifest: &ProjectionProvenance) -> bool {
+        match self {
+            Self::Legacy(identity) => {
+                manifest.schema == LEGACY_MANIFEST_SCHEMA
+                    && manifest.catalog.is_none()
+                    && manifest.target_id == identity.target_id
+                    && manifest.minecraft_version == identity.minecraft_version
+                    && manifest.preset_id == identity.preset_id
+                    && manifest.preset_definition_identity == identity.preset_definition_identity
+            }
+            Self::Catalog(identity) => {
+                manifest.schema == CATALOG_MANIFEST_SCHEMA
+                    && manifest.target_id == identity.target_id
+                    && manifest.minecraft_version == identity.minecraft_version
+                    && manifest.catalog.as_ref() == Some(&identity.owner())
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,7 +180,45 @@ pub fn sync_projection(
     artifacts: &BTreeMap<String, ProjectedArtifact>,
     mode: SyncMode,
 ) -> Result<SyncReport> {
-    validate_identity(identity)?;
+    sync_owned_projection(
+        destination_root,
+        SyncIdentity::Legacy(identity),
+        artifacts,
+        mode,
+    )
+}
+
+/// Synchronize one named projection with the unchanged ownership transaction.
+///
+/// Production callers first derive the exact destination and Git policy with
+/// `named_root::catalog_projection_root`. This low-level writer never adopts a
+/// legacy owner, changes a context identity, or deletes stale outputs.
+///
+/// # Errors
+/// Rejects invalid named identities, non-core provenance, unsafe paths and all
+/// existing contributor/ownership conflicts before changing destination files.
+pub fn sync_catalog_projection(
+    destination_root: &Path,
+    identity: &CatalogProjectionIdentity,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+    mode: SyncMode,
+) -> Result<SyncReport> {
+    validate_catalog_artifacts(artifacts)?;
+    sync_owned_projection(
+        destination_root,
+        SyncIdentity::Catalog(identity),
+        artifacts,
+        mode,
+    )
+}
+
+fn sync_owned_projection(
+    destination_root: &Path,
+    identity: SyncIdentity<'_>,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+    mode: SyncMode,
+) -> Result<SyncReport> {
+    identity.validate()?;
     validate_artifacts(artifacts)?;
     let destination_root = absolute_root(destination_root)?;
     inspect_root(&destination_root)?;
@@ -194,15 +316,22 @@ pub fn sync_projection(
 }
 
 fn desired_manifest(
-    identity: &ProjectionIdentity,
+    identity: SyncIdentity<'_>,
     artifacts: &BTreeMap<String, ProjectedArtifact>,
 ) -> ProjectionProvenance {
-    let mut manifest = ProjectionProvenance::new(
-        &identity.target_id,
-        &identity.minecraft_version,
-        &identity.preset_id,
-        &identity.preset_definition_identity,
-    );
+    let mut manifest = match identity {
+        SyncIdentity::Legacy(identity) => ProjectionProvenance::new(
+            &identity.target_id,
+            &identity.minecraft_version,
+            &identity.preset_id,
+            &identity.preset_definition_identity,
+        ),
+        SyncIdentity::Catalog(identity) => ProjectionProvenance::new_catalog(
+            &identity.target_id,
+            &identity.minecraft_version,
+            identity.owner(),
+        ),
+    };
     for (path, artifact) in artifacts {
         manifest.files.insert(
             path.clone(),
@@ -219,32 +348,27 @@ fn desired_manifest(
 
 fn inspect(
     root: &Path,
-    identity: &ProjectionIdentity,
+    identity: SyncIdentity<'_>,
     artifacts: &BTreeMap<String, ProjectedArtifact>,
     desired_bytes: &[u8],
     reconcile: bool,
 ) -> Result<Inspection> {
     inspect_root(root)?;
     let manifest_path = root.join(MANIFEST_FILE);
-    let previous_manifest_bytes = read_regular_file_if_present(&manifest_path)?;
+    let previous_manifest_bytes = read_manifest_if_present(&manifest_path)?;
     let previous = if let Some(bytes) = &previous_manifest_bytes {
         let text = std::str::from_utf8(bytes).wrap_err("projection manifest is not UTF-8")?;
         let manifest = ProjectionProvenance::from_json(text)
             .wrap_err("could not read existing source projection manifest")?;
         ensure!(
-            manifest.target_id == identity.target_id
-                && manifest.minecraft_version == identity.minecraft_version
-                && manifest.preset_id == identity.preset_id
-                && manifest.preset_definition_identity == identity.preset_definition_identity,
-            "source projection root belongs to target='{}', minecraft='{}', preset='{}', definition='{}', not target='{}', minecraft='{}', preset='{}', definition='{}'",
+            identity.matches(&manifest),
+            "source projection root belongs to schema='{}', target='{}', minecraft='{}', preset='{}', definition='{}', catalog={:?}, not {identity:?}",
+            manifest.schema,
             manifest.target_id,
             manifest.minecraft_version,
             manifest.preset_id,
             manifest.preset_definition_identity,
-            identity.target_id,
-            identity.minecraft_version,
-            identity.preset_id,
-            identity.preset_definition_identity
+            manifest.catalog
         );
         ensure!(
             manifest.to_json()?.as_bytes() == bytes,
@@ -548,7 +672,64 @@ fn validate_artifacts(artifacts: &BTreeMap<String, ProjectedArtifact>) -> Result
     Ok(())
 }
 
+pub(crate) fn validate_catalog_artifacts(
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+) -> Result<()> {
+    validate_artifacts(artifacts)?;
+    validate_catalog_case_components(artifacts.keys().map(String::as_str))?;
+    for (path, artifact) in artifacts {
+        validate_projection_key(path)?;
+        ensure!(
+            !path.split('/').any(|part| matches!(
+                part.to_ascii_lowercase().as_str(),
+                ".git" | ".gradle" | ".idea"
+            )) && !path.split('/').next().is_some_and(|part| matches!(
+                part.to_ascii_lowercase().as_str(),
+                "build" | "run" | "target"
+            )),
+            "catalog output `{path}` names Git, IDE or runtime state"
+        );
+        validate_catalog_source(&artifact.source_path, artifact.overlay.as_deref())?;
+    }
+    Ok(())
+}
+
+fn validate_catalog_case_components<'a>(paths: impl IntoIterator<Item = &'a str>) -> Result<()> {
+    let mut prefixes = BTreeMap::new();
+    for path in paths {
+        for index in path
+            .match_indices('/')
+            .map(|(index, _)| index)
+            .chain(std::iter::once(path.len()))
+        {
+            let prefix = &path[..index];
+            if let Some(previous) = prefixes.insert(prefix.to_ascii_lowercase(), prefix) {
+                ensure!(
+                    previous == prefix,
+                    "catalog output components `{previous}` and `{prefix}` collide by case"
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_catalog_source(source_path: &str, overlay: Option<&str>) -> Result<()> {
+    validate_projection_key(source_path)?;
+    ensure!(
+        source_path
+            .strip_prefix(CORE_ROOT)
+            .is_some_and(|tail| tail.starts_with('/') && tail.len() > 1)
+            && overlay.is_none(),
+        "catalog artifact provenance must be core-owned without a historical overlay"
+    );
+    Ok(())
+}
+
 fn validate_previous_manifest(manifest: &ProjectionProvenance) -> Result<()> {
+    if manifest.catalog.is_some() {
+        validate_catalog_case_components(manifest.files.keys().map(String::as_str))?;
+    }
     let mut casefolded = BTreeSet::new();
     for (path, file) in &manifest.files {
         validate_relative_path(path)?;
@@ -564,6 +745,9 @@ fn validate_previous_manifest(manifest: &ProjectionProvenance) -> Result<()> {
             "source projection manifest has case-colliding paths"
         );
         validate_relative_path(&file.source_path)?;
+        if manifest.catalog.is_some() {
+            validate_catalog_source(&file.source_path, file.overlay.as_deref())?;
+        }
         validate_digest(&file.source_sha256)?;
         validate_digest(&file.output_sha256)?;
         if let Some(overlay) = &file.overlay {
@@ -773,6 +957,32 @@ fn read_regular_file_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
     }
 }
 
+fn read_manifest_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) => {
+            ensure!(
+                metadata.is_file() && !is_reparse(&metadata),
+                "source projection manifest is not a regular non-reparse file"
+            );
+            ensure!(
+                metadata.len() <= MAX_MANIFEST_BYTES as u64,
+                "source projection manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"
+            );
+            let mut bytes = Vec::new();
+            fs::File::open(path)?
+                .take(MAX_MANIFEST_BYTES as u64 + 1)
+                .read_to_end(&mut bytes)?;
+            ensure!(
+                bytes.len() <= MAX_MANIFEST_BYTES,
+                "source projection manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"
+            );
+            Ok(Some(bytes))
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error).wrap_err("could not inspect source projection manifest"),
+    }
+}
+
 fn is_reparse(metadata: &fs::Metadata) -> bool {
     if metadata.file_type().is_symlink() {
         return true;
@@ -834,6 +1044,251 @@ mod tests {
 
     fn files(output: &str) -> BTreeMap<String, ProjectedArtifact> {
         BTreeMap::from([("src/main/java/Example.java".to_owned(), artifact(output))])
+    }
+
+    fn catalog_identity() -> CatalogProjectionIdentity {
+        CatalogProjectionIdentity {
+            target_id: "1.19.2".to_owned(),
+            minecraft_version: "1.19.2".to_owned(),
+            projection_key: "custom/nested/key".to_owned(),
+            environment: ProjectionEnvironment::Release,
+            context_identity: format!("blake3:{}", "a".repeat(64)),
+        }
+    }
+
+    fn catalog_artifact(output: &str) -> ProjectedArtifact {
+        let mut artifact = artifact(output);
+        artifact.source_path = format!("{CORE_ROOT}/{}", artifact.source_path);
+        artifact
+    }
+
+    fn catalog_files(output: &str) -> BTreeMap<String, ProjectedArtifact> {
+        BTreeMap::from([(
+            "src/main/java/Example.java".to_owned(),
+            catalog_artifact(output),
+        )])
+    }
+
+    #[test]
+    fn named_sync_is_deterministic_and_keeps_the_explicit_owner() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("custom/nested/key");
+        let identity = catalog_identity();
+        let wanted = catalog_files("first\n");
+        let dry =
+            sync_catalog_projection(&destination, &identity, &wanted, SyncMode::DryRun).unwrap();
+        assert_eq!(dry.created, vec!["src/main/java/Example.java"]);
+        assert!(!destination.exists());
+        sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).unwrap();
+        let manifest = fs::read_to_string(destination.join(MANIFEST_FILE)).unwrap();
+        let parsed = ProjectionProvenance::from_json(&manifest).unwrap();
+        assert_eq!(parsed.schema, CATALOG_MANIFEST_SCHEMA);
+        assert_eq!(parsed.catalog.unwrap(), identity.owner());
+        assert!(!manifest.contains("preset_id"));
+        assert!(
+            !sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Check)
+                .unwrap()
+                .needs_write()
+        );
+        assert!(
+            !sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply)
+                .unwrap()
+                .needs_write()
+        );
+        assert_eq!(
+            fs::read_to_string(destination.join(MANIFEST_FILE)).unwrap(),
+            manifest
+        );
+        let updated = catalog_files("second\n");
+        assert_eq!(
+            sync_catalog_projection(&destination, &identity, &updated, SyncMode::Apply)
+                .unwrap()
+                .updated,
+            vec!["src/main/java/Example.java"]
+        );
+    }
+
+    #[test]
+    fn named_context_changes_and_legacy_owners_cannot_claim_an_existing_root() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("named");
+        let named = catalog_identity();
+        let files = catalog_files("unchanged\n");
+        sync_catalog_projection(&destination, &named, &files, SyncMode::Apply).unwrap();
+        let manifest_before = fs::read(destination.join(MANIFEST_FILE)).unwrap();
+        for changed in ["key", "environment", "fingerprint", "target"] {
+            let mut wrong = named.clone();
+            match changed {
+                "key" => wrong.projection_key = "another/nested/key".to_owned(),
+                "environment" => wrong.environment = ProjectionEnvironment::Dev,
+                "fingerprint" => wrong.context_identity = format!("blake3:{}", "b".repeat(64)),
+                "target" => {
+                    wrong.target_id = "1.19.4".to_owned();
+                    wrong.minecraft_version = "1.19.4".to_owned();
+                }
+                _ => unreachable!(),
+            }
+            for mode in [SyncMode::Apply, SyncMode::Reconcile] {
+                let error = sync_catalog_projection(&destination, &wrong, &files, mode)
+                    .unwrap_err()
+                    .to_string();
+                assert!(error.contains("belongs to"), "{changed}: {error}");
+            }
+        }
+        let mut legacy = identity("released-4.34.0");
+        legacy.target_id = "1.19.2".to_owned();
+        assert!(
+            sync_projection(&destination, &legacy, &files, SyncMode::Apply)
+                .unwrap_err()
+                .to_string()
+                .contains("belongs to")
+        );
+        assert_eq!(
+            fs::read(destination.join(MANIFEST_FILE)).unwrap(),
+            manifest_before
+        );
+        let old_destination = temporary.path().join("legacy");
+        sync_projection(&old_destination, &legacy, &files, SyncMode::Apply).unwrap();
+        assert!(
+            sync_catalog_projection(&old_destination, &named, &files, SyncMode::Reconcile)
+                .unwrap_err()
+                .to_string()
+                .contains("belongs to")
+        );
+    }
+
+    #[test]
+    fn named_contributor_edits_require_exact_backpropagation_before_reconcile() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("named");
+        let identity = catalog_identity();
+        sync_catalog_projection(
+            &destination,
+            &identity,
+            &catalog_files("original\n"),
+            SyncMode::Apply,
+        )
+        .unwrap();
+        let output = destination.join("src/main/java/Example.java");
+        fs::write(&output, b"contributor edit\n").unwrap();
+        let before = fs::read(destination.join(MANIFEST_FILE)).unwrap();
+        let mut wrong = catalog_files("different\n");
+        wrong.insert(
+            "src/main/java/Other.java".to_owned(),
+            catalog_artifact("other\n"),
+        );
+        for mode in [SyncMode::Apply, SyncMode::Reconcile] {
+            assert!(
+                sync_catalog_projection(&destination, &identity, &wrong, mode)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("backpropagate")
+            );
+        }
+        assert!(!destination.join("src/main/java/Other.java").exists());
+        assert_eq!(fs::read(destination.join(MANIFEST_FILE)).unwrap(), before);
+        let fixed = catalog_files("contributor edit\n");
+        assert!(sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Apply).is_err());
+        let reconciled =
+            sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Reconcile).unwrap();
+        assert!(
+            reconciled.manifest_changed
+                && reconciled.created.is_empty()
+                && reconciled.updated.is_empty()
+        );
+        assert_eq!(fs::read(output).unwrap(), b"contributor edit\n");
+        sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Check).unwrap();
+    }
+
+    #[test]
+    fn named_stale_files_require_explicit_removal_and_unowned_files_are_never_adopted() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("named");
+        let identity = catalog_identity();
+        let wanted = catalog_files("first\n");
+        let mut original = wanted.clone();
+        original.insert(
+            "src/main/java/Old.java".to_owned(),
+            catalog_artifact("old\n"),
+        );
+        sync_catalog_projection(&destination, &identity, &original, SyncMode::Apply).unwrap();
+        let stale = destination.join("src/main/java/Old.java");
+        assert!(
+            sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
+                .unwrap_err()
+                .to_string()
+                .contains("stale generated files")
+        );
+        assert_eq!(fs::read(&stale).unwrap(), b"old\n");
+        fs::remove_file(stale).unwrap();
+        sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Reconcile).unwrap();
+        let collision = destination.join("src/main/java/Other.java");
+        fs::write(&collision, b"same bytes\n").unwrap();
+        let mut unowned = wanted;
+        unowned.insert(
+            "src/main/java/Other.java".to_owned(),
+            catalog_artifact("same bytes\n"),
+        );
+        assert!(
+            sync_catalog_projection(&destination, &identity, &unowned, SyncMode::Apply)
+                .unwrap_err()
+                .to_string()
+                .contains("unowned file")
+        );
+        assert_eq!(fs::read(collision).unwrap(), b"same bytes\n");
+    }
+
+    #[test]
+    fn named_invalid_identity_historical_provenance_and_case_components_fail_before_writes() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("named");
+        for fault in ["key", "minecraft", "history", "overlay", "case", "state"] {
+            let mut identity = catalog_identity();
+            let mut wanted = catalog_files("first\n");
+            match fault {
+                "key" => identity.projection_key = "../escape".to_owned(),
+                "minecraft" => {
+                    identity.target_id = "1.21.0".to_owned();
+                    identity.minecraft_version = "1.21.0".to_owned();
+                }
+                "history" => {
+                    wanted.values_mut().next().unwrap().source_path =
+                        "platform/minecraft/release-baselines/old/Example.java".to_owned()
+                }
+                "overlay" => {
+                    wanted.values_mut().next().unwrap().overlay = Some("release-tag".to_owned())
+                }
+                "case" => {
+                    wanted.insert(
+                        "src/Main/java/Other.java".to_owned(),
+                        catalog_artifact("other\n"),
+                    );
+                }
+                "state" => {
+                    wanted.insert(".git/config".to_owned(), catalog_artifact("bad\n"));
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).is_err(),
+                "accepted {fault}"
+            );
+            assert!(!destination.exists());
+        }
+    }
+
+    #[test]
+    fn named_target_identity_comes_from_values_not_key_spelling() {
+        let catalog = ProjectionCatalog::from_json(r#"{"release/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#, &BTreeSet::new()).unwrap();
+        let identity =
+            CatalogProjectionIdentity::from_catalog(&catalog, "release/mc-1.19.2").unwrap();
+        assert_eq!(identity.target_id, "1.21.0");
+        assert_eq!(identity.minecraft_version, "1.21");
+        assert_eq!(identity.environment, ProjectionEnvironment::Dev);
+        assert_eq!(
+            identity.context_identity,
+            catalog.context_identity(&identity.projection_key).unwrap()
+        );
     }
 
     #[cfg(windows)]

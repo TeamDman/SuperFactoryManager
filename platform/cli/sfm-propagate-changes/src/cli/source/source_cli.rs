@@ -1,6 +1,11 @@
 //! Explicit, fail-closed source-projection commands.
 
 use super::candidate_lock_cli::CandidateVerifyArgs;
+use super::core_project_cli::CoreProjectArgs;
+use super::core_seed_cli::CoreAuxiliarySeedArgs;
+use super::core_seed_cli::CoreBuildSeedArgs;
+use super::core_seed_cli::CoreSeedArgs;
+use super::core_seed_cli::CoreVersionSeedArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
 use super::projection_catalog_cli::SourceListArgs;
 use super::projection_catalog_cli::SourceRenderArgs;
@@ -86,6 +91,16 @@ pub struct SourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum SourceCommand {
+    /// Generate named projects from core Liquid inputs only; legacy preset commands remain separate.
+    Project(CoreProjectArgs),
+    /// Preview or explicitly apply the reviewed shared-source authoring seed; never a production fallback.
+    SeedShared(CoreSeedArgs),
+    /// Preview or explicitly apply reconstructed version templates; never a production fallback.
+    SeedVersions(CoreVersionSeedArgs),
+    /// Preview or explicitly import reviewed standalone build inputs into the core.
+    SeedBuild(CoreBuildSeedArgs),
+    /// Preview or explicitly import feature-independent resources and test sources.
+    SeedAuxiliary(CoreAuxiliarySeedArgs),
     /// List named projections from the core-owned catalog without generating files.
     List(SourceListArgs),
     /// Inspect one named projection's explicit version, environment and features.
@@ -381,6 +396,15 @@ impl SourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let (args, mode) = match self.command {
+            SourceCommand::Project(args) => return args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::SeedShared(args) => return args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::SeedVersions(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            SourceCommand::SeedBuild(args) => return args.invoke_in(cancellation, invocation_dir),
+            SourceCommand::SeedAuxiliary(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
             SourceCommand::List(args) => return args.invoke_in(invocation_dir),
             SourceCommand::Show(args) => return args.invoke_in(invocation_dir),
             SourceCommand::Render(args) => return args.invoke_in(invocation_dir),
@@ -960,7 +984,7 @@ fn path_is_prefix(prefix: &Path, path: &Path) -> bool {
     components(path).starts_with(&components(prefix))
 }
 
-fn validate_gradle_task(task: &str) -> Result<()> {
+pub(super) fn validate_gradle_task(task: &str) -> Result<()> {
     let name = task.strip_prefix(':').unwrap_or(task);
     ensure!(
         !name.is_empty()
@@ -978,7 +1002,7 @@ fn validate_gradle_task(task: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_gradle_profile(profile: &str) -> Result<()> {
+pub(super) fn validate_gradle_profile(profile: &str) -> Result<()> {
     ensure!(
         !profile.is_empty()
             && profile.len() <= 64
@@ -991,7 +1015,11 @@ fn validate_gradle_profile(profile: &str) -> Result<()> {
     Ok(())
 }
 
-fn game_test_exit_override(repo_root: &Path, target: &str, task: &str) -> Option<PathBuf> {
+pub(super) fn game_test_exit_override(
+    repo_root: &Path,
+    target: &str,
+    task: &str,
+) -> Option<PathBuf> {
     (task == "runGameTestServer" && matches!(target, "1.19.2" | "1.19.4")).then(|| {
         repo_root.join(
             "platform/cli/sfm-propagate-changes/gradle/forge-game-test-no-force-exit.init.gradle",
@@ -999,13 +1027,13 @@ fn game_test_exit_override(repo_root: &Path, target: &str, task: &str) -> Option
     })
 }
 
-struct GradleRunOptions<'a> {
-    profile: Option<&'a str>,
-    offline: bool,
-    init_script: Option<&'a Path>,
+pub(super) struct GradleRunOptions<'a> {
+    pub(super) profile: Option<&'a str>,
+    pub(super) offline: bool,
+    pub(super) init_script: Option<&'a Path>,
 }
 
-fn run_project_gradle(
+pub(super) fn run_project_gradle(
     project_root: &Path,
     task: &str,
     development_version: &str,
@@ -1067,7 +1095,7 @@ fn run_project_gradle(
     }
 }
 
-fn development_mod_version(project_root: &Path) -> Result<String> {
+pub(super) fn development_mod_version(project_root: &Path) -> Result<String> {
     let base = gradle_property(project_root, "mod_version")?;
     ensure!(
         base.len() <= 64
@@ -1086,7 +1114,7 @@ fn development_mod_version(project_root: &Path) -> Result<String> {
     Ok(format!("{base}-dev.{short}"))
 }
 
-fn gradle_property(project_root: &Path, name: &str) -> Result<String> {
+pub(super) fn gradle_property(project_root: &Path, name: &str) -> Result<String> {
     let properties = fs::read_to_string(project_root.join("gradle.properties"))
         .wrap_err("cannot read projected gradle.properties")?;
     let values = properties
@@ -1107,7 +1135,7 @@ fn gradle_property(project_root: &Path, name: &str) -> Result<String> {
     Ok(values[0].to_owned())
 }
 
-fn report_build_artifacts(project_root: &Path, task: &str, version: &str) -> Result<()> {
+pub(super) fn report_build_artifacts(project_root: &Path, task: &str, version: &str) -> Result<()> {
     let libs = project_root.join("build/libs");
     let name = gradle_property(project_root, "mod_name")?;
     let minecraft = gradle_property(project_root, "minecraft_version")?;

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "A": {
+      "tag": "forge:fences"
+    },
+    "B": {
+      "item": "sfm:fancy_cable"
+    }
+  },
+  "pattern": [
+    "AAA",
+    " B ",
+    "AAA"
+  ],
+  "result": {
+    "item": "sfm:tunnelled_fancy_cable"
+  }
+}

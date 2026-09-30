@@ -341,6 +341,7 @@ fn verify_target(
         target.target_id
     );
     let manifest = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    manifest.require_legacy_owner()?;
     ensure!(
         manifest.to_json()?.as_bytes() == manifest_bytes,
         "noncanonical candidate manifest for '{}'",

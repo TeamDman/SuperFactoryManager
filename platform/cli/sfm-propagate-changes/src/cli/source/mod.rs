@@ -1,4 +1,6 @@
 mod candidate_lock_cli;
+mod core_project_cli;
+mod core_seed_cli;
 mod frozen_preset_stage_cli;
 mod projection_catalog_cli;
 mod promotion_cli;
@@ -14,6 +16,11 @@ mod source_cli;
 mod source_trace_cli;
 
 pub use candidate_lock_cli::CandidateVerifyArgs;
+pub use core_project_cli::CoreProjectArgs;
+pub use core_seed_cli::CoreAuxiliarySeedArgs;
+pub use core_seed_cli::CoreBuildSeedArgs;
+pub use core_seed_cli::CoreSeedArgs;
+pub use core_seed_cli::CoreVersionSeedArgs;
 pub use frozen_preset_stage_cli::FrozenPresetStageArgs;
 pub use projection_catalog_cli::SourceListArgs;
 pub use projection_catalog_cli::SourceRenderArgs;

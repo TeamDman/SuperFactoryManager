@@ -29,6 +29,10 @@ out
 build
 .gradle
 
+# Authored Gradle templates, not disposable build output.
+!/platform/minecraft/core-liquid-template/build/
+!/platform/minecraft/core-liquid-template/build/**
+
 # Rust
 
 target/
@@ -39,6 +43,8 @@ eclipse
 ## Generated locally by the ANTLR IDE/tooling; the grammar itself remains tracked.
 /platform/minecraft/src/main/antlr/sfml/.antlr/
 /platform/minecraft/.sfm-source-promotion-stage-*/
+# Named development projections are local generated projects, not release sources.
+/platform/minecraft/projections/sfm-dev/
 platform/minecraft/run/
 runClient
 runClientSmoke

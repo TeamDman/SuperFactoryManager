@@ -8,3 +8,49 @@ docs/architecture/evidence/*.json text eol=lf
 # This checked-in parser fixture deliberately exercises CRLF coordinates while
 # keeping the repository blob normalized for whitespace review.
 platform/cli/sfm-propagate-changes/tests/java_analysis/scenarios/definition_at_position_unicode_crlf/source/**/*.java text eol=crlf
+
+# Source projection hashes describe exact bytes, including witnessed CRLF and
+# wrapper/asset bytes. Do not let a contributor's autocrlf setting rewrite them.
+platform/minecraft/core-liquid-template/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/projections/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# The one-time shared/version seed ledgers bind these historical bytes by hash.
+# Retain vendored trailing spaces and the specifically witnessed fixture/source
+# whitespace rather than changing release inputs just to satisfy diff --check.
+# All other core paths retain the whitespace checks above.
+platform/minecraft/core-liquid-template/src/main/java/org/simmetrics/** whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekManyLavaCauldronsGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/thermal/ThermalPhytoArrayGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/OutputDefaultStacksWhenNoEmptyModifierGameTest.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/CableSpiralGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/CauldronLavaMovementGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveCauldronLavaGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveCauldronWaterGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveManyFullGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveOnPulseGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveRegexCircleGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/RegressionCrashTypeMixingGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/render/FacadeBlockTintSource.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/net/ServerboundLabelGunCycleViewModePacket.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/net/ServerboundNetworkToolToggleOverlayPacket.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+
+# Additional exact auxiliary/version-seed witnesses, verified before import.
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/LeftRightManagerTest.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/multiple/ResourceLossRegressionGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/OutputEmptySlotsOnlyReversedSyntaxGameTest.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/GatherSuppliesGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveManyInventoriesGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveManyRegexGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveMultipleItemNamesGameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/Reorder1GameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/Reorder2GameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/Reorder3GameTest.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/widget/PickList.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/ToughCableBlock.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/ToughFancyCableBlock.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/a_simple_program.sfml whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/benchmark/SampleBenchmark.java whitespace=blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfml/test/SFMLTimerTriggerTests.java whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+platform/minecraft/core-liquid-template/build/versions/1.20/gradlew whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

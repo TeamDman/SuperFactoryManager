@@ -1,0 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+}
+
+// IDEA uses the Gradle root project name when importing this project.
+rootProject.name = "sfm-${settingsDir.parentFile.parentFile.name}"
+
+// Core-owned project identity; projection directory names are not inputs.
+{% case minecraft_version %}
+{% when "1.19.2" %}
+rootProject.name = 'sfm-1.19.2'
+{% when "1.19.4" %}
+rootProject.name = 'sfm-1.19.4'
+{% else %}
+throw new GradleException('Unsupported core settings target')
+{% endcase %}

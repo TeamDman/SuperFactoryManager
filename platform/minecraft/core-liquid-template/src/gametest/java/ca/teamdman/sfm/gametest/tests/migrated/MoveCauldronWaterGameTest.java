@@ -1,0 +1,93 @@
+package ca.teamdman.sfm.gametest.tests.migrated;
+
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.core.BlockPos;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
+{% when '26.1.2' %}
+import net.minecraft.network.chat.Component;
+{% endcase %}
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LayeredCauldronBlock;
+
+import java.util.Objects;
+
+
+
+
+/**
+ * Migrated from SFMCorrectnessGameTests.move_cauldron_water
+ */
+@SuppressWarnings({
+        "RedundantSuppression",
+        "DataFlowIssue",
+        "OptionalGetWithoutIsPresent",
+        "DuplicatedCode",
+        "ArraysAsListWithZeroOrOneArgument"
+})
+@SFMGameTest
+public class MoveCauldronWaterGameTest extends SFMGameTestDefinition {
+
+    @Override
+    public String template() {
+        return "3x2x1";
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        // fill in the blocks needed for the test
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
+        BlockPos left = new BlockPos(2, 2, 0);
+        helper.setBlock(left, Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, 3));
+        BlockPos right = new BlockPos(0, 2, 0);
+        helper.setBlock(right, Blocks.CAULDRON);
+
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+
+        // set the labels
+        LabelPositionHolder.empty()
+                .add("a", helper.absolutePos(left))
+                .add("b", helper.absolutePos(right))
+                .save(Objects.requireNonNull(manager.getDisk()));
+
+        // load the program
+        manager.setProgram("""
+                                       NAME "cauldron water test"
+                                                                      
+                                       EVERY 20 TICKS DO
+                                           INPUT fluid:minecraft:water FROM a
+                                           OUTPUT fluid:*:* TO b
+                                       END
+                                   """.stripTrailing().stripIndent());
+
+        helper.assertManagerRunning(manager);
+        helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
+            helper.assertBlock(left, b -> b == Blocks.CAULDRON, "cauldron didn't empty");
+{% when '26.1.2' %}
+            helper.assertBlock(left, b -> b == Blocks.CAULDRON, _ -> Component.literal("cauldron didn't empty"));
+{% endcase %}
+            helper.assertBlockState(
+                    right,
+                    s -> s.getBlock() == Blocks.WATER_CAULDRON
+                         && s.getValue(LayeredCauldronBlock.LEVEL) == 3,
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
+                    () -> "cauldron didn't fill"
+{% when '26.1.2' %}
+                    _ -> Component.literal("cauldron didn't fill")
+{% endcase %}
+            );
+
+        });
+    }
+}
