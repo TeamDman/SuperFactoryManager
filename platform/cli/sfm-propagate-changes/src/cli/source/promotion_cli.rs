@@ -808,7 +808,22 @@ mod tests {
         SourceCandidateLock,
         BTreeMap<String, String>,
     ) {
-        let (fixture, mut request, _, gradle_overlays) = CandidateFixture::new_repair_for_cli();
+        new_immutable_fixture_with_bundled_1_19_2_profile(false)
+    }
+
+    fn new_immutable_fixture_with_bundled_1_19_2_profile(
+        bundled_1_19_2: bool,
+    ) -> (
+        CandidateFixture,
+        PromotionRequest,
+        SourceCandidateLock,
+        BTreeMap<String, String>,
+    ) {
+        let (fixture, mut request, _, gradle_overlays) = if bundled_1_19_2 {
+            CandidateFixture::new_bundled_1_19_2_for_cli()
+        } else {
+            CandidateFixture::new_repair_for_cli()
+        };
         let manifest_path = fixture
             .repo()
             .join("platform/minecraft/source-projection.json");
@@ -1328,6 +1343,20 @@ mod tests {
                 .contains("build task or JDK differs")
         );
         mismatched = request.clone();
+        mismatched
+            .candidates
+            .get_mut("1.19.2")
+            .unwrap()
+            .production_task = "reobfJarJar".to_owned();
+        fs::write(&request_path, request_file_json(&mismatched)).unwrap();
+        assert!(
+            make_args(lock_sha256.clone())
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+                .unwrap_err()
+                .to_string()
+                .contains("build task or JDK differs")
+        );
+        mismatched = request.clone();
         mismatched.accept_identical_edits = true;
         fs::write(&request_path, request_file_json(&mismatched)).unwrap();
         assert!(
@@ -1485,6 +1514,74 @@ mod tests {
                 sha256(&fs::read(destination_manifest).unwrap()),
                 candidate.reviewed_manifest_sha256,
                 "candidate manifest was not installed for '{target}'"
+            );
+        }
+    }
+
+    #[test]
+    fn synthetic_bundled_immutable_apply_verifies_exact_lock_and_promotes_ten_temp_roots() {
+        let (fixture, request, lock, gradle_overlays) =
+            new_immutable_fixture_with_bundled_1_19_2_profile(true);
+        assert_eq!(lock.targets.len(), 10);
+        assert_eq!(request.candidates.len(), 10);
+        let bundled = lock
+            .targets
+            .iter()
+            .find(|target| target.target_id == "1.19.2")
+            .unwrap();
+        assert_eq!(bundled.gradle_profile, "rust-toolchain");
+        assert_eq!(bundled.production_task, "reobfJarJar");
+        assert_eq!(
+            request.candidates["1.19.2"].production_task,
+            bundled.production_task
+        );
+
+        let scratch = request.repository_root.parent().unwrap();
+        let lock_path = scratch.join("reviewed-bundled-immutable-candidate-lock.json");
+        let lock_bytes = facet_json::to_string_pretty(&lock).unwrap();
+        fs::write(&lock_path, &lock_bytes).unwrap();
+        let request_path = scratch.join("reviewed-bundled-immutable-promotion-request.json");
+        fs::write(&request_path, request_file_json(&request)).unwrap();
+        let policy = RepairIdentityPolicy {
+            old_definition_identity: PUBLIC_REPAIR_POLICY.old_definition_identity,
+            new_definition_identity: PUBLIC_REPAIR_POLICY.new_definition_identity,
+            refmap_sha256: PUBLIC_REPAIR_POLICY.refmap_sha256,
+            synthetic_gradle_overlays: Some(&gradle_overlays),
+            synthetic_before_promotion: None,
+        };
+        let output = PromotionArgs {
+            request: request_path,
+            apply: true,
+            ack_pre_acceptance_baseline_repair: false,
+            ack_new_immutable_preset: true,
+            candidate_lock: Some(lock_path),
+            candidate_lock_sha256: Some(sha256(lock_bytes.as_bytes())),
+        }
+        .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+        .unwrap()
+        .render(Some(OutputFormat::Json), false)
+        .unwrap()
+        .unwrap();
+        let report: PromotionCliReport = facet_json::from_str(&output).unwrap();
+        assert_eq!(report.mode, "apply");
+        assert_eq!(report.candidate_preset_id, lock.candidate_preset_id);
+        assert_eq!(report.targets.len(), 10);
+        assert!(report.targets.keys().eq(request.candidates.keys()));
+        let stage = PathBuf::from(report.recovery_stage.as_deref().unwrap());
+        assert!(stage.join("journal.json").is_file());
+        assert!(stage.join("complete").is_file());
+        for (target, candidate) in &request.candidates {
+            let destination_manifest = fixture.repo().join(format!(
+                "platform/minecraft/mc-version/{target}/{MANIFEST_FILE}"
+            ));
+            assert_eq!(
+                sha256(&fs::read(destination_manifest).unwrap()),
+                candidate.reviewed_manifest_sha256,
+                "candidate manifest was not installed for '{target}'"
+            );
+            assert_eq!(
+                report.targets[target].candidate_manifest_sha256,
+                candidate.reviewed_manifest_sha256
             );
         }
     }

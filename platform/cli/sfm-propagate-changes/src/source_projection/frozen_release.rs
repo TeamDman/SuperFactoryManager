@@ -351,11 +351,16 @@ mod tests {
     use super::super::sync::sync_projection;
     use super::*;
     use crate::cancellation::CancellationToken;
-    use crate::cli::source::{SourceArgs, SourceCommand, SourceProjectArgs};
-    use crate::source_projection::manifest::{
-        PathEffect, PathEffectKind, ProjectionFeature, ProjectionPreset, ProjectionTarget,
-        SCHEMA_VERSION, SourceProjectionManifest,
-    };
+    use crate::cli::source::SourceArgs;
+    use crate::cli::source::SourceCommand;
+    use crate::cli::source::SourceProjectArgs;
+    use crate::source_projection::manifest::PathEffect;
+    use crate::source_projection::manifest::PathEffectKind;
+    use crate::source_projection::manifest::ProjectionFeature;
+    use crate::source_projection::manifest::ProjectionPreset;
+    use crate::source_projection::manifest::ProjectionTarget;
+    use crate::source_projection::manifest::SCHEMA_VERSION;
+    use crate::source_projection::manifest::SourceProjectionManifest;
     use std::path::PathBuf;
     use std::process::Command;
 

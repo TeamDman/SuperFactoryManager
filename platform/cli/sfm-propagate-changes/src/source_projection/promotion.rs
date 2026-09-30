@@ -112,6 +112,14 @@ pub enum PromotionMode {
     Apply,
 }
 
+/// The alternate 1.19.2 bundle task is accepted only on the Apply route
+/// after the CLI has verified the reviewed candidate lock and profile inputs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ProductionTaskPolicy {
+    LegacyOnly,
+    VerifiedCandidateLock,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct TargetPromotionReport {
     pub created: Vec<String>,
@@ -350,6 +358,7 @@ pub(crate) fn promote_repair_with_pre_apply_verification(
         None,
         None,
         Some(verify),
+        ProductionTaskPolicy::LegacyOnly,
     )
 }
 
@@ -374,6 +383,7 @@ pub(crate) fn promote_new_immutable_with_pre_apply_verification(
         None,
         None,
         Some(verify),
+        ProductionTaskPolicy::VerifiedCandidateLock,
     )
 }
 
@@ -383,7 +393,14 @@ fn run_promotion(
     fail_after: Option<usize>,
     hook: Option<&ApplyHook<'_>>,
 ) -> Result<PromotionReport> {
-    run_promotion_with_pre_apply_verification(request, mode, fail_after, hook, None)
+    run_promotion_with_pre_apply_verification(
+        request,
+        mode,
+        fail_after,
+        hook,
+        None,
+        ProductionTaskPolicy::LegacyOnly,
+    )
 }
 
 type PreApplyVerification<'a> = &'a dyn Fn(&Path) -> Result<()>;
@@ -394,8 +411,14 @@ fn run_promotion_with_pre_apply_verification(
     fail_after: Option<usize>,
     hook: Option<&ApplyHook<'_>>,
     pre_apply_verify: Option<PreApplyVerification<'_>>,
+    production_task_policy: ProductionTaskPolicy,
 ) -> Result<PromotionReport> {
-    let first = preflight(request)?;
+    ensure!(
+        production_task_policy == ProductionTaskPolicy::LegacyOnly
+            || (mode == PromotionMode::Apply && pre_apply_verify.is_some()),
+        "bundled production task requires verified candidate-lock Apply"
+    );
+    let first = preflight(request, production_task_policy)?;
     if mode == PromotionMode::DryRun {
         return Ok(first.report);
     }
@@ -404,12 +427,7 @@ fn run_promotion_with_pre_apply_verification(
     let mut pinned = PinnedDirectories::default();
     let stage_parent = repository_root.join("platform/minecraft");
     pinned.pin_or_create_below(&repository_root, &stage_parent)?;
-    let evidence_path = &request.compatibility_evidence_relative_path;
-    let working_evidence = read_required(&repository_root.join(evidence_path))?;
-    ensure!(
-        working_evidence == git_head_file(&repository_root, evidence_path)?,
-        "compatibility evidence for Apply must be committed unchanged in reviewed HEAD"
-    );
+    ensure_committed_compatibility_evidence(&repository_root, request)?;
     let stage = tempfile::Builder::new()
         .prefix(".sfm-source-promotion-stage-")
         .tempdir_in(&stage_parent)
@@ -443,7 +461,13 @@ fn run_promotion_with_pre_apply_verification(
     staging_result
         .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
 
-    verify_before_destination_changes(request, &first, &stage, pre_apply_verify)?;
+    verify_before_destination_changes(
+        request,
+        &first,
+        &stage,
+        pre_apply_verify,
+        production_task_policy,
+    )?;
 
     let expected_files = expected_candidate_files(&repository_root, &first)
         .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
@@ -499,14 +523,25 @@ fn run_promotion_with_pre_apply_verification(
     Ok(report)
 }
 
+fn ensure_committed_compatibility_evidence(root: &Path, request: &PromotionRequest) -> Result<()> {
+    let evidence_path = &request.compatibility_evidence_relative_path;
+    let working_evidence = read_required(&root.join(evidence_path))?;
+    ensure!(
+        working_evidence == git_head_file(root, evidence_path)?,
+        "compatibility evidence for Apply must be committed unchanged in reviewed HEAD"
+    );
+    Ok(())
+}
+
 fn verify_before_destination_changes(
     request: &PromotionRequest,
     first: &PromotionPlan,
     stage: &Path,
     pre_apply_verify: Option<PreApplyVerification<'_>>,
+    production_task_policy: ProductionTaskPolicy,
 ) -> Result<()> {
     // No destination changes precede this second, complete ten-target pass.
-    let second = preflight(request)
+    let second = preflight(request, production_task_policy)
         .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
     ensure!(
         second == *first,
@@ -643,7 +678,10 @@ fn verify_promoted_input_closure(root: &Path, plan: &PromotionPlan) -> Result<()
     Ok(())
 }
 
-fn preflight(request: &PromotionRequest) -> Result<PromotionPlan> {
+fn preflight(
+    request: &PromotionRequest,
+    production_task_policy: ProductionTaskPolicy,
+) -> Result<PromotionPlan> {
     let (root, source_manifest, head_commit, source_manifest_sha256) = reviewed_matrix(request)?;
 
     let mut report = PromotionReport {
@@ -672,6 +710,7 @@ fn preflight(request: &PromotionRequest) -> Result<PromotionPlan> {
             &request.candidates[&target.id],
             request,
             &mut report,
+            production_task_policy,
         )?;
         file_operations.extend(inspected.file_operations);
         manifest_operations.push(inspected.manifest_operation);
@@ -763,6 +802,7 @@ fn load_target_manifests(
     target: &ProjectionTarget,
     candidate: &PromotionCandidate,
     request: &PromotionRequest,
+    production_task_policy: ProductionTaskPolicy,
 ) -> Result<TargetManifests> {
     let target_id = &target.id;
     ensure!(
@@ -777,7 +817,7 @@ fn load_target_manifests(
         !is_within(&candidate_root, root) && !is_within(root, &candidate_root),
         "candidate root for '{target_id}' must be external to the repository"
     );
-    validate_candidate_artifact(&candidate_root, target, candidate)?;
+    validate_candidate_artifact(&candidate_root, target, candidate, production_task_policy)?;
     let candidate_bytes = read_required(&candidate_root.join(MANIFEST_FILE))?;
     ensure!(
         sha256(&candidate_bytes) == candidate.reviewed_manifest_sha256,
@@ -819,10 +859,15 @@ fn validate_candidate_artifact(
     candidate_root: &Path,
     target: &ProjectionTarget,
     candidate: &PromotionCandidate,
+    production_task_policy: ProductionTaskPolicy,
 ) -> Result<()> {
     let expected_task = expected_production_task(&target.id)?;
+    let verified_bundle_task = production_task_policy
+        == ProductionTaskPolicy::VerifiedCandidateLock
+        && target.id == "1.19.2"
+        && candidate.production_task == "reobfJarJar";
     ensure!(
-        candidate.production_task == expected_task,
+        candidate.production_task == expected_task || verified_bundle_task,
         "candidate production task mismatch for '{}': expected '{expected_task}'",
         target.id
     );
@@ -923,6 +968,7 @@ fn inspect_target(
     candidate: &PromotionCandidate,
     request: &PromotionRequest,
     report: &mut PromotionReport,
+    production_task_policy: ProductionTaskPolicy,
 ) -> Result<TargetInspection> {
     let target_id = &target.id;
     let TargetManifests {
@@ -932,7 +978,7 @@ fn inspect_target(
         candidate_bytes,
         old,
         candidate,
-    } = load_target_manifests(root, target, candidate, request)?;
+    } = load_target_manifests(root, target, candidate, request, production_task_policy)?;
     check_old_identity(report, &old)?;
     ensure_closed_destination_inputs(&destination_root, &old)?;
     let mut target_report = TargetPromotionReport {
@@ -2948,6 +2994,53 @@ mod tests {
     }
 
     #[test]
+    fn bundled_1_19_2_task_requires_verified_apply_preflight() {
+        let mut fixture = Fixture::new();
+        fixture
+            .request
+            .candidates
+            .get_mut("1.19.2")
+            .unwrap()
+            .production_task = "reobfJarJar".to_owned();
+
+        // Dry-run has no candidate lock and cannot make the bundle assertion.
+        assert!(
+            promote(&fixture.request, PromotionMode::DryRun)
+                .unwrap_err()
+                .to_string()
+                .contains("production task mismatch")
+        );
+
+        // The CLI selects this policy only after it verifies the exact lock,
+        // profile, projected lockfile, JAR and request fields for all ten roots.
+        preflight(
+            &fixture.request,
+            ProductionTaskPolicy::VerifiedCandidateLock,
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn verified_apply_policy_does_not_extend_bundled_task_to_other_targets() {
+        let mut fixture = Fixture::new();
+        fixture
+            .request
+            .candidates
+            .get_mut("1.19.4")
+            .unwrap()
+            .production_task = "reobfJarJar".to_owned();
+        assert!(
+            preflight(
+                &fixture.request,
+                ProductionTaskPolicy::VerifiedCandidateLock
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("production task mismatch")
+        );
+    }
+
+    #[test]
     fn rejects_jar_escape_and_duplicate_candidate_roots() {
         let mut fixture = Fixture::new();
         fixture
@@ -3314,6 +3407,23 @@ mod tests {
             );
             assert_eq!(fs::read(root.join("keep.txt")).unwrap(), b"old\n");
         }
+    }
+
+    #[test]
+    fn legacy_4_34_repair_apply_rejects_bundled_1_19_2_task() {
+        let mut fixture = Fixture::new_repair();
+        fixture
+            .request
+            .candidates
+            .get_mut("1.19.2")
+            .unwrap()
+            .production_task = "reobfJarJar".to_owned();
+        assert!(
+            promote_repair_with_pre_apply_verification(&fixture.request, &|_| Ok(()))
+                .unwrap_err()
+                .to_string()
+                .contains("production task mismatch")
+        );
     }
 
     #[test]

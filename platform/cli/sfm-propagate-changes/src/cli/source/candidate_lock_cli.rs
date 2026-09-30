@@ -98,12 +98,15 @@ pub(super) fn verify_candidate_in(
     #[cfg(test)] test_gradle_overlays: Option<&BTreeMap<String, String>>,
 ) -> Result<CandidateVerificationReport> {
     cancellation.bail_if_cancelled()?;
+    tracing::info!("verifying frozen candidate inventory");
     let mut report = lock.verify_in(repo_root, roots, lock_sha256)?;
+    tracing::info!("frozen candidate inventory verified; checking deterministic sources");
     let manifest_bytes = fs::read(repo_root.join("platform/minecraft/source-projection.json"))?;
     let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&manifest_bytes)?)?;
     let preset = manifest.preset(&lock.candidate_preset_id)?;
     for target in &lock.targets {
         cancellation.bail_if_cancelled()?;
+        tracing::info!(target_id = %target.target_id, "checking deterministic candidate sources");
         let declared = manifest.target(&target.target_id)?;
         let gradle_overlay = candidate_gradle_overlay(preset, declared);
         #[cfg(test)]
@@ -130,12 +133,14 @@ pub(super) fn verify_candidate_in(
             gradle_overlay,
         }
         .check_candidate_in(cancellation, repo_root)?;
+        tracing::info!(target_id = %target.target_id, "deterministic candidate sources verified");
     }
     report.schema.clear();
     report
         .schema
         .push_str("sfm:source_candidate_verification@2");
     report.deterministic_source_check = true;
+    tracing::info!("all candidate sources verified");
     Ok(report)
 }
 

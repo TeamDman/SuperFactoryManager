@@ -10,6 +10,9 @@ use super::promotion::validate_relative_path;
 use super::provenance::ProjectionProvenance;
 use super::provenance::sha256;
 use super::sync::MANIFEST_FILE;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
+use crate::toolchain_lockfile_schema::version::v3::DependencyScopeV3;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -138,7 +141,8 @@ impl SourceCandidateLock {
                 target.target_id
             );
             ensure!(
-                target.production_task == expected_production_task(&target.target_id)?,
+                target.production_task == expected_production_task(&target.target_id)?
+                    || (target.target_id == "1.19.2" && target.production_task == "reobfJarJar"),
                 "wrong production task for '{}'",
                 target.target_id
             );
@@ -199,6 +203,7 @@ impl SourceCandidateLock {
         self.validate()?;
         validate_digest(&lock_sha256)?;
         let root = checked_directory(repository_root)?;
+        tracing::info!("checking authored candidate inputs");
         let source_manifest = self.verify_repository_inputs(&root)?;
         let preset = source_manifest.preset(&self.candidate_preset_id)?;
         ensure_authored_checkout(
@@ -211,6 +216,7 @@ impl SourceCandidateLock {
             preset.identity == self.candidate_definition_identity,
             "candidate preset definition identity differs from lock"
         );
+        tracing::info!("authored candidate inputs verified");
         let expected_ids = source_manifest
             .targets
             .iter()
@@ -263,7 +269,9 @@ impl SourceCandidateLock {
                 );
             }
             seen_roots.push(candidate_root.clone());
+            tracing::info!(target_id = %target.target_id, "checking candidate target inventory");
             verify_target(&candidate_root, self, target)?;
+            tracing::info!(target_id = %target.target_id, "candidate target inventory verified");
             verified_targets.insert(
                 target.target_id.clone(),
                 target.production_jar_sha256.clone(),
@@ -369,6 +377,7 @@ fn verify_target(
         );
     }
     ensure_closed_candidate_inputs(root, &manifest.files)?;
+    verify_profiled_production_task(root, &manifest, target)?;
     let properties = read_regular(root, "gradle.properties")?;
     let properties =
         std::str::from_utf8(&properties).wrap_err("Gradle properties are not UTF-8")?;
@@ -383,6 +392,60 @@ fn verify_target(
         hash_regular(root, &target.production_jar_relative_path)? == target.production_jar_sha256,
         "candidate production JAR hash mismatch for '{}'",
         target.target_id
+    );
+    Ok(())
+}
+
+/// The 1.19.2 Forge project selects its final artifact task from effective
+/// bundled dependencies. A reviewed profile name alone cannot justify the
+/// alternate task; inspect the exact projected and hash-checked lockfile.
+fn verify_profiled_production_task(
+    root: &Path,
+    provenance: &ProjectionProvenance,
+    target: &CandidateTargetLock,
+) -> Result<()> {
+    if target.target_id != "1.19.2" {
+        return Ok(());
+    }
+    if target.gradle_profile == "default" {
+        ensure!(
+            target.production_task == "reobfJar",
+            "default 1.19.2 profile cannot claim a bundled production task"
+        );
+        return Ok(());
+    }
+    ensure!(
+        provenance.files.contains_key("sfm-toolchain.lock.json"),
+        "profiled 1.19.2 candidate must own its toolchain lockfile"
+    );
+    let bytes = read_regular(root, "sfm-toolchain.lock.json")?;
+    let document = parse_document(std::str::from_utf8(&bytes)?)?;
+    let ToolchainLockfileDocument::V4(lockfile) = document else {
+        eyre::bail!("profiled 1.19.2 candidate requires a v4 toolchain lockfile");
+    };
+    let effective = lockfile.effective_lockfile(&target.gradle_profile)?;
+    let has_bundle = effective
+        .dependencies
+        .iter()
+        .filter(|dependency| {
+            dependency.id != effective.platform.minecraft_dependency
+                && dependency.id != effective.platform.loader_dependency
+        })
+        .flat_map(|dependency| &dependency.components)
+        .any(|component| {
+            component
+                .declaration
+                .scopes
+                .contains(&DependencyScopeV3::Bundle)
+        });
+    let expected = if has_bundle {
+        "reobfJarJar"
+    } else {
+        "reobfJar"
+    };
+    ensure!(
+        target.production_task == expected,
+        "1.19.2 production task does not match the selected dependency profile: expected '{expected}'"
     );
     Ok(())
 }
@@ -814,6 +877,7 @@ pub(crate) mod tests {
     use crate::source_projection::promotion::PromotionTransition;
     use crate::source_projection::promotion::ReviewedOperationKind;
     use crate::source_projection::promotion::ReviewedPromotionOperation;
+    use crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3;
     use tempfile::TempDir;
 
     const TARGETS: [(&str, &str, &str, u16); 10] = [
@@ -854,6 +918,39 @@ pub(crate) mod tests {
             source_version: &str,
             include_refmap: bool,
             release_override: bool,
+        ) -> Self {
+            Self::new_with_source_version_and_lockfile(
+                mod_version,
+                source_version,
+                include_refmap,
+                release_override,
+                None,
+            )
+        }
+
+        fn new_with_bundled_1_19_2_profile() -> Self {
+            let mut fixture = Self::new_with_source_version_and_lockfile(
+                "4.35.0",
+                "4.35.0",
+                false,
+                false,
+                Some(include_str!(
+                    "../../../../minecraft/sfm-toolchain.lock.json"
+                )),
+            );
+            let target = &mut fixture.lock.targets[0];
+            assert_eq!(target.target_id, "1.19.2");
+            target.gradle_profile = "rust-toolchain".to_owned();
+            target.production_task = "reobfJarJar".to_owned();
+            fixture
+        }
+
+        fn new_with_source_version_and_lockfile(
+            mod_version: &str,
+            source_version: &str,
+            include_refmap: bool,
+            release_override: bool,
+            one_nineteen_two_lockfile: Option<&str>,
         ) -> Self {
             let temp = tempfile::tempdir().unwrap();
             let repo = temp.path().join("repo");
@@ -941,7 +1038,15 @@ pub(crate) mod tests {
                     format!("rootProject.name = 'sfm-{id}'\n"),
                 )
                 .unwrap();
-                fs::write(overlay.join("sfm-toolchain.lock.json"), "{}\n").unwrap();
+                fs::write(
+                    overlay.join("sfm-toolchain.lock.json"),
+                    if id == "1.19.2" {
+                        one_nineteen_two_lockfile.unwrap_or("{}\n")
+                    } else {
+                        "{}\n"
+                    },
+                )
+                .unwrap();
                 fs::write(
                     overlay.join("gradle/wrapper/gradle-wrapper.properties"),
                     "distributionUrl=https://example.invalid/gradle-8.12-bin.zip\n",
@@ -1047,11 +1152,38 @@ pub(crate) mod tests {
         /// Only test code can access this fixture.
         pub(crate) fn new_repair_for_cli()
         -> (Self, PromotionRequest, String, BTreeMap<String, String>) {
+            Self::new_repair_for_cli_with_lockfile(None)
+        }
+
+        /// Bundle-capable candidate inputs for a guarded immutable CLI fixture.
+        /// The caller must replace the synthetic repair transition before Apply.
+        pub(crate) fn new_bundled_1_19_2_for_cli()
+        -> (Self, PromotionRequest, String, BTreeMap<String, String>) {
+            Self::new_repair_for_cli_with_lockfile(Some(include_str!(
+                "../../../../minecraft/sfm-toolchain.lock.json"
+            )))
+        }
+
+        fn new_repair_for_cli_with_lockfile(
+            one_nineteen_two_lockfile: Option<&str>,
+        ) -> (Self, PromotionRequest, String, BTreeMap<String, String>) {
             const REFMAP: &str = "src/main/resources/sfm.refmap.json";
             const OLD_IDENTITY: &str =
                 "blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd";
             const REFMAP_CREATES: [&str; 5] = ["1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1"];
-            let mut fixture = Self::new_with_version("4.34.0", true);
+            let mut fixture = Self::new_with_source_version_and_lockfile(
+                "4.34.0",
+                "4.34.0",
+                true,
+                false,
+                one_nineteen_two_lockfile,
+            );
+            if one_nineteen_two_lockfile.is_some() {
+                let target = &mut fixture.lock.targets[0];
+                assert_eq!(target.target_id, "1.19.2");
+                target.gradle_profile = "rust-toolchain".to_owned();
+                target.production_task = "reobfJarJar".to_owned();
+            }
             let mut candidates = BTreeMap::new();
             let mut reviewed_operations = Vec::new();
             let mut gradle_overlays = BTreeMap::new();
@@ -1324,6 +1456,130 @@ pub(crate) mod tests {
         let _ = fixture.lock.validate().unwrap_err();
         fixture.lock.targets[0].jdk_major = 21;
         let _ = fixture.verify().unwrap_err();
+    }
+
+    #[test]
+    fn bundled_1_19_2_profile_accepts_final_reobfjarjar_task() {
+        let fixture = Fixture::new_with_bundled_1_19_2_profile();
+        fixture.verify_release().unwrap();
+    }
+
+    #[test]
+    fn unbundled_1_19_2_profile_keeps_reobfjar_task() {
+        let mut fixture = Fixture::new_with_bundled_1_19_2_profile();
+        let target = &mut fixture.lock.targets[0];
+        target.gradle_profile = "gradle".to_owned();
+        target.production_task = "reobfJar".to_owned();
+        fixture.verify().unwrap();
+    }
+
+    #[test]
+    fn loader_only_bundle_scope_keeps_reobfjar_task() {
+        let document = parse_document(include_str!(
+            "../../../../minecraft/sfm-toolchain.lock.json"
+        ))
+        .unwrap();
+        let ToolchainLockfileDocument::V4(mut lockfile) = document else {
+            panic!("fixture must use a v4 toolchain lockfile");
+        };
+        for dependency in &mut lockfile.dependencies {
+            for component in &mut dependency.components {
+                component
+                    .declaration
+                    .scopes
+                    .retain(|scope| *scope != DependencyScopeV3::Bundle);
+                component.declaration.bundle = None;
+            }
+        }
+        let loader_id = lockfile.platform.loader_dependency.clone();
+        let loader = lockfile
+            .dependencies
+            .iter_mut()
+            .find(|dependency| dependency.id == loader_id)
+            .unwrap();
+        let component = &mut loader.components[0];
+        let version = component
+            .derived_checks
+            .resolved_coordinate
+            .as_deref()
+            .unwrap()
+            .split(':')
+            .nth(2)
+            .unwrap()
+            .to_owned();
+        component.declaration.scopes.push(DependencyScopeV3::Bundle);
+        component.declaration.bundle = Some(BundlePolicyV3 {
+            accepted_version_range: format!("[{version}]"),
+            artifact_version: version,
+            is_obfuscated: false,
+        });
+        let lockfile_json = facet_json::to_string(&lockfile).unwrap();
+        let mut fixture = Fixture::new_with_source_version_and_lockfile(
+            "4.35.0",
+            "4.35.0",
+            false,
+            false,
+            Some(&lockfile_json),
+        );
+        fixture.lock.targets[0].gradle_profile = "gradle".to_owned();
+        fixture.verify_release().unwrap();
+        fixture.lock.targets[0].production_task = "reobfJarJar".to_owned();
+        assert!(
+            fixture
+                .verify()
+                .unwrap_err()
+                .to_string()
+                .contains("expected 'reobfJar'")
+        );
+    }
+
+    #[test]
+    fn bundled_1_19_2_profile_rejects_unbundled_task() {
+        let mut fixture = Fixture::new_with_bundled_1_19_2_profile();
+        fixture.lock.targets[0].production_task = "reobfJar".to_owned();
+        assert!(
+            fixture
+                .verify()
+                .unwrap_err()
+                .to_string()
+                .contains("expected 'reobfJarJar'")
+        );
+    }
+
+    #[test]
+    fn default_1_19_2_profile_cannot_claim_bundled_task() {
+        let mut fixture = Fixture::new_with_bundled_1_19_2_profile();
+        fixture.lock.targets[0].gradle_profile = "default".to_owned();
+        assert!(
+            fixture
+                .verify()
+                .unwrap_err()
+                .to_string()
+                .contains("default 1.19.2 profile cannot claim")
+        );
+    }
+
+    #[test]
+    fn bundled_task_rejects_unparseable_profile_lockfile() {
+        let mut fixture = Fixture::new();
+        let target = &mut fixture.lock.targets[0];
+        target.gradle_profile = "rust-toolchain".to_owned();
+        target.production_task = "reobfJarJar".to_owned();
+        assert!(fixture.verify().is_err());
+    }
+
+    #[test]
+    fn bundled_task_is_not_allowed_for_other_forge_targets() {
+        let mut fixture = Fixture::new();
+        fixture.lock.targets[1].production_task = "reobfJarJar".to_owned();
+        assert!(
+            fixture
+                .lock
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("wrong production task for '1.19.4'")
+        );
     }
 
     #[test]

@@ -237,7 +237,12 @@ fn validate_targets(manifest: &ReleasePackageManifest, inventory: &ReleaseInvent
                 && target.minecraft_version == *expected_minecraft
                 && target.loader == *expected_loader
                 && target.jdk_major == *expected_jdk
-                && target.production_task == *expected_task,
+                && accepted_production_task(
+                    expected_id,
+                    expected_task,
+                    &target.gradle_profile,
+                    &target.production_task,
+                ),
             "release inventory has an invalid target mapping for '{}'",
             target.target_id
         );
@@ -285,6 +290,24 @@ fn validate_targets(manifest: &ReleasePackageManifest, inventory: &ReleaseInvent
         );
     }
     Ok(())
+}
+
+fn accepted_production_task(
+    target_id: &str,
+    expected_task: &str,
+    profile: &str,
+    task: &str,
+) -> bool {
+    // The package does not contain the candidate's projected lockfile. Its
+    // inventory is a reviewed assertion, not a fresh dependency attestation.
+    // Keep the supported 1.19.2 profiles as exact pairs.
+    if target_id == "1.19.2" {
+        return matches!(
+            (profile, task),
+            ("default" | "gradle", "reobfJar") | ("rust-toolchain", "reobfJarJar")
+        );
+    }
+    task == expected_task
 }
 
 fn validate_directory_entries(root: &Path, manifest: &ReleasePackageManifest) -> Result<()> {
@@ -454,6 +477,14 @@ mod tests {
         args.completion_manifest_sha256 = sha256(bytes.as_bytes());
     }
 
+    fn write_inventory(args: &mut ReleasePackageVerifyArgs, inventory: &ReleaseInventory) {
+        let bytes = facet_json::to_string_pretty(inventory).unwrap() + "\n";
+        fs::write(args.package_root.join(INVENTORY_FILE), &bytes).unwrap();
+        let mut completion = manifest(&args.package_root);
+        completion.inventory_sha256 = sha256(bytes.as_bytes());
+        write_manifest(args, &completion);
+    }
+
     fn verify(args: &ReleasePackageVerifyArgs) -> Result<CliOutput> {
         ReleasePackageVerifyArgs {
             package_root: args.package_root.clone(),
@@ -588,6 +619,60 @@ mod tests {
         fs::write(&inventory_path, &changed).unwrap();
         completion.inventory_sha256 = sha256(changed.as_bytes());
         write_manifest(&mut args, &completion);
+        rejects(&args);
+    }
+
+    #[test]
+    fn package_verifier_accepts_only_reviewed_1_19_2_profile_task_pairs() {
+        let (_fixture, mut args) = fixture_package();
+        let mut inventory: ReleaseInventory = facet_json::from_str(
+            &fs::read_to_string(args.package_root.join(INVENTORY_FILE)).unwrap(),
+        )
+        .unwrap();
+
+        // The existing 4.34.0 baseline remains valid.
+        assert_eq!(inventory.targets[0].gradle_profile, "default");
+        assert_eq!(inventory.targets[0].production_task, "reobfJar");
+        verify(&args).unwrap();
+
+        inventory.targets[0].production_task = "reobfJarJar".to_owned();
+        write_inventory(&mut args, &inventory);
+        rejects(&args);
+
+        // Package verification checks the exact reviewed assertion. The
+        // candidate verifier separately proves this profile from its lockfile.
+        inventory.targets[0].gradle_profile = "rust-toolchain".to_owned();
+        write_inventory(&mut args, &inventory);
+        verify(&args).unwrap();
+
+        inventory.targets[0].production_task = "reobfJar".to_owned();
+        write_inventory(&mut args, &inventory);
+        rejects(&args);
+
+        inventory.targets[0].gradle_profile = "gradle".to_owned();
+        write_inventory(&mut args, &inventory);
+        verify(&args).unwrap();
+
+        inventory.targets[0].production_task = "reobfJarJar".to_owned();
+        write_inventory(&mut args, &inventory);
+        rejects(&args);
+
+        inventory.targets[0].gradle_profile = "default".to_owned();
+        inventory.targets[0].production_task = "reobfJar".to_owned();
+        write_inventory(&mut args, &inventory);
+        verify(&args).unwrap();
+    }
+
+    #[test]
+    fn package_verifier_keeps_other_forge_targets_on_reobfjar() {
+        let (_fixture, mut args) = fixture_package();
+        let mut inventory: ReleaseInventory = facet_json::from_str(
+            &fs::read_to_string(args.package_root.join(INVENTORY_FILE)).unwrap(),
+        )
+        .unwrap();
+        inventory.targets[1].gradle_profile = "rust-toolchain".to_owned();
+        inventory.targets[1].production_task = "reobfJarJar".to_owned();
+        write_inventory(&mut args, &inventory);
         rejects(&args);
     }
 
