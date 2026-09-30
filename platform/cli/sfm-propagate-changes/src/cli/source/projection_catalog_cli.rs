@@ -1,0 +1,816 @@
+//! Read-only discovery and one-file rendering through the core Liquid catalog.
+//!
+//! These commands never consult the legacy selection manifest or historical
+//! source overlays. Rendering one Java file is a template proof, not a complete
+//! project generation, release-compatibility proof, or compilation operation.
+
+use crate::cli::output::CliOutput;
+use crate::source_projection::candidate_lock::checked_directory;
+use crate::source_projection::candidate_lock::checked_file;
+use crate::source_projection::context::ProjectionContext;
+use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_catalog::ProjectionCatalog;
+use crate::source_projection::projection_catalog::ProjectionEntry;
+use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+use crate::source_projection::projection_catalog::reject_duplicate_catalog_keys;
+use crate::source_projection::promotion::validate_relative_path;
+use crate::source_projection::provenance::sha256;
+use crate::source_projection::render_java_source;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use facet::Facet;
+use figue::{self as args};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::io::Read as _;
+use std::path::Path;
+use std::path::PathBuf;
+
+const CORE_ROOT: &str = "platform/minecraft/core-liquid-template";
+const FEATURE_DEFINITIONS_PATH: &str =
+    "platform/minecraft/core-liquid-template/feature-definitions.json";
+const MAX_INPUT_BYTES: u64 = 1024 * 1024;
+const CATALOG_SCOPE: &str = "read_only_projection_catalog_inspection";
+const RENDER_SCOPE: &str = "read_only_single_java_template_proof_not_project_generation_or_build";
+
+#[derive(Debug, Facet)]
+pub struct SourceListArgs {
+    /// Repository root containing projections.json and the core Liquid tree.
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+}
+
+#[derive(Debug, Facet)]
+pub struct SourceShowArgs {
+    /// Repository root containing projections.json and the core Liquid tree.
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+    /// Exact nested projection key, such as sfm-dev/mc-1.19.2.
+    #[facet(args::named)]
+    pub projection: String,
+}
+
+#[derive(Debug, Facet)]
+pub struct SourceRenderArgs {
+    /// Repository root containing projections.json and the core Liquid tree.
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+    /// Exact nested projection key, such as sfm-dev/mc-1.19.2.
+    #[facet(args::named)]
+    pub projection: String,
+    /// Core-relative Java source, such as src/main/java/example/Example.java.
+    #[facet(args::named)]
+    pub file: String,
+}
+
+#[derive(Clone, Debug, Facet)]
+#[facet(deny_unknown_fields)]
+struct FeatureDefinition {
+    supported_targets: Vec<String>,
+    requires: Vec<String>,
+}
+
+#[derive(Debug, Facet)]
+#[facet(transparent)]
+struct FeatureDefinitions(BTreeMap<String, FeatureDefinition>);
+
+#[derive(Debug, Facet)]
+struct CatalogInputsReport {
+    catalog_path: String,
+    catalog_sha256: String,
+    feature_definitions_path: String,
+    feature_definitions_sha256: String,
+}
+
+#[derive(Debug, Facet)]
+struct ProjectionSummary {
+    projection_key: String,
+    target_id: String,
+    minecraft_version: String,
+    environment: String,
+    enabled_features: Vec<String>,
+    feature_flags: BTreeMap<String, bool>,
+    context_identity: String,
+    project_dir: String,
+}
+
+#[derive(Debug, Facet)]
+struct SourceListReport {
+    schema: String,
+    scope: String,
+    inputs: CatalogInputsReport,
+    projections: Vec<ProjectionSummary>,
+}
+
+#[derive(Debug, Facet)]
+struct SourceShowReport {
+    schema: String,
+    scope: String,
+    inputs: CatalogInputsReport,
+    projection: ProjectionSummary,
+    template_context: ProjectionContext,
+}
+
+#[derive(Debug, Facet)]
+struct SourceRenderReport {
+    schema: String,
+    scope: String,
+    inputs: CatalogInputsReport,
+    projection: ProjectionSummary,
+    template_context: ProjectionContext,
+    core_relative_file: String,
+    source_path: String,
+    source_sha256: String,
+    rendered_sha256: String,
+    rendered_content: String,
+    writes_performed: bool,
+    full_project_generated: bool,
+    compiled: bool,
+}
+
+struct LoadedCatalog {
+    repo_root: PathBuf,
+    catalog: ProjectionCatalog,
+    registered_features: BTreeSet<String>,
+    catalog_sha256: String,
+    feature_definitions_sha256: String,
+}
+
+impl SourceListArgs {
+    /// List validated contexts without creating or updating any projection.
+    ///
+    /// # Errors
+    ///
+    /// Rejects unsafe roots, oversized/malformed inputs, invalid feature
+    /// definitions, or any invalid entry anywhere in the catalog.
+    pub(super) fn invoke_in(self, invocation_dir: &Path) -> Result<CliOutput> {
+        Ok(CliOutput::facet(list_report(&self, invocation_dir)?))
+    }
+}
+
+impl SourceShowArgs {
+    /// Show the resolved context of an exact projection, without writing.
+    ///
+    /// # Errors
+    ///
+    /// Rejects invalid catalog/registry inputs, unsafe roots, and unknown keys.
+    pub(super) fn invoke_in(self, invocation_dir: &Path) -> Result<CliOutput> {
+        Ok(CliOutput::facet(show_report(&self, invocation_dir)?))
+    }
+}
+
+impl SourceRenderArgs {
+    /// Render only the requested authored Java file into a typed stdout report.
+    /// No output directory, provenance manifest, Gradle task, or JAR is written.
+    ///
+    /// # Errors
+    ///
+    /// Rejects invalid inputs/keys, unsafe or missing Java files, oversized
+    /// source bytes, malformed directives, and unknown context references.
+    pub(super) fn invoke_in(self, invocation_dir: &Path) -> Result<CliOutput> {
+        Ok(CliOutput::facet(render_report(&self, invocation_dir)?))
+    }
+}
+
+fn list_report(args: &SourceListArgs, invocation_dir: &Path) -> Result<SourceListReport> {
+    let loaded = load_catalog(&args.repo_root, invocation_dir)?;
+    let projections = loaded
+        .catalog
+        .0
+        .keys()
+        .map(|key| loaded.summary(key))
+        .collect::<Result<_>>()?;
+    Ok(SourceListReport {
+        schema: "sfm:source_projection_list@1".to_owned(),
+        scope: CATALOG_SCOPE.to_owned(),
+        inputs: loaded.inputs_report(),
+        projections,
+    })
+}
+
+fn show_report(args: &SourceShowArgs, invocation_dir: &Path) -> Result<SourceShowReport> {
+    let loaded = load_catalog(&args.repo_root, invocation_dir)?;
+    Ok(SourceShowReport {
+        schema: "sfm:source_projection_show@1".to_owned(),
+        scope: CATALOG_SCOPE.to_owned(),
+        inputs: loaded.inputs_report(),
+        projection: loaded.summary(&args.projection)?,
+        template_context: loaded.context(&args.projection)?,
+    })
+}
+
+fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<SourceRenderReport> {
+    validate_relative_path(&args.file)?;
+    ensure!(
+        args.file.starts_with("src/")
+            && Path::new(&args.file)
+                .extension()
+                .and_then(|value| value.to_str())
+                == Some("java"),
+        "source render accepts only core-relative src/... .java files"
+    );
+    let loaded = load_catalog(&args.repo_root, invocation_dir)?;
+    let context = loaded.context(&args.projection)?;
+    let source_path = format!("{CORE_ROOT}/{}", args.file);
+    let source = read_bounded(&loaded.repo_root, &source_path)?;
+    let source_text = std::str::from_utf8(&source).wrap_err("core Java template is not UTF-8")?;
+    let rendered = render_java_source(source_text, &context)
+        .wrap_err_with(|| format!("could not render core Java template `{}`", args.file))?;
+    Ok(SourceRenderReport {
+        schema: "sfm:source_projection_render@1".to_owned(),
+        scope: RENDER_SCOPE.to_owned(),
+        inputs: loaded.inputs_report(),
+        projection: loaded.summary(&args.projection)?,
+        template_context: context,
+        core_relative_file: args.file.clone(),
+        source_path,
+        source_sha256: sha256(&source),
+        rendered_sha256: sha256(rendered.as_bytes()),
+        rendered_content: rendered,
+        writes_performed: false,
+        full_project_generated: false,
+        compiled: false,
+    })
+}
+
+impl LoadedCatalog {
+    fn inputs_report(&self) -> CatalogInputsReport {
+        CatalogInputsReport {
+            catalog_path: CATALOG_PATH.to_owned(),
+            catalog_sha256: self.catalog_sha256.clone(),
+            feature_definitions_path: FEATURE_DEFINITIONS_PATH.to_owned(),
+            feature_definitions_sha256: self.feature_definitions_sha256.clone(),
+        }
+    }
+
+    fn summary(&self, key: &str) -> Result<ProjectionSummary> {
+        let entry = self.catalog.entry(key)?;
+        let mut enabled_features = entry.features.clone();
+        enabled_features.sort();
+        Ok(ProjectionSummary {
+            projection_key: key.to_owned(),
+            target_id: entry.target_id()?.to_owned(),
+            minecraft_version: entry.minecraft_version.clone(),
+            environment: entry.environment.as_str().to_owned(),
+            enabled_features,
+            feature_flags: entry.feature_flags(&self.registered_features)?,
+            context_identity: self.catalog.context_identity(key)?,
+            project_dir: self
+                .catalog
+                .project_dir(key)?
+                .to_string_lossy()
+                .replace('\\', "/"),
+        })
+    }
+
+    fn context(&self, key: &str) -> Result<ProjectionContext> {
+        let entry = self.catalog.entry(key)?;
+        let target = entry.target_id()?;
+        let mut targets = SUPPORTED_TARGETS
+            .iter()
+            .map(|(id, _)| (format!("mc_{}", id.replace('.', "_")), *id == target))
+            .collect::<BTreeMap<_, _>>();
+        let forge_loader = matches!(target, "1.19.2" | "1.19.4" | "1.20");
+        targets.insert("forge".to_owned(), forge_loader);
+        targets.insert("neoforge".to_owned(), !forge_loader);
+        Ok(ProjectionContext {
+            minecraft_version: entry.minecraft_version.clone(),
+            preset: key.to_owned(),
+            environment: entry.environment.as_str().to_owned(),
+            projection_key: key.to_owned(),
+            features: entry.feature_flags(&self.registered_features)?,
+            targets,
+        })
+    }
+}
+
+fn load_catalog(repo_root: &Path, invocation_dir: &Path) -> Result<LoadedCatalog> {
+    let candidate = if repo_root == Path::new(".") {
+        invocation_dir.to_path_buf()
+    } else if repo_root.is_absolute() {
+        repo_root.to_path_buf()
+    } else {
+        invocation_dir.join(repo_root)
+    };
+    let repo_root = checked_directory(&candidate).wrap_err("invalid source repository root")?;
+    let registry_bytes = read_bounded(&repo_root, FEATURE_DEFINITIONS_PATH)?;
+    let registry_text =
+        std::str::from_utf8(&registry_bytes).wrap_err("core feature definitions are not UTF-8")?;
+    reject_duplicate_catalog_keys(registry_text)
+        .wrap_err("duplicate core feature-definition key")?;
+    let definitions: FeatureDefinitions =
+        facet_json::from_str(registry_text).wrap_err("could not parse core feature definitions")?;
+    definitions.validate()?;
+    let registered_features = definitions.0.keys().cloned().collect();
+    let catalog_bytes = read_bounded(&repo_root, CATALOG_PATH)?;
+    let catalog_text =
+        std::str::from_utf8(&catalog_bytes).wrap_err("projections catalog is not UTF-8")?;
+    let catalog = ProjectionCatalog::from_json(catalog_text, &registered_features)?;
+    for (key, entry) in &catalog.0 {
+        definitions
+            .validate_entry(entry)
+            .wrap_err_with(|| format!("projection `{key}`"))?;
+    }
+    Ok(LoadedCatalog {
+        repo_root,
+        catalog,
+        registered_features,
+        catalog_sha256: sha256(&catalog_bytes),
+        feature_definitions_sha256: sha256(&registry_bytes),
+    })
+}
+
+fn read_bounded(root: &Path, relative: &str) -> Result<Vec<u8>> {
+    let path = checked_file(root, relative)?;
+    let file =
+        fs::File::open(&path).wrap_err_with(|| format!("cannot open source input `{relative}`"))?;
+    ensure!(
+        file.metadata()?.len() <= MAX_INPUT_BYTES,
+        "source input `{relative}` exceeds the {MAX_INPUT_BYTES}-byte limit"
+    );
+    let mut bytes = Vec::new();
+    file.take(MAX_INPUT_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .wrap_err_with(|| format!("cannot read source input `{relative}`"))?;
+    ensure!(
+        bytes.len() as u64 <= MAX_INPUT_BYTES,
+        "source input `{relative}` exceeds the {MAX_INPUT_BYTES}-byte limit"
+    );
+    Ok(bytes)
+}
+
+impl FeatureDefinitions {
+    fn validate(&self) -> Result<()> {
+        let supported = SUPPORTED_TARGETS
+            .iter()
+            .map(|(id, _)| *id)
+            .collect::<BTreeSet<_>>();
+        for (id, definition) in &self.0 {
+            ensure!(
+                id.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+                    && id.bytes().all(|byte| byte.is_ascii_lowercase()
+                        || byte.is_ascii_digit()
+                        || byte == b'_'),
+                "feature `{id}` must use lowercase snake_case and start with a letter"
+            );
+            ensure!(
+                !definition.supported_targets.is_empty(),
+                "feature `{id}` supports no targets"
+            );
+            let mut declared_targets = BTreeSet::new();
+            for target in &definition.supported_targets {
+                ensure!(
+                    supported.contains(target.as_str()),
+                    "feature `{id}` declares unsupported target `{target}`"
+                );
+                ensure!(
+                    declared_targets.insert(target),
+                    "feature `{id}` repeats target `{target}`"
+                );
+            }
+            let mut prerequisites = BTreeSet::new();
+            for required in &definition.requires {
+                let dependency = self.0.get(required).ok_or_else(|| {
+                    eyre::eyre!("feature `{id}` requires unknown feature `{required}`")
+                })?;
+                ensure!(
+                    prerequisites.insert(required),
+                    "feature `{id}` repeats prerequisite `{required}`"
+                );
+                for target in &definition.supported_targets {
+                    ensure!(
+                        dependency.supported_targets.contains(target),
+                        "feature `{id}` requires `{required}` which does not support target `{target}`"
+                    );
+                }
+            }
+        }
+        self.validate_acyclic()
+    }
+
+    fn validate_acyclic(&self) -> Result<()> {
+        let mut counts = BTreeMap::new();
+        let mut dependants: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+        let mut ready = BTreeSet::new();
+        for (id, definition) in &self.0 {
+            counts.insert(id.as_str(), definition.requires.len());
+            if definition.requires.is_empty() {
+                ready.insert(id.as_str());
+            }
+            for required in &definition.requires {
+                dependants.entry(required.as_str()).or_default().push(id);
+            }
+        }
+        let mut visited = 0;
+        while let Some(id) = ready.pop_first() {
+            visited += 1;
+            for dependant in dependants.get(id).into_iter().flatten() {
+                let count = counts
+                    .get_mut(dependant)
+                    .expect("validated prerequisite graph contains every feature");
+                *count -= 1;
+                if *count == 0 {
+                    ready.insert(*dependant);
+                }
+            }
+        }
+        ensure!(
+            visited == self.0.len(),
+            "core feature prerequisites contain a cycle"
+        );
+        Ok(())
+    }
+
+    fn validate_entry(&self, entry: &ProjectionEntry) -> Result<()> {
+        let target = entry.target_id()?;
+        let enabled = entry
+            .features
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        for id in &entry.features {
+            let definition = self
+                .0
+                .get(id)
+                .ok_or_else(|| eyre::eyre!("unknown enabled feature `{id}`"))?;
+            ensure!(
+                definition
+                    .supported_targets
+                    .iter()
+                    .any(|supported| supported == target),
+                "enabled feature `{id}` does not support target `{target}`"
+            );
+            for required in &definition.requires {
+                ensure!(
+                    enabled.contains(required.as_str()),
+                    "enabled feature `{id}` requires enabled feature `{required}`"
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::output::OutputFormat;
+
+    const JAVA_PATH: &str = "src/main/java/example/Example.java";
+    const ITEM_PATH: &str =
+        "src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java";
+    const REGISTRY: &str = r#"{"alpha":{"supported_targets":["1.19.2","1.20.1"],"requires":[]},"beta":{"supported_targets":["1.19.2"],"requires":["alpha"]}}"#;
+    const CATALOG: &str = r#"{"release/example":{"minecraft_version":"1.19.2","environment":"release","features":[]},"dev/example":{"minecraft_version":"1.19.2","environment":"dev","features":["alpha","beta"]},"dev/old-package-new-loader":{"minecraft_version":"1.20.1","environment":"dev","features":["alpha"]}}"#;
+    const TEMPLATE: &str = "{% case minecraft_version %}\n{% when \"1.19.2\" %}\nimport old.Handler;\n{% else %}\nimport new.Handler;\n{% endcase %}\n{% if features.beta %}\nclass Example { String text = \"{{ untouched }}\"; }\n{% else %}\nclass Example {}\n{% endif %}\n";
+
+    struct Fixture {
+        temp: tempfile::TempDir,
+        repo: PathBuf,
+    }
+
+    impl Fixture {
+        fn new() -> Self {
+            let temp = tempfile::tempdir().unwrap();
+            let repo = temp.path().join("repository");
+            let fixture = Self { temp, repo };
+            fixture.write(CATALOG_PATH, CATALOG.as_bytes());
+            fixture.write(FEATURE_DEFINITIONS_PATH, REGISTRY.as_bytes());
+            fixture.write(&format!("{CORE_ROOT}/{JAVA_PATH}"), TEMPLATE.as_bytes());
+            // This deliberately invalid legacy file must never be opened by
+            // list/show/render; a snapshot is not a template input.
+            fixture.write("platform/minecraft/source-projection.json", b"not JSON");
+            fixture
+        }
+
+        fn write(&self, relative: &str, bytes: &[u8]) {
+            let path = self.repo.join(relative);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, bytes).unwrap();
+        }
+
+        fn render_args(&self, projection: &str) -> SourceRenderArgs {
+            SourceRenderArgs {
+                repo_root: self.repo.clone(),
+                projection: projection.to_owned(),
+                file: JAVA_PATH.to_owned(),
+            }
+        }
+    }
+
+    #[test]
+    fn list_and_show_resolve_explicit_flags_without_reading_legacy_inputs() {
+        let fixture = Fixture::new();
+        let before = fs::read(fixture.repo.join(CATALOG_PATH)).unwrap();
+        let list = list_report(
+            &SourceListArgs {
+                repo_root: fixture.repo.clone(),
+            },
+            fixture.temp.path(),
+        )
+        .unwrap();
+        assert_eq!(list.scope, CATALOG_SCOPE);
+        assert_eq!(list.projections.len(), 3);
+        assert_eq!(list.inputs.catalog_sha256, sha256(&before));
+        let show = show_report(
+            &SourceShowArgs {
+                repo_root: fixture.repo.clone(),
+                projection: "release/example".to_owned(),
+            },
+            fixture.temp.path(),
+        )
+        .unwrap();
+        assert_eq!(
+            show.projection.project_dir,
+            "platform/minecraft/projections/release/example"
+        );
+        assert_eq!(show.template_context.features["alpha"], false);
+        assert_eq!(show.template_context.features["beta"], false);
+        assert_eq!(show.template_context.projection_key, "release/example");
+        assert_eq!(show.template_context.preset, "release/example");
+        assert_eq!(show.template_context.environment, "release");
+        assert_eq!(fs::read(fixture.repo.join(CATALOG_PATH)).unwrap(), before);
+        assert!(!fixture.repo.join("platform/minecraft/projections").exists());
+    }
+
+    #[test]
+    fn read_only_render_proves_only_one_file_and_preserves_opaque_java() {
+        let fixture = Fixture::new();
+        let before = fs::read(fixture.repo.join(format!("{CORE_ROOT}/{JAVA_PATH}"))).unwrap();
+        let release =
+            render_report(&fixture.render_args("release/example"), fixture.temp.path()).unwrap();
+        assert_eq!(
+            release.rendered_content,
+            "import old.Handler;\nclass Example {}\n"
+        );
+        assert_eq!(release.scope, RENDER_SCOPE);
+        assert!(!release.writes_performed && !release.full_project_generated && !release.compiled);
+        let dev = render_report(&fixture.render_args("dev/example"), fixture.temp.path()).unwrap();
+        assert_eq!(
+            dev.rendered_content,
+            "import old.Handler;\nclass Example { String text = \"{{ untouched }}\"; }\n"
+        );
+        assert_ne!(release.rendered_sha256, dev.rendered_sha256);
+        assert_eq!(release.source_sha256, sha256(&before));
+        assert_eq!(
+            fs::read(fixture.repo.join(format!("{CORE_ROOT}/{JAVA_PATH}"))).unwrap(),
+            before
+        );
+        assert!(!fixture.repo.join("platform/minecraft/projections").exists());
+        let output = fixture
+            .render_args("dev/example")
+            .invoke_in(fixture.temp.path())
+            .unwrap()
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        let output_report: SourceRenderReport = facet_json::from_str(&output).unwrap();
+        assert!(!output_report.compiled);
+        assert_eq!(output_report.schema, "sfm:source_projection_render@1");
+    }
+
+    #[test]
+    fn minecraft_1_21_and_neoforge_1_20_1_have_exact_contexts() {
+        let fixture = Fixture::new();
+        let loaded = load_catalog(&fixture.repo, fixture.temp.path()).unwrap();
+        let context = loaded.context("dev/old-package-new-loader").unwrap();
+        assert_eq!(context.minecraft_version, "1.20.1");
+        assert!(context.targets["mc_1_20_1"]);
+        assert!(context.targets["neoforge"]);
+        assert!(!context.targets["forge"]);
+        assert_eq!(
+            context.targets.values().filter(|enabled| **enabled).count(),
+            2
+        );
+        let rewritten = CATALOG
+            .replace("1.20.1", "1.21")
+            .replace("\"features\":[\"alpha\"]", "\"features\":[]");
+        fixture.write(CATALOG_PATH, rewritten.as_bytes());
+        let loaded = load_catalog(&fixture.repo, fixture.temp.path()).unwrap();
+        let context = loaded.context("dev/old-package-new-loader").unwrap();
+        assert_eq!(context.minecraft_version, "1.21");
+        assert!(context.targets["mc_1_21_0"]);
+    }
+
+    #[test]
+    fn repository_dot_resolves_against_invocation_directory() {
+        let fixture = Fixture::new();
+        let report = list_report(
+            &SourceListArgs {
+                repo_root: PathBuf::from("."),
+            },
+            &fixture.repo,
+        )
+        .unwrap();
+        assert_eq!(report.projections.len(), 3);
+        let report = list_report(
+            &SourceListArgs {
+                repo_root: PathBuf::from("repository"),
+            },
+            fixture.temp.path(),
+        )
+        .unwrap();
+        assert_eq!(report.projections.len(), 3);
+    }
+
+    #[test]
+    fn malformed_unknown_and_duplicate_metadata_fail_closed() {
+        let fixture = Fixture::new();
+        for bytes in [b"not JSON".as_slice(), b"\xff".as_slice()] {
+            fixture.write(CATALOG_PATH, bytes);
+            assert!(load_catalog(&fixture.repo, fixture.temp.path()).is_err());
+        }
+        fixture.write(CATALOG_PATH, CATALOG.as_bytes());
+        for invalid in [
+            "not JSON".to_owned(),
+            REGISTRY.replace("\"requires\":[]", "\"requires\":[],\"unexpected\":true"),
+            REGISTRY.replace(
+                "\"alpha\":",
+                "\"alpha\":{\"supported_targets\":[\"1.19.2\"],\"requires\":[]},\"alpha\":",
+            ),
+            REGISTRY.replace("\"alpha\":", "\"Alpha\":"),
+        ] {
+            fixture.write(FEATURE_DEFINITIONS_PATH, invalid.as_bytes());
+            assert!(
+                load_catalog(&fixture.repo, fixture.temp.path()).is_err(),
+                "accepted {invalid}"
+            );
+        }
+    }
+
+    #[test]
+    fn unknown_unsupported_and_missing_prerequisite_flags_fail_every_command() {
+        let fixture = Fixture::new();
+        for invalid in [
+            CATALOG.replace("\"alpha\",\"beta\"", "\"typo\""),
+            CATALOG.replace("\"alpha\",\"beta\"", "\"beta\""),
+            CATALOG.replace(
+                "\"features\":[\"alpha\"]",
+                "\"features\":[\"alpha\",\"beta\"]",
+            ),
+        ] {
+            fixture.write(CATALOG_PATH, invalid.as_bytes());
+            assert!(
+                load_catalog(&fixture.repo, fixture.temp.path()).is_err(),
+                "accepted {invalid}"
+            );
+            assert!(
+                render_report(&fixture.render_args("release/example"), fixture.temp.path())
+                    .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn feature_registry_rejects_unknown_targets_dependencies_repetitions_and_cycles() {
+        let fixture = Fixture::new();
+        for invalid in [
+            REGISTRY.replace("\"1.20.1\"", "\"unsupported\""),
+            REGISTRY.replace("\"requires\":[\"alpha\"]", "\"requires\":[\"missing\"]"),
+            REGISTRY.replace(
+                "\"requires\":[\"alpha\"]",
+                "\"requires\":[\"alpha\",\"alpha\"]",
+            ),
+            REGISTRY.replace("\"1.19.2\",\"1.20.1\"", "\"1.19.2\",\"1.19.2\""),
+            REGISTRY.replace("\"requires\":[\"alpha\"]", "\"requires\":[\"beta\"]"),
+            REGISTRY.replace(
+                "\"supported_targets\":[\"1.19.2\",\"1.20.1\"]",
+                "\"supported_targets\":[]",
+            ),
+            REGISTRY.replace(
+                "\"supported_targets\":[\"1.19.2\"],\"requires\":[\"alpha\"]",
+                "\"supported_targets\":[\"26.1.2\"],\"requires\":[\"alpha\"]",
+            ),
+        ] {
+            fixture.write(FEATURE_DEFINITIONS_PATH, invalid.as_bytes());
+            assert!(
+                load_catalog(&fixture.repo, fixture.temp.path()).is_err(),
+                "accepted {invalid}"
+            );
+        }
+    }
+
+    #[test]
+    fn unsafe_missing_non_java_and_unknown_projection_requests_fail() {
+        let fixture = Fixture::new();
+        for file in [
+            "../escape.java",
+            "src/../../escape.java",
+            "/absolute.java",
+            "src\\Example.java",
+            "src/main/java/CON.java",
+            "src/missing.java",
+            "build.gradle",
+            "src/main/java/Example.JAVA",
+        ] {
+            let mut args = fixture.render_args("dev/example");
+            args.file = file.to_owned();
+            assert!(
+                render_report(&args, fixture.temp.path()).is_err(),
+                "accepted {file}"
+            );
+        }
+        assert!(render_report(&fixture.render_args("missing/key"), fixture.temp.path()).is_err());
+        assert!(load_catalog(&fixture.repo.join(".."), fixture.temp.path()).is_err());
+        fixture.write(
+            &format!("{CORE_ROOT}/{JAVA_PATH}"),
+            b"{% if features.not_registered %}\nclass Bad {}\n{% endif %}\n",
+        );
+        assert!(render_report(&fixture.render_args("dev/example"), fixture.temp.path()).is_err());
+    }
+
+    #[test]
+    fn catalog_registry_and_source_reads_are_bounded() {
+        let fixture = Fixture::new();
+        let oversized = vec![b' '; usize::try_from(MAX_INPUT_BYTES + 1).unwrap()];
+        for path in [CATALOG_PATH, FEATURE_DEFINITIONS_PATH] {
+            let old = fs::read(fixture.repo.join(path)).unwrap();
+            fixture.write(path, &oversized);
+            assert!(load_catalog(&fixture.repo, fixture.temp.path()).is_err());
+            fixture.write(path, &old);
+        }
+        fixture.write(&format!("{CORE_ROOT}/{JAVA_PATH}"), &oversized);
+        assert!(render_report(&fixture.render_args("dev/example"), fixture.temp.path()).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rejects_symlinked_catalog_registry_and_core_source() {
+        use std::os::unix::fs::symlink;
+        let fixture = Fixture::new();
+        let external = fixture.temp.path().join("external");
+        fs::write(&external, TEMPLATE).unwrap();
+        for path in [
+            CATALOG_PATH,
+            FEATURE_DEFINITIONS_PATH,
+            &format!("{CORE_ROOT}/{JAVA_PATH}"),
+        ] {
+            let local = fixture.repo.join(path);
+            let old = fs::read(&local).unwrap();
+            fs::remove_file(&local).unwrap();
+            symlink(&external, &local).unwrap();
+            assert!(
+                render_report(&fixture.render_args("dev/example"), fixture.temp.path()).is_err()
+            );
+            fs::remove_file(&local).unwrap();
+            fs::write(local, old).unwrap();
+        }
+    }
+
+    #[test]
+    fn real_core_item_resource_type_renders_twenty_contexts_against_release_witnesses() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .unwrap();
+        let loaded = load_catalog(repo, repo).unwrap();
+        assert_eq!(
+            loaded.catalog.0.len(),
+            20,
+            "initial catalog must cover both contexts for all ten versions"
+        );
+        let mut targets = BTreeMap::<String, BTreeSet<String>>::new();
+        for (key, entry) in &loaded.catalog.0 {
+            let report = render_report(
+                &SourceRenderArgs {
+                    repo_root: repo.to_path_buf(),
+                    projection: key.clone(),
+                    file: ITEM_PATH.to_owned(),
+                },
+                repo,
+            )
+            .unwrap();
+            let witness_path = format!(
+                "platform/minecraft/mc-version/{}/{ITEM_PATH}",
+                entry.target_id().unwrap()
+            );
+            let witness =
+                fs::read_to_string(checked_file(&loaded.repo_root, &witness_path).unwrap())
+                    .unwrap();
+            assert_eq!(
+                normalize_source(&report.rendered_content),
+                normalize_source(&witness),
+                "core template differs from test-only release witness for `{key}`"
+            );
+            assert!(report.source_path.starts_with(CORE_ROOT));
+            targets
+                .entry(entry.target_id().unwrap().to_owned())
+                .or_default()
+                .insert(entry.environment.as_str().to_owned());
+        }
+        assert_eq!(targets.len(), 10);
+        for (target, environments) in targets {
+            assert_eq!(
+                environments,
+                BTreeSet::from(["dev".to_owned(), "release".to_owned()]),
+                "missing environment for {target}"
+            );
+        }
+    }
+
+    fn normalize_source(source: &str) -> String {
+        let normalized = source.replace("\r\n", "\n");
+        normalized.strip_prefix("// GENERATED by sfm-propagate-changes; edit the primary source or reconcile this file.\n").unwrap_or(&normalized).to_owned()
+    }
+}

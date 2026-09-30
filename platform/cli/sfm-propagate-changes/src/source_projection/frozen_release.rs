@@ -479,6 +479,8 @@ mod tests {
         ProjectionContext {
             minecraft_version: target.to_owned(),
             preset: PRESET.to_owned(),
+            environment: "release".to_owned(),
+            projection_key: format!("sfm-fixture/mc-{target}"),
             features: BTreeMap::new(),
             targets: BTreeMap::from([
                 ("mc_1_19_4".to_owned(), target == "1.19.4"),

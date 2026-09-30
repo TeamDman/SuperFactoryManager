@@ -868,6 +868,8 @@ mod tests {
                     target.to_owned()
                 },
                 preset: PRESET.to_owned(),
+                environment: "dev".to_owned(),
+                projection_key: format!("sfm-fixture/mc-{target}"),
                 features: BTreeMap::new(),
                 targets: BTreeMap::from([
                     ("mc_1_19_4".to_owned(), target == "1.19.4"),

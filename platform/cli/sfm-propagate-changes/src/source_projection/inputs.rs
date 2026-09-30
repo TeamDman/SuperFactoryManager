@@ -432,6 +432,8 @@ mod tests {
         ProjectionContext {
             minecraft_version: "1.19.2".to_owned(),
             preset: "released-4.34.0".to_owned(),
+            environment: "release".to_owned(),
+            projection_key: "sfm-4.34.0/mc-1.19.2".to_owned(),
             features: BTreeMap::from([("touch_display".to_owned(), true)]),
             targets: BTreeMap::from([("mc_1_19_2".to_owned(), true)]),
         }

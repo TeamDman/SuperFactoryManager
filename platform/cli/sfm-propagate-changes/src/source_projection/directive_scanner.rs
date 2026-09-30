@@ -4,7 +4,7 @@
 //! only complete directive lines and pass all other text to Liquid as opaque
 //! string values, so the generated Java is never reparsed as a template.
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -13,17 +13,41 @@ pub(crate) enum ScannedSource<'a> {
     Template(ScannedTemplate),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScannedTemplate {
     pub(crate) skeleton: String,
     pub(crate) chunks: Vec<String>,
-    pub(crate) referenced_conditions: BTreeSet<String>,
+    pub(crate) referenced_conditions: BTreeMap<String, usize>,
+    pub(crate) referenced_selectors: BTreeMap<String, usize>,
 }
 
 #[derive(Debug)]
-struct ConditionalBlock {
+struct ControlBlock {
     opened_at_line: usize,
     has_else: bool,
+    kind: BlockKind,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum BlockKind {
+    If,
+    Case { has_when: bool },
+}
+
+impl ControlBlock {
+    fn name(&self) -> &'static str {
+        match self.kind {
+            BlockKind::If => "if",
+            BlockKind::Case { .. } => "case",
+        }
+    }
+
+    fn end_name(&self) -> &'static str {
+        match self.kind {
+            BlockKind::If => "endif",
+            BlockKind::Case { .. } => "endcase",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -32,19 +56,21 @@ enum Directive<'a> {
     Elsif(&'a str),
     Else,
     Endif,
+    Case(&'a str),
+    When(Vec<&'a str>),
+    Endcase,
 }
 
 /// Scan a primary `.java` file without interpreting Java strings or braces.
 ///
-/// The initial syntax is a whole-line `{% if features.name %}` or
-/// `{% if targets.name %}`, with optional `elsif`, `else` and `endif` lines.
+/// Boolean `if`/`elsif` directives read registered feature/target names.
+/// String `case` directives read typed projection metadata; `when` accepts
+/// quoted literal alternatives separated by commas or `or`.
 /// A line beginning `\{%` emits a literal line beginning `{%`.
 pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
-    let mut skeleton = String::new();
-    let mut chunks = Vec::new();
+    let mut template = ScannedTemplate::default();
     let mut raw = String::new();
-    let mut referenced_conditions = BTreeSet::new();
-    let mut blocks: Vec<ConditionalBlock> = Vec::new();
+    let mut blocks: Vec<ControlBlock> = Vec::new();
     let mut projected = false;
 
     for (index, line) in source.split_inclusive('\n').enumerate() {
@@ -54,6 +80,7 @@ pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
         let trimmed = body.trim();
 
         if trimmed.starts_with("\\{%") {
+            ensure_case_branch(&blocks, line_number, "literal text")?;
             projected = true;
             let escape_at = line
                 .find("\\{%")
@@ -64,70 +91,149 @@ pub(crate) fn scan(source: &str) -> eyre::Result<ScannedSource<'_>> {
         }
 
         if !trimmed.starts_with("{%") {
+            if !trimmed.is_empty() {
+                ensure_case_branch(&blocks, line_number, "literal text")?;
+            }
             raw.push_str(line);
             continue;
         }
 
         let directive = parse_directive(trimmed, line_number)?;
         projected = true;
-        flush_chunk(&mut skeleton, &mut chunks, &mut raw);
-        match directive {
-            Directive::If(condition) => {
-                referenced_conditions.insert(condition.to_owned());
-                blocks.push(ConditionalBlock {
-                    opened_at_line: line_number,
-                    has_else: false,
-                });
-                write!(skeleton, "{{% if {condition} %}}")
-                    .expect("writing to a String cannot fail");
-            }
-            Directive::Elsif(condition) => {
-                let block = blocks
-                    .last()
-                    .ok_or_else(|| eyre::eyre!("line {line_number}: elsif has no matching if"))?;
-                eyre::ensure!(
-                    !block.has_else,
-                    "line {line_number}: elsif follows else in block opened at line {}",
-                    block.opened_at_line
-                );
-                referenced_conditions.insert(condition.to_owned());
-                write!(skeleton, "{{% elsif {condition} %}}")
-                    .expect("writing to a String cannot fail");
-            }
-            Directive::Else => {
-                let block = blocks
-                    .last_mut()
-                    .ok_or_else(|| eyre::eyre!("line {line_number}: else has no matching if"))?;
-                eyre::ensure!(
-                    !block.has_else,
-                    "line {line_number}: duplicate else for block opened at line {}",
-                    block.opened_at_line
-                );
-                block.has_else = true;
-                skeleton.push_str("{% else %}");
-            }
-            Directive::Endif => {
-                eyre::ensure!(
-                    blocks.pop().is_some(),
-                    "line {line_number}: endif has no matching if"
-                );
-                skeleton.push_str("{% endif %}");
-            }
-        }
+        flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw);
+        push_directive(&mut template, &mut blocks, directive, line_number)?;
     }
 
     if let Some(block) = blocks.last() {
-        eyre::bail!("line {}: if has no matching endif", block.opened_at_line);
+        eyre::bail!(
+            "line {}: {} has no matching {}",
+            block.opened_at_line,
+            block.name(),
+            block.end_name()
+        );
     }
     if !projected {
         return Ok(ScannedSource::Identity(source));
     }
-    flush_chunk(&mut skeleton, &mut chunks, &mut raw);
-    Ok(ScannedSource::Template(ScannedTemplate {
-        skeleton,
-        chunks,
-        referenced_conditions,
-    }))
+    flush_chunk(&mut template.skeleton, &mut template.chunks, &mut raw);
+    Ok(ScannedSource::Template(template))
+}
+
+fn push_directive(
+    template: &mut ScannedTemplate,
+    blocks: &mut Vec<ControlBlock>,
+    directive: Directive<'_>,
+    line: usize,
+) -> eyre::Result<()> {
+    match directive {
+        Directive::If(condition) => {
+            ensure_case_branch(blocks, line, "if")?;
+            record_condition(template, condition, line);
+            blocks.push(ControlBlock {
+                opened_at_line: line,
+                has_else: false,
+                kind: BlockKind::If,
+            });
+            write!(template.skeleton, "{{% if {condition} %}}")
+                .expect("writing to a String cannot fail");
+        }
+        Directive::Elsif(condition) => {
+            let block = matching_block(blocks, "elsif", "if", line)?;
+            ensure_before_else(block, "elsif", line)?;
+            record_condition(template, condition, line);
+            write!(template.skeleton, "{{% elsif {condition} %}}")
+                .expect("writing to a String cannot fail");
+        }
+        Directive::Case(selector) => {
+            ensure_case_branch(blocks, line, "case")?;
+            template
+                .referenced_selectors
+                .entry(selector.to_owned())
+                .or_insert(line);
+            blocks.push(ControlBlock {
+                opened_at_line: line,
+                has_else: false,
+                kind: BlockKind::Case { has_when: false },
+            });
+            write!(template.skeleton, "{{% case {selector} %}}")
+                .expect("writing to a String cannot fail");
+        }
+        Directive::When(values) => {
+            let block = matching_block(blocks, "when", "case", line)?;
+            ensure_before_else(block, "when", line)?;
+            block.kind = BlockKind::Case { has_when: true };
+            write!(template.skeleton, "{{% when {} %}}", values.join(", "))
+                .expect("writing to a String cannot fail");
+        }
+        Directive::Else => {
+            ensure_case_branch(blocks, line, "else")?;
+            let block = blocks
+                .last_mut()
+                .ok_or_else(|| eyre::eyre!("line {line}: else has no matching if or case"))?;
+            ensure_before_else(block, "else", line)?;
+            block.has_else = true;
+            template.skeleton.push_str("{% else %}");
+        }
+        Directive::Endif => {
+            matching_block(blocks, "endif", "if", line)?;
+            blocks.pop();
+            template.skeleton.push_str("{% endif %}");
+        }
+        Directive::Endcase => {
+            ensure_case_branch(blocks, line, "endcase")?;
+            matching_block(blocks, "endcase", "case", line)?;
+            blocks.pop();
+            template.skeleton.push_str("{% endcase %}");
+        }
+    }
+    Ok(())
+}
+
+fn record_condition(template: &mut ScannedTemplate, condition: &str, line: usize) {
+    template
+        .referenced_conditions
+        .entry(condition.to_owned())
+        .or_insert(line);
+}
+
+fn matching_block<'a>(
+    blocks: &'a mut [ControlBlock],
+    directive: &str,
+    expected: &str,
+    line: usize,
+) -> eyre::Result<&'a mut ControlBlock> {
+    let block = blocks
+        .last_mut()
+        .ok_or_else(|| eyre::eyre!("line {line}: {directive} has no matching {expected}"))?;
+    eyre::ensure!(
+        block.name() == expected,
+        "line {line}: {directive} cannot close or branch {} opened at line {}; expected {}",
+        block.name(),
+        block.opened_at_line,
+        block.end_name()
+    );
+    Ok(block)
+}
+
+fn ensure_before_else(block: &ControlBlock, directive: &str, line: usize) -> eyre::Result<()> {
+    eyre::ensure!(
+        !block.has_else,
+        "line {line}: {directive} follows else in {} opened at line {}",
+        block.name(),
+        block.opened_at_line
+    );
+    Ok(())
+}
+
+fn ensure_case_branch(blocks: &[ControlBlock], line: usize, text: &str) -> eyre::Result<()> {
+    if let Some(block) = blocks.last() {
+        eyre::ensure!(
+            !matches!(block.kind, BlockKind::Case { has_when: false }),
+            "line {line}: {text} precedes the first when in case opened at line {}",
+            block.opened_at_line
+        );
+    }
+    Ok(())
 }
 
 fn flush_chunk(skeleton: &mut String, chunks: &mut Vec<String>, raw: &mut String) {
@@ -154,7 +260,61 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
         }
         ["else"] => Ok(Directive::Else),
         ["endif"] => Ok(Directive::Endif),
+        ["case", selector] => {
+            eyre::ensure!(
+                matches!(
+                    *selector,
+                    "minecraft_version" | "preset" | "environment" | "projection_key"
+                ),
+                "line {line_number}: case selector must be minecraft_version, preset, environment or projection_key"
+            );
+            Ok(Directive::Case(selector))
+        }
+        ["endcase"] => Ok(Directive::Endcase),
+        ["when", ..] => Ok(Directive::When(parse_when_values(
+            body.strip_prefix("when")
+                .expect("matched when directive")
+                .trim(),
+            line_number,
+        )?)),
         _ => eyre::bail!("line {line_number}: unsupported template directive: {body}"),
+    }
+}
+
+fn parse_when_values(mut input: &str, line: usize) -> eyre::Result<Vec<&str>> {
+    let mut values = Vec::new();
+    loop {
+        let quote = input
+            .as_bytes()
+            .first()
+            .copied()
+            .filter(|quote| matches!(quote, b'\'' | b'"'))
+            .ok_or_else(|| eyre::eyre!("line {line}: when requires quoted string literals"))?;
+        let closing = input[1..]
+            .bytes()
+            .position(|byte| byte == quote)
+            .ok_or_else(|| eyre::eyre!("line {line}: unterminated when string literal"))?
+            + 1;
+        eyre::ensure!(
+            !input[1..closing].contains('\\'),
+            "line {line}: escaped when string literals are not supported"
+        );
+        values.push(&input[..=closing]);
+        input = input[closing + 1..].trim_start();
+        if input.is_empty() {
+            return Ok(values);
+        }
+        input = if let Some(rest) = input.strip_prefix(',') {
+            rest.trim_start()
+        } else if let Some(rest) = input.strip_prefix("or") {
+            eyre::ensure!(
+                rest.starts_with(char::is_whitespace),
+                "line {line}: when alternatives must be separated by comma or 'or'"
+            );
+            rest.trim_start()
+        } else {
+            eyre::bail!("line {line}: when alternatives must be separated by comma or 'or'");
+        };
     }
 }
 
@@ -210,6 +370,150 @@ mod tests {
         };
         assert_eq!(template.chunks, vec!["{% if features.example %}\n"]);
         assert!(template.referenced_conditions.is_empty());
+        assert!(template.referenced_selectors.is_empty());
+    }
+
+    #[test]
+    fn grouped_string_cases_track_selectors_and_keep_literal_java_opaque() {
+        let source = "{% case minecraft_version %}\r\n    {% when \"1.19.2\", \"1.19.4\" or '1.20' %}\r\nint[][] a = {{1, 2}};\r\n{% if features.enabled %}\r\n{% case preset %}\r\n{% when 'dev' %}\r\ndev();\r\n{% else %}\r\nrelease();\r\n{% endcase %}\r\n{% endif %}\r\n{% else %}\r\nmodern();\r\n{% endcase %}\r\n";
+        let ScannedSource::Template(template) = scan(source).unwrap() else {
+            panic!("case directives should create a template");
+        };
+        assert_eq!(
+            template.referenced_selectors,
+            BTreeMap::from([
+                ("minecraft_version".to_owned(), 1),
+                ("preset".to_owned(), 5)
+            ])
+        );
+        assert_eq!(
+            template.referenced_conditions,
+            BTreeMap::from([("features.enabled".to_owned(), 4)])
+        );
+        assert!(
+            template
+                .skeleton
+                .contains("{% when \"1.19.2\", \"1.19.4\", '1.20' %}")
+        );
+        assert!(
+            template
+                .chunks
+                .iter()
+                .any(|chunk| chunk.contains("{{1, 2}}"))
+        );
+    }
+
+    #[test]
+    fn supports_only_typed_string_case_selectors() {
+        for selector in [
+            "minecraft_version",
+            "preset",
+            "environment",
+            "projection_key",
+        ] {
+            assert!(
+                scan(&format!(
+                    "{{% case {selector} %}}\n{{% when 'value' %}}\n{{% endcase %}}\n"
+                ))
+                .is_ok()
+            );
+        }
+        for selector in [
+            "features.enabled",
+            "targets.forge",
+            "typo",
+            "'literal'",
+            "42",
+        ] {
+            let error = scan(&format!("before\n{{% case {selector} %}}\n"))
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains("line 2: case selector"), "{error}");
+        }
+    }
+
+    #[test]
+    fn rejects_case_nesting_and_branch_errors_at_original_lines() {
+        for (source, line, detail) in [
+            ("{% when 'a' %}\n", 1, "no matching case"),
+            ("{% endcase %}\n", 1, "no matching case"),
+            (
+                "{% case minecraft_version %}\n{% when 'a' %}\n{% endif %}\n",
+                3,
+                "expected endcase",
+            ),
+            ("{% if features.a %}\n{% endcase %}\n", 2, "expected endif"),
+            (
+                "{% case preset %}\n{% when 'a' %}\n{% elsif features.a %}\n",
+                3,
+                "expected endcase",
+            ),
+            ("{% if features.a %}\n{% when 'a' %}\n", 2, "expected endif"),
+            (
+                "{% case preset %}\n{% when 'a' %}\n{% else %}\n{% when 'b' %}\n",
+                4,
+                "follows else",
+            ),
+            (
+                "{% case preset %}\n{% when 'a' %}\n{% else %}\n{% else %}\n",
+                4,
+                "follows else",
+            ),
+            (
+                "{% case preset %}\n{% when 'a' %}\n",
+                1,
+                "no matching endcase",
+            ),
+            (
+                "{% case preset %}\nbefore_when();\n",
+                2,
+                "precedes the first when",
+            ),
+            (
+                "{% case preset %}\n{% if features.a %}\n",
+                2,
+                "precedes the first when",
+            ),
+            (
+                "{% case preset %}\n{% else %}\n",
+                2,
+                "precedes the first when",
+            ),
+            (
+                "{% case preset %}\n{% endcase %}\n",
+                2,
+                "precedes the first when",
+            ),
+        ] {
+            let error = scan(source).unwrap_err().to_string();
+            assert!(error.contains(&format!("line {line}:")), "{error}");
+            assert!(error.contains(detail), "{error}");
+        }
+    }
+
+    #[test]
+    fn rejects_nonliteral_or_malformed_when_alternatives_with_source_lines() {
+        for values in [
+            "",
+            "42",
+            "true",
+            "minecraft_version",
+            "'a' 'b'",
+            "'a',",
+            "'a' or",
+            "'a' or'b'",
+            "'a',, 'b'",
+            "'unterminated",
+            "'a\\b'",
+        ] {
+            let error = scan(&format!("{{% case preset %}}\n{{% when {values} %}}\n"))
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("line 2:"),
+                "wrong source line for {values}: {error}"
+            );
+        }
     }
 
     #[test]

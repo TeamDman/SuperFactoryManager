@@ -2,6 +2,9 @@
 
 use super::candidate_lock_cli::CandidateVerifyArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
+use super::projection_catalog_cli::SourceListArgs;
+use super::projection_catalog_cli::SourceRenderArgs;
+use super::projection_catalog_cli::SourceShowArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
 use super::release_modrinth_cli::ReleaseModrinthArgs;
@@ -83,6 +86,12 @@ pub struct SourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum SourceCommand {
+    /// List named projections from the core-owned catalog without generating files.
+    List(SourceListArgs),
+    /// Inspect one named projection's explicit version, environment and features.
+    Show(SourceShowArgs),
+    /// Render one core-owned Java template without generating a project or building a JAR.
+    Render(SourceRenderArgs),
     /// Calculate a candidate preset-definition fingerprint before publishing it.
     PresetIdentity(SourcePresetIdentityArgs),
     /// Import pinned 4.34.0 tag sources and Gradle inputs without touching generated projects.
@@ -372,6 +381,9 @@ impl SourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let (args, mode) = match self.command {
+            SourceCommand::List(args) => return args.invoke_in(invocation_dir),
+            SourceCommand::Show(args) => return args.invoke_in(invocation_dir),
+            SourceCommand::Render(args) => return args.invoke_in(invocation_dir),
             SourceCommand::PresetIdentity(args) => return args.invoke_in(invocation_dir),
             SourceCommand::ImportRelease(args) => return args.invoke_in(invocation_dir),
             SourceCommand::ImportDevelopment(args) => return args.invoke_in(invocation_dir),

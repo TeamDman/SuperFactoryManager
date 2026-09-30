@@ -1,5 +1,25 @@
 # Build and edit a projected Minecraft version
 
+## Inspect the shared Liquid work in progress
+
+The [shared Liquid consolidation plan](tasks/sfm-core-liquid-consolidation-plan.md) is now active. Its authored root is `platform/minecraft/core-liquid-template/`, its selector catalog is `platform/minecraft/projections.json`, and its future standalone projects live under `platform/minecraft/projections/<projection-key>/`. The key may contain nested directories. Context values, not the key's spelling, select the Minecraft version and enabled features.
+
+The first read-only commands are available in the worktree-built CLI. From the repository root, inspect the catalog and render the first consolidated class:
+
+```powershell
+./platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe source list --repo-root .
+./platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe source show --repo-root . --projection sfm-dev/mc-26.1.2
+./platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe source render --repo-root . --projection sfm-dev/mc-26.1.2 --file src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java
+```
+
+Use `--output-format json` before `source` for machine-readable reports. `list` and `show` validate the full catalog and core feature definitions. `render` reads one core Java template and returns its rendered text, context and hashes without writing a file. It does not generate a project, compile Java, or prove release compatibility for the whole mod. The initial three-feature registry is not the complete unreleased-feature inventory.
+
+The `ItemResourceType.java` template already uses grouped Liquid version decisions for Forge, older NeoForge item handlers and the newer transfer API. Every authored Java file is a template, without a `.liquid` extension. Known omitted flags are false; unknown flags, unsafe paths and contradictory feature selections fail.
+
+No generated project has moved yet. The remaining sections describe the existing frozen-projection infrastructure during consolidation, not the final shared-source workflow. Continue to use those existing build and contribution commands until the new key-based project generation is implemented and validated. The installed PATH executable may predate these read-only commands; the examples deliberately use the freshly built worktree binary.
+
+## Existing projected projects
+
 This guide applies to the isolated `feat/sfm-main-source-projection` branch. The checked-in `released-4.34.0` projects have [bounded technical migration acceptance](tasks/sfm-main-migration-acceptance-20260930.md), with disclosed compiler/packaging differences and representative compatibility evidence. This is not public-release approval or authority to replace the current version branches.
 
 ## Build with Gradle only

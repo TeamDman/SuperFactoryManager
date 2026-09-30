@@ -105,6 +105,12 @@ pub fn select(
         context: ProjectionContext {
             minecraft_version: target.minecraft_version.clone(),
             preset: preset.id.clone(),
+            environment: if preset.id.starts_with("released-") {
+                "release".to_owned()
+            } else {
+                "dev".to_owned()
+            },
+            projection_key: format!("legacy/{preset_id}/mc-{target_id}"),
             features,
             targets,
         },

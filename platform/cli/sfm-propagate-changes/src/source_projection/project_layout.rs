@@ -609,6 +609,8 @@ mod tests {
         let context = ProjectionContext {
             minecraft_version: "1.19.2".to_owned(),
             preset: "current-development".to_owned(),
+            environment: "dev".to_owned(),
+            projection_key: "sfm-dev/mc-1.19.2".to_owned(),
             features: BTreeMap::new(),
             targets: BTreeMap::from([("mc_1_19_2".to_owned(), true), ("forge".to_owned(), true)]),
         };

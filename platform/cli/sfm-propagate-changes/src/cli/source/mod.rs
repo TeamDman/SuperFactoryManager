@@ -1,5 +1,6 @@
 mod candidate_lock_cli;
 mod frozen_preset_stage_cli;
+mod projection_catalog_cli;
 mod promotion_cli;
 mod release_inventory_cli;
 mod release_modrinth_cli;
@@ -14,6 +15,9 @@ mod source_trace_cli;
 
 pub use candidate_lock_cli::CandidateVerifyArgs;
 pub use frozen_preset_stage_cli::FrozenPresetStageArgs;
+pub use projection_catalog_cli::SourceListArgs;
+pub use projection_catalog_cli::SourceRenderArgs;
+pub use projection_catalog_cli::SourceShowArgs;
 pub use release_inventory_cli::ReleaseInventoryArgs;
 pub use release_modrinth_cli::ReleaseModrinthArgs;
 pub use release_package_cli::ReleasePackageArgs;

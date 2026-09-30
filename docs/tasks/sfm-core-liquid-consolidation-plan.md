@@ -96,9 +96,13 @@ Validation: add manifest/CLI unit tests for valid keys and every rejected collis
 
 Completion criteria: one authoritative catalog resolves all 20 keys without changing dependencies or conflating a release project with development output.
 
-### [~] 1.2 Support the requested Liquid version and feature decisions
+### [x] 1.2 Support the requested Liquid version and feature decisions
 
-Completion notes: `core_liquid_scanner` owns the scanner and renderer validation/tests; the orchestrator adds typed context fields and updates legacy fixtures. No dependency change is needed. The task is not accepted until direct SFM rendering and negative tests pass.
+Completion notes: The scanner now supports typed nested `case`/`when`/`else`/`endcase`, grouped comma or `or` alternatives and the explicit environment/key fields. Direct SFM renderer tests and the twenty-context `ItemResourceType` golden test passed. Unknown conditions in inactive branches, mismatched control blocks, invalid selectors, literal delimiters, CRLF and opaque Java braces retain fail-closed coverage. No dependency changed. Selected non-Java core text will use this same controlled renderer; its input-selection integration remains task 2.2.
+
+Validation evidence, 30 September: `cargo test --offline --locked --lib source_projection::` passed 250 tests with four existing import-only tests ignored; `cargo test --offline --locked --lib cli::source::projection_catalog_cli` passed ten Windows-applicable tests, including all twenty contexts. The pure catalog tests passed 14 tests. Fresh worktree-binary `source --help`, `source render --help`, JSON `source list` and `source show` passed. A live loop of `source render` passed all twenty catalog keys, producing three distinct body hashes and reporting zero writes. These are source-render proofs, not Java compilation or complete-mod release acceptance.
+
+Tooling gate: `check-all.ps1` passed dependency policy, formatting, all-feature Clippy/build and all 42 library-module shards. It then stopped at Java-analysis integration: ten tests passed and three failed because the sandbox blocked acquisition of the existing pinned JBRSDK with socket error 10013. The host rerun of `scripts/test-bounded.ps1 -Shard integration:java_analysis_scenarios` passed all 13 tests. Host continuations passed the other three integration shards (12, 40 and 3 tests), the standalone refusal test and the dedicated ten-target fixture. All-feature binary/doc commands passed but contained zero tests. Thus the initial 48-shard coverage gate completed by recorded continuation, not by pretending the sandbox invocation exited successfully. No JDK identity or lockfile changed. The next registered consolidation/collector changes need their own current-source gate.
 
 Work: extend whole-line scanning with typed `case`/`when`/`else`/`endcase`, comma-separated version alternatives and nested feature conditions. Expose environment and projection identity. Preserve Java strings, braces and text as opaque chunks, full-line directive diagnostics, deterministic bytes and unknown-variable refusal. Apply the same explicit context to selected non-Java templates where needed.
 
@@ -108,7 +112,7 @@ Completion criteria: the user's grouped import example renders correctly through
 
 ### [~] 2.1 Consolidate ItemResourceType as the first real source proof
 
-Completion notes: `core_feature_inventory` authored this class under the new core root, with shared bodies and three API groups: Forge through 1.20.1, older NeoForge handlers through 1.21.1, and 26.1.2 transfer handlers. Initial independent directive evaluation matched original LF-normalized bytes for all ten targets; this is not yet evidence from the SFM renderer or Java compiler. Release/pinned-development sources match within each target for this class. Preserve the existing 26.1.2 buffer predicate unchanged; semantic fixes are not part of consolidation.
+Completion notes: `core_feature_inventory` authored this class under the new core root, with shared bodies and three API groups: Forge through 1.20.1, older NeoForge handlers through 1.21.1, and 26.1.2 transfer handlers. The actual SFM renderer now matches original LF-normalized bytes for all ten release/dev pairs, both in the CLI golden test and live rendering. This is not yet Java compiler evidence or full-project provenance migration. Release/pinned-development sources match within each target for this class. Preserve the existing 26.1.2 buffer predicate unchanged; semantic fixes are not part of consolidation.
 
 Work: move authored ownership into `core-liquid-template/src`, use visible version conditions/adapters for imports, generic handler types and methods, and render this class for every supported release/dev context. Preserve 26.1.2 transfer API semantics. Stop selecting this production source from release/development baseline overlays.
 
@@ -116,9 +120,11 @@ Validation: compare generated source/API shape with the recorded originals acros
 
 Completion criteria: provenance for every ItemResourceType projection points to core-owned authored inputs; one intentional common edit reaches all intended targets without per-target hash adoption.
 
-### [ ] 2.2 Consolidate the remaining authored source and build inputs
+### [~] 2.2 Consolidate the remaining authored source and build inputs
 
 Reconnaissance notes: A read-only inventory at starting HEAD found 1,605 distinct main-Java paths across twenty historical release/development contexts, with 14,291 path occurrences. Of these, 1,136 paths have a single blob wherever present, 469 have variant bodies, and 1,085 have membership variation. These historical counts guide work grouping, not current-source completion. Compare actual current bytes as well as ledgers: current HEAD versus the 1.19.2 release tag changes 1,918 source paths, including 1,114 main Java paths. No version-owned behavior may be replaced merely because an old classification says it was shared.
+
+In-progress ownership: `core_liquid_scanner` prepared the pure migration-time `variant_consolidation.rs` authoring helper. It factors shared lines, uses reviewed named feature owners and grouped Minecraft cases, handles absence separately and internally checks reconstruction. It rejects ambiguity, unsupported EOF changes and no-anchor whole-file dispatch. Registration, tests and authoring integration are pending; it is not a production historical-input route. `core_projection_catalog` prepared `core_inputs.rs`, a core-only input selector/collector with sparse file membership and selected Gradle inputs. Its predicates use targets and explicit features only, never environment/preset/key dispatch. The orchestrator prepared central `core_features.rs` and `core_catalog.rs` loading for reuse by the CLI and future generator. These four unregistered helpers are not covered by the first checkpoint's tests and do not yet manifest real projects; their composed registration/tests are the next focus. The orchestrator retains guarded generation integration ownership.
 
 Work: inventory every current release/dev input by path and target. Fold ordinary divergence into shared templates; isolate genuine API differences in bounded core-owned adapters/fragments. Cover main, gametest, datagen, generated assets, resources, membership/exclusions, wrappers, Gradle scripts, settings/properties and fixtures. Prefer selected build files over long inline Gradle switches. Preserve all current target-specific behavior and unreleased features.
 
@@ -126,9 +132,11 @@ Validation: maintain a complete owner/membership matrix and test representative 
 
 Completion criteria: every authored production input is core-owned; all ten versions are reproducible without historical source overrides. Copying ten entire source trees into the core root does not qualify as consolidation.
 
-### [ ] 2.3 Gate the complete unreleased feature difference
+### [~] 2.3 Gate the complete unreleased feature difference
 
 Reconnaissance notes: Required feature families include workspace/actions/editor/explorer/history/review/theme, terminal/control, packet computation and SFML, touch display/client manager/consent/signing/inbox/raster, multiplayer authorization, manager tooling, ComputerCraft, redstone/buffer and compatibility/event-bus behavior. The 1.19.2 release network channel is `1.0.0`, versus `1.5.0` in current development with appended registrations and direction changes. Feature exclusion must restore protocol and changed existing-class semantics, not only omit new packet classes. This is an inventory witness, not a completed feature taxonomy.
+
+Detailed inventory, 30 September: the [feature ownership inventory](sfm-core-feature-ownership-inventory.md) records twenty witnessed trees containing 3,001 unique source paths, 1,856 never present in any release context. There are 195 main-Java paths identical across all twenty contexts and 11 identical paths whose membership is genuinely version-specific. Of the 1,028 additions versus the 1.19.2 release, a preliminary classifier covers 756; 272 remain unresolved. The 86 changed existing main-Java classes contain 356 zero-context diff hunks, requiring declaration/hunk ownership. `SFMClientAction` needs separately gated programmatic descriptor methods; `LabelGunActions` needs separately gated Client Manager overloads to preserve broader ComputerCraft support. The current `echo_action` support declaration does not yet describe all witnessed development implementations. Do not accept independent feature combinations from class presence alone or register the proposed taxonomy as proven.
 
 Work: inventory current-development versus 4.34.0 differences, including changed behavior inside existing classes, assets, registrations, commands, data/network formats and dependency use. Define named compilation features and supported targets. Render release behavior from the same core templates while retaining authored development work. Do not treat the existing three flags or empty features as a complete release preset.
 

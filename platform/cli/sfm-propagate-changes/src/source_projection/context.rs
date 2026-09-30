@@ -18,6 +18,8 @@ use std::collections::BTreeMap;
 pub struct ProjectionContext {
     pub minecraft_version: String,
     pub preset: String,
+    pub environment: String,
+    pub projection_key: String,
     pub features: BTreeMap<String, bool>,
     pub targets: BTreeMap<String, bool>,
 }
@@ -76,6 +78,8 @@ mod tests {
         ProjectionContext {
             minecraft_version: "1.19.2".to_owned(),
             preset: "released-4.34.0".to_owned(),
+            environment: "release".to_owned(),
+            projection_key: "sfm-4.34.0/mc-1.19.2".to_owned(),
             features: BTreeMap::from([
                 ("packet_computation".to_owned(), false),
                 ("touch_display".to_owned(), true),

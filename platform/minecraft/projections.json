@@ -1,0 +1,22 @@
+{
+  "sfm-4.34.0/mc-1.19.2": { "minecraft_version": "1.19.2", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.19.4": { "minecraft_version": "1.19.4", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.20": { "minecraft_version": "1.20", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.20.1": { "minecraft_version": "1.20.1", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.20.2": { "minecraft_version": "1.20.2", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.20.3": { "minecraft_version": "1.20.3", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.20.4": { "minecraft_version": "1.20.4", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.21.0": { "minecraft_version": "1.21", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-1.21.1": { "minecraft_version": "1.21.1", "environment": "release", "features": [] },
+  "sfm-4.34.0/mc-26.1.2": { "minecraft_version": "26.1.2", "environment": "release", "features": [] },
+  "sfm-dev/mc-1.19.2": { "minecraft_version": "1.19.2", "environment": "dev", "features": ["echo_action", "touch_display_terminal_mount"] },
+  "sfm-dev/mc-1.19.4": { "minecraft_version": "1.19.4", "environment": "dev", "features": ["touch_display_terminal_mount"] },
+  "sfm-dev/mc-1.20": { "minecraft_version": "1.20", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.20.1": { "minecraft_version": "1.20.1", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.20.2": { "minecraft_version": "1.20.2", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.20.3": { "minecraft_version": "1.20.3", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.20.4": { "minecraft_version": "1.20.4", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.21.0": { "minecraft_version": "1.21", "environment": "dev", "features": [] },
+  "sfm-dev/mc-1.21.1": { "minecraft_version": "1.21.1", "environment": "dev", "features": [] },
+  "sfm-dev/mc-26.1.2": { "minecraft_version": "26.1.2", "environment": "dev", "features": [] }
+}

@@ -1,0 +1,14 @@
+{
+  "echo_action": {
+    "supported_targets": ["1.19.2"],
+    "requires": []
+  },
+  "touch_display_terminal_mount": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "regex_overlap_fix": {
+    "supported_targets": ["1.19.2", "26.1.2"],
+    "requires": []
+  }
+}
