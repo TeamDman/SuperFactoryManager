@@ -11,6 +11,7 @@ pub mod git;
 pub mod github;
 pub mod global_args;
 pub mod gradle;
+pub mod hash;
 pub mod home;
 pub mod jar;
 pub mod jdk;

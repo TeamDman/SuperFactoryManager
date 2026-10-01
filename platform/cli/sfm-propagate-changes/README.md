@@ -4,6 +4,32 @@
 
 This tool is responsible for executing the git merge commands that apply changes to later versions of Minecraft.
 
+## File hashes
+
+Use the built-in helper instead of installing a separate hashing executable:
+
+```pwsh
+sfm-propagate-changes hash file "artifact.jar"
+sfm-propagate-changes hash file "artifact.jar" --algorithm sha256
+sfm-propagate-changes hash file "artifact.jar" --algorithm blake3 --length 20
+sfm-propagate-changes --output-format json hash file "artifact.jar" --algorithm sha256
+```
+
+BLAKE3 defaults to 32 output bytes. Explicit `--length 20` produces the
+existing toolchain-lock identity; `--length` counts bytes, not hexadecimal
+characters. SHA-256 and SHA-1 use their full digests and reject `--length`.
+
+The report includes the algorithm-prefixed identity and number of bytes read.
+The command uses a fixed-size streaming buffer, opens files read-only, and
+rejects directories, inspected symlinks/reparse points and observable changes
+while reading. Requested and canonical paths are re-opened before and after
+reading to verify they still name the same file. These are point-in-time
+checks, not an immutable snapshot or a hostile-path sandbox; same-object
+writes that restore metadata and replacements after the final check remain
+possible. It does not install tools, acquire dependencies or edit locks.
+SHA-1 is provided for compatibility with existing artifacts, not as a security
+recommendation.
+
 ## Schema v3 dependency and source workflow
 
 For the complete acquisition, cache, and no-fetch source-search guide, see

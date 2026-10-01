@@ -9,6 +9,7 @@ use super::manifest::SourceProjectionManifest;
 use super::provenance::ProjectionProvenance;
 use super::provenance::sha256;
 use super::sync::MANIFEST_FILE;
+use crate::file_identity::file_identity;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::bail;
@@ -1454,74 +1455,6 @@ fn apply_one(
         fs::remove_file(staged).wrap_err("could not release staged candidate link")?;
     }
     Ok(())
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct FileIdentity {
-    volume: u64,
-    index: u64,
-}
-
-#[cfg(unix)]
-fn file_identity(file: &fs::File) -> Result<FileIdentity> {
-    use std::os::unix::fs::MetadataExt as _;
-
-    let metadata = file.metadata()?;
-    Ok(FileIdentity {
-        volume: metadata.dev(),
-        index: metadata.ino(),
-    })
-}
-
-#[cfg(windows)]
-#[repr(C)]
-struct WinFileInformation {
-    _attributes: u32,
-    _creation_time: [u32; 2],
-    _last_access_time: [u32; 2],
-    _last_write_time: [u32; 2],
-    volume_serial_number: u32,
-    _size_high: u32,
-    _size_low: u32,
-    _number_of_links: u32,
-    file_index_high: u32,
-    file_index_low: u32,
-}
-
-#[cfg(windows)]
-#[link(name = "kernel32")]
-unsafe extern "system" {
-    #[link_name = "GetFileInformationByHandle"]
-    fn get_file_information_by_handle(
-        file: *mut std::ffi::c_void,
-        information: *mut WinFileInformation,
-    ) -> i32;
-}
-
-#[cfg(windows)]
-fn file_identity(file: &fs::File) -> Result<FileIdentity> {
-    use std::os::windows::io::AsRawHandle as _;
-
-    let mut information = std::mem::MaybeUninit::<WinFileInformation>::uninit();
-    // SAFETY: `file` owns a valid handle, and the output points to a writable
-    // buffer with the Win32 BY_HANDLE_FILE_INFORMATION layout.
-    let success =
-        unsafe { get_file_information_by_handle(file.as_raw_handle(), information.as_mut_ptr()) };
-    if success == 0 {
-        return Err(std::io::Error::last_os_error()).wrap_err("could not identify promotion file");
-    }
-    // SAFETY: the successful Win32 call initialized the complete structure.
-    let information = unsafe { information.assume_init() };
-    Ok(FileIdentity {
-        volume: u64::from(information.volume_serial_number),
-        index: (u64::from(information.file_index_high) << 32)
-            | u64::from(information.file_index_low),
-    })
-}
-
-#[cfg(not(any(unix, windows)))]
-fn file_identity(_file: &fs::File) -> Result<FileIdentity> {
-    bail!("source promotion needs file identity support for this platform")
 }
 
 fn rollback(

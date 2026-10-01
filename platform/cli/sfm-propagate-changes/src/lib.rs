@@ -8,6 +8,7 @@ pub(crate) mod dependency_classfile_stubs;
 pub(crate) mod dependency_inventory;
 pub(crate) mod dependency_locked_sources;
 pub(crate) mod dependency_sources;
+mod file_identity;
 pub mod jar_build;
 pub mod java_analysis;
 pub(crate) mod java_source_catalog;

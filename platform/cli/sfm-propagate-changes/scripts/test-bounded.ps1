@@ -30,7 +30,7 @@ $diskErrorPattern = '(?i)no space left|not enough space|disk (?:is )?full|insuff
 $moduleRoots = @(
     'artifact_lock', 'branch_targets', 'cancellation', 'cli', 'colour',
     'curseforge', 'dependency_classfile_stubs', 'dependency_inventory',
-    'dependency_locked_sources', 'dependency_sources', 'jar_build',
+    'dependency_locked_sources', 'dependency_sources', 'file_identity', 'jar_build',
     'java_analysis', 'java_source_catalog', 'jdk', 'jdk_artifact_cache',
     'logging', 'modrinth', 'propagate', 'release_review_capture',
     'release_review_capture_io', 'release_review_git',

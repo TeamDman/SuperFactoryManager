@@ -103,6 +103,8 @@ pub enum Command {
     ProjectCatalog(super::project_catalog::ProjectCatalogArgs),
     /// Navigate and refactor Java symbols.
     Symbol(super::symbol::SymbolArgs),
+    /// Compute streaming file hashes without an external hashing tool.
+    Hash(super::hash::HashArgs),
     /// Highlight exact source text or run the reusable syntax worker.
     Syntax(super::syntax::SyntaxArgs),
     /// Project version- and feature-specific Minecraft sources.
@@ -155,6 +157,7 @@ impl Command {
                 legacy_output(args.invoke(cancellation_token, invocation_dir))
             }
             Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
+            Command::Hash(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Syntax(args) => args.invoke(&cancellation_token),
             Command::Source(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Review(args) => {
