@@ -4,8 +4,12 @@ Run the Rust tests in separate, bounded test-harness processes.
 
 .DESCRIPTION
 Runs each library module, each integration target, and the large promotion
-fixture separately. Use -Shard unit:cli, -Shard integration:java_analysis_scenarios,
-or -Shard fixture to run just one shard. Ignored tests keep Cargo's default
+fixture separately. Only source_projection is split by the immediate child
+modules discovered from Cargo's current library test list. The old
+-Shard unit:source_projection selector runs all of those child shards; use
+-Shard unit:source_projection:core_inputs for one child. Other existing selectors
+such as -Shard unit:cli, -Shard integration:java_analysis_scenarios, and
+-Shard fixture retain their behavior. Ignored tests keep Cargo's default
 behavior and are not run.
 
 PowerShell 7 or later (pwsh.exe), rg.exe, git.exe, and cargo.exe must be
@@ -62,6 +66,8 @@ $commonCargoArgs = @(
     'test', '--offline', '--locked', '--all-features', '--quiet',
     '--manifest-path', $manifest
 )
+
+. (Join-Path $PSScriptRoot 'bounded-library-plan.ps1')
 
 function Assert-IntegrationTargets {
     $metadataArgs = @(
@@ -138,44 +144,14 @@ function Assert-LibraryPartition {
         throw "Could not list library tests (exit $exitCode)."
     }
 
-    if ($names.Count -eq 0) { throw 'The library test listing is empty.' }
-
-    # libtest filters are substrings, so verify this partition against the
-    # current test list before any shard runs. The two skips remove the known
-    # fixture duplication and any cli::<module>:: namespace overlap.
-    $coverage = [System.Collections.Generic.Dictionary[string, int]]::new(
-        [System.StringComparer]::Ordinal
-    )
-    foreach ($name in $names) { $coverage.Add($name, 0) }
-    foreach ($root in $moduleRoots) {
-        $filter = "${root}::"
-        foreach ($name in $names) {
-            if (-not $name.Contains($filter)) { continue }
-            if ($root -eq 'cli' -and $name.Contains($fixture)) { continue }
-            if ($root -ne 'cli' -and $name.Contains("cli::${root}::")) {
-                continue
-            }
-            $coverage[$name]++
-        }
-    }
-    if (-not $coverage.ContainsKey($fixture)) {
-        throw 'The dedicated promotion fixture is missing from the library test list.'
-    }
-    $coverage[$fixture]++
-    foreach ($test in $standaloneTests) {
-        if (-not $coverage.ContainsKey($test)) {
-            throw "The standalone library test '$test' is missing from the test list."
-        }
-        $coverage[$test]++
-    }
-    $bad = @($coverage.GetEnumerator() | Where-Object { $_.Value -ne 1 })
-    if ($bad.Count -ne 0) {
-        $bad | Select-Object -First 5 | ForEach-Object {
-            Write-Host "Coverage count $($_.Value): $($_.Key)"
-        }
-        throw "Library test partition has $($bad.Count) omitted or overlapping tests."
-    }
-    Write-Host "Library partition: $($names.Count) listed tests across $($moduleRoots.Count) modules, $($standaloneTests.Count) standalone tests and one dedicated fixture."
+    # Derive child shards from the actual list, then verify their real libtest
+    # substring/skip semantics cover every listed test exactly once.
+    $plan = New-BoundedLibraryPlan -TestNames @($names.ToArray()) -ModuleRoots $moduleRoots -Fixture $fixture -StandaloneTests $standaloneTests
+    Write-Host ("Library partition: {0} listed tests across {1} unsplit modules, {2} source_projection children ({3} tests), {4} standalone tests and one dedicated fixture." -f
+        $plan.ListedTestCount, $plan.UnsplitModuleCount,
+        $plan.SourceProjectionChildren.Count, $plan.SourceProjectionTestCount,
+        $plan.StandaloneTestCount)
+    return $plan
 }
 
 function Invoke-CargoShard {
@@ -227,35 +203,6 @@ if ($LASTEXITCODE -ne 0) {
     throw 'rg.exe could not start. Run in a host PowerShell session.'
 }
 
-$jobs = [System.Collections.Generic.List[object]]::new()
-foreach ($root in $moduleRoots) {
-    $name = "unit:$root"
-    if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
-    $cargoArgs = $commonCargoArgs + @('--lib', "${root}::", '--', '--test-threads=1')
-    if ($root -eq 'cli') { $cargoArgs += @('--skip', $fixture) }
-    if ($root -ne 'cli') { $cargoArgs += @('--skip', "cli::${root}::") }
-    $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
-}
-foreach ($target in $integrationTargets) {
-    $name = "integration:$target"
-    if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
-    $cargoArgs = $commonCargoArgs + @('--test', $target, '--', '--test-threads=1')
-    $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
-}
-foreach ($test in $standaloneTests) {
-    $name = "unit:$test"
-    if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
-    $cargoArgs = $commonCargoArgs + @('--lib', $test, '--', '--exact', '--test-threads=1')
-    $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
-}
-if ($Shard -eq 'all' -or $Shard -eq 'fixture') {
-    $cargoArgs = $commonCargoArgs + @('--lib', $fixture, '--', '--exact', '--test-threads=1')
-    $jobs.Add([pscustomobject]@{ Name = 'fixture'; Arguments = $cargoArgs })
-}
-if ($jobs.Count -eq 0) {
-    throw "Unknown shard '$Shard'. Use all, fixture, unit:<module>, or integration:<target>."
-}
-
 $savedEnvironment = @{}
 foreach ($key in @('Path', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_KEY_0', 'GIT_CONFIG_VALUE_0')) {
     $savedEnvironment[$key] = [System.Environment]::GetEnvironmentVariable($key, 'Process')
@@ -270,7 +217,36 @@ try {
 
     if ($Shard -eq 'all') {
         Assert-IntegrationTargets
-        Assert-LibraryPartition
+    }
+    $needsLibraryPlan = $Shard -eq 'all' -or $Shard -eq 'unit:source_projection' -or
+        $Shard.StartsWith('unit:source_projection:', [System.StringComparison]::OrdinalIgnoreCase)
+    if ($needsLibraryPlan) {
+        $plan = Assert-LibraryPartition
+        $libraryDescriptors = @($plan.Jobs)
+    } else {
+        # Keep focused non-source_projection jobs on the existing no-list path.
+        $libraryDescriptors = @(Get-BoundedConfiguredLibraryJobs -ModuleRoots $moduleRoots -Fixture $fixture -StandaloneTests $standaloneTests)
+    }
+    $selectedLibrary = @(Select-BoundedLibraryJobs -Jobs $libraryDescriptors -Shard $Shard)
+    $jobs = [System.Collections.Generic.List[object]]::new()
+    foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq 'module' })) {
+        $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor)
+        $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
+    }
+    foreach ($target in $integrationTargets) {
+        $name = "integration:$target"
+        if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
+        $cargoArgs = $commonCargoArgs + @('--test', $target, '--', '--test-threads=1')
+        $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
+    }
+    foreach ($kind in @('standalone', 'fixture')) {
+        foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq $kind })) {
+            $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor)
+            $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
+        }
+    }
+    if ($jobs.Count -eq 0) {
+        throw "Unknown shard '$Shard'. Use all, fixture, unit:<module>, unit:source_projection:<listed-child>, or integration:<target>."
     }
     for ($index = 0; $index -lt $jobs.Count; $index++) {
         $job = $jobs[$index]

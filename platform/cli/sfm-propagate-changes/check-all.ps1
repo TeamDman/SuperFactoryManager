@@ -1,3 +1,8 @@
+# Cargo feature variants share the target/debug CLI path. During a full gate,
+# and after a failed/interrupted gate or run-profiler.ps1, that path may contain
+# the memory-profiled product. Use install.ps1 or a fresh default-feature build
+# for normal work; only a successful final build below restores that product.
+
 Write-Host -ForegroundColor Yellow "Checking direct dependency policy..."
 $metadataJson = cargo metadata --no-deps --format-version 1
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -38,9 +43,10 @@ cargo build --all-features --quiet
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host -ForegroundColor Yellow "Running bounded library and integration tests..."
-# The memory-profiler feature retains substantial tracing state in a single
-# long-lived harness. The runner verifies exact-once library coverage before
-# starting a fresh process for each module, integration target and fixture.
+# All feature code remains enabled; the unit allocator is deliberately not
+# profiled. The runner verifies exact-once library coverage and uses a fresh
+# process per module (per immediate child for source_projection), integration
+# target and dedicated fixture.
 try {
     & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1')
 } catch {
@@ -55,4 +61,8 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host -ForegroundColor Yellow "Running doc tests..."
 cargo test --offline --locked --all-features --doc --quiet
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host -ForegroundColor Yellow "Building the default-feature operational CLI..."
+cargo build --locked --offline --bin sfm-propagate-changes --quiet
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
