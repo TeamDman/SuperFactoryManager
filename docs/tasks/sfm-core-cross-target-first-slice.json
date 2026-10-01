@@ -1,0 +1,1787 @@
+{
+  "schema": "sfm:core-cross-target-first-slice@1",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "scope": {
+    "authored_java_paths": 2,
+    "context_count": 20,
+    "present_source_reconstructions": 22,
+    "absent_memberships": 18,
+    "raw_exact_reconstructions": 21,
+    "reviewed_newline_reconstructions": 1,
+    "independent_flag_combinations": 4,
+    "actual_read_only_renderer_invocations": 22
+  },
+  "authority_boundary": {
+    "core_java_authoring": true,
+    "production_historical_reads": false,
+    "metadata_catalog_flag_changes_by_this_slice": false,
+    "dependency_changes": false,
+    "build_or_gameplay_acceptance": false
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "proposed_features": {
+    "tick_graph_null_samples": {
+      "supported_targets": [
+        "26.1.2"
+      ],
+      "requires": [],
+      "description": "Skip missing tick-time samples before converting them to nanoseconds; preserve the exact older drawing loop when disabled.",
+      "witnessed_enabled_contexts": [
+        "dev/26.1.2"
+      ]
+    },
+    "test_barrel_constructor_delegation": {
+      "supported_targets": [
+        "26.1.2"
+      ],
+      "requires": [],
+      "description": "Move the fluid-resource lookup into displayedFluid so the delegating constructor remains a direct this(...) call; preserve the release constructor when disabled.",
+      "witnessed_enabled_contexts": [
+        "dev/26.1.2"
+      ]
+    }
+  },
+  "proposed_source_rules": {
+    "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "when": {
+          "targets": [],
+          "all_features": [],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      }
+    ]
+  },
+  "files": {
+    "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java": {
+      "core_source": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "source_sha256": "sha256:dd018e61f6d378ce5787dd780ea01350dad29f5cf9c09eee7fe5b6e6c6ac6c16",
+      "source_byte_count": 2521,
+      "supported_targets": [
+        "26.1.2"
+      ],
+      "witnesses": {
+        "release/1.20": null,
+        "release/1.20.4": null,
+        "dev/1.20.2": null,
+        "dev/1.21.1": null,
+        "release/26.1.2": {
+          "blob": "93fbdc3284c89f92f61f2db5898838306b23efbc",
+          "mode": "100644"
+        },
+        "dev/1.21.0": null,
+        "dev/1.20.3": null,
+        "dev/1.20.1": null,
+        "release/1.19.2": null,
+        "release/1.20.3": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.19.4": null,
+        "dev/26.1.2": {
+          "blob": "2c82f70042e6f661d9a7eacf4d36f7b9fe515f2c",
+          "mode": "100644"
+        },
+        "dev/1.20.4": null,
+        "dev/1.20": null,
+        "dev/1.19.2": null,
+        "dev/1.19.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null
+      },
+      "source_membership_rule": "CoreProjectInputs must omit this source before reading/rendering on all other targets.",
+      "selectors": [
+        {
+          "kind": "feature",
+          "name": "tick_graph_null_samples",
+          "member": "renderToTexture",
+          "scope": "missing sample guard and yNanos assignment only"
+        }
+      ],
+      "normalization": {
+        "policy": "sfm:java_lf_final_newline@1",
+        "reviewed_by": "root local source-normalization decision",
+        "witness_blob": "93fbdc3284c89f92f61f2db5898838306b23efbc",
+        "raw_sha256": "sha256:a2871b15464babb78c8bc50d55f20af968c07df94a8e284ddcbcd90fcc56f66a",
+        "raw_byte_count": 2284,
+        "normalized_sha256": "sha256:644099c0bbf44529b00e60508f7e494804f8cc74278a1642f72d9fa67db5eb6b",
+        "normalized_byte_count": 2285,
+        "crlf_pairs_converted": 0,
+        "final_lf_added": true,
+        "other_content_or_whitespace_changed": false,
+        "jar_or_behavior_acceptance": false
+      }
+    },
+    "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java": {
+      "core_source": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+      "source_byte_count": 6119,
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "witnesses": {
+        "release/1.20": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "release/1.20.4": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "dev/1.20.2": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "dev/1.21.1": {
+          "blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+          "mode": "100644"
+        },
+        "release/26.1.2": {
+          "blob": "d2c218637a7f68ff0cc4edacfb86b5ed252d6f36",
+          "mode": "100644"
+        },
+        "dev/1.21.0": {
+          "blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+          "mode": "100644"
+        },
+        "dev/1.20.3": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "dev/1.20.1": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "release/1.19.2": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "release/1.20.3": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "release/1.20.1": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "release/1.20.2": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "release/1.19.4": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "dev/26.1.2": {
+          "blob": "7eead3df43b36fafb9fe8c3f20da92f79fcd134d",
+          "mode": "100644"
+        },
+        "dev/1.20.4": {
+          "blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+          "mode": "100644"
+        },
+        "dev/1.20": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "dev/1.19.2": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "dev/1.19.4": {
+          "blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+          "mode": "100644"
+        },
+        "release/1.21.0": {
+          "blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+          "mode": "100644"
+        },
+        "release/1.21.1": {
+          "blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+          "mode": "100644"
+        }
+      },
+      "selectors": [
+        {
+          "kind": "minecraft_version",
+          "values": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1"
+          ],
+          "scope": "Forge fluid imports"
+        },
+        {
+          "kind": "minecraft_version",
+          "values": [
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "scope": "NeoForge fluid imports"
+        },
+        {
+          "kind": "minecraft_version",
+          "values": [
+            "1.21",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "scope": "RegistryFriendlyByteBuf import/signatures and STREAM_CODEC decoding; actual 1.21 maps to catalog target_id 1.21.0"
+        },
+        {
+          "kind": "target_boolean",
+          "name": "mc_26_1_2",
+          "scope": "NonNullList, resource-handler tank field, initialization, fluid lookup and encode API"
+        },
+        {
+          "kind": "feature",
+          "name": "test_barrel_constructor_delegation",
+          "member": "TestBarrelTankContainerMenu / displayedFluid",
+          "scope": "26.1.2 constructor-local lookup versus helper call only"
+        }
+      ],
+      "normalization": null
+    }
+  },
+  "raw_blob_objects": {
+    "2c82f70042e6f661d9a7eacf4d36f7b9fe515f2c": {
+      "source_sha256": "sha256:2a3304fd8f2bede44e222c3bc5e68e17341f94bd0d11bd909d5dcb9b50330f83",
+      "byte_count": 2398,
+      "crlf_pairs": 0,
+      "lf_bytes": 61,
+      "final_lf": true
+    },
+    "93fbdc3284c89f92f61f2db5898838306b23efbc": {
+      "source_sha256": "sha256:a2871b15464babb78c8bc50d55f20af968c07df94a8e284ddcbcd90fcc56f66a",
+      "byte_count": 2284,
+      "crlf_pairs": 0,
+      "lf_bytes": 56,
+      "final_lf": false
+    },
+    "342e3e680341466c11b5ab6e68655550a27c79f1": {
+      "source_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "byte_count": 3684,
+      "crlf_pairs": 0,
+      "lf_bytes": 119,
+      "final_lf": true
+    },
+    "eac5fe2d912961792ef62606d53a9fd1315228fa": {
+      "source_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "byte_count": 3692,
+      "crlf_pairs": 0,
+      "lf_bytes": 119,
+      "final_lf": true
+    },
+    "26b4006a0b93f75cef7ed411e9a12294027b2b28": {
+      "source_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+      "byte_count": 3747,
+      "crlf_pairs": 0,
+      "lf_bytes": 119,
+      "final_lf": true
+    },
+    "7eead3df43b36fafb9fe8c3f20da92f79fcd134d": {
+      "source_sha256": "sha256:d72abdf64e9f3904bdd504a2405e346e2dc921bfc83344365bc0088e0795858f",
+      "byte_count": 4102,
+      "crlf_pairs": 0,
+      "lf_bytes": 125,
+      "final_lf": true
+    },
+    "d2c218637a7f68ff0cc4edacfb86b5ed252d6f36": {
+      "source_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+      "byte_count": 3965,
+      "crlf_pairs": 0,
+      "lf_bytes": 121,
+      "final_lf": true
+    }
+  },
+  "reconstruction_proof": [
+    {
+      "context": "dev/1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "dev/1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "dev/1.20",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.20",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "dev/1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "dev/1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "dev/1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "dev/1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "dev/1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+      "raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+      "raw_byte_count": 3747,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3747,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652"
+    },
+    {
+      "context": "dev/1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "dev/1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+      "raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+      "raw_byte_count": 3747,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3747,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652"
+    },
+    {
+      "context": "dev/26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "present",
+      "raw_blob": "2c82f70042e6f661d9a7eacf4d36f7b9fe515f2c",
+      "raw_sha256": "sha256:2a3304fd8f2bede44e222c3bc5e68e17341f94bd0d11bd909d5dcb9b50330f83",
+      "raw_byte_count": 2398,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 2398,
+      "enabled_features": [
+        "tick_graph_null_samples"
+      ],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:2a3304fd8f2bede44e222c3bc5e68e17341f94bd0d11bd909d5dcb9b50330f83"
+    },
+    {
+      "context": "dev/26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "7eead3df43b36fafb9fe8c3f20da92f79fcd134d",
+      "raw_sha256": "sha256:d72abdf64e9f3904bdd504a2405e346e2dc921bfc83344365bc0088e0795858f",
+      "raw_byte_count": 4102,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 4102,
+      "enabled_features": [
+        "test_barrel_constructor_delegation"
+      ],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:d72abdf64e9f3904bdd504a2405e346e2dc921bfc83344365bc0088e0795858f"
+    },
+    {
+      "context": "release/1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "release/1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "release/1.20",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.20",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "release/1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+      "raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+      "raw_byte_count": 3684,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3684,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310"
+    },
+    {
+      "context": "release/1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "release/1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "release/1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+      "raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+      "raw_byte_count": 3692,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3692,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e"
+    },
+    {
+      "context": "release/1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+      "raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+      "raw_byte_count": 3747,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3747,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652"
+    },
+    {
+      "context": "release/1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "absent",
+      "output_expected": "omit_before_read_render"
+    },
+    {
+      "context": "release/1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+      "raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+      "raw_byte_count": 3747,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3747,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652"
+    },
+    {
+      "context": "release/26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "membership": "present",
+      "raw_blob": "93fbdc3284c89f92f61f2db5898838306b23efbc",
+      "raw_sha256": "sha256:a2871b15464babb78c8bc50d55f20af968c07df94a8e284ddcbcd90fcc56f66a",
+      "raw_byte_count": 2284,
+      "comparison": "sfm:java_lf_final_newline@1",
+      "rendered_byte_count": 2285,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:644099c0bbf44529b00e60508f7e494804f8cc74278a1642f72d9fa67db5eb6b"
+    },
+    {
+      "context": "release/26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "membership": "present",
+      "raw_blob": "d2c218637a7f68ff0cc4edacfb86b5ed252d6f36",
+      "raw_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+      "raw_byte_count": 3965,
+      "comparison": "raw_exact",
+      "rendered_byte_count": 3965,
+      "enabled_features": [],
+      "independent_reconstruction": "passed",
+      "rendered_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9"
+    }
+  ],
+  "independent_flag_combination_proof": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "enabled_features": [],
+      "expected_witness": "release/26.1.2",
+      "comparison": "sfm:java_lf_final_newline@1",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "enabled_features": [],
+      "expected_witness": "release/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "enabled_features": [
+        "tick_graph_null_samples"
+      ],
+      "expected_witness": "dev/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "enabled_features": [
+        "tick_graph_null_samples"
+      ],
+      "expected_witness": "release/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "enabled_features": [
+        "test_barrel_constructor_delegation"
+      ],
+      "expected_witness": "release/26.1.2",
+      "comparison": "sfm:java_lf_final_newline@1",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "enabled_features": [
+        "test_barrel_constructor_delegation"
+      ],
+      "expected_witness": "dev/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+      "enabled_features": [
+        "tick_graph_null_samples",
+        "test_barrel_constructor_delegation"
+      ],
+      "expected_witness": "dev/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+      "enabled_features": [
+        "tick_graph_null_samples",
+        "test_barrel_constructor_delegation"
+      ],
+      "expected_witness": "dev/26.1.2",
+      "comparison": "raw_exact",
+      "independent_reconstruction": "passed"
+    }
+  ],
+  "validation": {
+    "raw_acquisition": "Git cat-file --batch bytes independently verified against blob SHA-1; raw SHA-256 and lengths recorded. No git-show output used for hashing.",
+    "independent_template_reconstruction": "passed: a strict whole-line if/case interpreter for this authored subset compared all twenty pinned contexts, exact absent membership, and all four independent 26.1.2 flag combinations.",
+    "production_controlled_liquid_renderer": "passed: 22 actual worktree read-only source render commands across current catalog contexts, recomputed JSON rendered_content hashes, 20 raw-exact and 2 documented final-LF release comparisons; feature-on production-renderer unit test still pending",
+    "scope_and_path_validation": "core destinations are new, no existing source was overwritten; all recorded paths are repository-relative.",
+    "metadata_registration": "registered by parent and read-only audited: two26-only fix IDs/no requirements and Tick sparse26-only source rule; Tank default shared source inclusion",
+    "compilation_and_runtime": "not attempted in this subtask; parent owns combined Cargo/build/game acceptance",
+    "prerequisite_combinations": "Flags have no prerequisites and neither changes the other's output. Broader renderer/menu Java API availability is inherited from target adapters, not a new dependency.",
+    "contribution_safety": "Normal named sync/provenance refusal still applies; this slice performs no generated-output writes.",
+    "release_compatibility_boundary": "Raw/source reconstruction is source evidence only; it does not claim JAR or gameplay parity."
+  },
+  "actual_read_only_renderer_proof": {
+    "cli": {
+      "relative_path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+      "sha256": "sha256:91e630a42e9daa21a05cdce359ac4c979bee2dff2ef250c678b36c54addd0e4f",
+      "byte_count": 91094016,
+      "last_write_utc": "2026-09-30T19:31:19.2583692Z",
+      "unchanged_during_invocations": true
+    },
+    "validation_date_utc": "2026-09-30",
+    "mode": "actual worktree source render JSON stdout captured and parsed; UTF-8 rendered_content SHA-256 recomputed independently; no own template expander used",
+    "scope": {
+      "invocations": 22,
+      "tank_current_catalog_contexts": 20,
+      "tick_current_catalog_contexts": 2,
+      "raw_exact_comparisons": 20,
+      "approved_final_lf_comparisons": 2,
+      "total_stdout_bytes": 140321
+    },
+    "limits": {
+      "timeout_ms_per_invocation": 15000,
+      "max_stdout_bytes_per_invocation": 1048576,
+      "max_aggregate_stdout_bytes": 16777216
+    },
+    "records": [
+      {
+        "projection_key": "sfm-4.34.0/mc-1.19.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.19.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:7476ff1c5e580059ca9a85ddc797935ce3ca935d9054aa42dbbc1815a5861601",
+        "target_id": "1.19.2",
+        "minecraft_version": "1.19.2",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:a9b118e1dacb5c2e26238b4d77f9535433bda54b5c72102df699666b6b747ceb",
+        "stdout_byte_count": 6479,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.19.4",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.19.4",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:4b5cdf144cb69503db252fcde35e40e97a35d174d6b223b6273153c17ad3d294",
+        "target_id": "1.19.4",
+        "minecraft_version": "1.19.4",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:159412986da915020e53486c7872421cfec4bd8a13ecfbb104c36da09224d1e4",
+        "stdout_byte_count": 6479,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.20",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.20",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:5668597a9723513b276c8a41b6279cb7dd5172806e2b4bccf4217ced8d7d77ac",
+        "target_id": "1.20",
+        "minecraft_version": "1.20",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:aab527e9a3df9d457d553927bc316a94c79fe91fafb026238573023e82b4fdcc",
+        "stdout_byte_count": 6465,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.20.1",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.20.1",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:4f0155be5394f36fc68e34dfa3de89f331eae3a59a504eec3dfdbf1a61555ac3",
+        "target_id": "1.20.1",
+        "minecraft_version": "1.20.1",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:7fe953d774c3c16168dee8062e967dadbbc9c0070ae152c17cdbd7576f1ed9fc",
+        "stdout_byte_count": 6479,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.20.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.20.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:c3cd6e71fbc3fc6e6342b7bb8460f857f8912ad4ffef52ccb89b4cdacbdfac43",
+        "target_id": "1.20.2",
+        "minecraft_version": "1.20.2",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:eb4a39bcb3b2455eea2a231ec2433c8c7c1b25efd6c24c888d446a8bb10e3182",
+        "stdout_byte_count": 6487,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.20.3",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.20.3",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:e6f2403b9fa64f4bde2edcb5bc557ccfe74e631ddcf0eed87ef08aec3d284e9c",
+        "target_id": "1.20.3",
+        "minecraft_version": "1.20.3",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:40388aefc8f67a7d1e6a6b585d948c793cd30c293d5819401c7eeb64b8343e9e",
+        "stdout_byte_count": 6487,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.20.4",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.20.4",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:eb70c4671923ed20bbf88bccdf0401deaf6300f0cad37f78ab3fff927da7a373",
+        "target_id": "1.20.4",
+        "minecraft_version": "1.20.4",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:8f22fb8ae2a459d8d7dbb2c178eebb234b7e50f49a4702533c36a7592575c9fb",
+        "stdout_byte_count": 6487,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.21.0",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.21.0",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:6fbc1b4a0c5c98108d52cc2585acf86f570120b2ad0a72b92466fa954cdcc1b8",
+        "target_id": "1.21.0",
+        "minecraft_version": "1.21",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+        "expected_raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "expected_raw_byte_count": 3747,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "rendered_byte_count": 3747,
+        "stdout_sha256": "sha256:d5ad2c0eae97b3e71748a14e73f3bd7265386eaf3b9cc273f9f36a99af25850c",
+        "stdout_byte_count": 6538,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-1.21.1",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-1.21.1",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:2c793acd3abbb52c8dc2677e5813f4e885d6e3d6e6ab7a27964d4e0918e4718c",
+        "target_id": "1.21.1",
+        "minecraft_version": "1.21.1",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+        "expected_raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "expected_raw_byte_count": 3747,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "rendered_byte_count": 3747,
+        "stdout_sha256": "sha256:ba57df40fe8a1de83f6abea9b723d0d315fcf46c3a82b4d0f990c05490124523",
+        "stdout_byte_count": 6542,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-26.1.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-26.1.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:76118713b61ec5ff8f578211f4218a8954ff8d8e8bfecc3236a165d47de45e54",
+        "target_id": "26.1.2",
+        "minecraft_version": "26.1.2",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:dd018e61f6d378ce5787dd780ea01350dad29f5cf9c09eee7fe5b6e6c6ac6c16",
+        "expected_release_blob": "93fbdc3284c89f92f61f2db5898838306b23efbc",
+        "expected_raw_sha256": "sha256:a2871b15464babb78c8bc50d55f20af968c07df94a8e284ddcbcd90fcc56f66a",
+        "expected_raw_byte_count": 2284,
+        "comparison": "sfm:java_lf_final_newline@1",
+        "rendered_sha256": "sha256:644099c0bbf44529b00e60508f7e494804f8cc74278a1642f72d9fa67db5eb6b",
+        "rendered_byte_count": 2285,
+        "stdout_sha256": "sha256:4ed4261f9e4689c100abbb1a3cb59bc16e57f516b2aabe2125bdd44623b9d5bf",
+        "stdout_byte_count": 5016,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-4.34.0/mc-26.1.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-4.34.0/mc-26.1.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:76118713b61ec5ff8f578211f4218a8954ff8d8e8bfecc3236a165d47de45e54",
+        "target_id": "26.1.2",
+        "minecraft_version": "26.1.2",
+        "environment": "release",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "d2c218637a7f68ff0cc4edacfb86b5ed252d6f36",
+        "expected_raw_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+        "expected_raw_byte_count": 3965,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+        "rendered_byte_count": 3965,
+        "stdout_sha256": "sha256:59d8a9158590e2811eef9581d76a341c0ed55d041b0281a8b9b4d24d555b35a8",
+        "stdout_byte_count": 6762,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.19.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.19.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:989e03a588e2d8497ab40f6acfbdedabffd0d53ef88d3c566ebc8c0c3c9e701a",
+        "target_id": "1.19.2",
+        "minecraft_version": "1.19.2",
+        "environment": "dev",
+        "enabled_features": [
+          "echo_action",
+          "touch_display_terminal_mount"
+        ],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:83008dab2bd88a6e601fbe72671eb197f1188ff79c510a14f0fa144bd3cf3c52",
+        "stdout_byte_count": 6518,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.19.4",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.19.4",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:8f482fab2711efa4cdb395344bf42bb133f7c65a425a4a5d3cf0d36c2f8afa56",
+        "target_id": "1.19.4",
+        "minecraft_version": "1.19.4",
+        "environment": "dev",
+        "enabled_features": [
+          "touch_display_terminal_mount"
+        ],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:10806fb3f0386d99a71722cd0cdc230d16f6177614447f63f0e4e23f6498dd4b",
+        "stdout_byte_count": 6499,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.20",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.20",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:4915312f689cfca00480de3804f5c675361924f8c3bc1045c0a9ba8d55a651f4",
+        "target_id": "1.20",
+        "minecraft_version": "1.20",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:2d864d3d516076e0fcb6451e994d18ed38372cecaebff74d857bb6ff3c6f1b71",
+        "stdout_byte_count": 6445,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.20.1",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.20.1",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:e7dfe920c0118e006f6740a9d5cd2350350aa9717e77976e60befafd23f2cc86",
+        "target_id": "1.20.1",
+        "minecraft_version": "1.20.1",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "342e3e680341466c11b5ab6e68655550a27c79f1",
+        "expected_raw_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "expected_raw_byte_count": 3684,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:5d937119c37b1daef7a430781c25cb6076a956ac88cca7df22814b1f71a6c310",
+        "rendered_byte_count": 3684,
+        "stdout_sha256": "sha256:bc06df1ad57eba2da7eff3d634fdce40a1f7b5a5cbf07477482b7e923de3d263",
+        "stdout_byte_count": 6459,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.20.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.20.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:1e588422ef174948f25e422baba2fa16c3c084656376e45595f15ec77883eb4d",
+        "target_id": "1.20.2",
+        "minecraft_version": "1.20.2",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:7f09fd6ea637a34830b179ba2e78c6a6270b393d78952c7db692dcfb02007b74",
+        "stdout_byte_count": 6467,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.20.3",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.20.3",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:14934c6ac847a201aa08474de858d84676842eeda6c406c66f702aa624d4b26f",
+        "target_id": "1.20.3",
+        "minecraft_version": "1.20.3",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:7867bb4c43b1376f5242caec292aaa6176c0ee8f1c11f73d3ea454ee9fff51f3",
+        "stdout_byte_count": 6467,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.20.4",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.20.4",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:91ecda6081f318e05bb9f3b2177232bf2cf1821122ed7d236918121e0fb3cb46",
+        "target_id": "1.20.4",
+        "minecraft_version": "1.20.4",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "eac5fe2d912961792ef62606d53a9fd1315228fa",
+        "expected_raw_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "expected_raw_byte_count": 3692,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:659a8bbbef4ec973412f653412f74981b27d9566b5625411add0d6848f3d6d3e",
+        "rendered_byte_count": 3692,
+        "stdout_sha256": "sha256:c651516a7a6baebaac6431f12bd8d4a1dcf9058faae1dd6164ae90cebb24a40a",
+        "stdout_byte_count": 6467,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.21.0",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.21.0",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:4fa23d91b36c10f6b7dd463d371e44a24ef7bd48b6e0341c6a1304f804dc553a",
+        "target_id": "1.21.0",
+        "minecraft_version": "1.21",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+        "expected_raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "expected_raw_byte_count": 3747,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "rendered_byte_count": 3747,
+        "stdout_sha256": "sha256:fe1ebdc06decaf3928f53d21b914249943fb3631b7d3e38db9ad5f0323a4b11b",
+        "stdout_byte_count": 6518,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-1.21.1",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-1.21.1",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:b04f8daa57468f303e7ca384072ef511ea3a84cbcad827ef537a494b01020d2e",
+        "target_id": "1.21.1",
+        "minecraft_version": "1.21.1",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "26b4006a0b93f75cef7ed411e9a12294027b2b28",
+        "expected_raw_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "expected_raw_byte_count": 3747,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:3887c181479c9a03cc16bb924a98e49e6c394e428fbf901f35700942820ef652",
+        "rendered_byte_count": 3747,
+        "stdout_sha256": "sha256:5b7f5534fda8f16f5f5286bee36a2d6e3be1ff5626a4bcbd32f7a8247a176a88",
+        "stdout_byte_count": 6522,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-26.1.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-26.1.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4",
+        "target_id": "26.1.2",
+        "minecraft_version": "26.1.2",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:dd018e61f6d378ce5787dd780ea01350dad29f5cf9c09eee7fe5b6e6c6ac6c16",
+        "expected_release_blob": "93fbdc3284c89f92f61f2db5898838306b23efbc",
+        "expected_raw_sha256": "sha256:a2871b15464babb78c8bc50d55f20af968c07df94a8e284ddcbcd90fcc56f66a",
+        "expected_raw_byte_count": 2284,
+        "comparison": "sfm:java_lf_final_newline@1",
+        "rendered_sha256": "sha256:644099c0bbf44529b00e60508f7e494804f8cc74278a1642f72d9fa67db5eb6b",
+        "rendered_byte_count": 2285,
+        "stdout_sha256": "sha256:cf6a6bd2087e6149a9a808efdf5a54e30ec55fa42fc0cf52c150abea07de1af0",
+        "stdout_byte_count": 4996,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      },
+      {
+        "projection_key": "sfm-dev/mc-26.1.2",
+        "core_relative_file": "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java",
+        "command": [
+          "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+          "--output-format",
+          "json",
+          "source",
+          "render",
+          "--repo-root",
+          ".",
+          "--projection",
+          "sfm-dev/mc-26.1.2",
+          "--file",
+          "src/main/java/ca/teamdman/sfm/common/containermenu/TestBarrelTankContainerMenu.java"
+        ],
+        "schema": "sfm:source_projection_render@1",
+        "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+        "context_identity": "blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4",
+        "target_id": "26.1.2",
+        "minecraft_version": "26.1.2",
+        "environment": "dev",
+        "enabled_features": [],
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "source_sha256": "sha256:fb5831e62de63ddd74282149b1d6651cf64760b97b171f17544449d603d1f8fd",
+        "expected_release_blob": "d2c218637a7f68ff0cc4edacfb86b5ed252d6f36",
+        "expected_raw_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+        "expected_raw_byte_count": 3965,
+        "comparison": "raw_exact",
+        "rendered_sha256": "sha256:00ef54c7bf1b64ab349e568dd2fa559ae9492552572bf6d7a104432cc708ede9",
+        "rendered_byte_count": 3965,
+        "stdout_sha256": "sha256:50c030a37d06ca5b296bb828800aa19e20389fbe8735da365838a9ccc3036541",
+        "stdout_byte_count": 6742,
+        "stderr_byte_count": 0,
+        "exit_code": 0,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false,
+        "matched_release_witness": true
+      }
+    ],
+    "membership_evidence": {
+      "project_inputs_path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "project_inputs_sha256": "sha256:85a5701393c4f556a65f4c1e007e15847a1e48cf09f9aa55c102fdc27e23a391",
+      "tick_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+          "when": {
+            "targets": [
+              "26.1.2"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "tank_explicit_source_rule": null,
+      "tank_inclusion": "default shared src inclusion for every validated target",
+      "tick_absences": "source selection predicates omit before read/render on the other nine targets; single-file source render does not prove membership"
+    },
+    "exclusions": [
+      "Current catalog keeps both fix flags disabled. These actual commands prove feature-off release witness output only; independent feature-on reconstruction above remains a separate authoring proof until real-renderer unit tests run.",
+      "Single-file source render does not apply source membership, generate a project, compile Java, build a JAR, prove gameplay parity or write projection files.",
+      "No stdout source dumps are committed here: exact source/report hashes, byte counts, inputs and commands identify each captured read-only report."
+    ]
+  }
+}

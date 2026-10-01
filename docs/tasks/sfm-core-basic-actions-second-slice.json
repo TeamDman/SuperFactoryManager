@@ -1,0 +1,1235 @@
+{
+  "schema": "sfm:core-basic-actions-second-slice@1",
+  "status": "authored_four_member_guarded_templates_pending_root_selector_and_membership_registration",
+  "ownership_evidence": "docs/tasks/sfm-core-action-seed.json",
+  "previous_slice": "docs/tasks/sfm-core-basic-actions-first-slice.json",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "scope": "Four basic human-action foundation classes only. Registry, dispatcher/compiler, command tree, palette UI, shared carrier implementations, Echo and optional extension implementations are excluded.",
+  "counts": {
+    "authored_paths": 4,
+    "authored_template_bytes": 12448,
+    "raw_witness_variants": 9,
+    "witness_contexts": 20,
+    "expected_development_file_occurrences": 40,
+    "expected_release_absences": 40,
+    "representative_partial_cases": 8,
+    "partial_expected_file_occurrences": 32
+  },
+  "membership_contract": "Root must register explicit client_actions sparse inclusion before any subsequent core generation. Feature-disabled release projections must omit all four files; rendering a file directly is not a membership test.",
+  "selector_contract": "The four functional optional selectors are not registered by this slice. The production renderer must reject unknown selectors until root registers reviewed feature definitions/context entries. Explicit grouped Minecraft cases separately limit the optional members to D2 without limiting the broader subsystem flags.",
+  "exact_full_off_reconstruction_expectations": {
+    "status": "prepared_raw_witness_expectations_not_executed_production_renderer",
+    "context_commits": {
+      "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+      "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+      "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+      "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+      "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+      "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+      "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+      "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+      "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+      "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+      "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+      "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+      "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+      "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+      "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+      "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+      "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+      "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+      "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+    },
+    "flags_by_context": {
+      "dev/1.19.2": {
+        "client_actions": true,
+        "client_program_actions": true,
+        "workspace_panels": true,
+        "structured_action_results": true,
+        "keyboard_profiles": true
+      },
+      "dev/1.19.4": {
+        "client_actions": true,
+        "client_program_actions": true,
+        "workspace_panels": true,
+        "structured_action_results": true,
+        "keyboard_profiles": true
+      },
+      "dev/1.20": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.20.1": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.20.2": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.20.3": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.20.4": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.21.0": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/1.21.1": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "dev/26.1.2": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "release/1.19.2": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.19.4": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.20": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.20.1": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.20.2": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.20.3": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.20.4": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.21.0": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/1.21.1": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "release/26.1.2": {
+        "client_actions": false,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      }
+    },
+    "release_output": "Every released witness lacks these four classes. With client_actions false, source selection must exclude each path before reading/rendering.",
+    "development_output": "With the exact target flags above, compare each output with its file's source_witness_variants entry. Historical hashes are migration/equivalence fixtures only; production must read these authored templates.",
+    "full_or_off_semantics": "Full dev enables workspace_panels and keyboard_profiles across all10 contexts to exercise their broader support, while client_program_actions/structured_action_results remain enabled on D2. The narrow current-generation member cases still emit only on 1.19.2/1.19.4; all8 other outputs remain their exact older API. Release excludes all4 files.",
+    "acceptance_gate": "Run the real Rust/Liquid source renderer after selector registration for all40 development outputs and the eight partial cases; independently prove40 release membership absences with source selection/generation. No homebrew renderer is accepted as production proof."
+  },
+  "files": {
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "all_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_disabled": true,
+        "release_target_membership": []
+      },
+      "authored_template": {
+        "sha256": "sha256:9cf77b5d0dff007ce7400e09919b5dc1d98369a2e77bfdd4b7777c6d832dc420",
+        "bytes": 3020,
+        "line_endings": "lf",
+        "final_newline": "exactly_one_lf",
+        "directive_form": "whole_line_if_elsif_else_and_string_case_when",
+        "version_adapter": "Grouped 1.19.2/1.19.4 case bounds programmatic member extensions; 26.1.2 uses Identifier import/argument, other9 ResourceLocation"
+      },
+      "canonical_checkout_check": {
+        "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "comparison": "canonical source after CRLF-to-LF checkout normalization equals exact checkpoint witness SHA-256",
+        "sha256": "sha256:92fdf8e1a9d07a2ad9376ae8b951f960096db4ab3effb0e17fded516aa32bdc8",
+        "passed": true
+      },
+      "optional_members": [
+        {
+          "anchors": [
+            "programmaticDescriptor()",
+            "programmaticHandler()"
+          ],
+          "owners": [
+            "client_program_actions"
+          ],
+          "witnessed_extension_targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "off_contract": "Omit the machine defaults and their descriptor/handler type references; retain human requirement/invoke/execute and optional itemIcon behavior.",
+          "effective_condition": {
+            "minecraft_version_any": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_actions"
+            ]
+          }
+        }
+      ],
+      "source_witness_variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "witness_context": "dev/1.19.2",
+          "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "witness_blob": "d44844528157d93f958f3649cce66bfca2ff39f0",
+          "source_sha256": "sha256:92fdf8e1a9d07a2ad9376ae8b951f960096db4ab3effb0e17fded516aa32bdc8",
+          "source_bytes": 2604,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        },
+        {
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1"
+          ],
+          "witness_context": "dev/1.20",
+          "witness_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "source_sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "source_bytes": 2129,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        },
+        {
+          "contexts": [
+            "dev/26.1.2"
+          ],
+          "witness_context": "dev/26.1.2",
+          "witness_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "witness_blob": "4327d2599deb2f0368ae0d99e2772fe70a18c06a",
+          "source_sha256": "sha256:84a59da287f02fd5def1822b76bd183d0e8896a23c01eb3043801ad4ada2307d",
+          "source_bytes": 2117,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        }
+      ],
+      "dependencies": {
+        "shared_base": [
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java"
+        ],
+        "optional_by_owner": {
+          "client_program_actions": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptor.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticHandler.java"
+          ]
+        },
+        "notes": [
+          "SFMItemIcon is a presentation-only value carrier whose four target variants still need one authored version adapter. Its type reference does not require the palette, icon renderer, theme store or workspace runtime.",
+          "Machine defaults remain opt-in Optional.empty() methods. The interface does not grant a principal, consent, data scope, budget or server authority.",
+          "Descriptor/handler closure includes SFMValue, SFMValueSchema, programmatic context and their reviewed owners; that closure is not authored or registered here."
+        ]
+      }
+    },
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "all_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_disabled": true,
+        "release_target_membership": []
+      },
+      "authored_template": {
+        "sha256": "sha256:2713d367601d6441a697e2c25650a7e187a4157f7785e0c35e407a0650e97a68",
+        "bytes": 2894,
+        "line_endings": "lf",
+        "final_newline": "exactly_one_lf",
+        "directive_form": "whole_line_if_elsif_else_and_string_case_when",
+        "version_adapter": "Grouped 1.19.2/1.19.4 cases bound optional member extensions independently of broader subsystem support"
+      },
+      "canonical_checkout_check": {
+        "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "comparison": "canonical source after CRLF-to-LF checkout normalization equals exact checkpoint witness SHA-256",
+        "sha256": "sha256:6bc1d4c12270474409efe0e4a55058db5457d74e3134d0f4909754b5464e1946",
+        "passed": true
+      },
+      "optional_members": [
+        {
+          "anchors": [
+            "originatingPanelId",
+            "create(): instanceof SFMScreenMultiplexer"
+          ],
+          "owners": [
+            "workspace_panels"
+          ],
+          "witnessed_extension_targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "off_contract": "Keep the pure nullable panel-ID carrier if its consumers need it; omit workspace runtime capture and use null rather than import the full multiplexer.",
+          "effective_condition": {
+            "minecraft_version_any": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "workspace_panels"
+            ]
+          }
+        }
+      ],
+      "source_witness_variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "witness_context": "dev/1.19.2",
+          "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "witness_blob": "374f71d3a29c4d3a21579666084b4c89728bb121",
+          "source_sha256": "sha256:6bc1d4c12270474409efe0e4a55058db5457d74e3134d0f4909754b5464e1946",
+          "source_bytes": 2220,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        },
+        {
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2"
+          ],
+          "witness_context": "dev/1.20",
+          "witness_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "source_sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "source_bytes": 1851,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        }
+      ],
+      "dependencies": {
+        "shared_base": [
+          "src/main/java/ca/teamdman/sfm/common/localization/LocalizationEntry.java",
+          "src/main/java/ca/teamdman/sfm/common/localization/SFMLocalizationDatagen.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java"
+        ],
+        "optional_by_owner": {
+          "workspace_panels": [
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java"
+          ]
+        },
+        "notes": [
+          "workspace_panels off uses the original two-component context and two-argument constructor; it contains no multiplexer or panel-ID references.",
+          "The pure SFMWorkspacePanelId carrier is a separately reviewed shared-input proposal, not permission to require or emit the entire workspace.",
+          "Consumers such as SFMClientActionContinuation currently call originatingPanelId() and a three-argument constructor. They need their own workspace/member guard or a separately approved null-carrier seam before workspace-off combinations containing those consumers may compile."
+        ]
+      }
+    },
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "all_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_disabled": true,
+        "release_target_membership": []
+      },
+      "authored_template": {
+        "sha256": "sha256:bb3a637c1ed303d5f16d2f4ddf177950076a3cfdfd89eb037e0ec6bb08e0e037",
+        "bytes": 1857,
+        "line_endings": "lf",
+        "final_newline": "exactly_one_lf",
+        "directive_form": "whole_line_if_elsif_else_and_string_case_when",
+        "version_adapter": "Grouped 1.19.2/1.19.4 cases bound optional member extensions independently of broader subsystem support"
+      },
+      "canonical_checkout_check": {
+        "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "comparison": "canonical source after CRLF-to-LF checkout normalization equals exact checkpoint witness SHA-256",
+        "sha256": "sha256:51da8ed1d61300383b964905f2ecf17911d727b7e5035d32751eafb45c608c81",
+        "passed": true
+      },
+      "optional_members": [
+        {
+          "anchors": [
+            "structuredResult record component",
+            "structured-result constructor overloads",
+            "publishStructuredResult()"
+          ],
+          "owners": [
+            "structured_action_results"
+          ],
+          "witnessed_extension_targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "off_contract": "Use the human context/component feedback shape without the structured-result type or consumer.",
+          "effective_condition": {
+            "minecraft_version_any": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "structured_action_results"
+            ]
+          }
+        }
+      ],
+      "source_witness_variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "witness_context": "dev/1.19.2",
+          "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "witness_blob": "3db22af9e1ec587fadfe4d3237e955aaead24592",
+          "source_sha256": "sha256:51da8ed1d61300383b964905f2ecf17911d727b7e5035d32751eafb45c608c81",
+          "source_bytes": 1116,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        },
+        {
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2"
+          ],
+          "witness_context": "dev/1.20",
+          "witness_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "source_sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "source_bytes": 629,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        }
+      ],
+      "dependencies": {
+        "shared_base": [
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java"
+        ],
+        "optional_by_owner": {
+          "structured_action_results": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java"
+          ]
+        },
+        "notes": [
+          "Structured-result callbacks are independent of typed programmatic descriptors and program permissions. Feedback-only callers retain the exact old record shape and constructor behavior.",
+          "Any caller of publishStructuredResult() or the three-component canonical constructor must be owned/guarded by structured_action_results before permitting its flag-off combination."
+        ]
+      }
+    },
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "all_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_disabled": true,
+        "release_target_membership": []
+      },
+      "authored_template": {
+        "sha256": "sha256:65ac7fb705b317e989bf453f6f44eb82d9c8ae1148eb19f4f4ea1d8231275def",
+        "bytes": 4677,
+        "line_endings": "lf",
+        "final_newline": "exactly_one_lf",
+        "directive_form": "whole_line_if_elsif_else_and_string_case_when",
+        "version_adapter": "Grouped 1.19.2/1.19.4 cases bound optional member extensions independently of broader subsystem support"
+      },
+      "canonical_checkout_check": {
+        "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "comparison": "canonical source after CRLF-to-LF checkout normalization equals exact checkpoint witness SHA-256",
+        "sha256": "sha256:486404b1a85b2c20abb0f744719d4a70dc2352a63f53f12ce8a3b0e6a2baa587",
+        "passed": true
+      },
+      "optional_members": [
+        {
+          "anchors": [
+            "structured-result execute() overloads"
+          ],
+          "owners": [
+            "structured_action_results"
+          ],
+          "witnessed_extension_targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "off_contract": "Execute with context/component feedback only.",
+          "effective_condition": {
+            "minecraft_version_any": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "structured_action_results"
+            ]
+          }
+        },
+        {
+          "anchors": [
+            "SFMClientActionInvocationTrace.current()",
+            "SFMClientActionInvocationTrace.activate()"
+          ],
+          "owners": [
+            "keyboard_profiles"
+          ],
+          "witnessed_extension_targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "off_contract": "Use the same command-tree execution without importing or activating keyboard provenance.",
+          "effective_condition": {
+            "minecraft_version_any": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          }
+        }
+      ],
+      "source_witness_variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "witness_context": "dev/1.19.2",
+          "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "witness_blob": "ba5540c5510da6d5e551a323388fee0fbfb3e8a0",
+          "source_sha256": "sha256:486404b1a85b2c20abb0f744719d4a70dc2352a63f53f12ce8a3b0e6a2baa587",
+          "source_bytes": 2774,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        },
+        {
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2"
+          ],
+          "witness_context": "dev/1.20",
+          "witness_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "source_sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "source_bytes": 1028,
+          "line_endings": "lf",
+          "final_newline": "exactly_one_lf"
+        }
+      ],
+      "dependencies": {
+        "shared_base": [
+          "src/main/java/ca/teamdman/sfm/client/registry/SFMClientActions.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java"
+        ],
+        "optional_by_owner": {
+          "structured_action_results": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java"
+          ],
+          "keyboard_profiles": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionInvocationTrace.java"
+          ]
+        },
+        "notes": [
+          "Both optional owners off restores the exact historical single feedback-only execute() overload. No structured-result or trace type remains.",
+          "structured_action_results alone preserves global and explicit-tree structured callbacks without activating or referring to InvocationTrace; its reduced Javadoc does not falsely claim a provenance scope.",
+          "keyboard_profiles alone retains explicit-tree execution and existing-scope reuse/try-with-resources restoration with feedback-only sources, without referring to a structured result.",
+          "The explicit-tree overload is a human execution seam, not the principal-aware Client Program dispatcher.",
+          "InvocationTrace directly imports SFMKeyBindingConflict, SFMKeyBindingSnapshot and SFMKeyInputEvent. Do not pretend keyboard-only closes without those carriers and the rest of its reviewed runtime surface.",
+          "Registry/command-tree/dispatcher integration is outside this slice and remains a required dependency/member gate."
+        ]
+      }
+    }
+  },
+  "shared_input_proposals": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+      "status": "existing_reviewed_shared_input_proposal_not_authored_or_registered_in_this_slice",
+      "proposed_consumption": "Retain this pure carrier whenever a selected client_actions body references itemIcon(); additional real consumers may share OR ownership without forcing palette/theme runtime.",
+      "variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "witness_blob": "aaf74f07139f6ff65f5f9c698b6fd51039c84193",
+          "source_sha256": "sha256:587f1a252f70491ee02bc63ae85cf7d81dfb563964ca019633c71a32ff00f871",
+          "source_bytes": 1309
+        },
+        {
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4"
+          ],
+          "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+          "source_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+          "source_bytes": 1214
+        },
+        {
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1"
+          ],
+          "witness_blob": "f24da6900ab87461eeb378234c09f2136760bdf1",
+          "source_sha256": "sha256:e9cdb7ac145253ad9d2fced3fa0214ff8d7bce2540aebce6b6d07c7d50778777",
+          "source_bytes": 1311
+        },
+        {
+          "contexts": [
+            "dev/26.1.2"
+          ],
+          "witness_blob": "4c5441d66d2a65eab6da12fb9bf498791ce2e0ac",
+          "source_sha256": "sha256:e50c8529cfcc1775250ff69feec620c5278a0db3aee94a753c926d39c9603c83",
+          "source_bytes": 1287
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java",
+      "status": "existing_reviewed_shared_input_proposal_not_authored_or_registered_in_this_slice",
+      "proposed_consumption": "Retain this pure carrier for actual selected context/panel-ID consumers, with workspace runtime capture still separately guarded.",
+      "variants": [
+        {
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4",
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2"
+          ],
+          "witness_blob": "7f96dbc242b9dc4ebc1625a8f4d26bd228e523e7",
+          "source_sha256": "sha256:c300406b1a1a52c4ea856d399f2f06c17564dbc52be863d6e5ec47e033880439",
+          "source_bytes": 320
+        }
+      ]
+    }
+  ],
+  "representative_independent_partial_cases": [
+    {
+      "id": "human_only",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2129,
+          "sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1028,
+          "sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "No programmaticDescriptor/programmaticHandler, multiplexer/panel ID, structured-result or InvocationTrace references in these four rendered files."
+      ],
+      "unwitnessed_partial_content": null
+    },
+    {
+      "id": "machine_only",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": true,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2604,
+          "sha256": "sha256:92fdf8e1a9d07a2ad9376ae8b951f960096db4ab3effb0e17fded516aa32bdc8",
+          "witness_blob": "d44844528157d93f958f3649cce66bfca2ff39f0",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1028,
+          "sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "Only SFMClientAction gains machine descriptor/handler defaults; context/source/executor stay exactly human-only. No machine authority is granted by those defaults."
+      ],
+      "unwitnessed_partial_content": null
+    },
+    {
+      "id": "workspace_only",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": false
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2129,
+          "sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 2220,
+          "sha256": "sha256:6bc1d4c12270474409efe0e4a55058db5457d74e3134d0f4909754b5464e1946",
+          "witness_blob": "374f71d3a29c4d3a21579666084b4c89728bb121",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1028,
+          "sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "Only SFMClientActionContext gains panel-ID shape and actual focused-panel capture; action/source/executor remain exactly human-only."
+      ],
+      "unwitnessed_partial_content": null
+    },
+    {
+      "id": "structured_only",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": true,
+        "keyboard_profiles": false
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2129,
+          "sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 1116,
+          "sha256": "sha256:51da8ed1d61300383b964905f2ecf17911d727b7e5035d32751eafb45c608c81",
+          "witness_blob": "3db22af9e1ec587fadfe4d3237e955aaead24592",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 2278,
+          "sha256": "sha256:330c8fca7979f9af27b94eb752edf76917bb3c32246a464aeb98cffd6db0e05b",
+          "witness_blob": null,
+          "historical_raw_witness": false
+        }
+      ],
+      "expected_content_assertions": [
+        "Source and executor gain structured callbacks; executor has no InvocationTrace references and no provenance-scope claim. Action/context stay human-only."
+      ],
+      "unwitnessed_partial_content": {
+        "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+        "content": "package ca.teamdman.sfm.client.action;\n\nimport ca.teamdman.sfm.client.registry.SFMClientActions;\nimport com.mojang.brigadier.ParseResults;\nimport com.mojang.brigadier.exceptions.CommandSyntaxException;\nimport net.minecraft.network.chat.Component;\n\nimport java.util.function.Consumer;\n\n/** One contextual Brigadier execution seam shared by the palette, prompts, and dynamic bindings. */\npublic final class SFMClientActionExecutor {\n    private SFMClientActionExecutor() {\n    }\n\n    public static boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {\n        return !parsed.getReader().canRead()\n                && parsed.getExceptions().isEmpty()\n                && parsed.getContext().getCommand() != null;\n    }\n\n    public static int execute(\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback\n    ) throws CommandSyntaxException {\n        return execute(SFMClientActions.commandTree(), command, context, feedback, ignored -> {\n        });\n    }\n\n    public static int execute(\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback,\n            Consumer<SFMClientActionStructuredResult> structuredResult\n    ) throws CommandSyntaxException {\n        return execute(SFMClientActions.commandTree(), command, context, feedback, structuredResult);\n    }\n\n    /** Executes against an explicit registered-action surface. */\n    public static int execute(\n            SFMClientActionCommandTree commandTree,\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback\n    ) throws CommandSyntaxException {\n        return execute(commandTree, command, context, feedback, ignored -> {\n        });\n    }\n\n    public static int execute(\n            SFMClientActionCommandTree commandTree,\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback,\n            Consumer<SFMClientActionStructuredResult> structuredResult\n    ) throws CommandSyntaxException {\n        java.util.Objects.requireNonNull(commandTree, \"commandTree\");\n        return commandTree.execute(command, new SFMClientActionSource(context, feedback, structuredResult));\n    }\n}\n",
+        "reason": "Independent partial-member fixture constructed from reviewed narrow member changes; it is not a historical source blob and not a full-feature closure proof."
+      }
+    },
+    {
+      "id": "keyboard_only",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": false,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2129,
+          "sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1949,
+          "sha256": "sha256:3b83478ada51364fda7612e0995b688e67b36ab01dc3ca0f7111a6a9790e4c9a",
+          "witness_blob": null,
+          "historical_raw_witness": false
+        }
+      ],
+      "expected_content_assertions": [
+        "Executor alone gains trace scope and feedback-only explicit-tree overload; Source has no structured-result type and remains the two-component historical record."
+      ],
+      "unwitnessed_partial_content": {
+        "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+        "content": "package ca.teamdman.sfm.client.action;\n\nimport ca.teamdman.sfm.client.registry.SFMClientActions;\nimport com.mojang.brigadier.ParseResults;\nimport com.mojang.brigadier.exceptions.CommandSyntaxException;\nimport net.minecraft.network.chat.Component;\n\nimport java.util.function.Consumer;\n\n/** One contextual Brigadier execution seam shared by the palette, prompts, and dynamic bindings. */\npublic final class SFMClientActionExecutor {\n    private SFMClientActionExecutor() {\n    }\n\n    public static boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {\n        return !parsed.getReader().canRead()\n                && parsed.getExceptions().isEmpty()\n                && parsed.getContext().getCommand() != null;\n    }\n\n    public static int execute(\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback\n    ) throws CommandSyntaxException {\n        return execute(SFMClientActions.commandTree(), command, context, feedback);\n    }\n\n    /**\n     * Executes against an explicit registered-action surface while preserving\n     * the same provenance scope as the global dispatcher.\n     */\n    public static int execute(\n            SFMClientActionCommandTree commandTree,\n            String command,\n            SFMClientActionContext context,\n            Consumer<Component> feedback\n    ) throws CommandSyntaxException {\n        java.util.Objects.requireNonNull(commandTree, \"commandTree\");\n        if (SFMClientActionInvocationTrace.current().isPresent()) {\n            return commandTree.execute(command, new SFMClientActionSource(context, feedback));\n        }\n        try (SFMClientActionInvocationTrace.Scope traceScope = SFMClientActionInvocationTrace.activate(\n                new SFMClientActionInvocationTrace.RegisteredActionProvenance(command)\n        )) {\n            return commandTree.execute(command, new SFMClientActionSource(context, feedback));\n        }\n    }\n}\n",
+        "reason": "Independent partial-member fixture constructed from reviewed narrow member changes; it is not a historical source blob and not a full-feature closure proof."
+      }
+    },
+    {
+      "id": "full_d2",
+      "target": "1.19.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": true,
+        "workspace_panels": true,
+        "structured_action_results": true,
+        "keyboard_profiles": true
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2604,
+          "sha256": "sha256:92fdf8e1a9d07a2ad9376ae8b951f960096db4ab3effb0e17fded516aa32bdc8",
+          "witness_blob": "d44844528157d93f958f3649cce66bfca2ff39f0",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 2220,
+          "sha256": "sha256:6bc1d4c12270474409efe0e4a55058db5457d74e3134d0f4909754b5464e1946",
+          "witness_blob": "374f71d3a29c4d3a21579666084b4c89728bb121",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 1116,
+          "sha256": "sha256:51da8ed1d61300383b964905f2ecf17911d727b7e5035d32751eafb45c608c81",
+          "witness_blob": "3db22af9e1ec587fadfe4d3237e955aaead24592",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 2774,
+          "sha256": "sha256:486404b1a85b2c20abb0f744719d4a70dc2352a63f53f12ce8a3b0e6a2baa587",
+          "witness_blob": "ba5540c5510da6d5e551a323388fee0fbfb3e8a0",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "All four files must match their exact dev/1.19.2 witness blobs; dev/1.19.4 has the same four blobs."
+      ],
+      "unwitnessed_partial_content": null
+    },
+    {
+      "id": "older_workspace_keyboard_enabled",
+      "target": "1.20",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2129,
+          "sha256": "sha256:39d92e5600c36a6c838d70253412ce18ee0dba233cff0d3b502fc9a71e446af3",
+          "witness_blob": "3fa0d67a2b5501729f2baabb7179900448113163",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1028,
+          "sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "workspace_panels and keyboard_profiles remain globally enabled for other subsystem consumers, yet these four source outputs retain the exact older human API with no multiplexer/panel-ID capture, structured-result, machine-descriptor or InvocationTrace extension.",
+        "The grouped Minecraft cases, not global false flags, suppress the D2-only members.",
+        "SFMClientAction uses ResourceLocation."
+      ],
+      "unwitnessed_partial_content": null
+    },
+    {
+      "id": "newest_workspace_keyboard_enabled",
+      "target": "26.1.2",
+      "feature_flags": {
+        "client_actions": true,
+        "client_program_actions": false,
+        "workspace_panels": true,
+        "structured_action_results": false,
+        "keyboard_profiles": true
+      },
+      "status": "expected_source_fixtures_prepared_not_production_render_or_compile_verified",
+      "expected_outputs": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "bytes": 2117,
+          "sha256": "sha256:84a59da287f02fd5def1822b76bd183d0e8896a23c01eb3043801ad4ada2307d",
+          "witness_blob": "4327d2599deb2f0368ae0d99e2772fe70a18c06a",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "bytes": 1851,
+          "sha256": "sha256:a94e24aca185f66f684c261b5503359a6c7828f62882a55c5e1c912b789c9f7d",
+          "witness_blob": "20a8bb876939aae2e66e638ab77e383579e1b9b5",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "bytes": 629,
+          "sha256": "sha256:61331b2c36d7befaf097013e5ab88b6dcf37c36b81b6ae2e10a9bed6659e4075",
+          "witness_blob": "2bac8cc4c5d5ba3885460d9dc803da754e921140",
+          "historical_raw_witness": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+          "bytes": 1028,
+          "sha256": "sha256:9fc9cc0af6abb539dff9ca93d9a3f5c1042d49a7ab056f412e176987076330fd",
+          "witness_blob": "13d449260d1777ceaff5c8876254d14a6fdcfea9",
+          "historical_raw_witness": true
+        }
+      ],
+      "expected_content_assertions": [
+        "workspace_panels and keyboard_profiles remain globally enabled for other subsystem consumers, yet these four source outputs retain the exact older human API with no multiplexer/panel-ID capture, structured-result, machine-descriptor or InvocationTrace extension.",
+        "The grouped Minecraft cases, not global false flags, suppress the D2-only members.",
+        "SFMClientAction still uses its independent Identifier version adapter."
+      ],
+      "unwitnessed_partial_content": null
+    }
+  ],
+  "completed_checks": {
+    "all_nine_raw_witnesses_read_and_exact_lf_eof_shape_inspected": true,
+    "canonical_checkout_unchanged_from_checkpoint_after_normalizing_checkout_line_endings": true,
+    "authored_source_bytes_lf_no_cr_and_single_final_lf": true,
+    "raw_expected_partial_fixtures_sha256_computed": true,
+    "production_render": false,
+    "standalone_or_combination_java_compile": false,
+    "runtime_test": false,
+    "registry_or_source_membership_changed": false,
+    "dependencies_expanded": false,
+    "narrow_member_guards_bound_by_grouped_minecraft_cases": true,
+    "all_twenty_immutable_tree_memberships_rechecked": true,
+    "development_path_blob_checks": 40,
+    "released_absence_checks": 40,
+    "exact_raw_blob_hash_checks": 9
+  },
+  "required_integration_gates": [
+    "Register reviewed functional selectors with their full subsystem support; do not confuse D2 member-extension support with narrower support for workspace_panels or keyboard_profiles. A dev environment must not enable features implicitly.",
+    "Guard every downstream caller that references an optional member or constructor shape; these four templates alone do not close the full action subsystem.",
+    "Add/adapt the pure SFMItemIcon value carrier as a shared client_actions dependency without using it to force the palette/theme runtime.",
+    "Register/adapt the exact Source/Executor structured-result and trace helpers under their real owners before advertising those partial combinations.",
+    "Preserve the human command adapter's originating-host checks and Brigadier error behavior. Machine invocation must still go through its principal-aware dispatcher.",
+    "Confirm all20 witnessed full/off source/membership expectations with the production renderer and selection layer before a compile claim.",
+    "Check representative independent partial outputs against the prepared hashes and absence assertions; then compile a closed target dependency set or fail closed with a specific missing-closure diagnostic.",
+    "Do not register a whole workspace prerequisite merely because a selected helper is the pure SFMWorkspacePanelId carrier."
+  ],
+  "reproducible_read_only_check_shapes": [
+    "git cat-file -p <witness_blob>  # Read exact source bytes without relying on Windows checkout EOL policy.",
+    "git ls-tree <context_commit> -- platform/minecraft/<core_relative_file>  # Confirm witnessed path membership/blob.",
+    "sfm-propagate-changes source render --repo-root . --projection sfm-dev/mc-1.19.2 --file src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java  # Only after reviewed selector registration; compare report.rendered_sha256 with the witness fixture.",
+    "Read each authored core file as raw UTF-8 bytes; hash SHA-256 and check no CR, exactly one final LF.",
+    "git diff --check -- platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action docs/tasks/sfm-core-basic-actions-second-slice.json"
+  ],
+  "optional_member_conditions": {
+    "client_program_actions": {
+      "functional_owner": "client_program_actions",
+      "member_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires_for_emitted_member": [
+        "client_actions",
+        "client_program_actions"
+      ],
+      "source_guard": "Grouped minecraft_version case with the functional features.<id> check inside",
+      "global_subsystem_support": "Not determined by this member review. In particular workspace_panels and keyboard_profiles have older target consumers; do not force their global flags false just to reconstruct these four base API shapes.",
+      "selector_registration_status": "pending_root_registration",
+      "unsupported_member_port": "Do not emit this D2 member extension on another target without a separate reviewed port; the authored grouped case preserves its witnessed older API even if the broader subsystem flag is enabled."
+    },
+    "workspace_panels": {
+      "functional_owner": "workspace_panels",
+      "member_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires_for_emitted_member": [
+        "client_actions",
+        "workspace_panels"
+      ],
+      "source_guard": "Grouped minecraft_version case with the functional features.<id> check inside",
+      "global_subsystem_support": "Not determined by this member review. In particular workspace_panels and keyboard_profiles have older target consumers; do not force their global flags false just to reconstruct these four base API shapes.",
+      "selector_registration_status": "pending_root_registration",
+      "unsupported_member_port": "Do not emit this D2 member extension on another target without a separate reviewed port; the authored grouped case preserves its witnessed older API even if the broader subsystem flag is enabled."
+    },
+    "structured_action_results": {
+      "functional_owner": "structured_action_results",
+      "member_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires_for_emitted_member": [
+        "client_actions",
+        "structured_action_results"
+      ],
+      "source_guard": "Grouped minecraft_version case with the functional features.<id> check inside",
+      "global_subsystem_support": "Not determined by this member review. In particular workspace_panels and keyboard_profiles have older target consumers; do not force their global flags false just to reconstruct these four base API shapes.",
+      "selector_registration_status": "pending_root_registration",
+      "unsupported_member_port": "Do not emit this D2 member extension on another target without a separate reviewed port; the authored grouped case preserves its witnessed older API even if the broader subsystem flag is enabled."
+    },
+    "keyboard_profiles": {
+      "functional_owner": "keyboard_profiles",
+      "member_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires_for_emitted_member": [
+        "client_actions",
+        "keyboard_profiles"
+      ],
+      "source_guard": "Grouped minecraft_version case with the functional features.<id> check inside",
+      "global_subsystem_support": "Not determined by this member review. In particular workspace_panels and keyboard_profiles have older target consumers; do not force their global flags false just to reconstruct these four base API shapes.",
+      "selector_registration_status": "pending_root_registration",
+      "unsupported_member_port": "Do not emit this D2 member extension on another target without a separate reviewed port; the authored grouped case preserves its witnessed older API even if the broader subsystem flag is enabled."
+    }
+  }
+}

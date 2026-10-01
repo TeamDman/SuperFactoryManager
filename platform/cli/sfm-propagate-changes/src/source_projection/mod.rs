@@ -10,6 +10,7 @@ pub mod core_build_seed;
 pub mod core_catalog;
 pub mod core_features;
 pub mod core_inputs;
+pub mod core_network_layout;
 pub mod core_seed;
 pub mod core_version_seed;
 pub mod development_baseline;
@@ -21,6 +22,7 @@ pub mod frozen_release;
 pub mod inputs;
 pub mod manifest;
 pub mod named_root;
+pub mod native_project_target;
 pub mod project_layout;
 pub mod projection_catalog;
 pub mod promotion;
@@ -34,6 +36,40 @@ pub mod selection;
 pub mod sync;
 pub mod variant_consolidation;
 
+#[cfg(test)]
+mod core_action_helpers_slice_tests;
+#[cfg(test)]
+mod core_action_leaf_slice_tests;
+#[cfg(test)]
+mod core_action_slice_tests;
+#[cfg(test)]
+mod core_ast_builder_slice_tests;
+#[cfg(test)]
+mod core_event_discovery_slice_tests;
+#[cfg(test)]
+mod core_fix_slice_tests;
+#[cfg(test)]
+mod core_icon_rendering_slice_tests;
+#[cfg(test)]
+mod core_label_slice_tests;
+#[cfg(test)]
+mod core_language_slice_tests;
+#[cfg(test)]
+mod core_network_inspection_slice_tests;
+#[cfg(test)]
+mod core_network_slice_tests;
+#[cfg(test)]
+mod core_program_grammar_slice_tests;
+#[cfg(test)]
+mod core_redstone_capability_slice_tests;
+#[cfg(test)]
+mod core_slice_test_support;
+#[cfg(test)]
+mod core_typed_palette_slice_tests;
+#[cfg(test)]
+mod core_utility_slice_tests;
+#[cfg(test)]
+mod core_value_foundation_slice_tests;
 #[cfg(test)]
 mod release_source_parity_test;
 

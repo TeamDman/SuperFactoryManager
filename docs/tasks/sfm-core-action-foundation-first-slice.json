@@ -1,0 +1,3272 @@
+{
+  "schema": "sfm:core_action_foundation_slice@1",
+  "status": "authored_raw_witnesses_reconstructed_no_build_acceptance",
+  "scope": "Two basic action foundation templates only. The aggregate SFMClientActions registry and UI or machine action implementations are excluded.",
+  "production_input_policy": {
+    "source_root": "platform/minecraft/core-liquid-template",
+    "selectors": [
+      "minecraft_version",
+      "features.<registered_id>"
+    ],
+    "forbidden_selectors": [
+      "environment",
+      "preset",
+      "projection_key"
+    ],
+    "historical_sources": "Frozen Git blobs are migration witnesses only. No production source selection reads them.",
+    "normalization": "none; all six raw witnesses use LF and a final LF",
+    "file_membership": "Both paths are absent in every release witness. Root-owned source rules must omit both before reading/rendering when client_actions is disabled."
+  },
+  "source_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "proposed_feature_definitions": {
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "scope": "Basic registered action parsing, list/help/invoke dispatch and availability checks. This flag does not grant permissions or include aggregate registry registrations.",
+      "registration_status": "proposed_root_owned"
+    },
+    "command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ],
+      "scope": "Legacy fuzzy action-ID suggestions. UI theme, keyboard and screen requirements belong to UI consumers, not this command-tree foundation.",
+      "registration_status": "proposed_root_owned"
+    },
+    "typed_command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "command_palette",
+        "client_actions"
+      ],
+      "scope": "Advanced typed frontier, candidates, stable component search text, literal continuations and opt-in action completion. The D2 history/context additions are independently gated.",
+      "registration_status": "proposed_root_owned"
+    },
+    "command_history": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "typed_command_palette"
+      ],
+      "scope": "History service injection, historical arguments, ranking boosts and history-only constructor parameters.",
+      "registration_status": "proposed_root_owned"
+    },
+    "context_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "typed_command_palette",
+        "workspace_panels"
+      ],
+      "scope": "Isolated palette choice surfaces, display texts and choice ranking. No workspace action implementations are included by these two files.",
+      "registration_status": "proposed_root_owned"
+    },
+    "client_action_completion_diagnostics": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions"
+      ],
+      "scope": "Slow-provider timing and logging, plus the compiler's completion-provider comment. Independent of typed palette/history/context behavior.",
+      "registration_status": "proposed_root_owned"
+    },
+    "client_action_nullable_suggestions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions"
+      ],
+      "scope": "Preserve the D2 final suggestion-projection null-ID guard. This is not a claim that every nullable Brigadier node path has been fixed.",
+      "registration_status": "proposed_root_owned"
+    }
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "template_sha256": "sha256:a1b13e107a5095f0feb8f4e9e4fee2549255577c04913025877a26b095a1ab80",
+      "template_byte_count": 9356,
+      "suggested_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+        "when": {
+          "all_features": [
+            "client_actions"
+          ]
+        },
+        "template": true
+      },
+      "membership_status": "root_registered_rule_observed; production selection test pending",
+      "witnesses": {
+        "dev/1.19.2": {
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "9cd2a21751c78a00284f4bf7b78f75a1f229fd9f",
+          "source_sha256": "sha256:beaad9fe0117ceb9fd4a8276527862d6e959f0b98bb9697d478892d15bc57da0",
+          "byte_count": 7196,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette",
+            "command_history",
+            "context_actions",
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions"
+          ],
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        "dev/1.19.4": {
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "9cd2a21751c78a00284f4bf7b78f75a1f229fd9f",
+          "source_sha256": "sha256:beaad9fe0117ceb9fd4a8276527862d6e959f0b98bb9697d478892d15bc57da0",
+          "byte_count": 7196,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette",
+            "command_history",
+            "context_actions",
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions"
+          ],
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        "dev/1.20": {
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.1": {
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.2": {
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.3": {
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.4": {
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.21.0": {
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.21.1": {
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/26.1.2": {
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "git_blob": "e9bf9205e92b2d8911bc4eeec99a5cd5e5fd1900",
+          "source_sha256": "sha256:0a9f9c65a7384b13a1ee2e163c4d49a75564cf07fc1d45cb84a8fc52241d862c",
+          "byte_count": 6317,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "release/1.19.2": {
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.19.4": {
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20": {
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.1": {
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.2": {
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.3": {
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.4": {
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.21.0": {
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.21.1": {
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/26.1.2": {
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        }
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "template_sha256": "sha256:f14bb26e1ac5330cdbe847c97c649c1c3a5c7021f15f273e13ab01e57d1c6cda",
+      "template_byte_count": 50093,
+      "suggested_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+        "when": {
+          "all_features": [
+            "client_actions"
+          ]
+        },
+        "template": true
+      },
+      "membership_status": "root_registered_rule_observed; production selection test pending",
+      "witnesses": {
+        "dev/1.19.2": {
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "3319a2b5e9c7d4d8a22742b5aa3e7c37758cb673",
+          "source_sha256": "sha256:d839dc8bc0b4cbc53d9a31cbb964554b05c30223046923d339cd81d4e62cb939",
+          "byte_count": 37199,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette",
+            "command_history",
+            "context_actions",
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions"
+          ],
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        "dev/1.19.4": {
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "3319a2b5e9c7d4d8a22742b5aa3e7c37758cb673",
+          "source_sha256": "sha256:d839dc8bc0b4cbc53d9a31cbb964554b05c30223046923d339cd81d4e62cb939",
+          "byte_count": 37199,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette",
+            "command_history",
+            "context_actions",
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions"
+          ],
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        "dev/1.20": {
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.1": {
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.2": {
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.3": {
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.20.4": {
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.21.0": {
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/1.21.1": {
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "dev/26.1.2": {
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "git_blob": "c17434774346305d27cfc59f55b0337994d375b0",
+          "source_sha256": "sha256:189caf6294a23faa3dcad081d75ec4d3dac1f6988ab2496081759ec78b8e3537",
+          "byte_count": 6489,
+          "mode": "100644",
+          "witnessed_features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        "release/1.19.2": {
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.19.4": {
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20": {
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.1": {
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.2": {
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.3": {
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.20.4": {
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.21.0": {
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/1.21.1": {
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        },
+        "release/26.1.2": {
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "witnessed_features": [],
+          "validated_registered_feature_closure": []
+        }
+      }
+    }
+  ],
+  "member_owners": [
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "owner": "client_actions",
+      "members": [
+        "compile",
+        "duplicate registration refusal",
+        "listActions",
+        "showHelp",
+        "sfm action list/help/invoke"
+      ],
+      "behavior": "Common once across all versions. Existing availability checks and unknown-action errors are unchanged."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "owner": "command_history",
+      "members": [
+        "compileCommandTree overload with Supplier<List<String>>",
+        "SFMCommandHistoryService injection",
+        "history-aware command-tree constructor call"
+      ],
+      "off": "Use the witnessed basic compileCommandTree method and two-argument command-tree constructor. No empty history supplier is introduced."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "owner": "context_actions",
+      "members": [
+        "Map.of() choice-map constructor argument"
+      ],
+      "off": "History-on/context-off uses a four-argument typed constructor. This is an explicitly new combination, not a raw historical witness."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "owner": "client_action_completion_diagnostics",
+      "members": [
+        "immutable-map-only suggestion provider comment"
+      ],
+      "off": "Remove only the three comment lines; list/help/invoke implementation remains common."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "client_actions",
+      "members": [
+        "dispatcher",
+        "actions",
+        "parse",
+        "execute overloads",
+        "getCompletionSuggestions availability filter",
+        "isAvailable"
+      ],
+      "behavior": "Shared core parser/dispatch and source requirement resolution. No programmatic privilege or aggregate registry expansion."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "command_palette",
+      "members": [
+        "legacy getPaletteSuggestions",
+        "PALETTE_ACTION_PREFIX",
+        "StringDistance/ACTION_DISTANCE",
+        "legacy actionIdRange/actionScore/RankedAction"
+      ],
+      "off": "Remove palette-only imports/constants/helpers/methods while retaining basic parsing, execution and Brigadier completion."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "typed_command_palette",
+      "members": [
+        "analyzeFrontier",
+        "analyzePaletteFrontier",
+        "getPaletteCandidates",
+        "SFMClientActionCompletion opt-in seam",
+        "literalContinuationSuggestions",
+        "fuzzyNestedLiteralSuggestions",
+        "searchableComponentText",
+        "typed search metadata and candidate records"
+      ],
+      "off": "Use the witnessed legacy fuzzy implementation if command_palette is on; otherwise omit palette behavior entirely. No advanced candidate/frontier/search type references remain."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "command_history",
+      "members": [
+        "historySuggestions",
+        "SFMCommandHistoryService",
+        "HISTORY_ACTION_BOOST",
+        "action history ranking",
+        "SFMClientActionArgumentHistory",
+        "availableHistory/historySuffix/historyActionId",
+        "history-only constructor signatures"
+      ],
+      "off": "Remove history imports/fields/parameters/calls and ranking. Use SFMPaletteCandidate.NO_HISTORY and unmodified action scores. Constructor signatures become smaller; no empty Supplier seam is invented."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "context_actions",
+      "members": [
+        "isolatedPaletteSurface",
+        "paletteChoiceActions",
+        "paletteChoiceDisplayTexts",
+        "paletteChoiceRange",
+        "choiceScore",
+        "RankedChoice",
+        "context-only constructor signatures"
+      ],
+      "off": "Remove choice surfaces/maps/ranking and their constructor parameters. Shared typed search/candidate code remains."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "client_action_completion_diagnostics",
+      "members": [
+        "SLOW_COMPLETION_NANOS",
+        "System.nanoTime timings",
+        "SFM.LOGGER.warn"
+      ],
+      "off": "Remove only diagnostics/timing imports/constants/statements."
+    },
+    {
+      "file": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "owner": "client_action_nullable_suggestions",
+      "members": [
+        "final suggestion filter id == null guard"
+      ],
+      "off": "Restore the exact witnessed basic suggestion filter. Other nullable node handling remains outside this bounded seam."
+    }
+  ],
+  "minecraft_api_cases": {
+    "selector": "minecraft_version",
+    "cases": {
+      "26.1.2": "net.minecraft.resources.Identifier",
+      "all_other_supported_versions": "net.minecraft.resources.ResourceLocation"
+    },
+    "adapted_seams": [
+      "import",
+      "Map/TreeMap generic declarations",
+      "compile registration type",
+      "tryParse",
+      "toString comparator method reference",
+      "parameter/local types"
+    ],
+    "proof": "Seven middle-version raw variants are identical to the 26.1.2 variants after the ResourceLocation→Identifier token replacement, verified against both pairs of frozen blobs. No optional functionality is selected by Minecraft version."
+  },
+  "new_reconstructed_combinations": {
+    "status": "authoring_only_not_historical_or_java_build_proof",
+    "description": "Independent switches create useful combinations not present in frozen snapshots. In particular typed palette without history/context uses smaller constructor signatures and no historical or choice services.",
+    "history_off": "No SFMCommandHistoryService, Supplier field, historical argument service, history-ranking or persisted-history calls.",
+    "context_off": "No isolated choice surfaces, choice maps or choice ranking.",
+    "typed_off": "No frontier/candidate/completion/search metadata types.",
+    "palette_off": "No palette-only methods, fuzzy dependencies or replacement-range types.",
+    "nullable_or_diagnostics_independent": "Each preserves its narrowly owned completion seam without requiring typed palette."
+  },
+  "evidence": {
+    "raw_witness_acquisition": "git ls-tree and offline git cat-file --batch against 20 pinned commits; each raw blob SHA-1 object identity and SHA-256 verified before authoring",
+    "distinct_raw_blobs": [
+      {
+        "git_blob": "9cd2a21751c78a00284f4bf7b78f75a1f229fd9f",
+        "source_sha256": "sha256:beaad9fe0117ceb9fd4a8276527862d6e959f0b98bb9697d478892d15bc57da0",
+        "byte_count": 7196,
+        "crlf_count": 0,
+        "lf_count": 142,
+        "final_lf": true
+      },
+      {
+        "git_blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+        "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+        "byte_count": 6395,
+        "crlf_count": 0,
+        "lf_count": 125,
+        "final_lf": true
+      },
+      {
+        "git_blob": "e9bf9205e92b2d8911bc4eeec99a5cd5e5fd1900",
+        "source_sha256": "sha256:0a9f9c65a7384b13a1ee2e163c4d49a75564cf07fc1d45cb84a8fc52241d862c",
+        "byte_count": 6317,
+        "crlf_count": 0,
+        "lf_count": 125,
+        "final_lf": true
+      },
+      {
+        "git_blob": "3319a2b5e9c7d4d8a22742b5aa3e7c37758cb673",
+        "source_sha256": "sha256:d839dc8bc0b4cbc53d9a31cbb964554b05c30223046923d339cd81d4e62cb939",
+        "byte_count": 37199,
+        "crlf_count": 0,
+        "lf_count": 785,
+        "final_lf": true
+      },
+      {
+        "git_blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+        "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+        "byte_count": 6543,
+        "crlf_count": 0,
+        "lf_count": 162,
+        "final_lf": true
+      },
+      {
+        "git_blob": "c17434774346305d27cfc59f55b0337994d375b0",
+        "source_sha256": "sha256:189caf6294a23faa3dcad081d75ec4d3dac1f6988ab2496081759ec78b8e3537",
+        "byte_count": 6489,
+        "crlf_count": 0,
+        "lf_count": 162,
+        "final_lf": true
+      }
+    ],
+    "written_templates": "Core UTF-8 bytes were read back after apply_patch, hashed, and matched the authoring strings exactly.",
+    "reconstruction": {
+      "method": "Independent JavaScript directive expander over the written template strings. This does not substitute for the production controlled renderer.",
+      "records": [
+        {
+          "context": "dev/1.19.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "3319a2b5e9c7d4d8a22742b5aa3e7c37758cb673",
+          "raw_exact": true,
+          "source_sha256": "sha256:d839dc8bc0b4cbc53d9a31cbb964554b05c30223046923d339cd81d4e62cb939",
+          "byte_count": 37199,
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        {
+          "context": "dev/1.19.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "9cd2a21751c78a00284f4bf7b78f75a1f229fd9f",
+          "raw_exact": true,
+          "source_sha256": "sha256:beaad9fe0117ceb9fd4a8276527862d6e959f0b98bb9697d478892d15bc57da0",
+          "byte_count": 7196,
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        {
+          "context": "dev/1.19.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "3319a2b5e9c7d4d8a22742b5aa3e7c37758cb673",
+          "raw_exact": true,
+          "source_sha256": "sha256:d839dc8bc0b4cbc53d9a31cbb964554b05c30223046923d339cd81d4e62cb939",
+          "byte_count": 37199,
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        {
+          "context": "dev/1.19.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "9cd2a21751c78a00284f4bf7b78f75a1f229fd9f",
+          "raw_exact": true,
+          "source_sha256": "sha256:beaad9fe0117ceb9fd4a8276527862d6e959f0b98bb9697d478892d15bc57da0",
+          "byte_count": 7196,
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ]
+        },
+        {
+          "context": "dev/1.20",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.3",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.3",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.20.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.21.0",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.21.0",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.21.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "8d9d89ce1a46b809ee377c70ceaed402d05db873",
+          "raw_exact": true,
+          "source_sha256": "sha256:7e07482be63998772fcf813406c3853d9fdfccc7ce60baf4e9af31dc060f77fd",
+          "byte_count": 6543,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/1.21.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "3594fa16439dc76885e5800fd1477370e63b9617",
+          "raw_exact": true,
+          "source_sha256": "sha256:67ae167e7377b6d505f9cb8a3a49c639f5fcf5754448d90d563bf88cf9f81fa9",
+          "byte_count": 6395,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/26.1.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": true,
+          "blob": "c17434774346305d27cfc59f55b0337994d375b0",
+          "raw_exact": true,
+          "source_sha256": "sha256:189caf6294a23faa3dcad081d75ec4d3dac1f6988ab2496081759ec78b8e3537",
+          "byte_count": 6489,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "dev/26.1.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": true,
+          "blob": "e9bf9205e92b2d8911bc4eeec99a5cd5e5fd1900",
+          "raw_exact": true,
+          "source_sha256": "sha256:0a9f9c65a7384b13a1ee2e163c4d49a75564cf07fc1d45cb84a8fc52241d862c",
+          "byte_count": 6317,
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ]
+        },
+        {
+          "context": "release/1.19.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.19.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.19.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.19.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.3",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.3",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.20.4",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.21.0",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.21.0",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.21.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/1.21.1",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/26.1.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        },
+        {
+          "context": "release/26.1.2",
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+          "present": false,
+          "validated_registered_feature_closure": []
+        }
+      ],
+      "present_raw_exact": 20,
+      "absent": 20,
+      "normalization": "none"
+    },
+    "independent_combinations": {
+      "method": "Independent authoring directive expansion, disabled-owner reference checks, Java lexical delimiter balance and constructor-call/declaration arity matching. This is not a Java parser/type checker or real-renderer proof.",
+      "count": 64,
+      "d2_count": 48,
+      "other_count": 16,
+      "records": [
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25000,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31119,
+          "compiler_byte_count": 6933,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 29969,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 36737,
+          "compiler_byte_count": 6959,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions"
+          ],
+          "tree_byte_count": 3383,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6991,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25448,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31567,
+          "compiler_byte_count": 7170,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 30417,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 37185,
+          "compiler_byte_count": 7196,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "tree_byte_count": 2949,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6557,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25014,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31133,
+          "compiler_byte_count": 6933,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 29983,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 36751,
+          "compiler_byte_count": 6959,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "tree_byte_count": 3397,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 7005,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25462,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31581,
+          "compiler_byte_count": 7170,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 30431,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.2",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 37199,
+          "compiler_byte_count": 7196,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25000,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31119,
+          "compiler_byte_count": 6933,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 29969,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 36737,
+          "compiler_byte_count": 6959,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions"
+          ],
+          "tree_byte_count": 3383,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6991,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25448,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31567,
+          "compiler_byte_count": 7170,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 30417,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 37185,
+          "compiler_byte_count": 7196,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "tree_byte_count": 2949,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6557,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25014,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31133,
+          "compiler_byte_count": 6933,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 29983,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 36751,
+          "compiler_byte_count": 6959,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "tree_byte_count": 3397,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 7005,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 25462,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 31581,
+          "compiler_byte_count": 7170,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            4
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "keyboard_profiles",
+            "typed_command_palette"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 30431,
+          "compiler_byte_count": 6632,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.19.4",
+          "features": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "typed_command_palette"
+          ],
+          "tree_byte_count": 37199,
+          "compiler_byte_count": 7196,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_action_completion_diagnostics",
+            "client_action_nullable_suggestions",
+            "client_actions",
+            "client_theme",
+            "command_history",
+            "command_palette",
+            "context_actions",
+            "keyboard_profiles",
+            "typed_command_palette",
+            "workspace_panels"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.1",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.1",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.2",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.2",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.3",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.3",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.4",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.20.4",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.21.0",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.21.0",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.21.1",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2935,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "1.21.1",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6543,
+          "compiler_byte_count": 6395,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "26.1.2",
+          "features": [
+            "client_actions"
+          ],
+          "tree_byte_count": 2893,
+          "compiler_byte_count": 6317,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        },
+        {
+          "target_id": "26.1.2",
+          "features": [
+            "client_actions",
+            "command_palette"
+          ],
+          "tree_byte_count": 6489,
+          "compiler_byte_count": 6317,
+          "disabled_owner_references_absent": true,
+          "java_delimiter_balance": true,
+          "constructor_arities": [
+            2
+          ],
+          "constructor_calls_resolve_by_arity": true,
+          "proof_scope": "authoring_expander_static_seam_checks_not_java_parse_compile_or_real_renderer",
+          "validated_registered_feature_closure": [
+            "client_actions",
+            "client_theme",
+            "command_palette",
+            "keyboard_profiles"
+          ],
+          "registered_feature_prerequisites_satisfied": true
+        }
+      ]
+    },
+    "actual_renderer": "pending root-owned feature registration and real-renderer tests",
+    "java_compile": "not attempted; root owns build gates",
+    "jar_gameplay": "not claimed"
+  },
+  "dependency_closure_gates": [
+    {
+      "owner": "client_actions",
+      "required_types": [
+        "SFMClientAction",
+        "SFMClientActionSource",
+        "SFMClientActionAvailability"
+      ],
+      "state": "Root registered both client_actions source rules. Basic action class and aggregate registry closure remain independently tested/migrated."
+    },
+    {
+      "owner": "typed_command_palette",
+      "required_types": [
+        "SFMCommandFrontierAnalysis",
+        "SFMPaletteCandidate",
+        "SFMClientActionCompletion",
+        "SFMFuzzyScorer"
+      ],
+      "state": "Must be independently authored/registered with matching support; these two templates do not import or enable aggregate SFMClientActions."
+    },
+    {
+      "owner": "command_history",
+      "required_types": [
+        "SFMCommandHistoryService",
+        "SFMClientActionArgumentHistory",
+        "SFMClientActionExecutor"
+      ],
+      "state": "History service/argument/executor sources and their own consumers remain separate migration work."
+    },
+    {
+      "owner": "context_actions",
+      "required_features": [
+        "workspace_panels"
+      ],
+      "state": "Root registered workspace_panels prerequisite. Workspace implementation/class/asset closure is still separate migration work."
+    },
+    {
+      "owner": "client_action_completion_diagnostics",
+      "required_types": [
+        "SFM"
+      ],
+      "state": "Base logger dependency must exist; no new logging/dependency configuration is introduced."
+    }
+  ],
+  "remaining_acceptance": [
+    "Keep root-owned registrations/source rules consistent with this ledger and complete their transitive implementation closure.",
+    "Run the real controlled renderer and selection tests for all20 feature-off/on raw witnesses and the independently supported combinations.",
+    "Complete required class/asset/action registration closure before Java builds.",
+    "Build and run proportionate client/server tests; do not equate raw reconstruction with behavior or public permission acceptance."
+  ],
+  "root_registration_observation": {
+    "feature_definitions_path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+    "project_inputs_path": "platform/minecraft/core-liquid-template/project-inputs.json",
+    "status": "Root-owned feature/source declarations observed after authoring. Registration alone is not an implementation or build claim.",
+    "actual_feature_definitions": {
+      "client_actions": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "requires": []
+      },
+      "command_palette": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "requires": [
+          "client_actions",
+          "client_theme",
+          "keyboard_profiles"
+        ]
+      },
+      "typed_command_palette": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "command_palette"
+        ]
+      },
+      "command_history": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "typed_command_palette"
+        ]
+      },
+      "context_actions": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "typed_command_palette",
+          "workspace_panels"
+        ]
+      },
+      "client_action_completion_diagnostics": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "client_actions"
+        ]
+      },
+      "client_action_nullable_suggestions": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "client_actions"
+        ]
+      },
+      "client_theme": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "requires": []
+      },
+      "keyboard_profiles": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "requires": [
+          "client_actions"
+        ]
+      },
+      "workspace_panels": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "requires": []
+      }
+    },
+    "prerequisite_scope": "The actual registered command_palette flag also requires client_theme and keyboard_profiles. These foundation files do not read those switches; their UI implementations remain separate closure work.",
+    "context_policy": "Witness feature closures are attached explicitly. They are not edits to projections.json; its current dev entries do not yet enable client_actions."
+  }
+}

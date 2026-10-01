@@ -1,0 +1,1109 @@
+{
+  "schema": "sfm:core-language-first-slice@1",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "primary_release": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+  "status": "Core inputs authored; independent exact witness reconstruction and actual twenty-catalog feature-off renderer proof passed. Feature-on production renderer, full project membership generation and Java compilation remain pending root integration.",
+  "purpose": "Bounded real shared-core language authoring with explicit functional feature ownership and original feature-off bodies. This is not complete language closure or full consolidation.",
+  "core_root": "platform/minecraft/core-liquid-template",
+  "ownership_ledger": "docs/tasks/sfm-core-language-feature-ownership.json",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "witness_feature_contexts": {
+    "dev/1.19.2": {
+      "minecraft_version": "1.19.2",
+      "features": {
+        "sfml_execution_side": true,
+        "sfml_worded_intervals": true
+      }
+    },
+    "dev/1.19.4": {
+      "minecraft_version": "1.19.4",
+      "features": {
+        "sfml_execution_side": true,
+        "sfml_worded_intervals": true
+      }
+    },
+    "dev/1.20": {
+      "minecraft_version": "1.20",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.20.1": {
+      "minecraft_version": "1.20.1",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.20.2": {
+      "minecraft_version": "1.20.2",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.20.3": {
+      "minecraft_version": "1.20.3",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.20.4": {
+      "minecraft_version": "1.20.4",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.21.0": {
+      "minecraft_version": "1.21",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/1.21.1": {
+      "minecraft_version": "1.21.1",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "dev/26.1.2": {
+      "minecraft_version": "26.1.2",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.19.2": {
+      "minecraft_version": "1.19.2",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.19.4": {
+      "minecraft_version": "1.19.4",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.20": {
+      "minecraft_version": "1.20",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.20.1": {
+      "minecraft_version": "1.20.1",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.20.2": {
+      "minecraft_version": "1.20.2",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.20.3": {
+      "minecraft_version": "1.20.3",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.20.4": {
+      "minecraft_version": "1.20.4",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.21.0": {
+      "minecraft_version": "1.21",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/1.21.1": {
+      "minecraft_version": "1.21.1",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    },
+    "release/26.1.2": {
+      "minecraft_version": "26.1.2",
+      "features": {
+        "sfml_execution_side": false,
+        "sfml_worded_intervals": false
+      }
+    }
+  },
+  "feature_definitions_suggestions": {
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "sfml_worded_intervals": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "interval_overflow_fix": {
+    "canonical_name": "interval_overflow_fix",
+    "prior_review_only_name": "sfml_interval_overflow_validation",
+    "referenced_by_this_slice": false,
+    "reason": "No seconds multiplication or numeric range validation occurs in these four files. The owned ASTBuilder numeric validation must remain a separate feature branch, not an assumed requirement of worded intervals."
+  },
+  "source_rules_suggestions": {
+    "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "sfml_execution_side"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "sfml_worded_intervals"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      }
+    ]
+  },
+  "feature_registration_note": "Suggestions are not applied by this ledger. The root owns feature-definitions, project-inputs and presets. Support is bounded by existing exact 1.19.2/1.19.4 witnesses; enabling these features on newer targets requires complete parser/runtime integration and validation. There is no environment, preset or projection-key selector.",
+  "feature_combination_note": "The four files reconstruct independently for execution-side and worded-interval toggles on both witnessed targets. A parser/runtime compile claim additionally needs the integration closure listed below.",
+  "files": {
+    "src/main/java/ca/teamdman/sfml/ast/Interval.java": {
+      "authored_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+      "authored_bytes": 1302,
+      "feature_owner": "sfml_worded_intervals",
+      "membership": "present on all ten targets",
+      "source_policy": "Exact raw UTF-8 LF bytes with final LF; no normalization, header or whitespace rewrite.",
+      "witness_groups": [
+        {
+          "git_blob": "4895a66f2bf98ee32ae2886d7c2aafc3d12babe5",
+          "source_sha256": "sha256:91357173b4ed1f7c9f3fe2d3a0ebe5c3750ac27f95d1a5e182a1dccaa371661a",
+          "raw_bytes": 1072,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "source_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "raw_bytes": 696,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "regions": [
+        {
+          "owner": "sfml_worded_intervals",
+          "scope": "record fields",
+          "on": "Add legacyOffsetSyntax boolean.",
+          "off": "Retain original three record components and int offset."
+        },
+        {
+          "owner": "sfml_worded_intervals",
+          "scope": "constructor",
+          "on": "Three-argument convenience constructor delegates with false.",
+          "off": "No convenience constructor beyond the original record constructor."
+        },
+        {
+          "owner": "sfml_worded_intervals",
+          "scope": "toString",
+          "on": "Canonical worded GLOBAL / OFFSET BY with singular units.",
+          "off": "Original ticks + \" TICKS\"; includes its original loss of alignment and offset information."
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java": {
+      "authored_sha256": "sha256:49f9e235d80aa8c3d87cb85d2d21d892fe5b9b5f1607a22a6a7714a268552ae0",
+      "authored_bytes": 188,
+      "feature_owner": "sfml_execution_side",
+      "membership": "feature-selected source rule",
+      "source_policy": "Exact raw UTF-8 LF bytes with final LF; no normalization, header or whitespace rewrite.",
+      "witness_groups": [
+        {
+          "git_blob": "f8160e83d6d6fa204629bcacee7356e06b120cb2",
+          "source_sha256": "sha256:49f9e235d80aa8c3d87cb85d2d21d892fe5b9b5f1607a22a6a7714a268552ae0",
+          "raw_bytes": 188,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "source_sha256": null,
+          "raw_bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java": {
+      "authored_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+      "authored_bytes": 11521,
+      "feature_owner": "sfml_execution_side",
+      "membership": "present on all ten targets",
+      "source_policy": "Exact raw UTF-8 LF bytes with final LF; no normalization, header or whitespace rewrite.",
+      "witness_groups": [
+        {
+          "git_blob": "f5c58bec75f66d062fb706373a1f819446712d49",
+          "source_sha256": "sha256:1a9384fa70c0aeb398435d53a11f4dc98a529fcaa43f0d60afb29ea568d4e1a3",
+          "raw_bytes": 9908,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "source_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "raw_bytes": 9038,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1"
+          ]
+        },
+        {
+          "git_blob": "2411991dd47f63d7e53c435e5d8b5fd3a5cda9b8",
+          "source_sha256": "sha256:884c3f0dc80915f53403c5e11e809dbe2b0d1cc645fc1e194e94e0452f02cb1a",
+          "raw_bytes": 9008,
+          "contexts": [
+            "dev/26.1.2",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "regions": [
+        {
+          "owner": "sfml_execution_side",
+          "scope": "three imports",
+          "on": "Add ProgramExecutionSide, HashMap and Map.",
+          "off": "Original imports."
+        },
+        {
+          "owner": "sfml_execution_side",
+          "scope": "cache shape and mutation guard",
+          "on": "Cache by program source and nullable logical host; inspect all cached host entries.",
+          "off": "Original program-source-only WeakHashMap and mutation guard."
+        },
+        {
+          "owner": "sfml_execution_side",
+          "scope": "field and fluent builder",
+          "on": "Store nullable logical host and add forExecutionSide(side).",
+          "off": "No logical-host field or builder method."
+        },
+        {
+          "owner": "sfml_execution_side",
+          "scope": "build cache lookup",
+          "on": "Look up the selected logical host, preserving null syntax-only key.",
+          "off": "Original source-only lookup."
+        },
+        {
+          "owner": "sfml_execution_side",
+          "scope": "post-AST validation",
+          "on": "Call Program.assertCompatibleWith(executionSide) when a host was supplied.",
+          "off": "No execution-side assertion."
+        },
+        {
+          "owner": "sfml_execution_side",
+          "scope": "build cache insertion",
+          "on": "Insert under source and logical host.",
+          "off": "Original source-only insertion."
+        },
+        {
+          "owner": "minecraft_version",
+          "scope": "two imports, two catch clauses and registry identifier local type",
+          "on": "26.1.2 uses IdentifierException and Identifier.",
+          "off": "The nine older targets retain ResourceLocationException and ResourceLocation."
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java": {
+      "authored_sha256": "sha256:2bf9c449b443e82060ced051a57fa99ffff7e891f8e50624e442e9edf418e89e",
+      "authored_bytes": 1885,
+      "feature_owner": "sfml_worded_intervals",
+      "membership": "feature-selected source rule",
+      "source_policy": "Exact raw UTF-8 LF bytes with final LF; no normalization, header or whitespace rewrite.",
+      "witness_groups": [
+        {
+          "git_blob": "10e5e96d97ce75e3546f1e96b4f2bf60b61b5bb0",
+          "source_sha256": "sha256:2bf9c449b443e82060ced051a57fa99ffff7e891f8e50624e442e9edf418e89e",
+          "raw_bytes": 1885,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "source_sha256": null,
+          "raw_bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ]
+    }
+  },
+  "validation": {
+    "independent_mechanical_expansion": {
+      "status": "passed",
+      "method": "Read authored bytes from disk; expand only authored whole-line if(features.<id>)/else/endif and case(minecraft_version)/when/else/endcase constructs with a separate in-memory verifier; compare raw UTF-8 source bytes with frozen Git blobs and source-rule membership. This does not execute the production renderer.",
+      "frozen_contexts": 20,
+      "membership_cells": 80,
+      "exact_present_body_matches": 44,
+      "exact_absence_matches": 36,
+      "independent_feature_toggle_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "independent_feature_toggle_cells": 32,
+      "normalization": "none",
+      "generated_roots_mutated": false,
+      "cargo_run": false
+    },
+    "production_renderer": {
+      "status": "passed_feature_off_catalog_matrix_only",
+      "result_schema": "sfm:source_projection_render@1",
+      "result_content_field": "rendered_content",
+      "scope": "read_only_single_java_template_proof_not_project_generation_or_build",
+      "command": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe source render --repo-root . --projection <key> --file <core-relative-file>",
+      "binary_sha256": "sha256:91e630a42e9daa21a05cdce359ac4c979bee2dff2ef250c678b36c54addd0e4f",
+      "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+      "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+      "projection_count": 20,
+      "file_count": 2,
+      "raw_render_matches": 40,
+      "expected": "Released off witness for each target, regardless of release/dev catalog label; both new language features are disabled in every catalog entry.",
+      "method": "Run the actual worktree CLI for each catalog key and each owned always-present class, parse JSON in memory, independently SHA-256 the UTF-8 rendered_content bytes, and compare both the reported hash and raw witness hash. Verify authored source hashes and unchanged executable/catalog/feature-definition hashes.",
+      "writes_performed": false,
+      "full_project_generated": false,
+      "compiled": false,
+      "records": [
+        {
+          "projection_key": "sfm-4.34.0/mc-1.19.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:7476ff1c5e580059ca9a85ddc797935ce3ca935d9054aa42dbbc1815a5861601",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.19.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:7476ff1c5e580059ca9a85ddc797935ce3ca935d9054aa42dbbc1815a5861601",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.19.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:4b5cdf144cb69503db252fcde35e40e97a35d174d6b223b6273153c17ad3d294",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.19.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:4b5cdf144cb69503db252fcde35e40e97a35d174d6b223b6273153c17ad3d294",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:5668597a9723513b276c8a41b6279cb7dd5172806e2b4bccf4217ced8d7d77ac",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:5668597a9723513b276c8a41b6279cb7dd5172806e2b4bccf4217ced8d7d77ac",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:4f0155be5394f36fc68e34dfa3de89f331eae3a59a504eec3dfdbf1a61555ac3",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:4f0155be5394f36fc68e34dfa3de89f331eae3a59a504eec3dfdbf1a61555ac3",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:c3cd6e71fbc3fc6e6342b7bb8460f857f8912ad4ffef52ccb89b4cdacbdfac43",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:c3cd6e71fbc3fc6e6342b7bb8460f857f8912ad4ffef52ccb89b4cdacbdfac43",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.3",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:e6f2403b9fa64f4bde2edcb5bc557ccfe74e631ddcf0eed87ef08aec3d284e9c",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.3",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:e6f2403b9fa64f4bde2edcb5bc557ccfe74e631ddcf0eed87ef08aec3d284e9c",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:eb70c4671923ed20bbf88bccdf0401deaf6300f0cad37f78ab3fff927da7a373",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.20.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:eb70c4671923ed20bbf88bccdf0401deaf6300f0cad37f78ab3fff927da7a373",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.21.0",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:6fbc1b4a0c5c98108d52cc2585acf86f570120b2ad0a72b92466fa954cdcc1b8",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.21.0",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:6fbc1b4a0c5c98108d52cc2585acf86f570120b2ad0a72b92466fa954cdcc1b8",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.21.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:2c793acd3abbb52c8dc2677e5813f4e885d6e3d6e6ab7a27964d4e0918e4718c",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-1.21.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:2c793acd3abbb52c8dc2677e5813f4e885d6e3d6e6ab7a27964d4e0918e4718c",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-26.1.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:76118713b61ec5ff8f578211f4218a8954ff8d8e8bfecc3236a165d47de45e54",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-4.34.0/mc-26.1.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:884c3f0dc80915f53403c5e11e809dbe2b0d1cc645fc1e194e94e0452f02cb1a",
+          "rendered_bytes": 9008,
+          "expected_released_git_blob": "2411991dd47f63d7e53c435e5d8b5fd3a5cda9b8",
+          "context_identity": "blake3:76118713b61ec5ff8f578211f4218a8954ff8d8e8bfecc3236a165d47de45e54",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.19.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:989e03a588e2d8497ab40f6acfbdedabffd0d53ef88d3c566ebc8c0c3c9e701a",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.19.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:989e03a588e2d8497ab40f6acfbdedabffd0d53ef88d3c566ebc8c0c3c9e701a",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.19.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:8f482fab2711efa4cdb395344bf42bb133f7c65a425a4a5d3cf0d36c2f8afa56",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.19.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:8f482fab2711efa4cdb395344bf42bb133f7c65a425a4a5d3cf0d36c2f8afa56",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:4915312f689cfca00480de3804f5c675361924f8c3bc1045c0a9ba8d55a651f4",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:4915312f689cfca00480de3804f5c675361924f8c3bc1045c0a9ba8d55a651f4",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:e7dfe920c0118e006f6740a9d5cd2350350aa9717e77976e60befafd23f2cc86",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:e7dfe920c0118e006f6740a9d5cd2350350aa9717e77976e60befafd23f2cc86",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:1e588422ef174948f25e422baba2fa16c3c084656376e45595f15ec77883eb4d",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:1e588422ef174948f25e422baba2fa16c3c084656376e45595f15ec77883eb4d",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.3",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:14934c6ac847a201aa08474de858d84676842eeda6c406c66f702aa624d4b26f",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.3",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:14934c6ac847a201aa08474de858d84676842eeda6c406c66f702aa624d4b26f",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:91ecda6081f318e05bb9f3b2177232bf2cf1821122ed7d236918121e0fb3cb46",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.20.4",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:91ecda6081f318e05bb9f3b2177232bf2cf1821122ed7d236918121e0fb3cb46",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.21.0",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:4fa23d91b36c10f6b7dd463d371e44a24ef7bd48b6e0341c6a1304f804dc553a",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.21.0",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:4fa23d91b36c10f6b7dd463d371e44a24ef7bd48b6e0341c6a1304f804dc553a",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.21.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:b04f8daa57468f303e7ca384072ef511ea3a84cbcad827ef537a494b01020d2e",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-1.21.1",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:cf2fe9ab9817c7652bc7652922892707c703af81dde9a18bf8aa50dffa1aa5c0",
+          "rendered_bytes": 9038,
+          "expected_released_git_blob": "aa46e58898d5136a819e9fe8e016cde78113077b",
+          "context_identity": "blake3:b04f8daa57468f303e7ca384072ef511ea3a84cbcad827ef537a494b01020d2e",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-26.1.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/ast/Interval.java",
+          "source_sha256": "sha256:f84f678e4daafd3a310d48a03b991a90dab3721f5a0452219f4aa6de81eb4089",
+          "rendered_sha256": "sha256:bb41cd8d513e39b23582846e9dce7f4993b9a005f2aabe2414632dd7a45c56c4",
+          "rendered_bytes": 696,
+          "expected_released_git_blob": "3a5839c13468beadcebcd28b08a53014cd61f526",
+          "context_identity": "blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        },
+        {
+          "projection_key": "sfm-dev/mc-26.1.2",
+          "core_relative_file": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+          "source_sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+          "rendered_sha256": "sha256:884c3f0dc80915f53403c5e11e809dbe2b0d1cc645fc1e194e94e0452f02cb1a",
+          "rendered_bytes": 9008,
+          "expected_released_git_blob": "2411991dd47f63d7e53c435e5d8b5fd3a5cda9b8",
+          "context_identity": "blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4",
+          "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+          "feature_definitions_sha256": "sha256:1239b8d3b37a14777754239de20cbc402684136b209a7a9f084b6e53b70928bb",
+          "writes_performed": false,
+          "compiled": false
+        }
+      ],
+      "feature_on_production_renderer": "pending; independent mechanical expansion remains the only feature-on proof in this ledger."
+    },
+    "java_compilation": {
+      "status": "pending",
+      "required": "Complete feature closure before feature-on target builds; do not claim compilation from byte reconstruction."
+    },
+    "git_diff_check": {
+      "status": "passed",
+      "scope": "four owned core paths",
+      "note": "New untracked files are additionally checked by exact raw-byte and final-LF proof; git diff --check does not itself inspect untracked files."
+    },
+    "sparse_membership_metadata_inspection": {
+      "status": "passed_metadata_inspection_only",
+      "project_inputs_sha256": "sha256:5be584077a05364c1e29acb5c16c5a6fa959b9bfcac4bdcf79d6f554a54f1432",
+      "inspected_rules": {
+        "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java": [
+          {
+            "input": "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java",
+            "when": {
+              "targets": [
+                "1.19.2",
+                "1.19.4"
+              ],
+              "all_features": [
+                "sfml_execution_side"
+              ]
+            },
+            "template": true
+          }
+        ],
+        "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java": [
+          {
+            "input": "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java",
+            "when": {
+              "targets": [
+                "1.19.2",
+                "1.19.4"
+              ],
+              "all_features": [
+                "sfml_worded_intervals"
+              ]
+            },
+            "template": true
+          }
+        ]
+      },
+      "off_catalog_contexts": 20,
+      "expected_absence_cells": 40,
+      "method": "Inspect registered sparse source rules: exact targets 1.19.2/1.19.4 and all_features of the owning flag. Each current catalog entry has that flag disabled, making both sources ineligible under the explicit condition.",
+      "limitation": "Single-source rendering bypasses source membership. Enum/linter render commands were not run or counted as absence. This inspection is not full project-generation evidence."
+    }
+  },
+  "integration_closure": {
+    "sfml_execution_side": [
+      "Program.java optional side declaration storage and assertCompatibleWith(side).",
+      "ProgramExecutionSideDeclaration.java optional class membership, ASTBuilder parsing and SFML.g4 CLIENT/SERVER/BTW tokens plus keyword-as-label compatibility.",
+      "Logical-host binding by server Manager and Client Manager; a header validates the host and never selects or changes it.",
+      "Host-sensitive cache, side-mismatch and portable/no-header regression tests; highlighting/editor/template parity."
+    ],
+    "sfml_worded_intervals": [
+      "SFML.g4 interval grammar preserving old syntax alongside GLOBAL, OFFSET BY and explicit units.",
+      "ASTBuilder integer parsing, legacyOffsetSyntax population and separate interval_overflow_fix branches.",
+      "SFMProgramLinters registration for LegacyIntervalOffsetProgramLinter plus localization/datagen output and editor parity.",
+      "Explicit global/offset/singular and legacy-warning tests; generic interval rendering must preserve released feature-off behaviour."
+    ],
+    "interval_overflow_fix": [
+      "Review and author the separately owned ASTBuilder overflow/range-validation regions, preserving original unchecked off behaviour.",
+      "Independent overflow and boundary tests rather than attaching the fix implicitly to worded intervals."
+    ]
+  },
+  "excluded_from_this_write": [
+    "Rust sources, feature-definitions.json, project-inputs.json, projections.json and presets.",
+    "Program.java, ASTBuilder.java, SFML.g4, SFMProgramLinters.java and all other companion sources.",
+    "Generated projection roots, installs, dependency/lockfile changes, Cargo/Gradle execution and commits."
+  ]
+}

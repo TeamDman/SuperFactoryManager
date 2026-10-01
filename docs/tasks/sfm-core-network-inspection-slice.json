@@ -1,0 +1,877 @@
+{
+  "schema": "sfm:core-network-inspection-slice@1",
+  "status": "staged_for_promotion_source_reconstruction_not_java_closure",
+  "scope": {
+    "files": 2,
+    "source_contexts": 20,
+    "raw_witnesses": 40,
+    "distinct_raw_blobs": 7,
+    "staged_only": true,
+    "production_core_written": false,
+    "generated_projects_written": false,
+    "feature_registry_written": false
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": {
+    "packet_computation": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "members": [
+        "WorldProgramInputSource import and source-owned gather/free scope in input inspection",
+        "Optional originating InputStatement and ProgramInputSource-based gathering in output inspection"
+      ],
+      "not_owned": [
+        "New wire messages or channel-layout family identity",
+        "Program host assertion",
+        "Independent direction or menu validity checks"
+      ]
+    }
+  },
+  "files": [
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-network-inspection-template-stage-v1/ServerboundInputInspectionRequestPacket.java",
+      "stage_sha256": "sha256:3885afffbf2be873049613240f4e7d5a204cce6cbf6e83d336419d57800a47db",
+      "stage_bytes": 6704,
+      "source_membership": "all_twenty_contexts_shared_unconditional_input",
+      "owner_ids": [
+        "packet_computation"
+      ],
+      "raw_variants": [
+        {
+          "git_blob": "919eb3246d00a9023921deb1a1dbecaddbe1e37e",
+          "raw_sha256": "sha256:9fc4b7736d2e233d464f0ec3c46c447a6f96e2ac34645b8ff7b66c6fdf8e236d",
+          "raw_bytes": 5103,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        },
+        {
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        },
+        {
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "919eb3246d00a9023921deb1a1dbecaddbe1e37e",
+          "raw_sha256": "sha256:9fc4b7736d2e233d464f0ec3c46c447a6f96e2ac34645b8ff7b66c6fdf8e236d",
+          "raw_bytes": 5103,
+          "expected_sha256": "sha256:9fc4b7736d2e233d464f0ec3c46c447a6f96e2ac34645b8ff7b66c6fdf8e236d",
+          "expected_bytes": 5103,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "919eb3246d00a9023921deb1a1dbecaddbe1e37e",
+          "raw_sha256": "sha256:9fc4b7736d2e233d464f0ec3c46c447a6f96e2ac34645b8ff7b66c6fdf8e236d",
+          "raw_bytes": 5103,
+          "expected_sha256": "sha256:9fc4b7736d2e233d464f0ec3c46c447a6f96e2ac34645b8ff7b66c6fdf8e236d",
+          "expected_bytes": 5103,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "c9f991b5d48e449ecb5c2c85898e8b1888d235fc",
+          "raw_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "raw_bytes": 4672,
+          "expected_sha256": "sha256:636e4b1c251b3102d93da65a40fd528f77e6b23256d9d8f264177a631417b67a",
+          "expected_bytes": 4672,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "7833a800b2662356c8a6e7874954c77e4a8dc79b",
+          "raw_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "raw_bytes": 4695,
+          "expected_sha256": "sha256:847a3ab4cf4753a1d78d64f1f41dd02b22fde0d39a517f69f532a3f5a48c7fea",
+          "expected_bytes": 4695,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-network-inspection-template-stage-v1/ServerboundOutputInspectionRequestPacket.java",
+      "stage_sha256": "sha256:4c4ea04889d8b162759a8f577bceca8bab3c068ba3d1b88ebd11425f57a32820",
+      "stage_bytes": 21721,
+      "source_membership": "all_twenty_contexts_shared_unconditional_input",
+      "owner_ids": [
+        "packet_computation"
+      ],
+      "raw_variants": [
+        {
+          "git_blob": "ae3e6b3b3f04d5fcab4a0556ddf42d39d9c543e9",
+          "raw_sha256": "sha256:ac13f001347d1c357f12b31b7a75c656d43a198959dc712b0c89fa8ccf44a57a",
+          "raw_bytes": 19038,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        },
+        {
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        },
+        {
+          "git_blob": "b282309d0cbe4c78ff99797c15f9f0a0b4c0f74c",
+          "raw_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "raw_bytes": 18846,
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "release/1.21.0",
+            "release/1.21.1"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        },
+        {
+          "git_blob": "cdfd40a04c7aebfc7b2f374adfdf9aadae018263",
+          "raw_sha256": "sha256:3e2ab4c9e20ecae4a0323b373b45a8a94b27d28513ebcdddc319f1ad0591a43e",
+          "raw_bytes": 18816,
+          "contexts": [
+            "dev/26.1.2",
+            "release/26.1.2"
+          ],
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "has_bom": false,
+          "has_final_lf": true
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "ae3e6b3b3f04d5fcab4a0556ddf42d39d9c543e9",
+          "raw_sha256": "sha256:ac13f001347d1c357f12b31b7a75c656d43a198959dc712b0c89fa8ccf44a57a",
+          "raw_bytes": 19038,
+          "expected_sha256": "sha256:ac13f001347d1c357f12b31b7a75c656d43a198959dc712b0c89fa8ccf44a57a",
+          "expected_bytes": 19038,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "ae3e6b3b3f04d5fcab4a0556ddf42d39d9c543e9",
+          "raw_sha256": "sha256:ac13f001347d1c357f12b31b7a75c656d43a198959dc712b0c89fa8ccf44a57a",
+          "raw_bytes": 19038,
+          "expected_sha256": "sha256:ac13f001347d1c357f12b31b7a75c656d43a198959dc712b0c89fa8ccf44a57a",
+          "expected_bytes": 19038,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "b282309d0cbe4c78ff99797c15f9f0a0b4c0f74c",
+          "raw_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "raw_bytes": 18846,
+          "expected_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "expected_bytes": 18846,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "b282309d0cbe4c78ff99797c15f9f0a0b4c0f74c",
+          "raw_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "raw_bytes": 18846,
+          "expected_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "expected_bytes": 18846,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "cdfd40a04c7aebfc7b2f374adfdf9aadae018263",
+          "raw_sha256": "sha256:3e2ab4c9e20ecae4a0323b373b45a8a94b27d28513ebcdddc319f1ad0591a43e",
+          "raw_bytes": 18816,
+          "expected_sha256": "sha256:3e2ab4c9e20ecae4a0323b373b45a8a94b27d28513ebcdddc319f1ad0591a43e",
+          "expected_bytes": 18816,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "2fe735f2c763028972e0c79a953734f567dbe906",
+          "raw_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "raw_bytes": 18823,
+          "expected_sha256": "sha256:a5d3d9530c169a2be3b6eaa65cf5f9567c4e27dabd75baf6478d2b9ab5138d25",
+          "expected_bytes": 18823,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "b282309d0cbe4c78ff99797c15f9f0a0b4c0f74c",
+          "raw_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "raw_bytes": 18846,
+          "expected_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "expected_bytes": 18846,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "b282309d0cbe4c78ff99797c15f9f0a0b4c0f74c",
+          "raw_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "raw_bytes": 18846,
+          "expected_sha256": "sha256:12756cd563ae3897fd3482d5077805d3756feb2b9573e0758ceb34f3e4d13354",
+          "expected_bytes": 18846,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "cdfd40a04c7aebfc7b2f374adfdf9aadae018263",
+          "raw_sha256": "sha256:3e2ab4c9e20ecae4a0323b373b45a8a94b27d28513ebcdddc319f1ad0591a43e",
+          "raw_bytes": 18816,
+          "expected_sha256": "sha256:3e2ab4c9e20ecae4a0323b373b45a8a94b27d28513ebcdddc319f1ad0591a43e",
+          "expected_bytes": 18816,
+          "normalization": "none"
+        }
+      ]
+    }
+  ],
+  "normalization": {
+    "policy": "none",
+    "approval_needed": false,
+    "contract": "All seven fixed raw objects already have LF-only text, final LF and no BOM/lone CR. No whitespace, source text or line-ending adoption is permitted."
+  },
+  "source_contracts": {
+    "packet_off": {
+      "input": "Preserve direct inputStatement.gatherSlots call and absence of WorldProgramInputSource import/free calls.",
+      "output": "Preserve the direct ProgramContext.getInputs().forEach(InputStatement...) gather loop."
+    },
+    "packet_on": {
+      "input": "Construct WorldProgramInputSource and call gatherSlots in try/finally, freeing its owned limited-slot cache exactly once even if inspection throws.",
+      "output": "Gather through ProgramInputSource only when inputStatement() is present; generated sources without a world statement are not misrepresented as labelled world inputs."
+    },
+    "cleanup": "runtime_resource_cleanup is an actual registered prerequisite of packet_computation. Cleanup-only source contexts retain the original direct inspection branch; no new behavior is fabricated for it.",
+    "version_api": [
+      "FriendlyByteBuf through 1.20.4; RegistryFriendlyByteBuf for stable targets1.21.0/1.21.1/26.1.2",
+      "Modern decode method omits one historical blank line; preserve this exact raw difference by MC-case region, not normalization.",
+      "26.1.2 uses Identifier, anyMatchIdentifier and matchesIdentifier; retain import order and all ordinary shared Java bodies."
+    ],
+    "wire_layout": "No new message, discriminator, payload shape, protocol literal, feature family or validator relaxation."
+  },
+  "source_proof_contexts": {
+    "enabled_request_only": [
+      "packet_computation"
+    ],
+    "effective_registered_closure": [
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup"
+    ],
+    "not_required": [
+      "packet_transport_private",
+      "client_inbox",
+      "client_program_signing",
+      "multiplayer_packets",
+      "client_frame_language",
+      "client_program_actions"
+    ],
+    "distinction": "These are isolated selected-source proofs, not complete-project generation/build evidence. Production wire validation remains at complete-project collection."
+  },
+  "dependencies": {
+    "shared_ready": [
+      "SFMPacket",
+      "ClientboundInputInspectionResultsPacket",
+      "ClientboundOutputInspectionResultsPacket",
+      "SFMASTUtils",
+      "SFMResourceLocation"
+    ],
+    "released_java_closure_pending": [
+      "ProgramContext",
+      "InputStatement",
+      "OutputStatement",
+      "SimulateExploreAllPathsProgramBehaviour",
+      "ManagerBlockEntity",
+      "SFMResourceTypes",
+      "ResourceType",
+      "Other resource AST and transfer carrier closure as reported by the eventual compiler"
+    ],
+    "packet_java_closure_pending": [
+      "ProgramInputSource",
+      "WorldProgramInputSource",
+      "ProgramContext generic active inputs and owned execution scope",
+      "InputStatement integration with WorldProgramInputSource",
+      "Related slot/tracker/source helpers"
+    ],
+    "limitation": "References are explicit integration dependencies, not permission to expand the two-file cohort or introduce unwitnessed target APIs."
+  },
+  "evidence": {
+    "independent_expansion": {
+      "renderer": "strict whole-line independent review expander; not production Liquid renderer",
+      "raw_reconstructions": 40,
+      "mismatches": 0,
+      "normalization_applied": false
+    },
+    "independent_source_toggles": {
+      "contexts": 14,
+      "outputs": 28,
+      "rows": [
+        {
+          "target": "1.19.2",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.2",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.2",
+          "enabled_features": [
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.2",
+          "enabled_features": [
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.2",
+          "enabled_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 5103,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.2",
+          "enabled_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 19038,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 5103,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.19.4",
+          "enabled_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 19038,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.1",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.1",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.2",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.2",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.3",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.3",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.4",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4672,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.20.4",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18823,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.21.0",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4695,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.21.0",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18846,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.21.1",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4695,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "1.21.1",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18846,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "26.1.2",
+          "enabled_features": [],
+          "file": "ServerboundInputInspectionRequestPacket.java",
+          "source_bytes": 4695,
+          "scope": "independent_source_expansion_only"
+        },
+        {
+          "target": "26.1.2",
+          "enabled_features": [],
+          "file": "ServerboundOutputInspectionRequestPacket.java",
+          "source_bytes": 18816,
+          "scope": "independent_source_expansion_only"
+        }
+      ]
+    },
+    "actual_production_selector_renderer": "pending root promotion and registration of the new regression module",
+    "java_compilation": "not run; released and packet runtime class closure remains incomplete",
+    "cargo": "not run by this agent",
+    "public_project_build": "not claimed",
+    "safeguards": "No core/catalog/source-rule/flag/registered module writes; stage is an ignored recovery input, not an historical production override."
+  },
+  "next_seam": {
+    "promotion": "Root reviews hashes, copies exact two source inputs into core and retains unconditional shared membership.",
+    "test_registration": "#[cfg(test)] mod core_network_inspection_slice_tests;",
+    "test_prerequisite": "Existing core_slice_test_support and unchanged packet_computation feature definition; no artificial transport/signing prerequisites.",
+    "required_followup": "Run scoped tests through actual selector/renderer, then full Rust gate; Java compile only after pending released source closure."
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "sfm:core-problem-tracker-first-slice@1",
+  "status": "authored_template_and_twenty_actual_feature_off_renderer_matches; feature_on_renderer_and_configuration_helper_closure_pending",
+  "path": "src/main/java/ca/teamdman/sfm/common/program/linting/ProblemTracker.java",
+  "feature": "unloaded_config_defaults",
+  "supported_targets": [
+    "1.19.2",
+    "1.19.4"
+  ],
+  "membership": "present for all ten Minecraft versions; only the changed config reads are feature-gated",
+  "normalization": {
+    "policy": "sfm:java_lf_final_newline@1",
+    "approval": "local reversible source-format decision; exact CRLF-to-LF replacement only for these two reviewed Java blobs; no trimming or token/string change",
+    "semantic_note": "Neither body contains a multiline Java string literal; line count is unchanged."
+  },
+  "witnesses": [
+    {
+      "blob": "8242b87ae8812a72ec08cb4746a0e72bf5606e36",
+      "raw_sha256": "sha256:4b04a4453e85c8c99fa9c118430c7ca2fc449d65ffb55dabfa87b2b5f688f5c4",
+      "raw_bytes": 1350,
+      "normalized_sha256": "sha256:8a660d3424a962945014c0fe963d1d0f71b21e4776708d0f60a75f42ffe69a7a",
+      "normalized_bytes": 1305,
+      "crlf_count": 45,
+      "final_lf_added": false
+    },
+    {
+      "blob": "3806bae101a313f1233beeabc9e9d5b5fc88ce2d",
+      "raw_sha256": "sha256:0b5590877ab7edfcb68118aec76fda23b90c241414a996937a4a93cf2e401390",
+      "raw_bytes": 1380,
+      "normalized_sha256": "sha256:b73c5a0351ba2c5f1202dcb64b54962a3e4dbd3510afff18b4163ff98800e838",
+      "normalized_bytes": 1346,
+      "crlf_count": 34,
+      "final_lf_added": false
+    }
+  ],
+  "historical_feature_off_contexts": "all ten releases and dev targets other than 1.19.2 and 1.19.4",
+  "historical_feature_on_contexts": [
+    "dev/1.19.2",
+    "dev/1.19.4"
+  ],
+  "actual_renderer_proof": {
+    "command": "source render --repo-root . --projection <each current catalog key> --file src/main/java/ca/teamdman/sfm/common/program/linting/ProblemTracker.java",
+    "catalog_entries_verified": 20,
+    "current_catalog_feature_enabled": false,
+    "source_sha256": "sha256:26120d121f947b08a7fa1858b5e36584b5c72d9255c590521455a2c48158e1e4",
+    "rendered_sha256_each": "sha256:8a660d3424a962945014c0fe963d1d0f71b21e4776708d0f60a75f42ffe69a7a",
+    "comparison": "Each actual CLI rendered_content was UTF-8 encoded and independently hashed against the normalized released witness. Both current development entries also use feature-off, not their historical development body.",
+    "writes_performed": false,
+    "full_project_generated": false,
+    "compiled": false
+  },
+  "source_dependencies": [
+    "unloaded_config_defaults-owned SFMConfig.getOrDefault helper must be authored before feature-on compilation"
+  ],
+  "limits": [
+    "Production templates read only core inputs, not this ledger or Git.",
+    "No independent feature-on or Java build acceptance is claimed."
+  ]
+}

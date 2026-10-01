@@ -43,6 +43,201 @@
     }
   },
   "source_rules": {
+    "src/main/java/ca/teamdman/sfm/common/label/LabelGunActions.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/label/LabelGunActions.java", "when": { "targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "any_features": ["computercraft", "client_manager"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/label/LabelGunClientManagerPushOrPullAction.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/label/LabelGunClientManagerPushOrPullAction.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["client_manager"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["packet_values"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueJsonCodec.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueJsonCodec.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["packet_values"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueMatch.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueMatch.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["packet_values"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValuePattern.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValuePattern.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["packet_values"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["packet_values"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/presentation/SFMResolvedItemIcon.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMResolvedItemIcon.java", "when": { "any_features": ["command_palette", "client_theme"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconResolver.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconResolver.java", "when": { "any_features": ["command_palette", "client_theme"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconRenderer.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconRenderer.java", "when": { "any_features": ["command_palette", "client_theme"] }, "template": true }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/presentation/SFMTextSummary.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMTextSummary.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] } }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMFocusTargetHost.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/action/SFMFocusTargetHost.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] } }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMVerticalListViewport.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMVerticalListViewport.java", "when": { "targets": ["1.19.2", "1.19.4"], "any_features": ["typed_command_palette", "keyboard_profiles"] } }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMCanonicalTokenArgument.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/action/SFMCanonicalTokenArgument.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["client_actions"], "any_features": ["client_program_consent", "keyboard_profiles"] } }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMActionElement.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/action/SFMActionElement.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["workspace_panels"] } }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMActionElementAudit.java": [
+      { "input": "src/main/java/ca/teamdman/sfm/client/action/SFMActionElementAudit.java", "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["workspace_panels"] } }
+    ],
+    "src/main/java/ca/teamdman/sfml/ast/SFMLLiteralGlob.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfml/ast/SFMLLiteralGlob.java",
+        "when": { "all_features": ["sfml_literal_globs"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCompletion.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCompletion.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMCompletionApplication.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMCompletionApplication.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMCommandFrontierAnalysis.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMCommandFrontierAnalysis.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidate.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidate.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["typed_command_palette"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["structured_action_results"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java",
+        "when": { "all_features": ["workspace_panels"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/search/SFMFuzzyScorer.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/search/SFMFuzzyScorer.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "any_features": ["typed_command_palette", "command_history"] },
+        "template": true
+      }
+    ],
+    "src/main/antlr/sfml/SFML.g4": [
+      {
+        "input": "src/main/antlr/sfml/SFML.g4",
+        "when": {},
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+        "when": { "any_features": ["client_actions", "client_theme"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/tick_graph/TickTimeGraphRenderer.java",
+        "when": { "targets": ["26.1.2"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java",
+        "when": { "all_features": ["client_actions"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfml/ast/ProgramExecutionSide.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["sfml_execution_side"] },
+        "template": true
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/linting/LegacyIntervalOffsetProgramLinter.java",
+        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["sfml_worded_intervals"] },
+        "template": true
+      }
+    ],
     "src/generated/resources/.cache/2349f09845fb45171871d8b671985ec6bddadb41": [
       {
         "input": "src/generated/resources/.cache/2349f09845fb45171871d8b671985ec6bddadb41",

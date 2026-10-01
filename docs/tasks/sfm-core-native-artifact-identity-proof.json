@@ -1,0 +1,40 @@
+{
+  "schema": "sfm:core_native_artifact_identity_proof@1",
+  "validation": "read_only_cached_bytes_against_original_frozen_pins_not_native_execution",
+  "date": "2026-09-30",
+  "lock": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
+  "lock_sha256": "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+  "verifier_sha256": "sha256:3b6536a88c6779b3c4d04f28f7c2eab84aa002d6dc561fe8a182feb0a4965597",
+  "algorithm": "Existing ContentHash uses the first 20 bytes of BLAKE3 XOF; the independently recorded full 32-byte result has the exact original pin prefix.",
+  "artifacts": [
+    {
+      "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86",
+      "locked_hash": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+      "full_blake3": "blake3:fa5d96536fb3195b1a113d1d9e30695927d763788927fb1f4fbee8ca411e9cdf",
+      "bytes": 11873687,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
+      "locked_hash": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
+      "full_blake3": "blake3:512f02bc3ae5a9113511befb1b6d7ac30665680137891f35b8e93b1dcad9994f",
+      "bytes": 498420,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "net.neoforged:neoform-runtime:2.0.19:all",
+      "locked_hash": "blake3:008acc741f349d2b57d6c393f3cb248974143a1a",
+      "full_blake3": "blake3:008acc741f349d2b57d6c393f3cb248974143a1acd6021f38be6baf3f0e09a99",
+      "bytes": 4479682,
+      "locked_checksum_verified": true
+    }
+  ],
+  "effects": {
+    "downloads": false,
+    "dependency_changes": false,
+    "lockfile_changes": false,
+    "cache_writes": false,
+    "minecraft_launch": false
+  },
+  "limitations": "This proves available exact artifact bytes, not prepared-input integration, source-build reproducibility, a sealed NeoForm downloader, or Minecraft compilation. A fresh execution must recheck these original pins. No weak metadata or replacement checksum was accepted."
+}

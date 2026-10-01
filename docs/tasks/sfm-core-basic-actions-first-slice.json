@@ -1,0 +1,165 @@
+{
+  "schema": "sfm:core-basic-actions-first-slice@1",
+  "status": "authored_exact_source_bodies_pending_root_metadata_registration",
+  "ownership_evidence": "docs/tasks/sfm-core-action-seed.json",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "scope": "Only single-blob basic_action_core paths without mixed-member ownership. Palette, shared helpers, optional extensions, EchoAction and the remaining seven basic paths are excluded.",
+  "counts": {
+    "authored_paths": 2,
+    "raw_bytes_total": 1551,
+    "witnessed_development_targets": 10,
+    "witnessed_release_targets": 0
+  },
+  "membership_contract": "These development-only bodies must never remain default-shared. Root must register client_actions and explicit sparse source inclusion before further generation validation.",
+  "validation_scope": "Raw witnessed LF-byte equality and ownership/membership evidence only. This is not a Java dependency-closure, compile or runtime proof.",
+  "files": {
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "feature_expression": "features.client_actions",
+        "required_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_feature_disabled": true,
+        "release_target_membership": []
+      },
+      "witness_context": "dev/1.19.2",
+      "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "witness_blob": "7f567bec525a02c7e55dd11f4c79a29813308598",
+      "source_sha256": "sha256:5e54dad979d9f81b74820b1d2810b42487df1e4bd34b80a33cc20e0542d742ba",
+      "source_bytes": 188,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_control_or_output": false,
+      "target_context_commits": {
+        "1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+        "1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+        "1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+        "1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+        "1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+        "1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+        "1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+        "1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+        "26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f"
+      },
+      "unresolved_source_dependencies": [
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java"
+      ],
+      "notes": [
+        "Same-package SFMClientActionContext is a mixed-member/multi-blob path and intentionally not authored by this slice."
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java": {
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java",
+      "feature_owner": "client_actions",
+      "suggested_inclusion": {
+        "feature_expression": "features.client_actions",
+        "required_features": [
+          "client_actions"
+        ],
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "exclude_when_feature_disabled": true,
+        "release_target_membership": []
+      },
+      "witness_context": "dev/1.19.2",
+      "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "witness_blob": "4403688a7d9d66fc45dff3e19c2c12a8961cd250",
+      "source_sha256": "sha256:aea89e3a2ac072f69579a9447d44d4ce2cba5f0551bb2a3f6e704a3e21618afb",
+      "source_bytes": 1363,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_control_or_output": false,
+      "target_context_commits": {
+        "1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+        "1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+        "1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+        "1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+        "1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+        "1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+        "1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+        "1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+        "26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f"
+      },
+      "unresolved_source_dependencies": [],
+      "notes": [
+        "Imports only Minecraft Component, JetBrains Nullable and Java Objects; keep the witnessed availability/target/reason invariants."
+      ]
+    }
+  },
+  "excluded_basic_paths": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+      "raw_variants": 3,
+      "mixed_member_count": 1,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+      "raw_variants": 2,
+      "mixed_member_count": 1,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+      "raw_variants": 2,
+      "mixed_member_count": 1,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionExecutor.java",
+      "raw_variants": 2,
+      "mixed_member_count": 2,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDispatcherCompiler.java",
+      "raw_variants": 3,
+      "mixed_member_count": 1,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionCommandTree.java",
+      "raw_variants": 3,
+      "mixed_member_count": 3,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMClientActions.java",
+      "raw_variants": 4,
+      "mixed_member_count": 1,
+      "reason": "Needs authored variant/member consolidation; outside this exact-body slice."
+    }
+  ],
+  "reproducible_read_only_checks": {
+    "body": "git cat-file blob <witness_blob>",
+    "hash": "SHA-256 of raw core-file bytes must equal source_sha256 and source_bytes must match.",
+    "membership": "The action ownership ledger verifies these same blobs on all10development witnesses and absence on all10release witnesses."
+  }
+}

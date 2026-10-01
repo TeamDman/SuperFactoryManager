@@ -1,0 +1,935 @@
+{
+  "schema": "sfm:core_language_grammar_program_slice@1",
+  "status": "authored_source_evidence_only",
+  "scope": {
+    "canonical_inputs_root": "platform/minecraft/core-liquid-template",
+    "paths": [
+      "src/main/antlr/sfml/SFML.g4",
+      "src/main/java/ca/teamdman/sfml/ast/Program.java"
+    ],
+    "basis_ledger": "docs/tasks/sfm-core-language-feature-ownership.json",
+    "frozen_context_count": 20,
+    "production_historical_source_lookup": false,
+    "environment_preset_projection_key_guards": false,
+    "scope_note": "This is a bounded SFML grammar and Program AST slice, not completion of language, parser, runtime or full feature closure."
+  },
+  "authored_inputs": {
+    "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+      "bytes": 21161,
+      "sha256": "sha256:086f8cc029be421f5eed29c4cd54edb566c444ccf9836f2e48ef0429d675382d"
+    },
+    "src/main/antlr/sfml/SFML.g4": {
+      "bytes": 17421,
+      "sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df"
+    }
+  },
+  "functional_owners": {
+    "client_frame_language": {
+      "grammar": [
+        "EVERY FRAME FOR frameLabels AS identifier trigger, frame labels and FRAME MOD predicate",
+        "FRAME/FOR/MOD tokens and shared AS support"
+      ],
+      "program": [
+        "FrameTrigger compatibility/traversal references"
+      ],
+      "off": [
+        "Timer and pulse triggers only; no frame predicates or Program FrameTrigger references"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "client_manager",
+          "sfml_execution_side",
+          "client_program_consent"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "client_frame_render": {
+      "grammar": [
+        "RENDER IMAGE statement plus RENDER/IMAGE tokens"
+      ],
+      "program": [
+        "RenderImageStatement side compatibility traversal"
+      ],
+      "off": [
+        "No render-image grammar or Program RenderImageStatement references"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "client_frame_language",
+          "touch_display",
+          "image_resources"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "client_inbox": {
+      "grammar": [
+        "Optional CHANNEL qualifiedId on BROADCAST and CHANNEL lexer token"
+      ],
+      "program": [],
+      "off": [
+        "Channel-less broadcast production when private broadcast owner is enabled"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "packet_transport_private"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "client_program_actions": {
+      "grammar": [
+        "JSON, machine INVOKE and FIELD client value expressions; JSON equality predicate and keyword"
+      ],
+      "program": [
+        "ClientValueExpression and BoolClientValueEquals side compatibility traversal"
+      ],
+      "off": [
+        "Packet textual invoke/construction remains available independently; machine client expressions and equality absent"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "client_actions",
+          "packet_values",
+          "sfml_execution_side",
+          "client_manager",
+          "client_program_consent",
+          "packet_computation"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "packet_computation": {
+      "grammar": [
+        "Declarations, value patterns, LET/CREATE computation, textual invocation IDs and input capability/pattern selection plus binding",
+        "Packet-family lexer tokens and identifier alternatives"
+      ],
+      "program": [
+        "ProgramDefinitions field, constructors and source serialization"
+      ],
+      "off": [
+        "No declarations/computation/input bindings",
+        "Original input productions and no ProgramDefinitions references"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "packet_values",
+          "runtime_resource_cleanup"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "packet_transport_private": {
+      "grammar": [
+        "BROADCAST statement and lexer token, independently of packet value construction"
+      ],
+      "program": [],
+      "off": [
+        "No BROADCAST syntax"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "packet_computation"
+        ]
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "runtime_resource_cleanup": {
+      "grammar": [],
+      "program": [
+        "Exception-safe program/context resource release, fork cleanup and suppressed failures",
+        "Shared trigger loop with only the changed lifetime regions guarded"
+      ],
+      "off": [
+        "Witnessed original success-path free and non-finally lifetime behavior"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": []
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "sfml_execution_side": {
+      "grammar": [
+        "Optional first executionSideDeclaration production and CLIENT/SERVER/BTW lexer tokens",
+        "Added keywords remain labels through identifier alternatives"
+      ],
+      "program": [
+        "Optional ProgramExecutionSideDeclaration record member and independent constructors",
+        "Header display and host compatibility checks"
+      ],
+      "off": [
+        "Original program root production without side declaration",
+        "Original five-field Program record when packet computation is also disabled",
+        "No side checks or nullable import"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": []
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    },
+    "sfml_worded_intervals": {
+      "grammar": [
+        "Named interval fields, OFFSET BY production, timeUnit rule and OFFSET lexer token"
+      ],
+      "program": [],
+      "off": [
+        "Original GLOBAL/G and PLUS interval productions retained exactly"
+      ],
+      "registered_definition_at_review": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": []
+      },
+      "registration_note": "Definition and public preset changes are root-owned. Matching owner names/dependencies were inspected; these recommendations alone are not an independent compilation proof."
+    }
+  },
+  "genuinely_version_owned_region": {
+    "path": "src/main/java/ca/teamdman/sfml/ast/Program.java",
+    "anchor": "import net.minecraft.world.level.Level;",
+    "cases": [
+      {
+        "minecraft_versions": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1"
+        ],
+        "body": "import net.minecraftforge.network.NetworkHooks;"
+      },
+      {
+        "minecraft_versions": [
+          "1.20.2",
+          "1.20.3"
+        ],
+        "body": "import net.neoforged.neoforge.network.NetworkHooks;"
+      },
+      {
+        "minecraft_versions": [
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "body": null
+      }
+    ],
+    "note": "Preserves the witnessed import rather than inferring it from loader family. In particular, the 1.20.1 witness retains the Forge package."
+  },
+  "normalization_policies": [
+    {
+      "id": "sfm:antlr_lf_final_newline@1",
+      "scope": {
+        "path": "src/main/antlr/sfml/SFML.g4",
+        "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15"
+      },
+      "raw": {
+        "sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+        "bytes": 7927,
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "bom": false,
+        "terminal_lf": false
+      },
+      "normalized": {
+        "sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+        "bytes": 7928,
+        "lf_added": true,
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "bom": false,
+        "terminal_lf": true
+      },
+      "allowed_change": "Append exactly one LF to the exact pinned released grammar. Every prior byte remains unchanged.",
+      "approval": "Explicit root approval; no broad whitespace, comment, token or Java source normalization.",
+      "verification": {
+        "normalized_equals_raw_plus_one_lf": true,
+        "unchanged_prefix_bytes": 7927
+      }
+    },
+    {
+      "id": "sfm:antlr_keyword_alternation_lines@1",
+      "scope": {
+        "path": "src/main/antlr/sfml/SFML.g4",
+        "raw_git_blob": "79995bb5edccc6ebe421438e705d56b266ff2e58",
+        "raw_identifier_rows": [
+          206,
+          209
+        ]
+      },
+      "raw": {
+        "sha256": "sha256:b09f2304c4b76e52c0b2424789db017a9107d377464058ec227ae94263a04173",
+        "bytes": 11948,
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "bom": false,
+        "terminal_lf": true
+      },
+      "normalized": {
+        "sha256": "sha256:5a6d66f7d39221394e663c0ccc89cb6a5602acc195bcf7fa116b87ce4ef5d609",
+        "bytes": 12213,
+        "lf_added": false,
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "bom": false,
+        "terminal_lf": true
+      },
+      "original_block": "identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK\n           | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY\n           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET\n           | FRAME | FOR | MOD | RENDER | IMAGE | JSON) ;\n",
+      "normalized_block": "identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK\n           | LET\n           | BE\n           | PLAYER\n           | OF\n           | LIKE\n           | OBJECT\n           | FIELD\n           | GUID\n           | STRING_TYPE\n           | INVOKE\n           | CAPABILITY\n           | AS\n           | CREATE\n           | BROADCAST\n           | CHANNEL\n           | NEW\n           | CLIENT\n           | SERVER\n           | BTW\n           | OFFSET\n           | FRAME\n           | FOR\n           | MOD\n           | RENDER\n           | IMAGE\n           | JSON\n           ) ;\n",
+      "ordered_added_alternatives": [
+        "LET",
+        "BE",
+        "PLAYER",
+        "OF",
+        "LIKE",
+        "OBJECT",
+        "FIELD",
+        "GUID",
+        "STRING_TYPE",
+        "INVOKE",
+        "CAPABILITY",
+        "AS",
+        "CREATE",
+        "BROADCAST",
+        "CHANNEL",
+        "NEW",
+        "CLIENT",
+        "SERVER",
+        "BTW",
+        "OFFSET",
+        "FRAME",
+        "FOR",
+        "MOD",
+        "RENDER",
+        "IMAGE",
+        "JSON"
+      ],
+      "block_hashes": {
+        "original": "sha256:b8ff88d31bb82f9bde71276e165f2e259219980d4213580ba3c91e6ed3f72d52",
+        "normalized": "sha256:5cb367f9a665fa23b0b7808188293aea8cee8b9910880277f003fd7ff9bfc7e7"
+      },
+      "allowed_change": "Preserve the first identifier row exactly, place each added alternative on its own line in original order, and move the closing ) ; to its own line. Only whitespace/alternation layout outside quotes/comments changes.",
+      "approval": "Explicit root approval for this exact development-only block. Released identifier production remains byte-exact when all functional owners are disabled.",
+      "verification": {
+        "exactly_one_original_block": true,
+        "first_row_unchanged": true,
+        "ordered_token_and_punctuation_sequence_equal_after_whitespace_removal": true,
+        "no_quotes_or_comments_in_reflowed_block": true,
+        "outside_block_bytes_unchanged": true,
+        "raw_byte_parity_claim": false
+      }
+    }
+  ],
+  "witness_matrix": [
+    {
+      "context": "dev/1.19.2",
+      "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "target_id": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "enabled_owners": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_program_actions",
+        "packet_computation",
+        "packet_transport_private",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "79995bb5edccc6ebe421438e705d56b266ff2e58",
+          "raw_sha256": "sha256:b09f2304c4b76e52c0b2424789db017a9107d377464058ec227ae94263a04173",
+          "raw_bytes": 11948,
+          "expected_sha256": "sha256:5a6d66f7d39221394e663c0ccc89cb6a5602acc195bcf7fa116b87ce4ef5d609",
+          "expected_bytes": 12213,
+          "comparison": "sfm:antlr_keyword_alternation_lines@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "8c67a6afbb147793e767a2afb2b28c5ee9dc5529",
+          "raw_sha256": "sha256:776b972a131ce871333adeaca37b4712fcc653537dd9c3b7a020fd51d8dfa03f",
+          "raw_bytes": 18081,
+          "expected_sha256": "sha256:776b972a131ce871333adeaca37b4712fcc653537dd9c3b7a020fd51d8dfa03f",
+          "expected_bytes": 18081,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.19.4",
+      "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+      "target_id": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "enabled_owners": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_program_actions",
+        "packet_computation",
+        "packet_transport_private",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "79995bb5edccc6ebe421438e705d56b266ff2e58",
+          "raw_sha256": "sha256:b09f2304c4b76e52c0b2424789db017a9107d377464058ec227ae94263a04173",
+          "raw_bytes": 11948,
+          "expected_sha256": "sha256:5a6d66f7d39221394e663c0ccc89cb6a5602acc195bcf7fa116b87ce4ef5d609",
+          "expected_bytes": 12213,
+          "comparison": "sfm:antlr_keyword_alternation_lines@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "8c67a6afbb147793e767a2afb2b28c5ee9dc5529",
+          "raw_sha256": "sha256:776b972a131ce871333adeaca37b4712fcc653537dd9c3b7a020fd51d8dfa03f",
+          "raw_bytes": 18081,
+          "expected_sha256": "sha256:776b972a131ce871333adeaca37b4712fcc653537dd9c3b7a020fd51d8dfa03f",
+          "expected_bytes": 18081,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.20",
+      "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+      "target_id": "1.20",
+      "minecraft_version": "1.20",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.20.1",
+      "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+      "target_id": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.20.2",
+      "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+      "target_id": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "52b9a4b4432354f5b0764c8e46b51a5987b06dd0",
+          "raw_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "raw_bytes": 13677,
+          "expected_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "expected_bytes": 13677,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.20.3",
+      "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+      "target_id": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "52b9a4b4432354f5b0764c8e46b51a5987b06dd0",
+          "raw_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "raw_bytes": 13677,
+          "expected_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "expected_bytes": 13677,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.20.4",
+      "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+      "target_id": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.21.0",
+      "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+      "target_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/1.21.1",
+      "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+      "target_id": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "dev/26.1.2",
+      "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+      "target_id": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.19.2",
+      "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+      "target_id": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.19.4",
+      "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+      "target_id": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.20",
+      "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+      "target_id": "1.20",
+      "minecraft_version": "1.20",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.20.1",
+      "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+      "target_id": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "bd6d245b0f41585389829845c576f2aedb0f2fec",
+          "raw_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "raw_bytes": 13673,
+          "expected_sha256": "sha256:8205ee84da44f0063cc68218b7b6427d42a0ce4d54cc1f2a75e78f04edaa664f",
+          "expected_bytes": 13673,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.20.2",
+      "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+      "target_id": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "52b9a4b4432354f5b0764c8e46b51a5987b06dd0",
+          "raw_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "raw_bytes": 13677,
+          "expected_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "expected_bytes": 13677,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.20.3",
+      "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+      "target_id": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "52b9a4b4432354f5b0764c8e46b51a5987b06dd0",
+          "raw_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "raw_bytes": 13677,
+          "expected_sha256": "sha256:1ea362d4831850b62e6d60e23ccd1b82300452d703231a758efceaf91b8743b1",
+          "expected_bytes": 13677,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.20.4",
+      "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+      "target_id": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.21.0",
+      "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+      "target_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/1.21.1",
+      "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+      "target_id": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    },
+    {
+      "context": "release/26.1.2",
+      "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+      "target_id": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "enabled_owners": [],
+      "witnesses": {
+        "src/main/antlr/sfml/SFML.g4": {
+          "raw_git_blob": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+          "raw_sha256": "sha256:6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+          "raw_bytes": 7927,
+          "expected_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+          "expected_bytes": 7928,
+          "comparison": "sfm:antlr_lf_final_newline@1"
+        },
+        "src/main/java/ca/teamdman/sfml/ast/Program.java": {
+          "raw_git_blob": "0a04f68e48213714cabbfae685133261c8c745c1",
+          "raw_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "raw_bytes": 13625,
+          "expected_sha256": "sha256:e4b7cf7a031c7e94d7fe8b72f2ccf7211b486941127bd6ea613b1f1dc91c85ae",
+          "expected_bytes": 13625,
+          "comparison": "raw_bytes"
+        }
+      }
+    }
+  ],
+  "integration": {
+    "grammar_source_rule": {
+      "output": "src/main/antlr/sfml/SFML.g4",
+      "variants": [
+        {
+          "input": "src/main/antlr/sfml/SFML.g4",
+          "when": {},
+          "template": true
+        }
+      ],
+      "verified_in_current_project_inputs": true,
+      "reason": "Non-Java canonical inputs must be explicitly marked template:true rather than copied verbatim."
+    },
+    "program_source_rule": "Always-present canonical Java input; no sparse inclusion rule required.",
+    "source_dependency_notes": [
+      "client_inbox currently uses the private BROADCAST compilation surface; public-only delivery may later require separating broadcast syntax from private transport capability.",
+      "Program frame/render/action references are independently guarded and require the corresponding parser/AST carrier files before Java compilation.",
+      "ProgramExecutionSideDeclaration, ProgramDefinitions, all ASTBuilder visitor accesses, and SFMProgramLinters remain separate integration tasks.",
+      "No client action or UI permission is granted by rendering these guards; consent and server authorization are separate runtime mechanisms."
+    ]
+  },
+  "checks": {
+    "disk_sources_equal_checked_drafts": true,
+    "method": "Independent strict whole-line Liquid expansion over actual on-disk templates with explicit boolean owner maps and minecraft_version; not the production Rust renderer.",
+    "frozen_reconstruction": {
+      "java_raw_byte_matches": 20,
+      "grammar_approved_normalized_matches": 20
+    },
+    "dependency_valid_mixed_feature_combinations": 58,
+    "mixed_feature_context_checks": 116,
+    "mixed_check_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "mixed_checks": [
+      "Named direct guards and transitive prerequisites exist in current root-owned feature definitions",
+      "Control grammar number: NUMBER and NUMBER: [0-9]+ rules remain byte-identical",
+      "Optional grammar/Program side, packet, frame, render, action and cleanup references appear exactly when their owners are enabled",
+      "No whole-line template directive remains in expanded output"
+    ],
+    "command_runs": {
+      "cargo": false,
+      "gradle": false,
+      "source_generation": false,
+      "actual_rust_renderer": false,
+      "antlr_compilation": false,
+      "java_compilation": false
+    },
+    "accepted_parent_evidence": "The parent reported that the separately registered previous four-file language slice passes its four Rust tests. This does not cover these two new templates.",
+    "pending_gates": [
+      "Production Rust renderer and CoreProjectInputs selection on all20 contexts plus approved mixed combinations",
+      "ANTLR generation, ASTBuilder and visitor API closure for independent side/interval/packet/frame variants",
+      "Java compilation and released-JAR behavior/compatibility proof",
+      "Feature-owned companion core sources and sparse membership rules; no public preset enabled by this slice"
+    ]
+  }
+}

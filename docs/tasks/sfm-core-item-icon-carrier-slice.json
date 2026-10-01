@@ -1,0 +1,531 @@
+{
+  "schema": "sfm:core-item-icon-carrier-slice@1",
+  "status": "authored_version_adapter_with_actual_ten_target_byte_equivalence_pending_source_membership_and_java_closure",
+  "ownership_evidence": "docs/tasks/sfm-core-action-seed.json",
+  "consumer_slice": "docs/tasks/sfm-core-basic-actions-second-slice.json",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "scope": "Only the pure shared SFMItemIcon carrier. Icon resolution/rendering, themes, palette UI, workspace runtime and unrelated registrations are excluded.",
+  "core_relative_file": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+  "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+  "counts": {
+    "authored_paths": 1,
+    "authored_template_bytes": 2393,
+    "raw_witness_variants": 4,
+    "raw_witness_bytes_sum": 5121,
+    "development_targets": 10,
+    "released_targets_without_class": 10,
+    "actual_production_one_file_renders": 10,
+    "actual_rendered_bytes_sum": 12597
+  },
+  "authored_template": {
+    "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+    "source_bytes": 2393,
+    "line_endings": "lf",
+    "final_newline": "exactly_one_lf",
+    "directive_form": "whole_line_grouped_minecraft_version_case_when",
+    "no_whole_class_snapshot_copies": true
+  },
+  "source_membership_recommendation": {
+    "status": "pending_root_registration; this slice made no metadata edits",
+    "role": "shared_helper_for_enabled_real_consumers",
+    "initial_rule": {
+      "input": "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+      "when": {
+        "any_features": [
+          "client_actions"
+        ]
+      },
+      "template": true
+    },
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "exclude_with_no_real_consumer": true,
+    "released_membership": [],
+    "shared_or_extension": "Add reviewed real consumer owners to any_features as their source paths are adopted. The previously reviewed command_palette consumer is one candidate; it is not an unconditional prerequisite.",
+    "forbidden_inference": "Do not require or emit the theme store, palette UI, icon renderer or workspace just because an action returns Optional<SFMItemIcon>.",
+    "release_acceptance_gate": "After root adds explicit sparse source membership, the released feature set must omit this path before reading/rendering. Direct source render does not enforce membership."
+  },
+  "version_groups": [
+    {
+      "target_ids": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "minecraft_version_values": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "api_type": "ResourceLocation",
+      "factory": "new ResourceLocation(namespace, path)",
+      "public_constants": [
+        "PAPER",
+        "BARREL"
+      ],
+      "source_blob": "aaf74f07139f6ff65f5f9c698b6fd51039c84193"
+    },
+    {
+      "target_ids": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4"
+      ],
+      "minecraft_version_values": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4"
+      ],
+      "api_type": "ResourceLocation",
+      "factory": "new ResourceLocation(namespace, path)",
+      "public_constants": [
+        "PAPER"
+      ],
+      "source_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2"
+    },
+    {
+      "target_ids": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "minecraft_version_values": [
+        "1.21",
+        "1.21.0",
+        "1.21.1"
+      ],
+      "api_type": "ResourceLocation",
+      "factory": "SFMResourceLocation.fromNamespaceAndPath(namespace, path)",
+      "public_constants": [
+        "PAPER"
+      ],
+      "source_blob": "f24da6900ab87461eeb378234c09f2136760bdf1"
+    },
+    {
+      "target_ids": [
+        "26.1.2"
+      ],
+      "minecraft_version_values": [
+        "26.1.2"
+      ],
+      "api_type": "Identifier",
+      "factory": "SFMResourceLocation.fromNamespaceAndPath(namespace, path)",
+      "public_constants": [
+        "PAPER"
+      ],
+      "source_blob": "4c5441d66d2a65eab6da12fb9bf498791ce2e0ac"
+    }
+  ],
+  "semantic_preservation": [
+    "requestedItem and fallbackItem remain non-null. accessibleLabel is stripped and must remain non-blank.",
+    "PAPER remains the default fallback used by vanilla(). No item registry, texture upload, theme file or GUI is accessed by this carrier.",
+    "BARREL is part of the D2 witnessed public API. It is not referenced by the primary main-Java sources reviewed here, but removing it would change that API.",
+    "The BARREL difference reflects witnessed target API history, not a claim that newer Minecraft cannot represent a barrel identifier.",
+    "The helper import's separating blank line is retained exactly on the later targets; all rendered bodies retain the exact witnessed LF bytes."
+  ],
+  "dependencies": {
+    "always": [
+      "java.util.Objects",
+      "net.minecraft.resources.ResourceLocation on the first nine targets, or net.minecraft.resources.Identifier on 26.1.2"
+    ],
+    "target_conditional": [
+      {
+        "targets": [
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "source_path": "src/main/java/ca/teamdman/sfm/common/util/SFMResourceLocation.java",
+        "entry_point": "fromNamespaceAndPath(String, String)",
+        "status": "not_present_in_core_at_this_slice; root/language ownership must supply its baseline API independently of sfml_literal_globs, packet, frame or other optional features"
+      }
+    ],
+    "optional_ui_runtime_dependencies": [],
+    "no_theme_or_palette_prerequisite": true,
+    "actual_existing_consumers_reference": {
+      "operator": "or_of_enabled_real_consumers",
+      "reviewed_consumer_features": [
+        "client_actions",
+        "command_palette"
+      ],
+      "reviewed_consumer_helpers": [
+        "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconRenderer.java",
+        "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconResolver.java"
+      ],
+      "contract": "Resource-location, fallback and accessible-label carrier. Include for real icon metadata/presentation consumers, not as a dependency on persisted theme rules.",
+      "consumer_reference_source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "primary_lexical_reference_paths": [
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleToolsAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMReviewLensSetAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMThemeAction.java",
+        "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+        "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconRenderer.java",
+        "src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIconResolver.java",
+        "src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewExplorerRuntime.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPresentation.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMFileExtensionExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMMinecraftItemExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMReleaseReviewExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMSymbolReferenceExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFilePresentation.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFilePresentationRegistry.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerEntry.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerModel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerPanel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerScreen.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMCommandPaletteScreen.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/theme_settings/SFMThemeSettingsModel.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewDefaultNames.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewInspection.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRuleCodec.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRules.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientTheme.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeLoader.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeTomlWriter.java"
+      ],
+      "outside_ledger_reference_paths": [
+        "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleToolsAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMReviewLensSetAction.java",
+        "src/main/java/ca/teamdman/sfm/client/action/SFMThemeAction.java",
+        "src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewExplorerRuntime.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPresentation.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMFileExtensionExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMMinecraftItemExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMReleaseReviewExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMSymbolReferenceExplorerPresenter.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFilePresentation.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFilePresentationRegistry.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerEntry.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerModel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerPanel.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerScreen.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/theme_settings/SFMThemeSettingsModel.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewDefaultNames.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewInspection.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRuleCodec.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRules.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientTheme.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeLoader.java",
+        "src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeTomlWriter.java"
+      ],
+      "outside_consumer_feature_mapping": "incomplete_do_not_enable_by_package_or_unreviewed_feature_guess",
+      "reference_method": "git grep -l -w of the class name in primary main Java; lexical witnesses include declarations and do not prove a complete Java dependency closure"
+    },
+    "dependency_closure_proven": false
+  },
+  "raw_witnesses": [
+    {
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ],
+      "witness_context": "dev/1.19.2",
+      "witness_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "witness_blob": "aaf74f07139f6ff65f5f9c698b6fd51039c84193",
+      "source_sha256": "sha256:587f1a252f70491ee02bc63ae85cf7d81dfb563964ca019633c71a32ff00f871",
+      "source_bytes": 1309,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid": false
+    },
+    {
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4"
+      ],
+      "witness_context": "dev/1.20",
+      "witness_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+      "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+      "source_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+      "source_bytes": 1214,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid": false
+    },
+    {
+      "contexts": [
+        "dev/1.21.0",
+        "dev/1.21.1"
+      ],
+      "witness_context": "dev/1.21.0",
+      "witness_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+      "witness_blob": "f24da6900ab87461eeb378234c09f2136760bdf1",
+      "source_sha256": "sha256:e9cdb7ac145253ad9d2fced3fa0214ff8d7bce2540aebce6b6d07c7d50778777",
+      "source_bytes": 1311,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid": false
+    },
+    {
+      "contexts": [
+        "dev/26.1.2"
+      ],
+      "witness_context": "dev/26.1.2",
+      "witness_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+      "witness_blob": "4c5441d66d2a65eab6da12fb9bf498791ce2e0ac",
+      "source_sha256": "sha256:e50c8529cfcc1775250ff69feec620c5278a0db3aee94a753c926d39c9603c83",
+      "source_bytes": 1287,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid": false
+    }
+  ],
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "actual_render_proof": {
+    "status": "passed",
+    "method": "Real worktree sfm-propagate-changes source render; decode the JSON rendered_content string, compare its exact UTF-8 bytes and rendered_sha256 with the raw pinned blob. No debug display comparison.",
+    "executable_repository_relative_path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "executable_sha256": "sha256:91e630a42e9daa21a05cdce359ac4c979bee2dff2ef250c678b36c54addd0e4f",
+    "tooling_source_status": "Parent supplied the current worktree binary. This slice did not rebuild/install it and did not use the older PATH executable.",
+    "command_shape": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe --output-format json source render --repo-root . --projection sfm-dev/mc-<target-id> --file src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+    "input_contexts_stable_across_all_ten": true,
+    "reports": [
+      {
+        "target": "1.19.2",
+        "witness_blob": "aaf74f07139f6ff65f5f9c698b6fd51039c84193",
+        "minecraft_version": "1.19.2",
+        "rendered_bytes": 1309,
+        "rendered_sha256": "sha256:587f1a252f70491ee02bc63ae85cf7d81dfb563964ca019633c71a32ff00f871",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:989e03a588e2d8497ab40f6acfbdedabffd0d53ef88d3c566ebc8c0c3c9e701a",
+        "enabled_features": [
+          "echo_action",
+          "touch_display_terminal_mount"
+        ],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.19.4",
+        "witness_blob": "aaf74f07139f6ff65f5f9c698b6fd51039c84193",
+        "minecraft_version": "1.19.4",
+        "rendered_bytes": 1309,
+        "rendered_sha256": "sha256:587f1a252f70491ee02bc63ae85cf7d81dfb563964ca019633c71a32ff00f871",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:8f482fab2711efa4cdb395344bf42bb133f7c65a425a4a5d3cf0d36c2f8afa56",
+        "enabled_features": [
+          "touch_display_terminal_mount"
+        ],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.20",
+        "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+        "minecraft_version": "1.20",
+        "rendered_bytes": 1214,
+        "rendered_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:4915312f689cfca00480de3804f5c675361924f8c3bc1045c0a9ba8d55a651f4",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.20.1",
+        "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+        "minecraft_version": "1.20.1",
+        "rendered_bytes": 1214,
+        "rendered_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:e7dfe920c0118e006f6740a9d5cd2350350aa9717e77976e60befafd23f2cc86",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.20.2",
+        "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+        "minecraft_version": "1.20.2",
+        "rendered_bytes": 1214,
+        "rendered_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:1e588422ef174948f25e422baba2fa16c3c084656376e45595f15ec77883eb4d",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.20.3",
+        "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+        "minecraft_version": "1.20.3",
+        "rendered_bytes": 1214,
+        "rendered_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:14934c6ac847a201aa08474de858d84676842eeda6c406c66f702aa624d4b26f",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.20.4",
+        "witness_blob": "12341b182af3b6b3aebfbe1c1fb3d472b4ff64a2",
+        "minecraft_version": "1.20.4",
+        "rendered_bytes": 1214,
+        "rendered_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:91ecda6081f318e05bb9f3b2177232bf2cf1821122ed7d236918121e0fb3cb46",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.21.0",
+        "witness_blob": "f24da6900ab87461eeb378234c09f2136760bdf1",
+        "minecraft_version": "1.21",
+        "rendered_bytes": 1311,
+        "rendered_sha256": "sha256:e9cdb7ac145253ad9d2fced3fa0214ff8d7bce2540aebce6b6d07c7d50778777",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:4fa23d91b36c10f6b7dd463d371e44a24ef7bd48b6e0341c6a1304f804dc553a",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "1.21.1",
+        "witness_blob": "f24da6900ab87461eeb378234c09f2136760bdf1",
+        "minecraft_version": "1.21.1",
+        "rendered_bytes": 1311,
+        "rendered_sha256": "sha256:e9cdb7ac145253ad9d2fced3fa0214ff8d7bce2540aebce6b6d07c7d50778777",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:b04f8daa57468f303e7ca384072ef511ea3a84cbcad827ef537a494b01020d2e",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      },
+      {
+        "target": "26.1.2",
+        "witness_blob": "4c5441d66d2a65eab6da12fb9bf498791ce2e0ac",
+        "minecraft_version": "26.1.2",
+        "rendered_bytes": 1287,
+        "rendered_sha256": "sha256:e50c8529cfcc1775250ff69feec620c5278a0db3aee94a753c926d39c9603c83",
+        "source_sha256": "sha256:ee57563f45ffb0192c4fb3db2775a5dbcdff590fc896d17923e735a971aa3abb",
+        "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+        "feature_definitions_sha256": "sha256:09050182d24ce48e39e40183718e5193e819acf151b309d1fd3a74ee24caf7c7",
+        "context_identity": "blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4",
+        "enabled_features": [],
+        "client_actions_flag": false,
+        "writes_performed": false,
+        "full_project_generated": false,
+        "compiled": false
+      }
+    ],
+    "membership_limit": "All ten tested catalog contexts currently had client_actions=false. Direct file rendering intentionally ignores sparse file selection, so the body equivalence is proven but activation/membership is not.",
+    "compiled": false,
+    "full_project_generated": false,
+    "writes_performed": false
+  },
+  "discovered_and_repaired_authoring_issue": {
+    "first_failing_target": "1.21.0",
+    "cause": "Its projection key and target ID use 1.21.0, but the typed Liquid minecraft_version is the physical game version 1.21.",
+    "initial_wrong_variant_sha256": "sha256:17a991a3d575a4e1c3b746d1ac3d7cdd4d70de9aa31bd179ae0c7f994133069f",
+    "correction": "Include the physical 1.21 value in the grouped helper-import, PAPER factory and vanilla factory cases. Retain the 1.21.0 alias explicitly.",
+    "validation": "The corrected actual output now matches the 1.21.0 witness. All ten actual renders were rerun against the corrected template."
+  },
+  "completed_checks": {
+    "core_destination_absent_before_authoring": true,
+    "other_owned_templates_or_imports_overwritten": false,
+    "canonical_checkpoint_sha256_after_checkout_eol_normalization": "sha256:587f1a252f70491ee02bc63ae85cf7d81dfb563964ca019633c71a32ff00f871",
+    "raw_membership_and_hash_checks": {
+      "development_presence_checks": 10,
+      "released_absence_checks": 10,
+      "raw_blob_hash_and_shape_checks": 4
+    },
+    "authored_file_sha256_and_lf_eof_verified": true,
+    "ten_actual_rendered_source_byte_and_hash_matches": true,
+    "output_debug_representation_used_as_evidence": false,
+    "metadata_catalog_feature_definitions_changed_by_this_slice": false,
+    "dependencies_added": false,
+    "cargo_build_or_install_run": false,
+    "java_compile_or_runtime_test_run": false
+  },
+  "remaining_integration_gates": [
+    "Root must register sparse shared-carrier membership before the next whole-project generation.",
+    "Preserve fromNamespaceAndPath as a baseline SFMResourceLocation adapter on the later targets; do not attach its existence to an optional language or client feature.",
+    "Prove release exclusion through the real selection/generation layer. The ten historical release trees were checked as absent, but that is not generated-output membership proof.",
+    "Compile a closed action dependency surface with client_actions enabled before claiming this carrier makes the four action templates buildable."
+  ],
+  "reproducible_read_only_checks": [
+    "git cat-file -p <witness_blob>",
+    "git ls-tree <context_commit> -- platform/minecraft/src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java",
+    "Run the actual_render_proof.command_shape for each target ID, parse JSON and compare rendered_content UTF-8 bytes with its raw_witnesses source blob.",
+    "Hash the authored template as raw bytes and check no CR and exactly one final LF.",
+    "git diff --check -- platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/presentation/SFMItemIcon.java docs/tasks/sfm-core-item-icon-carrier-slice.json"
+  ]
+}

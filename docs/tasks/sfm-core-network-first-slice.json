@@ -1,0 +1,1705 @@
+{
+  "schema": "sfm:core-network-first-slice@1",
+  "status": "staged shared templates; independent expansion verified; six unregistered Rust validator tests authored but not run; production integration, real renderer and Java/Minecraft compilation pending",
+  "scope": {
+    "production_changes": "none: core/src, feature registry, catalog, project inputs and existing Rust modules unchanged by this slice",
+    "staged_templates": "Recovery/authoring inputs below the CLI target directory, not a historical-source override or a production selection fallback. Root must explicitly verify/promote them into canonical core paths.",
+    "unregistered_validator": "A pure typed module, deliberately not declared in mod.rs and not yet invoked by generation.",
+    "allowed_selectors": "Functional feature booleans plus genuine minecraft_version API cases only; no environment/preset/key or whole-version file dispatch.",
+    "normalization": "Only the exact six HandlingContext blobs authorized below; SFMPackets and SFMPacketDaddy remain raw-byte witnesses."
+  },
+  "related_review": "docs/tasks/sfm-core-network-consolidation-review.json",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "files": [
+    {
+      "file": "SFMPackets.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-network-template-stage-v1/SFMPackets.java",
+      "stage_sha256": "sha256:00e65686080d1644e3bbf30c71d58f96a8bfc42c7f97dfa4090cacafa1066791",
+      "stage_bytes": 23921,
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMPackets.java",
+      "production_core_file_absent_at_stage": true,
+      "functional_owners": [
+        "client_inbox",
+        "client_program_signing",
+        "manager_operator_queries",
+        "multiplayer_packets",
+        "packet_direction_validation",
+        "packet_transport_private"
+      ],
+      "minecraft_version_case_regions": 17,
+      "baseline_registration_list_copies": 2,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "6e7671df11884ced9535e04e3d3780b168fd45df",
+          "raw_sha256": "sha256:c61e8e0ad8196bdd55990145b193aea1cbe37ba6f48a3a67b1404445e0eb289b",
+          "raw_bytes": 6343,
+          "expected_sha256": "sha256:c61e8e0ad8196bdd55990145b193aea1cbe37ba6f48a3a67b1404445e0eb289b",
+          "expected_bytes": 6343,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "b47e9fd0c47ac698f12048335e8c13cd4e7f9265",
+          "raw_sha256": "sha256:54db1c399ee2a0b2d11968141a544a7e08e97454f251f30b4e74637fe3956194",
+          "raw_bytes": 6215,
+          "expected_sha256": "sha256:54db1c399ee2a0b2d11968141a544a7e08e97454f251f30b4e74637fe3956194",
+          "expected_bytes": 6215,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "d929cbace9495b1f9c53711a96040e2bb0c44692",
+          "raw_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "raw_bytes": 4611,
+          "expected_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "expected_bytes": 4611,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "d929cbace9495b1f9c53711a96040e2bb0c44692",
+          "raw_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "raw_bytes": 4611,
+          "expected_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "expected_bytes": 4611,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "6124cd8c085474bfbfba136742ca7bb4cbee6a0a",
+          "raw_sha256": "sha256:8cb42db7116e9247676feef8d6d6dbcfd1a9760c773f16eb28b05309873a31f2",
+          "raw_bytes": 6789,
+          "expected_sha256": "sha256:8cb42db7116e9247676feef8d6d6dbcfd1a9760c773f16eb28b05309873a31f2",
+          "expected_bytes": 6789,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "be6efbd87f166378e8a473625eda22ea5fbc4de7",
+          "raw_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "raw_bytes": 7379,
+          "expected_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "expected_bytes": 7379,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "be6efbd87f166378e8a473625eda22ea5fbc4de7",
+          "raw_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "raw_bytes": 7379,
+          "expected_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "expected_bytes": 7379,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "f7b762cc080e7ae726fa13bb8db006b3904059f4",
+          "raw_sha256": "sha256:644ef1278fa97baa8776b83d5a907b078de04b8626c80b48d229f8622eb5aba0",
+          "raw_bytes": 7431,
+          "expected_sha256": "sha256:644ef1278fa97baa8776b83d5a907b078de04b8626c80b48d229f8622eb5aba0",
+          "expected_bytes": 7431,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "raw_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "raw_bytes": 4599,
+          "expected_sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "expected_bytes": 4599,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "d929cbace9495b1f9c53711a96040e2bb0c44692",
+          "raw_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "raw_bytes": 4611,
+          "expected_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "expected_bytes": 4611,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "d929cbace9495b1f9c53711a96040e2bb0c44692",
+          "raw_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "raw_bytes": 4611,
+          "expected_sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "expected_bytes": 4611,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "6124cd8c085474bfbfba136742ca7bb4cbee6a0a",
+          "raw_sha256": "sha256:8cb42db7116e9247676feef8d6d6dbcfd1a9760c773f16eb28b05309873a31f2",
+          "raw_bytes": 6789,
+          "expected_sha256": "sha256:8cb42db7116e9247676feef8d6d6dbcfd1a9760c773f16eb28b05309873a31f2",
+          "expected_bytes": 6789,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "be6efbd87f166378e8a473625eda22ea5fbc4de7",
+          "raw_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "raw_bytes": 7379,
+          "expected_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "expected_bytes": 7379,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "be6efbd87f166378e8a473625eda22ea5fbc4de7",
+          "raw_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "raw_bytes": 7379,
+          "expected_sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "expected_bytes": 7379,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "f7b762cc080e7ae726fa13bb8db006b3904059f4",
+          "raw_sha256": "sha256:644ef1278fa97baa8776b83d5a907b078de04b8626c80b48d229f8622eb5aba0",
+          "raw_bytes": 7431,
+          "expected_sha256": "sha256:644ef1278fa97baa8776b83d5a907b078de04b8626c80b48d229f8622eb5aba0",
+          "expected_bytes": 7431,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "file": "SFMPacketDaddy.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-network-template-stage-v1/SFMPacketDaddy.java",
+      "stage_sha256": "sha256:d6e14f758a30638d4dc152ee442998773610414523341f41524d527b451662be",
+      "stage_bytes": 3787,
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/net/SFMPacketDaddy.java",
+      "production_core_file_absent_at_stage": true,
+      "functional_owners": [
+        "packet_direction_validation"
+      ],
+      "minecraft_version_case_regions": 6,
+      "baseline_registration_list_copies": 0,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "48ddb0dce77d60e3033214553d4836e2fb5ff895",
+          "raw_sha256": "sha256:240c771ac14a2f9edb1fd996ee75df351f14be9890d5153edec0a8f7b6a0aaf0",
+          "raw_bytes": 1980,
+          "expected_sha256": "sha256:240c771ac14a2f9edb1fd996ee75df351f14be9890d5153edec0a8f7b6a0aaf0",
+          "expected_bytes": 1980,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "48ddb0dce77d60e3033214553d4836e2fb5ff895",
+          "raw_sha256": "sha256:240c771ac14a2f9edb1fd996ee75df351f14be9890d5153edec0a8f7b6a0aaf0",
+          "raw_bytes": 1980,
+          "expected_sha256": "sha256:240c771ac14a2f9edb1fd996ee75df351f14be9890d5153edec0a8f7b6a0aaf0",
+          "expected_bytes": 1980,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "fd87ba46e48cc6b275664c04eb0afae01a523b78",
+          "raw_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "raw_bytes": 1635,
+          "expected_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "expected_bytes": 1635,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "fd87ba46e48cc6b275664c04eb0afae01a523b78",
+          "raw_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "raw_bytes": 1635,
+          "expected_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "expected_bytes": 1635,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "d61a169db857cc83371adc5748e15423d1ac36a9",
+          "raw_sha256": "sha256:5b4cd932fea80dde10cf90d24a281ea94cfac84d4ec58e403dfd74caa4e4f606",
+          "raw_bytes": 1644,
+          "expected_sha256": "sha256:5b4cd932fea80dde10cf90d24a281ea94cfac84d4ec58e403dfd74caa4e4f606",
+          "expected_bytes": 1644,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "raw_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "raw_bytes": 1681,
+          "expected_sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "expected_bytes": 1681,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "fd87ba46e48cc6b275664c04eb0afae01a523b78",
+          "raw_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "raw_bytes": 1635,
+          "expected_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "expected_bytes": 1635,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "fd87ba46e48cc6b275664c04eb0afae01a523b78",
+          "raw_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "raw_bytes": 1635,
+          "expected_sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "expected_bytes": 1635,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "d61a169db857cc83371adc5748e15423d1ac36a9",
+          "raw_sha256": "sha256:5b4cd932fea80dde10cf90d24a281ea94cfac84d4ec58e403dfd74caa4e4f606",
+          "raw_bytes": 1644,
+          "expected_sha256": "sha256:5b4cd932fea80dde10cf90d24a281ea94cfac84d4ec58e403dfd74caa4e4f606",
+          "expected_bytes": 1644,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "raw_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "raw_bytes": 1662,
+          "expected_sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "expected_bytes": 1662,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "file": "SFMPacketHandlingContext.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-network-template-stage-v1/SFMPacketHandlingContext.java",
+      "stage_sha256": "sha256:090379da05475414ddc93e848a795e4f3852d142fe51774e7c44d4a2257d3c11",
+      "stage_bytes": 9531,
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/net/SFMPacketHandlingContext.java",
+      "production_core_file_absent_at_stage": true,
+      "functional_owners": [
+        "manager_menu_request_validation",
+        "multiplayer_packets",
+        "packet_direction_validation",
+        "sfml_execution_side"
+      ],
+      "minecraft_version_case_regions": 7,
+      "baseline_registration_list_copies": 0,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "ad9dd331a0fd89372f2c889581de0f2a6874279b",
+          "raw_sha256": "sha256:df65e9d213e2f1f41cb2af1415c5d73b3bde64c9abd56fc623be91143e0fb9f2",
+          "raw_bytes": 7207,
+          "expected_sha256": "sha256:6ca03fb91a37456023ec265e4d0d4187b71a8b975c4599031f69807ac909e943",
+          "expected_bytes": 7043,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "5694b8d2d5724314c9bb3a1b1928eafd79b2280d",
+          "raw_sha256": "sha256:8444c4fbe4418270aad9da432f657ade00048e7764b31511b9ffcdbd0885c97b",
+          "raw_bytes": 6640,
+          "expected_sha256": "sha256:9fa673429544a40a5641c8a32983888a2bf0670910ec21af2bf21b718c691357",
+          "expected_bytes": 6476,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+          "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+          "raw_bytes": 5842,
+          "expected_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+          "expected_bytes": 5667,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+          "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+          "raw_bytes": 5842,
+          "expected_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+          "expected_bytes": 5667,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "ffafc6ae032b2aed5cd4ce2d9925e305a520a1d5",
+          "raw_sha256": "sha256:faa82a0ea66799c53a7aa6d49b71f574ccaa5058fbfc2088f989cb2055e94a50",
+          "raw_bytes": 5937,
+          "expected_sha256": "sha256:355b30e60617bc8f264d2cdc91cc349a9a17b2d888b39e1453393d7914a115e2",
+          "expected_bytes": 5760,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "raw_bytes": 5838,
+          "expected_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+          "expected_bytes": 5663,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+          "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+          "raw_bytes": 5842,
+          "expected_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+          "expected_bytes": 5667,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+          "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+          "raw_bytes": 5842,
+          "expected_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+          "expected_bytes": 5667,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "ffafc6ae032b2aed5cd4ce2d9925e305a520a1d5",
+          "raw_sha256": "sha256:faa82a0ea66799c53a7aa6d49b71f574ccaa5058fbfc2088f989cb2055e94a50",
+          "raw_bytes": 5937,
+          "expected_sha256": "sha256:355b30e60617bc8f264d2cdc91cc349a9a17b2d888b39e1453393d7914a115e2",
+          "expected_bytes": 5760,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "raw_bytes": 5899,
+          "expected_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+          "expected_bytes": 5723,
+          "normalization": "sfm:java_lf_final_newline@1"
+        }
+      ]
+    }
+  ],
+  "approved_normalization": {
+    "policy": "sfm:java_lf_final_newline@1",
+    "approval_scope": "Root delegation approved these six HandlingContext blobs only: CRLF to LF, lf_added=false, no other token/comment/whitespace rewriting.",
+    "checks": "All six original bodies have final LF, no BOM and no lone CR. Raw hashes/counts are retained. No broad normalization and no implicit cleanup of another file.",
+    "rows": [
+      {
+        "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+        "normalized_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+        "normalized_bytes": 5667,
+        "crlf_count": 175,
+        "lf_added": false,
+        "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+        "raw_bytes": 5842,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      },
+      {
+        "git_blob": "5694b8d2d5724314c9bb3a1b1928eafd79b2280d",
+        "normalized_sha256": "sha256:9fa673429544a40a5641c8a32983888a2bf0670910ec21af2bf21b718c691357",
+        "normalized_bytes": 6476,
+        "crlf_count": 164,
+        "lf_added": false,
+        "raw_sha256": "sha256:8444c4fbe4418270aad9da432f657ade00048e7764b31511b9ffcdbd0885c97b",
+        "raw_bytes": 6640,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      },
+      {
+        "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+        "normalized_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+        "normalized_bytes": 5663,
+        "crlf_count": 175,
+        "lf_added": false,
+        "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+        "raw_bytes": 5838,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      },
+      {
+        "git_blob": "ad9dd331a0fd89372f2c889581de0f2a6874279b",
+        "normalized_sha256": "sha256:6ca03fb91a37456023ec265e4d0d4187b71a8b975c4599031f69807ac909e943",
+        "normalized_bytes": 7043,
+        "crlf_count": 164,
+        "lf_added": false,
+        "raw_sha256": "sha256:df65e9d213e2f1f41cb2af1415c5d73b3bde64c9abd56fc623be91143e0fb9f2",
+        "raw_bytes": 7207,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      },
+      {
+        "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+        "normalized_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+        "normalized_bytes": 5723,
+        "crlf_count": 176,
+        "lf_added": false,
+        "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+        "raw_bytes": 5899,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      },
+      {
+        "git_blob": "ffafc6ae032b2aed5cd4ce2d9925e305a520a1d5",
+        "normalized_sha256": "sha256:355b30e60617bc8f264d2cdc91cc349a9a17b2d888b39e1453393d7914a115e2",
+        "normalized_bytes": 5760,
+        "crlf_count": 177,
+        "lf_added": false,
+        "raw_sha256": "sha256:faa82a0ea66799c53a7aa6d49b71f574ccaa5058fbfc2088f989cb2055e94a50",
+        "raw_bytes": 5937,
+        "has_bom": false,
+        "lone_cr_count": 0,
+        "has_final_lf": true
+      }
+    ]
+  },
+  "functional_owner_contracts": {
+    "packet_direction_validation": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMPackets expected registration direction and imports/annotation",
+        "SFMPacketDaddy pre-enqueue direction rejection",
+        "HandlingContext expected-direction helper/import"
+      ],
+      "wire_layout_effect": "none"
+    },
+    "manager_menu_request_validation": {
+      "support": [
+        "1.19.2"
+      ],
+      "members": [
+        "HandlingContext menu.stillValid and exact MANAGER_POSITION checks"
+      ],
+      "wire_layout_effect": "none"
+    },
+    "sfml_execution_side": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "HandlingContext ProgramExecutionSide import and SERVER host assertion"
+      ],
+      "wire_layout_effect": "none"
+    },
+    "packet_transport_private": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMPackets SFMValue import",
+        "observation/insertion registration pair",
+        "sendPacketObservation guarded effect method"
+      ]
+    },
+    "client_inbox": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMPackets inbox registration pair"
+      ]
+    },
+    "client_program_signing": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMPackets three private signing registrations"
+      ],
+      "requires": [
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    },
+    "multiplayer_packets": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMPackets multiplayer registration pair",
+        "HandlingContext local connection identity/import union"
+      ],
+      "requires": [
+        "client_inbox",
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    },
+    "manager_operator_queries": {
+      "support": [
+        "1.19.2"
+      ],
+      "members": [
+        "SFMPackets manager-show query/response pair"
+      ],
+      "requires": []
+    }
+  },
+  "wire_layout_acceptance": {
+    "integration_status": "NOT integrated; staged version guards are safe only when this validated-layout gate runs before generation/build and actual codecs retain their reviewed semantics.",
+    "validator_path": "platform/cli/sfm-propagate-changes/src/source_projection/core_network_layout.rs",
+    "validator_sha256": "sha256:8fd1a7c39eacb83b6a364ce4121898bf2c5d7ef70e380fc1282ae458f546e1ae",
+    "validator_bytes": 9468,
+    "registration_line": "pub mod core_network_layout;",
+    "public_api": "validate_network_layout(target_id: &str, families: NetworkMessageFamilies) -> eyre::Result<ReviewedNetworkLayout>",
+    "typed_family_fields": [
+      "packet_transport_private",
+      "client_inbox",
+      "client_program_signing",
+      "multiplayer_packets",
+      "manager_operator_queries"
+    ],
+    "accepted": [
+      {
+        "target_ids": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "families": "all five off",
+        "layout": "Baseline37",
+        "version": "1.0.0",
+        "message_count": 37
+      },
+      {
+        "target_ids": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "families": "private transport, inbox, signing and multiplayer all on; query off",
+        "layout": "Complete46",
+        "version": "1.4.0",
+        "message_count": 46,
+        "note": "The 1.19.4 full witness has this layout. The two D2 targets share every added packet body, so the same forty-six-message layout is accepted on 1.19.2 when queries are disabled."
+      },
+      {
+        "target_ids": [
+          "1.19.2"
+        ],
+        "families": "all five on",
+        "layout": "Complete48",
+        "version": "1.5.0",
+        "message_count": 48
+      }
+    ],
+    "refusal": "Queries-only, missing any of the complete four families, new families on later targets, unknown/oversized target IDs and query-on 1.19.4 all reject. No closest-layout fallback.",
+    "semantics_limit": "The pure validator validates family identity, not packet encode/decode changes. A future codec change still requires a reviewed new outer protocol identity.",
+    "future_partial_support": "A separate deterministic wire-layout fingerprint must be reviewed before supporting partial message sets; unchanged full-version labels are not permission to vary discriminators.",
+    "stable_target_id_note": "Pass stable target 1.21.0 to the validator, not the Liquid-effective version alias 1.21."
+  },
+  "independent_evidence": {
+    "engine": "Strict in-memory whole-line JavaScript expander for supported if/elsif/else/endif and case/when/endcase constructs; NOT the production Rust/Liquid renderer.",
+    "frozen_witness_comparisons": [
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.19.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.19.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.20",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.20.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.20.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.20.3",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.20.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.21.0",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/1.21.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "dev/26.1.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.19.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.19.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.20",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.20.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.20.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.20.3",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.20.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.21.0",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/1.21.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPackets.java",
+        "context": "release/26.1.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.19.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.19.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.20",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.20.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.20.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.20.3",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.20.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.21.0",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/1.21.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "dev/26.1.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.19.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.19.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.20",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.20.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.20.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.20.3",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.20.4",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.21.0",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/1.21.1",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "context": "release/26.1.2",
+        "comparison": "raw bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.19.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.19.4",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.20",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.20.1",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.20.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.20.3",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.20.4",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.21.0",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/1.21.1",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "dev/26.1.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.19.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.19.4",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.20",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.20.1",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.20.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.20.3",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.20.4",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.21.0",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/1.21.1",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "context": "release/26.1.2",
+        "comparison": "approved normalized bytes",
+        "exact": true
+      }
+    ],
+    "frozen_witness_count": 60,
+    "dependency_closed_toggle_contexts": [
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "packet_direction_validation"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "manager_menu_request_validation"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "manager_menu_request_validation",
+          "packet_direction_validation"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "packet_direction_validation",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "manager_menu_request_validation",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "manager_menu_request_validation",
+          "packet_direction_validation",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_direction_validation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_menu_request_validation",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_menu_request_validation",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_direction_validation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_operator_queries",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.5.0",
+        "message_count": 48,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_operator_queries",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_direction_validation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.5.0",
+        "message_count": 48,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_menu_request_validation",
+          "manager_operator_queries",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.5.0",
+        "message_count": 48,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.2",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "manager_menu_request_validation",
+          "manager_operator_queries",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_direction_validation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.5.0",
+        "message_count": 48,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [
+          "packet_direction_validation"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [
+          "packet_direction_validation",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.19.4",
+        "enabled_features": [
+          "client_actions",
+          "client_frame_language",
+          "client_inbox",
+          "client_manager",
+          "client_program_actions",
+          "client_program_consent",
+          "client_program_signing",
+          "multiplayer_packets",
+          "packet_computation",
+          "packet_direction_validation",
+          "packet_transport_private",
+          "packet_values",
+          "runtime_resource_cleanup",
+          "sfml_execution_side"
+        ],
+        "protocol_version": "1.4.0",
+        "message_count": 46,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.20",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.20.1",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.20.2",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.20.3",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.20.4",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.21.0",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "1.21.1",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      },
+      {
+        "target_id": "26.1.2",
+        "enabled_features": [],
+        "protocol_version": "1.0.0",
+        "message_count": 37,
+        "baseline_order_exact": true,
+        "member_guards_exact": true
+      }
+    ],
+    "toggle_context_count": 30,
+    "toggle_template_output_count": 90,
+    "toggle_checks": [
+      "Derived literal protocol version equals validated known layout.",
+      "Complete ordered registration sequence equals baseline plus exactly enabled families.",
+      "Direction helper/registration, menu validation, connection identity and host assertion appear only for their independent owner.",
+      "Owner-on context feature sets close the approved requires graph; no rendering feature is added merely to satisfy a package-name dependency."
+    ],
+    "registry_fixture": "Current registered definitions read without changes, plus the five conceptually approved network owners from the review. This is an independent fixture, not a claim they are already registered in production.",
+    "wire_matrix": {
+      "targets": 10,
+      "family_combinations_per_target": 32,
+      "total": 320,
+      "accepted": 13,
+      "rejected": 307,
+      "comparison": "Independent implementation of the typed acceptance contract; the Rust exhaustive test covering the same matrix has not been run."
+    },
+    "common_edit_propagation": [
+      {
+        "file": "SFMPackets.java",
+        "targets": [
+          "1.19.2",
+          "1.20.4",
+          "26.1.2"
+        ],
+        "change": "A temporary in-memory common-body comment reaches all three target APIs while owner guards remain unchanged."
+      },
+      {
+        "file": "SFMPacketDaddy.java",
+        "targets": [
+          "1.19.2",
+          "1.20.4",
+          "26.1.2"
+        ],
+        "change": "A temporary in-memory common-body comment reaches all three target APIs while owner guards remain unchanged."
+      },
+      {
+        "file": "SFMPacketHandlingContext.java",
+        "targets": [
+          "1.19.2",
+          "1.20.4",
+          "26.1.2"
+        ],
+        "change": "A temporary in-memory common-body comment reaches all three target APIs while owner guards remain unchanged."
+      }
+    ],
+    "formatting": "Scoped rustfmt of the one new Rust module succeeded; unstable formatting-option notices were warnings only.",
+    "no_claims": [
+      "No Cargo test result for this module yet.",
+      "No production source selector or renderer proof for staged artifacts yet.",
+      "No Java/Minecraft compilation or multiplayer handshake proof.",
+      "No consumer-family source closure beyond these three infrastructure files."
+    ]
+  },
+  "recovery_and_integration": [
+    "Verify the three staged hashes and promote each to its intended core path with create-new semantics; they were absent when staged.",
+    "Register the five approved functional owners with their support/prerequisites; keep public presets unchanged until closure is proven.",
+    "Register the pure Rust module and add an explicit bounded adapter from already validated complete feature maps, then invoke the refusal gate before reading/rendering network sources.",
+    "Run the six pure tests and add real-renderer/raw-witness regressions against the promoted core files and approved normalization.",
+    "Consolidate sparse wire carriers and the reviewed private/inbox/signing/multiplayer/query consumer families; guard mixed callsites independently.",
+    "Validate actual codec contracts and full Java/Minecraft closure before permitting a complete transport feature set; partial sets remain refused."
+  ]
+}

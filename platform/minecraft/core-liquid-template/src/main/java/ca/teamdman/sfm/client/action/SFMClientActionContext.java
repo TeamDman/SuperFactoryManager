@@ -1,0 +1,78 @@
+package ca.teamdman.sfm.client.action;
+
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+{% if features.workspace_panels %}
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+{% endif %}
+{% endcase %}
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
+import java.util.function.BooleanSupplier;
+
+public record SFMClientActionContext(
+        @Nullable Object originatingHost,
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+{% if features.workspace_panels %}
+        BooleanSupplier originatingHostIsCurrent,
+        @Nullable SFMWorkspacePanelId originatingPanelId
+{% else %}
+        BooleanSupplier originatingHostIsCurrent
+{% endif %}
+{% else %}
+        BooleanSupplier originatingHostIsCurrent
+{% endcase %}
+) {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry ORIGINATING_HOST_CHANGED = new LocalizationEntry(
+            "gui.sfm.client_action.context.originating_host_changed",
+            "The originating client context is no longer active"
+    );
+
+    public SFMClientActionContext {
+        Objects.requireNonNull(originatingHostIsCurrent);
+    }
+
+    public static SFMClientActionContext create(
+            @Nullable Object originatingHost,
+            BooleanSupplier originatingHostIsCurrent
+    ) {
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+{% if features.workspace_panels %}
+        SFMWorkspacePanelId panelId = originatingHost instanceof SFMScreenMultiplexer workspace
+                ? workspace.focusedPanelId()
+                : null;
+        return new SFMClientActionContext(originatingHost, originatingHostIsCurrent, panelId);
+{% else %}
+        return new SFMClientActionContext(originatingHost, originatingHostIsCurrent);
+{% endif %}
+{% else %}
+        return new SFMClientActionContext(originatingHost, originatingHostIsCurrent);
+{% endcase %}
+    }
+
+    public <T> SFMClientActionAvailability<T> requireOriginatingHost(
+            Class<T> requiredType,
+            Component incompatibleHostReason
+    ) {
+        Objects.requireNonNull(requiredType);
+        Objects.requireNonNull(incompatibleHostReason);
+        if (!originatingHostIsCurrent.getAsBoolean()) {
+            return SFMClientActionAvailability.unavailable(
+                    ORIGINATING_HOST_CHANGED.getComponent().withStyle(ChatFormatting.RED)
+            );
+        }
+        if (!requiredType.isInstance(originatingHost)) {
+            return SFMClientActionAvailability.unavailable(incompatibleHostReason);
+        }
+        return SFMClientActionAvailability.available(requiredType.cast(originatingHost));
+    }
+}

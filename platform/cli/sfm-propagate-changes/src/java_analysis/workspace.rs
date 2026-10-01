@@ -195,7 +195,7 @@ impl JavaSourceWorkspace {
             "Generated project root {} has no settings.gradle",
             project_root.display(),
         );
-        let minecraft_version = manifest.minecraft_version;
+        let minecraft_version = manifest.minecraft_version.clone();
         let java_release = read_java_release(&project_root, &minecraft_version)?;
         let catalog = JAVA_SOURCE_CATALOG;
         catalog.validate()?;
@@ -234,7 +234,7 @@ impl JavaSourceWorkspace {
         )?;
         deduplicate_files(&mut files)?;
         root_authorities.sort_by(|left, right| left.root_id.cmp(&right.root_id));
-        let context = context(
+        let mut context = context(
             &format!("project:{}", manifest.target_id),
             &minecraft_version,
             &java_release,
@@ -245,6 +245,7 @@ impl JavaSourceWorkspace {
             fingerprint(["isolated"]),
             &files,
         );
+        apply_named_projection_identity(&mut context, &manifest);
         let mut workspace = Self {
             context,
             root_authorities,
@@ -754,6 +755,26 @@ fn context(
     }
 }
 
+// Keep legacy reports byte-compatible, while named projections and explicit
+// feature contexts never share a worker/index identity just because their
+// current source paths happen to be identical. The validated manifest, not the
+// directory name or inferred branch, supplies this read-only identity.
+fn apply_named_projection_identity(
+    context: &mut JavaAnalysisContextOutput,
+    manifest: &crate::source_projection::provenance::ProjectionProvenance,
+) {
+    if let Some(owner) = &manifest.catalog {
+        context.branch = format!("project:{}", owner.projection_key);
+        context.index_fingerprint = fingerprint([
+            "sfm:catalog_java_workspace@1",
+            context.index_fingerprint.as_str(),
+            owner.projection_key.as_str(),
+            owner.environment.as_str(),
+            owner.context_identity.as_str(),
+        ]);
+    }
+}
+
 fn declared_source_set_outputs(catalog: JavaSourceCatalog) -> Vec<JavaSourceSetOutput> {
     catalog
         .source_sets
@@ -1009,6 +1030,9 @@ mod tests {
     use super::*;
     use crate::java_analysis::JavaSymbolGlob;
     use crate::java_analysis::JavaSymbolIndex;
+    use crate::source_projection::projection_catalog::ProjectionEnvironment;
+    use crate::source_projection::projection_catalog::SUPPORTED_TARGETS;
+    use crate::source_projection::provenance::CatalogProjectionOwner;
     use crate::source_projection::provenance::ProjectionProvenance;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
@@ -1019,6 +1043,122 @@ mod tests {
     use std::io::Write as _;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn all_twenty_named_generated_workspaces_keep_distinct_catalog_identities() -> eyre::Result<()>
+    {
+        let temporary = tempfile::tempdir()?;
+        let mut identities = BTreeSet::new();
+        for (target, minecraft_version) in SUPPORTED_TARGETS {
+            let java_release = match target {
+                "26.1.2" => "25",
+                "1.21.0" | "1.21.1" => "21",
+                _ => "17",
+            };
+            for environment in [ProjectionEnvironment::Release, ProjectionEnvironment::Dev] {
+                let key = format!("explicit/{}/mc-{target}", environment.as_str());
+                let manifest = ProjectionProvenance::new_catalog(
+                    target,
+                    minecraft_version,
+                    CatalogProjectionOwner {
+                        projection_key: key.clone(),
+                        environment,
+                        context_identity: format!("blake3:{}", "1".repeat(64)),
+                    },
+                );
+                // A misleading physical name must not override the owner.
+                let root = temporary
+                    .path()
+                    .join(format!("physical-{}", identities.len()));
+                write_named_workspace_fixture(&root, &manifest, java_release)?;
+                let workspace = JavaSourceWorkspace::resolve_generated_project_with_cache(
+                    &root,
+                    &temporary.path().join("empty-jdk-cache"),
+                    &temporary.path().join("isolated-source-cache"),
+                    None,
+                )?;
+                assert_eq!(workspace.context.branch, format!("project:{key}"));
+                assert_eq!(workspace.context.minecraft_version, minecraft_version);
+                assert_eq!(workspace.context.java_release, java_release);
+                assert_eq!(
+                    workspace.context.classpath_mode,
+                    JavaClasspathMode::Isolated
+                );
+                assert!(workspace.classpath_entries.is_empty());
+                assert_eq!(workspace.files.len(), 1);
+                assert!(identities.insert(workspace.context.index_fingerprint));
+            }
+        }
+        assert_eq!(identities.len(), 20);
+        Ok(())
+    }
+
+    #[test]
+    fn named_workspace_context_revision_and_environment_invalidate_index_identity()
+    -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let root = temporary.path().join("project");
+        let mut manifest = ProjectionProvenance::new_catalog(
+            "1.19.2",
+            "1.19.2",
+            CatalogProjectionOwner {
+                projection_key: "arbitrary/nested/context".to_owned(),
+                environment: ProjectionEnvironment::Release,
+                context_identity: format!("blake3:{}", "1".repeat(64)),
+            },
+        );
+        let mut identities = BTreeSet::new();
+        for (environment, revision) in [
+            (ProjectionEnvironment::Release, "1"),
+            (ProjectionEnvironment::Dev, "1"),
+            (ProjectionEnvironment::Dev, "2"),
+        ] {
+            let owner = manifest.catalog.as_mut().expect("named fixture owner");
+            owner.environment = environment;
+            owner.context_identity = format!("blake3:{}", revision.repeat(64));
+            write_named_workspace_fixture(&root, &manifest, "17")?;
+            let workspace = JavaSourceWorkspace::resolve_generated_project_with_cache(
+                &root,
+                &temporary.path().join("empty-jdk-cache"),
+                &temporary.path().join("isolated-source-cache"),
+                None,
+            )?;
+            assert_eq!(workspace.context.branch, "project:arbitrary/nested/context");
+            assert!(identities.insert(workspace.context.index_fingerprint));
+        }
+        assert_eq!(identities.len(), 3);
+        Ok(())
+    }
+
+    fn write_named_workspace_fixture(
+        root: &Path,
+        manifest: &ProjectionProvenance,
+        java_release: &str,
+    ) -> eyre::Result<()> {
+        let source = root.join("src/main/java/example");
+        let java = root
+            .join("gradle/java-toolchain")
+            .join(&manifest.minecraft_version);
+        std::fs::create_dir_all(&source)?;
+        std::fs::create_dir_all(&java)?;
+        std::fs::write(
+            root.join("settings.gradle"),
+            "rootProject.name = 'fixture'\n",
+        )?;
+        std::fs::write(
+            root.join(".sfm-source-projection-manifest.json"),
+            manifest.to_json()?,
+        )?;
+        std::fs::write(
+            java.join("java-toolchain.gradle"),
+            format!("JavaLanguageVersion.of({java_release})\n"),
+        )?;
+        std::fs::write(
+            source.join("Example.java"),
+            "package example; public class Example {}\n",
+        )?;
+        Ok(())
+    }
 
     #[test]
     fn generated_project_workspace_lists_projected_symbols_without_branch_context() {

@@ -1,0 +1,5207 @@
+{
+  "schema": "sfm:core_program_grammar_antlr_proof@1",
+  "validation": "isolated_antlr_generation_not_minecraft_or_java_compilation",
+  "source": {
+    "sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+    "bytes": 17421,
+    "path": "platform/minecraft/core-liquid-template/src/main/antlr/sfml/SFML.g4"
+  },
+  "inputs": {
+    "verifier_sha256": "sha256:3b6536a88c6779b3c4d04f28f7c2eab84aa002d6dc561fe8a182feb0a4965597",
+    "feature_definitions_sha256": "sha256:961e898a1928df49fb3544b98852204e5dfda02c0d1846df176da6a90c059713",
+    "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+    "locks": {
+      "4.13.1": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
+        "sha256": "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de"
+      },
+      "4.9.1": {
+        "path": "platform/minecraft/sfm-toolchain.lock.json",
+        "sha256": "sha256:04781fc22f7fa4458b96197a513ce117a17d5a30292b2a089bdd2bc46f2fe952"
+      }
+    },
+    "cli_sha256": "sha256:91e630a42e9daa21a05cdce359ac4c979bee2dff2ef250c678b36c54addd0e4f"
+  },
+  "renderer": {
+    "independent_expansion_used": false,
+    "reason": "source render currently accepts .java inputs only",
+    "implementation": "current worktree CLI source render with real CoreCatalog and render_java_source",
+    "public_catalog_entries_copied_without_changes": 20,
+    "dependency_valid_combinations": 58,
+    "test_only_alias": "src/main/java/proof/SFMLGrammar.java",
+    "real_generation_template_true_claim": "Covered separately by registered core selection regression tests, not this .java-alias CLI proof.",
+    "alias_bytes_equal_original_grammar": true,
+    "unique_combination_grammar_hashes": 50
+  },
+  "jdk": {
+    "java_version_stderr": "openjdk version \"17.0.14\" 2025-01-21\r\nOpenJDK Runtime Environment JBR-17.0.14+1-1367.22-nomod (build 17.0.14+1-b1367.22)\r\nOpenJDK 64-Bit Server VM JBR-17.0.14+1-1367.22-nomod (build 17.0.14+1-b1367.22, mixed mode, sharing)\r\n",
+    "archive_sha512": "3b5101101a46778c5b1cc572adef03bffceb338284d4e03d2fe70a72fb52fb2e1ee1d2e1c0b548c86e9092f776d3ca910669326531d1a5f8ab4521ad1b6d868c",
+    "version": "17.0.14",
+    "major": 17,
+    "installed_files_equal_verified_archive": 604,
+    "build": "b1367.22",
+    "platform": "windows-x64",
+    "flavor": "jbrsdk",
+    "java_version_exit_code": 0,
+    "receipt_identity_verified": true,
+    "archive_checksum_verified": true,
+    "vendor": "JetBrains"
+  },
+  "tool_artifacts": [
+    {
+      "coordinate": "org.antlr:antlr4:4.9.1",
+      "locked_hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+      "full_blake3": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59cbee0a0cbf2e8d87acac42ec",
+      "sha256": "sha256:e6bd18f14126ab85a42dcb80ba5f67da2f35ba164ec5a64d40024bd0e7436584",
+      "bytes": 1231658,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:antlr-runtime:3.5.2",
+      "locked_hash": "blake3:487347db20582bd5c774bdd4ca90f158428d0804",
+      "full_blake3": "blake3:487347db20582bd5c774bdd4ca90f158428d0804a247203fbe6e4b61df71533f",
+      "sha256": "sha256:ce3fc8ecb10f39e9a3cddcbb2ce350d272d9cd3d0b1e18e6fe73c3b9389c8734",
+      "bytes": 167761,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:antlr4-runtime:4.9.1",
+      "locked_hash": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95",
+      "full_blake3": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95fc0c2b2533500262789e8937",
+      "sha256": "sha256:a80502c3140ae7acfbb1f57847c8eb1c101461a969215ec38c3f1ebdff61ac29",
+      "bytes": 337868,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:ST4:4.3",
+      "locked_hash": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f",
+      "full_blake3": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f1710942a83bdf305acc0d6df",
+      "sha256": "sha256:28547dba48cfceb77b6efbfe069aebe9ed3324ae60dbd52093d13a1d636ed069",
+      "bytes": 251104,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
+      "locked_hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
+      "full_blake3": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8801db01db5d0ff171634e26a",
+      "sha256": "sha256:fa5e31395c39c2e7d46aca0f81f72060931607b2fa41bd36038eb2cb6fb93326",
+      "bytes": 26773,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.glassfish:javax.json:1.0.4",
+      "locked_hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be",
+      "full_blake3": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be8efe92e52192a54cb2808d19",
+      "sha256": "sha256:0e1dec40a1ede965941251eda968aeee052cc4f50378bc316cc48e8159bdbeb4",
+      "bytes": 85147,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:antlr4:4.13.1",
+      "locked_hash": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6",
+      "full_blake3": "blake3:7a222484ba088298bdc3b4b26294420eb69c36d6e3a5c67f9daea00d4ecb10db",
+      "sha256": "sha256:ce261dce69525839aa9fc5bd232ce1b813a7a40a75030713cc4a80ef8170f3d5",
+      "bytes": 1349759,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:antlr4-runtime:4.13.1",
+      "locked_hash": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90",
+      "full_blake3": "blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b9082ed6dc8ba679c6fd3dad7de",
+      "sha256": "sha256:54665d2838cc66458343468efc539e454fc95b46a8a04b13c6ac43fc9be63505",
+      "bytes": 326305,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:antlr-runtime:3.5.3",
+      "locked_hash": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f",
+      "full_blake3": "blake3:5526b5bc53f5aaae0721d086d88c31a5af88572f44a5cffbc2fa7b51dffc7a7b",
+      "sha256": "sha256:68bf9f5a33dfcb34033495c587e6236bef4e37aa6612919f5b1e843b90669fb9",
+      "bytes": 173220,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "org.antlr:ST4:4.3.4",
+      "locked_hash": "blake3:f2e791b074daaebc422756dfbb334023640e3f99",
+      "full_blake3": "blake3:f2e791b074daaebc422756dfbb334023640e3f99e3281e4896345c736161f5e1",
+      "sha256": "sha256:f927ac384c46d749f8b5ec68972a53aed21e00313509299616edb73bfa15ff33",
+      "bytes": 251081,
+      "locked_checksum_verified": true
+    },
+    {
+      "coordinate": "com.ibm.icu:icu4j:72.1",
+      "locked_hash": "blake3:72f3ca071e66c446e43d010806d3822573e69022",
+      "full_blake3": "blake3:72f3ca071e66c446e43d010806d3822573e690224593221d8128189b14bbc62b",
+      "sha256": "sha256:3df572b240a68d13b5cd778ad2393e885d26411434cd8f098ac5987ea2e64ce3",
+      "bytes": 14386028,
+      "locked_checksum_verified": true
+    }
+  ],
+  "rendered_contexts": [
+    {
+      "key": "sfm-4.34.0/mc-1.19.2",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.19.4",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.20",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.20.1",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.20.2",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.20.3",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.20.4",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.21.0",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.21.1",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-26.1.2",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.19.2",
+      "enabled_features": [
+        "echo_action",
+        "touch_display_terminal_mount"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.19.4",
+      "enabled_features": [
+        "touch_display_terminal_mount"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.20",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.20.1",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.20.2",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.20.3",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.20.4",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.21.0",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-1.21.1",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "sfm-dev/mc-26.1.2",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": true
+    },
+    {
+      "key": "proof/combination-000",
+      "enabled_features": [],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-001",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:5a6d66f7d39221394e663c0ccc89cb6a5602acc195bcf7fa116b87ce4ef5d609",
+      "bytes": 12213,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-002",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:af965fc4aa1490234c8651634bc66bf341f2dda9aef6797f22af970e9544a726",
+      "bytes": 12027,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-003",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:56fb6ab5b3d6bcf504506e8461b7d71bbbbf8e0e93c0062c1a10cc717af6b39e",
+      "bytes": 12135,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-004",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:45112e13d0b8dbdd8f6ab5369349b40addc664ae495dbc938a5979a71590eb95",
+      "bytes": 11949,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-005",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:75e414496feb0518cba6e9662a556f8b9a3e6b3af4d680bdea721b20c6c3821f",
+      "bytes": 11991,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-006",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:a5c63ab533207cb673a051a2c2ec657cd14e31be25dae596bce9decf3b1f4789",
+      "bytes": 11805,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-007",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:f567ea8b8cc9a3c679eb04329d860716cb48de65127e9bd47a42d656899f2244",
+      "bytes": 11844,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-008",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:f4e9c32726c77fc90cd50bd93cbf61ad2f83ea9f55ddb26d9349df04f773e08f",
+      "bytes": 12030,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-009",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:7833112fc0aa30104205b2d9a9b7832b3fd6085e2811c33837e008049157f875",
+      "bytes": 11766,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-010",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:c09f77c5e4ccb62b31853bdb05af1f41a3ce3e45fc89eac6b905c48fe69b21d4",
+      "bytes": 11952,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-011",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:f25bd3fdbc5dc2a4e7df3fe17717253d8bec1d5c392b213c3275aa5cf639f1b3",
+      "bytes": 11622,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-012",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:0b9bacc3e76e83d71cd1bd357917c9fc7703582eb225b6cd1f73cdb309202ef4",
+      "bytes": 11808,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-013",
+      "enabled_features": [
+        "client_actions",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:2549d432950210ea7ac0bd525a6296715391879aa789ddb5b32f40847c6a0b2f",
+      "bytes": 11542,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-014",
+      "enabled_features": [
+        "client_actions",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:39188271ec4d6aaad01796529c6b8614ad325fca3051467257366efacc27e0b0",
+      "bytes": 11728,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-015",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:0146976f5738eba8ded3d9ed24c56b21e5243703c8d80260bbfbfea110701cec",
+      "bytes": 11464,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-016",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:b7d9748fa664f8bc8530aeb10debdac54d16e0856d13250f47c0c49e1b89b047",
+      "bytes": 11650,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-017",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:ae01f2cfcf8859fc91300c7e30e087b97884c81a6171f0337a74a6e0d38542c9",
+      "bytes": 11320,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-018",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:266bf0f8d6e625fed01e54b9c4f5593f6a27024340c1315d8e63c49ed38b533f",
+      "bytes": 11506,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-019",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:43471db1104cf8ba09078b1efefbc9f759994cad128f25b28933b6435a7351ea",
+      "bytes": 11721,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-020",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:e23b0e7a0550d6363f2b669d659688394f0d8a95164b7e4fc7bc36e8a1d76f81",
+      "bytes": 11535,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-021",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:32fae9629fb571ba44f31415342f9ac2e1d4c14f9ca19461fff09e7f43e10e07",
+      "bytes": 11643,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-022",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:9cbc27cbee233b26d735a143b7069375d968d2799335a345ef4d9b47d4729477",
+      "bytes": 11457,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-023",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:c298cead69a89195acd2cbbce1441b28a59cffbbf1ca6c22d20e894295858b3e",
+      "bytes": 11499,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-024",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:df12ca0b94ae08dbccf90d109e1b18e17c29dcd854f1a03dd2efe5e79b2004d4",
+      "bytes": 11313,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-025",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:e8e923d377c5e99c62b4645e91a75223a04c236dd99e2d3c054346f1f61ed0f5",
+      "bytes": 8876,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-026",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:6fda4425baee928ecc03b923b7c0dae9c6cbc7bb6ab8f5fa39ad7d23f655d5bf",
+      "bytes": 8690,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-027",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_values",
+        "sfml_execution_side",
+        "sfml_worded_intervals",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:e8e923d377c5e99c62b4645e91a75223a04c236dd99e2d3c054346f1f61ed0f5",
+      "bytes": 8876,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-028",
+      "enabled_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "image_resources",
+        "packet_values",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:6fda4425baee928ecc03b923b7c0dae9c6cbc7bb6ab8f5fa39ad7d23f655d5bf",
+      "bytes": 8690,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-029",
+      "enabled_features": [
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:62099f796ada02117d66fe709194826adacc7a3e6851a3482a138d402f3e8305",
+      "bytes": 11352,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-030",
+      "enabled_features": [
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:515e3eefc478ac4d289f0442fc7cfeecfdb562a36eb7458557b155dcfff4993c",
+      "bytes": 11538,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-031",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:824d63315051925742d831802152693e6eddd5928ce0c010ca0ce4e68191b264",
+      "bytes": 11274,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-032",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:848b90d372bba9dfc5021115c9f111c264a9788c16d4178151c449232666a59a",
+      "bytes": 11460,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-033",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:a888e8785d3c52164a19d7684110a4a5059585e2d245e4d6928a9b9cee63ccbf",
+      "bytes": 11130,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-034",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:1423325ebe17c6f5866997b404b32fe396581fd1cef20ac871b41d7f2911502c",
+      "bytes": 11316,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-035",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:343b071609388cd2bb6e404c068f6536b3ed3bb906199f94f4c2a705d5d473d9",
+      "bytes": 8506,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-036",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:0bfb7f0cd2cda9d456d2af287aaf8ed5f8f5cf3103fd3448939411fb9757cc08",
+      "bytes": 8692,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-037",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:343b071609388cd2bb6e404c068f6536b3ed3bb906199f94f4c2a705d5d473d9",
+      "bytes": 8506,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-038",
+      "enabled_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:0bfb7f0cd2cda9d456d2af287aaf8ed5f8f5cf3103fd3448939411fb9757cc08",
+      "bytes": 8692,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-039",
+      "enabled_features": [
+        "client_inbox",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:994360587ff74a190ac9c46743e4ab83fa5d5c9e3ea5698eea2ebd93ab8f97c7",
+      "bytes": 10826,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-040",
+      "enabled_features": [
+        "client_inbox",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:5448f7a89b1b85c03c5630e4dc925f479863dbd76f86c13d801f3602398797be",
+      "bytes": 11050,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-041",
+      "enabled_features": [
+        "client_inbox",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:ba3d9cb2a4b7dbf30997da75095b32b983813fe192d2346e1c2f91174a5e2fba",
+      "bytes": 11236,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-042",
+      "enabled_features": [
+        "client_inbox",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:5482dac35147d3155ec0ef841b8d4ec065cd32bba459f6bafc5fd1a76cb41276",
+      "bytes": 11012,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-043",
+      "enabled_features": [
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:7150a6cdcc6ae5817fd31e00a65ef508b2b8cbf242a7cb66f086ec597ce9f24b",
+      "bytes": 10748,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-044",
+      "enabled_features": [
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:f9cc03f023282dbb890655eabd706404d082a72314b36e84d8bd788179fa1cdd",
+      "bytes": 10972,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-045",
+      "enabled_features": [
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:83db8a7176bd05de29eddfb3733f1bc2cf0c597a789a38acb08184a0b22a0897",
+      "bytes": 11158,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-046",
+      "enabled_features": [
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:1ed74d1487b9b7dde4cd2ecb852e4d530dfb0c92e20088bbcd6cd2dbfb5f3093",
+      "bytes": 10934,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-047",
+      "enabled_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:685124b55813050ed4547d0f77d2fa0d6ecd2f7a3db35045c2a1fe7018d9576f",
+      "bytes": 10604,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-048",
+      "enabled_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:e4b74d772ad1b163dea14409fa37d4173c1a5973b1e053e1bb60adba512f0975",
+      "bytes": 10828,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-049",
+      "enabled_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:e580aa713f8efded60c5f3eec9ed1dc156c8f9070dfbe0268c5728ca8b3db9b5",
+      "bytes": 11014,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-050",
+      "enabled_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:c4d720c52226a0e69ef46d62932d2e8dfa977c2cc6b9c4a02224cbe900b26c38",
+      "bytes": 10790,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-051",
+      "enabled_features": [
+        "runtime_resource_cleanup"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+      "bytes": 7928,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-052",
+      "enabled_features": [
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:46f7417db5aba5fdcfbb7e4a72cd1d5352d3ba28703caefa7c6c313d68d17121",
+      "bytes": 8164,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-053",
+      "enabled_features": [
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:ccdacbe0cc88bbf2480aee929292686e4a536ff43336ce28f942602a816e268b",
+      "bytes": 8350,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-054",
+      "enabled_features": [
+        "runtime_resource_cleanup",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:602027bcdb6b45a916222ae27cb8cc928f43c429493d0c192f8e3487ea83f4bd",
+      "bytes": 8126,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-055",
+      "enabled_features": [
+        "sfml_execution_side"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:46f7417db5aba5fdcfbb7e4a72cd1d5352d3ba28703caefa7c6c313d68d17121",
+      "bytes": 8164,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-056",
+      "enabled_features": [
+        "sfml_execution_side",
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:ccdacbe0cc88bbf2480aee929292686e4a536ff43336ce28f942602a816e268b",
+      "bytes": 8350,
+      "exit_code": 0,
+      "public_catalog_context": false
+    },
+    {
+      "key": "proof/combination-057",
+      "enabled_features": [
+        "sfml_worded_intervals"
+      ],
+      "source_sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df",
+      "rendered_sha256": "sha256:602027bcdb6b45a916222ae27cb8cc928f43c429493d0c192f8e3487ea83f4bd",
+      "bytes": 8126,
+      "exit_code": 0,
+      "public_catalog_context": false
+    }
+  ],
+  "generations": [
+    {
+      "key": "proof/combination-000",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18146,
+          "sha256": "sha256:a550e998ee849133b5bc61329dd2cbc9d86c9551e9bf9f073e940fc81dbe662f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20554,
+          "sha256": "sha256:7fc70788d853f8b0a3fb57ae4c8cdb86fc5015549c22b41d6254b0f63f32d8ca"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15158,
+          "sha256": "sha256:f5e56079c2ceda6e2fcf71306089c6c9f3f9dd546de8d07d838a821c32e5f973"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23646,
+          "sha256": "sha256:12238a44c65c14c91778290001c2dc5a9c6e1deb5a4c9bc7597e871ac43c01e2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 24959,
+          "sha256": "sha256:6d1c8105d68dd4e651fb58d4f79a2bf52a6be506e79ac363c702e0ab7c85c208"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22574,
+          "sha256": "sha256:763e8fb94679279db032c9dd7196e8d5f1265502b9e4cde05af701908d5d1808"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 138334,
+          "sha256": "sha256:be97d104b1d49e853b3139f19968e128c811eaf62155790a44cadf927e55f8a5"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13334,
+          "sha256": "sha256:d09c33479183da1d6a38c6e1ea96dd6da692ea20818f03abf1a058066be491c9"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-001",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26748,
+          "sha256": "sha256:476670bfed33a533ea29af5b185ddc42f09a5dc8909534bf16bee9b706e3b04c"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1184,
+          "sha256": "sha256:3bca87dc4118de2d41d02c891d5e106f51ca4692125aad036af6bac2c838691c"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 33032,
+          "sha256": "sha256:7b1f026b458ac2a300949293682d1d18795636c051b0473a8e9924bf03626923"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 24270,
+          "sha256": "sha256:5b5a61fa3439b1baea012fe6d76f78ce6284772507f1f61ae08ab33c478eebdb"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 31106,
+          "sha256": "sha256:8ca3c4e6e418e89a318c619678c7f8f2283d632e0ee8cdcbe246abaf154638ea"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 32401,
+          "sha256": "sha256:86e56ac5fbd6b5f8d2e1417353a799fc490c3c26bff440e3dd6093cdee8bf22a"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1184,
+          "sha256": "sha256:3bca87dc4118de2d41d02c891d5e106f51ca4692125aad036af6bac2c838691c"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 38158,
+          "sha256": "sha256:c304ba7f59a51b6a3b0e583014a261fccb9f3da166f62399b196bff875180b9a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 212972,
+          "sha256": "sha256:a8d771e7351f0d9bd7e56e74d2ecd8597726e0d774693b0ae834b5d3751e44cd"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 22146,
+          "sha256": "sha256:012c023d5ad66c1f0fcb9e0efa0ebf90f34e0b84544afc52507500249f784e34"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-002",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26190,
+          "sha256": "sha256:eb0cd27d7064f905ffe3c9d47bd67d36b836f7656d4acab89b6a3609b5102b36"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1171,
+          "sha256": "sha256:3b8806c12636bb2a3df3eb52044a83ec74d80c8b3c285ff206801a14a0f2a646"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32707,
+          "sha256": "sha256:42d0f1a640229364be19bf1102e96905313802247738de6bc765b0740c812849"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 24023,
+          "sha256": "sha256:9b129cbd47137c308f476a82cf88e23d8cf3b1a9daa2e6b12b7ad5c1fc8dbc5b"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30790,
+          "sha256": "sha256:15d29acca7d3a54427ad92797cf8f7f9b044fbbba1aab3743d1022c97aaf4ea4"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31952,
+          "sha256": "sha256:f90b7b3d75fdcd2dea9a5025b570f16c0f7b95680270a9d7cd89d62641922914"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1171,
+          "sha256": "sha256:3b8806c12636bb2a3df3eb52044a83ec74d80c8b3c285ff206801a14a0f2a646"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37836,
+          "sha256": "sha256:f1850196725eda128d81a047562747d23108ed9438558e2f169a261b5e025f6d"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 209316,
+          "sha256": "sha256:5f848840135336f5d56eb24a7c17c78cf582b864b0b6e47ade81f4dc5c96bda6"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21955,
+          "sha256": "sha256:8e7c9f8abc5f78407566570427156154765c42ca6df4bebb949c98d9d07a5571"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-003",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26609,
+          "sha256": "sha256:0d0367b6b3cda4f502e1d63222e7de165caf60bd9eee03e860009f062500d73f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1170,
+          "sha256": "sha256:ca9f0c7cdaea3797dbaab461abc59ec592a8126d75b7b8998d69ef2d3dc9bc60"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 33032,
+          "sha256": "sha256:6e1b0fc6bd1977baa44e4ae39891f2bc2d5430d374951d72b8a255d2397ec6ea"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 24270,
+          "sha256": "sha256:b473f0ecdf62ffe0a67118c71074eef5c1625bd1715c575034fb7a029a76c24a"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30755,
+          "sha256": "sha256:fdfb8f40e01d724d993a0083aeceb26c7ac052f5e74983e624a169fc2e7762f2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31926,
+          "sha256": "sha256:1be81ac33db82ebbf805aa641a0645d9cf995393d027f90f4813bba948869fdf"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1170,
+          "sha256": "sha256:ca9f0c7cdaea3797dbaab461abc59ec592a8126d75b7b8998d69ef2d3dc9bc60"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 38158,
+          "sha256": "sha256:4764e85a95c2c8c20f256eb09dd7606677a09a735012ddcd55c6ea044a2a97e4"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 212226,
+          "sha256": "sha256:8d1f102f5dc1a14f9b57508089b6ff00b4e75c103ed78591ab9ed881c4836cff"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 22146,
+          "sha256": "sha256:7579ecd0af305eb966919d9e383b38316c497969cd9096b9d9d0db1a6010d24c"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-004",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26053,
+          "sha256": "sha256:d09cc4eb9f3dbe3ddf38fe288020758fe84833219a00c2d55a6f35a5348b1c50"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1157,
+          "sha256": "sha256:e64c10d77eeae948d07e75c48cdce58e5cdab23aac2443ce23ba814e475c47df"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32707,
+          "sha256": "sha256:b7dd40573ba37fd47526af7e333231545c5da9fd8568534ec97a9308035d8769"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 24023,
+          "sha256": "sha256:5d2f2ccef26b8b3c3218d133e500c6a56c5b404f57e264fcd17b431e8cd60a1b"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30439,
+          "sha256": "sha256:4b2f04b7d51d9d2668e82f0abdd5d3cff87dd1cb9e06d210d63e9651ef155709"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31436,
+          "sha256": "sha256:6edf9da00bbe21a606dd441456e089f70a07ba6796ac94cded10ea06fc281e8f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1157,
+          "sha256": "sha256:e64c10d77eeae948d07e75c48cdce58e5cdab23aac2443ce23ba814e475c47df"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37836,
+          "sha256": "sha256:fed86e641d67e279920ac509a5c01af7f40ac0db3a4dd1ee3cf0682d868b8cc2"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 208560,
+          "sha256": "sha256:ffae23e9b4b7495e33dd043fdb4ad9f3458f1949e18df7381187837b559bddb9"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21955,
+          "sha256": "sha256:785f2c7f5cce2456d48bb3913c12fe05c47649e51f3c908735f469781adcdb59"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-005",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26354,
+          "sha256": "sha256:abb8d219205df9ebf15ac176428e16fa39492b4772e83c5948eb2c9b38991401"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1154,
+          "sha256": "sha256:de52e29ca6a019260fda0e009165541295e81a3afa609a24bb6a098d7293d5bf"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32667,
+          "sha256": "sha256:15bd896cfdd556e6a0ef177f31c26d0ca755f42a368e1bce3c3022ff0e9492e0"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 24003,
+          "sha256": "sha256:2506a8d78e42d6364d4e69cb79b2791d407d57351acd7acd0795df5fb9b4a27c"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30334,
+          "sha256": "sha256:96d15cfa0cd99bc05b84a6916e7c5469ac6f61045ac48100a525fce61edef1b2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31335,
+          "sha256": "sha256:ca315b6601168430e5becc8af99bdf49188e278eed816819ece7391f771dfffb"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1154,
+          "sha256": "sha256:de52e29ca6a019260fda0e009165541295e81a3afa609a24bb6a098d7293d5bf"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37776,
+          "sha256": "sha256:c04205f3a28b3ad33411d90714e62def6a59d885990215e8a3998657b31cb486"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 209579,
+          "sha256": "sha256:961f07b32182486637956f11f9f2e63e410b85e45655a186fc11a7acee563120"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21925,
+          "sha256": "sha256:0a7143ca76888900e502a3684dd762437bd4d636b3c9453be26170ac38ba2702"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-006",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25801,
+          "sha256": "sha256:18e909be45c6271105f091bef82b4e0113a67fe667ba01a5da6b2f4b7df3f023"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1142,
+          "sha256": "sha256:b71b346597d4d4faaefdf4531b0b3cc55b2ed39e91b86af977df4b991e163052"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32342,
+          "sha256": "sha256:64d710f19f254ab3c9117ea3410047718203f9b4beaa40d5d43a7a59cd7a3a12"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23756,
+          "sha256": "sha256:875c60dbf5fef8b446292182cbd89591607f9515d9a376c423369125770de3f2"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30018,
+          "sha256": "sha256:2e7769ae0ea395756cfe4202d05a1a288b3f0452e64796cd8bb3222ca5e431f5"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30880,
+          "sha256": "sha256:945aef27470f13a4a824f7d2c2aca24c456462b85ae71c3c5ddf2a5b2d01a04d"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1142,
+          "sha256": "sha256:b71b346597d4d4faaefdf4531b0b3cc55b2ed39e91b86af977df4b991e163052"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37454,
+          "sha256": "sha256:0baaa6678da66d42dbb463376bdee540bd4a9604f858df9bc76047870e77998b"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 206045,
+          "sha256": "sha256:83223eb74ffbc099905abcf87e8998b74744fcf88a332c364c2a621303952d71"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21734,
+          "sha256": "sha256:119853dd46fb0807a4b9f4efdd446a5e31c8f5d36bf6165c62f0e07f6fa4f45a"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-007",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25865,
+          "sha256": "sha256:08f095523ee63c99911a209cf974cd4318d98ce9aeff22188ae1fc710f889bb9"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1147,
+          "sha256": "sha256:76d6960c5f3c602ca3ae1bc24364906a0cd69b084bc9869a0c1cdf3741581c75"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32334,
+          "sha256": "sha256:44118c2ae1b8ace5816baf08b965ea9bd4a3f70411b1d7f943c8617fa9ba9a7d"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23752,
+          "sha256": "sha256:eeae2896f0d5310502e32f0f42b1f83b9614487a6d5c9a7abb56cde7e8d12a7a"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30193,
+          "sha256": "sha256:ecf9b0fd91fd80fb61a802336e764e3849b4d87519faab1d31d39e5d440c4540"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31032,
+          "sha256": "sha256:d6a4457d6dae306e9bddb2cb1e3570b790dc56b58194c2c5bd0df7e924182844"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1147,
+          "sha256": "sha256:76d6960c5f3c602ca3ae1bc24364906a0cd69b084bc9869a0c1cdf3741581c75"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37442,
+          "sha256": "sha256:58eb20c2ba5321fa2da95b97fa22514e0cda0437b3f67ff2b47dba11cd8377ad"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 206298,
+          "sha256": "sha256:2adab5243f78a2e6525d1f6607931476bc4d863e47bc750ab1816e3055a2542f"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21728,
+          "sha256": "sha256:1ab97f5341ec7c89ab07102f1cf00d6d4265b3d02f9487f01e59d6735ea7818c"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-008",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26418,
+          "sha256": "sha256:7477b8ac59b0de415d4ba137b0dcee224544457d3fd4b5714b4f007acdf59b1e"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1159,
+          "sha256": "sha256:893dd425f1dcd570b2ea06aa27389b2b82f7a349740bcec5423e6f47472fbded"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32659,
+          "sha256": "sha256:fed08ac85e4686b491fd4f300d07a107cf40db41148ecfe99bd82b9a7072026e"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23999,
+          "sha256": "sha256:2d0d30e5cf8d3f425132f92fb5334ae5812f30763075df09c690c4bb09fe5ab4"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30509,
+          "sha256": "sha256:addf74700b6ff111a0d2402e4add6b8cc09bd48d79ae246f8f379d4e845e9f64"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31502,
+          "sha256": "sha256:1f4cf7fe88e27a203c06ca537309810880e17b0db7f5b54fd4da3ee0dfb4615f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1159,
+          "sha256": "sha256:893dd425f1dcd570b2ea06aa27389b2b82f7a349740bcec5423e6f47472fbded"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37764,
+          "sha256": "sha256:7e89c0e5b0cab081d69ec9b600398871b5bbe641aa8b71b957d93bed1019e9b4"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 209839,
+          "sha256": "sha256:7c37ff13f9302764cf7981906c34e9c5c40d2a49382b6e914675afa0769688e1"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21919,
+          "sha256": "sha256:c2f0a38ada029ab7d9f33124b448f735eb4fc92a20f2d1360d022c211af3c03a"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-009",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25727,
+          "sha256": "sha256:9801a46926c073e6652db8fe9088327a22bfeeb86f49522d490c48e57ead0ca1"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1134,
+          "sha256": "sha256:1fa29fab52a6cefd0b0fbb5c5cd0ef5c10895661da202ee353b4554fcf68415c"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32334,
+          "sha256": "sha256:31352f97cf1c438bbd98c32d743efba2a80038c035fe5572a802d72cbad7ab76"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23752,
+          "sha256": "sha256:a0096294f062b6cc02a9da6654ee6aece690269f26ebf7654d66c986b364b30d"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29837,
+          "sha256": "sha256:2f9ecab494c89905cb9f97b4c57d09cf60802d9678a6e35eb88e6d91f6c1a07c"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30649,
+          "sha256": "sha256:31489cb12616b56baba9b5041c808d3d9ed22da80d13834c88576c7af7eb16ba"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1134,
+          "sha256": "sha256:1fa29fab52a6cefd0b0fbb5c5cd0ef5c10895661da202ee353b4554fcf68415c"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37442,
+          "sha256": "sha256:1a5c4fdbdf1763b003945b165fdcabd1c90fcf34a3b5844a2e627143c232a2ec"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 205554,
+          "sha256": "sha256:0b6eb480ff7ab4e4027218c2be49f3a7d23e520079a770c6c651af256db6ad5d"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21728,
+          "sha256": "sha256:4e58f0785e836f48d82595b5b08f7ab867e4767033c4f40fed6d7e2f8d5ad4ae"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-010",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26280,
+          "sha256": "sha256:289898f88a3692bbe9c6c61a2f0d1fcaf3277a0fc1cb4e4ac0401b05a2c46d8f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1146,
+          "sha256": "sha256:f92114fc3cd2da65837c5b2354059c924c68cd6e0f3e516f324f62b94d94fc55"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32659,
+          "sha256": "sha256:72a8fce026e20afc31d3f28f4a4acf1df645234e281325adb2fdf81b121ab26f"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23999,
+          "sha256": "sha256:474ebb93dd8cca05595649552128e7ef275f2dc67b791b28ca68f1c91d46fe52"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30158,
+          "sha256": "sha256:1e09b00857b49e7732c420b2ea48d616f51265a6cea9c8783f2594c1bdd5305b"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31003,
+          "sha256": "sha256:8fece685da045ceb507efbd037055162cb98fbbcfc0ba7d8329467b7ca7be3b2"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1146,
+          "sha256": "sha256:f92114fc3cd2da65837c5b2354059c924c68cd6e0f3e516f324f62b94d94fc55"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37764,
+          "sha256": "sha256:2358c4b12b23773e4829c5156130ee1144a9ed791a67a17c27466fbd2321495a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 209094,
+          "sha256": "sha256:06d7792aff4d3b9763f751c936e8d954a49eb001a907ef42caaf05708ec980f6"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21919,
+          "sha256": "sha256:18ba7a3a25d7ed1df8a8f6e272f7e2621ffe5533ef414b3a71437045ef88f025"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-011",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25471,
+          "sha256": "sha256:8fae3bae2cef35f91442a7b0b870554321ca949854ab085f46be222f7eba6e59"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1119,
+          "sha256": "sha256:a3645fc08c637806c758cc756993d381a1186ae9d9dc6e2725414d7892be9ea6"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31969,
+          "sha256": "sha256:8bbdbb5d68f897fc70d2644250db5a553ba432356d21105cb382032c659a36f8"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23485,
+          "sha256": "sha256:a53090c292e8342bee02af49fe5b8a648d79d12187020df3f80cb00f9de42958"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29413,
+          "sha256": "sha256:30718f28093aada6cacb7d9d73fb8c91ce49542e87a123b1ca34e97924179ece"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30220,
+          "sha256": "sha256:7a3b3546d929d2316e8ed64e8d3442b314ee3dd24ceb021adf4ec3c93a630ec4"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1119,
+          "sha256": "sha256:a3645fc08c637806c758cc756993d381a1186ae9d9dc6e2725414d7892be9ea6"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37060,
+          "sha256": "sha256:42b68b92eddab1125fe632cc6f2b65090dee00f1e9d786aa31428f465b595733"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 203001,
+          "sha256": "sha256:9fa2c8b36fbe17dfd40bdef404ffb2a7a699f118398ae8e3053f6af420826499"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21507,
+          "sha256": "sha256:41270e6e3eda4ff9d92f0f3f6e4f2d04f67170398204bfb81b37fe1246865b29"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-012",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26028,
+          "sha256": "sha256:0ee4b12615d67d10c44907d4082b2baaf53457229cf10344b4dc014e9eebf03d"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1131,
+          "sha256": "sha256:e4d0c0c687ede99678cd875b770987d58971fe546442d9d35daf915c7454da09"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 32294,
+          "sha256": "sha256:384f69d5af4049724ebca848cb8a44f6f2c3710ca71d735caf193537f6fdaff2"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23732,
+          "sha256": "sha256:8ae79897591f0554ff6b77794a83341c770d39f0ddf8b59c7a4c13bcd3abdd67"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29732,
+          "sha256": "sha256:e9d53144f4829ba002434ab8cc10529fdff677406bac463c169112eec64f2292"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30555,
+          "sha256": "sha256:23d7c5e75d748498f2af94589d77c4e1865688c304936e78138dc7a3812b56bb"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1131,
+          "sha256": "sha256:e4d0c0c687ede99678cd875b770987d58971fe546442d9d35daf915c7454da09"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 37382,
+          "sha256": "sha256:7616020d545d532075b80c0e7b82f2b7ff0f5d46005135093fccb6de52111a59"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 206492,
+          "sha256": "sha256:35be8b618c37bbaa763a84781ec4411887274f303ed0a87c4389d752e968e878"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21698,
+          "sha256": "sha256:a15ffccce2f3cda43afd1ba4ab96ccd81170704597877948ae7f32afef78ec1e"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-013",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24960,
+          "sha256": "sha256:c5ce668db9b18be35579c47166e355d7060fc092c4c73e304504d9cfaf5051cc"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1118,
+          "sha256": "sha256:dbb329f635120ad12d710074bb8d05370ab3370183b21c6229d85d9bf2f65c38"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31291,
+          "sha256": "sha256:d5fd52ab8d160829f2f57482a7c528d0bbdef547d01ea1198200d712f1bf2ce5"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22977,
+          "sha256": "sha256:a548cc11fa5bb8c72c9424da4f83bfbd9c851578ac14d260b51d43febe05f023"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29474,
+          "sha256": "sha256:8107169f3ef7ba97343eaf38f8cbf6fb1af4bbffdda851026190a45ad2db2f9a"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30233,
+          "sha256": "sha256:a1d0bc08b600af7e5d1e9b45335cce574a947eaf00dc9012b4ad51fd6795f1cc"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1118,
+          "sha256": "sha256:dbb329f635120ad12d710074bb8d05370ab3370183b21c6229d85d9bf2f65c38"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36180,
+          "sha256": "sha256:fa53fb4caf8c825637a0c437e90233826669760139386f167539d436387a9806"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199569,
+          "sha256": "sha256:7bdae38b1e4a71f8b999762962982158bbae0ae713a3411ae0edd8baf2eded14"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21007,
+          "sha256": "sha256:44c520cac9d03623133e7541c3ee4722f03f6368b71e8f7128d1d2f8df822f4d"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-014",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25506,
+          "sha256": "sha256:bc3d0ed3b0e03b2444171e98783e6a6f664ceccb84614df785cb35f75ce7a54d"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1130,
+          "sha256": "sha256:99c46664eb1c861e51857e3386dfee4128a13558c96870dd7c459308e2f89d5f"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31616,
+          "sha256": "sha256:fdb7ff485cbef8f262cbae07d29fcd710f454356f5b8d331ce4e3544c33d501c"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23224,
+          "sha256": "sha256:776fbb8bbfbaddef8d1d225e4dc70fd610217c13a1ae1cd3c695aa04789000d3"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29798,
+          "sha256": "sha256:2052f43eda0ef2ee95f052d3b027295d56b20c78a27631f51d37ca95c7370565"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30560,
+          "sha256": "sha256:4b6f6e36aea218eaa264f0c18ad37ef1e4a0c559ad97c35e7315771ca334859c"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1130,
+          "sha256": "sha256:99c46664eb1c861e51857e3386dfee4128a13558c96870dd7c459308e2f89d5f"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36502,
+          "sha256": "sha256:6ee110b1d38372742ab02353d75483939f2c6c18e5bd432ef1ee7d1c62dc4134"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 203084,
+          "sha256": "sha256:5129e923843c9d02cc5bfe6860eb17c7fad8cbb457daa3a72af37fd2524a0266"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21198,
+          "sha256": "sha256:a5cee709a6317062b2a86288309fd24e8199e3b34164e234ed93092aa48f03df"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-015",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24822,
+          "sha256": "sha256:e608d25e2fabd63c53f8dd6b05f5bbc823aeaa18d75156f439ed5995e0439229"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1105,
+          "sha256": "sha256:550a316f6f950612648326cd652afe7b3b6df572ef13781f31dde8e20413b89c"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31291,
+          "sha256": "sha256:6a7fb1467f4e429083a15569b912bee1637947d8e539d019a10d97bd1f5c0331"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22977,
+          "sha256": "sha256:92ee3d8c0ada191ad4eec97fefc1435799cd16ce089ade08b5611111cf2ca79d"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29114,
+          "sha256": "sha256:41074144847d823b5d4dd3c11c0887f0a6cacb75ee4b327de63a28c3923a3936"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29870,
+          "sha256": "sha256:27310ec756f96cd732c28937226e59bb196e950b2b748f8a8668365f27d53645"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1105,
+          "sha256": "sha256:550a316f6f950612648326cd652afe7b3b6df572ef13781f31dde8e20413b89c"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36180,
+          "sha256": "sha256:f50b1ea077206565c593da332d9680b9f4ee2b1dea9d69a79769751a8032c0e2"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 198819,
+          "sha256": "sha256:742d35e1e1838b7bb29866446c9bcee1aff6284b5e8c01327124d479f4639f3d"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21007,
+          "sha256": "sha256:21fd9e348cd7a143e6f20b292f1e8922a6a37b23f30ff7151986bb52e2c2d131"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-016",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25364,
+          "sha256": "sha256:cd70b9d08aebe001796d2776d50993c757c2a69734762ba7d47952b17cced9a9"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1117,
+          "sha256": "sha256:58287a47fba93afb3dfd267a96095e5064c948f3be19f562da61c24ed08d609f"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31616,
+          "sha256": "sha256:d7589e961ccd35c12a8d92bcf462cb5b7d8fa166a00523238ba103395412b1b5"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23224,
+          "sha256": "sha256:756351995c239bbd0d721a87556cfbe14976069df322831b3d191b8a38b9ff80"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29439,
+          "sha256": "sha256:291d78db838c20b79ce36b3c2e84291a5d28d9bba6abaf924f7cc170f42b5363"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30197,
+          "sha256": "sha256:f25e191cbbca8483e312a1924938c7eabf8f9a63cd49e15f90a59a1183504231"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1117,
+          "sha256": "sha256:58287a47fba93afb3dfd267a96095e5064c948f3be19f562da61c24ed08d609f"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36502,
+          "sha256": "sha256:847c922715615b5c1b62cf36feeba28d4c41666800e228819070cc8af5fe5505"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 202350,
+          "sha256": "sha256:44d3e5eab5586d28bb45c810afce0823b54a8c42d0d14a3e1d6a7f17077f9891"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 21198,
+          "sha256": "sha256:9dfcd8bf3326f41fe71677574099826add647199a632927307481c995470df1c"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-017",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24570,
+          "sha256": "sha256:b07488bd761a69fac44eeb3c49b789d8e6c59a97e0bb591407ecd4b504260e07"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1090,
+          "sha256": "sha256:f41748dc739ce465fea80c5f56916d8f6472e6bc6b3dcd201631860317b17ca9"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30926,
+          "sha256": "sha256:d1a21c132c719e6a01fb19508028d5ece0a9d6c52eb61fc46cd5c1d575de5c1c"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22710,
+          "sha256": "sha256:fd78f68eb646407776ca4096f7d7e3940a79bb0d30dab6211744f638aafa8617"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28683,
+          "sha256": "sha256:017295882d626bdd79fbe1d32e6972392e58667b1772fddd0c5c03390b7ebf6b"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29448,
+          "sha256": "sha256:2b9bee3fe6f0ef39835673446193b23d2556756a86d4146e39bb56b06597fd90"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1090,
+          "sha256": "sha256:f41748dc739ce465fea80c5f56916d8f6472e6bc6b3dcd201631860317b17ca9"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35798,
+          "sha256": "sha256:2369a2a2abdf5711acdacf98e33479aeff0aa95e78c1ccadf5522df55886a32e"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 196211,
+          "sha256": "sha256:a1f0f422a5a8093e08279b02b1dc64b128654c088b1abf666da464e6d1a149ae"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20786,
+          "sha256": "sha256:4f4889f8e1f5c173b5de31de079538ed295d7c976144982c38ca943ed618a50a"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-018",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25109,
+          "sha256": "sha256:571b4712cfd6769a58105a0a1e429f360ac3cf9dbf730f646614e682699d23a7"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1102,
+          "sha256": "sha256:64e99cb6eec2ac32695395604082d8b167db0e866dd7d781fec76d6dcbf6bd29"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31251,
+          "sha256": "sha256:c6e07e82deae229765cb6b847e6add1b07850e8b80a70ddc8ec8e6a2055821ab"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22957,
+          "sha256": "sha256:681775812524a5b5db55aed5c496bdd89d997dcf2af50aa54f5e3961ddf61161"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29009,
+          "sha256": "sha256:140472b78cdcefdf42267da7e91b2b93c6467a7cc34ef9e9279e49c4a93c2f9a"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29776,
+          "sha256": "sha256:5a111dc55d829eb90a497d7fa7df9cfe85def5a1eb67fc5a77e28c1ff52d7005"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1102,
+          "sha256": "sha256:64e99cb6eec2ac32695395604082d8b167db0e866dd7d781fec76d6dcbf6bd29"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36120,
+          "sha256": "sha256:0351f4a496d8c872fd79527732b7a62d0505fcfcb917e5e13f9960593eff4cb7"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199792,
+          "sha256": "sha256:b606cafddca1ee3c1041a6127ba88de172811d80061604367084a115569bf0d0"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20977,
+          "sha256": "sha256:bbff2a7bad233f4268929aae92395e670abbf83a48b248a7a6d6e5cffce58c97"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-019",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 26113,
+          "sha256": "sha256:789caa4d772e8d0d0cb195d4c5a8e2a7c6f1f8110b2c0ea02ea53dc37a1237fb"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1173,
+          "sha256": "sha256:78df681c01dc550a87696f1338f0ad7026673b767934a1852b4ba64561c576cf"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31452,
+          "sha256": "sha256:cc4178e817d3364d90f86bb48b2ca4e23c6aa17875a51b864c45f131dfb95c56"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23142,
+          "sha256": "sha256:fafb509344f3dc07de3e16ddde9b015898785839e41a7a929118abc4926a8a49"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30860,
+          "sha256": "sha256:9478b70a898c2db61865b93441c218cac7a3d7467509beb26c802b7e27a09c16"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 32017,
+          "sha256": "sha256:7303ae9c175bf6c7c950a17ae75444f2ac9ab0472ce27a071daeb6418bee3019"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1173,
+          "sha256": "sha256:78df681c01dc550a87696f1338f0ad7026673b767934a1852b4ba64561c576cf"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36016,
+          "sha256": "sha256:6df5904b2cf5cc20e0b375813679e797de79b8b09483896c3629dce7b895a37a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 206460,
+          "sha256": "sha256:a8f968f2f6c28d8c7a5920b29e559468e0a2050b96d96b0fd614f7454e94da4b"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20955,
+          "sha256": "sha256:f8cf8903e400139a2bcc64273975f98fbe22dee0f72595aafb595fcf3f59d6eb"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-020",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25557,
+          "sha256": "sha256:e3d37ef3f2d7b5e5ffd65775474548131ad95527a9b83ac8a8d2612bee84e0d6"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1160,
+          "sha256": "sha256:0bd8457395949318984522cee009f3d8c4383c251f98454527906ece87408270"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31127,
+          "sha256": "sha256:efba5fba765e21b5ac522d53eb9abef17bca65ace97504652b396bc6b5016a58"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22895,
+          "sha256": "sha256:2e3e3a550d212fe6f53878d75c6532c1bf8a2d835edabd147e2d68f0105fa6a9"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30544,
+          "sha256": "sha256:fefa82c7fdf1167b39c2cb0718da7cba94dafb6228b66e649e2fe7c308fa8224"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31533,
+          "sha256": "sha256:57f7d93a53ea523726a27837f95a86853805707ebe4672b84cd4eba99d8f6a42"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1160,
+          "sha256": "sha256:0bd8457395949318984522cee009f3d8c4383c251f98454527906ece87408270"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35694,
+          "sha256": "sha256:09a92f3db8fbaadae111b778e9d710e2243734e7e2d565c580f02e5c3c8d85df"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 202806,
+          "sha256": "sha256:3a8954af4470b3cf4b8348a6a823e8cebb2025c4be00824887b8721143db0308"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20764,
+          "sha256": "sha256:090b4b52a2cc9f9c25c165578810bba92f206a25bc3aa2448b99b3d80add74cc"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-021",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25976,
+          "sha256": "sha256:dcbe1c084834c3adbd63cb6d91cc891a86aa6774207559fc4d4cab1ba97fa136"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1159,
+          "sha256": "sha256:f6ca1f3553e7d8388e4ae59163a1b9d5ee90126bbf9c870094e94b497f4c58f4"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31452,
+          "sha256": "sha256:be372f4fff1ff520de3e380900166639402f22e39579c85f1caec2f49f60d0c5"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 23142,
+          "sha256": "sha256:b25dbe4936228dd1575e496b4485549b81476d4bfb7ce8057da829b7acbf4a6f"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30509,
+          "sha256": "sha256:85776df67c1c57f5c2121dcef354ed0bc2d006f32c33ac68d16298225f63e7d2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31516,
+          "sha256": "sha256:e8d51728e355be47a8691e97903890253ac6ce305075fdf942a8430823d7e75f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1159,
+          "sha256": "sha256:f6ca1f3553e7d8388e4ae59163a1b9d5ee90126bbf9c870094e94b497f4c58f4"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 36016,
+          "sha256": "sha256:1a326b93ce0a33783fc3a79d13202a38172563ba9bd71171503273ea4da07551"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 205721,
+          "sha256": "sha256:27c9af8fabdf2273cce2620dcf62955fef07166eea5a71482df6dc282f5a682e"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20955,
+          "sha256": "sha256:e490bac8e1512c7a3a5d83e06d77c4234d441a495d0c6d41477d1673e2abce5e"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-022",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25419,
+          "sha256": "sha256:cf9622bb230dde0cd24d260185391979569d9e49812003f54d8765ef2f16b765"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1147,
+          "sha256": "sha256:a2002507ca98babd71574a00d56cbff6713c2941358c8afb0ce6efa1e3e39f81"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31127,
+          "sha256": "sha256:2b8183e8926a45a4c9c6e50704674e8f862bcc4376040b45a8d865a962fc7956"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22895,
+          "sha256": "sha256:56cb657455b50b7ab1a6124f0794b45c2e2d65d4fc086708bd3f9b3b696f2088"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30193,
+          "sha256": "sha256:3d73da9cf23460a8d6cb5b8274b514acba955e57f73aaae929afe03cf7766952"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31031,
+          "sha256": "sha256:ca51f188f9b4433ca9aca1e3947fd1a548a970087a0d53f8e468c8cc2e790931"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1147,
+          "sha256": "sha256:a2002507ca98babd71574a00d56cbff6713c2941358c8afb0ce6efa1e3e39f81"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35694,
+          "sha256": "sha256:c22403c0e19ee847387f16e067747e58d022dcff55e96fcbca1f5f0a5a2795cd"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 202066,
+          "sha256": "sha256:4eaabff1ef2a7fdb0b3b86c930abce5ef6bcd8653b329837ffe007b009898d61"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20764,
+          "sha256": "sha256:6b394239b3562237cee57f68ea87d3aaaeb815bf6e4e586cc4590d2813f7986e"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-023",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25720,
+          "sha256": "sha256:0d1d39d043ac48f814bca22b75903b583afbd9fdd000269c80c8302312679c4b"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1144,
+          "sha256": "sha256:5e24218ecbd1098ac73487ced9476a14b2de480b60fd62e148d44ccd60e1d461"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31087,
+          "sha256": "sha256:755e0afbfc88310f80b01984a8b4e8cd1d0b5ba3067b7c8098a0eaa49ddc59fc"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22875,
+          "sha256": "sha256:c8dc3f4f4e485fe7e6de4a50a92eec4c316ccef92c0017d16d903e38f5f63b3b"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30088,
+          "sha256": "sha256:4a57a33ad457cd5f2171d156b3dfe687f59904feed2ae5f12dc4896c10c05e1e"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30937,
+          "sha256": "sha256:1fb9e7c499853818ae8908f974e5ab214fbf625b84988f06baf54b92cefdf147"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1144,
+          "sha256": "sha256:5e24218ecbd1098ac73487ced9476a14b2de480b60fd62e148d44ccd60e1d461"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35634,
+          "sha256": "sha256:4b8bddf27e0682582742e1d0693da52ecdb357392f0dc7a50010ea866341047a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 203078,
+          "sha256": "sha256:93dbfad29c9c3ade117e2050fc3a8aea46ef6db2a7bcc70648d41c6e3dac4dbf"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20734,
+          "sha256": "sha256:586319e73c417ac8b1b654c59d91ec3879c9305088c73468aa554e9cb2a4e327"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-024",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25167,
+          "sha256": "sha256:8fa309035a9dad4bc6ed57512bc69f9abf1afedba1e4f231a4d8662ae4e786c0"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1132,
+          "sha256": "sha256:a7a11f8afb194cc7a398b64f0424a08355166e95c548c075e9704bb69303689c"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30762,
+          "sha256": "sha256:623251477656b7841596fef2de88f8d6fc4e92fae1ee0924455c3f723abd6b34"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22628,
+          "sha256": "sha256:4b3068c09e22f02ad5bfbd74f76a9c8218a4c9f6acf4af4569752cdeaabfba2a"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29767,
+          "sha256": "sha256:4a786e88e1b32e999ef3db6a0856a106e1282ed338f79629910c248068d5bfdf"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30584,
+          "sha256": "sha256:a724a2869e406478d2ae33406c19e07e4dde0e2b0a0f7741d32c5603355e1500"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1132,
+          "sha256": "sha256:a7a11f8afb194cc7a398b64f0424a08355166e95c548c075e9704bb69303689c"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35312,
+          "sha256": "sha256:d62fb0128e3d6e559d45540ef280cb8753494244a076a263412c882ef9a6cb63"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199544,
+          "sha256": "sha256:4ae3e266e581c36df354d9d4019e53fcbe9228fb817a0c67f41cbec93c002fd6"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20543,
+          "sha256": "sha256:8249cd9853ec6028ff943b3137e834d3e2bf83bbc3f05150b0521eb8712f95ed"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-025",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 20245,
+          "sha256": "sha256:cfdc9e3ff782c39755dea447a83ff6528c4875da8b72650d2a7be3989cbd5cdc"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1005,
+          "sha256": "sha256:89322cae0ef930ddfc3dc4136ecf0f2991d8ea41c0a0334e1cd43234517801b6"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22684,
+          "sha256": "sha256:7f3ccd9a5bd11ab3f503289e2f4690c6e9f7bfb1cf276d44d37fd51b18b82b71"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16730,
+          "sha256": "sha256:61ae2e88d3da3c31210892b817e170232bf1527da47f3d9cb74bd77e42f6abf9"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 26359,
+          "sha256": "sha256:37d9bf010af9260f5235ecc421d1e95d4082926ea6dcf03f945aaf9ccc82548a"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 27394,
+          "sha256": "sha256:369fae769fc9ea17b2fd45ee5f400741eaf9c57294f39c9e067dbac01f5f8355"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1005,
+          "sha256": "sha256:89322cae0ef930ddfc3dc4136ecf0f2991d8ea41c0a0334e1cd43234517801b6"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24970,
+          "sha256": "sha256:f6802ee0b34c995cccf332b50fd6e787b4e16b2c404514b5b6f373d5d03a8514"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 153789,
+          "sha256": "sha256:48da31f25700bc3e91bfcc4b492a8420fe4d5c6ec1442d86ae2211bfaf32d3bb"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14712,
+          "sha256": "sha256:935f8a16ac0059c05404e5ac782488a3b8859c1333174f2b1b1b83820ba3334f"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-026",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19706,
+          "sha256": "sha256:2807befe5eef0aa90582b2a2adff4255bfc2ca304177cb2dd87c937f5854f8ee"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 994,
+          "sha256": "sha256:cc406c416ed1656d8ecd209fa16d1af5019a524094c07b2db6c2fd818bdf1af9"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22359,
+          "sha256": "sha256:b19d09e24e1b78a0cee7c800cdf841228c115e21494ade84fbb34d3ed07d3eee"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16483,
+          "sha256": "sha256:0088115fc2043122452083b47ce87a2939e78a23fbe482959e43f8c9c5c1bce7"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 26039,
+          "sha256": "sha256:5c201cffe3e7134082c8e44c9bd080e128135433a3cf4c60a3a47453950486e6"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 27091,
+          "sha256": "sha256:37b4f1334b57639bd8450ecec5dd72f04b0ef6410bf24554fbff0ffdc20f73b1"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 994,
+          "sha256": "sha256:cc406c416ed1656d8ecd209fa16d1af5019a524094c07b2db6c2fd818bdf1af9"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24648,
+          "sha256": "sha256:d58b7943c0c5265c9ec94062b45f1b1cb04df0f768e2fc5cffc598b11d329c7f"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 150299,
+          "sha256": "sha256:22b852bf22f2fc385edada5d03b46a8433554566df0809ba06aae606128992d6"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14521,
+          "sha256": "sha256:cbb671b340885488a2932067e86176e8e49fa0161be08944d95e71d194fc0bd2"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-027",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 20245,
+          "sha256": "sha256:cfdc9e3ff782c39755dea447a83ff6528c4875da8b72650d2a7be3989cbd5cdc"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1005,
+          "sha256": "sha256:89322cae0ef930ddfc3dc4136ecf0f2991d8ea41c0a0334e1cd43234517801b6"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22684,
+          "sha256": "sha256:9e72f9be81d7388eab08ad1f8682c952cd6229b152a71cf629b309b02b75e2ce"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16730,
+          "sha256": "sha256:0160b6886f4a81551500cbeb4c0c01c6460b4abacde7029ed32989781bb41e9f"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 26359,
+          "sha256": "sha256:37d9bf010af9260f5235ecc421d1e95d4082926ea6dcf03f945aaf9ccc82548a"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 27394,
+          "sha256": "sha256:d3658148558d35ab11075382e3776cb63fb07d0bac72bf645f28d82290bd61ad"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1005,
+          "sha256": "sha256:89322cae0ef930ddfc3dc4136ecf0f2991d8ea41c0a0334e1cd43234517801b6"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24970,
+          "sha256": "sha256:ac5583704efe2297a17824b630228c5924de06a328b5eda89a8d34f1d4ab8ee1"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 153789,
+          "sha256": "sha256:a5094c428e0685d57526da061e96f709d24df95916e6bc9ae4380afb27b76312"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14712,
+          "sha256": "sha256:e7dbd44cc080fd1e69274836d23986439922f5b6ac402b2bff6770150a6c92e3"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-028",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19706,
+          "sha256": "sha256:2807befe5eef0aa90582b2a2adff4255bfc2ca304177cb2dd87c937f5854f8ee"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 994,
+          "sha256": "sha256:cc406c416ed1656d8ecd209fa16d1af5019a524094c07b2db6c2fd818bdf1af9"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22359,
+          "sha256": "sha256:8842ce325cd7dfa9faa06f310786000d488e1c768fd9137c24ec4fbf43255a83"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16483,
+          "sha256": "sha256:c969f76635130cc1f1daa567ada728c1b79649397a5bcbdecd47d6dd3406acf6"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 26039,
+          "sha256": "sha256:5c201cffe3e7134082c8e44c9bd080e128135433a3cf4c60a3a47453950486e6"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 27091,
+          "sha256": "sha256:4319aaadd7dffc2a288dfcd06c805ed7e37df1ba827de814958344ecaca89bb4"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 994,
+          "sha256": "sha256:cc406c416ed1656d8ecd209fa16d1af5019a524094c07b2db6c2fd818bdf1af9"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24648,
+          "sha256": "sha256:f95159bd4ed3d0b087d9b31275afe1f0a0f1295e89b4fda96085ea3f9c63aa15"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 150299,
+          "sha256": "sha256:722e4015906ad05e60c07260dc4483b1ec3e32ea3618e2784968db32b3d5797a"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14521,
+          "sha256": "sha256:a55625019e9549b519293c99ecfaa58e3765322cfd41e1084b45f031a0ed4584"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-029",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25231,
+          "sha256": "sha256:81dc623a3a08ec923c55e9f22382f6651d70c80c8e228614d8a214c352890a09"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1137,
+          "sha256": "sha256:60de43f43d2577c6691bbdd1969911c70f089575397223354f9dd6d177c69582"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30754,
+          "sha256": "sha256:21e863e908e20905178e82caaca384f3f3e90b829eae7a1a6de797e6aec6722e"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22624,
+          "sha256": "sha256:365018a4bae3800e6dfb55894952346781d2857732edf733cacfae79d3ed4ea5"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29942,
+          "sha256": "sha256:bc1b74cabd861014e8a36b73960b4ff516807cbe79a1b8cb59647c42d7580b68"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30743,
+          "sha256": "sha256:ee18916204f4340a878f3b904db84fa7d905660ab3a4a6489c105be698103f01"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1137,
+          "sha256": "sha256:60de43f43d2577c6691bbdd1969911c70f089575397223354f9dd6d177c69582"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35300,
+          "sha256": "sha256:2d5ce546ccc7f020e33d7dabcf1993dd15bc9d23b7f23fd913ce93a787b1b4fb"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199790,
+          "sha256": "sha256:b953ccddfb6a12d9ea8061ad1b32c02a6c84aa8f366baeea289da460e7c43d0c"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20537,
+          "sha256": "sha256:45fb6a7f132b774325f143ddcafd97eb12ddedb63f0dddbdea1ef4c69273eadd"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-030",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25784,
+          "sha256": "sha256:166321f5f16e3c8dcf9552845b7648c49f9d4b0642ce86c7c9dd1434cadbedc6"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1149,
+          "sha256": "sha256:b2120e2a58ef3a81afead867c3211b697eaa1198f21c6d8fe0faf73ae3f27604"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31079,
+          "sha256": "sha256:33ebae121ed42c8fdd787a2b3a7200e84f471ec2a993185225ee1889f5ebe866"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22871,
+          "sha256": "sha256:de31c5604aa8f72b2a279f80571a334f4f00ee428b8c43e09e31e7ff7070e565"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 30263,
+          "sha256": "sha256:4699328b9349b5039b1cad340b9fd5605e2168b7baff528c2d4467d52b03738e"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 31096,
+          "sha256": "sha256:22295963439c8275abdf6bd210c6dd08448eba4e51681b09b6c3a8f49ffc0830"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1149,
+          "sha256": "sha256:b2120e2a58ef3a81afead867c3211b697eaa1198f21c6d8fe0faf73ae3f27604"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35622,
+          "sha256": "sha256:93bdbf0f4fd9c778a398d95e23396585a130fda0659949dbf5b7d476a169f6ff"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 203333,
+          "sha256": "sha256:548c3cef74ca00e2670ccaf5d9a79805272555abd41b1e2f60862719244e7c4f"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20728,
+          "sha256": "sha256:c12caabef9c28932080142ed4697f9a4b1d5453e4c8c9f0f98d769a7f6a15792"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-031",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25094,
+          "sha256": "sha256:5faab02d702d925db38fa11e70541b479defbd2e5bade92cbd080a491c021cd6"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1124,
+          "sha256": "sha256:43a54b273a4958d96001e7ad9928d56a6b852f23861010dc732e2660c378daa0"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30754,
+          "sha256": "sha256:494ad097fc55cf16e5b07098b094cdf48c1960c97a0c6d63bcc6f0e8eb7d1b79"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22624,
+          "sha256": "sha256:33062030ed81d9a61c50ca2d2a697e2e75f99cbbc3378875d13576f79e74cc70"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29588,
+          "sha256": "sha256:38412c3c89a7015f9fe27612401985de44b0180a792c5fddadefc7002480acf6"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30372,
+          "sha256": "sha256:3aa29f8da9d7db6b0cc091ab9b04c4412c8708ceec77453f54930a147c01aa70"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1124,
+          "sha256": "sha256:43a54b273a4958d96001e7ad9928d56a6b852f23861010dc732e2660c378daa0"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35300,
+          "sha256": "sha256:4570b6ac9f5d2a0ade056e7ab2067c477e9fe85f3d51b33cc10910fdb3cb477b"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199054,
+          "sha256": "sha256:1ba0284f6f08377286b267f32b591f8a4c6a4a496829cdc1b4a12e4e77c25fb8"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20537,
+          "sha256": "sha256:82bd9bab23755fbff2d46048b45c25e3e414746cea572e02224ca9f1810a9657"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-032",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25646,
+          "sha256": "sha256:da382588c8472f8886ad1fcbd8c23ae33df8ecdbcc9c30ef5ba6110113a2c8ff"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1136,
+          "sha256": "sha256:d36fec0bc6db974e563a91f25d44190b78676e8849376cde6d45a6aab3babf81"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 31079,
+          "sha256": "sha256:a3fc5e0295677ddc9c3135490b33f41d0ad959ef96ea4982634eaf1de2a320f3"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22871,
+          "sha256": "sha256:97f86cb22bfdcf62d1b61a79e886812c18094df9c1cc36fe72c87eb4881c3f41"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29907,
+          "sha256": "sha256:a2f68cdbe3188e26dcb1e089cab61c1211785ae0b7dbea7cc802d9b497635165"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30714,
+          "sha256": "sha256:2f81e0e1211b66dbaa3f916f4244116d259fdd32f10d88aa6f578b6bf15292eb"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1136,
+          "sha256": "sha256:d36fec0bc6db974e563a91f25d44190b78676e8849376cde6d45a6aab3babf81"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35622,
+          "sha256": "sha256:832b7fbf37e6813fdc952406f0b72609797b3fc40e6d28c6a974e665be777295"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 202594,
+          "sha256": "sha256:3a7dc03f1f8f76d5406ac3628f4b0f8ae68af0a43a688faf8c001621fa87bfc4"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20728,
+          "sha256": "sha256:8d85d147290f428f8210557e8dbe4ab2251b572ca94be70e0583066df5de6a5d"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-033",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24835,
+          "sha256": "sha256:ab6791fa604bd29927e24018871bd7f18e31d5039d1f46fdb897d232f575fdf6"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1109,
+          "sha256": "sha256:3972c7ac3c781a6aa2cda262af7d136ef095e2c5685a4e5d38b66587c9061b94"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30389,
+          "sha256": "sha256:806507727328dcecee6de24bb504af0b930c515c56ba51e6ae9228a062263faa"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22357,
+          "sha256": "sha256:31b9bac11b3f82520bda961a80d5b90fcd14c9084ad0ba9f840518dbabe42557"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29159,
+          "sha256": "sha256:e5eb3ea79b8417b18741e79336d4ff4977f28e86aa1c4e4b39db3c9e164ccdaf"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29944,
+          "sha256": "sha256:29d6f9206430689963bcfc7136cab52264c7a0636eddd360f073fc30c31f68f1"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1109,
+          "sha256": "sha256:3972c7ac3c781a6aa2cda262af7d136ef095e2c5685a4e5d38b66587c9061b94"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 34918,
+          "sha256": "sha256:a35440aefb8e85a0e86c0b9783ce7579b1d6b69fee904175f2633b103e5ab3c2"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 196505,
+          "sha256": "sha256:b5c0139502c1c4c6aa296a20501537da5a282b9364ea459000b08969a3c1eda2"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20316,
+          "sha256": "sha256:62a307ca7827cc69efddaf51d526a1fc29b53d4346a3771f7953425ebf9da7fa"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-034",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 25395,
+          "sha256": "sha256:01ffa30a839bf4352c77632de563aac3b66f9206edd53fd518981d1047556350"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1121,
+          "sha256": "sha256:5823d66abbfb947dd39fc1a3adceb7058894edc30d73a0641de09b213332a2e3"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30714,
+          "sha256": "sha256:9d53e9bf327ea89678d43e7157aab28b3635f55fa4f1f33dc9ad3b75fcff8e9c"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22604,
+          "sha256": "sha256:423ae3508ed690654bd8d483f77c72373e38d30bf2dc0c6e15bac05a69c3d7ff"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29483,
+          "sha256": "sha256:ca3a80bb28b480fd25325571f5dbc69ffde869206cfbb131d64be640498e6a69"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30278,
+          "sha256": "sha256:271a8a449bb5a9e9d48cdebac87bd7119ba4ce0624b0c4d42829cd8c2688e4bd"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1121,
+          "sha256": "sha256:5823d66abbfb947dd39fc1a3adceb7058894edc30d73a0641de09b213332a2e3"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 35240,
+          "sha256": "sha256:46b48af9d83802b9e63f25f50cfefd8f92528e7fbbbbb75015d6facb05ced0f5"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 199992,
+          "sha256": "sha256:002b13eb1e2a37c4a29170aebf910fda5c601e728c1aaa768f181abe46487722"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20507,
+          "sha256": "sha256:b62f1fc9730e5b554eb1444d4ac2505399e9e034d2f385fac73f8711614ab3e6"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-035",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19387,
+          "sha256": "sha256:f7af10dcb9a10a644887dc8f28d4dca664bccb85615799acc9c420286c26437f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 973,
+          "sha256": "sha256:caef2cbaf40ee8f3808a0d65c45379fba107c36e8d16d7acf3172b9e3594dd7a"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 21986,
+          "sha256": "sha256:d9dc7c8dd07010db25c9bf64f74325a7144e602ec812b2725ee691469b3988af"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16212,
+          "sha256": "sha256:1d32ce74a4ab2c1ce401752c99638b84eab944e9ef4adc9f74554dc7f1f1fcf1"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 25429,
+          "sha256": "sha256:5d121b2ee6b4088a3e3aa0869b10ee9b118ee5dd1b7fe74dd889aa2b7dc7ea3d"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26545,
+          "sha256": "sha256:086538dfc191367822a7cdde2c1092d086b62ab1945eb82275df31104ea93ea3"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 973,
+          "sha256": "sha256:caef2cbaf40ee8f3808a0d65c45379fba107c36e8d16d7acf3172b9e3594dd7a"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24254,
+          "sha256": "sha256:bc7bc9548b4dea3c44f76d689ef31d1ea6c8e0e8214ac5c7a3004c93736753a1"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 148819,
+          "sha256": "sha256:afc050298e10e0be9de5619c4b41c7bd970eb6fd1fe2bcb659f1b198f4bbc074"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14294,
+          "sha256": "sha256:b30ef7d6b72be3232dd388f03977dd82b2ce7bbdbb289871b4d11b4873b40d70"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-036",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19925,
+          "sha256": "sha256:a14da6b8666aab1c29444ccc6c5e7ea17e8ce20592099d76ee83403286a5058c"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 984,
+          "sha256": "sha256:6cf1b3b8edd494bc5595f5727d392e0f29b76e0dcaf3b2de7d09c064cbbc68e4"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22311,
+          "sha256": "sha256:03084eb73146d46964a78c940ae98c0e08f09bb7b9755a5d38f3ffb6f7d98bca"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16459,
+          "sha256": "sha256:2e71fb0f438620736e56d3985853d221a8841a0084581217299588d4eb9fb87d"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 25753,
+          "sha256": "sha256:3f1fdc4c8a2b110f5ae9300bdabe408862299180ed71c32c433118211938cf43"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26839,
+          "sha256": "sha256:4d641453dd524728e37942798fba7826742c11293a92a52a8bc5ce504408f2eb"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 984,
+          "sha256": "sha256:6cf1b3b8edd494bc5595f5727d392e0f29b76e0dcaf3b2de7d09c064cbbc68e4"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24576,
+          "sha256": "sha256:c3d247bb899481e46f0ce2691822977a4029a70c93f27362676a874a37e3944a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 152457,
+          "sha256": "sha256:1a47b79ce13bf7482587037e4ed739db2d8d2b0cbb5eb657f36d7acc5d9c86f8"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14485,
+          "sha256": "sha256:1768371f9b6e9332884a606825d9af36825292b72af9d4a1df3b0ad62ff29db1"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-037",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19387,
+          "sha256": "sha256:f7af10dcb9a10a644887dc8f28d4dca664bccb85615799acc9c420286c26437f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 973,
+          "sha256": "sha256:caef2cbaf40ee8f3808a0d65c45379fba107c36e8d16d7acf3172b9e3594dd7a"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 21986,
+          "sha256": "sha256:7920dfe41c229ad88981ab85ea9403f856ffad616e3326439ff72df036375540"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16212,
+          "sha256": "sha256:40b0497194a06eb8130d8c1752b6dc2ec09ce75a3cc5aadc37c4daafbfe8daa4"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 25429,
+          "sha256": "sha256:5d121b2ee6b4088a3e3aa0869b10ee9b118ee5dd1b7fe74dd889aa2b7dc7ea3d"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26545,
+          "sha256": "sha256:d668fe8c84d336fb237aba98c000f2f714a8cd272bf027a36920629441fd45e7"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 973,
+          "sha256": "sha256:caef2cbaf40ee8f3808a0d65c45379fba107c36e8d16d7acf3172b9e3594dd7a"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24254,
+          "sha256": "sha256:db57781d9b9e96b645e14c1cbd143075c13341ac874e1cafc33117382733eb9a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 148819,
+          "sha256": "sha256:152b8da7bb7c96a9a1fdbd56be712a4c2cb212f0cbe7cc8fe66a5dc380947b6c"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14294,
+          "sha256": "sha256:a44ea042d4c3be28139a630191c4697819b08886fde174eb4865c92460bb479b"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-038",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19925,
+          "sha256": "sha256:a14da6b8666aab1c29444ccc6c5e7ea17e8ce20592099d76ee83403286a5058c"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 984,
+          "sha256": "sha256:6cf1b3b8edd494bc5595f5727d392e0f29b76e0dcaf3b2de7d09c064cbbc68e4"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 22311,
+          "sha256": "sha256:1c321efe350cad56f1f0f315b081d84d265b8000cf2b1fa360a2b8cfd81cc2f4"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 16459,
+          "sha256": "sha256:aa3cf99f58249b66eeec6408c836a320559635a22e807be44af8adc4b9ac37b9"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 25753,
+          "sha256": "sha256:3f1fdc4c8a2b110f5ae9300bdabe408862299180ed71c32c433118211938cf43"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26839,
+          "sha256": "sha256:b666d153835b520901b69d57ab5b3e8ab71e0c14a4ea2146bba80eec87121841"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 984,
+          "sha256": "sha256:6cf1b3b8edd494bc5595f5727d392e0f29b76e0dcaf3b2de7d09c064cbbc68e4"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 24576,
+          "sha256": "sha256:7c7af819fe2b925ca59bf921d3709d6710b62a8a05b40904f9668ab31c52e3fe"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 152457,
+          "sha256": "sha256:b8c451d18fb83836810eac922df03013f75b0ced3892daf5e1caea431051ddd1"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 14485,
+          "sha256": "sha256:0f3deea7e426e6245840234d8e23e18befb5ac6a460343bb5c8aaeb4f3e4b661"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-039",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 23995,
+          "sha256": "sha256:991cfb531cb12c91d44e40a61405870b097bcfd48947702ffaf09ae7871869d6"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1076,
+          "sha256": "sha256:2014a1b06a0b1200e46c219e3c8dd692076e5f9c5ee2c4856b3d053c34de4a51"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29322,
+          "sha256": "sha256:f0271361467e129d564549b13f8df99a0d43f20ba55d59183c38e0a15f77692e"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21570,
+          "sha256": "sha256:a72c0804d6a3b112ee9b265d222cd246d14be0efb97cc5ff2fcf5d9afcd5c513"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28355,
+          "sha256": "sha256:07f38f5bf25c96c97b20458daf534cd7343dd11d9fd4e549551be90fb839e436"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29131,
+          "sha256": "sha256:9e35a7b0f53beef573c4e4ea019b8861dea54008e7b7ff4c6e28d1c4ec251c1d"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1076,
+          "sha256": "sha256:2014a1b06a0b1200e46c219e3c8dd692076e5f9c5ee2c4856b3d053c34de4a51"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33620,
+          "sha256": "sha256:b8e7f4739183774cab947f8969f2c486ab2c9a6505c101eab98e3535db38a964"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 189839,
+          "sha256": "sha256:5f98753c0876c6d3a4a7870994620aac2699257110f620f29bca4a4415d2ffb5"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19577,
+          "sha256": "sha256:a76b971c7c017896e5139a13d6fa4a04e63e1b8940ceb834441b0c8b41528882"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-040",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24326,
+          "sha256": "sha256:dbef1dfcc3c4f9dd230c844758d8baf61d4fad434ecdae6d5cbead0a92116898"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1108,
+          "sha256": "sha256:87e6e35b2c7c31f94593e2f1b7bdc4187c6c833dca53e959df16ece7baa6afb6"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29711,
+          "sha256": "sha256:c5da3583c8f1f816f4412decb776652f6f5eafabf613c1b6a01fb6d63afb8108"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21849,
+          "sha256": "sha256:963620855cccea8a613df2686f79c5cf7049daaac26349fdcb56ef9d71ea41e5"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29219,
+          "sha256": "sha256:c0b70b8621a847957276f4e11ded631057e98ff76c9aa0dcfc853d75fe5bc39b"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29971,
+          "sha256": "sha256:25ce364a862e111d02ef51454f81f02e5ca3117dada7cf375784792910832c6f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1108,
+          "sha256": "sha256:87e6e35b2c7c31f94593e2f1b7bdc4187c6c833dca53e959df16ece7baa6afb6"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 34038,
+          "sha256": "sha256:051ab67e12678a717f926e3b4ec22200de50c3e7c35b798bfbc77b73542f8caa"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 193069,
+          "sha256": "sha256:4e6b37615ea52d3aac141fdf1e41fb5926815c0e0cf52188da07b469dcdd11d6"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19816,
+          "sha256": "sha256:01a3ac23bbaa5e6a263c28259c3d944578dbed5031bd6a602eca07cd48cc6ff2"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-041",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24868,
+          "sha256": "sha256:2b87393920ded710774361397dc4cb73d9b1caf447b927a773e106c6833cbec7"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1120,
+          "sha256": "sha256:febafcb0df4bb32714c177c9efe510d7a9f0df0e7c3e72b59f5ce7b9ff57c4bf"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30036,
+          "sha256": "sha256:8bd17a9714075d44368f4b701f6e2cc33615f9deccdae45ab20c6badcfef2309"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22096,
+          "sha256": "sha256:635d88905c3459feeb1e0b323d8c409b331df692f955bf5a0cf9f59ddbfea38e"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29544,
+          "sha256": "sha256:d3d09c7a33e1abf8b80d2e13b22a872e39025aa2c35f2d857d8dba9933b436af"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 30291,
+          "sha256": "sha256:ac872a893879f6d95d08d31cd628e6018ceef01b222aa524152c6747f582da0a"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1120,
+          "sha256": "sha256:febafcb0df4bb32714c177c9efe510d7a9f0df0e7c3e72b59f5ce7b9ff57c4bf"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 34360,
+          "sha256": "sha256:24d972c46bca3991d688dfd72da16f6f82f0cd013a13ad97348026347e098937"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 196594,
+          "sha256": "sha256:d31014fcff701a0b24d9ff0cf1275626554b4d01844e473eda0797e0b0de23d0"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20007,
+          "sha256": "sha256:eeb9e2d344377fd99b8bc142232e58b146482b386134a8d485776f0c29aca177"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-042",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24538,
+          "sha256": "sha256:e55026ec2f7eee776a54a6e73e07c79363c8d4efb5be7c625101d51bb26323fc"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1087,
+          "sha256": "sha256:f87c66e2b01da474c3688935c065d6de9ea1abf2ff46b05c6b3e12676855f3c7"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29647,
+          "sha256": "sha256:2a232fe9ea76db33abc7e5d09e4fd7399f0d9e357598c56ef54e90882517f5c2"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21817,
+          "sha256": "sha256:a7636517c81d35af0e8bcf2f2a471e100b2f77e38eb540a5003766ec358ad25f"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28676,
+          "sha256": "sha256:155c1585008eb517009d59680c14a9b21bbbd4b90fdda4621d0d082b8d0e0949"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29429,
+          "sha256": "sha256:d7f8666edc664157d3b9c4bb4d9fd175a7a40e47db51e0f0c8702a4c25d39546"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1087,
+          "sha256": "sha256:f87c66e2b01da474c3688935c065d6de9ea1abf2ff46b05c6b3e12676855f3c7"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33942,
+          "sha256": "sha256:1ae18bafb9ca77a51ebc998c3bc6f84141a40fae5bc040ed210bbb927d73165a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 193396,
+          "sha256": "sha256:9cf6d553dfc205b67fb8fd4a7e389625394bdaa769453b00f88c3ecdff4f7c1e"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19768,
+          "sha256": "sha256:ba4bd8ac79673bdade9b1ef0cd40e963e9c29def9a591b1247adcfff2a942a99"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-043",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 23858,
+          "sha256": "sha256:c6d78f817fd2d2c4605928ecef5d0e29543f7c4609f19e2dc2f866b46d363151"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1064,
+          "sha256": "sha256:fbc07665af9035a5db8743e9f445a9bb0c2432938155b6073f1a7c27649a23fb"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29322,
+          "sha256": "sha256:703c777940ff78aa0c621147d4a31f19f5adea815529b19823365a54b425b515"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21570,
+          "sha256": "sha256:9dbd426c5c5960172da517edbc22429d4acebf14c0833db143e5cdf2cafe4d4e"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 27984,
+          "sha256": "sha256:6a575109ae9db72f21fb3cdfe23f237a09e950b6db75fb052658b8e4b2b5bcfb"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 28809,
+          "sha256": "sha256:65c6deb45262dcd2b87a4dfdb003303c1a37421c490ec472532d510edda58d0f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1064,
+          "sha256": "sha256:fbc07665af9035a5db8743e9f445a9bb0c2432938155b6073f1a7c27649a23fb"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33620,
+          "sha256": "sha256:db3d6c749dc0a41687c28ce5a0ea2a878a7bf1fd9e20bf9b68840314877cadbd"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 189157,
+          "sha256": "sha256:6e0703e4d3f176ed2ae775abac8a3d0290c3b1a2f2d8d3f838c039642fab4df7"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19577,
+          "sha256": "sha256:111f172bda923a47cb851835d8d816f53f5b394650f11b868682235f2e55fd69"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-044",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24189,
+          "sha256": "sha256:6862d41c4ac3bbd7aa56d23549038432092f877b20967c6ebaf819e2af98661b"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1095,
+          "sha256": "sha256:df85c315b15ebb7c129bd738525bda79ad09789f75199496905b2a262b02724e"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29711,
+          "sha256": "sha256:dd83fea3e4537c4b3f9bdf15d0267e8768f89a28f8d8368e0457ed0db668b46b"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21849,
+          "sha256": "sha256:a11e6dbcb8be10b24480d1d3fd9e43a65b87cd322fd7495c3708abfa481e55c6"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28858,
+          "sha256": "sha256:caefe4a606c765cf9e8e3d494c7a164730ed8bed87ebb507ac257ccddef79e70"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29607,
+          "sha256": "sha256:66bf265461c5c98024add2f23e1fca176334f2f9807b1bd77d0daa90d042d861"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1095,
+          "sha256": "sha256:df85c315b15ebb7c129bd738525bda79ad09789f75199496905b2a262b02724e"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 34038,
+          "sha256": "sha256:8307597c4580c0c6df318d6bbe2b404e89ea6f4237db009bdcc2c939b726972d"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 192323,
+          "sha256": "sha256:6c44f5d7b3e2337c5134b1600796055a8af5d139f29e8c4987856726d0b09585"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19816,
+          "sha256": "sha256:b071218ed3075036e9da71203ed94110e4070418866344620795d0e8871e0afb"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-045",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24730,
+          "sha256": "sha256:f9d7c90d0f9b17129721c47e9f30bb2c708ad89084d06ad03c221e226cbca214"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1107,
+          "sha256": "sha256:4d095c867317cc61501de65051d2714f0c4dbe589d2408c5c25a6dba3e3aa81f"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 30036,
+          "sha256": "sha256:9ec1524fb973ad4e54340117ee286bf9aa9e8184b7094b1727aabf173375965e"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 22096,
+          "sha256": "sha256:091341192390a8075a20d5ad2f070c4873ba3009f29764095622696224864e13"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 29184,
+          "sha256": "sha256:88afc7a5a90aaf217203b32e98b4202330436121feb68184ea17d3d26e0f2a7a"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29942,
+          "sha256": "sha256:da57cf4dcf9d07f5246a378e980569f408839342826952fd917be7f7e3aec858"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1107,
+          "sha256": "sha256:4d095c867317cc61501de65051d2714f0c4dbe589d2408c5c25a6dba3e3aa81f"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 34360,
+          "sha256": "sha256:35aaa6b602aec0325f590f5175cbc661b73ec0ed6b53270e37eb7d49eaef4369"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 195844,
+          "sha256": "sha256:bd12fd540837110f7784d4ce63efb5ab1d60110bf2d990fe9e3442ff4da705f1"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 20007,
+          "sha256": "sha256:10dbe2c48c07b720be35cfe54a09deb8648cb20e1dddcc5de727eee224bf81d8"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-046",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24402,
+          "sha256": "sha256:43193353761d7bdfd60eb79a8db8107e594d8ce128e1dd411fa3ec386d82f007"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1075,
+          "sha256": "sha256:497941104a0362d435fa238550520b3861d5b96c07536c4500d9b89507d56dcd"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29647,
+          "sha256": "sha256:43b730679c0b8945c9c04ba7032c42de8e1686b4085534e87c8f02a30bfd71f8"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21817,
+          "sha256": "sha256:63597a6e6914c9c27e5823065739becea61391d76522bf94689b492ce04f5d7e"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28320,
+          "sha256": "sha256:f47585a0b18ab0986612c2a1254fe2f84d1b5ab9e4b4637da9bc2a266145ff7d"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29095,
+          "sha256": "sha256:aeadb81f49a40aa6331e01ecf961de0e9c25fd1077f73959212af73e284192a0"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1075,
+          "sha256": "sha256:497941104a0362d435fa238550520b3861d5b96c07536c4500d9b89507d56dcd"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33942,
+          "sha256": "sha256:79a4072f383b6c54ad6c945aad1707a13433dbe02f46541fcdd667ce63e5b318"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 192641,
+          "sha256": "sha256:198211f8cee19ff7d0cffe5ede4accf4544d793984a842b4214c98176470e297"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19768,
+          "sha256": "sha256:99fffef1b4e9b42a430538359cae0efad4c88a891c82bc5a66c68ab9fce71e26"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-047",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 23580,
+          "sha256": "sha256:0c99b97aceb32a370a7ac018fd4547a3e2354f6ec218f45c9dfc46e14b6f0508"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1050,
+          "sha256": "sha256:5b9259a17756606f419acd74036c874d02f5d61e8f963129d0788c5ea15f1fee"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 28957,
+          "sha256": "sha256:ff09cb9b5f48772d6d30fa2556bad857b2501c22ccd8bb65e235fe4d8ec54b07"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21303,
+          "sha256": "sha256:daaada5a2340cb20a9477dee4160a1aa3bc9404201a787704af99dfb42416ec9"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 27556,
+          "sha256": "sha256:6dda89f7b2fc0df96fcb497848e203989c750d93f6477b3d87db3a2678c01e32"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 28427,
+          "sha256": "sha256:d7feafea49d484f059301f5adac9a010a3828bd0e15621427b5f4679a0c7415f"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1050,
+          "sha256": "sha256:5b9259a17756606f419acd74036c874d02f5d61e8f963129d0788c5ea15f1fee"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33238,
+          "sha256": "sha256:4092b0745b9fcca73c7875946d5609a827250589c37d61f9074e3a407fa346aa"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 186558,
+          "sha256": "sha256:b825d7207b045e39255f922f7d2a89a8f2435cdbb0065e2f29a673a4bcff9bc4"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19356,
+          "sha256": "sha256:675c1e2892d45406c15eb4a84b9c8ac4a6d721dc2848eecb576a40353ba018f1"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-048",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 23938,
+          "sha256": "sha256:5fa93cd739791cf9020355b74d19823361b91ff779d19805d7d3bc5236ba5950"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1080,
+          "sha256": "sha256:4595d482ecea34c9a01fbe5e720b7a16a91fcc7ea4974c55356a2cd67c34f814"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29346,
+          "sha256": "sha256:629e83c6b054d07ba3401f2b4a6d6566321114e47d4e6024c1b8d2b8caf2d6a8"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21582,
+          "sha256": "sha256:90d60791457557383d6dd2958f417d155ffadbc05cd99a73fc354f8712773fe8"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28431,
+          "sha256": "sha256:bea23cbd8fa754deaafce4d0bf4cdc67b9ad10c207c9dba3aacbb07a9075fc76"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29200,
+          "sha256": "sha256:e4e777c39e8911348dc543c50ec091c393c8232125955a6cf6593ee7dd9faa83"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1080,
+          "sha256": "sha256:4595d482ecea34c9a01fbe5e720b7a16a91fcc7ea4974c55356a2cd67c34f814"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33656,
+          "sha256": "sha256:cb294b6ddd7f96ad722a282f9d2a87c95fc29a12be7c1a208a1e15fb1a6e7e4e"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 189720,
+          "sha256": "sha256:f119462861cc945cd3bfd9567d298a8ed5aa4c8cf70f999585daa34e6c5c7127"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19595,
+          "sha256": "sha256:d35c4067f46dc323a17bc607900443c234da99e85bf412807000c9feb5693f2a"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-049",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24476,
+          "sha256": "sha256:2f0a6f82849fa4e1f9a4199ca3acb7a06b5c76aeed74add92149fdf9bcc90b0a"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1092,
+          "sha256": "sha256:f3e031bf57486b8ae92674e127c7d248680d14e144605e946d0b30585b1d4c23"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29671,
+          "sha256": "sha256:89b0afebf99c89ff0e2e582f77e9d3e78c395adae7332dc9be2312405c89ad18"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21829,
+          "sha256": "sha256:dc98437ffea41810a20469bcb6a9980e01f8c52b0066aa6e82b2603d27bfac7d"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 28753,
+          "sha256": "sha256:33e12c4d0acfc06c5ae7c9608178b537d198c18a8e4532a1435d4c3ac421557b"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 29513,
+          "sha256": "sha256:22794aa7b0b62bc5c0587358964713ad80499f2675e54d5c4b50aa5625ad1256"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1092,
+          "sha256": "sha256:f3e031bf57486b8ae92674e127c7d248680d14e144605e946d0b30585b1d4c23"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33978,
+          "sha256": "sha256:9b1c557e18291397dc1ee1b0706bb2c2c999b0732e850fe97abb55e92ff63394"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 193291,
+          "sha256": "sha256:c6eb429492e25f914458586889e7e587be981c025009bb0e53f10507daa2cab0"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19786,
+          "sha256": "sha256:cc041b9cb1c61cdc730967daa6dd34b404fbf3252855c9cdceffae3ab205acea"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-050",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 24150,
+          "sha256": "sha256:9ce4356560525a29eecb2fa9d3db25ffdc974c2bc1ac75ddf63c96b21d290c40"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 1061,
+          "sha256": "sha256:a312cd9a6d22b607251bd6e46adaa2c455f2b2ea0e2234f0e3e706e518a3ec04"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 29282,
+          "sha256": "sha256:d769877e43397e476bc219ab2d22d9f0a764d7ae77cedebf92644ede3611612c"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 21550,
+          "sha256": "sha256:a5336b4c28480098dce0c25248284838174ecc2d5e81c83d6db99f62a937bdda"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 27881,
+          "sha256": "sha256:e8c733f0b0ed6a34c4393a5c36ee29b9fb318060468ad087a65081475435d8f6"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 28715,
+          "sha256": "sha256:fda05923dfb59ce4e72baf639b99dd330e0917579c6ce292dd7e4630f146d3ae"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 1061,
+          "sha256": "sha256:a312cd9a6d22b607251bd6e46adaa2c455f2b2ea0e2234f0e3e706e518a3ec04"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 33560,
+          "sha256": "sha256:d698ff5a507ff122c9473899432e7b1fabeaf9bdb256210fc9a1743dcbae78b0"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 190104,
+          "sha256": "sha256:5e2fbb8716dcf945d40c09c20601e1903d2a1fcfa1ff6b30b85110ac130ffaaf"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 19547,
+          "sha256": "sha256:299429f8c85184c32035654470e12a18b2a3a57e0fa0fa4b809295bcd87281e6"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-051",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18146,
+          "sha256": "sha256:a550e998ee849133b5bc61329dd2cbc9d86c9551e9bf9f073e940fc81dbe662f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20554,
+          "sha256": "sha256:d86b626a8e6a3b4c6b348b77b0e21272f8f5dd793c063872bb4d0619a5aab62b"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15158,
+          "sha256": "sha256:9507a17ad20da2b333fdb6bc665e2c90a37e1b13affd3afa4cad054519b33334"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23646,
+          "sha256": "sha256:12238a44c65c14c91778290001c2dc5a9c6e1deb5a4c9bc7597e871ac43c01e2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 24959,
+          "sha256": "sha256:3805270a36dd9fa95319e62ef93740e25901c7d370fc63f427e5edc569952fcb"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22574,
+          "sha256": "sha256:b12497a07462ad7069e00ef3cdb53ca5a65558a3b94a0f5084f28e4f76bb4e42"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 138334,
+          "sha256": "sha256:cb26ec7815b15dc57d3500da36600a625afe5b58b4f3fdc68faf0f43eb7a9a27"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13334,
+          "sha256": "sha256:61d1c12d505d7def6ac78f7c75244e333b7fecadd91a932a196c7af9faaea150"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-052",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18495,
+          "sha256": "sha256:32a37f0245e42e64ccd11a4fafddaed78490e615ee282e1dad0d8c0a90d83266"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 940,
+          "sha256": "sha256:40bde96654203ddf93a86c40f4a39d3cd0a33a7cbe133d6e0fba33b5f88e15ff"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20943,
+          "sha256": "sha256:9316895fb58d820c6b83927939303ef0c3ae71f6747d79b912f4e2dec4846d0a"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15437,
+          "sha256": "sha256:40ed93d191346fe05699905c4bbb6f759fbe4c6839e66435e5f10e3bee0fa0f1"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 24531,
+          "sha256": "sha256:57b52ca5da091fe7791c900515a8bec446cb9b5eac3fcb2766690187be893dbf"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 25734,
+          "sha256": "sha256:5ea6012b9f7488f3575679bbc3719931c124c6de502d42e9d22468a0139a5da8"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 940,
+          "sha256": "sha256:40bde96654203ddf93a86c40f4a39d3cd0a33a7cbe133d6e0fba33b5f88e15ff"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22992,
+          "sha256": "sha256:88832b83316d816fd1ffcdc7d94070b5ee0f017f0f2e68084c3ab54444d63427"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 141659,
+          "sha256": "sha256:98ea6edb6960ad34ed3aa6d678e742284b9f3b614d89dcedabd0c60e0bc9a580"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13573,
+          "sha256": "sha256:1069c04a6367e636df1bb0c27cffcce2e09d22b399e20cbe9d7a6e1fc89da78e"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-053",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19041,
+          "sha256": "sha256:03a3c16504590443da5d0a07158e605a5dbac3751301b9e7ff0c4c03e4c99e82"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 951,
+          "sha256": "sha256:d7da4c35408443627ca0c2a102e4e5c4322dc52809fe2d2f6ce0c7c1ef8fb870"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 21268,
+          "sha256": "sha256:16c7976a122b98366a25c878155254cffca597a5219d38f2b25904ba8138ecf5"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15684,
+          "sha256": "sha256:b51676f630ce28baa421aad847cddcbba64490d166bfcc79a0ccef9f0943b07f"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 24848,
+          "sha256": "sha256:161480295b09a81d5f349542f4de69d41e86d68635484670ffe0dff49a38f688"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26052,
+          "sha256": "sha256:0d3383a71f1f54cad820d4e34170fb06fcb5698408fd0b17548df9204f634ed0"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 951,
+          "sha256": "sha256:d7da4c35408443627ca0c2a102e4e5c4322dc52809fe2d2f6ce0c7c1ef8fb870"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 23314,
+          "sha256": "sha256:e5b78135ea80358479cc9ef7c28bc405105046cea9f904675496fde88f00da18"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 145221,
+          "sha256": "sha256:3ff8107b5e243455648e301b5e6f02979e930e4472610d5a694aae22069ec7dc"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13764,
+          "sha256": "sha256:71d6b30f93bfa2d0449787cc23530328475745e79506e89dee71d40ba7f9e56b"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-054",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18704,
+          "sha256": "sha256:a9d5099e5dbc3e61c14787f9dcfa8c2dad31ef3d2f9c54e5505b55fc3ed69205"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 921,
+          "sha256": "sha256:c153ada175aeb954ea60393fba8e044c8f7e269da99ee8c1ba1716ab7d4413bd"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20879,
+          "sha256": "sha256:8ffdae4632efe3949dd5b9151ebd67cbfc8867749f966c4ec76a6218a4d18d16"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15405,
+          "sha256": "sha256:95244600c1c6b4d5ec4128a26147eb1cebe8a773df08e791d07cc6d285cf4bf5"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23964,
+          "sha256": "sha256:5ffe00bdc8f48590be61266b265476112086950310d9757d436085536e784a86"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 25255,
+          "sha256": "sha256:c88dfc0346268ecbc26bf69ccee3370a6f494d517a47e71e50ae70566d3c83ad"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 921,
+          "sha256": "sha256:c153ada175aeb954ea60393fba8e044c8f7e269da99ee8c1ba1716ab7d4413bd"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22896,
+          "sha256": "sha256:b9dbd51686ed979edd76b691606943b26d1427bbe0e91856409b00ef6e7c38de"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 141848,
+          "sha256": "sha256:c991c83a939c96233d3560ee4d2b9f60bd4bd54554b7e8a472c7b04415e0da9b"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13525,
+          "sha256": "sha256:f33cdd7e55d1566056455006bc7e7a79e93a961ce0df19b17da31add2f12e387"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-055",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18495,
+          "sha256": "sha256:32a37f0245e42e64ccd11a4fafddaed78490e615ee282e1dad0d8c0a90d83266"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 940,
+          "sha256": "sha256:40bde96654203ddf93a86c40f4a39d3cd0a33a7cbe133d6e0fba33b5f88e15ff"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20943,
+          "sha256": "sha256:ac0b73a8119dc00ddd3a65a62e96971a703a61b1317a43d6111383f820f3a028"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15437,
+          "sha256": "sha256:2d1545f2f97837c4ceb41bf915b4a91b00443db0ec32d4109d22c6a9f9681a9e"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 24531,
+          "sha256": "sha256:57b52ca5da091fe7791c900515a8bec446cb9b5eac3fcb2766690187be893dbf"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 25734,
+          "sha256": "sha256:3095a92b48336e9d75addc0d0d8c18dfb792795d93a128f0961125362d9c27e2"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 940,
+          "sha256": "sha256:40bde96654203ddf93a86c40f4a39d3cd0a33a7cbe133d6e0fba33b5f88e15ff"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22992,
+          "sha256": "sha256:0f565110b8de46771d0bf8d68b1b8240b798ffad12daff1cc8764958ba75ac5b"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 141659,
+          "sha256": "sha256:f7df1aa3f638edf4073d82aae5522eb8c222a6aeb1c93ce0613257a054b5d047"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13573,
+          "sha256": "sha256:f7eeed481e8e7cac5d54c4d111f05f5bcbe9792750e33e6e19c0e54ce8a34543"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-056",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 19041,
+          "sha256": "sha256:03a3c16504590443da5d0a07158e605a5dbac3751301b9e7ff0c4c03e4c99e82"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 951,
+          "sha256": "sha256:d7da4c35408443627ca0c2a102e4e5c4322dc52809fe2d2f6ce0c7c1ef8fb870"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 21268,
+          "sha256": "sha256:1e3ad8a3723d9590ad337f0c4999ba0965627146fe9ea0465dad19745ffbdccd"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15684,
+          "sha256": "sha256:5e5eae6c7ddbfdfb82d103dd4fe2cb373aae19dbc68ecc485faa60789e110378"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 24848,
+          "sha256": "sha256:161480295b09a81d5f349542f4de69d41e86d68635484670ffe0dff49a38f688"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 26052,
+          "sha256": "sha256:68129c1a1679e700245dc58f0332d6d55c0ec52f1a71d5fd9d8b25ed02c7aab4"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 951,
+          "sha256": "sha256:d7da4c35408443627ca0c2a102e4e5c4322dc52809fe2d2f6ce0c7c1ef8fb870"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 23314,
+          "sha256": "sha256:995217c38853fdcf4eb7726e81749bf9000321e628cc3b7d419715305dbd5c6a"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 145221,
+          "sha256": "sha256:972e4d4bf19891a1407e436fc1379023fca33fec96d1923a1b50c21f597bfdef"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13764,
+          "sha256": "sha256:10f5284d574f5d76489dc47aa19021b2e6e8e19e2a91e2382d164dd72c41ea46"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "proof/combination-057",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18704,
+          "sha256": "sha256:a9d5099e5dbc3e61c14787f9dcfa8c2dad31ef3d2f9c54e5505b55fc3ed69205"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 921,
+          "sha256": "sha256:c153ada175aeb954ea60393fba8e044c8f7e269da99ee8c1ba1716ab7d4413bd"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20879,
+          "sha256": "sha256:15d0cb5c9c9fc51fc67c523acdf8cdea5bba86747cddb865718714a61fbb453d"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15405,
+          "sha256": "sha256:e4b2a8f960de64cba045f31c40664f2590c1f66f76d91fb88f188c8e73621fb5"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23964,
+          "sha256": "sha256:5ffe00bdc8f48590be61266b265476112086950310d9757d436085536e784a86"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 25255,
+          "sha256": "sha256:ff200f4720e72936ad3de3fc57c832fa175ed9f2ac9fa19958ef7275d32a63ee"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 921,
+          "sha256": "sha256:c153ada175aeb954ea60393fba8e044c8f7e269da99ee8c1ba1716ab7d4413bd"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22896,
+          "sha256": "sha256:948094f0d58b43930afb2e2a4d173e31333fcee56cc1edf385ac568e40c61869"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 141848,
+          "sha256": "sha256:940b13d79bb34cab6ba6db402cbd66ca1f8680702ca257cdc15969055163f650"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13525,
+          "sha256": "sha256:7bf5c7a9b0158c8bfe140d82a0ac05dd68488da419ab80663edd6a3b74744dcb"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-1.19.2",
+      "antlr_tool": "4.9.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 18146,
+          "sha256": "sha256:a550e998ee849133b5bc61329dd2cbc9d86c9551e9bf9f073e940fc81dbe662f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20555,
+          "sha256": "sha256:1b24f0f6840d7adfd8ef776b8439b720649dcab0e3e7662d14d7a69f3d2bfa8c"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15159,
+          "sha256": "sha256:ac8abeb35c8df675d316859fb3b893580009d0f77b04681f33f959d68e5d9cfa"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23646,
+          "sha256": "sha256:12238a44c65c14c91778290001c2dc5a9c6e1deb5a4c9bc7597e871ac43c01e2"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 24960,
+          "sha256": "sha256:d2cc221318b0fcda5d86934bf6626237d05d716302ef0c7cccd3640b86033dab"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22575,
+          "sha256": "sha256:47947fb336c09b5d78cbc54458d387447c6fd7c14427451bce9f6848ec9324dd"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 138335,
+          "sha256": "sha256:6b91b4fa2b76fab558afc0a12d42d78e12e56ece207e98169427b4ff1b70a5cc"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13335,
+          "sha256": "sha256:9602975dce25ab2d7c5a77b961cd3bd495105d8ae21e44437984f9de68529e53"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    },
+    {
+      "key": "sfm-4.34.0/mc-26.1.2",
+      "antlr_tool": "4.13.1",
+      "exit_code": 0,
+      "diagnostics": [],
+      "implicit_token_warnings": [],
+      "stdout": "",
+      "stderr": "",
+      "generated_files": [
+        {
+          "name": "SFML.interp",
+          "bytes": 17945,
+          "sha256": "sha256:817b0df9eb16a9d098bd6f8b361394aa6113e68198f6375222305ac13c15e29f"
+        },
+        {
+          "name": "SFML.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLBaseListener.java",
+          "bytes": 20596,
+          "sha256": "sha256:8ecefc53b3461e9b1924e31ec2605bf269399f5e169e368097d31af681c52e7d"
+        },
+        {
+          "name": "SFMLBaseVisitor.java",
+          "bytes": 15200,
+          "sha256": "sha256:2e643d63948cd891f53f87a2aeca4a9b3e066bb94e6a4d68092ea32be1e3ab92"
+        },
+        {
+          "name": "SFMLLexer.interp",
+          "bytes": 23518,
+          "sha256": "sha256:348ff4e2064ca8f2e32d97a3338f3d0158e1b8087ab644d16312b5e7319c9d77"
+        },
+        {
+          "name": "SFMLLexer.java",
+          "bytes": 38577,
+          "sha256": "sha256:15577668c9799edb2350d44f463e9d287d791d3ba913267b15103ebbd5f75fc3"
+        },
+        {
+          "name": "SFMLLexer.tokens",
+          "bytes": 910,
+          "sha256": "sha256:256bb9ac1c3df08dd491dbc10e44eaa5f3479b27e2ca5472bda4e265bd282183"
+        },
+        {
+          "name": "SFMLListener.java",
+          "bytes": 22577,
+          "sha256": "sha256:5d2bea9543cdb78512c4639ff72ebedaae405e001abd7e1e76f772f2e9c09757"
+        },
+        {
+          "name": "SFMLParser.java",
+          "bytes": 149853,
+          "sha256": "sha256:19bb0cf13272143aa39857b0d1b81bcd696decc178034a4bc27214b8c7091138"
+        },
+        {
+          "name": "SFMLVisitor.java",
+          "bytes": 13337,
+          "sha256": "sha256:080d47958f7e13dd9dcd02925a51ac87c652c0cfb4572596141b27de314a13b6"
+        }
+      ],
+      "missing_required_files": [],
+      "passed": true
+    }
+  ],
+  "results": {
+    "temporary_fixture_retained": true,
+    "antlr_invocations": 60,
+    "temporary_absolute_paths_persisted": false,
+    "all_cases_passed": true,
+    "cargo_runs": false,
+    "dependency_cache_writes": false,
+    "public_inputs_unchanged": true,
+    "real_rendered_contexts": 78,
+    "minecraft_builds": false,
+    "failed_cases": 0,
+    "jdk_writes": false,
+    "java_compilation": false
+  },
+  "proof_script": {
+    "path": "scripts/Test-CoreProgramGrammarAntlr.ps1",
+    "sha256": "sha256:9f57457aff32b1c7b48b289468294645ff8bc7a7c5fcb5092ab018667e737dd5",
+    "bytes": 21678,
+    "parse_check_passed": true
+  },
+  "registered_rust_regression": {
+    "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_program_grammar_slice_tests.rs",
+    "sha256": "sha256:9c99cd74f3297563b53e1bc573cddb878da453bcef2f72ef5edfae3883bf1491",
+    "bytes": 29445,
+    "parser_preflight_uses_standard_library_only": true,
+    "parent_reported_four_tests_passed": true
+  },
+  "verifier_contract": {
+    "algorithm": "Existing locked Rust blake3, streaming file verification; no dependency or Cargo changes",
+    "lock_semantics": "SFM ContentHash stores the first20bytes of BLAKE3 XOF; all40hex locked digests were compared to the same prefix of a verified full32byte digest.",
+    "known_empty_vector": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+    "parent_provided_checks": "Expected40/64hex empty-vector forms passed; deliberately all-zero expected hash rejected exit1 before this proof.",
+    "fixture_inputs": "Only copied bytes that match exact existing locked hashes are used by ANTLR. No download, lock update or cached artifact rewrite occurs."
+  },
+  "conclusions": {
+    "antlr_errors": 0,
+    "antlr_warnings": 0,
+    "implicit_token_warnings": 0,
+    "required_generated_outputs": [
+      "SFMLLexer.java",
+      "SFMLParser.java",
+      "SFMLVisitor.java",
+      "SFMLBaseVisitor.java"
+    ],
+    "all_sixty_generated_required_outputs": true,
+    "grammar_syntax_generation_passed": true,
+    "java_or_minecraft_compilation_proved": false,
+    "release_compatibility_or_behavior_parity_proved": false,
+    "full_feature_closure_proved": false
+  },
+  "limitations": [
+    "The58 dependency-valid shared Program/grammar contexts yield50distinct grammar bodies: runtime_resource_cleanup changes Program, not the grammar. Every context was still executed separately.",
+    "The current source render CLI accepts only .java names. This private fixture uses an exact-byte grammar alias and the real CoreCatalog/render_java_source implementation, not an independent expander; it does not claim direct .g4 CLI acceptance.",
+    "All20public catalog entry values were copied into a fresh private fixture. The public catalog and canonical grammar/registry bytes remained unchanged throughout the proof.",
+    "The registered core selection tests separately require the actual .g4 source rule to have template:true. This alias-based syntax proof does not replace that membership test.",
+    "Java17 runs both ANTLR tools for isolated syntax generation. This is not a declaration that Minecraft26.1.2 runs or compiles under Java17.",
+    "Every one of604regular payload entries in the checksum-verified SDK ZIP had a byte-identical installed counterpart, and receipt/runtime identity matched the exact pin. This proof did not enumerate unrelated extra installed files.",
+    "Generated-file digests describe this isolated run; they are not promoted release baselines and must not be adopted automatically for changed core inputs.",
+    "Temporary fixture/output files are retained locally. Their machine-specific absolute paths are deliberately omitted from this portable ledger."
+  ],
+  "rerun": {
+    "command": "pwsh -File scripts/Test-CoreProgramGrammarAntlr.ps1 -RepoRoot <repository> -CliPath <worktree-built-cli> -CacheRoot <toolchain-cache> -Blake3VerifierPath <verified-local-helper>",
+    "requirements": [
+      "PowerShell7 and the current worktree-built source-render CLI",
+      "Previously acquired exact tool JARs and pinned JBRSDK archive/install; offline proof never acquires or downloads them",
+      "Temp-only helper accepting exact file path and expected blake3:40hex as its two arguments; returns verified blake3:64hex N bytes, nonzero on mismatch",
+      "Root coordination keeps public catalog/feature-definitions and canonical grammar stable during the proof"
+    ],
+    "writes": "A new goal-owned temporary directory only; no Cargo, generated project, dependency cache, JDK, public catalog or canonical source writes."
+  }
+}

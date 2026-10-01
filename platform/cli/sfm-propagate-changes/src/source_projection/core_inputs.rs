@@ -8,6 +8,8 @@
 use super::candidate_lock::checked_directory;
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
+use super::core_network_layout::NETWORK_REGISTRATION_PATH;
+use super::core_network_layout::validate_network_context;
 use super::directive_scanner::ScannedSource;
 use super::directive_scanner::scan;
 use super::inputs::render_java_artifact;
@@ -308,7 +310,7 @@ pub fn select_core_inputs(
 /// # Errors
 ///
 /// Rejects unsafe selected paths, changed selection context, oversized inputs,
-/// invalid directives/UTF-8, forbidden environment/key selectors, and incomplete
+/// invalid directives/UTF-8, unreviewed network layouts, forbidden environment/key selectors, and incomplete
 /// or version-incorrect standalone Gradle inputs. Performs no output writes.
 pub fn collect_core_artifacts(
     core_root: &Path,
@@ -321,6 +323,9 @@ pub fn collect_core_artifacts(
             && selection.target_flags == context.targets,
         "core selection context changed before collection"
     );
+    if selection.inputs.contains_key(NETWORK_REGISTRATION_PATH) {
+        validate_network_context(&selection.target_id, context)?;
+    }
     let root = checked_core_root(core_root)?;
     validate_path_collisions(
         selection.inputs.keys().map(String::as_str),
@@ -833,6 +838,58 @@ mod tests {
         ) -> Result<BTreeMap<String, ProjectedArtifact>> {
             prepare_core_artifacts(&self.core, &self.metadata, context, &registry())
         }
+    }
+
+    #[test]
+    fn unreviewed_network_layout_refuses_collection_before_any_selected_source_read() {
+        let mut resolved = context("1.19.2", false);
+        for name in [
+            "packet_transport_private",
+            "client_inbox",
+            "client_program_signing",
+            "multiplayer_packets",
+            "manager_operator_queries",
+        ] {
+            resolved.features.insert(name.to_owned(), false);
+        }
+        resolved
+            .features
+            .insert("packet_transport_private".to_owned(), true);
+        let selected = select_core_inputs(
+            &metadata(),
+            &resolved,
+            &BTreeSet::from([NETWORK_REGISTRATION_PATH.to_owned()]),
+        )
+        .unwrap();
+        let absent_root = Path::new("uncreated-core-layout-refusal-fixture");
+        let error = collect_core_artifacts(absent_root, &selected, &resolved).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("unreviewed partial network layout")
+        );
+
+        resolved.features.remove("client_program_signing");
+        let selected = select_core_inputs(
+            &metadata(),
+            &resolved,
+            &BTreeSet::from([NETWORK_REGISTRATION_PATH.to_owned()]),
+        )
+        .unwrap();
+        let error = collect_core_artifacts(absent_root, &selected, &resolved).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("explicitly resolve `client_program_signing`")
+        );
+    }
+
+    #[test]
+    fn synthetic_baseline_registry_can_still_collect_a_network_source() {
+        let fixture = Fixture::new();
+        fixture.write(NETWORK_REGISTRATION_PATH, b"class SFMPackets {}\n");
+        let artifacts = fixture.prepare(&context("1.19.2", false)).unwrap();
+        assert!(artifacts.contains_key(NETWORK_REGISTRATION_PATH));
     }
 
     #[test]

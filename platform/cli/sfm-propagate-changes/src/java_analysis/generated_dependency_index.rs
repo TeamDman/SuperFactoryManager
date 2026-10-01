@@ -1,5 +1,7 @@
 //! Bounded, read-only lookup of exact class and member declarations in a generated project's
-//! schema-v2 checksum-pinned dependency JARs. No branch context or acquisition
+//! schema-v2/v3/v4 checksum-pinned dependency JARs. Named standalone projects
+//! use v4's explicit `gradle` profile, never the superset of disabled artifacts.
+//! No branch context or acquisition
 //! machinery participates in this path. Existing cache path components are
 //! checked for links/reparse points, but this is not a transactional defense
 //! against filesystem changes between inspection and opening the JAR.
@@ -24,6 +26,7 @@ use std::io::Read;
 use std::io::Seek as _;
 use std::path::Component;
 use std::path::Path;
+use std::path::PathBuf;
 use zip::ZipArchive;
 
 const MAX_PINNED_JARS: usize = 128;
@@ -70,12 +73,9 @@ pub(crate) fn scan_generated_dependency_symbol(
     let lock_path = project_root.join("sfm-toolchain.lock.json");
     let input = std::fs::read_to_string(&lock_path)
         .wrap_err_with(|| format!("Failed to read {}", lock_path.display()))?;
-    let ToolchainLockfileDocument::V2 { lockfile, .. } = parse_document(&input)? else {
-        eyre::bail!("generated dependency type lookup requires a schema-v2 project lockfile");
-    };
+    let pins = read_generated_jar_pins(&input)?;
     let entry_name = format!("{}.class", qualified_name.replace('.', "/"));
-    let mut artifacts = lockfile
-        .artifacts
+    let mut artifacts = pins
         .iter()
         .filter(|artifact| {
             artifact.coordinate.is_some()
@@ -224,6 +224,52 @@ pub(crate) fn scan_generated_dependency_symbol(
         body: DependencyJavaSymbolIndexBody::new(definitions, Vec::new(), diagnostics),
         complete,
     })
+}
+
+struct GeneratedJarPin {
+    coordinate: Option<String>,
+    cache_path: PathBuf,
+    hash: ContentHash,
+}
+
+// This is a read-only schema adapter, not a lockfile migration or a resolver.
+// Preserve v2's pin behavior; newer documents must pass their normal complete
+// validation before selecting already-pinned JARs. Generated Gradle projects
+// must not inherit the Rust profile or inactive feature-owned dependencies.
+fn read_generated_jar_pins(input: &str) -> eyre::Result<Vec<GeneratedJarPin>> {
+    let pins = match parse_document(input)? {
+        ToolchainLockfileDocument::V2 { lockfile, .. } => lockfile
+            .artifacts
+            .into_iter()
+            .map(|artifact| GeneratedJarPin {
+                coordinate: artifact.coordinate,
+                cache_path: artifact.cache_path,
+                hash: artifact.hash,
+            })
+            .collect(),
+        ToolchainLockfileDocument::V3(lockfile) => generated_v3_pins(lockfile),
+        ToolchainLockfileDocument::V4(lockfile) => {
+            generated_v3_pins(lockfile.effective_lockfile("gradle")?)
+        }
+        ToolchainLockfileDocument::V1(_) => eyre::bail!(
+            "generated dependency lookup requires checksum-pinned schema-v2, v3 or v4 project lockfiles"
+        ),
+    };
+    Ok(pins)
+}
+
+fn generated_v3_pins(
+    lockfile: crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+) -> Vec<GeneratedJarPin> {
+    lockfile
+        .artifacts
+        .into_iter()
+        .map(|artifact| GeneratedJarPin {
+            coordinate: artifact.coordinate,
+            cache_path: artifact.cache_path,
+            hash: artifact.hash,
+        })
+        .collect()
 }
 
 fn class_symbol(qualified_name: &str, kind: JavaSymbolKind) -> JavaSymbolIdentityOutput {
@@ -516,10 +562,216 @@ fn read_u16(bytes: &[u8], offset: usize) -> eyre::Result<u16> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::toolchain_lockfile_schema::version::v3 as lock_v3;
+    use crate::toolchain_lockfile_schema::version::v4 as lock_v4;
     use std::io::Cursor;
     use std::io::Write as _;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn generated_modern_lockfiles_resolve_only_checksum_verified_cached_jars() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let project = temporary.path().join("project");
+        let cache = temporary.path().join("cache");
+        std::fs::create_dir(&project)?;
+        let external = fixture_jar("example/External.class", &minimal_classfile(0x0001));
+        let platform = fixture_jar("platform/Platform.class", &minimal_classfile(0x0001));
+        let external_hash = ContentHash::from_bytes(&external, ContentHashAlgorithm::Blake3);
+        let platform_hash = ContentHash::from_bytes(&platform, ContentHashAlgorithm::Blake3);
+        for (name, bytes) in [
+            ("library", &external),
+            ("minecraft", &platform),
+            ("loader", &platform),
+        ] {
+            let path = cache.join(format!("minecraft-toolchain/maven/fixture/{name}.jar"));
+            std::fs::create_dir_all(path.parent().expect("fixture JAR parent"))?;
+            std::fs::write(path, bytes)?;
+        }
+        let v3 = modern_fixture(platform_hash, external_hash);
+        v3.validate()?;
+        let v4 = lock_v4::ArtifactLockfileV4::from_v3(v3.clone());
+        for input in [facet_json::to_string(&v3)?, v4.to_canonical_json()?] {
+            let lock = project.join("sfm-toolchain.lock.json");
+            std::fs::write(&lock, &input)?;
+            let scan = scan_generated_dependency_type(
+                &project,
+                &cache,
+                "example.External",
+                &CancellationToken::new(),
+            )?;
+            assert!(scan.complete);
+            assert_eq!(scan.body.definitions.len(), 1);
+            assert!(scan.body.diagnostics.is_empty());
+            assert_eq!(std::fs::read_to_string(&lock)?, input);
+        }
+        let library = cache.join("minecraft-toolchain/maven/fixture/library.jar");
+        std::fs::write(&library, &platform)?;
+        let scan = scan_generated_dependency_type(
+            &project,
+            &cache,
+            "example.External",
+            &CancellationToken::new(),
+        )?;
+        assert!(!scan.complete);
+        assert!(scan.body.definitions.is_empty());
+        assert!(
+            scan.body.diagnostics[0]
+                .message
+                .contains("checksum does not match")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn generated_v4_lookup_does_not_inherit_disabled_or_rust_profile_components() -> eyre::Result<()>
+    {
+        let hash = ContentHash::from_bytes(b"fixture", ContentHashAlgorithm::Blake3);
+        let mut lock = lock_v4::ArtifactLockfileV4::from_v3(modern_fixture(hash, hash));
+        lock.features.push(lock_v4::FeatureV4 {
+            id: "optional_library".to_owned(),
+            requires: Vec::new(),
+            components: vec![lock_v4::FeatureComponentV4 {
+                dependency_id: "library".to_owned(),
+                component_id: "main".to_owned(),
+            }],
+            source_sets: Vec::new(),
+            source_excludes: Vec::new(),
+        });
+        lock.profiles
+            .iter_mut()
+            .find(|profile| profile.id == "rust-toolchain")
+            .expect("fixture Rust profile")
+            .features
+            .push("optional_library".to_owned());
+        let input = lock.to_canonical_json()?;
+        let pins = read_generated_jar_pins(&input)?;
+        assert_eq!(pins.len(), 2);
+        assert!(
+            pins.iter()
+                .all(|pin| !pin.cache_path.ends_with("library.jar"))
+        );
+        lock.profiles
+            .iter_mut()
+            .find(|profile| profile.id == "gradle")
+            .expect("fixture Gradle profile")
+            .features
+            .push("optional_library".to_owned());
+        assert_eq!(
+            read_generated_jar_pins(&lock.to_canonical_json()?)?.len(),
+            3
+        );
+        lock.profiles.retain(|profile| profile.id != "gradle");
+        assert!(read_generated_jar_pins(&lock.to_canonical_json()?).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn generated_modern_lookup_rejects_bad_pins_and_future_schemas_before_cache_reads()
+    -> eyre::Result<()> {
+        let hash = ContentHash::from_bytes(b"fixture", ContentHashAlgorithm::Blake3);
+        let mut lock = lock_v4::ArtifactLockfileV4::from_v3(modern_fixture(hash, hash));
+        let input = lock.to_canonical_json()?;
+        assert!(
+            read_generated_jar_pins(
+                &input.replace("\"schema_version\": 4", "\"schema_version\": 99")
+            )
+            .is_err()
+        );
+        lock.dependencies[0].components[0]
+            .derived_checks
+            .expected_hash =
+            ContentHash::from_bytes(b"not-the-artifact", ContentHashAlgorithm::Blake3);
+        assert!(read_generated_jar_pins(&facet_json::to_string(&lock)?).is_err());
+        Ok(())
+    }
+
+    fn modern_fixture(
+        platform_hash: ContentHash,
+        external_hash: ContentHash,
+    ) -> lock_v3::ArtifactLockfileV3 {
+        let mut dependencies = Vec::new();
+        let mut artifacts = Vec::new();
+        for (id, kind, hash) in [
+            (
+                "minecraft",
+                lock_v3::DependencyKindV3::Minecraft,
+                platform_hash,
+            ),
+            ("loader", lock_v3::DependencyKindV3::Loader, platform_hash),
+            ("library", lock_v3::DependencyKindV3::Library, external_hash),
+        ] {
+            let coordinate = format!("fixture:{id}:1");
+            let cache_path = PathBuf::from(format!("$sfm-cache/maven/fixture/{id}.jar"));
+            artifacts.push(lock_v3::ArtifactV3 {
+                id: id.to_owned(),
+                owner: Some(lock_v3::ArtifactOwnerV3 {
+                    dependency_id: id.to_owned(),
+                    component_id: "main".to_owned(),
+                }),
+                purposes: vec![lock_v3::ArtifactPurposeV3::Build],
+                coordinate: Some(coordinate.clone()),
+                repository_id: Some("fixture".to_owned()),
+                url: Some(format!("https://repo.example/{id}.jar")),
+                hash,
+                cache_path: cache_path.clone(),
+                provenance: lock_v3::ArtifactProvenanceV3::RemoteMaven,
+                source_git: None,
+                source_build: None,
+                weak: None,
+            });
+            dependencies.push(lock_v3::DependencyV3 {
+                id: id.to_owned(),
+                kind,
+                role: if kind == lock_v3::DependencyKindV3::Library {
+                    lock_v3::DependencyRoleV3::Library
+                } else {
+                    lock_v3::DependencyRoleV3::Platform
+                },
+                display_name: None,
+                project_url: None,
+                notes: None,
+                components: vec![lock_v3::DependencyComponentV3 {
+                    id: "main".to_owned(),
+                    declaration: lock_v3::ComponentDeclarationV3 {
+                        acquisition: lock_v3::ComponentAcquisitionV3::Maven(
+                            lock_v3::MavenAcquisitionV3 {
+                                requested_coordinate: coordinate.clone(),
+                                repository_id: "fixture".to_owned(),
+                            },
+                        ),
+                        scopes: vec![lock_v3::DependencyScopeV3::Compile],
+                        bundle: None,
+                        artifact_treatment: lock_v3::ArtifactTreatmentV3::Plain,
+                        data_run_policy: lock_v3::DataRunPolicyV3::Exclude,
+                    },
+                    derived_checks: lock_v3::ComponentDerivedChecksV3 {
+                        artifact_id: id.to_owned(),
+                        resolved_coordinate: Some(coordinate),
+                        expected_hash: hash,
+                        cache_path,
+                    },
+                    source_providers: Vec::new(),
+                }],
+            });
+        }
+        lock_v3::ArtifactLockfileV3 {
+            schema_version: 3,
+            platform: lock_v3::PlatformV3 {
+                minecraft_dependency: "minecraft".to_owned(),
+                loader_dependency: "loader".to_owned(),
+            },
+            policy: lock_v3::LockfilePolicyV3 {
+                allow_local_artifact_cache: false,
+            },
+            repositories: vec![lock_v3::RepositoryV3 {
+                id: "fixture".to_owned(),
+                url: "https://repo.example/".to_owned(),
+            }],
+            dependencies,
+            artifacts,
+        }
+    }
 
     #[test]
     fn generated_1192_cached_type_and_1211_missing_pin_are_isolated() {

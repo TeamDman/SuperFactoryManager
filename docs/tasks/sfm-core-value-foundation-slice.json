@@ -1,0 +1,616 @@
+{
+  "schema": "sfm:core-value-foundation-slice@1",
+  "status": "exact_source_bodies_staged_pending_root_promotion_and_sparse_membership_registration",
+  "source_checkpoint": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+  "scope": "Five pure Java value/model/codec/pattern/schema foundation classes only. No packet item, transport, action registry, client frame runtime or display/terminal registration is authored by this slice.",
+  "feature": {
+    "id": "packet_values",
+    "registered_supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "registered_requires": [],
+    "support_changed": false,
+    "selection_boundary": "The five classes are included together only when packet_values is enabled on a supported target. Every release witness and the other eight development witnesses omit them. Environment is not a source selector."
+  },
+  "counts": {
+    "staged_paths": 5,
+    "raw_bytes_total": 29729,
+    "distinct_raw_variants": 5,
+    "contexts_checked": 20,
+    "source_membership_cells": 100,
+    "present_cells": 10,
+    "absent_cells": 90
+  },
+  "context_commits": {
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f"
+  },
+  "files": {
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValue.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-value-template-stage-v1/SFMValue.java",
+      "feature_owner": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_values"
+      ],
+      "feature_prerequisites": [],
+      "source_blob": "8f9c4c208e13a070e51ae620c95b99c10eaf11b3",
+      "source_sha256": "sha256:7d76b274268d5bb037423524e388245469d95db6bb8d0cbd7cc0f6e0e0196d84",
+      "source_bytes": 3029,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_directives": false,
+      "current_canonical_sha256": "sha256:7d76b274268d5bb037423524e388245469d95db6bb8d0cbd7cc0f6e0e0196d84",
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "8f9c4c208e13a070e51ae620c95b99c10eaf11b3",
+        "dev/1.19.4": "8f9c4c208e13a070e51ae620c95b99c10eaf11b3",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null
+      },
+      "suggested_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          }
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueJsonCodec.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValueJsonCodec.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-value-template-stage-v1/SFMValueJsonCodec.java",
+      "feature_owner": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_values"
+      ],
+      "feature_prerequisites": [],
+      "source_blob": "3a607dc625af680e17cc68f1c0a442e2ff9ca3a3",
+      "source_sha256": "sha256:63f64c11c641c6b61ab91013cd7934f9eb74a4249b7871a438d653f5710d78b4",
+      "source_bytes": 10352,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_directives": false,
+      "current_canonical_sha256": "sha256:63f64c11c641c6b61ab91013cd7934f9eb74a4249b7871a438d653f5710d78b4",
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "3a607dc625af680e17cc68f1c0a442e2ff9ca3a3",
+        "dev/1.19.4": "3a607dc625af680e17cc68f1c0a442e2ff9ca3a3",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null
+      },
+      "suggested_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueJsonCodec.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          }
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueMatch.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValueMatch.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-value-template-stage-v1/SFMValueMatch.java",
+      "feature_owner": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_values"
+      ],
+      "feature_prerequisites": [],
+      "source_blob": "3ffca5cf522ff1e3bc9fff511c69a9b8c65d7273",
+      "source_sha256": "sha256:0a61bdef5955fc2921f7424a4cf298713f667b064f05b96f4a113470a2cdeadd",
+      "source_bytes": 403,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_directives": false,
+      "current_canonical_sha256": "sha256:0a61bdef5955fc2921f7424a4cf298713f667b064f05b96f4a113470a2cdeadd",
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "3ffca5cf522ff1e3bc9fff511c69a9b8c65d7273",
+        "dev/1.19.4": "3ffca5cf522ff1e3bc9fff511c69a9b8c65d7273",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null
+      },
+      "suggested_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueMatch.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          }
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-value-template-stage-v1/SFMValueSchema.java",
+      "feature_owner": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_values"
+      ],
+      "feature_prerequisites": [],
+      "source_blob": "5a9b96c3e0df56a1b3a2941cd01656ad058e6565",
+      "source_sha256": "sha256:d094a301cf0639a6ff2bbe27ca4e136b074e221fa44f4ebde3f9c0ad00c0e0a8",
+      "source_bytes": 12879,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_directives": false,
+      "current_canonical_sha256": "sha256:d094a301cf0639a6ff2bbe27ca4e136b074e221fa44f4ebde3f9c0ad00c0e0a8",
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "5a9b96c3e0df56a1b3a2941cd01656ad058e6565",
+        "dev/1.19.4": "5a9b96c3e0df56a1b3a2941cd01656ad058e6565",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null
+      },
+      "suggested_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          }
+        }
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/value/SFMValuePattern.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValuePattern.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-value-template-stage-v1/SFMValuePattern.java",
+      "feature_owner": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_values"
+      ],
+      "feature_prerequisites": [],
+      "source_blob": "7535ee25a93ab211ee27f47290c8573934f233ba",
+      "source_sha256": "sha256:c33198398e277e51958816acc9fa3d04012fc8786e81802237d55d5a03f28c57",
+      "source_bytes": 3066,
+      "line_endings": "lf",
+      "final_newline": "exactly_one_lf",
+      "preexisting_liquid_directives": false,
+      "current_canonical_sha256": "sha256:c33198398e277e51958816acc9fa3d04012fc8786e81802237d55d5a03f28c57",
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "7535ee25a93ab211ee27f47290c8573934f233ba",
+        "dev/1.19.4": "7535ee25a93ab211ee27f47290c8573934f233ba",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null
+      },
+      "suggested_source_rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValuePattern.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "source_review": {
+    "external_dependencies": [
+      "Java 17 standard library",
+      "Gson streaming JsonReader, JsonToken and JsonWriter"
+    ],
+    "internal_dependencies": [
+      "SFMValue and SFMValueJsonCodec refer to one another; compile the cohort together.",
+      "SFMValuePattern returns SFMValueMatch.",
+      "SFMValueSchema uses SFMValue, SFMValueJsonCodec and a documentation reference to SFMValuePattern."
+    ],
+    "functional_boundaries": [
+      "Existing finite binary64 values, exact signed64 integer values, codec2 writing and codec1/2 reading are retained as one witnessed packet_values foundation. No integral-only preset is claimed.",
+      "SFMValueSchema describes bounded shapes and diagnostics without importing any action registry, authorization, dispatch or client runtime.",
+      "The source bodies need no Minecraft case or optional-member Liquid guard because the two present witnesses are byte-identical; sparse membership is the genuine functional control."
+    ],
+    "source_witness_definitions": [
+      "All twenty commits are fixed release/development tree witnesses, not runtime input roots.",
+      "git ls-tree of all five exact original paths establishes presence/absence; raw git cat-file blob bytes establish each variant.",
+      "Current canonical source SHA256 matches the witnessed D2 body for each class; no post-checkpoint edits were lost.",
+      "Staged files match strict UTF8 LF/final-LF raw bytes, with no normalization or inserted banner."
+    ]
+  },
+  "consumer_review": {
+    "status": "reviewed foundation boundary and direct lexical consumers; downstream per-feature closure still incomplete",
+    "qualified_import_or_type_reference_count": 116,
+    "lexical_consumer_count_excluding_five_definitions": 124,
+    "source_set_counts": {
+      "gametest": 33,
+      "main": 59,
+      "test": 32
+    },
+    "same_consumer_paths_on_both_supported_development_targets": true,
+    "other_eighteen_context_reference_counts": 0,
+    "query_patterns": [
+      "ca[.]teamdman[.]sfm[.]common[.]value[.](SFMValue|[*])",
+      "\\bSFMValue(JsonCodec|Pattern|Match|Schema)?\\b"
+    ],
+    "qualified_consumer_paths": [
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMMultiplayerPuppetFixtureContract.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ExplorePacketInspectionPuppetAction.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/SFMMultiplayerPuppetProtocolProof.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/WaitForPacketFixtureObservationPuppetAction.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ClientProgramConsentAndSigningGamePuppet.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/InWorldTouchDisplayExploratoryGamePuppet.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/BufferRedstoneGameTestGenerator.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/ClientInboxDeliveryGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/ClientProgramInvocationGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/ClientProgramReadGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/GeneratedPacketInputSourceGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketControlActionsGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketInsertionGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketInsertionNegativeGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketItemGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketItemTooltipGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketLanDisabledGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketLanguageCircuitGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketLanguageTerminalWorkerGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketMailboxPersistenceGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketObservationLogGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketResponseRoutingGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketTerminalEchoGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/PacketTerminalLossGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayBroadcastGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayCircuitFixture.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayClientManagerCircuitGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayContentCommitGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayDynamicImageGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayImageTransferGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayPressServerGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayRenderGameTest.java",
+      "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayTerminalIntegrationGameTest.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAuthorizationService.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptor.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticHandler.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramActionDispatcher.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramReadAction.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMPacketSendAction.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayAction.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/inspection/SFMItemInspectionDocument.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMClientInbox.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMClientPacketTransport.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMMultiplayerClientRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMMultiplayerClientSession.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMPacketObservationLog.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/net/SFMPacketObservationRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientProgramBlockReadSurface.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientProgramReadRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientProgramReadService.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/MinecraftClientBlockStateSource.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBinding.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueue.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalMountsPanel.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/blockentity/TouchDisplayBlockEntity.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/PacketItem.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ClientboundClientInboxValuePacket.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ClientboundPacketObservationPacket.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/SFMPacketInventoryInserter.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/SFMPacketValueDispatch.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/SFMPacketValueEnvelope.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/SFMServerClientInboxTransport.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/SFMServerPacketTransport.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundPacketInsertionPacket.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerPacketProgramOperations.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerPacketProtocol.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerPacketTransport.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerPacketWire.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerServerRuntime.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSource.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramValueReference.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramVariableEnvironment.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMPackets.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/SFMImageStack.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/BoolClientValueEquals.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ClientValueExpression.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ObjectConstructionValueExpression.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ObjectFieldValueExpression.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/PatternFieldDefinition.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ProgramDefinitions.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ProgramInputSelection.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ProgramPatternDeclaration.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/TextReadValueExpression.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/ClientProgramInvocationTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/SFMClientActionAuthorizationTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptorTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentActionTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/SFMPacketActionsTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/action/SFMPacketSendCallerTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/net/SFMClientInboxTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/net/SFMMultiplayerClientSessionTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/net/SFMPacketObservationLogTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/net/SFMPacketObservationRuntimeTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/program/ClientProgramBlockReadSurfaceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/program/ClientProgramInboxReadSurfaceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/program/ClientProgramReadServiceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/net/SFMClientInboxServerTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/net/SFMMultiplayerPacketTransportTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/net/SFMPacketContractTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/net/multiplayer/SFMMultiplayerPacketWireTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSourceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramExecutionScopeTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramInputSourceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramRelationTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramValueExecutionTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/resourcetype/SFMImageResourceTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+    ],
+    "lexical_extra_consumer_paths": [
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMPacketTooltipFormatter.java",
+      "platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMTouchValue.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/value/SFMPacketTooltipFormatterTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/value/SFMTouchValueTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/value/SFMValueDoubleTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/value/SFMValueJsonCodecTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/common/value/SFMValuePatternTests.java",
+      "platform/minecraft/src/test/java/ca/teamdman/sfm/gametest/puppet/PacketInspectionPuppetSourceTests.java"
+    ],
+    "limitations": [
+      "Lexical inventory is not AST-based transitive dependency closure. Same-package uses are included by the second query; comments may also match.",
+      "The direct consumers are not all assigned to packet_values. Their existing functional owners must require this foundation or guard the relevant members.",
+      "Some consumers remain absent from current core and are not a claim that an arbitrary flag combination compiles."
+    ],
+    "reviewed_closure_traps": [
+      {
+        "owner": "image_resources",
+        "witness_paths": [
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/SFMImageStack.java"
+        ],
+        "current_requires": [],
+        "required_integration_decision": "Unconditionally stores SFMValue interactionState and invokes SFMValueJsonCodec, including EMPTY. Require packet_values for the witnessed implementation or author an independently reviewed state-free variant; do not add image_resources as a foundation prerequisite."
+      },
+      {
+        "owner": "client_frame_language",
+        "witness_paths": [
+          "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ClientValueExpression.java",
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java"
+        ],
+        "current_requires": [
+          "client_manager",
+          "sfml_execution_side",
+          "client_program_consent"
+        ],
+        "required_integration_decision": "JSON/field/frame expression data uses SFMValue and SFMValueSchema directly. Require packet_values, or prove a bounded member split. Existing declared prerequisites alone do not establish this closure."
+      },
+      {
+        "owner": "touch_display_terminal_mount",
+        "witness_paths": [
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBinding.java",
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueue.java",
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRuntime.java",
+          "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayAction.java"
+        ],
+        "current_requires": [],
+        "required_integration_decision": "Binding/input/runtime/action refer to SFMValue and schema. Its current touched-template toggle is not the full subsystem closure. Require packet_values when those bodies are adopted; other terminal/runtime prerequisites still need review."
+      }
+    ]
+  },
+  "behavior_proof": {
+    "status": "passed_pure_foundation_only",
+    "scope": "Compiled the five exact staged production bodies and a plain Java harness, without Minecraft stubs, Gradle, JUnit, Cargo or network access. This is not a whole-mod Java compile, native-target acceptance, game test or JAR parity claim.",
+    "jdk_pin_source": "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.json",
+    "jdk_identity": {
+      "major": 17,
+      "vendor": "JetBrains",
+      "version": "17.0.14",
+      "build": "b1367.22",
+      "flavor": "jbrsdk",
+      "platform": "windows-x64",
+      "archive_sha512": "3b5101101a46778c5b1cc572adef03bffceb338284d4e03d2fe70a72fb52fb2e1ee1d2e1c0b548c86e9092f776d3ca910669326531d1a5f8ab4521ad1b6d868c",
+      "installed_files_compared_to_verified_zip": 604,
+      "installed_raw_bytes_compared": 398313715
+    },
+    "jdk_scope": "Both target Gson runs use this already pinned Java17 SDK and --release17. The staged Java bytes are identical on both targets; no 1.19.4 lockfile JDK pin is invented or changed.",
+    "artifact_validation": "Existing archive digest and every installed SDK file were verified read-only. Existing cached Mojang version metadata was checked against its cached manifest SHA1, then each Gson JAR length and SHA1 against that version metadata. Copies in the fresh proof directory were rechecked; no cache/dependency/JDK mutation or downloads occurred. Cached metadata authenticity was not independently refreshed over the network.",
+    "target_runs": [
+      {
+        "target": "1.19.2",
+        "metadata_sha1": "ed548106acf3ac7e8205a6ee8fd2710facfa164f",
+        "gson_coordinate": "com.google.code.gson:gson:2.8.9",
+        "gson_sha1": "8a432c1d6825781e21a02db2e2c33c5fde2833b9",
+        "gson_sha256": "d3999291855de495c94c743761b8ab5176cfeabe281a5ab0d8e8d45326fd703e",
+        "gson_bytes": 258075,
+        "javac_exit": 0,
+        "java_exit": 0,
+        "output": "value-foundation-proof checks=74 status=passed"
+      },
+      {
+        "target": "1.19.4",
+        "metadata_sha1": "dbd2e0a5aaf8b05447833b5de6d368e28e8cc7f0",
+        "gson_coordinate": "com.google.code.gson:gson:2.10",
+        "gson_sha1": "dd9b193aef96e973d5a11ab13cd17430c2e4306b",
+        "gson_sha256": "0cdd163ce3598a20fc04eee71b140b24f6f2a3b35f0a499dbbdd9852e83fbfaf",
+        "gson_bytes": 286235,
+        "javac_exit": 0,
+        "java_exit": 0,
+        "output": "value-foundation-proof checks=74 status=passed"
+      }
+    ],
+    "harness_sha256": "sha256:533f8f4ed4969dbab4cd0de4cdcc5bda8259b66bed74e3225f24ad080c66d2ad",
+    "harness_source": "package ca.teamdman.sfm.common.value;\n\nimport java.math.BigDecimal;\nimport java.util.ArrayList;\nimport java.util.LinkedHashMap;\nimport java.util.List;\nimport java.util.Map;\n\npublic final class ValueFoundationProof {\n    private static int checks;\n\n    private static void require(boolean condition, String name) {\n        checks++;\n        if (!condition) throw new AssertionError(name);\n    }\n\n    private static void rejects(Runnable operation, String name) {\n        try {\n            operation.run();\n        } catch (IllegalArgumentException | NullPointerException expected) {\n            checks++;\n            return;\n        }\n        throw new AssertionError(\"Accepted \" + name);\n    }\n\n    private static void failure(SFMValueSchema schema, SFMValue value, String code, String path) {\n        var result = schema.validate(value);\n        require(result.isPresent(), \"Expected schema failure\");\n        require(result.get().code().equals(code), \"Schema failure code \" + code);\n        require(result.get().path().equals(path), \"Schema failure path \" + path);\n    }\n\n    public static void main(String[] ignored) {\n        require(SFMValueJsonCodec.VERSION == 2, \"Codec writer version\");\n        require(SFMValueJsonCodec.OLDEST_READABLE_VERSION == 1, \"Oldest reader version\");\n        require(SFMValueJsonCodec.decode(\"9223372036854775807\", 1).equals(SFMValue.of(Long.MAX_VALUE)), \"v1 exact long maximum\");\n        require(SFMValueJsonCodec.decode(\"-9223372036854775808\", 1).equals(SFMValue.of(Long.MIN_VALUE)), \"v1 exact long minimum\");\n        rejects(() -> SFMValueJsonCodec.decode(\"1.0\", 1), \"v1 decimal\");\n        rejects(() -> SFMValueJsonCodec.decode(\"1e0\", 1), \"v1 exponent\");\n        rejects(() -> SFMValueJsonCodec.decode(\"1\", 0), \"codec zero\");\n        rejects(() -> SFMValueJsonCodec.decode(\"1\", 3), \"future codec\");\n        require(SFMValueJsonCodec.decode(\"1\") instanceof SFMValue.LongValue, \"Integer shape retains type\");\n        require(SFMValueJsonCodec.decode(\"1.0\") instanceof SFMValue.DoubleValue, \"Decimal shape retains type\");\n        require(SFMValueJsonCodec.decode(\"1e0\") instanceof SFMValue.DoubleValue, \"Exponent shape retains type\");\n        require(!SFMValue.of(1L).equals(SFMValue.of(1.0)), \"Integer and double distinct\");\n        require(Double.doubleToRawLongBits(((SFMValue.DoubleValue) SFMValue.of(-0.0)).value()) == 0L, \"Negative zero normalization\");\n        rejects(() -> SFMValue.of(Double.NaN), \"NaN constructor\");\n        rejects(() -> SFMValue.of(Double.POSITIVE_INFINITY), \"Positive infinity\");\n        rejects(() -> SFMValue.of(Double.NEGATIVE_INFINITY), \"Negative infinity\");\n        rejects(() -> SFMValueJsonCodec.decode(\"1e309\"), \"Overflowing double\");\n        rejects(() -> SFMValueJsonCodec.decode(\"9223372036854775808\"), \"Overflowing integer\");\n        rejects(() -> SFMValueJsonCodec.decode(\"{\\\"a\\\":1,\\\"a\\\":2}\"), \"Duplicate fields\");\n        rejects(() -> SFMValueJsonCodec.decode(\"[] []\"), \"Trailing value\");\n        rejects(() -> SFMValueJsonCodec.decode(\"{\\\"a\\\":}\"), \"Malformed value\");\n        rejects(() -> SFMValueJsonCodec.decode(\"NaN\"), \"Non-JSON number\");\n        rejects(() -> SFMValue.of(\"\\uD800\"), \"Lone UTF-16 surrogate\");\n        rejects(() -> SFMValueJsonCodec.decode(\"\\\"\\\\uD800\\\"\"), \"Decoded lone surrogate\");\n\n        var fields = new LinkedHashMap<String, SFMValue>();\n        fields.put(\"z\", SFMValue.of(\"line\\nnext\"));\n        fields.put(\"a\", SFMValue.of(0.25));\n        var value = SFMValue.object(fields);\n        fields.put(\"new\", SFMValue.of(true));\n        String canonical = \"{\\\"a\\\":0.25,\\\"z\\\":\\\"line\\\\nnext\\\"}\";\n        require(SFMValueJsonCodec.encode(value).equals(canonical), \"Sorted canonical escaped JSON\");\n        require(SFMValueJsonCodec.decode(canonical).equals(value), \"Canonical round trip\");\n        require(SFMValueJsonCodec.decode(SFMValueJsonCodec.encodePretty(value)).equals(value), \"Pretty round trip\");\n        require(!((SFMValue.ObjectValue) value).fields().containsKey(\"new\"), \"Defensive object copy\");\n        try { ((SFMValue.ObjectValue) value).fields().put(\"x\", SFMValue.of(1L)); throw new AssertionError(\"Mutable object\"); }\n        catch (UnsupportedOperationException expected) { checks++; }\n\n        var list = new ArrayList<SFMValue>(List.of(SFMValue.of(1L)));\n        var array = SFMValue.array(list);\n        list.add(SFMValue.of(2L));\n        require(((SFMValue.ArrayValue) array).values().size() == 1, \"Defensive array copy\");\n        require(SFMValueJsonCodec.encode(SFMValue.of(\"x\".repeat(3070))).length() == 3072, \"Packet byte boundary\");\n        rejects(() -> SFMValueJsonCodec.encode(SFMValue.of(\"x\".repeat(3071))), \"Packet encode byte limit\");\n        rejects(() -> SFMValueJsonCodec.decode(\"\\\"\" + \"x\".repeat(3071) + \"\\\"\"), \"Packet decode byte limit\");\n        rejects(() -> SFMValueJsonCodec.encode(SFMValue.of(\"é\".repeat(1536))), \"UTF-8 multibyte bound\");\n        require(SFMValueJsonCodec.decode(\"[\".repeat(16) + \"0\" + \"]\".repeat(16)) != null, \"Depth boundary\");\n        rejects(() -> SFMValueJsonCodec.decode(\"[\".repeat(17) + \"0\" + \"]\".repeat(17)), \"Depth limit\");\n        require(SFMValueJsonCodec.decode(\"[\" + \"0,\".repeat(255) + \"0]\") != null, \"Container boundary\");\n        rejects(() -> SFMValueJsonCodec.decode(\"[\" + \"0,\".repeat(256) + \"0]\"), \"Container limit\");\n        rejects(() -> SFMValueJsonCodec.encode(SFMValue.array(java.util.Collections.nCopies(257, SFMValue.of(0L)))), \"Encode container limit\");\n\n        var pattern = new SFMValuePattern.ObjectPattern(Map.of(\"a\", new SFMValuePattern.LiteralPattern(SFMValue.of(0.25))));\n        require(pattern.match(value).orElseThrow().value().equals(value), \"Open pattern retains full value\");\n        require(pattern.match(value).orElseThrow().bindings().isEmpty(), \"No invented pattern bindings\");\n        require(pattern.match(SFMValue.object(Map.of())).isEmpty(), \"Pattern missing field\");\n        require(SFMValuePattern.GUID.matches(SFMValue.of(\"AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE\")), \"Canonical case-insensitive UUID\");\n        require(!SFMValuePattern.GUID.matches(SFMValue.of(\"1-1-1-1-1\")), \"Noncanonical UUID rejected\");\n\n        var schema = SFMValueSchema.object(Map.of(\n                \"u\", SFMValueSchema.Field.required(SFMValueSchema.floating(0.0, 1.0)),\n                \"note\", SFMValueSchema.Field.optional(SFMValueSchema.string(0, 32))\n        ), false);\n        require(schema.validate(SFMValue.object(Map.of(\"u\", SFMValue.of(0.731)))).isEmpty(), \"Touch double schema\");\n        failure(schema, SFMValue.object(Map.of(\"u\", SFMValue.of(1L))), \"wrong_type\", \"/u\");\n        failure(schema, SFMValue.object(Map.of(\"u\", SFMValue.of(1.1))), \"out_of_range\", \"/u\");\n        failure(schema, SFMValue.object(Map.of()), \"missing_field\", \"/u\");\n        failure(schema, SFMValue.object(Map.of(\"u\", SFMValue.of(0.2), \"x\", SFMValue.of(true))), \"extra_field\", \"/x\");\n        var pointer = SFMValueSchema.object(Map.of(\"a~/b\", SFMValueSchema.Field.required(SFMValueSchema.bool())), false);\n        failure(pointer, SFMValue.object(Map.of(\"a~/b\", SFMValue.of(1L))), \"wrong_type\", \"/a~0~1b\");\n        require(SFMValueSchema.optional(SFMValueSchema.bool()).validate(SFMValue.nullValue()).isEmpty(), \"Explicit optional null\");\n        require(SFMValueSchema.integer(Long.MIN_VALUE, Long.MAX_VALUE).validate(SFMValue.of(Long.MAX_VALUE)).isEmpty(), \"Schema exact long range\");\n        require(SFMValueSchema.number(BigDecimal.ZERO, BigDecimal.ONE).validate(SFMValue.of(0.5)).isEmpty(), \"Either numeric variant\");\n        failure(SFMValueSchema.array(SFMValueSchema.bool(), 1, 3), SFMValue.array(List.of(SFMValue.of(1L))), \"wrong_type\", \"/0\");\n        failure(SFMValueSchema.union(List.of(SFMValueSchema.bool(), SFMValueSchema.nil())), SFMValue.of(1L), \"no_union_match\", \"\");\n        String action = SFMValueSchema.canonicalActionJson(SFMValue.of(\"x\".repeat(4096)));\n        require(SFMValueSchema.decodeActionJson(action).equals(SFMValue.of(\"x\".repeat(4096))), \"Larger bounded action envelope\");\n        rejects(() -> SFMValueSchema.canonicalActionJson(SFMValue.of(\"x\".repeat(16383))), \"Action envelope bound\");\n        failure(SFMValueSchema.any(), SFMValue.array(java.util.Collections.nCopies(257, SFMValue.of(0L))), \"value_out_of_bounds\", \"\");\n        System.out.println(\"value-foundation-proof checks=\" + checks + \" status=passed\");\n    }\n}\n",
+    "assertions_per_run": 74,
+    "checks": [
+      "codec1/2 numeric variants and integer precision",
+      "finite doubles, overflow refusal and negative-zero normalization",
+      "canonical sorted/escaped JSON, pretty and canonical round trips",
+      "duplicate keys, trailing JSON, malformed JSON and malformed Unicode refusal",
+      "UTF8 byte, depth and container bounds on encode/decode",
+      "immutable value copies",
+      "open object pattern and canonical UUID matching",
+      "schema numeric types, escaped JSON pointers and stable failure tokens",
+      "explicit optional null and larger bounded action envelopes"
+    ],
+    "execution_note": "Initial sandbox javac runs failed with AccessDeniedException in JAR realpath cleanup; the same bounded proof passed outside the sandbox. No source semantics were changed to bypass the limitation.",
+    "reproduction_commands": [
+      "git -c safe.directory=<repo> -C <repo> ls-tree <context_commit> -- platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/<basename>",
+      "git -c safe.directory=<repo> -C <repo> cat-file blob <source_blob>",
+      "git -c safe.directory=<repo> -C <repo> grep -l -E '\\bSFMValue(JsonCodec|Pattern|Match|Schema)?\\b' <context_commit> -- platform/minecraft/src",
+      "<verified-sdk>/bin/javac --release 17 -encoding UTF-8 -cp <checksum-verified-target-gson> -d <fresh-proof-classes> <five-exact-staged-sources> <harness-source>",
+      "<verified-sdk>/bin/java -cp <fresh-proof-classes><classpath-separator><checksum-verified-target-gson> ca.teamdman.sfm.common.value.ValueFoundationProof"
+    ]
+  },
+  "regression_module": {
+    "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_value_foundation_slice_tests.rs",
+    "registration": "unregistered",
+    "planned_checks": [
+      "fixed raw Git golden bytes and all20 exact source membership",
+      "production selector with explicit proposed sparse rules, off on all20 and packet_values-only on D2",
+      "production renderer preserves all five exact LF bodies on D2",
+      "packet_values refused on eight unsupported targets",
+      "JDK/Gson-only source import boundary"
+    ],
+    "execution": "Not run by this agent; root owns registration and Cargo gate. Stage reader must be moved to promoted core input before the migration staging directory is discarded."
+  },
+  "integration_gates": [
+    "Root must promote these exact five files and atomically add sparse source rules before any whole-core generation; leaving them default-shared would leak unreleased APIs into release projections.",
+    "Root must separately resolve reviewed downstream prerequisites/member guards; this foundation does not assert compilation of every dependent feature combination.",
+    "Do not automatically enable packet_values in release-compatible presets.",
+    "Do not treat this behavior proof as satisfying full native released-schema2 adapter or whole-mod dependency closure."
+  ]
+}

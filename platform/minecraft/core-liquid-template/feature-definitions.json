@@ -1,4 +1,176 @@
 {
+  "label_readonly_access": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "client_program_signing": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_frame_language", "client_program_actions"]
+  },
+  "multiplayer_packets": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_inbox", "client_frame_language", "client_program_actions"]
+  },
+  "manager_operator_queries": {
+    "supported_targets": ["1.19.2"],
+    "requires": []
+  },
+  "packet_direction_validation": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "manager_menu_request_validation": {
+    "supported_targets": ["1.19.2"],
+    "requires": []
+  },
+  "redstone_live_read": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "redstone_buffer_storage": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "redstone_signal_documentation": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "item_icon_context_safety": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "item_icon_fallback_indicator": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "sfml_literal_globs": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "sfml_interval_overflow_validation": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "mod_event_filtering": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "computercraft": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": ["mod_event_filtering"]
+  },
+  "client_theme": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "keyboard_profiles": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": ["client_actions"]
+  },
+  "workspace_panels": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "structured_action_results": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_actions"]
+  },
+  "command_palette": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": ["client_actions", "client_theme", "keyboard_profiles"]
+  },
+  "typed_command_palette": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["command_palette"]
+  },
+  "command_history": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["typed_command_palette"]
+  },
+  "context_actions": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["typed_command_palette", "workspace_panels"]
+  },
+  "client_action_completion_diagnostics": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_actions"]
+  },
+  "client_action_nullable_suggestions": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_actions"]
+  },
+  "packet_values": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "runtime_resource_cleanup": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "packet_computation": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["packet_values", "runtime_resource_cleanup"]
+  },
+  "packet_transport_private": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["packet_computation"]
+  },
+  "client_inbox": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["packet_transport_private"]
+  },
+  "client_program_consent": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "client_manager": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["sfml_execution_side", "client_program_consent"]
+  },
+  "client_program_actions": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_actions", "packet_values", "sfml_execution_side", "client_manager", "client_program_consent", "packet_computation"]
+  },
+  "touch_display": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["packet_values"]
+  },
+  "image_resources": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "client_frame_language": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_manager", "sfml_execution_side", "client_program_consent"]
+  },
+  "client_frame_render": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": ["client_frame_language", "touch_display", "image_resources"]
+  },
+  "tick_graph_null_samples": {
+    "supported_targets": ["26.1.2"],
+    "requires": []
+  },
+  "test_barrel_constructor_delegation": {
+    "supported_targets": ["26.1.2"],
+    "requires": []
+  },
+  "unloaded_config_defaults": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "client_actions": {
+    "supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"],
+    "requires": []
+  },
+  "sfml_execution_side": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
+  "sfml_worded_intervals": {
+    "supported_targets": ["1.19.2", "1.19.4"],
+    "requires": []
+  },
   "echo_action": {
     "supported_targets": ["1.19.2"],
     "requires": []

@@ -1,7 +1,7 @@
 //! Read-only discovery and one-file rendering through the core Liquid catalog.
 //!
 //! These commands never consult the legacy selection manifest or historical
-//! source overlays. Rendering one Java file is a template proof, not a complete
+//! source overlays. Rendering one authored text file is a template proof, not a complete
 //! project generation, release-compatibility proof, or compilation operation.
 
 use crate::cli::output::CliOutput;
@@ -9,6 +9,9 @@ use crate::source_projection::context::ProjectionContext;
 use crate::source_projection::core_catalog::CoreCatalog as LoadedCatalog;
 use crate::source_projection::core_catalog::read_bounded_catalog_input;
 use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
+use crate::source_projection::core_inputs::CORE_METADATA_PATH;
+use crate::source_projection::core_inputs::CoreProjectInputs;
+use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::projection_catalog::CATALOG_PATH;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
@@ -19,12 +22,15 @@ use eyre::ensure;
 use facet::Facet;
 use figue::{self as args};
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::path::Path;
 use std::path::PathBuf;
 
 const CORE_ROOT: &str = "platform/minecraft/core-liquid-template";
 const CATALOG_SCOPE: &str = "read_only_projection_catalog_inspection";
 const RENDER_SCOPE: &str = "read_only_single_java_template_proof_not_project_generation_or_build";
+const TEXT_RENDER_SCOPE: &str =
+    "read_only_selected_text_template_proof_not_project_generation_or_build";
 
 #[derive(Debug, Facet)]
 pub struct SourceListArgs {
@@ -51,7 +57,7 @@ pub struct SourceRenderArgs {
     /// Exact nested projection key, such as sfm-dev/mc-1.19.2.
     #[facet(args::named)]
     pub projection: String,
-    /// Core-relative Java source, such as src/main/java/example/Example.java.
+    /// Core-relative Java source or explicitly selected non-Java text template.
     #[facet(args::named)]
     pub file: String,
 }
@@ -105,6 +111,7 @@ struct SourceRenderReport {
     source_sha256: String,
     rendered_sha256: String,
     rendered_content: String,
+    project_inputs_sha256: Option<String>,
     writes_performed: bool,
     full_project_generated: bool,
     compiled: bool,
@@ -134,12 +141,14 @@ impl SourceShowArgs {
 }
 
 impl SourceRenderArgs {
-    /// Render only the requested authored Java file into a typed stdout report.
+    /// Render only the requested authored text file into a typed stdout report.
     /// No output directory, provenance manifest, Gradle task, or JAR is written.
     ///
     /// # Errors
     ///
-    /// Rejects invalid inputs/keys, unsafe or missing Java files, oversized
+    /// Non-Java inputs must be selected and explicitly marked as templates in
+    /// core project metadata; disabled or opaque assets are not previewed.
+    /// Rejects invalid inputs/keys, unsafe or missing files, oversized
     /// source bytes, malformed directives, and unknown context references.
     pub(super) fn invoke_in(self, invocation_dir: &Path) -> Result<CliOutput> {
         Ok(CliOutput::facet(render_report(&self, invocation_dir)?))
@@ -176,23 +185,48 @@ fn show_report(args: &SourceShowArgs, invocation_dir: &Path) -> Result<SourceSho
 fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<SourceRenderReport> {
     validate_relative_path(&args.file)?;
     ensure!(
-        args.file.starts_with("src/")
-            && Path::new(&args.file)
-                .extension()
-                .and_then(|value| value.to_str())
-                == Some("java"),
-        "source render accepts only core-relative src/... .java files"
+        args.file.starts_with("src/"),
+        "source render accepts only core-relative src/... files"
     );
     let loaded = load_catalog(&args.repo_root, invocation_dir)?;
     let context = loaded.context(&args.projection)?;
+    let java = Path::new(&args.file)
+        .extension()
+        .and_then(|value| value.to_str())
+        == Some("java");
+    let project_inputs_sha256 = if java {
+        None
+    } else {
+        let bytes = read_bounded_catalog_input(&loaded.repo_root, CORE_METADATA_PATH)?;
+        let metadata = CoreProjectInputs::from_json(
+            std::str::from_utf8(&bytes).wrap_err("core project metadata is not UTF-8")?,
+            &loaded.registered_features,
+        )?;
+        // Explicit non-Java rules suffice: no source inventory or asset body
+        // is traversed/read to preview this single selected text template.
+        let selected = select_core_inputs(&metadata, &context, &BTreeSet::default())?;
+        ensure!(
+            selected
+                .inputs
+                .values()
+                .any(|input| input.input == args.file && input.template),
+            "non-Java source preview requires a selected explicit text-template rule"
+        );
+        Some(sha256(&bytes))
+    };
     let source_path = format!("{CORE_ROOT}/{}", args.file);
     let source = read_bounded_catalog_input(&loaded.repo_root, &source_path)?;
-    let source_text = std::str::from_utf8(&source).wrap_err("core Java template is not UTF-8")?;
+    let source_text = std::str::from_utf8(&source).wrap_err("core source template is not UTF-8")?;
     let rendered = render_java_source(source_text, &context)
-        .wrap_err_with(|| format!("could not render core Java template `{}`", args.file))?;
+        .wrap_err_with(|| format!("could not render core source template `{}`", args.file))?;
     Ok(SourceRenderReport {
         schema: "sfm:source_projection_render@1".to_owned(),
-        scope: RENDER_SCOPE.to_owned(),
+        scope: if java {
+            RENDER_SCOPE
+        } else {
+            TEXT_RENDER_SCOPE
+        }
+        .to_owned(),
         inputs: loaded.inputs_report(),
         projection: loaded.summary(&args.projection)?,
         template_context: context,
@@ -201,6 +235,7 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
         source_sha256: sha256(&source),
         rendered_sha256: sha256(rendered.as_bytes()),
         rendered_content: rendered,
+        project_inputs_sha256,
         writes_performed: false,
         full_project_generated: false,
         compiled: false,
@@ -248,7 +283,6 @@ mod tests {
     use crate::cli::output::OutputFormat;
     use crate::source_projection::candidate_lock::checked_file;
     use crate::source_projection::core_catalog::MAX_CATALOG_INPUT_BYTES as MAX_INPUT_BYTES;
-    use std::collections::BTreeSet;
     use std::fs;
 
     const JAVA_PATH: &str = "src/main/java/example/Example.java";
@@ -384,6 +418,128 @@ mod tests {
         let context = loaded.context("dev/old-package-new-loader").unwrap();
         assert_eq!(context.minecraft_version, "1.21");
         assert!(context.targets["mc_1_21_0"]);
+    }
+
+    fn write_text_rule(fixture: &Fixture, template: bool, features: &[&str]) -> String {
+        use crate::source_projection::core_inputs::BuildTargetMetadata;
+        use crate::source_projection::core_inputs::InputPredicate;
+        use crate::source_projection::core_inputs::InputVariant;
+        let metadata = CoreProjectInputs {
+            schema_version: 1,
+            targets: BTreeMap::from([
+                (
+                    "1.19.2".to_owned(),
+                    BuildTargetMetadata {
+                        java_major: 17,
+                        loader: "forge".to_owned(),
+                    },
+                ),
+                (
+                    "1.20.1".to_owned(),
+                    BuildTargetMetadata {
+                        java_major: 17,
+                        loader: "neoforge".to_owned(),
+                    },
+                ),
+            ]),
+            source_rules: BTreeMap::from([(
+                "src/main/antlr/proof/Proof.g4".to_owned(),
+                vec![InputVariant {
+                    input: "src/main/antlr/proof/Proof.g4".to_owned(),
+                    when: InputPredicate {
+                        all_features: features.iter().map(|name| (*name).to_owned()).collect(),
+                        ..Default::default()
+                    },
+                    template,
+                }],
+            )]),
+            project_files: BTreeMap::new(),
+        };
+        let json = facet_json::to_string(&metadata).unwrap();
+        fixture.write(CORE_METADATA_PATH, json.as_bytes());
+        json
+    }
+
+    #[test]
+    fn non_java_preview_uses_explicit_selected_template_without_writes() {
+        let fixture = Fixture::new();
+        let json = write_text_rule(&fixture, true, &["beta"]);
+        let path = "src/main/antlr/proof/Proof.g4";
+        fixture.write(&format!("{CORE_ROOT}/{path}"), TEMPLATE.as_bytes());
+        let mut args = fixture.render_args("dev/example");
+        args.file = path.to_owned();
+        let report = render_report(&args, fixture.temp.path()).unwrap();
+        assert_eq!(report.scope, TEXT_RENDER_SCOPE);
+        assert_eq!(report.project_inputs_sha256, Some(sha256(json.as_bytes())));
+        assert_eq!(
+            report.rendered_content,
+            "import old.Handler;\nclass Example { String text = \"{{ untouched }}\"; }\n"
+        );
+        assert!(!report.writes_performed && !report.compiled && !report.full_project_generated);
+        assert!(!fixture.repo.join("platform/minecraft/projections").exists());
+        assert_eq!(
+            fs::read(fixture.repo.join(CORE_METADATA_PATH)).unwrap(),
+            json.as_bytes()
+        );
+    }
+
+    #[test]
+    fn non_java_preview_refuses_inactive_and_opaque_inputs_before_reading() {
+        let fixture = Fixture::new();
+        write_text_rule(&fixture, true, &["beta"]);
+        let mut args = fixture.render_args("release/example");
+        args.file = "src/main/antlr/proof/Proof.g4".to_owned();
+        // No body exists: refusal must occur at selection, not file access.
+        let error = render_report(&args, fixture.temp.path())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("selected explicit text-template rule"),
+            "{error}"
+        );
+        write_text_rule(&fixture, false, &[]);
+        let error = render_report(&args, fixture.temp.path())
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("selected explicit text-template rule"),
+            "{error}"
+        );
+        args.file = "src/main/resources/opaque.png".to_owned();
+        fixture.write(&format!("{CORE_ROOT}/{}", args.file), b"\xff");
+        assert!(
+            render_report(&args, fixture.temp.path())
+                .unwrap_err()
+                .to_string()
+                .contains("selected explicit text-template rule")
+        );
+    }
+
+    #[test]
+    fn text_preview_retains_metadata_and_utf8_bounds() {
+        let fixture = Fixture::new();
+        write_text_rule(&fixture, true, &[]);
+        let mut args = fixture.render_args("dev/example");
+        args.file = "src/main/antlr/proof/Proof.g4".to_owned();
+        fixture.write(&format!("{CORE_ROOT}/{}", args.file), b"\xff");
+        assert!(
+            render_report(&args, fixture.temp.path())
+                .unwrap_err()
+                .to_string()
+                .contains("not UTF-8")
+        );
+        fixture.write(CORE_METADATA_PATH, b"not JSON");
+        assert!(render_report(&args, fixture.temp.path()).is_err());
+        fixture.write(
+            CORE_METADATA_PATH,
+            &vec![b' '; usize::try_from(MAX_INPUT_BYTES + 1).unwrap()],
+        );
+        assert!(
+            render_report(&args, fixture.temp.path())
+                .unwrap_err()
+                .to_string()
+                .contains("exceeds")
+        );
     }
 
     #[test]

@@ -1,0 +1,4453 @@
+{
+  "schema": "sfm:core-network-consolidation-review@1",
+  "status": "review only; no core network templates or registry/catalog/project metadata edits; source closure and wire-layout recommendations await implementation and compilation",
+  "source_contract": {
+    "canonical_core_root": "platform/minecraft/core-liquid-template",
+    "path_root": "src/main/java/ca/teamdman/sfm",
+    "historical_witness_root": "platform/minecraft/src/main/java/ca/teamdman/sfm",
+    "historical_blobs": "Offline pinned audit/test witnesses only; never production routing inputs.",
+    "selectors": "Explicit functional feature booleans and genuine minecraft_version API conditions. No environment, preset, projection_key, full historic-tree dispatch or inferred feature inventory.",
+    "raw_reconstruction": "All frozen release and full development witnesses must be reconstructed byte-exact unless a separately approved, exact-blob normalization policy records both raw and normalized evidence.",
+    "public_presets": "Unchanged by this ledger; all proposed flags remain recommendations.",
+    "target_id_mapping": {
+      "1.21.0": "1.21"
+    },
+    "target_id_mapping_note": "Feature support and source-rule targets use stable target IDs; Liquid minecraft_version uses effective MC version 1.21 for target 1.21.0. Other nine values equal their IDs."
+  },
+  "evidence": {
+    "method": "Fresh local Git reads at exact twenty commits; grouped SHA-1 blob identities, raw SHA-256 and byte counts; primary release/1.19.2 to dev/1.19.2 zero-context hunk ranges; static imports/member/callsite review.",
+    "contexts": 20,
+    "paths": 55,
+    "distinct_raw_blobs": 70,
+    "existing_infrastructure_paths": 3,
+    "added_paths": 52,
+    "added_membership_counts": {
+      "development_1_19_2_and_1_19_4": 48,
+      "development_1_19_2_only": 4
+    },
+    "existing_infrastructure_blob_counts": {
+      "common/registry/registration/SFMPackets.java": 7,
+      "common/net/SFMPacketDaddy.java": 5,
+      "common/net/SFMPacketHandlingContext.java": 6
+    },
+    "not_performed": [
+      "No Cargo, CLI help/proof launch, Java/Minecraft compilation, rendering, multiplayer handshake test, asset/cache write or dependency change in this review."
+    ],
+    "limits": [
+      "The ledger's feature requires lists are static closure recommendations, not compiled independence evidence.",
+      "Callsites outside the fifty-five-path raw cohort are integration seams, not an assertion that their full witnesses have been consolidated."
+    ]
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "witness_feature_contexts": {
+    "dev/1.19.2": {
+      "target_id": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "features": {
+        "packet_transport_private": true,
+        "client_inbox": true,
+        "client_program_signing": true,
+        "multiplayer_packets": true,
+        "manager_operator_queries": true,
+        "packet_direction_validation": true,
+        "manager_menu_request_validation": true,
+        "sfml_execution_side": true
+      }
+    },
+    "dev/1.19.4": {
+      "target_id": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "features": {
+        "packet_transport_private": true,
+        "client_inbox": true,
+        "client_program_signing": true,
+        "multiplayer_packets": true,
+        "manager_operator_queries": false,
+        "packet_direction_validation": true,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": true
+      }
+    },
+    "dev/1.20": {
+      "target_id": "1.20",
+      "minecraft_version": "1.20",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.20.1": {
+      "target_id": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.20.2": {
+      "target_id": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.20.3": {
+      "target_id": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.20.4": {
+      "target_id": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.21.0": {
+      "target_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/1.21.1": {
+      "target_id": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "dev/26.1.2": {
+      "target_id": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.19.2": {
+      "target_id": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.19.4": {
+      "target_id": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.20": {
+      "target_id": "1.20",
+      "minecraft_version": "1.20",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.20.1": {
+      "target_id": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.20.2": {
+      "target_id": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.20.3": {
+      "target_id": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.20.4": {
+      "target_id": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.21.0": {
+      "target_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/1.21.1": {
+      "target_id": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    },
+    "release/26.1.2": {
+      "target_id": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "features": {
+        "packet_transport_private": false,
+        "client_inbox": false,
+        "client_program_signing": false,
+        "multiplayer_packets": false,
+        "manager_operator_queries": false,
+        "packet_direction_validation": false,
+        "manager_menu_request_validation": false,
+        "sfml_execution_side": false
+      }
+    }
+  },
+  "functional_feature_recommendations": {
+    "packet_transport_private": {
+      "registration": "existing",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_computation"
+      ],
+      "responsibility": "Private-world packet observation and packet insertion; retains the existing private integrated-world effect gate."
+    },
+    "client_inbox": {
+      "registration": "existing",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_transport_private"
+      ],
+      "responsibility": "Addressed client inbox subscription and publication, bounded queues and private-world delivery."
+    },
+    "client_program_signing": {
+      "registration": "proposed",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "client_program_actions"
+      ],
+      "responsibility": "Explicit private-world save/review/sign transport and human signing ceremony, not the existence of pure program revision carriers.",
+      "prerequisite_evidence": "The current client runtime uses ClientManagerFrameRuntime; the controller uses ClientFrameSourceBudget, frame AST and SFMClientProgramActionDispatcher. These are static source closure recommendations, not an independent Java compilation result.",
+      "optional_branches": [
+        "Guard RenderImageStatement references with client_frame_render rather than require raster rendering for every signing operation."
+      ]
+    },
+    "multiplayer_packets": {
+      "registration": "proposed",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_inbox",
+        "client_frame_language",
+        "client_program_actions"
+      ],
+      "responsibility": "Default-deny operator-owned exact grants, authenticated connection identity, bounded outer transport and addressed program packet operations.",
+      "prerequisite_evidence": "Current client/server adapters consume inbox, live client-manager identity, source/binding revisions and frame/value/action AST. Share those pure revision carriers; do not require private signing UI solely because they are in a signature package.",
+      "optional_branches": [
+        "SFMMultiplayerPacketProgramOperations currently references RenderImageStatement unconditionally; guard that reference with client_frame_render or conservatively require client_frame_render until reviewed."
+      ]
+    },
+    "manager_operator_queries": {
+      "registration": "proposed",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [],
+      "responsibility": "Privilege-checked loaded server-manager program/label query and bounded response. It must not implicitly require packet computation or Client Manager execution.",
+      "prerequisite_evidence": "Requires the bounded ClientManagerProgramProjection plus its pure source normalization descriptor and SFMManagerOperatorAuthorization. CLI/control-server consumer registration remains a separate consumer seam."
+    },
+    "packet_direction_validation": {
+      "registration": "proposed",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "responsibility": "Cohesive direction validation at registration, handling entry and logical handling context; a source-independent safety fix with no new message discriminator."
+    },
+    "manager_menu_request_validation": {
+      "registration": "proposed",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [],
+      "responsibility": "Validate the open menu still exists and matches the requested manager position; independent of packet computation, signing and operator query."
+    }
+  },
+  "cohort_families": {
+    "infrastructure": {
+      "count": 3,
+      "paths": [
+        "common/net/SFMPacketDaddy.java",
+        "common/net/SFMPacketHandlingContext.java",
+        "common/registry/registration/SFMPackets.java"
+      ]
+    },
+    "packet_transport_private": {
+      "count": 7,
+      "paths": [
+        "client/net/SFMClientPacketTransport.java",
+        "client/net/SFMPacketObservationLifecycle.java",
+        "client/net/SFMPacketObservationLog.java",
+        "client/net/SFMPacketObservationRuntime.java",
+        "common/net/ClientboundPacketObservationPacket.java",
+        "common/net/ServerboundPacketInsertionPacket.java",
+        "common/net/SFMServerPacketTransport.java"
+      ]
+    },
+    "client_inbox": {
+      "count": 9,
+      "paths": [
+        "client/net/SFMClientInbox.java",
+        "client/net/SFMClientInboxLifecycle.java",
+        "client/net/SFMClientInboxRuntime.java",
+        "client/net/SFMClientInboxTransport.java",
+        "common/net/ClientboundClientInboxValuePacket.java",
+        "common/net/ServerboundClientInboxSubscriptionPacket.java",
+        "common/net/SFMClientInboxAddress.java",
+        "common/net/SFMServerClientInboxSubscriptions.java",
+        "common/net/SFMServerClientInboxTransport.java"
+      ]
+    },
+    "client_program_signing": {
+      "count": 5,
+      "paths": [
+        "common/net/ClientboundClientManagerSigningResponsePacket.java",
+        "common/net/ClientManagerSigningResponses.java",
+        "common/net/ServerboundClientManagerSignaturePacket.java",
+        "common/net/ServerboundClientManagerSigningRequestPacket.java",
+        "common/net/SFMServerClientManagerSigningTransport.java"
+      ]
+    },
+    "multiplayer_packets": {
+      "count": 14,
+      "paths": [
+        "client/net/SFMMultiplayerClientRuntime.java",
+        "client/net/SFMMultiplayerClientSession.java",
+        "common/net/multiplayer/ClientboundMultiplayerPacket.java",
+        "common/net/multiplayer/ServerboundMultiplayerPacket.java",
+        "common/net/multiplayer/SFMMultiplayerPacketBudgets.java",
+        "common/net/multiplayer/SFMMultiplayerPacketPolicy.java",
+        "common/net/multiplayer/SFMMultiplayerPacketPolicyCodec.java",
+        "common/net/multiplayer/SFMMultiplayerPacketPolicySavedData.java",
+        "common/net/multiplayer/SFMMultiplayerPacketProgramOperations.java",
+        "common/net/multiplayer/SFMMultiplayerPacketProtocol.java",
+        "common/net/multiplayer/SFMMultiplayerPacketReceivers.java",
+        "common/net/multiplayer/SFMMultiplayerPacketTransport.java",
+        "common/net/multiplayer/SFMMultiplayerPacketWire.java",
+        "common/net/multiplayer/SFMMultiplayerServerRuntime.java"
+      ]
+    },
+    "manager_operator_queries": {
+      "count": 4,
+      "paths": [
+        "common/net/ClientboundManagerShowPacket.java",
+        "common/net/ClientManagerShowResponses.java",
+        "common/net/ServerboundManagerShowPacket.java",
+        "common/net/SFMManagerShowQuery.java"
+      ]
+    },
+    "shared_revision_carriers": {
+      "count": 13,
+      "paths": [
+        "common/blockentity/ClientManagerProgramProjection.java",
+        "common/program/signature/ClientManagerSigningAcknowledgement.java",
+        "common/program/signature/ClientManagerSigningAdmission.java",
+        "common/program/signature/ClientManagerSigningBody.java",
+        "common/program/signature/ClientManagerSigningCodec.java",
+        "common/program/signature/ClientManagerSigningMetadata.java",
+        "common/program/signature/ClientManagerSigningSession.java",
+        "common/program/signature/ClientManagerSigningSnapshot.java",
+        "common/program/signature/ClientManagerSigningState.java",
+        "common/program/signature/ProgramAttestation.java",
+        "common/program/signature/ProgramAttestationCodec.java",
+        "common/program/signature/ProgramAttestationHistory.java",
+        "common/program/signature/ProgramSignatureDescriptor.java"
+      ]
+    }
+  },
+  "paths": [
+    {
+      "path": "client/net/SFMClientInbox.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "5a3ec10d3261162eac8b28bffb3e27698a182061",
+          "sha256": "sha256:61cf5fb64e99b42d24b99f64d7fd8fad116b0c08ceaa332ce1ac107bd7f78190",
+          "bytes": 7594,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMClientInboxLifecycle.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "267760cd2fbd5831e9a6f35dd64c6d8dc2554bb1",
+          "sha256": "sha256:5035f34ef352ad824324e8655c261dd78f76cd36c7d366fc88181366b47245fe",
+          "bytes": 604,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMClientInboxRuntime.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "332be056b675a9483e35b38c88a46521faa1d275",
+          "sha256": "sha256:76c6a17a944ecd81f07ab5f4feca1fdcabd2d5a181c3af7a7553e1389b5ca664",
+          "bytes": 7411,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMClientInboxTransport.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "8867ee132ff7f2ebd3a3d4a3db470b6566aac201",
+          "sha256": "sha256:bc9b9a509f4e3102d6e8d2e33ef3095d16642fcd15e8dc370522a6048d3d2dbe",
+          "bytes": 2657,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMClientPacketTransport.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "1438c847726a9f86f12c76c6a4f2a7ae53b7afd3",
+          "sha256": "sha256:3d0456712a1f3910ca570bc5addaf43a25587ea598bff7889ff75bc43bae6907",
+          "bytes": 3005,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMMultiplayerClientRuntime.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "1ba1e01f40aaf4ff470de8ee17adec5cdb1d9003",
+          "sha256": "sha256:a898ccf4eec73da1c456549333ab47c1b71518d87250b7ab548158441fc54b63",
+          "bytes": 8119,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMMultiplayerClientSession.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "0340347f4fcf2d5e48f26038c8e76e12eac46000",
+          "sha256": "sha256:fa97fc96f42d6f1be01b1ff8ccf150aa1205bff2af4cad6725b565a6e5834190",
+          "bytes": 13824,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMPacketObservationLifecycle.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "45f32185ec9d679eb4411bc4eb471acbf78f42a8",
+          "sha256": "sha256:50bfc73ae709d79cc0191f3694a60168bbb108a13f6f8975659b5e7b5b2d11ec",
+          "bytes": 753,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMPacketObservationLog.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "05f5bd3c5de67eef02d0bebfa74cf65dc1767acd",
+          "sha256": "sha256:eb89695b50f139742a9fb0ba171caa44705fa41c39bdd36b788a5089bc3ca430",
+          "bytes": 7797,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "client/net/SFMPacketObservationRuntime.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "5e5a17092a17f7768b78b98d801b92cfff76a339",
+          "sha256": "sha256:e34e07d4af0419f41702b7a4c9bfcf49b629e99887a946a43c201ba42a95439c",
+          "bytes": 1830,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/blockentity/ClientManagerProgramProjection.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "manager_operator_queries"
+        ],
+        "note": "Other reviewed consumers require client_manager transitively. This bounds disk source/labels without starting client execution."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "018e235bb8c1dc88d5f6066d4bc917b691dd4db5",
+          "sha256": "sha256:407fcb32d212bbb5f1eaf3f24c02a38a794b5f573a9b3e6228de4ad71dd05b81",
+          "bytes": 5247,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/net/ClientboundClientInboxValuePacket.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "f74d93ee2d4085e965a10c464900ce9c5c077997",
+          "sha256": "sha256:937850a8a1939c81ef8bc615c6baf2299ac8a987e5c2205165693dec735c8a76",
+          "bytes": 2158,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ClientboundClientManagerSigningResponsePacket.java",
+      "primary_owner": "client_program_signing",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c2389853349f4d1251ffae97de163e155d5241b5",
+          "sha256": "sha256:9e3a56674cf9122152840975cb43705d593c9272ea39a8a5d9caf48eb08059c0",
+          "bytes": 3653,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ClientboundManagerShowPacket.java",
+      "primary_owner": "manager_operator_queries",
+      "proposed_core_membership": {
+        "all_features": [
+          "manager_operator_queries"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "031be7ef33496ea01c5957ce3c9d0fdc6ad58803",
+          "sha256": "sha256:2354d0c4a0c972b7b810600ca098bfe5d1c03861d6096e1af0eff79d43147ff7",
+          "bytes": 6402,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.19.4",
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ClientboundPacketObservationPacket.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "921fe0d9a45ee14714b78e5e6aadc86cb6bdc60c",
+          "sha256": "sha256:e8f64638c6b6751f0f8e8c1bc3168fd0feafae60324f4999c22b490165480904",
+          "bytes": 1748,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ClientManagerShowResponses.java",
+      "primary_owner": "manager_operator_queries",
+      "proposed_core_membership": {
+        "all_features": [
+          "manager_operator_queries"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c136da58ca4875b9a4beb168c37049da08372ed5",
+          "sha256": "sha256:21f31fc084a6a05510f415ee9a9e116dddc9f8bd02190826b0c5e5d4a0a7c479",
+          "bytes": 636,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.19.4",
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ClientManagerSigningResponses.java",
+      "primary_owner": "client_program_signing",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "555733a163413581cda62d7e0c217c71cb903224",
+          "sha256": "sha256:767895f816d73fe48a4828caeb949a560bb9967f64c2c53292a63f82c492ec28",
+          "bytes": 702,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/ClientboundMultiplayerPacket.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "f0e2a01fbf69da1220b1f0871fd6bed54634b076",
+          "sha256": "sha256:87c2a1b0e63f215905eb865913ba10bf5dd11593afbd1fc48b452e0f6aecf5ae",
+          "bytes": 1261,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/ServerboundMultiplayerPacket.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "374bd653d11457d3762e529dcd6b0c2a5c0139d9",
+          "sha256": "sha256:f50fa76a98cd7684ff751dc88ce61fb899c38c663877c32532cb34da1551e00a",
+          "bytes": 1330,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketBudgets.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "7d24735987c16eecbb102236fc31befdcb9f0367",
+          "sha256": "sha256:8022ad65b2f79fa0e60509071962ce03521bb341ff79a8fea70e856bbb37f6f9",
+          "bytes": 4387,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketPolicy.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "993ea1202a963da9b785c77eb034996a0a6a2529",
+          "sha256": "sha256:8c5b80bd2b21d9421938e5b9fc94e42a3623c2c5e202146f2d96ad805491f3b2",
+          "bytes": 2653,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketPolicyCodec.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "23652211144d0b8f79aab1c0266d92ffd43d55ac",
+          "sha256": "sha256:c18621a9bbd3ddca848eba3287db0ac40d921e72f632277c1b471e000f3e60be",
+          "bytes": 9442,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketPolicySavedData.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "cdf2da2759bde8c85ba286e996953e62021c8348",
+          "sha256": "sha256:2a2b9f7c184cbbbd6d5210e3d454fce3e7959cbbc2f43a6ccaf3db3f55ea1901",
+          "bytes": 4287,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketProgramOperations.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "0f05205bef0d6fe26a0d402e222e6559cf24efa7",
+          "sha256": "sha256:e142100985ac4332b15da0f9011f37ccbdf1e8b9019304254ea4208874b53a79",
+          "bytes": 12579,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketProtocol.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "9816d5d082888c8e7d0a2e2730cd55224f29377f",
+          "sha256": "sha256:c347f3acca670b2321aa09bd507d36f3eca60bc19dfb0820b406237123d32de4",
+          "bytes": 8115,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketReceivers.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "e5ef41ee1d049b994b913b3abd13a7075cacebd3",
+          "sha256": "sha256:e4fbe1ce3d41cb18ea27ebe69dbb94dd5c306e3b8a2b62d5099e5b458cef49e7",
+          "bytes": 628,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketTransport.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "7a04e7f3ec2e9e4d20a37bab4de3b9f616645f2a",
+          "sha256": "sha256:a8468325a48574e698cfaea4d6765d10e5435672acb4886fe3d1f0a28cc3c3ce",
+          "bytes": 17242,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketWire.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "bd6ea7db63a46fa8288ddf5a3fb79cbcedda2453",
+          "sha256": "sha256:66be4816026d511ae0bcaa7ef110f6e8b9a3a8451b96c44b93ea5b4950b0c162",
+          "bytes": 10905,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerServerRuntime.java",
+      "primary_owner": "multiplayer_packets",
+      "proposed_core_membership": {
+        "all_features": [
+          "multiplayer_packets"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "e728a1059633d123325b08e0a08c5c28cf696c68",
+          "sha256": "sha256:bab56531b91f7315025d43a44a99a3e90eb7160f791ecb376a218552961876e8",
+          "bytes": 12740,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ServerboundClientInboxSubscriptionPacket.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "b44aa026a37d51dd203ed242db70ac7fd3914321",
+          "sha256": "sha256:516b059b368217a58314f1c0eba4695b8ba33242ea2d6cfa4e4124aa23872352",
+          "bytes": 2478,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ServerboundClientManagerSignaturePacket.java",
+      "primary_owner": "client_program_signing",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "d55b155e8a021ac441b25933c9065665995f4ab0",
+          "sha256": "sha256:9d2ebebdbd15f29aad78bb77912808165e764cb9ddea6b6a7dc863fe32d5c42b",
+          "bytes": 2749,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ServerboundClientManagerSigningRequestPacket.java",
+      "primary_owner": "client_program_signing",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "7713432b7fa10fb5a42f92b7d9835cc4691783c8",
+          "sha256": "sha256:eb0cfbd3eb23d5857b94579ed3f3338acb1d74b0579129e0fea12cb4dc1d1af7",
+          "bytes": 4448,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ServerboundManagerShowPacket.java",
+      "primary_owner": "manager_operator_queries",
+      "proposed_core_membership": {
+        "all_features": [
+          "manager_operator_queries"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "19a3895170fe43eae0ad94b12ad5a740753bbcf7",
+          "sha256": "sha256:d2cc25ddd4831424e2c97ea16b12f095fe673a7b54c212ac8728131ef711d100",
+          "bytes": 2471,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.19.4",
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/ServerboundPacketInsertionPacket.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "0ccaeebb74a04cd5d731ae15e44edfb3e0253324",
+          "sha256": "sha256:eec9d3a61325d185b0961885aa9d326519b8e893e18c783c98e66ce483f103ab",
+          "bytes": 2218,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMClientInboxAddress.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "ed8c9ace785bf54d3c64d3f536bc766901c51301",
+          "sha256": "sha256:4f990ed9dcd88e497a349197a41dd3cc79b30d571ba08b053408686eece4f96e",
+          "bytes": 1465,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMManagerShowQuery.java",
+      "primary_owner": "manager_operator_queries",
+      "proposed_core_membership": {
+        "all_features": [
+          "manager_operator_queries"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "0c90adeffb8aff3bc3996a7801c4cc50aa7238f9",
+          "sha256": "sha256:9573a490ef7a563aeaf7e6c1fc419d243fd0ebe7ad600488a28cfbe0d83d9d6b",
+          "bytes": 2658,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.19.4",
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMPacketDaddy.java",
+      "primary_owner": "infrastructure",
+      "proposed_core_membership": {
+        "always_present": true
+      },
+      "raw_variants": [
+        {
+          "git_blob": "48ddb0dce77d60e3033214553d4836e2fb5ff895",
+          "sha256": "sha256:240c771ac14a2f9edb1fd996ee75df351f14be9890d5153edec0a8f7b6a0aaf0",
+          "bytes": 1980,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": "22685247ec1d494bd11a29506f738a354c16e8ec",
+          "sha256": "sha256:0e34a6a0187d5464706b95a74f3877aab054c1efe2eb3574e7c8ed68fec634b3",
+          "bytes": 1681,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1"
+          ]
+        },
+        {
+          "git_blob": "fd87ba46e48cc6b275664c04eb0afae01a523b78",
+          "sha256": "sha256:7338bb0b388533ef7886c35839766156b208f8c2ac873eacf2da41dfa0ebc045",
+          "bytes": 1635,
+          "contexts": [
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "release/1.20.2",
+            "release/1.20.3"
+          ]
+        },
+        {
+          "git_blob": "d61a169db857cc83371adc5748e15423d1ac36a9",
+          "sha256": "sha256:5b4cd932fea80dde10cf90d24a281ea94cfac84d4ec58e403dfd74caa4e4f606",
+          "bytes": 1644,
+          "contexts": [
+            "dev/1.20.4",
+            "release/1.20.4"
+          ]
+        },
+        {
+          "git_blob": "dfffea5463ab7191c99d1af3e09a3342bd24fb12",
+          "sha256": "sha256:c9ff10e1ed9ca7d348a61c7d2c5546a8d1062cd4c06eff6b447f998dc5b1b90e",
+          "bytes": 1662,
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [
+        {
+          "id": "h001",
+          "header": "@@ -36,0 +37,8 @@ public interface SFMPacketDaddy<T extends SFMPacket> {",
+          "old": {
+            "start": 36,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 37,
+            "count": 8,
+            "sha256": "sha256:4d2e76744459a6ea5f1f0569701e445fd5384459411e12966382fcb2e8a74966",
+            "first_line": "        if (!context.hasExpectedDirection(getPacketDirection())) {",
+            "last_line": "        }"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "handleOuter wrong-direction rejection before enqueue"
+          ],
+          "off_behavior": "Original enqueue/finish flow, using the corresponding MC context API."
+        }
+      ],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMPacketHandlingContext.java",
+      "primary_owner": "infrastructure",
+      "proposed_core_membership": {
+        "always_present": true
+      },
+      "raw_variants": [
+        {
+          "git_blob": "ad9dd331a0fd89372f2c889581de0f2a6874279b",
+          "sha256": "sha256:df65e9d213e2f1f41cb2af1415c5d73b3bde64c9abd56fc623be91143e0fb9f2",
+          "bytes": 7207,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": "5694b8d2d5724314c9bb3a1b1928eafd79b2280d",
+          "sha256": "sha256:8444c4fbe4418270aad9da432f657ade00048e7764b31511b9ffcdbd0885c97b",
+          "bytes": 6640,
+          "contexts": [
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+          "sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+          "bytes": 5838,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1"
+          ]
+        },
+        {
+          "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+          "sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+          "bytes": 5842,
+          "contexts": [
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "release/1.20.2",
+            "release/1.20.3"
+          ]
+        },
+        {
+          "git_blob": "ffafc6ae032b2aed5cd4ce2d9925e305a520a1d5",
+          "sha256": "sha256:faa82a0ea66799c53a7aa6d49b71f574ccaa5058fbfc2088f989cb2055e94a50",
+          "bytes": 5937,
+          "contexts": [
+            "dev/1.20.4",
+            "release/1.20.4"
+          ]
+        },
+        {
+          "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+          "sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+          "bytes": 5899,
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [
+        {
+          "id": "h001",
+          "header": "@@ -6,3 +6,5 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;",
+          "old": {
+            "start": 6,
+            "count": 3,
+            "sha256": "sha256:99773bf387e4f76b4bec700adb37ed4817493fd65b9b72e8efd909a06cd7d70b",
+            "first_line": "import ca.teamdman.sfm.common.registry.registration.SFMPackets;",
+            "last_line": "import ca.teamdman.sfml.ast.Program;"
+          },
+          "new": {
+            "start": 6,
+            "count": 5,
+            "sha256": "sha256:fc5ad9ba117363f8d5aaf38d56084a54eb23c83986ea653ac8baf02bc1993444",
+            "first_line": "import ca.teamdman.sfm.common.registry.registration.SFMPackets;",
+            "last_line": "import ca.teamdman.sfml.ast.ProgramExecutionSide;"
+          },
+          "owners": [
+            "multiplayer_packets",
+            "packet_direction_validation",
+            "sfml_execution_side"
+          ],
+          "members": [
+            "MCVersionDependentBehaviour import union for two new methods",
+            "ProgramExecutionSide import for host validation"
+          ],
+          "note": "Baseline imports in the same raw hunk stay unconditional."
+        },
+        {
+          "id": "h002",
+          "header": "@@ -13,2 +15,3 @@ import net.minecraft.world.inventory.AbstractContainerMenu;",
+          "old": {
+            "start": 13,
+            "count": 2,
+            "sha256": "sha256:99f6d93c9bf5e7ba2d811922d918da5fa8eaa2d46221373b33fe0775ff01272d",
+            "first_line": "import net.minecraft.world.level.block.entity.BlockEntity;",
+            "last_line": "import net.minecraftforge.network.NetworkEvent;"
+          },
+          "new": {
+            "start": 15,
+            "count": 3,
+            "sha256": "sha256:a4e0afa7f635d25da89dd9f47260bb740a23d1a7c6c5761082170be6b6e1772d",
+            "first_line": "import net.minecraft.world.level.block.entity.BlockEntity;",
+            "last_line": "import net.minecraftforge.network.NetworkDirection;"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "NetworkDirection import"
+          ],
+          "note": "NetworkEvent/BlockEntity baseline imports remain unconditional and use genuine MC API branches."
+        },
+        {
+          "id": "h003",
+          "header": "@@ -28,4 +31,19 @@ public class SFMPacketHandlingContext {",
+          "old": {
+            "start": 28,
+            "count": 4,
+            "sha256": "sha256:91e37cf121e403ea8ed697f8cce7bf469ee0a400d252ba4eefdcce37e6210e55",
+            "first_line": "    public @Nullable ServerPlayer sender() {",
+            "last_line": "    }"
+          },
+          "new": {
+            "start": 31,
+            "count": 19,
+            "sha256": "sha256:ff1188a45f07fbd92c55902707d7e06fe105fe87eef7e21baa75972f92e01a8d",
+            "first_line": "    public @Nullable ServerPlayer sender() {",
+            "last_line": "    }"
+          },
+          "owners": [
+            "multiplayer_packets",
+            "packet_direction_validation"
+          ],
+          "members": [
+            "networkConnectionIdentity: multiplayer_packets",
+            "hasExpectedDirection: packet_direction_validation"
+          ],
+          "note": "Preserve unchanged sender method; split the two independent added methods."
+        },
+        {
+          "id": "h004",
+          "header": "@@ -96,0 +115,15 @@ public class SFMPacketHandlingContext {",
+          "old": {
+            "start": 96,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 115,
+            "count": 15,
+            "sha256": "sha256:5e9d7504318c97f687f9c4a591052cf95ccf35bfc5160f0fe81de665e2c1b413",
+            "first_line": "        if (!menu.stillValid(sender)) {",
+            "last_line": ""
+          },
+          "owners": [
+            "manager_menu_request_validation"
+          ],
+          "members": [
+            "menu.stillValid(sender)",
+            "ManagerContainerMenu.MANAGER_POSITION equals target"
+          ],
+          "off_behavior": "Original menu lookup with no additional stale-menu/position validation."
+        },
+        {
+          "id": "h005",
+          "header": "@@ -148,2 +181,3 @@ public class SFMPacketHandlingContext {",
+          "old": {
+            "start": 148,
+            "count": 2,
+            "sha256": "sha256:e44b0d80d06a0d1c83a2aa04a1c891e55e711b631854a2950a4835c72caa6c81",
+            "first_line": "        new ProgramBuilder(programString)",
+            "last_line": "                .useCache(!willMutateProgram)"
+          },
+          "new": {
+            "start": 181,
+            "count": 3,
+            "sha256": "sha256:085516284866811a879285c5fc602760e53fec49005f1e1147724eee38fee593",
+            "first_line": "        new ProgramBuilder(programString)",
+            "last_line": "                .useCache(!willMutateProgram)"
+          },
+          "owners": [
+            "sfml_execution_side"
+          ],
+          "members": [
+            "ProgramBuilder.forExecutionSide(ProgramExecutionSide.SERVER)"
+          ],
+          "off_behavior": "Original ProgramBuilder host compilation chain without execution-side assertion."
+        }
+      ],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMServerClientInboxSubscriptions.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c436ad69564b01928c6f5ad74ae6707e0f1b3a2c",
+          "sha256": "sha256:fe3075885ac351df329b68b0a5f09a2d5b0a0865a9b9cbcd87a6bcc05c2f5877",
+          "bytes": 3190,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMServerClientInboxTransport.java",
+      "primary_owner": "client_inbox",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_inbox"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "6a90062cc2d48ab2b379d0993887f065d0cfb9a5",
+          "sha256": "sha256:2b2a15e6698f112b7c4c461ee0cb3ab13676a4ad81cfc6fa69c19e0bca960378",
+          "bytes": 5344,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMServerClientManagerSigningTransport.java",
+      "primary_owner": "client_program_signing",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "308e1e3039c933cd974d12b5d079aacbecefd40c",
+          "sha256": "sha256:ce0518f3b7c1e92a2e701e3fa4124299dd5c67999a049cfa70409420ef5cd68e",
+          "bytes": 6805,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/net/SFMServerPacketTransport.java",
+      "primary_owner": "packet_transport_private",
+      "proposed_core_membership": {
+        "all_features": [
+          "packet_transport_private"
+        ]
+      },
+      "raw_variants": [
+        {
+          "git_blob": "8960751daf82da78a05eb657395869486f18d727",
+          "sha256": "sha256:5f23d151d5e2c29356613054724998ff035fde1a341b87984a4e44ba47ebee9c",
+          "bytes": 4548,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": []
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningAcknowledgement.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c01322a0581ab43e4f7210ee6ad8a89af05794a2",
+          "sha256": "sha256:8de69b4c67cdb77eb703c1f0c68d5d2fa7897c85fc6e4b27430866fd76192918",
+          "bytes": 912,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningAdmission.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "all_features": [
+          "client_program_signing"
+        ],
+        "note": "Server admission limits for private signing operations only."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c87725e796d4ebe96a2d1d49b02428ef6c1bb85c",
+          "sha256": "sha256:a42d06ed0fe17c9d4c867a7464ac33d8c28365b641f1b99838ee931029dfac28",
+          "bytes": 2031,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningBody.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "e32959cde86642ca69feca8994f3fd6dc12ba5c6",
+          "sha256": "sha256:cfeb326229ab621963883792fa959502e76852201b6e9f53f554c13304d30ecb",
+          "bytes": 3813,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningCodec.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "d27640d69d3cf489a74783843ba57a96a2ca536e",
+          "sha256": "sha256:038be7d0522ddcc2452d6d69dec8459e569547e56a43322b0abbdf6564a49c58",
+          "bytes": 7207,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningMetadata.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "d22a1d27af37684e7160441be5f5bf5e9039aa14",
+          "sha256": "sha256:049e0bdafbddb653eaf33ed4599cd3297951a180364cbad52fd51a108dfb3ce9",
+          "bytes": 1870,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningSession.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "47fb6a7998fbcbef47f4d0532e837509c1c4f6f4",
+          "sha256": "sha256:45013039826e255c98340e2b6ccf5944386aa86a7c8e4a1495b3fe25d87a4cba",
+          "bytes": 4443,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningSnapshot.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "7b7c6d3417afb6b3947533460c814dea085710a4",
+          "sha256": "sha256:273ffaff7ff66bae05e815ae737cbc07212a4c08025e6895b4f639f9f7a5a5b8",
+          "bytes": 1337,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ClientManagerSigningState.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "c090b02697c8053ac573c9d51ad6f3d9d8cb66dd",
+          "sha256": "sha256:9c2096bdcc9b18c95c3a32373b51a7daa8be727a0c54aecc8da780d6a0ce114f",
+          "bytes": 8942,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ProgramAttestation.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "117f0b5cdfa7b9779e31e6833110e07dbe54eefa",
+          "sha256": "sha256:31e5bdd9ae6488189f8fe9e568856f3c98dc233acb2ad02742fa762893972dab",
+          "bytes": 3965,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ProgramAttestationCodec.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "a8ba875b007d517520ec22c191f52e2b99a29ec1",
+          "sha256": "sha256:1fcf0c493f1abba27d5f19eccfcdb516089546d13ca53005cb771f0e3b6719b9",
+          "bytes": 6771,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ProgramAttestationHistory.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "client_program_signing",
+          "multiplayer_packets"
+        ],
+        "note": "Current ClientManagerBlockEntity and revision/metadata codecs retain this carrier transitively. Private signing operations within state/session/acknowledgement types can be guarded later, but do not erase state needed for basic manager source synchronization or multiplayer identity. Exact minimal class closure remains to be compiled."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "829eb7582668d45f02b16d431f70f045513c4883",
+          "sha256": "sha256:6e23902c16c8b1cd22564fa9db910ee02d32b1b1a386c20fc54c660736963caa",
+          "bytes": 1386,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/program/signature/ProgramSignatureDescriptor.java",
+      "primary_owner": "shared_revision_carriers",
+      "proposed_core_membership": {
+        "any_features": [
+          "client_manager",
+          "manager_operator_queries"
+        ],
+        "note": "Required by ClientManagerProgramProjection even with private signing disabled; pure strict UTF-8/LF source normalization, digest and capability descriptor. Any future independent signer-trust consumer must be reviewed into this union."
+      },
+      "raw_variants": [
+        {
+          "git_blob": "47ecb791fec6a516863c7d55f6b8d2aff745e425",
+          "sha256": "sha256:fe5538c9146ef5b7e0685d3ae18b4f63833b12d186331f550fe35fa551a2cd82",
+          "bytes": 4472,
+          "contexts": [
+            "dev/1.19.2",
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": null,
+          "sha256": null,
+          "bytes": 0,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "dev/1.20.4",
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "dev/26.1.2",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1",
+            "release/1.20.2",
+            "release/1.20.3",
+            "release/1.20.4",
+            "release/1.21.0",
+            "release/1.21.1",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [],
+      "review_notes": [
+        "Package name does not confer execution, filesystem, process, clipboard or private-key authority. Shared carrier inclusion is not permission to widen a transport gate."
+      ]
+    },
+    {
+      "path": "common/registry/registration/SFMPackets.java",
+      "primary_owner": "infrastructure",
+      "proposed_core_membership": {
+        "always_present": true
+      },
+      "raw_variants": [
+        {
+          "git_blob": "6e7671df11884ced9535e04e3d3780b168fd45df",
+          "sha256": "sha256:c61e8e0ad8196bdd55990145b193aea1cbe37ba6f48a3a67b1404445e0eb289b",
+          "bytes": 6343,
+          "contexts": [
+            "dev/1.19.2"
+          ]
+        },
+        {
+          "git_blob": "b47e9fd0c47ac698f12048335e8c13cd4e7f9265",
+          "sha256": "sha256:54db1c399ee2a0b2d11968141a544a7e08e97454f251f30b4e74637fe3956194",
+          "bytes": 6215,
+          "contexts": [
+            "dev/1.19.4"
+          ]
+        },
+        {
+          "git_blob": "95fff5038be915e77fd357350c21947e3828262c",
+          "sha256": "sha256:f43b20e7946237813722dc8b54bf31619d116b04b369c19e019770e341d7988c",
+          "bytes": 4599,
+          "contexts": [
+            "dev/1.20",
+            "dev/1.20.1",
+            "release/1.19.2",
+            "release/1.19.4",
+            "release/1.20",
+            "release/1.20.1"
+          ]
+        },
+        {
+          "git_blob": "d929cbace9495b1f9c53711a96040e2bb0c44692",
+          "sha256": "sha256:5bbe9c05c6109a56b32ab8ce7edfd86b0a47a9c950e01b93fb1afe623c0ab158",
+          "bytes": 4611,
+          "contexts": [
+            "dev/1.20.2",
+            "dev/1.20.3",
+            "release/1.20.2",
+            "release/1.20.3"
+          ]
+        },
+        {
+          "git_blob": "6124cd8c085474bfbfba136742ca7bb4cbee6a0a",
+          "sha256": "sha256:8cb42db7116e9247676feef8d6d6dbcfd1a9760c773f16eb28b05309873a31f2",
+          "bytes": 6789,
+          "contexts": [
+            "dev/1.20.4",
+            "release/1.20.4"
+          ]
+        },
+        {
+          "git_blob": "be6efbd87f166378e8a473625eda22ea5fbc4de7",
+          "sha256": "sha256:a53898b20929e7bc08265be86f1ffb19bcf48381f18e010c8bbf220ab396ce4b",
+          "bytes": 7379,
+          "contexts": [
+            "dev/1.21.0",
+            "dev/1.21.1",
+            "release/1.21.0",
+            "release/1.21.1"
+          ]
+        },
+        {
+          "git_blob": "f7b762cc080e7ae726fa13bb8db006b3904059f4",
+          "sha256": "sha256:644ef1278fa97baa8776b83d5a907b078de04b8626c80b48d229f8622eb5aba0",
+          "bytes": 7431,
+          "contexts": [
+            "dev/26.1.2",
+            "release/26.1.2"
+          ]
+        }
+      ],
+      "primary_hunks": [
+        {
+          "id": "h001",
+          "header": "@@ -3,0 +4 @@ import ca.teamdman.sfm.common.net.*;",
+          "old": {
+            "start": 3,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 4,
+            "count": 1,
+            "sha256": "sha256:5cd6b8862a35e2d74ef13f6866288ca275b0fbdf8b1e623aa8393b8b024359ad",
+            "first_line": "import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;",
+            "last_line": "import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "MCVersionDependentBehaviour import"
+          ],
+          "note": "Later loader API variants already require their own MCVersionDependentBehaviour import; use import union."
+        },
+        {
+          "id": "h002",
+          "header": "@@ -4,0 +6 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;",
+          "old": {
+            "start": 4,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 6,
+            "count": 1,
+            "sha256": "sha256:3585ff8fc0b84a658725749ab8adb0a42babdfbea9d737d493f1cde61facccf0",
+            "first_line": "import ca.teamdman.sfm.common.value.SFMValue;",
+            "last_line": "import ca.teamdman.sfm.common.value.SFMValue;"
+          },
+          "owners": [
+            "packet_transport_private"
+          ],
+          "members": [
+            "SFMValue import",
+            "sendPacketObservation"
+          ]
+        },
+        {
+          "id": "h003",
+          "header": "@@ -6,0 +9 @@ import net.minecraftforge.network.NetworkRegistry;",
+          "old": {
+            "start": 6,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 9,
+            "count": 1,
+            "sha256": "sha256:ba1f82dab56490356cf0c4bbcaf4ef63023cf73cb6fd9189f0ec574e0fac316c",
+            "first_line": "import net.minecraftforge.network.NetworkDirection;",
+            "last_line": "import net.minecraftforge.network.NetworkDirection;"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "NetworkDirection import"
+          ]
+        },
+        {
+          "id": "h004",
+          "header": "@@ -9,0 +13 @@ import net.minecraftforge.network.simple.SimpleChannel;",
+          "old": {
+            "start": 9,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 13,
+            "count": 1,
+            "sha256": "sha256:e6f2f80cf87622a9b81ace73907b153830c7af890cafc9d0e08bb1f6cb02cd1e",
+            "first_line": "import java.util.Optional;",
+            "last_line": "import java.util.Optional;"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "Optional import"
+          ]
+        },
+        {
+          "id": "h005",
+          "header": "@@ -13 +17,2 @@ public class SFMPackets {",
+          "old": {
+            "start": 13,
+            "count": 1,
+            "sha256": "sha256:a10d87512acceaf345877e1c7b5a99cea347d65d105487dbda96b315a7a57049",
+            "first_line": "    public static final String SFM_CHANNEL_VERSION=\"1.0.0\";",
+            "last_line": "    public static final String SFM_CHANNEL_VERSION=\"1.0.0\";"
+          },
+          "new": {
+            "start": 17,
+            "count": 2,
+            "sha256": "sha256:c5dfae84de807df8cb98f7ab0163d445465a79ece12114ef5a89f2c97821cbfb",
+            "first_line": "    // The multiplayer and manager-show boundaries add message types unknown to older peers.",
+            "last_line": "    public static final String SFM_CHANNEL_VERSION=\"1.5.0\";"
+          },
+          "owners": [],
+          "derived_contract": "outer_wire_layout",
+          "members": [
+            "SFM_CHANNEL_VERSION"
+          ],
+          "note": "Not a functional feature. Emit 1.5.0 only for the frozen 48-message layout with compatible wire codecs; 1.4.0 only for the frozen 46-message layout; 1.0.0 only for matching released wire contract."
+        },
+        {
+          "id": "h006",
+          "header": "@@ -22,0 +28 @@ public class SFMPackets {",
+          "old": {
+            "start": 22,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 28,
+            "count": 1,
+            "sha256": "sha256:9ea24ea222367831c2ebef7028fcecc1c077636807501aaab90b41571a607d2a",
+            "first_line": "    @MCVersionDependentBehaviour",
+            "last_line": "    @MCVersionDependentBehaviour"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "registerPacket annotation"
+          ]
+        },
+        {
+          "id": "h007",
+          "header": "@@ -26,9 +32,12 @@ public class SFMPackets {",
+          "old": {
+            "start": 26,
+            "count": 9,
+            "sha256": "sha256:8d53fa70ba15000d85e9886ddcdafee135346193c4a9b14400c9bfd9d8c15388",
+            "first_line": "        switch (packetDaddy.getPacketDirection()) {",
+            "last_line": "        }"
+          },
+          "new": {
+            "start": 32,
+            "count": 12,
+            "sha256": "sha256:33372e4ce7a6eb6a15e5a8f47e401d52e3729c930886a06f4ba47d816481e62e",
+            "first_line": "        NetworkDirection direction = switch (packetDaddy.getPacketDirection()) {",
+            "last_line": "        );"
+          },
+          "owners": [
+            "packet_direction_validation"
+          ],
+          "members": [
+            "registerPacket expected PLAY_TO_SERVER/PLAY_TO_CLIENT direction",
+            "Optional.of(direction)"
+          ],
+          "off_behavior": "Original registration without explicit direction argument."
+        },
+        {
+          "id": "h008",
+          "header": "@@ -74,0 +84,12 @@ public class SFMPackets {",
+          "old": {
+            "start": 74,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 84,
+            "count": 12,
+            "sha256": "sha256:658433dd9c18edb997efe309976c2fc8e5af5f1d1c8973c7f84505761508db30",
+            "first_line": "        // Packet IDs are append-only so existing packet discriminators remain stable.",
+            "last_line": "        registerPacket(new ClientboundManagerShowPacket.Daddy());"
+          },
+          "owners": [
+            "packet_transport_private",
+            "client_inbox",
+            "client_program_signing",
+            "multiplayer_packets",
+            "manager_operator_queries"
+          ],
+          "members": [
+            "append-only registration comment",
+            "private observation/insertion pair",
+            "inbox pair",
+            "three signing packets",
+            "multiplayer pair",
+            "manager-show pair"
+          ],
+          "note": "Split into five explicit message-family regions. Preserve IDs/order in each frozen full witness; partial-layout acceptance must be validated separately."
+        },
+        {
+          "id": "h009",
+          "header": "@@ -95,0 +117,11 @@ public class SFMPackets {",
+          "old": {
+            "start": 95,
+            "count": 0,
+            "sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "first_line": null,
+            "last_line": null
+          },
+          "new": {
+            "start": 117,
+            "count": 11,
+            "sha256": "sha256:eb4ca0b94eef7bad42b143a84ece8eb5a6f57b9c08091268770f6952f70929ea",
+            "first_line": "",
+            "last_line": "    }"
+          },
+          "owners": [
+            "packet_transport_private"
+          ],
+          "members": [
+            "sendPacketObservation"
+          ],
+          "off_behavior": "Method absent; baseline sendToPlayer/sendToServer methods retained."
+        }
+      ],
+      "review_notes": []
+    }
+  ],
+  "loader_api_regions": [
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1"
+      ],
+      "api": "legacy net.minecraftforge SimpleChannel and Supplier<NetworkEvent.Context>",
+      "shared_regions": [
+        "imports/context constructor",
+        "registerMessage branch",
+        "sendToPlayer/sendToServer adapters"
+      ],
+      "note": "This is an API namespace grouping, not a claim that all four target loader metadata values are forge."
+    },
+    {
+      "targets": [
+        "1.20.2",
+        "1.20.3"
+      ],
+      "api": "net.neoforged SimpleChannel and direct NetworkEvent.Context",
+      "shared_regions": [
+        "imports/context constructor",
+        "send adapters"
+      ],
+      "note": "No new transport families have witnesses here."
+    },
+    {
+      "targets": [
+        "1.20.4"
+      ],
+      "api": "IPayloadRegistrar, PlayPayloadContext, named CustomPacketPayload and FriendlyByteBuf",
+      "shared_regions": [
+        "registrar registration adapter",
+        "SFMWrappedPacket write/id",
+        "context methods",
+        "send methods"
+      ],
+      "note": "Preserve versioned 1.0.0 and all thirty-seven named baseline classes."
+    },
+    {
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "api": "PayloadRegistrar, IPayloadContext, RegistryFriendlyByteBuf and StreamCodec",
+      "shared_regions": [
+        "payload type/TYPE_MAP and codec adapter",
+        "ResourceLocation static factory",
+        "PacketDistributor send adapter"
+      ],
+      "note": "Preserve versioned 1.0.0 and all thirty-seven named baseline classes."
+    },
+    {
+      "targets": [
+        "26.1.2"
+      ],
+      "api": "Named payload/StreamCodec with Identifier and ClientPacketDistributor.sendToServer",
+      "shared_regions": [
+        "resource identifier type/import",
+        "client packet distributor adapter"
+      ],
+      "note": "Do not introduce D2-only transport APIs to this target."
+    }
+  ],
+  "outer_wire_layout": {
+    "verified_context_layouts": [
+      {
+        "context": "dev/1.19.2",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.5.0",
+        "registered_messages": 48,
+        "layout_id": "full-d1-48",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.19.4",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.4.0",
+        "registered_messages": 46,
+        "layout_id": "full-d2-46",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.20",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.20.1",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.20.2",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.20.3",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.20.4",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.21.0",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/1.21.1",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "dev/26.1.2",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.19.2",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.19.4",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.20",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.20.1",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.20.2",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.20.3",
+        "loader_api": "simple_channel",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.20.4",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.21.0",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/1.21.1",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      },
+      {
+        "context": "release/26.1.2",
+        "loader_api": "named_custom_payload",
+        "protocol_version": "1.0.0",
+        "registered_messages": 37,
+        "layout_id": "baseline-37",
+        "baseline_order_exact": true
+      }
+    ],
+    "baseline_order": [
+      {
+        "id": 0,
+        "class": "ClientboundBoolExprStatementInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 1,
+        "class": "ClientboundClientConfigCommandPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 2,
+        "class": "ClientboundContainerExportsInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 3,
+        "class": "ClientboundIfStatementInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 4,
+        "class": "ClientboundInputInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 5,
+        "class": "ClientboundLabelGunUseResponsePacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 6,
+        "class": "ClientboundLabelInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 7,
+        "class": "ClientboundManagerGuiUpdatePacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 8,
+        "class": "ClientboundManagerLogLevelUpdatedPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 9,
+        "class": "ClientboundManagerLogsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 10,
+        "class": "ClientboundOutputInspectionResultsPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 11,
+        "class": "ClientboundServerConfigCommandPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 12,
+        "class": "ClientboundShowChangelogPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 13,
+        "class": "ServerboundBoolExprStatementInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 14,
+        "class": "ServerboundContainerExportsInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 15,
+        "class": "ServerboundDiskItemSetProgramPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 16,
+        "class": "ServerboundFacadePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 17,
+        "class": "ServerboundIfStatementInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 18,
+        "class": "ServerboundInputInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 19,
+        "class": "ServerboundLabelGunClearPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 20,
+        "class": "ServerboundLabelGunCycleViewModePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 21,
+        "class": "ServerboundLabelGunPrunePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 22,
+        "class": "ServerboundLabelGunSetActiveLabelPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 23,
+        "class": "ServerboundLabelGunUsePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 24,
+        "class": "ServerboundLabelInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 25,
+        "class": "ServerboundManagerClearLogsPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 26,
+        "class": "ServerboundManagerFixPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 27,
+        "class": "ServerboundManagerLogDesireUpdatePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 28,
+        "class": "ServerboundManagerProgramPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 29,
+        "class": "ServerboundManagerRebuildPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 30,
+        "class": "ServerboundManagerResetPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 31,
+        "class": "ServerboundManagerSetLogLevelPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 32,
+        "class": "ServerboundNetworkToolToggleOverlayPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 33,
+        "class": "ServerboundNetworkToolUsePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 34,
+        "class": "ServerboundOutputInspectionRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 35,
+        "class": "ServerboundServerConfigRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 36,
+        "class": "ServerboundServerConfigUpdatePacket",
+        "direction": "SERVERBOUND"
+      }
+    ],
+    "appended_full_witness_messages": [
+      {
+        "id": 37,
+        "owner": "packet_transport_private",
+        "class": "ClientboundPacketObservationPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 38,
+        "owner": "packet_transport_private",
+        "class": "ServerboundPacketInsertionPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 39,
+        "owner": "client_inbox",
+        "class": "ClientboundClientInboxValuePacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 40,
+        "owner": "client_inbox",
+        "class": "ServerboundClientInboxSubscriptionPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 41,
+        "owner": "client_program_signing",
+        "class": "ServerboundClientManagerSigningRequestPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 42,
+        "owner": "client_program_signing",
+        "class": "ServerboundClientManagerSignaturePacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 43,
+        "owner": "client_program_signing",
+        "class": "ClientboundClientManagerSigningResponsePacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 44,
+        "owner": "multiplayer_packets",
+        "class": "ca.teamdman.sfm.common.net.multiplayer.ServerboundMultiplayerPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 45,
+        "owner": "multiplayer_packets",
+        "class": "ca.teamdman.sfm.common.net.multiplayer.ClientboundMultiplayerPacket",
+        "direction": "CLIENTBOUND"
+      },
+      {
+        "id": 46,
+        "owner": "manager_operator_queries",
+        "class": "ServerboundManagerShowPacket",
+        "direction": "SERVERBOUND"
+      },
+      {
+        "id": 47,
+        "owner": "manager_operator_queries",
+        "class": "ClientboundManagerShowPacket",
+        "direction": "CLIENTBOUND"
+      }
+    ],
+    "discriminator_semantics": "SimpleChannel registrationIndex++ assigns sequential discriminators. Omitting an earlier family currently shifts every following family. Later payload registrars use named payload IDs, not the same sequential discriminator mechanism.",
+    "accepted_literal_versions": [
+      {
+        "layout_id": "baseline-37",
+        "version": "1.0.0",
+        "targets": "all ten targets using their respective loader API",
+        "condition": "Exact frozen baseline ordered/named set and compatible wire codec contracts. No new message family.",
+        "packet_count": 37
+      },
+      {
+        "layout_id": "full-d2-46",
+        "version": "1.4.0",
+        "targets": [
+          "1.19.4"
+        ],
+        "condition": "Exact frozen baseline plus private pair, inbox pair, three signing messages and multiplayer pair, in that order, with matching codecs.",
+        "packet_count": 46
+      },
+      {
+        "layout_id": "full-d1-48",
+        "version": "1.5.0",
+        "targets": [
+          "1.19.2"
+        ],
+        "condition": "Exact frozen forty-six layout plus the manager-show pair, with matching codecs.",
+        "packet_count": 48
+      }
+    ],
+    "first_implementation_acceptance": "Fail closed before generation/build for unreviewed partial message-family layouts. Preserve the three known literal version cases only after matching the derived wire contract. Do not emit 1.5.0 merely because any network feature is enabled.",
+    "partial_layout_next_step": {
+      "status": "not implemented; a distinct reviewed protocol identity is required before enabling partial family sets",
+      "recommendation": "Derive an exact-equality peer handshake identity from a bounded deterministic wire-layout manifest; do not use the release/dev environment or the full Java source hash.",
+      "fingerprint_inputs": [
+        "Loader/protocol domain and channel identity",
+        "Complete ordered numeric IDs or named payload IDs",
+        "Packet direction and an explicit reviewed wire codec semantics revision for each message",
+        "Envelope/value codec compatibility, signing/status enum ordinal contracts and other wire-affecting schema versions"
+      ],
+      "fingerprint_exclusions": [
+        "Unrelated Java formatting/common body edits",
+        "Environment, preset or projection key",
+        "A bare feature bit mask with no reviewed codec contract",
+        "The inner multiplayer protocol version alone"
+      ],
+      "possible_stable_ids": "Reserve explicit original slots 37 through 47 for optional SimpleChannel families, advancing skipped slots without referencing disabled classes. This prevents ID shifts but does not itself make missing-family peers compatible.",
+      "required_proofs": [
+        "A changed registration set cannot retain a full-witness handshake version.",
+        "Identical wire layouts with handler-only safety fixes may retain the literal version only after reviewed encode/decode equality.",
+        "Peers with different partial layouts reject before any packet decoder runs.",
+        "Inner SFMMultiplayerPacketProtocol.VERSION=1 is not used to justify outer compatibility."
+      ]
+    },
+    "guard_syntax": "Current whole-line renderer accepts typed single boolean selectors, not arbitrary and/not expressions. Compose known-layout conditions with nested supported directives or an independently validated typed wire-layout fact; do not introduce a fake catchall functional feature."
+  },
+  "integration_callsites": [
+    {
+      "path": "common/net/SFMServerClientInboxTransport.java",
+      "line": 74,
+      "anchor": "SFMMultiplayerServerRuntime.publish",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Remote-world publication remains EFFECTS_DISABLED; private-world path and gate are unchanged."
+    },
+    {
+      "path": "client/net/SFMClientPacketTransport.java",
+      "line": 44,
+      "anchor": "SFMMultiplayerClientRuntime.sendInsertion",
+      "owner": "multiplayer_packets",
+      "off_behavior": "No remote fallback; preserve private insertion behavior."
+    },
+    {
+      "path": "client/net/SFMClientPacketTransport.java",
+      "line": 52,
+      "anchor": "SFMMultiplayerClientRuntime.available",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Availability means existing private effect gate only."
+    },
+    {
+      "path": "client/net/SFMClientInboxTransport.java",
+      "lines": [
+        26,
+        28,
+        47,
+        51
+      ],
+      "anchor": "Remote subscribe, current-world identity and availability",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Remote operations unavailable, identity absent; private inbox remains available under its original gate."
+    },
+    {
+      "path": "common/net/SFMPacketHandlingContext.java",
+      "line": 38,
+      "anchor": "networkConnectionIdentity",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Method absent; never accept a connection identity serialized by a peer."
+    },
+    {
+      "path": "common/net/multiplayer/SFMMultiplayerPacketProgramOperations.java",
+      "line": 134,
+      "anchor": "statement instanceof RenderImageStatement",
+      "owner": "client_frame_render",
+      "off_behavior": "When rendering is disabled, remove the optional type reference and reject unsupported statement shapes conservatively."
+    },
+    {
+      "path": "client/program/ClientManagerFrameRuntime.java",
+      "lines": [
+        399,
+        405
+      ],
+      "anchor": "Remote world availability and identity",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Original private-world live-runtime boundary."
+    },
+    {
+      "path": "client/SFMClientRegistrations.java",
+      "line": 82,
+      "anchor": "SFMMultiplayerClientRuntime initialization",
+      "owner": "multiplayer_packets",
+      "off_behavior": "Do not register the multiplayer client runtime."
+    },
+    {
+      "path": "common/blockentity/ClientManagerBlockEntity.java",
+      "line": 186,
+      "anchor": "SFMServerClientManagerSigningTransport invalidation callback",
+      "owner": "client_program_signing",
+      "off_behavior": "No private signing transport callback; retain local revision/source synchronization."
+    },
+    {
+      "path": "client/program/signing/ClientProgramSigningRuntime.java",
+      "anchor": "ClientManagerFrameRuntime live identity plus privateWorld",
+      "owner": "client_program_signing",
+      "dependency": "client_frame_language"
+    },
+    {
+      "path": "client/program/signing/ClientProgramSigningController.java",
+      "anchor": "compileLocally and SFMClientProgramActionDispatcher lookup",
+      "owner": "client_program_signing",
+      "dependencies": [
+        "client_frame_language",
+        "client_program_actions"
+      ],
+      "optional_owner": "client_frame_render"
+    },
+    {
+      "path": "common/net/SFMManagerShowQuery.java",
+      "line": 32,
+      "anchor": "ClientManagerProgramProjection.project",
+      "owner": "manager_operator_queries",
+      "dependency": "Shared bounded program projection, not client execution."
+    },
+    {
+      "path": "common/authorization/SFMManagerOperatorAuthorization.java",
+      "anchor": "Commands.LEVEL_GAMEMASTERS and exact loaded manager checks",
+      "owner": "manager_operator_queries",
+      "scope": "Companion outside the exact fifty-five-path raw cohort; preserve and independently add its pinned membership before integration."
+    },
+    {
+      "path": "client/control/SFMClientControlServer.java",
+      "anchor": "manager-show request handling, pending query and response receiver",
+      "owner": "manager_operator_queries",
+      "scope": "Consumer registration seam outside the exact fifty-five-path raw cohort; wire flag does not automatically imply the full CLI/control-server feature."
+    },
+    {
+      "path": "common/net/SFMPacketEffectGate.java",
+      "anchor": "allowsServerEffects and private integrated-world identity",
+      "owners": [
+        "packet_transport_private",
+        "client_manager",
+        "client_program_signing"
+      ],
+      "scope": "Shared pure authority helper outside the fifty-five-path raw cohort. Include it for the union of reviewed consumers, or declare the stricter actual source prerequisite until closure is compiled. Do not enable private observation/insertion messages solely to reuse this gate."
+    }
+  ],
+  "security_boundaries": [
+    "Private observation/insertion and private signing continue to use SFMPacketEffectGate; consent cannot broaden an unpublished integrated-world gate.",
+    "Private signing validates alive non-spectator sender, exact dimension, loaded chunk, distance, mayInteract and real ClientManagerBlockEntity. Admission limits precede cryptography; one-use challenge and compare-and-swap revision remain intact.",
+    "Multiplayer is a separate authenticated, default-deny operator-owned exact-grant protocol with byte/request budgets. Do not replace private gate checks with unconditional multiplayer availability.",
+    "Manager queries authorize the actual server-side player, gamemaster privilege, exact dimension and already loaded live manager; no chunk loading, placement/removal authority or permission widening.",
+    "Pure source/revision/signature carriers do not grant access to private keys, terminal input, files, process creation or client execution."
+  ],
+  "normalization_review": {
+    "status": "proposal only; not approved or applied by this network review",
+    "path": "common/net/SFMPacketHandlingContext.java",
+    "reason": "Raw baselines use CRLF and development witnesses contain both inherited CRLF and added LF lines. A shared all-LF template cannot honestly claim raw byte reconstruction without an exact normalization policy or byte-preserving template mechanism.",
+    "proposed_policy": "Reuse sfm:java_lf_final_newline@1 for exactly these six raw blobs: CRLF to LF only; all already have final LF, so lf_added is false. Reject BOM, lone CR, token/comment/other whitespace changes.",
+    "rows": [
+      {
+        "git_blob": "1c53eee93a86d5b47488fd957793c268b9fdf931",
+        "normalized_sha256": "sha256:b7c5bcb00a22a6459f3cf0bb617d23e61b2f27100fa01d842d2e9116d5ecb19b",
+        "normalized_bytes": 5667,
+        "crlf_count": 175,
+        "lf_added": false,
+        "raw_sha256": "sha256:f5c013dfe7539ca6d5dccd41c58912139122048155f3dc561d0b4f478025951c",
+        "raw_bytes": 5842
+      },
+      {
+        "git_blob": "5694b8d2d5724314c9bb3a1b1928eafd79b2280d",
+        "normalized_sha256": "sha256:9fa673429544a40a5641c8a32983888a2bf0670910ec21af2bf21b718c691357",
+        "normalized_bytes": 6476,
+        "crlf_count": 164,
+        "lf_added": false,
+        "raw_sha256": "sha256:8444c4fbe4418270aad9da432f657ade00048e7764b31511b9ffcdbd0885c97b",
+        "raw_bytes": 6640
+      },
+      {
+        "git_blob": "85e15991d61bfa83157b72ba60a994078a5f456a",
+        "normalized_sha256": "sha256:99a478b69c57f3faa41ff919a04d680b6a67f5d2fcc8430d68a96419397de8ab",
+        "normalized_bytes": 5663,
+        "crlf_count": 175,
+        "lf_added": false,
+        "raw_sha256": "sha256:5d80390eadbccade57c09e0e7129a133aa705a52573bf79fe180ffa3f2ae8854",
+        "raw_bytes": 5838
+      },
+      {
+        "git_blob": "ad9dd331a0fd89372f2c889581de0f2a6874279b",
+        "normalized_sha256": "sha256:6ca03fb91a37456023ec265e4d0d4187b71a8b975c4599031f69807ac909e943",
+        "normalized_bytes": 7043,
+        "crlf_count": 164,
+        "lf_added": false,
+        "raw_sha256": "sha256:df65e9d213e2f1f41cb2af1415c5d73b3bde64c9abd56fc623be91143e0fb9f2",
+        "raw_bytes": 7207
+      },
+      {
+        "git_blob": "d3b88a9b72253ca06a44409a9098b18d49c9076e",
+        "normalized_sha256": "sha256:04ea298e819770687da60d03276b19fc38623e29498bccda6b40e71273fbcab9",
+        "normalized_bytes": 5723,
+        "crlf_count": 176,
+        "lf_added": false,
+        "raw_sha256": "sha256:9d0c52fd3a78569dadea954338832f9a9500c8680420218271d5d11b000946be",
+        "raw_bytes": 5899
+      },
+      {
+        "git_blob": "ffafc6ae032b2aed5cd4ce2d9925e305a520a1d5",
+        "normalized_sha256": "sha256:355b30e60617bc8f264d2cdc91cc349a9a17b2d888b39e1453393d7914a115e2",
+        "normalized_bytes": 5760,
+        "crlf_count": 177,
+        "lf_added": false,
+        "raw_sha256": "sha256:faa82a0ea66799c53a7aa6d49b71f574ccaa5058fbfc2088f989cb2055e94a50",
+        "raw_bytes": 5937
+      }
+    ],
+    "other_paths": "No blanket newline normalization permission. SFMPackets, SFMPacketDaddy and all added paths require their own raw line-ending evidence during authoring."
+  },
+  "recommended_registration_seams": [
+    {
+      "stage": 1,
+      "action": "Register five independent functional owners after review",
+      "owners": [
+        "client_program_signing",
+        "multiplayer_packets",
+        "manager_operator_queries",
+        "packet_direction_validation",
+        "manager_menu_request_validation"
+      ],
+      "registry": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "public_presets": "Leave all newly registered names disabled until the complete cohort and acceptance proofs are ready."
+    },
+    {
+      "stage": 2,
+      "action": "Author the three always-present infrastructure templates",
+      "paths": [
+        "common/net/SFMPacketDaddy.java",
+        "common/net/SFMPacketHandlingContext.java",
+        "common/registry/registration/SFMPackets.java"
+      ],
+      "metadata": "These Java paths stay always present; only feature-owned member/import regions and genuine loader API cases vary. No full-version file dumps."
+    },
+    {
+      "stage": 3,
+      "action": "Add sparse source rules for eleven new wire carriers",
+      "paths": [
+        "common/net/ClientboundPacketObservationPacket.java",
+        "common/net/ServerboundPacketInsertionPacket.java",
+        "common/net/ClientboundClientInboxValuePacket.java",
+        "common/net/ServerboundClientInboxSubscriptionPacket.java",
+        "common/net/ServerboundClientManagerSigningRequestPacket.java",
+        "common/net/ServerboundClientManagerSignaturePacket.java",
+        "common/net/ClientboundClientManagerSigningResponsePacket.java",
+        "common/net/multiplayer/ServerboundMultiplayerPacket.java",
+        "common/net/multiplayer/ClientboundMultiplayerPacket.java",
+        "common/net/ServerboundManagerShowPacket.java",
+        "common/net/ClientboundManagerShowPacket.java"
+      ],
+      "metadata": "Exact D2 or D1 target support plus owning all_features condition; template:true where any feature-owned region exists."
+    },
+    {
+      "stage": 4,
+      "action": "Add seven private transport paths, nine inbox paths, five signing transport paths, fourteen multiplayer paths and four query paths without duplicate rules",
+      "metadata": "The family lists include the eleven carriers; do not double-count those classes. Added membership remains D2 except the four manager-show query paths, which remain D1."
+    },
+    {
+      "stage": 5,
+      "action": "Add thirteen shared/revision carrier rules using explicit consumer unions",
+      "metadata": "Use the proposed per-path membership below; do not make basic client source synchronization or manager queries depend on private signing UI."
+    },
+    {
+      "stage": 6,
+      "action": "Split all mixed callsite seams and enforce known-layout acceptance",
+      "metadata": "Do not enable a partial transport preset until a reviewed distinct protocol identity or an explicit refusal gate is in place."
+    },
+    {
+      "stage": 7,
+      "action": "Validate and then expand acceptance",
+      "proofs": [
+        "Actual core selector and renderer reconstruct every pinned release/full-dev witness, with only approved exact normalization.",
+        "Independent supported toggles prove source absence and no dangling references.",
+        "Java/Minecraft compilation validates each dependency-closed cohort.",
+        "Wire-contract tests prove discriminators, encode/decode directions and incompatible-handshake rejection.",
+        "Private-world behavior remains unchanged; multiplayer exact-grant tests and privileged manager query tests remain separate."
+      ]
+    }
+  ],
+  "unresolved_items": [
+    {
+      "id": "network-newline-review",
+      "required": "Approve exact six-blob normalization or select a byte-preserving source mechanism before claiming HandlingContext byte reconstruction."
+    },
+    {
+      "id": "partial-layout-policy",
+      "required": "Implement fail-closed layout validation first; fingerprint support remains a distinct subsequent integration proof."
+    },
+    {
+      "id": "shared-revision-minimal-closure",
+      "required": "Compile the union-owned carrier closure independently of private signing UI and confirm which state/session methods need fine guards."
+    },
+    {
+      "id": "optional-render-references",
+      "required": "Guard rendering type references or temporarily declare the stricter compiled closure; do not claim minimal signing/multiplayer prerequisites without proof."
+    },
+    {
+      "id": "external-consumer-witnesses",
+      "required": "Pin authorization, signing UI, control server and client registrations in their own cohorts before final source closure."
+    }
+  ]
+}
