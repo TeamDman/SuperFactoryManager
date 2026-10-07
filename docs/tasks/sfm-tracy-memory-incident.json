@@ -1,0 +1,345 @@
+{
+  "schema": "sfm:tracy_memory_incident_review@1",
+  "status": "bounded source-chain review and ignored policy stage delivered; parent promotion and full-gate execution pending",
+  "scope": {
+    "repo": "SuperFactoryManager",
+    "area": "platform/cli/sfm-propagate-changes",
+    "production_edits_performed": false,
+    "dependency_or_feature_changes": false,
+    "cargo_or_profiled_cli_executed_by_this_review": false,
+    "cache_cleanup_or_repair": false,
+    "global_allocator_gate_or_new_ffi": false,
+    "stage_root": "platform/cli/sfm-propagate-changes/target/core-runtime-artifact-policy-stage-v1"
+  },
+  "finding": {
+    "summary": "The all-features CLI includes the global Tracy allocation wrapper independently of the opt-in tracing subscriber layer. Without a collecting profiler, the current non-on-demand client can retain allocation/free callstack events. Cargo reuses the same operational binary path for this feature variant and the ordinary default variant.",
+    "causal_confidence": "Source chain establishes the retention mechanism and shared-output hazard. It does not experimentally isolate how much of the reported peak memory was allocator instrumentation versus projection/planning costs.",
+    "not_claimed": [
+      "A completed native Java compile or JAR validation.",
+      "Every byte of the reported peak was instrumentation.",
+      "A new runtime allocator switch, on-demand feature, private Tracy API or FFI fix.",
+      "An RSS benchmark of the staged check-all repair.",
+      "A failed or interrupted gate leaves a safe default binary."
+    ]
+  },
+  "incident": {
+    "reported_by": "parent orchestrator; no process launched, signalled or sampled by this review",
+    "original": {
+      "cli_sha256": "69ec5cbefc96f5fd97852248c83dc5d52c447b8e580bc77dd00fff7fa7ca43aa",
+      "feature_variant": "all-features including tracy_memory",
+      "operation": "named released 1.19.2 native compile",
+      "reported_peak_private": "24 GB",
+      "reported_peak_working": "22 GB",
+      "exit_code": 1,
+      "terminal_failure": "artifact-cache lock access denied",
+      "tracy_collecting_profiler_attached": false
+    },
+    "replacement": {
+      "cli_sha256": "3a91496d18a7b9da41e19c11abceb31c62ab13c606b9baee9316cd438664e4ba",
+      "build_request": "cargo build --locked --offline --bin sfm-propagate-changes",
+      "feature_variant": "default features; current default set empty",
+      "cache_access": "normal permitted access, unlike original sandboxed attempt",
+      "samples_reported": [
+        {
+          "cpu_seconds": 27.36,
+          "private_bytes": 34942976,
+          "working_bytes": 60559360
+        },
+        {
+          "cpu_seconds": 258.81,
+          "private_bytes": 49496064
+        }
+      ],
+      "completion_not_asserted": true
+    },
+    "comparison_limit": "Feature variant and cache permission both changed. These samples are bounded consistency evidence, not an allocator-only A/B experiment."
+  },
+  "repository_source_receipts": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/lib.rs",
+      "bytes": 6792,
+      "sha256": "29db00755535e530ecdfb8de016e6e61d3a88d361180f21bca175fd2684a504e"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/logging/logging_init.rs",
+      "bytes": 4611,
+      "sha256": "0c48468b6c5d4337742a6fd8fcf51d97b59b5deb24fed8cf978353073368d182"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "bytes": 5485,
+      "sha256": "cb448dccf3fc88ab13b93e0fd6e0828464c6091db25ec928754129622ac54f0c"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/check-all.ps1",
+      "bytes": 2231,
+      "sha256": "6d4b97a3ee62a048513f08b0c33b6066ffa4ce9b4b8f4a12b1d9bbdc5609de38"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/install.ps1",
+      "bytes": 1377,
+      "sha256": "134a3b3a0dd15c11975c4892a3624d2016a60f58f1c001babdec07773da9d1db"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/run-profiler.ps1",
+      "bytes": 11029,
+      "sha256": "3350075c149544edfaa4e4b08680e43f91427c709dae9b97c064ef3206a6dc4a"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/test-bounded.ps1",
+      "bytes": 12168,
+      "sha256": "1cdbe25140cc22d32dc2aa62b6490ef41116fa61d0af561f94b8edff254d1602"
+    }
+  ],
+  "pinned_package_receipts": [
+    {
+      "package": "tracy-client",
+      "version": "0.18.4",
+      "cargo_lock_archive_sha256": "a4f6fc3baeac5d86ab90c772e9e30620fc653bf1864295029921a15ef478e6a5",
+      "archive_checksum_verified": true
+    },
+    {
+      "package": "tracy-client-sys",
+      "version": "0.28.0",
+      "cargo_lock_archive_sha256": "c5f7c95348f20c1c913d72157b3c6dee6ea3e30b3d19502c5a7f6d3f160dacbf",
+      "archive_checksum_verified": true
+    },
+    {
+      "package": "tracing-tracy",
+      "version": "0.11.4",
+      "cargo_lock_archive_sha256": "0eaa1852afa96e0fe9e44caa53dc0bd2d9d05e0f2611ce09f97f8677af56e4ba",
+      "archive_checksum_verified": true
+    }
+  ],
+  "inspected_dependency_sources": [
+    {
+      "package": "tracy-client-0.18.4",
+      "path": "FEATURES.mkd",
+      "raw_bytes": 3124,
+      "raw_sha256": "00d153c25b25e53ea64e23c21ea22493b8834de9b576a3882c86dd64b9a7ca6f",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-0.18.4",
+      "path": "src/lib.rs",
+      "raw_bytes": 10621,
+      "raw_sha256": "8fe925fb409ed08a72e67a64d3cb7a5bc470e2536d27c75097f7ea63fb2e961e",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-0.18.4",
+      "path": "src/state.rs",
+      "raw_bytes": 7529,
+      "raw_sha256": "71c9472680053226ebaaf39668e8a1b6dbf734af255831265480a64ce20ca300",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "path": "build.rs",
+      "raw_bytes": 4980,
+      "raw_sha256": "d9637191d7e30ff6a3ccd799de6eedd51613664a52db7f8152066ead2e04694c",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "path": "tracy/client/TracyCallstack.hpp",
+      "raw_bytes": 3702,
+      "raw_sha256": "92fd23ac71ab2a399934f5408420abc2d9f3938f8f8aef8ec527d247e0d16127",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "path": "tracy/client/TracyProfiler.cpp",
+      "raw_bytes": 173360,
+      "raw_sha256": "2fd80d1058df8efb91dc402834351a646fdbe1c200c6bc0fda8bcee9d913cf0e",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "path": "tracy/client/TracyProfiler.hpp",
+      "raw_bytes": 36581,
+      "raw_sha256": "19ac2e4e145c32d6d2509a405c4e4d450117c90dafdaae4128cc0381e4c2e00a",
+      "exact_local_bytes_match_verified_archive": true
+    },
+    {
+      "package": "tracing-tracy-0.11.4",
+      "path": "src/lib.rs",
+      "raw_bytes": 15836,
+      "raw_sha256": "a872e1134af01020ddb2ed549cae795aeeaabbb0a1829dd56f50ad04f901157b",
+      "exact_local_bytes_match_verified_archive": true
+    }
+  ],
+  "archive_verification": {
+    "method": "Read existing cached .crate files; verify each SHA256 against Cargo.lock. Stream their GZip/Tar entries through SHA256 and compare all eight inspected source files with the existing extracted sources.",
+    "packages_verified": 3,
+    "source_entries_verified": 8,
+    "archive_source_duplicates_or_missing_entries": "refused",
+    "writes_or_network_requests": false,
+    "absolute_cache_paths_persisted": false
+  },
+  "source_chain": [
+    {
+      "source": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "anchor": "[features] and pinned optional Tracy dependencies",
+      "fact": "default=[]; tracy_memory enables tracy. The resolved Tracy dependency feature sets do not contain ondemand or manual-lifetime. All-features activates allocation profiling."
+    },
+    {
+      "source": "platform/cli/sfm-propagate-changes/src/lib.rs",
+      "anchor": "TRACY_ALLOCATOR; cfg(all(feature = tracy_memory, not(test)))",
+      "fact": "Non-test all-feature products replace System with ProfiledAllocator<System> and requested callstack depth100. Unit-test allocator exemption does not exempt ordinary or integration-test products."
+    },
+    {
+      "source": "platform/cli/sfm-propagate-changes/src/logging/logging_init.rs",
+      "anchor": "tracy_layer_requested; subscriber.with",
+      "fact": "SFM_ENABLE_TRACY_LAYER controls creation of the tracing subscriber layer. No corresponding check gates the global allocation wrapper."
+    },
+    {
+      "package": "tracy-client-0.18.4",
+      "source": "src/lib.rs",
+      "anchor": "ProfiledAllocator::emit_alloc / emit_free / GlobalAlloc / adjust_stack_depth",
+      "fact": "Allocation/free operations emit through the Tracy client independently of the subscriber layer. Windows callstack depth is capped at62, so the requested100 is not effective depth100."
+    },
+    {
+      "package": "tracy-client-0.18.4",
+      "source": "src/state.rs",
+      "anchor": "Client::start / is_running / is_connected",
+      "fact": "The non-manual client state and connection state are distinct. Starting/possessing the client does not mean a collecting profiler is connected."
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "source": "build.rs",
+      "anchor": "CARGO_FEATURE_ONDEMAND -> TRACY_ON_DEMAND",
+      "fact": "The disconnected-event guard is a compile-time on-demand feature, absent from the inspected resolved feature sets."
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "source": "tracy/client/TracyProfiler.hpp",
+      "anchor": "MemAllocCallstack / MemFreeCallstack / SendCallstackSerial / SendMemAlloc / SendMemFree",
+      "fact": "Without TRACY_ON_DEMAND, these paths allocate callstack storage and append serial allocation/free events even while a collecting profiler is disconnected."
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "source": "tracy/client/TracyProfiler.cpp",
+      "anchor": "Profiler::Worker connection loop; DequeueSerial; ClearQueues",
+      "fact": "The ordinary connection-wait path does not provide the active serial event drain used after connection. Queued callstack/event storage can remain retained before a collector arrives."
+    },
+    {
+      "package": "tracy-client-sys-0.28.0",
+      "source": "tracy/client/TracyCallstack.hpp",
+      "anchor": "Windows Callstack(depth)",
+      "fact": "Callstack emission allocates storage sized for the requested capped depth. Repeated allocation/free instrumentation therefore adds storage beyond the application's live allocation set."
+    },
+    {
+      "package": "tracing-tracy-0.11.4",
+      "source": "src/lib.rs",
+      "anchor": "TracyLayer construction and Client::start",
+      "fact": "Subscriber spans and global allocation profiling are separate emission sources. Disabling layer construction alone cannot stop allocator events."
+    },
+    {
+      "source": "platform/cli/sfm-propagate-changes/check-all.ps1",
+      "anchor": "all-feature clippy/build/tests; final command before repair",
+      "fact": "The original successful gate finishes with an all-feature doctest and no default-bin rebuild. Its shared target/debug CLI path can remain the allocation-profiled product."
+    },
+    {
+      "source": "platform/cli/sfm-propagate-changes/install.ps1",
+      "anchor": "cargo install --path $PSScriptRoot --locked --offline",
+      "fact": "Installation requests default features and does not explicitly enable Tracy. It already provides a safe normal-workflow boundary under the current empty default set."
+    },
+    {
+      "source": "platform/cli/sfm-propagate-changes/run-profiler.ps1",
+      "anchor": "feature list; -Memory; collector launch before CLI",
+      "fact": "This intentionally selects Tracy features, adds tracy_memory only for -Memory and launches the capture workflow. Its behavior is preserved rather than weakened."
+    }
+  ],
+  "resolved_tracy_feature_observation": [
+    {
+      "crate": "tracy-client",
+      "features": [
+        "callstack-inlines",
+        "code-transfer",
+        "context-switch-tracing",
+        "enable",
+        "only-localhost",
+        "sampling",
+        "system-tracing"
+      ],
+      "on_demand_enabled": false
+    },
+    {
+      "crate": "tracy-client-sys",
+      "features": [
+        "callstack-inlines",
+        "code-transfer",
+        "context-switch-tracing",
+        "enable",
+        "only-localhost",
+        "sampling",
+        "system-tracing"
+      ],
+      "on_demand_enabled": false
+    }
+  ],
+  "repair": {
+    "choice": "Keep the existing intentional profiling implementation; make the successful whole-tool gate end with a locked/offline default-feature build of the named operational CLI binary.",
+    "promotion": "Apply only the two reviewed hunks in promotion.apply_patch.txt after checking the production base SHA256. The staged full-script preview normalizes line endings for review and is not an authorization to copy unrelated bytes.",
+    "production_base_sha256": "6d4b97a3ee62a048513f08b0c33b6066ffa4ce9b4b8f4a12b1d9bbdc5609de38",
+    "append_command": "cargo build --locked --offline --bin sfm-propagate-changes --quiet",
+    "earlier_gate_commands_changed": false,
+    "default_feature_set_changed": false,
+    "installer_or_profiler_changed": false,
+    "failure_policy": "Any earlier nonzero exit returns immediately; no fallback or cleanup is run. If the final default-bin rebuild fails or the gate is interrupted, do not treat target/debug as an operational product.",
+    "normal_command_convention": [
+      "Use the installed default-feature product, or a freshly built/copied verified default-feature CLI for operational work.",
+      "Do not execute or copy the shared all-features target/debug binary as normal runtime merely because check-all or tests compiled it.",
+      "Intentional profiling uses run-profiler.ps1 with a collecting profiler. A subsequent Cargo command can overwrite the shared binary, regardless of this successful-gate repair."
+    ]
+  },
+  "stage_receipts": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-runtime-artifact-policy-stage-v1/check-all.ps1",
+      "bytes": 2738,
+      "sha256": "b0a210ee86164115865bc9704f54a0f43f572d7dbedea28049d585865e12a7d2"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-runtime-artifact-policy-stage-v1/Test-ArtifactPolicy.ps1",
+      "bytes": 5325,
+      "sha256": "41b261ad709a1c065beb4865ea7df23c67a5d1fdded97c4b3f94ba9c7b183738"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-runtime-artifact-policy-stage-v1/promotion.apply_patch.txt",
+      "bytes": 873,
+      "sha256": "5c1129b11afbdb474006ac18db841ff3552c3bc99c298fa882826715019701bf"
+    }
+  ],
+  "static_policy_proof": {
+    "schema": "sfm:runtime_artifact_policy_static_proof@1",
+    "original_policy_refused": true,
+    "repaired_policy_passed": true,
+    "original_cargo_commands_preserved": 5,
+    "final_exit_status_guard_present": true,
+    "invalid_final_build_regressions_refused": 4,
+    "default_features_empty": true,
+    "installer_profile_features_absent": true,
+    "cargo_or_profiled_cli_executed": false,
+    "production_script_modified": false,
+    "allocator_or_memory_usage_proof": false
+  },
+  "static_policy_command": "pwsh -File platform/cli/sfm-propagate-changes/target/core-runtime-artifact-policy-stage-v1/Test-ArtifactPolicy.ps1",
+  "static_limits": [
+    "PowerShell AST parsing and source reads only; staged and original check-all scripts were not executed.",
+    "The five original direct Cargo commands are byte-equivalent modulo line endings; one default build is appended after all existing successful gates.",
+    "Four in-memory mutations reject all-features, explicit tracy_memory, missing bin and missing lock.",
+    "Existing installer command and empty defaults were read, not rewritten.",
+    "The static proof does not measure allocator events, RSS or Java build output."
+  ],
+  "remaining_acceptance": [
+    "Parent reviews and applies the base-hash-bound minimal script patch.",
+    "Parent runs the whole-tool gate and verifies its final default-feature build succeeds.",
+    "Normal native compile proof remains parent-owned and must report its own source/JDK/dependency/output evidence."
+  ]
+}

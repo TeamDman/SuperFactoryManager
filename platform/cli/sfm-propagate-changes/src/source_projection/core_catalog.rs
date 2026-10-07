@@ -40,6 +40,7 @@ impl CoreCatalog {
     /// # Errors
     /// Rejects unsafe/reparse roots, oversized or malformed metadata, invalid
     /// keys/features, unsupported contexts and missing feature prerequisites.
+    #[tracing::instrument(level = "info", skip_all, name = "projection_catalog_load")]
     pub fn load(repo_root: &Path, invocation_dir: &Path) -> Result<Self> {
         let candidate = if repo_root == Path::new(".") {
             invocation_dir.to_path_buf()

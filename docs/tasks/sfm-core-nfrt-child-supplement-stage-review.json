@@ -1,0 +1,130 @@
+{
+  "schema": "sfm:nfrt_child_supplement_stage_review@1",
+  "status": "staged_unregistered_pure_foundation_no_native_execution",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": {
+    "authorized_unique_tools": 15,
+    "target_coordinate_occurrences": 35,
+    "targets": [
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "native_execution_enabled": false,
+    "original_schema2_lock_changes": 0,
+    "original_released_role_input_changes": 0
+  },
+  "artifacts": [
+    {
+      "path": "docs/tasks/sfm-core-nfrt-child-official-identity-proof.json",
+      "sha256": "48c66c4ef25a2906c8fcbf60562b6ae5ab88a86c0e3f8f930df65efc4ea8870c",
+      "bytes": 26620,
+      "role": "Portable official publisher SHA-256 sidecar matches, with exact URL/status/body-hash/time and read-only command."
+    },
+    {
+      "path": "target/core-nfrt-child-supplement-stage-v1/nfrt-child-identities.json",
+      "sha256": "100b0ae1df222216c75a36b2dd8d94817ccf41977e2830b357a55ef855a922b3",
+      "bytes": 46314,
+      "role": "Ignored staging only; separate exact child pins, raw-lock bindings and parent/property/function witnesses. Must be promoted to a separately reviewed core-owned build input before production registration."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/nfrt_child_identity_supplement.rs",
+      "sha256": "9b78b890b96539fc06a814c69f2575ce21639fb45690eb10f68dffa298319648",
+      "bytes": 42308,
+      "role": "New unregistered pure module with six focused regression tests. No caller or module registration added."
+    }
+  ],
+  "public_api": [
+    {
+      "name": "NfrtChildIdentitySupplement::from_prepared",
+      "input": "Arc<PreparedDependencyInputs>, refresh",
+      "behavior": "Refuse refresh first; hash-check immutable supplement/proof, bind exact target/actual-MC/recipe/raw-lock identity and all three original parent coordinate/content pins. Retains the original prepared input handle; does not rewrite dependency rows."
+    },
+    {
+      "name": "coordinate / exact_url / source_requests",
+      "behavior": "Only exact per-target source-route tools and publisher artifact URLs, no unknown requests, aliases, POM/repository fallback or sidecar-as-artifact request. Private requests bind supplement and original input identity."
+    },
+    {
+      "name": "function_requests",
+      "behavior": "Caller must present the exact frozen function classpath. Preserves original order, including Vineflower followed by the plugins JAR on 26.1.2; mismatches fail before caller effects."
+    },
+    {
+      "name": "verify_child_bytes",
+      "behavior": "No cache opening or repair. Checks private request equality/context, bounded exact length and full approved SHA-256 of caller-supplied bytes."
+    },
+    {
+      "name": "verify_parent_bytes",
+      "behavior": "No file opening or acquisition. Checks selected original parent pin through PreparedDependencyInputs, full previously authenticated SHA-256/length, exactly one bounded config.json/tools.properties entry and its full SHA-256. Returns evidence only, not subprocess permission."
+    },
+    {
+      "name": "receipt",
+      "behavior": "Separately binds original request catalog, source lock, child supplement, official proof, inventory and parent-proof identities. Records compiler release independently of minimum tool JVM. Explicit native_execution_enabled=false; parent bytes still required at consumption."
+    }
+  ],
+  "authored_regressions": [
+    {
+      "name": "official_fifteen_pin_six_recipe_matrix_preserves_exact_consumer_order",
+      "coverage": "Six reviewed recipe rows/35 target requests/15 official pins; five actual original PreparedDependencyInputs fixture constructions, all original raw bytes/receipt fields unchanged; 26 structural row and ordered classpath checked separately."
+    },
+    {
+      "name": "four_forge_recipes_and_unresolved_original_weak_bytes_remain_refused",
+      "coverage": "Other four MC recipes fail before caller callbacks; 26.1.2 original weak Mekanism identity remains refused when caller supplies no original exact bytes. This is not a successful six-target native preflight."
+    },
+    {
+      "name": "unknown_changed_cross_target_and_refresh_requests_fail_before_effects",
+      "coverage": "Changed versions/classifiers/dynamic/dormant/binary/unknown tools, unapproved URLs, sidecars, query strings, changed function/classpath and refresh rejected."
+    },
+    {
+      "name": "changed_raw_receipt_and_foreign_child_handles_are_refused",
+      "coverage": "Raw-lock, recipe, actual-MC changes and foreign/forged request handles fail; invalid artifact bytes refused."
+    },
+    {
+      "name": "pure_byte_verifier_checks_full_hash_length_and_bounded_unique_entry",
+      "coverage": "Synthetic byte verifier success and changed/truncated/bounded failure; a small in-memory ZIP entry proof, absent entry and invalid ZIP refusal. No production classes or dependency stubs."
+    },
+    {
+      "name": "official_and_original_parent_witness_conflicts_are_not_accepted",
+      "coverage": "Official child hash conflict, detached parent witness, reordered/normalized raw manifest/proof and attempted native-enable data refused."
+    }
+  ],
+  "validation": {
+    "official_network_checks": {
+      "exact_checksum_sidecars": 15,
+      "http_200": 15,
+      "matches": 15,
+      "redirects": 0,
+      "pom_or_version_discovery": 0,
+      "jar_downloads": 0,
+      "cache_or_lock_writes": 0
+    },
+    "local_read_only_recheck": {
+      "manifest_json_parse": "passed",
+      "proof_json_parse": "passed",
+      "six_original_lock_sha256": "unchanged",
+      "seventy_eight_original_role_input_sha256": "unchanged",
+      "official_checksum_to_manifest_rows": "15 matches",
+      "target_coordinate_count": 35
+    },
+    "scoped_format_command": "rustfmt +nightly --edition 2024 platform/cli/sfm-propagate-changes/src/source_projection/nfrt_child_identity_supplement.rs",
+    "scoped_format_result": "passed, parser/formatting only",
+    "cargo_or_rust_tests_run": false,
+    "tests_status": "Authored, unregistered and unexecuted. Root owns registration and Cargo gates.",
+    "compilation": false,
+    "packaging": false,
+    "junit": false,
+    "minecraft_launch": false,
+    "nfrt_external_process": false
+  },
+  "promotion_requirements": [
+    "Review/promote the ignored child identity manifest as an explicitly separate core-owned build input; retain exact original schema2/role bytes and change the module include/hash only by reviewed promotion.",
+    "Register/run the six focused tests and full tooling gate. Parser/formatting is not Rust type-check or test acceptance.",
+    "At real consumption provide and reverify original parent bytes and every exact child before execution; preserve source-owner rechecks and raw lock read-only policy.",
+    "Carry supplement plus source/context/profile/JDK/compiler identities through any later cache receipt. Do not advertise an original schema2 artifact row as containing this separate supplement.",
+    "Seal all external downloader requests and child-tool networking, disable launcher/network probing, enforce frozen runtime ordering, verify intermediate cache provenance and explicit tool JVM. These boundaries remain open.",
+    "26.1.2 must satisfy original Mekanism weak-pin exact bytes and optional-mapping handling without replacement pins.",
+    "No launch, packaging, JUnit or runtime authority follows from this foundation."
+  ]
+}

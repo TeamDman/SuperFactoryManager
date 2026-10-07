@@ -1,0 +1,140 @@
+{
+  "schema": "sfm:release_class_difference_continuation@1",
+  "status": "complete bounded byte classification; release parity remains unaccepted",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "target": "1.20",
+  "projection": "sfm-4.34.0/mc-1.20",
+  "native_build_receipt": "docs/tasks/sfm-core-release-native-jar-diagnostic-20261001-v3.json",
+  "inputs": {
+    "official": {
+      "bytes": 1577376,
+      "sha256": "9943c04e04f7afc433e3f9ccea223ab15f42ba0930c4cebe31b2008ad3b35ecd",
+      "release_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6"
+    },
+    "candidate": {
+      "file": "platform/minecraft/projections/sfm-4.34.0/mc-1.20/build/libs/Super Factory Manager (SFM)-MC1.20-4.34.0-rust.jar",
+      "bytes": 1579492,
+      "sha256": "4f2075afa6eb2b30948c9a7c6f13adda25475f597e9b56b00ac6b8c0ce59857e"
+    },
+    "helper_source": {
+      "file": "platform/cli/sfm-propagate-changes/target/core-class-line-table-proof-stage-v1/line_table_proof.rs",
+      "bytes": 38251,
+      "sha256": "6bf85435bd011ded71629f8a46493867af9c5a4fc932723166d42b464f783c25"
+    },
+    "helper_executable": {
+      "file": "platform/cli/sfm-propagate-changes/target/core-class-line-table-proof-stage-v1/line_table_proof.exe",
+      "bytes": 242176,
+      "sha256": "9ff5287e124f9a81b1bf7d9794392b8b4d46b2285d0d8462e8e7a628865d012e"
+    },
+    "driver": {
+      "file": "platform/cli/sfm-propagate-changes/target/core-release-120-class-difference-proof-20261001-v1/Invoke-ClassDifferenceProof.ps1",
+      "bytes": 32909,
+      "sha256": "07e24b964ee2c094a34f8411e16bca85f0ea3e505bf75c9ff9a1abd69983c56c",
+      "powershell_version": "7.6.6",
+      "root_parse_errors": 0
+    }
+  },
+  "review_boundary": {
+    "helper_root_and_independent_source_review": "passed before actual artifact invocation",
+    "helper_synthetic_tests": { "passed": 30, "failed": 0, "ignored": 0 },
+    "driver_root_review": "full original and revised reads, followed by sealed repeated-separator refusal and catch-indentation delta",
+    "pre_execution_repairs": [
+      "failure writes require successful ownership of a new absent run directory",
+      "explicit parenthesized UTF-8 byte conversion",
+      "exact-child recovery errors retain bounded captured prefixes and never broaden process scope",
+      "Windows disk-full errors stop without another evidence-file write",
+      "repeated ZIP separators are refused rather than normalized"
+    ]
+  },
+  "actual_execution": {
+    "exit_code": 1,
+    "terminal": true,
+    "comparisons_complete": true,
+    "archive_entries_each": 1033,
+    "class_pairs": 817,
+    "exact_byte_identity": 187,
+    "only_line_number_table_uniform_plus_one": 546,
+    "helper_refused": 84,
+    "refusal_categories": {
+      "class_length_or_corresponding_line_table_framing_count_order": 82,
+      "same_length_non_line_cell_bytes": 2
+    },
+    "successful_pair_line_cells": {
+      "tables": 5110,
+      "changed": 13460,
+      "unchanged": 3512
+    },
+    "before_and_after_held_input_pin_checks": "passed",
+    "root_retained_evidence_recheck": {
+      "passed": true,
+      "pairs": 817,
+      "rehash_files": 4085,
+      "checked": "ordering, inventory identities, each derived class pair, raw stdout/stderr, per-pair result pins, complete process status and actual exit codes"
+    },
+    "observed_budgets": {
+      "inflated_bytes_combined": 7090095,
+      "child_output_bytes_combined": 1900604
+    }
+  },
+  "retained_evidence": {
+    "root": "platform/cli/sfm-propagate-changes/target/core-release-120-class-difference-proof-20261001-v1",
+    "console": {
+      "file": "actual-817-v1.console.log",
+      "bytes": 2346,
+      "sha256": "a479f0ad9536e5129b1c1ed9d79e4c0984f7b90a66ce4e94c672c0b275e45969"
+    },
+    "summary": {
+      "file": "runs/actual-817-v1/summary.json",
+      "bytes": 1167647,
+      "sha256": "45115089b53012cec732f6544956a4905ef952aecfbb35cbd3dee67624f9db64"
+    },
+    "archive_inventory": {
+      "file": "runs/actual-817-v1/archive-inventory.json",
+      "bytes": 408086,
+      "sha256": "4bb2de2698b6e9a6f9bb86b52898b15f3f727f1f33441b9c5fc7d5fc3073c315"
+    }
+  },
+  "limits": {
+    "archive_bytes_each": 33554432,
+    "entries_each": 10000,
+    "entry_bytes": 8388608,
+    "inflated_bytes_combined": 67108864,
+    "child_output_bytes_each": 1048576,
+    "child_output_bytes_combined": 67108864,
+    "child_timeout_ms": 30000,
+    "exact_child_recovery_timeout_ms": 5000,
+    "held_inputs": "FileShare.Read; write and delete denied throughout comparison",
+    "paths": "new owned ignored output; numeric pair directories, never archive-provided extraction paths",
+    "cleanup": "none"
+  },
+  "first_concrete_executable_difference": {
+    "entry": "ca/teamdman/sfm/client/text_editor/Cursor.class",
+    "pair": "runs/actual-817-v1/pairs/0200",
+    "official_bytes": 3587,
+    "candidate_bytes": 3628,
+    "inspection": "existing pinned JBRSDK javap 17.0.14, metadata disassembly only; both invocations exited zero",
+    "javap_sha256": "01702cab6a7d161ba1caec458e6d744421d99380d1e1dd378a587955a7668950",
+    "sdk_release_file_sha256": "77b520735396e45ced0a1d0c776c7efcab9e42f94a4b44882f20932b74e4046b",
+    "method": "toString()Ljava/lang/String;",
+    "official": "direct invokedynamic(Caret,Caret)->String at bytecode offset 8",
+    "candidate": "String.valueOf(Object)->String at offsets 4 and 11, then invokedynamic(String,String)->String at offset 14",
+    "interpretation": "real executable lowering difference, not a line-number-only discrepancy; origin and behavioral equivalence are not established"
+  },
+  "acceptance_limits": {
+    "unknown_changes_waived": false,
+    "general_semantic_equality_claimed": false,
+    "banner_provenance_from_byte_helper_claimed": false,
+    "whole_jar_parity_verified": false,
+    "minecraft_application_executed": false,
+    "runtime_parity_verified": false,
+    "six_newer_native_targets_enabled": false,
+    "dependency_or_lock_identity_changed": false,
+    "source_or_projection_promoted_by_this_proof": false,
+    "next": "retain all 84 refusals; reduce exact code/constant/debug differences without a blanket compiler waiver, then bind separately reviewed source provenance and runtime evidence"
+  },
+  "path_reference_policy": {
+    "repository_relative_paths_only": true,
+    "absolute_machine_paths_persisted": false
+  }
+}

@@ -1,0 +1,353 @@
+{
+  "schema": "sfm:named_native_engine_integration_review@1",
+  "status": "read_only_design_not_implemented",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": "Exact catalog-owned native targets and frozen schema-2 recipes. Existing branch workflows, source locks and dependency identities remain unchanged.",
+  "observed_foundation": {
+    "registered_modules": [
+      "platform/cli/sfm-propagate-changes/src/source_projection/native_project_target.rs",
+      "platform/cli/sfm-propagate-changes/src/source_projection/released_native_inputs.rs",
+      "platform/cli/sfm-propagate-changes/src/source_projection/prepared_dependency_inputs.rs"
+    ],
+    "named_preflight": "NativeProjectTarget performs current Check, exact owner/provenance and selected source/output rechecks. Its existing entry point is explicitly rust-toolchain profile/schema-4-only and rejects schema 2 before Check.",
+    "selected_locks": "All ten current core project-file selectors choose exact schema-2 lock bytes, independently of release/dev environment. No native named engine route currently consumes them.",
+    "recipe_bindings": "Each of ten recipes has 13 unique selected template:false authored role-input bindings. Bind by selected artifact source_path and unchanged output bytes; the first three review rows do not carry an output field.",
+    "engine_assumption": "BuildOptions and native target dispatch require a BranchQuery/WorktreeTarget. BuildPlan requires BranchName and worktree_path; current create_plan_for_target creates cache directories before read_current tries maintained schemas.",
+    "unknown_source_gap": "sync and native provenance verification compare selected artifacts/manifest entries, but do not reject extra physical files under generated src. Java/resource/ANTLR/static-catalog collection recurses directories."
+  },
+  "target_matrix": [
+    {
+      "target_id": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "loader": "net.minecraftforge:forge:1.19.2-43.4.0",
+      "loader_kind": "forge_gradle_forge",
+      "java_release": 17,
+      "current_tool_java_minimum": 17,
+      "recorded_roles": 49,
+      "pins": 108,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "loader": "net.minecraftforge:forge:1.19.4-45.0.9",
+      "loader_kind": "forge_gradle_forge",
+      "java_release": 17,
+      "current_tool_java_minimum": 17,
+      "recorded_roles": 4,
+      "pins": 71,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.20",
+      "minecraft_version": "1.20",
+      "loader": "net.minecraftforge:forge:1.20-46.0.10",
+      "loader_kind": "forge_gradle_forge",
+      "java_release": 17,
+      "current_tool_java_minimum": 17,
+      "recorded_roles": 4,
+      "pins": 72,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "loader": "net.neoforged:forge:1.20.1-47.1.65",
+      "loader_kind": "forge_gradle_neoforge_group",
+      "java_release": 17,
+      "current_tool_java_minimum": 17,
+      "recorded_roles": 11,
+      "pins": 81,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "loader": "net.neoforged:neoforge:20.2.86",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 17,
+      "current_tool_java_minimum": 21,
+      "recorded_roles": 1,
+      "pins": 83,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "loader": "net.neoforged:neoforge:20.3.8-beta",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 17,
+      "current_tool_java_minimum": 21,
+      "recorded_roles": 1,
+      "pins": 83,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "loader": "net.neoforged:neoforge:20.4.231",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 17,
+      "current_tool_java_minimum": 21,
+      "recorded_roles": 4,
+      "pins": 81,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "loader": "net.neoforged:neoforge:21.0.143",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 21,
+      "current_tool_java_minimum": 21,
+      "recorded_roles": 4,
+      "pins": 86,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "loader": "net.neoforged:neoforge:21.1.206",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 21,
+      "current_tool_java_minimum": 21,
+      "recorded_roles": 11,
+      "pins": 93,
+      "supplemental_roles": 8
+    },
+    {
+      "target_id": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "loader": "net.neoforged:neoforge:26.1.2.72",
+      "loader_kind": "neogradle_userdev",
+      "java_release": 25,
+      "current_tool_java_minimum": 25,
+      "recorded_roles": 8,
+      "pins": 80,
+      "supplemental_roles": 9
+    }
+  ],
+  "matrix_limits": [
+    "The current native tool JVM minimum is an executor policy, not a change to released Java compilation target.",
+    "Every original schema-2 recipe has no JDK pin catalog. SDK selection must be reported separately and must not manufacture a schema-4 dependency profile.",
+    "Target 1.21.0 deliberately maps actual Minecraft version 1.21. Selected dependency/java-toolchain output paths use 1.21 while properties input lives under versions/1.21.0; never derive these by key spelling.",
+    "26.1.2 input promotion requires actual-byte evidence against the original weak Mekanism pin. The existing identity proof is evidence, not permission to acquire/build through an unsealed source recipe.",
+    "All ten targets and both release/dev contexts require preparation tests. No native compilation or launch has been proven by this review."
+  ],
+  "smallest_coherent_preparation_slice": {
+    "proposal_only": true,
+    "prospective_new_module": "platform/cli/sfm-propagate-changes/src/source_projection/catalog_owned_project.rs",
+    "proposed_types": [
+      {
+        "name": "SelectedCatalogProjectInputs",
+        "status": "proposed_not_existing",
+        "responsibility": "Private immutable collected snapshot: exact loaded catalog key/context, metadata, inventory, selected artifacts, build target and hashes. No output writes, dependency acquisition, Java process or cache creation."
+      },
+      {
+        "name": "CatalogOwnedProject",
+        "status": "proposed_not_existing",
+        "responsibility": "Private verified current handle created only after guarded root resolution, named Check, exact owner/manifest membership, source/output byte validation, complete generated-src inventory sealing and final snapshot recheck."
+      },
+      {
+        "name": "NativeDependencySelection",
+        "status": "proposed_not_existing",
+        "variants": [
+          "DeclaredProfile(profile_id)",
+          "FrozenReleasedRecipe(recipe_id)"
+        ],
+        "responsibility": "Do not reinterpret a recipe as rust-toolchain or invent a declaration. Keep dependency selection separate from environment, exact projection key, feature context and actual paths."
+      }
+    ],
+    "reuse_from_native_target": [
+      "preflight_native_project: CoreCatalog load/context, metadata parsing, discover/select/collect",
+      "check_owned_files",
+      "recheck_generation_snapshot",
+      "portable_path",
+      "inspect_cache_ancestors"
+    ],
+    "generation_policy_owner": "Extract/share the existing core_project_cli::project_report GenerationPolicy::BuildRun policy. Release remains Check-only; only declared ignored development roots may Apply. Native compatibility/options must be validated before any development generation, cache or JDK work.",
+    "order": [
+      "Load safe exact catalog key and collected core inputs; refuse conflicting selectors, refresh, arbitrary artifact sources/local cache fallback and incompatible dependency selection.",
+      "Review the exact selected schema-2 lock and its 13 authored role inputs before generation. Each recipe input must bind a selected artifact by source_path and selected output bytes.",
+      "Prepare current output through the shared named policy, not copied Apply logic. Verify current owner/provenance and reject unowned physical src members before any external work.",
+      "Recheck snapshot and bind actual current project lock/output bytes to the reviewed adapter. Supply only bounded original-pin exact-byte evidence for weak identities; no source build or network discovery.",
+      "Promote ReleasedNativeInputs and PreparedDependencyInputs and retain one Arc with a named receipt. Derive cache identity, but do not create cache directories or resolve a JDK in this preparation slice."
+    ],
+    "existing_api_consumption": {
+      "released": [
+        "ReleasedNativeRequest { target_id, minecraft_version, java_major, recipe_id, refresh }",
+        "review_released_native_inputs(request, raw_lock, role_input_bytes)",
+        "ReleasedNativeInputReview::exact_byte_requirements / require_exact_bytes",
+        "ReleasedNativeInputs::receipt / raw_source_lock_bytes / dependencies / source_excludes"
+      ],
+      "prepared": [
+        "PreparedDependencyInputs::from_released",
+        "receipt / original_lock / raw_source_lock_bytes",
+        "coordinate / exact_url / artifact_pin",
+        "dependencies / source_exclusions",
+        "verify_source_lock_bytes / frozen_runtime_rows_for"
+      ],
+      "named": [
+        "CoreCatalog::load / context",
+        "CatalogProjectionIdentity::from_catalog",
+        "catalog_projection_root",
+        "sync_catalog_projection(..., SyncMode::Check)",
+        "NativeProjectTarget::recheck semantics"
+      ],
+      "missing_metadata_bridge": "PreparedDependencyReceipt omits the released direct version-JSON descriptor. Retain the verified ReleasedNativeReceipt alongside the prepared Arc or add a minimal immutable accessor; do not hard-code artifact index 1 at a consumer."
+    }
+  },
+  "engine_integration_slice_after_preparation": {
+    "proposal_only": true,
+    "target_model": "Introduce a genuine Worktree-versus-Named project selection/plan identity. BranchName is present only for a worktree target; a named target carries exact catalog key, environment, context and dependency selection. A display label is not a BranchName.",
+    "options": {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/build_options.rs",
+        "platform/cli/sfm-propagate-changes/src/cli/jar/jar_build_options_args.rs"
+      ],
+      "requirement": "Normalize exactly one --branch or --projection selector, with a repository root for named selection and an explicit compatible dependency selection. Preserve branch-only CLI behavior. All BuildOptions struct initializers currently occur in JarBuildOptionsArgs::into_options and engine_tests::test_build_options.",
+      "execution_controls": "Keep refresh, local artifact fallback, explicit artifact sources and wait/parallel/dry-run controls separate from the project identity. Native named strict mode rejects the first three before effects. Dry-run is not a no-I/O plan today."
+    },
+    "planner": {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_model.rs"
+      ],
+      "functions": [
+        "resolve_build_targets",
+        "create_plan_for_target",
+        "resolve_loader_toolchain",
+        "project_v3_dependencies",
+        "add_transitive_runtime_dependency_plans"
+      ],
+      "requirement": "Extract the shared planner prelude instead of constructing a WorktreeTarget for a projection. Named path uses verified project root, recipe loader identity and ordered prepared rows. Preserve requested/resolved notation, bundle/treatment/Data policy and source exclusions without the v3 sort/dedup. Use the exact prepared global runtime root sequence rather than per-root POM calls.",
+      "resolver": "Use Resolver::new_prepared with the same Arc. Legacy constructor branches retain existing behavior. The reviewed resolver proposal lives in target/core-native-resolver-stage-v1/resolve.rs; its promotion/testing is a separate parent-owned checkpoint.",
+      "before_effects": "Exact project ownership/source membership/options/recipe verification must complete before the current plan_create_cache_dirs section or Java resolution. Refuse missing external transport closure instead of returning a fabricated complete BuildPlan.",
+      "serialization": "BuildPlan/report JSON must distinguish named owner/dependency receipt from legacy branch fields. Preserve legacy branch report shape or introduce an explicit versioned named report; never populate branch_name with a projection key.",
+      "immutable_plan": "Store the named handle/prepared Arc as internal non-serialized state and carry portable receipts as evidence. Recheck inputs after acquisition, before compilation/packaging, and immediately before launch."
+    },
+    "factories": [
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+        "function": "create_plan_for_target",
+        "count": 1
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+        "functions": [
+          "execute_dependency_deobf",
+          "execute_project_compile",
+          "execute_package_and_reobfuscate"
+        ],
+        "count": 3
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+        "functions": [
+          "execute_run",
+          "execute_junit_tests locked_resolver",
+          "execute_junit_tests test_resolver"
+        ],
+        "count": 3
+      }
+    ],
+    "factory_rule": "One plan resolver factory chooses strict prepared or unchanged legacy construction. Strict JUnit must not inherit today's test resolver with None/None locks.",
+    "reader_switches": [
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_sources.rs",
+        "function": "resolve_antlr_classpath"
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_sources.rs",
+        "function": "resolve_compile_dependencies"
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+        "function": "resolve_test_dependency_classpath"
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+        "function": "resolve_junit_console_standalone"
+      },
+      {
+        "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+        "function": "resolve_run_plain_dependencies"
+      }
+    ],
+    "reader_rule": "Use prepared ordered rows and bound source exclusions for strict plans; only legacy plans reread/project maintained schemas. Recheck current raw project lock against the prepared bytes rather than parsing it through read_current.",
+    "writer": {
+      "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_mappings_compare_artifacts.rs",
+      "function": "write_artifact_lockfile_with_extra_cache_paths",
+      "requirement": "At function entry, strict plan rejects refresh, rechecks named inputs and compares bounded current raw lock bytes with PreparedDependencyInputs. Automatic recording then returns without any lock construction, migration, sorting, mkdir or write. Explicit refresh is unsupported. Keep legacy writer behavior unchanged.",
+      "secondary_guard": "build_artifact_lockfile must not be used directly for an immutable named plan; refuse it rather than manufacture a replacement source lock."
+    }
+  },
+  "cache_and_java_separation": {
+    "build_outputs": "Use the named receipt cache identity under the guarded actual projection build root. Derived Java/project/MCP/NFRT outputs and state must not share a cache with another projection key/environment/context.",
+    "dependency_cache": "Verified immutable artifacts can reuse the existing common cache under original-pin hash checks. Shared artifact cache identity is not permission to share compiled output or launch state. Trusted common-root path policy remains a separate acquisition boundary.",
+    "java": "The recipe's Java release target is immutable. Resolve the tool JVM separately using the existing explicit/existing-runtime policy; report its actual version/selection and bind executable/compiler identity to compiled execution cache state. No schema-2 JDK acquisition profile may be invented. Existing schema-4 pin policy remains an explicit separate route.",
+    "native_vs_game_runtime": "Current NeoGradle executor requires Java >=21 even for release-17 source targets. A future separate game runtime can use the recipe's exact major, but this review does not claim that split is implemented.",
+    "release_files": "Never use compilation/run metadata as authority to rewrite release sources, release lock bytes, generated provenance or another projection's saves."
+  },
+  "reporting_and_run_ownership": {
+    "files": [
+      "platform/cli/sfm-propagate-changes/src/jar_build/engine.rs",
+      "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+      "platform/cli/sfm-propagate-changes/src/jar_build/engine_source_catalog.rs",
+      "platform/cli/sfm-propagate-changes/src/jar_build/game_puppet_preview_artifact_root.rs",
+      "platform/cli/sfm-propagate-changes/src/jar_build/target_artifact_audit_report.rs"
+    ],
+    "target_reports": "TargetExecutionResult, TargetExecutionReport, TargetFailure, TargetJarCompareReport and artifact-audit reports currently carry WorktreeTarget/BranchName. Add exact named owner reporting without silently labeling a projection as a branch.",
+    "lock_diagnostics": "acquire_build_cache_lock must report the actual named key/project/cache and retain existing wait behavior. Context cache identity, not Minecraft version alone, selects the build lock.",
+    "subprocess_labels": "read_launch_stream callers currently clone BranchName. Use a target display identity with the exact named key, while legacy labels remain unchanged.",
+    "repository_vs_project": "Control CLI source lookup and Git revision use the actual SFM repository root. Java sources, resources, run working directory and automation worlds use the verified generated project root. Do not derive Java source paths as repo_root/platform/minecraft/src for named plans.",
+    "puppet_evidence": "game_puppet_preview_source_identity currently hashes worktree/platform/minecraft/src. Named previews must hash the bound selected/generated file receipt plus tool sources and retain exact context/lock/JDK identity. Preview output roots and save cleanup must remain projection-local.",
+    "static_catalog": "SourceCatalogCommand::new_project exists, but it only canonicalizes a path and reads a manifest. A named native invocation must require the shared current owner/membership handle, not treat arbitrary project-root inspection as native build authority.",
+    "jar_compare": "Use exact Gradle/native output paths from the named project/context and report their owning key. Release parity remains a later real source/JAR comparison, not input preflight success."
+  },
+  "external_effect_refusal_gates": [
+    {
+      "gate": "minecraft_direct_version_json_and_children",
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_model.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_sources.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs"
+      ],
+      "refusal": "Strict named preparation/planning must not call today's live VERSION_MANIFEST_URL route or direct resolver.client helpers. Seal the frozen direct JSON URL/hash and its returned child client/server/mapping/library/asset-index checksums before enabling acquisition. MinecraftPlan currently retains URLs but drops several child hashes."
+    },
+    {
+      "gate": "external_nfrt",
+      "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+      "function": "execute_neoform_userdev",
+      "refusal": "Strict named execution refuses before spawning NFRT until a full frozen manifest and refusal-capable external boundary replace warn-on-manifest-miss/live-repository fallback."
+    },
+    {
+      "gate": "source_build_cache_miss",
+      "file": "platform/cli/sfm-propagate-changes/src/jar_build/resolve.rs",
+      "refusal": "Strict cache miss for source-built pins refuses before cache repair/external recipe execution. Existing verified exact bytes may be reused; source reproducibility is not proven."
+    },
+    {
+      "gate": "junit_per_root_pom_closure",
+      "file": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+      "function": "resolve_dependency_artifact_closure",
+      "refusal": "The prepared global runtime root sequence excludes testImplementation/testRuntimeOnly. It cannot be used as a fabricated per-test closure. Add a separately reviewed frozen test closure or refuse strict test expansion before POM/network work."
+    }
+  ],
+  "proposed_validation": [
+    "All 20 actual named contexts: safe exact owner/prepared recipe/source-lock identity with correct target/Minecraft alias and no cache writes. Weak 26.1.2 cases include honest unavailable/wrong-byte refusal and existing actual-byte proof supplied through a bounded trusted route.",
+    "Refusal before effects: unknown/unsafe key, incompatible recipe/profile, refresh, local/explicit artifact source, edited generated file, edited lock, changed registry/catalog/core metadata/source and source-root reparse.",
+    "Unowned-src regression: append an extra Java/resource/ANTLR file without altering provenance; strict preparation must refuse before any mocked JDK/cache/acquisition callback. Separately witnessed codegen is confined to build output.",
+    "Role binding regression: exact authored hash with wrong selected source_path/output must refuse. Target 1.21.0 fixture verifies real output aliases rather than inferred filenames.",
+    "Engine bridge regression: shared Arc across seven factories, five readers use prepared rows, frozen writer callback count stays zero and source bytes remain identical, and legacy branch construction/reporting/cache behavior stays unchanged.",
+    "External-boundary regression: unsealed version metadata/NFRT/source-build/test-POM cases refuse before acquisition, process spawn or world cleanup. Native compile/run acceptance remains pending until those boundaries are implemented and tested."
+  ],
+  "next_bounded_patch_request": "Review and authorize shared selected/verified catalog-owned preparation and explicit FrozenReleasedRecipe selection first. No engine or existing registered module edits were made during this review; a staged patch can follow that ownership decision.",
+  "source_references": [
+    "docs/tasks/sfm-core-released-native-adapter-review.json",
+    "docs/tasks/sfm-core-native-resolver-proposal.json",
+    "docs/tasks/sfm-core-native-artifact-identity-proof.json",
+    "platform/cli/sfm-propagate-changes/src/cli/source/core_project_cli.rs",
+    "platform/minecraft/core-liquid-template/project-inputs.json"
+  ]
+}

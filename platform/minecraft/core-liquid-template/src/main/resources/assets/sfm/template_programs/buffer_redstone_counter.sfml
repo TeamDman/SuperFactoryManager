@@ -1,0 +1,25 @@
+NAME "Buffer redstone counter (experimental)"
+
+-- Connect three resource buffers to the manager and label them donor, counter,
+-- and sink. Put a comparator against counter, pointing away from the buffer.
+-- Seed donor with 2 units; leave counter and sink empty. For a developer world:
+-- /setblock <x> <y> <z> sfm:buffer{redstone:2}
+-- Place the other two with /setblock <x> <y> <z> sfm:buffer
+-- Buffer items/recipes are still experimental; commands can place the block.
+
+EVERY 20 TICKS DO
+    IF donor HAS GT 0 redstone:: THEN
+        INPUT 1 redstone:: FROM donor
+        OUTPUT redstone:: TO counter
+    ELSE
+        INPUT 1 redstone:: FROM counter
+        OUTPUT redstone:: TO sink
+    END
+END
+
+-- Counter follows 0 -> 1 -> 2 -> 1 -> 0, then stays at 0.
+-- Transfers conserve stored units. World signals cannot supply or accept units.
+-- HAS reads the exact stored count, including quantities above 15.
+-- A comparator emits min(count, 15); an empty counter emits 0.
+-- Redstone counts persist when the world is saved and loaded.
+-- redstone:: units are separate from minecraft:redstone items.

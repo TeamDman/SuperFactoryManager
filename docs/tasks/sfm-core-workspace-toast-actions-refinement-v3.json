@@ -1,0 +1,689 @@
+{
+  "schema": "sfm:core_workspace_toast_actions_refinement@3",
+  "status": "ignored_only_sources_and_prepared_tests_pending_root_review_promotion_and_execution",
+  "scope": "One exact captured-path panelInstance accessor consumer plus five registrar conjunction encodings; source-contract refinement only.",
+  "stage_root": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v3",
+  "previous_receipt": "docs/tasks/sfm-core-workspace-toast-actions-refinement-v2.json",
+  "source_rules_changes": [],
+  "new_definitions": [],
+  "support_changes": [],
+  "prerequisite_changes": [],
+  "scanner_changes": [],
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "findings_resolved": {
+    "missing_accessor": {
+      "consumer": "SFMToastPathAction.execute async path reveal callback",
+      "source_anchor": "workspace.panelInstance(panelId) == panel",
+      "profile": "mixed_N_PATH",
+      "v2_host_accessor_present": false,
+      "v3_host_accessor_present": true
+    },
+    "unsupported_conjunction": {
+      "actual_scanner": "platform/cli/sfm-propagate-changes/src/source_projection/directive_scanner.rs",
+      "validator": "validate_condition_alternatives",
+      "policy": "Only or alternatives are supported; and is rejected even in inactive branches.",
+      "affected_v2_registrar_members": [
+        "COPY_TOAST_PATH",
+        "OPEN_TOAST_PATH_TEXT",
+        "OPEN_TOAST_PATH_EXPLORER",
+        "COPY_TOAST",
+        "COPY_TOAST_DETAILS"
+      ],
+      "resolution": "Nested owner then workspace_notifications guards, with no scanner or Java body change."
+    }
+  },
+  "accessor_edit": {
+    "id": "panelInstance_exact_captured_path_consumer",
+    "before": "{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening %}\n\n    public @Nullable SFMScreenPanel panelInstance(SFMWorkspacePanelId panelId) {\n        return layout.panel(panelId);\n    }\n{% endif %}\n",
+    "after": "{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_toast_path_actions %}\n{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_notifications %}\n\n    public @Nullable SFMScreenPanel panelInstance(SFMWorkspacePanelId panelId) {\n        return layout.panel(panelId);\n    }\n{% endif %}\n{% endif %}\n",
+    "intended_predicate": "F OR A OR R OR (PATH AND NOTIFICATIONS)",
+    "supported_encoding": "(F OR A OR R OR PATH) AND (F OR A OR R OR NOTIFICATIONS), via two nested OR-only guards.",
+    "owner_names": [
+      "workspace_focus_tracking",
+      "workspace_panel_actions",
+      "workspace_panel_reopening",
+      "workspace_toast_path_actions",
+      "workspace_notifications"
+    ],
+    "java_body_unchanged": true,
+    "other_host_members_changed": false
+  },
+  "registrar_edits": [
+    {
+      "id": "COPY_TOAST_PATH",
+      "before": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> COPY_TOAST_PATH =\n            REGISTERER.register(\"toast/path/copy\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.COPY));\n{% endif %}\n",
+      "after": "{% if features.workspace_toast_path_actions %}\n{% if features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> COPY_TOAST_PATH =\n            REGISTERER.register(\"toast/path/copy\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.COPY));\n{% endif %}\n{% endif %}\n"
+    },
+    {
+      "id": "OPEN_TOAST_PATH_TEXT",
+      "before": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_TEXT =\n            REGISTERER.register(\"toast/path/text/open\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_TEXT));\n{% endif %}\n",
+      "after": "{% if features.workspace_toast_path_actions %}\n{% if features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_TEXT =\n            REGISTERER.register(\"toast/path/text/open\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_TEXT));\n{% endif %}\n{% endif %}\n"
+    },
+    {
+      "id": "OPEN_TOAST_PATH_EXPLORER",
+      "before": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_EXPLORER =\n            REGISTERER.register(\"toast/path/explorer/open\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_EXPLORER));\n\n{% endif %}\n",
+      "after": "{% if features.workspace_toast_path_actions %}\n{% if features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_EXPLORER =\n            REGISTERER.register(\"toast/path/explorer/open\", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_EXPLORER));\n\n{% endif %}\n{% endif %}\n"
+    },
+    {
+      "id": "COPY_TOAST",
+      "before": "{% if features.workspace_toast_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST = REGISTERER.register(\n            \"toast/copy\",\n            () -> new SFMToastAction(SFMToastAction.Operation.COPY)\n    );\n\n{% endif %}\n",
+      "after": "{% if features.workspace_toast_actions %}\n{% if features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST = REGISTERER.register(\n            \"toast/copy\",\n            () -> new SFMToastAction(SFMToastAction.Operation.COPY)\n    );\n\n{% endif %}\n{% endif %}\n"
+    },
+    {
+      "id": "COPY_TOAST_DETAILS",
+      "before": "{% if features.workspace_toast_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST_DETAILS = REGISTERER.register(\n            \"toast/details/copy\", () -> new SFMToastAction(SFMToastAction.Operation.COPY_DETAILS));\n\n{% endif %}\n",
+      "after": "{% if features.workspace_toast_actions %}\n{% if features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST_DETAILS = REGISTERER.register(\n            \"toast/details/copy\", () -> new SFMToastAction(SFMToastAction.Operation.COPY_DETAILS));\n\n{% endif %}\n{% endif %}\n"
+    }
+  ],
+  "files": [
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v3/SFMScreenMultiplexer.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+      "bytes": 161594,
+      "sha256": "sha256:258b0a9e5fef738d839c3ae5cb79d864e222b49b238b6921ab441bc91ef7d800",
+      "v2_identity": {
+        "bytes": 161388,
+        "sha256": "sha256:242f4706e7cbd20c3f153c0aae214eb12c0286a948b3832bfdfee534ab1097bc"
+      },
+      "bounded_region_edits": 1
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v3/SFMCommandPaletteActions.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMCommandPaletteActions.java",
+      "bytes": 32247,
+      "sha256": "sha256:16cf4557b043f1221c261024113098eb9f17b82c95a644025c221851730eac6a",
+      "v2_identity": {
+        "bytes": 32162,
+        "sha256": "sha256:57c2d33c1b40378761e8aeaafbc586caa6986368da55fcccff24223d9862734d"
+      },
+      "bounded_region_edits": 5
+    }
+  ],
+  "unchanged_java_body_proof": {
+    "host": {
+      "bytes": 125534,
+      "sha256": "sha256:c2b12961774dae452cbf0c7dc191cab074aaf15dbef5848d4dce624cf68ae1cf"
+    },
+    "registrar": {
+      "bytes": 26094,
+      "sha256": "sha256:f0ae53ebf47252abb081b44e98ed69c927520a539a800aaa62ab0b3961738e5d"
+    }
+  },
+  "reused_v2_sources": [
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastAction.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastAction.java",
+      "stage_bytes": 5360,
+      "stage_sha256": "sha256:743bbe69a02501f662e06ce2e77eea66e986bae1197db4b09a66e209bc622914",
+      "original": {
+        "git_blob": "e6701a5c3d10ee843fdc79922148f67452dc76ff",
+        "bytes": 5036,
+        "sha256": "sha256:b41ca97c88eee1376e9972d6ae1971cad7680a819855db8b5976db4e1ac985e6",
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "final_lf": true,
+        "bom": false,
+        "edits": 6
+      },
+      "normalization": "none"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastPathAction.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+      "stage_bytes": 7438,
+      "stage_sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a",
+      "original": {
+        "git_blob": "e6b7855e2c2f980889fc4e8e320df4617b47145c",
+        "bytes": 7438,
+        "sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a",
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "final_lf": true,
+        "bom": false,
+        "edits": 0
+      },
+      "normalization": "none"
+    }
+  ],
+  "immutable_references": [
+    {
+      "path": "docs/tasks/sfm-core-workspace-host-slice.json",
+      "bytes": 255693,
+      "sha256": "sha256:dd4def0a8b762b49cec2f5e9d3db9307afa8e1548930ac1210e22d35600bf882"
+    },
+    {
+      "path": "docs/tasks/sfm-core-echo-palette-slice.json",
+      "bytes": 88341,
+      "sha256": "sha256:fb705a4cdd818579f2e28e12d36c684efe6f6778a80f25b4c3688abb357da1cb"
+    },
+    {
+      "path": "docs/tasks/sfm-core-workspace-toast-actions-refinement-v2.json",
+      "bytes": 30973,
+      "sha256": "sha256:98b018c14be06b736e7dbf5b29ab336c2d286cb260eda368e564aad019e33c2a"
+    }
+  ],
+  "preserved_v2_artifacts": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMScreenMultiplexer.java",
+      "bytes": 161388,
+      "sha256": "sha256:242f4706e7cbd20c3f153c0aae214eb12c0286a948b3832bfdfee534ab1097bc"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMCommandPaletteActions.java",
+      "bytes": 32162,
+      "sha256": "sha256:57c2d33c1b40378761e8aeaafbc586caa6986368da55fcccff24223d9862734d"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastAction.java",
+      "bytes": 5360,
+      "sha256": "sha256:743bbe69a02501f662e06ce2e77eea66e986bae1197db4b09a66e209bc622914"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastPathAction.java",
+      "bytes": 7438,
+      "sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_workspace_host_slice_tests.rs",
+      "bytes": 39169,
+      "sha256": "sha256:190240feee22b062cd66fcc3cadc873e823266c6932ef39463875f22d3c088ea"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_echo_palette_slice_tests.rs",
+      "bytes": 44859,
+      "sha256": "sha256:139a10e5fad6ed807bea8c36829aaa1368e4ca01d240f940c28928a8e0f0fbd2"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_workspace_toast_actions_slice_tests.rs",
+      "bytes": 13329,
+      "sha256": "sha256:bf5671c2265a15a45d7ca69bd14e1e2cd490912cdb4ce6d17f5cf5c4633edf6c"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/source-refinement.patch",
+      "bytes": 6611,
+      "sha256": "sha256:6656208f42db5b7e33169be04b89d9f28f67121127fc75d7358ce87dea633da7"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/existing-tests-refinement.patch",
+      "bytes": 19161,
+      "sha256": "sha256:d72fb02695e18c886d34763efdb8faa9590d24be9a8a3274226e113364e86ed4"
+    }
+  ],
+  "profile_evidence": {
+    "profiles_unchanged": 106,
+    "immutable_v1_golden_rows": 318,
+    "v2_from_v1_changed_rows": [
+      {
+        "profile": "only_workspace_toast_actions",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 16287,
+        "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+        "current_bytes": 17260,
+        "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+      },
+      {
+        "profile": "only_workspace_toast_path_actions",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 16287,
+        "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+        "current_bytes": 17260,
+        "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+      },
+      {
+        "profile": "full_without_workspace_notifications",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 81554,
+        "old_sha256": "sha256:bfca296c534fb4aa8ce30e26204ae0f37b61e0c36f608d0c9e2f5f92bdc247fa",
+        "current_bytes": 82527,
+        "current_sha256": "sha256:4b104a5639adf140934f3279ec871896da498cba26171f0cabfd2df8c14a9890"
+      }
+    ],
+    "v3_from_v2_changed_rows": [
+      {
+        "profile": "mixed_N_PATH",
+        "name": "SFMScreenMultiplexer",
+        "v2": {
+          "bytes": 37129,
+          "sha256": "sha256:03250d5c06aeb173e56424ddfe5efb8613d03dc24263e76bd2f2c2c0a77b4162"
+        },
+        "v3": {
+          "bytes": 37255,
+          "sha256": "sha256:d22175feac3d029a51066ae47a47474f653b57e75f3e3acc870c487c667c4bd7"
+        }
+      }
+    ],
+    "total_v3_from_v1_changed_rows": 4,
+    "additional_v3_host_rows": 1,
+    "additional_v3_d2_comparisons": 2,
+    "previous_and_drop_providers_changed": false,
+    "registrar_v3_from_v2_render_changes": 0,
+    "static_registrar_profiles_checked": 106,
+    "oracle": "independent read-only whole-line directive evaluator; not the production renderer",
+    "historical_v1_host_profiles_verified": 106,
+    "historical_v1_host_mismatches": 0,
+    "full_frozen_host_outputs_changed": false,
+    "production_renderer_executed": false
+  },
+  "truth_table": {
+    "owners": [
+      "workspace_focus_tracking",
+      "workspace_panel_actions",
+      "workspace_panel_reopening",
+      "workspace_toast_path_actions",
+      "workspace_notifications"
+    ],
+    "rows": [
+      {
+        "mask": 0,
+        "enabled": [],
+        "accessor_present": false
+      },
+      {
+        "mask": 1,
+        "enabled": [
+          "workspace_focus_tracking"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 2,
+        "enabled": [
+          "workspace_panel_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 3,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 4,
+        "enabled": [
+          "workspace_panel_reopening"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 5,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_reopening"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 6,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_panel_reopening"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 7,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_panel_reopening"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 8,
+        "enabled": [
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": false
+      },
+      {
+        "mask": 9,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 10,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 11,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 12,
+        "enabled": [
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 13,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 14,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 15,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 16,
+        "enabled": [
+          "workspace_notifications"
+        ],
+        "accessor_present": false
+      },
+      {
+        "mask": 17,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 18,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 19,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 20,
+        "enabled": [
+          "workspace_panel_reopening",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 21,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_reopening",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 22,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 23,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 24,
+        "enabled": [
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 25,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 26,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 27,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 28,
+        "enabled": [
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 29,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 30,
+        "enabled": [
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      },
+      {
+        "mask": 31,
+        "enabled": [
+          "workspace_focus_tracking",
+          "workspace_panel_actions",
+          "workspace_panel_reopening",
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ],
+        "accessor_present": true
+      }
+    ],
+    "static_comparisons": 64,
+    "static_present": 58,
+    "static_absent": 6,
+    "prepared_real_renderer_comparisons": 64,
+    "prepared_catalog_contexts": "Each of 32 five-owner sets per D2 target uses an explicit bounded prerequisite closure, then CoreTestFixture.context validates the actual catalog; no test owner is silently enabled.",
+    "production_renderer_executed": false
+  },
+  "unchanged_membership_contract": {
+    "toast_action": "D2 AND workspace_toast_actions",
+    "path_action": "D2 AND workspace_toast_path_actions AND workspace_notifications",
+    "registrar_copies": "workspace_toast_actions AND workspace_notifications",
+    "registrar_paths": "workspace_toast_path_actions AND workspace_notifications",
+    "queue": "D2 AND (workspace_notifications OR workspace_toast_actions); both owners already require workspace_panels.",
+    "queue_provider_reference": "docs/tasks/sfm-core-workspace-host-providers-slice.json",
+    "scope_limit": "No timer profile gains content capture, clipboard, rendering, captured-path registration or filesystem effect."
+  },
+  "artifacts": {
+    "SFMScreenMultiplexer.java": {
+      "bytes": 161594,
+      "sha256": "sha256:258b0a9e5fef738d839c3ae5cb79d864e222b49b238b6921ab441bc91ef7d800",
+      "line_feed_count": 3658,
+      "carriage_return_count": 0,
+      "test_count": 0
+    },
+    "core_workspace_host_slice_tests.rs": {
+      "bytes": 41979,
+      "sha256": "sha256:136b0d9cf98ad207e37073bc46586e0c5496d819e316c50ec7f6d21d3359725d",
+      "line_feed_count": 1034,
+      "carriage_return_count": 0,
+      "test_count": 9
+    },
+    "core_workspace_toast_actions_slice_tests.rs": {
+      "bytes": 19539,
+      "sha256": "sha256:41f3ba2bd0e774b18a5a58162961c62a60af9510e3683d184c1dc0e76f1a27b7",
+      "line_feed_count": 345,
+      "carriage_return_count": 0,
+      "test_count": 5
+    },
+    "accessor-refinement.patch": {
+      "bytes": 4598,
+      "sha256": "sha256:d82e4c84b7a80b315e8d2ec2ffc573ceacc76b85ae56c924b30d8c5adc7edb05",
+      "line_feed_count": 76,
+      "carriage_return_count": 0,
+      "test_count": 0
+    },
+    "SFMCommandPaletteActions.java": {
+      "bytes": 32247,
+      "sha256": "sha256:16cf4557b043f1221c261024113098eb9f17b82c95a644025c221851730eac6a",
+      "line_feed_count": 759,
+      "carriage_return_count": 0,
+      "test_count": 0
+    },
+    "core_echo_palette_slice_tests.rs": {
+      "bytes": 49030,
+      "sha256": "sha256:505c490bcd9df7f9b600c436f6d2944ca58191d1e3e1b8390f03ac4335b19753",
+      "line_feed_count": 1126,
+      "carriage_return_count": 0,
+      "test_count": 8
+    },
+    "tests-refinement.patch": {
+      "bytes": 23993,
+      "sha256": "sha256:a1eac1b1ff3d40d7056848423911ce09eec3fc313b41f5c06fb0b03d81544c5a",
+      "line_feed_count": 321,
+      "carriage_return_count": 0,
+      "test_count": 0
+    }
+  },
+  "tests": {
+    "modules": [
+      "core_workspace_host_slice_tests.rs",
+      "core_echo_palette_slice_tests.rs",
+      "core_workspace_toast_actions_slice_tests.rs"
+    ],
+    "test_count": 22,
+    "host_layers": "Actual selected v3 source reverses one exact bounded accessor region to v2, then the eight v2 edits to v1; all 318 v1 goldens, the three v2 rows and the one additional v3 row are asserted separately on D2.",
+    "registrar_layers": "Actual v3 registrar reverses five exact nested encodings to v2, then the five v2 edits to v1; immutable member owner/order and raw/full output evidence remain separate.",
+    "added_coverage": "All 32 independent five-owner sets on both D2 targets, path-class/accessor/registrar consistency, action-plus-notification without path positive.",
+    "source_route": "Actual CoreTestFixture selected core files only; ignored stage and Git blobs are not fallback production inputs.",
+    "executed": false,
+    "formatted": false,
+    "patch_reference": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v3/tests-refinement.patch"
+  },
+  "validation": {
+    "completed": [
+      "Read-only offline Git tree revalidation of all twenty contexts for three host, two Echo and two action files: 140 cells, 54 present, 86 absent, zero mismatches.",
+      "Exact binary Git-object byte/SHA256 and CR/LF/final-LF checks for sixteen unique original host/Echo/action blobs.",
+      "Independent v2 8/5/6 exact unique-anchor reversal proof and immutable v1/v2 receipt/stage identity checks.",
+      "Independent static reconstruction of all 106 immutable v1 host goldens, three changed v2 rows and one changed v3 row.",
+      "Exact v3-to-v2 source reversal and equal Java bytes after removing only whole-line directives.",
+      "All 64 static five-owner truth cells and absence of unsupported conjunction directives in physical v3 sources.",
+      "Ignored v3 stage confirmed with Git check-ignore; prepared tests and patches pinned.",
+      "Prepared source and test delta patches from immutable v2; root must promote complete v3 files rather than apply these deltas to an unestablished v2 baseline."
+    ],
+    "cargo": false,
+    "cli": false,
+    "java": false,
+    "gradle": false,
+    "native": false,
+    "network": false,
+    "live_source_or_metadata_writes": 0,
+    "registered_rust_writes": 0,
+    "scanner_writes": 0,
+    "immutable_artifact_writes": 0,
+    "production_renderer": false,
+    "java_compile_acceptance": false,
+    "runtime_acceptance": false
+  },
+  "promotion_prerequisites": [
+    "Root-reviewed atomic promotion must first establish the three host-v1 sources/rules and five reviewed host-v1 definitions: workspace_directional_opening, workspace_focus_tracking, workspace_panel_entry_controls, workspace_panel_move_gestures and workspace_notifications. These are not currently registered live definitions merely because a receipt names them.",
+    "Promote the eight reviewed host-provider sources/rules including the pure queue, plus the two v2 companion action source rules and their exact sources.",
+    "Use these v3 host/registrar bodies and host/Echo/toast tests instead of the respective v2 files; reuse v2 SFMToastAction and raw SFMToastPathAction unchanged.",
+    "Keep every v1/v2 ledger, stage and raw/golden witness immutable; register prepared tests only after actual sources/rules/definitions are present.",
+    "Run the production renderer/source tests only after the frozen native boundary permits it; static oracle results are not executed renderer acceptance."
+  ],
+  "unresolved_boundaries": [
+    "The accessor correction removes one known host-member omission. Other path-action providers such as OpenPanelAction and SFMExplorerRuntime/panel/executor dependencies still require an independent Java closure review.",
+    "No feature-on Java compilation, parser/client discovery or exhaustive Java type checking has been executed for this cohort.",
+    "Stale toast IDs, timer callbacks/lifecycles, clipboard availability, path resolver authorization, async reveal and UI behavior remain runtime gates.",
+    "No existing feature support or prerequisite is broadened to obtain those effects; source presence and static marker checks are not permission or runtime success."
+  ]
+}

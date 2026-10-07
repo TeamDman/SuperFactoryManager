@@ -1,0 +1,1687 @@
+{
+  "schema": "sfm:core-client-registration-slice@1",
+  "status": "two_ignored_staged_templates_and_unregistered_post_promotion_tests",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": "SFM_and_SFMClientRegistrations_only",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "source_strategy": "Two authored shared class bodies with grouped Minecraft-version API/import/call choices; no runtime historical lookup, environment selector, whole development dispatch or new client-bootstrap umbrella.",
+  "normalization": {
+    "policy": "none",
+    "unique_raw_blobs": 19,
+    "all_strict_utf8": true,
+    "all_raw_lf": true,
+    "all_existing_final_lf": true,
+    "bytes_normalized": 0,
+    "token_edits": false,
+    "whitespace_edits": false
+  },
+  "inputs": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-client-registration-stage-v1/SFM.java",
+      "source_bytes": 16396,
+      "source_sha256": "sha256:ca54cff14668e28ac0ad872f1b94e25068bf2b5dd23e4556e328eee99c773d45",
+      "lf_count": 219,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "witnesses": {
+        "dev/1.19.2": "6406a80b03e152fb7623a85b3440fc1c89b8ad64",
+        "dev/1.19.4": "2cf8c7dd945f92669b28b2f17becf2d05bbc2d3b",
+        "dev/1.20": "e8e0292965dbbd3828f13cc17aadf2fa697cca4d",
+        "dev/1.20.1": "e8e0292965dbbd3828f13cc17aadf2fa697cca4d",
+        "dev/1.20.2": "2962338b95949b93e460b1e182f333cd4489007b",
+        "dev/1.20.3": "2962338b95949b93e460b1e182f333cd4489007b",
+        "dev/1.20.4": "56b91be1759a28f4ad093a370b4f6f9f9c051c27",
+        "dev/1.21.0": "b4756abd5eebe7862a745458c22c579cb8bf3080",
+        "dev/1.21.1": "fc23bd2b9637ae35f65e94e7e988107abe59effb",
+        "dev/26.1.2": "596cd22da4cd2e737394ae2246107c6c04fdc35a",
+        "release/1.19.2": "6520ceec4ec97a4ffcc0b185f49eb62d960acdf9",
+        "release/1.19.4": "6520ceec4ec97a4ffcc0b185f49eb62d960acdf9",
+        "release/1.20": "82258c4b7d37ffe5a41bb142ad39b5a024cd2a52",
+        "release/1.20.1": "82258c4b7d37ffe5a41bb142ad39b5a024cd2a52",
+        "release/1.20.2": "bd82ab073fc6d6842db251473514f4bc259ca326",
+        "release/1.20.3": "bd82ab073fc6d6842db251473514f4bc259ca326",
+        "release/1.20.4": "9d028832f73e68cc2e29bfec2bf9da2ef94fa0de",
+        "release/1.21.0": "0140f70be0ae1a680bc3bb3aa99434ba4fd81cef",
+        "release/1.21.1": "0140f70be0ae1a680bc3bb3aa99434ba4fd81cef",
+        "release/26.1.2": "7d5ea7ab90ff17cd5e4d0af8d34b42c661299174"
+      },
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/SFM.java",
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-client-registration-stage-v1/SFMClientRegistrations.java",
+      "source_bytes": 11404,
+      "source_sha256": "sha256:54cf007cb986311b9a831aaee9ad91612202b36cf23a1b8ac9a7a5824976bdfb",
+      "lf_count": 336,
+      "membership": "actual_client_registration_owner_union",
+      "witnesses": {
+        "dev/1.19.2": "d7f6e317a66ad89d2b871c2dd4ebbc05f350b07a",
+        "dev/1.19.4": "53ab744eb88feca2ae09e78acab5af151af00537",
+        "dev/1.20": "d450476334bcd5135c05347ac2af12321204e84e",
+        "dev/1.20.1": "d450476334bcd5135c05347ac2af12321204e84e",
+        "dev/1.20.2": "218f27cc371e6b0dbc8ff29c0a2f00f45e40952d",
+        "dev/1.20.3": "218f27cc371e6b0dbc8ff29c0a2f00f45e40952d",
+        "dev/1.20.4": "218f27cc371e6b0dbc8ff29c0a2f00f45e40952d",
+        "dev/1.21.0": "0c3fdb54b795885e0b32e95a74eca3a9185cee24",
+        "dev/1.21.1": "0c3fdb54b795885e0b32e95a74eca3a9185cee24",
+        "dev/26.1.2": "0c3fdb54b795885e0b32e95a74eca3a9185cee24",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+      "cr_count": 0,
+      "final_lf": true
+    }
+  ],
+  "client_registration_owner_union": [
+    "canvas_text_editor",
+    "client_actions",
+    "client_manager_gui",
+    "client_overlay_scenes",
+    "client_program_consent",
+    "client_program_reads",
+    "command_history",
+    "context_actions",
+    "developer_tools",
+    "document_history",
+    "explorer_compaction",
+    "explorer_search",
+    "file_explorer",
+    "icon_rules",
+    "java_symbols",
+    "keyboard_profiles",
+    "manager_editor_actions",
+    "multiplayer_packets",
+    "packet_actions",
+    "registry_explorer",
+    "release_review",
+    "review_sessions",
+    "route_comparison",
+    "spatial_coverage",
+    "tooltip_mode_override",
+    "touch_display_terminal_mount",
+    "trajectory_panels",
+    "workspace_counterfactuals",
+    "workspace_lifecycle",
+    "workspace_panels"
+  ],
+  "guard_members": [
+    {
+      "class": "SFMClientActions",
+      "flags": [
+        "client_actions"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMClientActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMClientScreenTypes",
+      "flags": [
+        "workspace_panels"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMClientScreenTypes.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMWorkspaceScreenTypes",
+      "flags": [
+        "workspace_panels"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMWorkspaceScreenTypes.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMRouteComparisonScreenType",
+      "flags": [
+        "workspace_panels",
+        "route_comparison"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": true,
+      "registration_call": "SFMRouteComparisonScreenType.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMDocumentActionTarget",
+      "flags": [
+        "manager_editor_actions"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMDocumentActionTarget.Actions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMDocumentHistoryActions",
+      "flags": [
+        "document_history"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMDocumentHistoryActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMCommandPaletteActions",
+      "flags": [
+        "client_actions"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMCommandPaletteActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMExplorerActions",
+      "flags": [
+        "file_explorer",
+        "registry_explorer",
+        "explorer_search",
+        "explorer_compaction",
+        "icon_rules"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMExplorerActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMOverlayActions",
+      "flags": [
+        "client_overlay_scenes"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMOverlayActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMTooltipModeActions",
+      "flags": [
+        "tooltip_mode_override"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMTooltipModeActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMPacketActions",
+      "flags": [
+        "packet_actions"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMPacketActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMClientProgramConsentActions",
+      "flags": [
+        "client_program_consent"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMClientProgramConsentActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMClientProgramReadActions",
+      "flags": [
+        "client_program_reads"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMClientProgramReadActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMTerminalDisplayActions",
+      "flags": [
+        "touch_display_terminal_mount"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMTerminalDisplayActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMSymbolActions",
+      "flags": [
+        "java_symbols",
+        "context_actions"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMSymbolActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMSpatialActions",
+      "flags": [
+        "spatial_coverage"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMSpatialActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMTrajectoryActions",
+      "flags": [
+        "trajectory_panels"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMTrajectoryActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMReviewActions",
+      "flags": [
+        "review_sessions",
+        "release_review"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMReviewActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMRouteComparisonActions",
+      "flags": [
+        "route_comparison"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMRouteComparisonActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMWorkspaceCounterfactualActions",
+      "flags": [
+        "workspace_counterfactuals"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMWorkspaceCounterfactualActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMWorkspaceLifecycleActions",
+      "flags": [
+        "workspace_lifecycle"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMWorkspaceLifecycleActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMKeyboardUsageSituations",
+      "flags": [
+        "keyboard_profiles"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMKeyboardUsageSituations.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMKeyboardUsageSituationRegistrations",
+      "flags": [
+        "keyboard_profiles"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMKeyboardUsageSituationRegistrations.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    },
+    {
+      "class": "SFMDeveloperActions",
+      "flags": [
+        "developer_tools"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMDeveloperActions.register",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "helper_shell_mixed": true,
+      "note": "This call guards only the shared registrar shell. Its imports, fields and factories remain a separate unresolved compilation-closure task; it cannot wholesale enable every field under this shell owner."
+    },
+    {
+      "class": "SFMCommandHistoryService",
+      "flags": [
+        "command_history"
+      ],
+      "requires_basic_client_actions": true,
+      "all_owner_flags": false,
+      "registration_call": "SFMCommandHistoryService.initializeDefault",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Human action registration additionally needs client_actions; the common functional subsystem can remain selected without exposing a human action facade."
+    },
+    {
+      "class": "SFMMultiplayerClientRuntime",
+      "flags": [
+        "multiplayer_packets"
+      ],
+      "requires_basic_client_actions": false,
+      "all_owner_flags": false,
+      "registration_call": "SFMMultiplayerClientRuntime.initialize",
+      "registration_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "helper_shell_mixed": false,
+      "note": "Guarded by this actual runtime or registry owner, with preserved witnessed version membership."
+    }
+  ],
+  "owner_proposals": [
+    {
+      "id": "canvas_text_editor",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "existing_requires": [],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "client_actions",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "existing_requires": [],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "client_manager_gui",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2"
+      ],
+      "existing_requires": [
+        "client_manager"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "client_overlay_scenes",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "client_program_consent",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "existing_requires": [
+        "sfml_execution_side"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "client_program_reads",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "command_history",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "existing_requires": [
+        "typed_command_palette"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "context_actions",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "existing_requires": [
+        "typed_command_palette",
+        "workspace_panels"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "developer_tools",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "document_history",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "explorer_compaction",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "explorer_search",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "file_explorer",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "icon_rules",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "java_symbols",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "keyboard_profiles",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "existing_requires": [
+        "client_actions"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "manager_editor_actions",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "multiplayer_packets",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "existing_requires": [
+        "client_inbox",
+        "client_frame_language",
+        "client_program_actions"
+      ],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "packet_actions",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "registry_explorer",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "release_review",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "review_sessions",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "route_comparison",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "spatial_coverage",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "tooltip_mode_override",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "touch_display_terminal_mount",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "existing_requires": [],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "trajectory_panels",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "workspace_counterfactuals",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "workspace_lifecycle",
+      "registered_at_review": false,
+      "existing_supported_targets": null,
+      "existing_requires": null,
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "proposal_status": "proposed_member_owner_not_registered_or_feature_on_compilation_accepted",
+      "minimum_member_call_requirement": "client_actions additionally guards human registrar imports/calls",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    },
+    {
+      "id": "workspace_panels",
+      "registered_at_review": true,
+      "existing_supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "existing_requires": [],
+      "bounded_entrypoint_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "proposal_status": "existing_definition_is_not_widened_by_this_slice",
+      "minimum_member_call_requirement": "actual functional owner predicate",
+      "requires_review": "Mixed registrar field/import closure and other subsystem consumers must be reviewed before feature-on compile acceptance. No inferred global prerequisite or broad development owner is registered here."
+    }
+  ],
+  "exact_full_witness_masks": {
+    "1.19.2": [
+      "canvas_text_editor",
+      "client_actions",
+      "client_manager_gui",
+      "client_overlay_scenes",
+      "client_program_consent",
+      "client_program_reads",
+      "command_history",
+      "context_actions",
+      "developer_tools",
+      "document_history",
+      "explorer_compaction",
+      "explorer_search",
+      "file_explorer",
+      "icon_rules",
+      "java_symbols",
+      "keyboard_profiles",
+      "manager_editor_actions",
+      "multiplayer_packets",
+      "packet_actions",
+      "registry_explorer",
+      "release_review",
+      "review_sessions",
+      "route_comparison",
+      "spatial_coverage",
+      "tooltip_mode_override",
+      "touch_display_terminal_mount",
+      "trajectory_panels",
+      "workspace_counterfactuals",
+      "workspace_lifecycle",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.19.4": [
+      "canvas_text_editor",
+      "client_actions",
+      "client_overlay_scenes",
+      "client_program_consent",
+      "client_program_reads",
+      "command_history",
+      "context_actions",
+      "developer_tools",
+      "document_history",
+      "explorer_compaction",
+      "explorer_search",
+      "file_explorer",
+      "icon_rules",
+      "java_symbols",
+      "keyboard_profiles",
+      "manager_editor_actions",
+      "multiplayer_packets",
+      "packet_actions",
+      "registry_explorer",
+      "release_review",
+      "review_sessions",
+      "route_comparison",
+      "spatial_coverage",
+      "tooltip_mode_override",
+      "touch_display_terminal_mount",
+      "trajectory_panels",
+      "workspace_counterfactuals",
+      "workspace_lifecycle",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.20": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.20.1": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.20.2": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.20.3": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.20.4": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.21.0": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "1.21.1": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ],
+    "26.1.2": [
+      "canvas_text_editor",
+      "client_actions",
+      "developer_tools",
+      "manager_editor_actions",
+      "workspace_panels",
+      "computercraft"
+    ]
+  },
+  "metadata_proposal": {
+    "source_rules": {
+      "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "when": {
+            "targets": [],
+            "all_features": [],
+            "any_features": [
+              "canvas_text_editor",
+              "client_actions",
+              "client_manager_gui",
+              "client_overlay_scenes",
+              "client_program_consent",
+              "client_program_reads",
+              "command_history",
+              "context_actions",
+              "developer_tools",
+              "document_history",
+              "explorer_compaction",
+              "explorer_search",
+              "file_explorer",
+              "icon_rules",
+              "java_symbols",
+              "keyboard_profiles",
+              "manager_editor_actions",
+              "multiplayer_packets",
+              "packet_actions",
+              "registry_explorer",
+              "release_review",
+              "review_sessions",
+              "route_comparison",
+              "spatial_coverage",
+              "tooltip_mode_override",
+              "touch_display_terminal_mount",
+              "trajectory_panels",
+              "workspace_counterfactuals",
+              "workspace_lifecycle",
+              "workspace_panels"
+            ],
+            "none_features": []
+          },
+          "template": false
+        }
+      ]
+    },
+    "no_whole_file_rule_for": "src/main/java/ca/teamdman/sfm/SFM.java",
+    "status": "root_review_and_atomic_promotion_required"
+  },
+  "raw_variants": [
+    {
+      "blob": "6406a80b03e152fb7623a85b3440fc1c89b8ad64",
+      "sha256": "sha256:1bb298097135a17083707685ca214ca58cd04e78baed35281de03fea75aa5009",
+      "bytes": 2564,
+      "cr_count": 0,
+      "lf_count": 81,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.19.2"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "2cf8c7dd945f92669b28b2f17becf2d05bbc2d3b",
+      "sha256": "sha256:8589da28a9b50a22435e57c02502f48ed10a17b95ff49d2f8c26114722957603",
+      "bytes": 2476,
+      "cr_count": 0,
+      "lf_count": 78,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.19.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "e8e0292965dbbd3828f13cc17aadf2fa697cca4d",
+      "sha256": "sha256:c84f2b0e4c073f15e4d72b9d995663eb192ac1913af98fc5b68765d48de34023",
+      "bytes": 2516,
+      "cr_count": 0,
+      "lf_count": 80,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.20.1"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "2962338b95949b93e460b1e182f333cd4489007b",
+      "sha256": "sha256:6c1d2f084099e90a88b4d86628574ecb1bf21c9671ac7c686176f29e0f572c21",
+      "bytes": 2390,
+      "cr_count": 0,
+      "lf_count": 79,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.20.3"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "56b91be1759a28f4ad093a370b4f6f9f9c051c27",
+      "sha256": "sha256:8da3956ce52c38a8c319cc6f29f8117f678e0c5b682849aec8c6156b8cf278f1",
+      "bytes": 2248,
+      "cr_count": 0,
+      "lf_count": 74,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.20.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "b4756abd5eebe7862a745458c22c579cb8bf3080",
+      "sha256": "sha256:98d96832ee530dac9633d85242cbd4cb52f06297d6045188b5747003ef9002c6",
+      "bytes": 2183,
+      "cr_count": 0,
+      "lf_count": 74,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.21.0"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "fc23bd2b9637ae35f65e94e7e988107abe59effb",
+      "sha256": "sha256:df4bc76a5a20528bb51e1ecf822b214f73272afb36ea4753083b851a2c9a06b0",
+      "bytes": 2290,
+      "cr_count": 0,
+      "lf_count": 76,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/1.21.1"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "596cd22da4cd2e737394ae2246107c6c04fdc35a",
+      "sha256": "sha256:253c6a2ba27c58326b6ae25415f8003b7b7f86d2c9df0f1e677b9616e877cb34",
+      "bytes": 2182,
+      "cr_count": 0,
+      "lf_count": 73,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "dev/26.1.2"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "6520ceec4ec97a4ffcc0b185f49eb62d960acdf9",
+      "sha256": "sha256:a7271e5891d5c019c1142ed9f22fa0fc0061d0c41aa19a46706f0556624ae02e",
+      "bytes": 2329,
+      "cr_count": 0,
+      "lf_count": 74,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.19.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "82258c4b7d37ffe5a41bb142ad39b5a024cd2a52",
+      "sha256": "sha256:e176aa88ffb70de8c3b854ffe48934151d8c24db6ab50942568e735de891ed70",
+      "bytes": 2369,
+      "cr_count": 0,
+      "lf_count": 76,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.20.1"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "bd82ab073fc6d6842db251473514f4bc259ca326",
+      "sha256": "sha256:3b859324b4ea2a06b30ac5cce8749cf3f3001e04819c7ea0c17681491b275128",
+      "bytes": 2344,
+      "cr_count": 0,
+      "lf_count": 76,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.20.3"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "9d028832f73e68cc2e29bfec2bf9da2ef94fa0de",
+      "sha256": "sha256:66b1e04f38aa6baee61b0fa6c7cb19e4be3c2ed7003da67b68949fbadcdbbcc6",
+      "bytes": 2096,
+      "cr_count": 0,
+      "lf_count": 70,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.20.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "0140f70be0ae1a680bc3bb3aa99434ba4fd81cef",
+      "sha256": "sha256:46c69119ff3173e713f02fff7b2532266e440337c8be64ca72f1c17cf0a2efca",
+      "bytes": 1941,
+      "cr_count": 0,
+      "lf_count": 68,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/1.21.1"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "7d5ea7ab90ff17cd5e4d0af8d34b42c661299174",
+      "sha256": "sha256:8427e927d81ae8a4cab8ccb51e75f645cf343867a3d6b8be8fd846bc5f3e0e65",
+      "bytes": 1940,
+      "cr_count": 0,
+      "lf_count": 67,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/SFM.java",
+          "context": "release/26.1.2"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "d7f6e317a66ad89d2b871c2dd4ebbc05f350b07a",
+      "sha256": "sha256:6535a80ceb9c621247588e35f64b9830af7186e05179b050fc50b0cfe40458c1",
+      "bytes": 4063,
+      "cr_count": 0,
+      "lf_count": 88,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.19.2"
+        }
+      ],
+      "already_authored_liquid": true
+    },
+    {
+      "blob": "53ab744eb88feca2ae09e78acab5af151af00537",
+      "sha256": "sha256:99d4236b8f94859f3ae8861741ec1a674d4690d5f27efce9acfb5ba7bc441fcd",
+      "bytes": 3812,
+      "cr_count": 0,
+      "lf_count": 80,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.19.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "d450476334bcd5135c05347ac2af12321204e84e",
+      "sha256": "sha256:1f106638217ea3b8a31debaed1a71dffb6ca85506ee177d703ef3fb07fe097a0",
+      "bytes": 1569,
+      "cr_count": 0,
+      "lf_count": 36,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.20.1"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "218f27cc371e6b0dbc8ff29c0a2f00f45e40952d",
+      "sha256": "sha256:2d3851dea15a06567427e6c6f0391a69be5ddba596bd182a82556baa637d9417",
+      "bytes": 1554,
+      "cr_count": 0,
+      "lf_count": 36,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.20.4"
+        }
+      ],
+      "already_authored_liquid": false
+    },
+    {
+      "blob": "0c3fdb54b795885e0b32e95a74eca3a9185cee24",
+      "sha256": "sha256:28216d8d94722e6b9388c0406c1fb5aca75b4ebb229129af336a143a17111ffa",
+      "bytes": 1285,
+      "cr_count": 0,
+      "lf_count": 30,
+      "final_lf": true,
+      "occurrences": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+          "context": "dev/26.1.2"
+        }
+      ],
+      "already_authored_liquid": false
+    }
+  ],
+  "prior_liquid_expansion": {
+    "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+    "raw_blob": "d7f6e317a66ad89d2b871c2dd4ebbc05f350b07a",
+    "raw_sha256": "sha256:6535a80ceb9c621247588e35f64b9830af7186e05179b050fc50b0cfe40458c1",
+    "raw_bytes": 4063,
+    "expanded_with": {
+      "touch_display_terminal_mount": true
+    },
+    "compiled_golden_sha256": "sha256:b85b5a87a305afd766f8cc6ef439ad042bdd64c31d18acc1f7db621bc9d0d17e",
+    "compiled_golden_bytes": 3945,
+    "operation": "Remove only the two originally witnessed mount if/endif carriers for an enabled full-development source golden; preserve every original Java/LF byte. This is explicit directive expansion, not normalization or a new artifact pin."
+  },
+  "baseline_off": [
+    "SFM.java retains every released direct SFMTextEditors/SFMTextEditorActions call, original client menu setup callback, import and constructor API when all new client owners are off.",
+    "SFMClientRegistrations.java is absent from every release witness and must be omitted when its actual client owner union is empty.",
+    "ComputerCraft method and call remain independently owned by computercraft, not any client owner.",
+    "Preserve live turtle registration on 1.19.2/1.19.4/1.20/1.20.1/1.20.4/1.21.1, and the originally witnessed no-op adapter on 1.20.2/1.20.3/1.21.0/26.1.2. Presence is not compatible CC runtime evidence.",
+    "1.19.2 uses DistExecutor only when the optional client registrar is selected; later target APIs use the original physical-side environment guard.",
+    "The historical development-only extra blank after configuration on 1.20 through 1.20.4 stays with the optional client-wiring branch solely for exact source reconstruction; it is not a new semantic feature.",
+    "No client_bootstrap/client_isolation/dev_changes/environment umbrella is introduced."
+  ],
+  "mixed_registrar_compile_gates": [
+    {
+      "class": "SFMCommandPaletteActions",
+      "gate": "Guard fields/factories/imports for actual palette, echo, terminal, control, help, history, panel and other owners. client_actions only authorizes the basic shared registrar shell, not OpenCommandPaletteAction or unrelated actions."
+    },
+    {
+      "class": "SFMWorkspaceScreenTypes",
+      "gate": "Guard concrete screen-type fields for consent, terminal, explorer, review, history and other owners; workspace_panels only authorizes shared registry infrastructure."
+    },
+    {
+      "class": "SFMExplorerActions",
+      "gate": "Separate generic explorer shell from file/registry, search/compaction and icon preview rule members before any of those standalone combinations can compile."
+    },
+    {
+      "class": "SFMPacketActions",
+      "gate": "packet_actions names the human-facing list/send registrar; remote-status/machine descriptors and multiplayer members require their own existing owners. Do not make common packet transport depend on all human actions."
+    },
+    {
+      "class": "SFMSymbolActions",
+      "gate": "Java symbol navigation/copy and contextual-action entry share a registrar shell but not blanket ownership."
+    },
+    {
+      "class": "SFMReviewActions",
+      "gate": "Basic review-session and newer release-review members must be split in the registrar before accepting independent combinations."
+    },
+    {
+      "class": "SFMDeveloperActions",
+      "gate": "developer_tools names the witnessed developer-world/panel registrar. Typed panel/world implementations and their prerequisites still need review; this is not a client-bootstrap flag."
+    },
+    {
+      "class": "SFMDocumentActionTarget.Actions",
+      "gate": "manager_editor_actions names the witnessed save/save-and-close/close-without-saving registrar. Keep its editor lifecycle and context dependencies separately reviewed."
+    }
+  ],
+  "checks": {
+    "static_extraction": {
+      "cells": 30,
+      "matched_cells": 30,
+      "failed_cells": 0,
+      "details": "Twenty SFM raw cells plus ten client-registration full cells; the primary already-Liquid registration witness is compared to its explicitly expanded full golden. This is not production renderer evidence."
+    },
+    "static_member_predicate_extraction": {
+      "source_cells": 1300,
+      "matched_cells": 1300,
+      "failed_cells": 0,
+      "details": "Across ten actual Minecraft selectors, read-only extraction tests the empty, CC-only, basic-action-only, workspace-only and canvas-only masks, each one-owner mask and basic-action-plus-owner masks against pinned full witnesses with exact owned-line removals. These direct flag-expression probes deliberately do not validate registry prerequisites or accept unsupported combinations; production tests will use the real registered prerequisite graph after promotion."
+    },
+    "production_renderer": "pending_template_promotion_member_flag_registration_and_root_run",
+    "unit_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_client_registration_slice_tests.rs",
+    "unit_status": "unregistered_and_not_run",
+    "compilation": "not_run",
+    "runtime": "not_run",
+    "jar_parity": "not_claimed",
+    "production_core_changes": false,
+    "generated_root_changes": false
+  },
+  "reproducible_read_only_commands": [
+    "git ls-tree <frozen-context-commit> -- platform/minecraft/<input.path>",
+    "git cat-file blob <exact-reviewed-object-id>",
+    "git show <frozen-context-commit>:platform/minecraft/<registrar-source-path>",
+    "After promotion only: cargo nextest run --locked core_client_registration_slice_tests:: (root-coordinated)"
+  ]
+}

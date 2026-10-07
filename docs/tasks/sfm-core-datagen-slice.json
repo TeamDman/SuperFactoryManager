@@ -1,0 +1,1512 @@
+{
+  "schema": "sfm:core-datagen-slice@1",
+  "status": "staged_source_inputs_and_unregistered_tests",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": {
+    "client_manager": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent"
+      ],
+      "scope": "Client Manager block model/call, mineable tag, item parent model, self loot and comparator crafting recipe. This is the basic block, not its GUI."
+    },
+    "touch_display": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ],
+      "scope": "Touch Display oriented block model/call, mineable tag, item parent model, self loot and iron/glass/redstone crafting recipe."
+    },
+    "packet_values": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "scope": "Only basicItem(SFMItems.PACKET) in SFMItemModelsDatagen. No packet recipe, loot or block tag is introduced."
+    },
+    "image_resources": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values"
+      ],
+      "scope": "BufferBlock.ContainedResource.Image chooses the existing neutral buffer_unknown texture. Original enum texture lookup is the explicit off branch."
+    },
+    "client_manager_custom_textures": {
+      "support": [
+        "1.19.2"
+      ],
+      "requires": [
+        "client_manager"
+      ],
+      "scope": "Only three Client Manager artwork paths; the witnessed 1.19.4 cyan-concrete/manager-face fallback is retained when disabled. Source and existing asset ownership refinement; no assets fabricated."
+    },
+    "touch_display_custom_textures": {
+      "support": [
+        "1.19.2"
+      ],
+      "requires": [
+        "touch_display"
+      ],
+      "scope": "Only three Touch Display artwork paths; the witnessed 1.19.4 manager/buffer_unknown fallback is retained when disabled. Source and existing asset ownership refinement; no assets fabricated."
+    }
+  },
+  "normalization": {
+    "policy": "none",
+    "approved_git_blobs": [],
+    "crlf_to_lf": false,
+    "append_final_lf": false,
+    "other_whitespace_changes": false
+  },
+  "files": [
+    {
+      "intended_core_path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-datagen-template-stage-v1/SFMBlockStatesAndModelsDatagen.java",
+      "stage_sha256": "sha256:ce3902eceeaefe66bb826191c26fd134fa3e39e9481bfe5f74d7b44555b4b994",
+      "stage_bytes": 33703,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "client_manager",
+        "touch_display",
+        "image_resources",
+        "client_manager_custom_textures",
+        "touch_display_custom_textures"
+      ],
+      "source_rule_suggestion": "default shared Java input; no sparse membership or historical variant override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "17d554f3c44c0a3b55077e27e3dcc48468940737",
+          "raw_sha256": "sha256:e61707c156dfc98d2bd7e2ddb9a1bd55c617eb336e06ae7cc8fd0f10871f859b",
+          "raw_bytes": 13659,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "fe89ebb1e3b858c9f6a92c5fc620db653eda641f",
+          "raw_sha256": "sha256:c18110f7d0142fc78085b19f2424ee597b61e4e5c4d79457802ff4d106abf959",
+          "raw_bytes": 13616,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+          "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+          "raw_bytes": 10942,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+          "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+          "raw_bytes": 10958,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "d30df564f8e9bbb29d68ade7379e6df130789d3b",
+          "raw_sha256": "sha256:1daf1bafb9ef491221e6565a63c2df8447746c946b729aebfef57d000c4ef5db",
+          "raw_bytes": 17569,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "d30df564f8e9bbb29d68ade7379e6df130789d3b",
+          "raw_sha256": "sha256:1daf1bafb9ef491221e6565a63c2df8447746c946b729aebfef57d000c4ef5db",
+          "raw_bytes": 17569,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockTagsDatagen.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-datagen-template-stage-v1/SFMBlockTagsDatagen.java",
+      "stage_sha256": "sha256:dab03c82e283bef4e7492065c161445ef4ca1b2784f6343687698a0f6e3382a1",
+      "stage_bytes": 3561,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "client_manager",
+        "touch_display"
+      ],
+      "source_rule_suggestion": "default shared Java input; no sparse membership or historical variant override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "efb214311f7691705aee9516b9f36325479b2ae3",
+          "raw_sha256": "sha256:0080808c78fc5d59136dd49c4cfe75ea9d77a1a3b6a900a609e3c210ea9c00a1",
+          "raw_bytes": 2076,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "efb214311f7691705aee9516b9f36325479b2ae3",
+          "raw_sha256": "sha256:0080808c78fc5d59136dd49c4cfe75ea9d77a1a3b6a900a609e3c210ea9c00a1",
+          "raw_bytes": 2076,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+          "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+          "raw_bytes": 1971,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+          "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+          "raw_bytes": 1975,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "8c0af0d041fd572905174e5edb5487ef9b9edc6a",
+          "raw_sha256": "sha256:c6c588bfbf4f619de4da02a275e53e992857c123ebd2bd880d794ef88893c292",
+          "raw_bytes": 2136,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "8c0af0d041fd572905174e5edb5487ef9b9edc6a",
+          "raw_sha256": "sha256:c6c588bfbf4f619de4da02a275e53e992857c123ebd2bd880d794ef88893c292",
+          "raw_bytes": 2136,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-datagen-template-stage-v1/SFMItemModelsDatagen.java",
+      "stage_sha256": "sha256:228208e473d28128b3feea19f3ea8738b9bcae31113315885fb8c24edf1facb5",
+      "stage_bytes": 7119,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "client_manager",
+        "touch_display",
+        "packet_values"
+      ],
+      "source_rule_suggestion": "default shared Java input; no sparse membership or historical variant override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "116797d0828e9ca0a330bcbf562221cda7d7aa39",
+          "raw_sha256": "sha256:61e70b51d678a0dc22f1cf714346f668cfdcf7d389ecf43231cbc39bb96475c8",
+          "raw_bytes": 3695,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "116797d0828e9ca0a330bcbf562221cda7d7aa39",
+          "raw_sha256": "sha256:61e70b51d678a0dc22f1cf714346f668cfdcf7d389ecf43231cbc39bb96475c8",
+          "raw_bytes": 3695,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+          "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+          "raw_bytes": 3519,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+          "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+          "raw_bytes": 3531,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "6ce979bf65224ef9816367a5666212f62b260009",
+          "raw_sha256": "sha256:a9797741f121d60518301aeb2617ec497c3cf08b52a520c7decd51008a0d9b17",
+          "raw_bytes": 3376,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "6ce979bf65224ef9816367a5666212f62b260009",
+          "raw_sha256": "sha256:a9797741f121d60518301aeb2617ec497c3cf08b52a520c7decd51008a0d9b17",
+          "raw_bytes": 3376,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-datagen-template-stage-v1/SFMLootTablesDatagen.java",
+      "stage_sha256": "sha256:cc6ae937409d2fbf8f2da2443006a760e2f40ad8f4c0cb644ae12aa3bea4ed0c",
+      "stage_bytes": 3817,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "client_manager",
+        "touch_display"
+      ],
+      "source_rule_suggestion": "default shared Java input; no sparse membership or historical variant override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "7655bb83ef9aef5f682942cc8cab5d5598b662e1",
+          "raw_sha256": "sha256:b456e90efcf775f903780ee0fdc60b21a7e32652e65b397b3f1556347a739e66",
+          "raw_bytes": 2353,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "7655bb83ef9aef5f682942cc8cab5d5598b662e1",
+          "raw_sha256": "sha256:b456e90efcf775f903780ee0fdc60b21a7e32652e65b397b3f1556347a739e66",
+          "raw_bytes": 2353,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+          "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+          "raw_bytes": 2252,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+          "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+          "raw_bytes": 2256,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "9bc75cd61775c66093c1c957110014b902902873",
+          "raw_sha256": "sha256:bfde74e83a71f7c2066335f652692362ecc5411feeccc92446343b84c1d0ce2f",
+          "raw_bytes": 2701,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "9bc75cd61775c66093c1c957110014b902902873",
+          "raw_sha256": "sha256:bfde74e83a71f7c2066335f652692362ecc5411feeccc92446343b84c1d0ce2f",
+          "raw_bytes": 2701,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-datagen-template-stage-v1/SFMRecipesDatagen.java",
+      "stage_sha256": "sha256:80eb87c20228dbcfe47a26c2eafa4657c643aeec806cd25b0b330a120505f50b",
+      "stage_bytes": 24352,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "client_manager",
+        "touch_display"
+      ],
+      "source_rule_suggestion": "default shared Java input; no sparse membership or historical variant override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "cc196e01c94329611e6a3e2dc2d3864d795dba4e",
+          "raw_sha256": "sha256:d472010f40d687f0474a5eb8428542c7d08946ae684d8afcab4f522c9f1ced4e",
+          "raw_bytes": 14039,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "cc196e01c94329611e6a3e2dc2d3864d795dba4e",
+          "raw_sha256": "sha256:d472010f40d687f0474a5eb8428542c7d08946ae684d8afcab4f522c9f1ced4e",
+          "raw_bytes": 14039,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+          "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+          "raw_bytes": 13087,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "ee087f8d149ded49dc652c269f74cdf9e3743afe",
+          "raw_sha256": "sha256:44e6556e5e8b7a23b9e1d47872bd269b43f43602d93ee90232869abb2b34dea2",
+          "raw_bytes": 13032,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "ee087f8d149ded49dc652c269f74cdf9e3743afe",
+          "raw_sha256": "sha256:44e6556e5e8b7a23b9e1d47872bd269b43f43602d93ee90232869abb2b34dea2",
+          "raw_bytes": 13032,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+          "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+          "raw_bytes": 13386,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "62c15efd0a2d946bd5374b733c1fe6bd935143ac",
+          "raw_sha256": "sha256:75ef6a38fe19f27e5ef050e0dd07ff33737ed63cd09a38ef0bc0720f9ac6cb45",
+          "raw_bytes": 13643,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "62c15efd0a2d946bd5374b733c1fe6bd935143ac",
+          "raw_sha256": "sha256:75ef6a38fe19f27e5ef050e0dd07ff33737ed63cd09a38ef0bc0720f9ac6cb45",
+          "raw_bytes": 13643,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    }
+  ],
+  "raw_witnesses": [
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "git_blob": "17d554f3c44c0a3b55077e27e3dcc48468940737",
+      "raw_sha256": "sha256:e61707c156dfc98d2bd7e2ddb9a1bd55c617eb336e06ae7cc8fd0f10871f859b",
+      "raw_bytes": 13659,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 355,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "git_blob": "fe89ebb1e3b858c9f6a92c5fc620db653eda641f",
+      "raw_sha256": "sha256:c18110f7d0142fc78085b19f2424ee597b61e4e5c4d79457802ff4d106abf959",
+      "raw_bytes": 13616,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 355,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "git_blob": "e01a91d8e3232d015c6feb643fd9891a9f666c50",
+      "raw_sha256": "sha256:2f55bc50a9f967e026c6a30c217cee4d4871484a1a93f4fe2166d25c4ce6a47a",
+      "raw_bytes": 10942,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 286,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "git_blob": "d986b69df722e34f1b0e37d959a599b2b55ef74c",
+      "raw_sha256": "sha256:93644df95d6638c4045a075dc84a7579dc46845dd39449bf67ecbba548778c62",
+      "raw_bytes": 10958,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 286,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "git_blob": "d30df564f8e9bbb29d68ade7379e6df130789d3b",
+      "raw_sha256": "sha256:1daf1bafb9ef491221e6565a63c2df8447746c946b729aebfef57d000c4ef5db",
+      "raw_bytes": 17569,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 401,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockTagsDatagen.java",
+      "git_blob": "efb214311f7691705aee9516b9f36325479b2ae3",
+      "raw_sha256": "sha256:0080808c78fc5d59136dd49c4cfe75ea9d77a1a3b6a900a609e3c210ea9c00a1",
+      "raw_bytes": 2076,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 46,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockTagsDatagen.java",
+      "git_blob": "45544a71640b7995a57f4cbdc450e49bc4050989",
+      "raw_sha256": "sha256:4a440e2d6c64e4e82c3d808ac6cafa54a89460e34618e202ebcb18fc1ea4ed37",
+      "raw_bytes": 1971,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 44,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockTagsDatagen.java",
+      "git_blob": "6b10b12e1a23051a195c72eb77dc0e1603edf8ce",
+      "raw_sha256": "sha256:96f9c7e9bdee8aa82e695524516494c70fe3d5c285d1acc4cf35619c0f312c1a",
+      "raw_bytes": 1975,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 44,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockTagsDatagen.java",
+      "git_blob": "8c0af0d041fd572905174e5edb5487ef9b9edc6a",
+      "raw_sha256": "sha256:c6c588bfbf4f619de4da02a275e53e992857c123ebd2bd880d794ef88893c292",
+      "raw_bytes": 2136,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 50,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "git_blob": "116797d0828e9ca0a330bcbf562221cda7d7aa39",
+      "raw_sha256": "sha256:61e70b51d678a0dc22f1cf714346f668cfdcf7d389ecf43231cbc39bb96475c8",
+      "raw_bytes": 3695,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 95,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "git_blob": "755d594614690448cb3f1631f0e8d9f89d3e3e2c",
+      "raw_sha256": "sha256:13c7862fb990ad35e46778314f98efeb35fbb5da786c5f48957f8daadce3401a",
+      "raw_bytes": 3519,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 92,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "git_blob": "f697fd40a39e5225218791890ce50ecdfbade300",
+      "raw_sha256": "sha256:b2a77778a2a3056d39cd68795a472b8f93cfb44ea010387a243b6e288132ceb6",
+      "raw_bytes": 3531,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 92,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "git_blob": "6ce979bf65224ef9816367a5666212f62b260009",
+      "raw_sha256": "sha256:a9797741f121d60518301aeb2617ec497c3cf08b52a520c7decd51008a0d9b17",
+      "raw_bytes": 3376,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 84,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java",
+      "git_blob": "7655bb83ef9aef5f682942cc8cab5d5598b662e1",
+      "raw_sha256": "sha256:b456e90efcf775f903780ee0fdc60b21a7e32652e65b397b3f1556347a739e66",
+      "raw_bytes": 2353,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 57,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java",
+      "git_blob": "eab71d01e11921bf95eaf2c31fc5c7a1bf398df5",
+      "raw_sha256": "sha256:2d5ee1f0f62a51c978258546d57458ed5c4ba94be7cb99c25dcf58333c0412a7",
+      "raw_bytes": 2252,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 55,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java",
+      "git_blob": "98569b323c558ef716859dd5f7b20f210b19b23d",
+      "raw_sha256": "sha256:d14111bfdff19f38a6a444a2cce7071e39332b5a5719320e0e129ae4a58506a8",
+      "raw_bytes": 2256,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 55,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java",
+      "git_blob": "9bc75cd61775c66093c1c957110014b902902873",
+      "raw_sha256": "sha256:bfde74e83a71f7c2066335f652692362ecc5411feeccc92446343b84c1d0ce2f",
+      "raw_bytes": 2701,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 64,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "git_blob": "cc196e01c94329611e6a3e2dc2d3864d795dba4e",
+      "raw_sha256": "sha256:d472010f40d687f0474a5eb8428542c7d08946ae684d8afcab4f522c9f1ced4e",
+      "raw_bytes": 14039,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 323,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "git_blob": "d8e5e55f19febb829bc7f8807787e486367afa63",
+      "raw_sha256": "sha256:572ce87758b0571d6c92510bf1be10f1ce6e593fab67d1eec68f3858e3356037",
+      "raw_bytes": 13087,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 301,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "git_blob": "ee087f8d149ded49dc652c269f74cdf9e3743afe",
+      "raw_sha256": "sha256:44e6556e5e8b7a23b9e1d47872bd269b43f43602d93ee90232869abb2b34dea2",
+      "raw_bytes": 13032,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 299,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "git_blob": "1cf0f3b5a14890943bd4dffe9349f85dd2cf7632",
+      "raw_sha256": "sha256:fb03df7ebd176d1e51bc56e001953ec5a0c036d72721a58068ae22714677e3e9",
+      "raw_bytes": 13386,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 307,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "git_blob": "62c15efd0a2d946bd5374b733c1fe6bd935143ac",
+      "raw_sha256": "sha256:75ef6a38fe19f27e5ef050e0dd07ff33737ed63cd09a38ef0bc0720f9ac6cb45",
+      "raw_bytes": 13643,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 325,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    }
+  ],
+  "ownership_evidence": [
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "owner": "client_manager",
+      "anchors": [
+        "registerClientManager();",
+        "private void registerClientManager() {"
+      ],
+      "consumer": "SFMBlocks.CLIENT_MANAGER; basic block registration exists in both witnessed development targets independently of GUI."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "owner": "touch_display",
+      "anchors": [
+        "registerTouchDisplay();",
+        "private void registerTouchDisplay() {"
+      ],
+      "consumer": "SFMBlocks.TOUCH_DISPLAY and BlockStateProperties.FACING; historical six-direction rotation and particle face are retained."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "owner": "image_resources",
+      "anchors": [
+        "BufferBlock.ContainedResource.Image",
+        "modLoc(\"block/buffer_\" + texture)"
+      ],
+      "consumer": "The image enum/storage capability is provided by the BufferBlock/BufferBlockEntity image-resource family; no every-frame execution is required."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+      "owner": "packet_values",
+      "anchors": [
+        "basicItem(SFMItems.PACKET);"
+      ],
+      "consumer": "SFMItems.PACKET is the stackable packet value item, independent of packet-computation grammar/transport."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "owner": "client_manager",
+      "anchors": [
+        "beginShaped(SFMBlocks.CLIENT_MANAGER.get(), 1)",
+        "has_comparator"
+      ],
+      "consumer": "Exact chest/cable/comparator recipe block is guarded separately from the adjacent Touch Display recipe."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+      "owner": "touch_display",
+      "anchors": [
+        "beginShaped(SFMBlocks.TOUCH_DISPLAY.get(), 1)",
+        "Items.IRON_BARS"
+      ],
+      "consumer": "Exact iron-bars/glass/cable/redstone recipe; no image item or packet crafting recipe is inferred."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "owner": "client_manager_custom_textures",
+      "anchors": [
+        "block/client_manager_side",
+        "block/client_manager_bottom",
+        "block/client_manager_top"
+      ],
+      "consumer": "Only dev/1.19.2 uses custom art; dev/1.19.4 deliberately reuses vanilla cyan_concrete plus manager_bot/manager_top."
+    },
+    {
+      "path": "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+      "owner": "touch_display_custom_textures",
+      "anchors": [
+        "block/touch_display_side",
+        "block/touch_display_bottom",
+        "block/touch_display_face"
+      ],
+      "consumer": "Only dev/1.19.2 uses custom art; dev/1.19.4 deliberately reuses manager_side/manager_bot/buffer_unknown."
+    }
+  ],
+  "minecraft_api_cases": [
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1"
+      ],
+      "description": "Released Forge import namespaces and event-based provider APIs."
+    },
+    {
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1"
+      ],
+      "description": "Released NeoForge import namespaces. Actual catalog Minecraft version for target 1.21.0 is 1.21; templates and test context retain it."
+    },
+    {
+      "targets": [
+        "1.20.2"
+      ],
+      "description": "RecipeOutput replaces Consumer<FinishedRecipe>, but PrintingPressFinishedRecipe remains the custom recipe adapter."
+    },
+    {
+      "targets": [
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1"
+      ],
+      "description": "DiskResetRecipe/LabelGunResetRecipe constructors and direct PrintingPressRecipe accept(id, recipe, null) replace old serializer wrappers."
+    },
+    {
+      "targets": [
+        "26.1.2"
+      ],
+      "description": "Released PackOutput/HolderLookup constructors; BlockModelGenerators/ItemModelGenerators, MultiVariant/MultiPart/PropertyDispatch and TextureMapping APIs; loot ResourceKeys/SubProviderEntries; recipe Identifier/ResourceKey IDs, nested Runner, hasItem and ingredientFromTag APIs. These remain genuine API cases, not development/artwork selectors."
+    }
+  ],
+  "preservation": [
+    "No environment/preset/projection-key selector and no datagen umbrella flag.",
+    "All 100 raw witnesses are exact, without newline or token normalization.",
+    "Shared lines and functional owner guards are in one core input per logical Java path; no ten-version source dispatch.",
+    "Preserve original recipe IDs, counts/order and the existing labelgun recipe ID tunnelled_manager_vertical.",
+    "Preserve the 26.1.2 commented historical item-generation helper including its commented identifier()() text; source reconstruction does not claim Java compilation or redesign.",
+    "Version-plumbing adapters already exist as reviewed core inputs; do not duplicate them.",
+    "Custom artwork flags refine only the witnessed source/asset seam; missing 1.19.4 custom textures are not synthesized."
+  ],
+  "validation": {
+    "independent_directive_expansion": {
+      "status": "passed",
+      "witness_cells": 100,
+      "raw_byte_exact": 100,
+      "normalizations": 0,
+      "implementation": "Independent strict whole-line directive interpreter, not the production Rust renderer."
+    },
+    "independent_member_mask_expansion": {
+      "status": "passed",
+      "requested_profiles": 80,
+      "distinct_effective_owner_contexts": 23,
+      "rendered_cells": 400,
+      "implementation": "Independent directive interpreter compared with released bytes plus per-member additions extracted from the reviewed raw development witnesses; actual dependency closure was reflected for the six owners. Not a production Rust renderer test."
+    },
+    "rust_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_datagen_slice_tests.rs",
+    "rust_registration": "#[cfg(test)] mod core_datagen_slice_tests;",
+    "rust_status": "authored_unregistered_not_run",
+    "cargo_run": false,
+    "java_compilation": false,
+    "datagen_run": false,
+    "generated_roots_written": false
+  },
+  "remaining_closure": [
+    "Root must promote five exact staged inputs and register the two approved D1 artwork owners before tests can load them.",
+    "SFMBlocks/SFMItems and related block runtime feature closure remain independently owned work; these tests are source-only.",
+    "Generate assets only through the ordinary reviewed datagen/build pipeline later, not by fabricating resources in this cohort.",
+    "Complete-project network layout validation is independent of parser/datagen source proof contexts."
+  ]
+}

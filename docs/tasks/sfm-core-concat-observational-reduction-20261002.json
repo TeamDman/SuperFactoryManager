@@ -1,0 +1,158 @@
+{
+  "schema": "sfm:core_concat_observational_reduction_evidence@1",
+  "date": "2026-10-02",
+  "status": "limited_jdk_only_normal_run_passed_with_differences_retained",
+  "scope": "Thirteen fresh-state scenarios compare explicit direct-Object and eager-String concat descriptors with an equivalent ordinary expression compiled by the current reviewed JDK. This is not execution of original SFM classes or release-parity acceptance.",
+  "artifact_root": "platform/cli/sfm-propagate-changes/target/core-concat-observational-reduction-stage-v1",
+  "run": "runs/actual-observation-v1",
+  "source": {
+    "path": "ConcatObservationReduction.java",
+    "bytes": 20863,
+    "sha256": "2ec11b8dd11fd3d9b91f01ad8519701045f7574de619f7fd22d50e2f7734218d"
+  },
+  "driver": {
+    "path": "Invoke-ConcatObservationReduction.ps1",
+    "bytes": 30652,
+    "sha256": "1eac816b5cd01261080b650279c85119fc9859070caf4ef7190a7d146751d6ec",
+    "full_root_and_independent_source_review_before_execution": true,
+    "inherited_helpers_text_identical": 11,
+    "bounded_child_helper_change": "Comment only; compiler/metadata becomes compiler/observation.",
+    "expected_hash_argument_checked": true,
+    "fresh_create_new_run": true
+  },
+  "command_description": "Invoke-ConcatObservationReduction.ps1 -SdkHome <unchanged-reviewed-sdk17> -ExpectedDriverSha256 <driver.sha256> -RunName actual-observation-v1",
+  "actual_terminal_exit_code": 0,
+  "retained_summary": {
+    "path": "runs/actual-observation-v1/summary.json",
+    "bytes": 5561,
+    "sha256": "725fb733930a0af415b304baec15b62d2ebaf763ae28cddce7007e319ae69a42"
+  },
+  "raw_observations": {
+    "path": "runs/actual-observation-v1/java.stdout.raw",
+    "bytes": 16776,
+    "sha256": "8920c710839c6fcb48dc153ef9542d3953dd2917756f398e83cc544a3b6f536f",
+    "bom": false,
+    "lf_records": 53,
+    "observations": 39,
+    "comparisons": 13,
+    "footer_records": 1,
+    "failed_expected_contracts": 0,
+    "unequal_eager_current_ordinary_observations": 0
+  },
+  "actual_difference_counts": {
+    "direct_eager_outputs": 5,
+    "direct_eager_traces": 11,
+    "direct_eager_final_states": 1,
+    "direct_eager_exception_signatures": 0,
+    "eager_current_ordinary_full_agreements": 13
+  },
+  "different_output_cases": [
+    "mutating_toString",
+    "later_mutation",
+    "repeated_reference",
+    "conditional_number",
+    "nested_present"
+  ],
+  "different_state_case": "throwing_toString_later_mutation",
+  "representative_observations": [
+    {
+      "case": "later_mutation",
+      "direct": "prefix[subject:9]:later:9",
+      "eager_and_current_ordinary": "prefix[subject:1]:later:9"
+    },
+    {
+      "case": "conditional_number",
+      "direct": "number:1",
+      "eager_and_current_ordinary": "number:1 EACH"
+    },
+    {
+      "case": "nested_present",
+      "direct": "left:9 right:9 WITH nested:9",
+      "eager_and_current_ordinary": "left:1 right:1 WITH nested:9"
+    },
+    {
+      "case": "throwing_toString_later_mutation",
+      "exception_type_all_routes": "ConcatObservationReduction$ProbeFailure",
+      "exception_message_all_routes": "toString:subject",
+      "direct_final_value": 9,
+      "eager_and_current_ordinary_final_value": 1
+    }
+  ],
+  "children": [
+    {
+      "role": "javac",
+      "pid": 33844,
+      "exit_code": 0,
+      "elapsed_ms": 961,
+      "portable_argv": ["@<run>/javac.args"],
+      "argfile_tokens": 12,
+      "argfile_bytes": 481,
+      "argfile_sha256": "5c50d667a7806c4ebd67c3c05f4be7a84451df9928a3b1534a4205879c0ed6a5",
+      "stdout_bytes": 0,
+      "stderr_bytes": 0,
+      "captured_prefix_only": false,
+      "recovery_diagnostics": 0,
+      "recorded_pid_absent_after_run": true
+    },
+    {
+      "role": "java",
+      "pid": 44168,
+      "exit_code": 0,
+      "elapsed_ms": 504,
+      "portable_argv": ["-classpath", "<run>/classes", "ConcatObservationReduction"],
+      "stdout_bytes": 16776,
+      "stderr_bytes": 0,
+      "captured_prefix_only": false,
+      "recovery_diagnostics": 0,
+      "recorded_pid_absent_after_run": true
+    }
+  ],
+  "class_outputs": {
+    "files": 5,
+    "aggregate_bytes": 22107,
+    "exact_content_pins": "Retained summary and independent review include all five class lengths and SHA-256 identities."
+  },
+  "input_checks": {
+    "sdk_changed_or_acquired": false,
+    "sdk_roles_rehashed_independently": 5,
+    "driver_held_and_current_path_rechecks_reported": "passed before and after each child and before summary",
+    "post_run_root_rehashed_source_and_run_pins": 19,
+    "post_run_root_counted_pin_bytes": 137329,
+    "post_run_root_read_all_records": true,
+    "post_run_peer_recomputed_all_row_and_comparison_contracts": true,
+    "live_handle_checks_observed_by_peer": false
+  },
+  "independent_review": {
+    "status": "passed_limited_normal_run",
+    "path": "peer-run-review-20261002-v1.json",
+    "bytes": 10121,
+    "sha256": "e1b144cd080085b10d04b97d6ee82e9d1a8d6ed258bd66921fe41f290c85ba08"
+  },
+  "execution_limits": {
+    "child_timeout_ms_each": 30000,
+    "normal_recovery_timeout_ms": 5000,
+    "finally_fallback_timeout_ms": 5000,
+    "retained_bytes_per_pipe": 1048576,
+    "combined_observed_output_budget_bytes": 4194304,
+    "capture_check_overshoot_quantum_bytes": 65536,
+    "fixture_stdout_acceptance_bytes": 262144,
+    "classes_are_acceptance_limits_not_os_disk_quotas": true,
+    "heap_or_total_process_memory_limit_claimed": false,
+    "os_network_or_filesystem_sandbox_claimed": false,
+    "all_native_libraries_configuration_and_os_dependencies_authenticated": false,
+    "timeout_budget_or_cancellation_fault_injection_performed": false
+  },
+  "unchanged_acceptance_boundaries": {
+    "original_sfm_classes_loaded": false,
+    "original_release_compiler_identified": false,
+    "original_96_methods_or_62_operand_types_accepted": false,
+    "original_refusals_remaining": 84,
+    "refusals_waived": false,
+    "unknown_class_attributes_admitted": false,
+    "minecraft_or_gradle_launched": false,
+    "production_sources_or_dependencies_changed": false,
+    "cleanup_performed": false
+  },
+  "next_required_proof": "Review genuine minimum original/candidate class provider graphs and reachable states before authorizing source-specific execution. A JDK model difference is not evidence that any particular SFM path differs or is equivalent.",
+  "path_policy": "Repository-relative evidence references only; actual checkout, SDK and user-specific locators remain in ignored local run captures."
+}

@@ -1,0 +1,983 @@
+{
+  "schema": "sfm:core_keybinding_state_models_slice@1",
+  "status": "candidate_prepared_not_promoted_unexecuted",
+  "starting_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "normalization": "none_raw_exact_lf_with_exactly_one_terminal_lf",
+  "input_inventory": {
+    "role": "remaining-main-java-inventory-v2",
+    "bytes": 213274,
+    "sha256": "sha256:19918043e61d8263457ef9f54d2add77476a9bd0003890026065b1a4ce5ca34e",
+    "starting_remaining_paths": 723
+  },
+  "production_metadata": {
+    "bytes": 451451,
+    "sha256": "sha256:96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857"
+  },
+  "feature_definitions": {
+    "bytes": 30254,
+    "sha256": "sha256:38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "changes": 0
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingUserState.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingUserState.java",
+      "template_sha256": "sha256:e9860ead1b9e1398d5d2e59d0a4e4ec63dece6afa2df9382a7dac5c1048afe8a",
+      "template_bytes": 977,
+      "raw_blob": "2129a6a61364804a8125d0d84def7c2d705b33f5",
+      "raw_sha256": "sha256:e9860ead1b9e1398d5d2e59d0a4e4ec63dece6afa2df9382a7dac5c1048afe8a",
+      "raw_bytes": 977,
+      "normalization": "none",
+      "line_endings": "lf",
+      "terminal_newline": "exactly_one_lf",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_blob": "2129a6a61364804a8125d0d84def7c2d705b33f5",
+          "raw_sha256": "sha256:e9860ead1b9e1398d5d2e59d0a4e4ec63dece6afa2df9382a7dac5c1048afe8a",
+          "raw_bytes": 977,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_blob": "2129a6a61364804a8125d0d84def7c2d705b33f5",
+          "raw_sha256": "sha256:e9860ead1b9e1398d5d2e59d0a4e4ec63dece6afa2df9382a7dac5c1048afe8a",
+          "raw_bytes": 977,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingListModel.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingListModel.java",
+      "template_sha256": "sha256:5f44b68a0c4e92ea117fcf36f59183eaf2126697f3a53293563bbf453dc61079",
+      "template_bytes": 3943,
+      "raw_blob": "bbe26a5dd14bdc27adde70801af2f1c90bf8c4d1",
+      "raw_sha256": "sha256:5f44b68a0c4e92ea117fcf36f59183eaf2126697f3a53293563bbf453dc61079",
+      "raw_bytes": 3943,
+      "normalization": "none",
+      "line_endings": "lf",
+      "terminal_newline": "exactly_one_lf",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keybinding_settings"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_blob": "bbe26a5dd14bdc27adde70801af2f1c90bf8c4d1",
+          "raw_sha256": "sha256:5f44b68a0c4e92ea117fcf36f59183eaf2126697f3a53293563bbf453dc61079",
+          "raw_bytes": 3943,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_blob": "bbe26a5dd14bdc27adde70801af2f1c90bf8c4d1",
+          "raw_sha256": "sha256:5f44b68a0c4e92ea117fcf36f59183eaf2126697f3a53293563bbf453dc61079",
+          "raw_bytes": 3943,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequenceCapture.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequenceCapture.java",
+      "template_sha256": "sha256:61c0f5ab6b4eae5ed1be11942d19832f44e0814ef11abfbaf7565f189bc1afc1",
+      "template_bytes": 5149,
+      "raw_blob": "28ba77a0371b9b61d90bb64d1507f6f29b99a2a7",
+      "raw_sha256": "sha256:61c0f5ab6b4eae5ed1be11942d19832f44e0814ef11abfbaf7565f189bc1afc1",
+      "raw_bytes": 5149,
+      "normalization": "none",
+      "line_endings": "lf",
+      "terminal_newline": "exactly_one_lf",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keybinding_settings"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_blob": "28ba77a0371b9b61d90bb64d1507f6f29b99a2a7",
+          "raw_sha256": "sha256:61c0f5ab6b4eae5ed1be11942d19832f44e0814ef11abfbaf7565f189bc1afc1",
+          "raw_bytes": 5149,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_blob": "28ba77a0371b9b61d90bb64d1507f6f29b99a2a7",
+          "raw_sha256": "sha256:61c0f5ab6b4eae5ed1be11942d19832f44e0814ef11abfbaf7565f189bc1afc1",
+          "raw_bytes": 5149,
+          "mode": "100644",
+          "explicit_registered_features": [
+            "client_actions",
+            "keyboard_profiles",
+            "keybinding_settings"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_blob": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_registered_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    }
+  ],
+  "providers": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+      "template_bytes": 1131,
+      "template_sha256": "sha256:d6316750e06a542d2a09e8b0d551cde13acafedd08a8c4e0ac73bd1eabafa128",
+      "rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+          "when": {
+            "targets": [],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          },
+          "template": false
+        }
+      ],
+      "changed": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+      "template_bytes": 601,
+      "template_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+      "rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+          "when": {
+            "targets": [],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          },
+          "template": false
+        }
+      ],
+      "changed": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+      "template_bytes": 437,
+      "template_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+      "rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+          "when": {
+            "targets": [],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          },
+          "template": false
+        }
+      ],
+      "changed": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+      "template_bytes": 118,
+      "template_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+      "rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+          "when": {
+            "targets": [],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          },
+          "template": false
+        }
+      ],
+      "changed": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+      "template_bytes": 1267,
+      "template_sha256": "sha256:125730bddd4a27915b8210c36e46e234960ac3d830cad20935e403235f440199",
+      "rule": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "keyboard_profiles"
+            ]
+          },
+          "template": false
+        }
+      ],
+      "changed": false
+    }
+  ],
+  "ownership": {
+    "SFMKeyBindingUserState": {
+      "owner": "keyboard_profiles",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "basis": "Immutable D2 data layer consumed by the keyboard-owned Profile/Storage family. Existing D2 Override provider is present under this same owner."
+    },
+    "SFMKeyBindingListModel": {
+      "owner": "keybinding_settings",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "basis": "Pure list state consumed by the D2 keybinding screen and the already-keybinding_settings-guarded manager action registrar."
+    },
+    "SFMKeySequenceCapture": {
+      "owner": "keybinding_settings",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "basis": "Caller-supplied-event recorder consumed by the D2 keybinding details/capture UI. No physical polling or global key handling is performed."
+    }
+  },
+  "closure": {
+    "justified": "Direct type/member/provider closure for these three models only",
+    "external_apis": [
+      "net.minecraft.resources.ResourceLocation on D2",
+      "GLFW.GLFW_KEY_ESCAPE constant only",
+      "JDK collections, comparators, Function"
+    ],
+    "unchanged_real_provider_paths": [
+      "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+      "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+      "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+      "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+      "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java"
+    ],
+    "caller_family_not_promoted": [
+      "SFMKeyBindingProfile",
+      "SFMKeyBindingStorage",
+      "SFMKeyBindingScreen",
+      "SFMKeyBindingDetailsScreen",
+      "SFMKeySequenceCaptureWidget",
+      "SFMKeyBindingManagerAction"
+    ],
+    "whole_keyboard_runtime_compile_or_behavior_claim": false
+  },
+  "preserved_contracts": [
+    "UserState copies bindings, override map, tombstones and fingerprints; this is a value record, not persistence I/O.",
+    "ListModel accepts injected binding/title/description functions, supports sort/filter state, and reads the actual D2 binding.situationId member.",
+    "Capture receives key/time values from its caller, treats one/two Escapes as captured and three as cancellation, and changes only local recorder state.",
+    "No provider source/rule, original ten-carrier ledger/test, definition, prerequisite, default, registrar or caller is changed."
+  ],
+  "deferred": [
+    {
+      "family": "SFMKeyBindingCycle + SFMKeyBindingDisplay",
+      "reason": "Two-file direct closure possible, but Display has distinct genuine D2 token/keycap formatting versus D8 plus-joined legacy presentation; this functional variant boundary must be explicit rather than represented as a mere import adapter."
+    },
+    {
+      "family": "SFMCommandDraftAnalysis",
+      "reason": "Actual SFMClientCommandInsertion is absent/unowned in authored core; frontier analysis is typed-palette-owned. Do not add fake insertion behavior or a palette prerequisite here."
+    },
+    {
+      "family": "SFMKeyBindingProfile",
+      "reason": "Depends on absent/unowned SFMKeyBindingDefaults.fingerprints. No full profile closure from pure models alone."
+    },
+    {
+      "family": "symbol and semantic providers",
+      "reason": "Small interface candidates reference absent/unowned request/result/witness/spatial contract families. Standalone presence is not closure."
+    }
+  ],
+  "effects": {
+    "production_writes": false,
+    "tests_run": false,
+    "java_compilation": false,
+    "input_dispatch": false,
+    "profile_persistence": false,
+    "game_runtime": false,
+    "dependencies_changed": false,
+    "feature_owners_added": false
+  }
+}

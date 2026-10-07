@@ -375,7 +375,9 @@ impl IconFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(path) else {
             ensure!(
                 selection.omitted_paths.contains(path),
@@ -511,7 +513,12 @@ fn validate_definitions(core: &CoreTestFixture) -> Result<()> {
             && carrier[0].when.all_features.is_empty()
             && same_names(
                 &carrier[0].when.any_features,
-                &["client_actions", "client_theme"]
+                &[
+                    "client_actions",
+                    "client_theme",
+                    "file_explorer",
+                    "legacy_file_explorer"
+                ]
             )
             && carrier[0].when.none_features.is_empty(),
         "theme-only icon carrier ownership has not been registered"
@@ -542,7 +549,12 @@ fn validate_membership(core: &CoreTestFixture, input: &InputEvidence) -> Result<
             && rules[0].when.all_features.is_empty()
             && same_names(
                 &rules[0].when.any_features,
-                &["command_palette", "client_theme"]
+                &[
+                    "command_palette",
+                    "client_theme",
+                    "file_explorer",
+                    "legacy_file_explorer"
+                ]
             )
             && rules[0].when.none_features.is_empty(),
         "icon production predicate differs from reviewed initial consumers"
@@ -572,7 +584,7 @@ fn icon_templates_reconstruct_twenty_full_historical_raw_memberships() -> Result
 }
 
 #[test]
-fn current_catalog_omits_icons_before_input_reads() -> Result<()> {
+fn icons_twenty_feature_off_controls_omit_before_input_reads() -> Result<()> {
     let mut fixture = IconFixture::load()?;
     let catalog = CoreCatalog::load(&fixture.core.repository, &fixture.core.repository)?;
     assert_eq!(catalog.catalog.0.len(), 20);
@@ -581,7 +593,7 @@ fn current_catalog_omits_icons_before_input_reads() -> Result<()> {
         .core
         .join("deliberately_missing_icon_source_boundary");
     for key in catalog.catalog.0.keys() {
-        fixture.assert_absent(&catalog.context(key)?)?;
+        fixture.assert_absent(&fixture.core.historical_feature_off_catalog_context(key)?)?;
     }
     Ok(())
 }
@@ -613,6 +625,50 @@ fn theme_only_consumer_does_not_require_action_runtime_or_palette() -> Result<()
                 assert!(fixture.core.context(target, &["client_theme", id]).is_err());
             }
         }
+    }
+    Ok(())
+}
+
+#[test]
+fn independent_file_explorers_select_real_icon_imports_without_palette_or_theme() -> Result<()> {
+    let fixture = IconFixture::load()?;
+    for target in TARGETS {
+        let owner = if is_d2(target) {
+            "file_explorer"
+        } else {
+            "legacy_file_explorer"
+        };
+        let context = fixture.core.context(target, &[owner, "workspace_panels"])?;
+        assert!(!context.features["client_actions"]);
+        assert!(!context.features["client_theme"]);
+        assert!(!context.features["command_palette"]);
+        let selected = select_core_inputs(&fixture.core.metadata, &context, &fixture.inventory)?;
+        assert!(selected.inputs.contains_key(CARRIER));
+        for path in PATHS {
+            assert!(fixture.render(path, &context)?.is_some());
+        }
+        let consumer = if is_d2(target) {
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java"
+        } else {
+            "src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFileExplorerPanel.java"
+        };
+        let selected_consumer = select_core_inputs(
+            &fixture.core.metadata,
+            &context,
+            &BTreeSet::from([consumer.to_owned()]),
+        )?;
+        assert!(selected_consumer.inputs.contains_key(consumer));
+        let source = fixture.core.read_source(consumer)?;
+        let rendered = render_java_source(std::str::from_utf8(&source)?, &context)?;
+        let icon_import = if is_d2(target) {
+            "import ca.teamdman.sfm.client.presentation.SFMItemIcon;"
+        } else {
+            "import ca.teamdman.sfm.client.presentation.SFMResolvedItemIcon;"
+        };
+        assert!(rendered.contains(icon_import));
+        assert!(
+            rendered.contains("import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;")
+        );
     }
     Ok(())
 }

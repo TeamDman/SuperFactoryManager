@@ -1,0 +1,70 @@
+{
+  "schema": "sfm:workspace_navigation_first_validation@1",
+  "date": "2026-10-02",
+  "status": "source_applied_first_focused_group_failed_correction_required",
+  "branch": "feat/sfm-main-source-projection",
+  "source_admission": {
+    "root_readonly_acceptance": "f54233",
+    "once_only_application": "bb87e1",
+    "native_exit": 0,
+    "operations": 69,
+    "exact_final_targets": 33,
+    "new_Java_templates": 24,
+    "core_files": 1989,
+    "core_bytes": 9290647,
+    "core_sha256": "033e7daf6c72bd0e7944b368543f6e22a137302bd0db1924dc5871cd22d99e85",
+    "rules": 706,
+    "variants": 891,
+    "feature_definitions": 180,
+    "catalog_contexts": 20,
+    "definitions_defaults_prerequisites_dependency_locks_and_index_unchanged": true,
+    "additional_author_overlap_actual_data_QA": "781c5c"
+  },
+  "actual_focused_attempt": {
+    "closed_session": 68331,
+    "terminal_checkpoint": "c54fad",
+    "parent_native_exit": 1,
+    "libtest_native_exit": 101,
+    "first_group": "unit:source_projection:core_workspace_navigation_family_tests",
+    "cases_run": 6,
+    "passed": 3,
+    "failed": 3,
+    "ignored": 0,
+    "libtest_elapsed_seconds": 466.99,
+    "actual_library_listing": 2260,
+    "actual_source_projection_children": 149,
+    "other_three_focused_groups_started": false,
+    "log_bytes": 2717,
+    "log_sha256": "095dabb3223adc0a74e1228b1753ded755234cda71bd49de71c73c777e24abb1",
+    "retained_failed_log": "Root-owned local runtime evidence; not a source artifact or replay authorization"
+  },
+  "failure": {
+    "error": "only 'or' condition alternatives are supported",
+    "source": "platform/cli/sfm-propagate-changes/src/source_projection/directive_scanner.rs",
+    "line": 343,
+    "failing_cases": [
+      "workspace_family_entry_controls_without_lifecycle_keep_real_leases_and_registration",
+      "workspace_family_optional_host_masks_match_registrar_and_omit_unsupported_operations",
+      "workspace_family_real_selector_and_renderer_reconstruct_all_25_authentic_bodies"
+    ],
+    "cause": "Thirty AND directives in four newly composed templates violate the established scanner contract",
+    "affected_Java_templates": [
+      "PanelActionSupport.java",
+      "SFMWorkspaceLifecycleActionIds.java",
+      "SFMWorkspaceLifecycleActions.java",
+      "SFMCommandPaletteActions.java"
+    ],
+    "correction": "Use equivalent nested single-feature if blocks; preserve else behavior, raw-body goldens, feature owners and existing scanner policy",
+    "correction_applied": false
+  },
+  "limits": {
+    "full_Rust_gate_started": false,
+    "additional_source_inferred_followup": "Older Echo and Toast palette tests still pin the pre-Workspace host; a strict current-to-historical inverse adapter is needed without replacing historical facts. This is not an executed failure.",
+    "Workspace_twenty_context_generation": false,
+    "Java_UI_runtime_release_parity_or_PATH_acceptance": false,
+    "goal_complete": false,
+    "disk_space_error": false,
+    "original_failed_source_and_evidence_retained": true
+  },
+  "next": "Correct the four template guards, retain this failure, run focused regressions and the full Rust gate, then refresh generation evidence. No dependency/default/prerequisite widening."
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "sfm:state3_root_readiness@1",
+  "status": "root_literal_review_and_read_only_reconstruction_passed_not_promoted",
+  "source_branch": "feat/sfm-main-source-projection",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "capsule_manifest": {
+    "bytes": 17769,
+    "sha256": "7cd04b8412459e117337e895604a9d55d637a89913e97751f0e4f16f9dd88d61"
+  },
+  "root_review": {
+    "complete_raw_java_sources_read": 3,
+    "complete_prepared_rust_module_read": true,
+    "complete_original_historical_ledger_read_through_literal_patches": true,
+    "complete_literal_patches_read": 10,
+    "base_pins_freshly_verified": 13,
+    "capsule_artifacts_freshly_verified": 22,
+    "portable_read_only_helper_syntax_and_body_read": true,
+    "portable_read_only_helper_terminal_exit": 0,
+    "production_writes": 0,
+    "tests_or_renderer_or_Java_run": false
+  },
+  "actual_current_core": {
+    "files": 1924,
+    "bytes": 8884982,
+    "sha256": "978e3a40be3e92b5cf159fb7a50fb7fb760f68d6c2e192433f7801bc22903414"
+  },
+  "expected_in_memory_only_core": {
+    "files": 1927,
+    "bytes": 8895962,
+    "sha256": "73dc34e3bb38fef3c130691ad21ceca842cb6882111057096dc53b7482b28d29"
+  },
+  "metadata_reconstruction": {
+    "paths_before": 641,
+    "paths_expected": 644,
+    "variants_expected": 829,
+    "existing641_rule_arrays_unchanged": true,
+    "all_other_metadata_fields_unchanged": true,
+    "module_change_is_exactly_one_registration": true,
+    "ordered_patch_count": 10,
+    "unique_production_targets": 7,
+    "new_targets": 5,
+    "exact_eof_continuation_orders": [5, 6, 8],
+    "maximum_payload_utf16": 14845
+  },
+  "prepared_application_driver": {
+    "path": "Apply-SfmKeybindingState3-20261002-v1.ps1",
+    "bytes": 8831,
+    "sha256": "30ab5b917e4f4bad411406244965b2d9600860fa0989f24fe5489e5da21c0b04",
+    "syntax_errors": 0,
+    "validate_only_terminal_exit": 0,
+    "apply_mode_run": false,
+    "defaults_to_non_mutating_validation": true,
+    "application_requires_prior_full_gate_terminal_success_and_root_process_retirement_check": true,
+    "dispatcher_scope": "Exactly ten reviewed apply_patch payloads, seven named production paths, no delete/move/index/cleanup operation",
+    "partial_failure_policy": "Stop and preserve partial state; never blindly replay or recover by overwriting unrelated edits"
+  },
+  "capture_followup": {
+    "status": "source_inferred_not_experimentally_reproduced",
+    "sequence": "An empty capture can count one pending Escape in tokenCount, accept focusToken(0), then removeFocusedToken calls tokenAt(0), whose lookup covers only committed strokes and throws IllegalArgumentException.",
+    "source_changed": false,
+    "UI_reachability_or_executed_runtime_claim": false,
+    "migration_policy": "Preserve the exact historical source; track a separate executed state-machine and UI regression before correcting behaviour"
+  },
+  "admission_conditions_still_open": [
+    "Independent current-base review receipt",
+    "Full existing tooling gate terminal success and retired process before production source freeze release",
+    "Fresh base and capsule pin recheck at actual application time",
+    "Actual eight focused tests and a new full tooling gate after any source promotion"
+  ],
+  "acceptance_limits": [
+    "No production change, actual Liquid render, compiler, Java/JVM or Minecraft execution occurred in this readiness check",
+    "The original historical candidate ledger remains immutable and is not relabeled as a current promotion receipt",
+    "Default feature selections, existing providers, prerequisites, dependency declarations and lockfiles remain unchanged",
+    "This readiness check does not complete the ten-version or twenty-projection consolidation goal"
+  ],
+  "publication_review": "Only repo-relative source names, public branch/commit identities, hashes and evidence boundaries are recorded; machine-private locators are omitted"
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "sfm:backend4-root-read-only-review@1",
+  "date": "2026-10-02",
+  "status": "source_reviewed_not_promoted_not_compiled",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "root_source_review": {
+    "complete_authored_java_sources_read": 4,
+    "authored_java_bytes": 27317,
+    "complete_prepared_source_regressions_read": 9,
+    "complete_boundary_helper_and_prepared_cases_read": 8,
+    "current_fixture_and_feature_validator_read": true,
+    "both_changed_preservation_loader_regions_read": true,
+    "current_registry_contracts_remain_180": true,
+    "public_catalog_and_production_inputs_changed": false
+  },
+  "independent_execution": {
+    "role": "read_only_G_staged_PowerShell_source_review",
+    "script_sha256": "ebc6ed53b9ca06cb085fa47ca61b680e09804e26eb2a6328e0bd3c286899d9a9",
+    "first_attempt_exit": 1,
+    "first_attempt_cause": "PowerShell emitted a VoidTaskResult into the intended Git byte return; no source finding or production change",
+    "correction": "Discard exactly CopyToAsync.GetResult return in the G-only reviewer",
+    "replacement_exit": 0,
+    "reviewed_at_utc": "2026-10-02T07:10:22.8707593Z",
+    "actual_git_blobs_verified": 5,
+    "actual_frozen_trees_verified": 20,
+    "historical_cells": 80,
+    "whole_raw_sources_matched": 32,
+    "historical_omissions": 48,
+    "legal_source_masks": 184,
+    "source_selected_cells": 522,
+    "source_omitted_cells": 214,
+    "per_target_masks": {
+      "1.19.2": 44,
+      "1.19.4": 44,
+      "1.20": 12,
+      "1.20.1": 12,
+      "1.20.2": 12,
+      "1.20.3": 12,
+      "1.20.4": 12,
+      "1.21.0": 12,
+      "1.21.1": 12,
+      "26.1.2": 12
+    },
+    "implementation": "Independent whole-line boolean expansion with actual held historical source identities; not SFM production rendering",
+    "stdout_receipt": "Returned through the tool output; this document transcribes its exact successful result and separate first failure"
+  },
+  "boundary_review": {
+    "fragment_bytes": 17833,
+    "fragment_sha256": "7be488ac8d216142bb86cc22563ef695fa22c725c82b62d64facf8165bbf581d",
+    "support_patch_bytes": 18687,
+    "support_patch_sha256": "3e3285b5805bf76a2abed7803285c66d7a252195f84160a9bf73c6e0864a4a48",
+    "loader_patch_bytes": 3073,
+    "loader_patch_sha256": "918b720d8b4c5f90edbd3ef6c0f6171cc0a508ab49cc7c51370f5d9f6d41dd38",
+    "original180_bytes": 30254,
+    "original180_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "four_extension_bytes": 783,
+    "four_extension_sha256": "e05c5b0f8d4b499b2fcfbd2ac67cfd61879c152ac6cb391d6cdbf14458d20696",
+    "positive_states": "Only exact original180 bytes or exact original180 plus all four append-only entries",
+    "test_specificity_fix": "14 partial physical probes and valid fifth-owner probe retain the exact original prefix. Same constructor reproduces both positive controls; loaded-view corruption is checked separately.",
+    "prepared_tests_executed": false,
+    "root_acceptance": "Ready for narrowly scoped coherent activation and actual test execution after the running gate releases its source freeze; this is not a passing test result"
+  },
+  "caller_closure": {
+    "status": "not_closed",
+    "finding": "Backend prepared regression5 checks independent flags do not select providers, but that alone does not prove selected OpenRepl/lifecycle/typed-scene/mount callers compile against absent members.",
+    "followup": "Trace genuine callers; preserve prerequisite contracts and exact historical all-on bytes; add explicit unavailable-operation handling or justified pure-provider ownership without activating disabled effects.",
+    "unavailable_java_test": "Separate future migration: keyboard guard is source-only and not registered in core/test membership"
+  },
+  "acceptance_limits": [
+    "No production source, definition, catalog, dependency, lockfile or installed tool was changed.",
+    "No production renderer, prepared Rust test, Java compile, application, endpoint or backend process was run.",
+    "No whole-class/JAR/gameplay parity, current twenty-context matrix or full tooling acceptance is claimed.",
+    "Production-source freeze remains active while the full tooling gate is live.",
+    "The complete ten-target/twenty-context consolidation goal remains active."
+  ],
+  "path_policy": "Repository-relative roles and hashes only; private G staging and SDK/cache locators remain transient"
+}

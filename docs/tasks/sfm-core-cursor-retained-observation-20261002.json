@@ -1,0 +1,98 @@
+{
+  "schema": "sfm:cursor_retained_observation_evidence@1",
+  "date": "2026-10-02",
+  "target": "1.19.2",
+  "projection": "sfm-4.34.0/mc-1.19.2",
+  "status": "finite_actual_retained_class_observations_passed_no_release_parity_acceptance",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "artifact_origin": "docs/tasks/sfm-core-release-1192-native-jar-diagnostic-20261002-v1.json",
+  "freshness": "The retained candidate was built from the earlier 1875-file/592-rule checkpoint. This diagnostic does not compile or validate the current 1916-file/633-rule core.",
+  "archives": {
+    "official": {"bytes": 1623810, "sha256": "f2c0242a984b8b782cc995e20a59e71bbdb48981873ab31a4531f0d1db3af038"},
+    "candidate": {"bytes": 1625963, "sha256": "4215a605adc8b0c8a27ce6e91a92ebc22382f1f0261fbb70d8a3f79e04259491"}
+  },
+  "reviewed_stage": {
+    "fixture": {"name": "CursorConcatRetainedObservation.java", "bytes": 29334, "sha256": "a6bffcaf4e645722686cde112e1cf4113589909093b8c8f59ef82ce289e4d2cd"},
+    "driver": {"name": "Invoke-CursorConcatRetainedObservation.ps1", "bytes": 51251, "sha256": "b31c432751b72c91939c31b4f21ab352fc3eb85872145ece2adad42538956760"},
+    "manifest": {"bytes": 23559, "sha256": "455a07f0d2197f2a216f810023a26739ff41c517b80d793df52a53094d18edf3"},
+    "root_exact_authority": {"bytes": 2866, "sha256": "aa987b5ab541ab6e5ec4352604bb266ee760439e31f490b4b6c9e541c3f34e0a"},
+    "independent_source_review": {"bytes": 12481, "sha256": "a45a4475a038fa2ac37022aa4f70ebf0d54e0a9fb954dc951c3db56891485d93"},
+    "root_full_source_and_SDK_ObjectMethods_read": true,
+    "execution_authority": "exact pinned source, manifest, SDK roles and archive bytes; one fresh local diagnostic run only"
+  },
+  "retained_inputs": [
+    {"role": "original_caret", "bytes": 3006, "sha256": "9e39f8fe48e1fe9c94ef4805c43863061c9074ff4d41d5fda80f1bf4b1e0643b"},
+    {"role": "original_cursor", "bytes": 3587, "sha256": "cc244fb568b225224fabc10d2d2fb631ba33b0e80e8a4cb8939c284b8ad84373"},
+    {"role": "candidate_caret", "bytes": 3006, "sha256": "7778786420bf1b5838def09916a8e7b5729d1b089ca8fcb7265c3c95e53637d1"},
+    {"role": "candidate_cursor", "bytes": 3628, "sha256": "8c3cc22c810ceadef7d8d22014d33213c9681dbbba4cd62f271697df2ba79149"}
+  ],
+  "loader_boundary": {
+    "providers": 2,
+    "parent": null,
+    "application_classes_each": ["ca.teamdman.sfm.client.text_editor.Caret", "ca.teamdman.sfm.client.text_editor.Cursor"],
+    "only_bootstrap_java_base_delegation": true,
+    "unreviewed_application_dependency_requested": false,
+    "no_parent_context_resource_JAR_or_dependency_fallback": true,
+    "no_class_transformation_or_Fastutil_stub": true,
+    "public_method_handles_exact_constructors_and_accessors_only": true,
+    "reflection_method_enumeration": false,
+    "MultiCursor_and_TextEditContext_loaded": false
+  },
+  "cases": [
+    "both_null", "null_tail", "null_head", "origin_shared", "origin_equal_distinct",
+    "selection_forward", "selection_reverse", "negative_line", "negative_gap",
+    "max_components", "min_components", "cross_extremes", "position_zero",
+    "position_negative", "position_max", "position_min"
+  ],
+  "results": {
+    "driver_exit": 0,
+    "success_rows": 51,
+    "cases": 16,
+    "observations": 32,
+    "comparisons": 16,
+    "provider_provenance_rows": 2,
+    "actual_Cursor_toString_calls": 64,
+    "expected_literal_contract_failures": 0,
+    "unequal_observations": 0,
+    "unexpected_exceptions": 0,
+    "identity_int_state_and_alias_checks_passed": true,
+    "root_independent_raw_output_recheck": "passed against independent manifest literals and state contracts",
+    "independent_post_run_review": {"bytes": 15306, "sha256": "d3e240f45b50771f503cbf0cda33ad9f1a00e2019d4fa607f29db52e41de8183", "discrepancies": 0, "held_files_rehashed": 33, "all_51_rows_checked_against_exact_keys_types_literals_state_alias_identity_and_events": true},
+    "compiler": {"exit": 0, "elapsed_ms": 775, "argv_count": 1, "stdout_bytes": 0, "stderr_bytes": 0},
+    "runtime": {"exit": 0, "elapsed_ms": 314, "argv_count": 7, "stdout_bytes": 38727, "stderr_bytes": 0},
+    "both_children_reaped": true,
+    "prefix_only_or_recovery": false,
+    "exact_child_PIDs_absent_after_elevated_read_only_query": true,
+    "sandbox_CIM_denial_excluded_from_process_evidence": true,
+    "owned_temporary_state": "one empty non-reparse JVM performance-data directory remains; preserved without cleanup"
+  },
+  "retained_outputs": {
+    "raw_observation": {"bytes": 38727, "sha256": "47a993289ac62642aaf117669e47f71b3e661e74d64f5050931c15841827c691"},
+    "compile_receipt": {"bytes": 689, "sha256": "e3d8a2ac23a10c8f767c4e5b0225ea152a9b3ba1f4efb93130503a199ff8f791"},
+    "runtime_receipt": {"bytes": 1285, "sha256": "6cc40972fa58bf718f797a910155f5cdd9c0610ffe9ce23cf1d7430bbbf85ffd"},
+    "compiled_inventory": {"bytes": 2187, "sha256": "6410fba15b29d72dce5ffa40b1144dde98b843fb2a3b4c44185a35910dfd9aa0"},
+    "summary": {"bytes": 8927, "sha256": "31a20d09b691f12b77e61c80e3eebc9fb42f5b2464ab8a604664b2029211db6e"},
+    "retained_class_files": 4,
+    "retained_class_bytes": 13227,
+    "compiled_harness_files": 6,
+    "compiled_harness_bytes": 34838,
+    "private_stage_locations_embedded": false
+  },
+  "acceptance_limits": {
+    "sixteen_finite_actual_observations_only": true,
+    "whole_class_parity_accepted": false,
+    "official_JAR_parity_accepted": false,
+    "gameplay_parity_accepted": false,
+    "any_of_83_executable_bootstrap_differences_waived": false,
+    "current_twenty_projection_matrix_validated": false,
+    "all_native_libraries_authenticated": false,
+    "SDK_source_to_modules_correspondence_proved": false,
+    "OS_or_heap_containment_proved": false,
+    "fault_injection_or_cancellation_tested": false,
+    "projection_source_or_runner_or_comparator_mutated": false,
+    "SDK_cache_dependency_or_lock_mutated": false,
+    "cleanup_performed": false,
+    "merge_push_tag_or_publication_performed": false,
+    "installed_tool_freshness_established": false
+  }
+}

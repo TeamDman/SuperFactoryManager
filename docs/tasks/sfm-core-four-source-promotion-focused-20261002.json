@@ -1,0 +1,44 @@
+{
+  "schema":"sfm:four_source_promotion_focused_checkpoint@1",
+  "date":"2026-10-02",
+  "status":"actual_promotion_and_focused_tests_passed_full_gate_running",
+  "branch":"feat/sfm-main-source-projection",
+  "head":"33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "core":{"files":1937,"bytes":8949630,"sha256":"3f6838393924ee5f3946acd2af58c8fc97cfdde0334a4213a9f5902c2feead24"},
+  "metadata":{"rule_paths":654,"variants":839,"bytes":459646,"sha256":"d801aa1593923b27ea119ed35bf146dde6ef8359232a754f8e379c871c22c99e"},
+  "application":{"actual_exit_code":0,"literal_payloads":16,"targets":10,"marker":"FOUR_SOURCE_LITERAL_APPLICATION_EXIT=0 payloads=16 targets=10 staged_rows_preserved=98","preformat_target_hashes_checked":10,"original_staged_rows_preserved":98},
+  "java_sources":[
+    {"path":"src/main/java/ca/teamdman/sfm/client/input/SFMPointerInputModifiers.java","owner":"pointer_modifier_ingress","bytes":1143,"sha256":"d496c3f8885228b58087e03c44b5bfafa19e1e4b014b7d1ed0c1fd6a4ea8570b"},
+    {"path":"src/main/java/ca/teamdman/sfm/client/syntax/SFMSyntaxHighlightLimits.java","owner":"syntax_languages","bytes":934,"sha256":"7dac142a06a10ec93b9c29f51529593ce4fbee6a6233cb648422734ca3f82493"},
+    {"path":"src/main/java/ca/teamdman/sfm/common/net/SFMClientInboxAddress.java","owner":"client_inbox","bytes":1465,"sha256":"4f990ed9dcd88e497a349197a41dd3cc79b30d571ba08b053408686eece4f96e"},
+    {"path":"src/main/java/ca/teamdman/sfm/common/authorization/SFMManagerOperatorAuthorization.java","owner":"manager_operator_queries","bytes":3889,"sha256":"85a07b50ed90824ed2061f294ddc99cb15187310a2003ec3051935c98d6046ed"}
+  ],
+  "witnesses":{"typed_cells":80,"present":7,"absent":73,"all_twenty_current_defaults_omit_four_owners":true},
+  "formatted_rust_pins":[
+    {"path":"platform/cli/sfm-propagate-changes/src/source_projection/core_pointer_input_modifiers_slice_tests.rs","bytes":22154,"sha256":"077c1be77d612034feac59401442acdbfa7ab84edaa6ff194f343631c30640dd"},
+    {"path":"platform/cli/sfm-propagate-changes/src/source_projection/core_small_three_leaves_slice_tests.rs","bytes":32174,"sha256":"ff92838d55cfd724c66cb93bf3fabbf1e7a586c19bf0e5b126764b63133b37b7"},
+    {"path":"platform/cli/sfm-propagate-changes/src/source_projection/mod.rs","bytes":17333,"sha256":"43d0be6cbc59e9b4616a245012d9e9c32962bf93ea9b5e10ecf0670994fb4652"}
+  ],
+  "focused":{
+    "session":99372,"actual_exit_code":0,"marker":"FOUR_SOURCE_FOCUSED_EXIT=0",
+    "runner":"scripts/test-bounded.ps1 -Shard <named-shard>",
+    "shards":[
+      {"name":"unit:source_projection:core_pointer_input_modifiers_slice_tests","passed":8,"failed":0,"ignored":0},
+      {"name":"unit:source_projection:core_small_three_leaves_slice_tests","passed":8,"failed":0,"ignored":0},
+      {"name":"unit:source_projection:core_features","passed":2,"failed":0,"ignored":0},
+      {"name":"unit:source_projection:core_inputs","passed":16,"failed":0,"ignored":0}
+    ],
+    "total_passed":34,"new_cases":16,"existing_controls":18,
+    "coverage_list":{"library_tests":2184,"source_projection_children":140,"source_projection_tests":1093},
+    "evidence_limit":"Actual terminal summaries and normal closure were observed. The 28-byte Tee file captured only the final marker because runner summaries use the information stream. It is not a complete raw focused log.",
+    "marker_file":{"bytes":28,"sha256":"996e4b8b53818f1144bc012b371a839be8d338d49619f7f510235d8412d75abe"}
+  },
+  "full_gate":{"status":"running_not_accepted","session":36972,"command":"pwsh -NoProfile -File check-all.ps1","process_scoped_environment":{"CARGO_NET_OFFLINE":"true"},"log":"platform/cli/sfm-propagate-changes/target/core-four-sources-check-all-20261002-v1.log","all_streams_captured":true},
+  "preserved":{"owner_definitions":180,"catalog_entries":20,"existing_rule_arrays":650,"definitions_catalog_defaults_prerequisites_dependencies_unchanged":true},
+  "limits":[
+    "Pure selector/scanner/renderer and collector contracts are proven, not Java compilation or gameplay.",
+    "No worker, inbox-packet, manager-show or whole action-family closure follows from these four helpers.",
+    "Full gate, rebuilt normal CLI, fresh current1937 generation, release parity, runtime matrix and final installed-tool freshness remain separate gates.",
+    "No merge, push, tag, publication, branch retirement or goal completion."
+  ]
+}

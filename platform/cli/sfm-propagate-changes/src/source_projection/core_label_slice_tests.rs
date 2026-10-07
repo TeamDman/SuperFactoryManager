@@ -9,7 +9,6 @@
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::core_slice_test_support::CoreTestFixture;
 use super::core_slice_test_support::read_bounded;
 use super::core_slice_test_support::read_git_blobs;
@@ -406,7 +405,10 @@ impl LabelFixture {
             .ok_or_else(|| eyre::eyre!("ComputerCraft owner missing"))?;
         ensure!(
             same_names(&cc_definition.supported_targets, &TARGETS)
-                && same_names(&cc_definition.requires, &["mod_event_filtering"]),
+                && same_names(
+                    &cc_definition.requires,
+                    &["mod_event_filtering", "disk_readonly_access", READ],
+                ),
             "ComputerCraft owner closure changed"
         );
         let cm_definition = core
@@ -500,14 +502,17 @@ impl LabelFixture {
                 let dev = environment == "dev";
                 let cm = dev && is_d2(target);
                 let expected_oid = historical_oid(name, target, dev)?;
-                let flags = explicit_flags(dev, cm, dev);
-                core.context(target, &flags)?;
+                // The immutable ledger records the original explicit owner
+                // reconstruction, not today's dependency-closed context.
+                let original_flags = original_review_flags(dev, cm, dev);
+                let current_flags = explicit_flags(dev, cm, dev);
+                core.context(target, &current_flags)?;
                 ensure!(
                     contexts.insert(witness.context.clone())
                         && pinned_commits().get(&witness.context) == Some(&witness.source_commit)
                         && witness.present == expected_oid.is_some()
                         && witness.raw_blob.as_deref() == expected_oid
-                        && same_names(&witness.explicit_features, &flags)
+                        && same_names(&witness.explicit_features, &original_flags)
                         && witness.feature_context_origin
                             == "reconstructed_explicit_owner_selection_not_historical_feature_claim",
                     "label historical context/member contract changed"
@@ -582,7 +587,9 @@ impl LabelFixture {
 
     fn render(&self, name: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
         let path = format!("{PREFIX}{name}");
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(&path) else {
             return Ok(None);
         };
@@ -676,13 +683,39 @@ fn same_names(actual: &[String], expected: &[&str]) -> bool {
         && actual.iter().map(String::as_str).collect::<BTreeSet<_>>()
             == expected.iter().copied().collect()
 }
-fn explicit_flags(cc: bool, cm: bool, read: bool) -> Vec<&'static str> {
+// Exact owner selections used in the original frozen migration review. These
+// are evidence, not valid current contexts and not historical feature claims.
+fn original_review_flags(cc: bool, cm: bool, read: bool) -> Vec<&'static str> {
     let mut flags = BTreeSet::new();
     if cc {
         flags.extend([CC, "mod_event_filtering"]);
     }
     if cm {
         flags.extend([CM, "client_program_consent", "sfml_execution_side", READ]);
+    }
+    if read {
+        flags.insert(READ);
+    }
+    flags.into_iter().collect()
+}
+
+// Reviewed current flags are assembled explicitly and validated by the real
+// strict CoreTestFixture; no missing prerequisite is enabled implicitly.
+fn explicit_flags(cc: bool, cm: bool, read: bool) -> Vec<&'static str> {
+    let mut flags = BTreeSet::new();
+    if cc {
+        // READ remains an explicit requested label profile, so an old CC-only
+        // mask is rejected below rather than silently widened by the fixture.
+        flags.extend([CC, "mod_event_filtering", "disk_readonly_access"]);
+    }
+    if cm {
+        flags.extend([
+            CM,
+            "client_program_consent",
+            "sfml_execution_side",
+            "disk_readonly_access",
+            READ,
+        ]);
     }
     if read {
         flags.insert(READ);
@@ -789,6 +822,7 @@ fn label_slice_preserves_independent_cc_client_and_readonly_owner_profiles() -> 
     let mut profiles = 0;
     let mut present = 0;
     let mut absent = 0;
+    let mut rejected_cc_without_read = 0;
     for target in TARGETS {
         for mask in 0_u8..if is_d2(target) { 8 } else { 4 } {
             let cc = mask & 1 != 0;
@@ -797,13 +831,28 @@ fn label_slice_preserves_independent_cc_client_and_readonly_owner_profiles() -> 
             if cm && !read {
                 continue;
             }
+            if cc && !read {
+                // These ten masks were valid in the original migration review.
+                // Current CC needs the label read-only API; preserve coverage as
+                // strict-context rejection, never as a fabricated source context.
+                let error = fixture
+                    .core
+                    .context(target, &explicit_flags(cc, cm, read))
+                    .expect_err("CC without label read-only access must be rejected");
+                assert!(error.to_string().contains(READ));
+                rejected_cc_without_read += 1;
+                continue;
+            }
             let (p, a) = fixture.assert_profile(target, cc, cm, read)?;
             profiles += 1;
             present += p;
             absent += a;
         }
     }
-    assert_eq!((profiles, present, absent), (44, 336, 60));
+    // Frozen full-dev/release goldens remain separate in the twenty-context test.
+    // Today's dependency-closed independent set is 34, not the original 44.
+    assert_eq!((profiles, present, absent), (34, 256, 50));
+    assert_eq!(rejected_cc_without_read, 10);
     Ok(())
 }
 
@@ -836,9 +885,11 @@ fn client_manager_label_actions_do_not_enable_computercraft_or_old_player_delega
                 .body(TARGET_DISCOVERY, &context)?
                 .contains("boolean contiguous")
         );
+        // This source comparison requires a real current CC context. Its
+        // no-read-only predecessor remains a strict rejection case above.
         let cc = fixture
             .core
-            .context(target, &explicit_flags(true, false, false))?;
+            .context(target, &explicit_flags(true, false, true))?;
         assert!(fixture.render(CLIENT_ACTION, &cc)?.is_none());
         assert!(
             !fixture

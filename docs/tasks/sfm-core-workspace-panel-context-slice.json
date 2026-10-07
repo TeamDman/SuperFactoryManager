@@ -1,0 +1,952 @@
+{
+  "schema": "sfm:core-workspace-panel-context-slice@1",
+  "status": "Two genuinely shared source-only templates are staged. Root promotion, registered production-renderer tests and real host/runtime closure remain pending.",
+  "scope": {
+    "production_files": 2,
+    "context_cells": 40,
+    "present_cells": 20,
+    "absent_cells": 20,
+    "raw_variants": 4,
+    "stage_bytes": 2420,
+    "new_source_flags": 2,
+    "independent_masks": 4,
+    "dependencies_changed": 0,
+    "java_compilation": false,
+    "live_runtime": false,
+    "complete_java_closure": false
+  },
+  "name_resolution": "The actual classes are SFMWorkspacePanelContext and SFMWorkspacePanelHost; no new SFMScreenPanelContext wrapper was invented.",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "normalization": {
+    "policy": "none",
+    "raw_byte_exact": true,
+    "authorized_transformations": []
+  },
+  "files": [
+    {
+      "name": "SFMWorkspacePanelContext",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelContext.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-panel-context-stage-v1/SFMWorkspacePanelContext.java",
+      "stage_bytes": 1289,
+      "stage_sha256": "sha256:359084ad72455d38243caf5154cd3635354abe1a1376d09162752c38400d0c6f",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelContext.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "workspace_panels"
+          ],
+          "any_features": []
+        }
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "2bddc19dc9279bee030082c969f9180f14b71450",
+          "raw_bytes": 1085,
+          "raw_sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473"
+        },
+        {
+          "context": "dev/1.19.4",
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "2bddc19dc9279bee030082c969f9180f14b71450",
+          "raw_bytes": 1085,
+          "raw_sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473"
+        },
+        {
+          "context": "dev/1.20",
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.20.1",
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.20.2",
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.20.3",
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.20.4",
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.21.0",
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/1.21.1",
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "dev/26.1.2",
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "raw_bytes": 724,
+          "raw_sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "context": "release/1.19.2",
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.4",
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20",
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.1",
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.2",
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.3",
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.4",
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.0",
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.1",
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/26.1.2",
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        }
+      ]
+    },
+    {
+      "name": "SFMWorkspacePanelHost",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelHost.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-panel-context-stage-v1/SFMWorkspacePanelHost.java",
+      "stage_bytes": 1131,
+      "stage_sha256": "sha256:45e0098af568c3ba9a40152c731f555e7d87a6418a8ba4acc116fba991727dd7",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelHost.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "workspace_panels"
+          ],
+          "any_features": []
+        }
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "73fbd4727b9278a74e66f2735373290a3c51f290",
+          "raw_bytes": 834,
+          "raw_sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d"
+        },
+        {
+          "context": "dev/1.19.4",
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "73fbd4727b9278a74e66f2735373290a3c51f290",
+          "raw_bytes": 834,
+          "raw_sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d"
+        },
+        {
+          "context": "dev/1.20",
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.20.1",
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.20.2",
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.20.3",
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.20.4",
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.21.0",
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/1.21.1",
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "dev/26.1.2",
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "raw_bytes": 320,
+          "raw_sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        },
+        {
+          "context": "release/1.19.2",
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.4",
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20",
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.1",
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.2",
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.3",
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.4",
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.0",
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.1",
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/26.1.2",
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        }
+      ]
+    }
+  ],
+  "raw_variants": [
+    {
+      "git_blob": "2bddc19dc9279bee030082c969f9180f14b71450",
+      "bytes": 1085,
+      "sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "73fbd4727b9278a74e66f2735373290a3c51f290",
+      "bytes": 834,
+      "sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+      "bytes": 724,
+      "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+      "bytes": 320,
+      "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    }
+  ],
+  "prerequisite_definitions": {
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_panel_measurement": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_lookup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "full_source_profiles": [
+    {
+      "target": "1.19.2",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "2bddc19dc9279bee030082c969f9180f14b71450",
+          "bytes": 1085,
+          "sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "73fbd4727b9278a74e66f2735373290a3c51f290",
+          "bytes": 834,
+          "sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d"
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "2bddc19dc9279bee030082c969f9180f14b71450",
+          "bytes": 1085,
+          "sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "73fbd4727b9278a74e66f2735373290a3c51f290",
+          "bytes": 834,
+          "sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d"
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "goldens": [
+        {
+          "name": "SFMWorkspacePanelContext",
+          "git_blob": "175f66d0ac424507bf8b73259a5b18d915b110c0",
+          "bytes": 724,
+          "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+        },
+        {
+          "name": "SFMWorkspacePanelHost",
+          "git_blob": "ee3ac8425d0a6d0402cefa8c0a8d6d904dff9b89",
+          "bytes": 320,
+          "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+        }
+      ]
+    }
+  ],
+  "independent_source_profiles": [
+    {
+      "mask": 0,
+      "name": "SFMWorkspacePanelContext.java",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 724,
+      "sha256": "sha256:4b358882683237db399e3a01e5ff1134b0179e82c277a3e9ce5354a366e1e5ee"
+    },
+    {
+      "mask": 0,
+      "name": "SFMWorkspacePanelHost.java",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 320,
+      "sha256": "sha256:c0d8d15d9acdb233bdababdab1871cccc7b0746aa00ea9c3ac2a3fa6872a8db6"
+    },
+    {
+      "mask": 1,
+      "name": "SFMWorkspacePanelContext.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement"
+      ],
+      "bytes": 927,
+      "sha256": "sha256:d10d16e6babbee61831c9f02d5c96f3d7dd754c605b4addfd23933731fe66cbb"
+    },
+    {
+      "mask": 1,
+      "name": "SFMWorkspacePanelHost.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement"
+      ],
+      "bytes": 639,
+      "sha256": "sha256:c635dea0de299aea0191e375e6745df1f9db7aaa36f25dbd05f1b66d2a46286d"
+    },
+    {
+      "mask": 2,
+      "name": "SFMWorkspacePanelContext.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_lookup"
+      ],
+      "bytes": 909,
+      "sha256": "sha256:10c5f178dabcce4b5854c6e10649a64747b4fd1fdeb92e37657eb6f1a7761b48"
+    },
+    {
+      "mask": 2,
+      "name": "SFMWorkspacePanelHost.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_lookup"
+      ],
+      "bytes": 544,
+      "sha256": "sha256:18cbc1f6dca2c81251a62c08cba10483cf5074ef63d9bb68601ebf34d54ec964"
+    },
+    {
+      "mask": 3,
+      "name": "SFMWorkspacePanelContext.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup"
+      ],
+      "bytes": 1085,
+      "sha256": "sha256:f3fabb61c62a27395834c7ff6f6e17fbbbab97b99d3a1016aadd0784f5b03473"
+    },
+    {
+      "mask": 3,
+      "name": "SFMWorkspacePanelHost.java",
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup"
+      ],
+      "bytes": 834,
+      "sha256": "sha256:ff15580ca1baad6ab5614eb25a2f9c797d89c2e0d06f1e102ee99e7fe723e15d"
+    }
+  ],
+  "member_owners": [
+    {
+      "owner": "workspace_panel_measurement",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "prerequisites": [],
+      "members": [
+        "SFMWorkspacePanelContext.measure(SFMScreenPanelBounds)",
+        "SFMWorkspacePanelHost.default measure(SFMWorkspacePanelId,SFMScreenPanelBounds)"
+      ],
+      "off_behavior": "No measurement declaration or metrics/bounds reference; original submit/unhosted body remains exact.",
+      "on_behavior": "Context passes its exact panelId and nonnull logical bounds to the real host. An unavailable host returns Optional.empty.",
+      "consumers": [
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "anchor": "context.measure(logicalViewport)",
+          "lines": [
+            623,
+            645
+          ],
+          "meaning": "Map logical terminal viewport to exact physical raster allocation when available; retain existing logical fallback."
+        },
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "anchor": "context.measure(bounds)",
+          "lines": [
+            1256
+          ],
+          "meaning": "Derive observed viewport metrics from real hosting."
+        },
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMTextEditorPanel.java",
+          "anchor": "panelContext.measure(logical)",
+          "lines": [
+            910
+          ],
+          "meaning": "Project inspection rectangles into global logical/physical-pixel coordinates."
+        },
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+          "anchor": "public Optional<SFMWorkspacePanelMetrics> measure(",
+          "lines": [
+            853
+          ],
+          "meaning": "Actual host implementation; not staged or substituted."
+        }
+      ],
+      "not_equivalent_to": [
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "terminal_frame_metadata"
+      ],
+      "future_caller_contract": "Terminal and editor source authoring must independently guard query calls or preserve a legitimate logical-bounds/empty-projection fallback. Existing all10 consumer feature support does not widen this D2 protocol."
+    },
+    {
+      "owner": "workspace_panel_lookup",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "prerequisites": [],
+      "members": [
+        "SFMWorkspacePanelContext.panel(SFMWorkspacePanelId)",
+        "SFMWorkspacePanelHost.default panel(SFMWorkspacePanelId)"
+      ],
+      "off_behavior": "No exact-ID lookup API or SFMScreenPanel reference in Context/Host; original submit/unhosted body remains exact.",
+      "on_behavior": "Context passes the requested exact stable identity, never focus-retargets. An unavailable host returns Optional.empty.",
+      "consumers": [
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "anchor": "context.panel(ownerPanelId)",
+          "lines": [
+            122
+          ],
+          "meaning": "Resolve the specific owning terminal so a properties panel cannot silently tune another focused terminal."
+        },
+        {
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+          "anchor": "public Optional<SFMScreenPanel> panel(SFMWorkspacePanelId panelId)",
+          "lines": [
+            879
+          ],
+          "meaning": "Actual lookup implementation; not staged or substituted."
+        }
+      ],
+      "future_caller_contract": "Properties-panel source must require explicit lookup protocol or provide a real unavailable result when its exact owner can no longer be resolved; never replace it with whichever terminal is focused."
+    }
+  ],
+  "shared_import_rule": {
+    "java_util_Optional": "workspace_panel_measurement OR workspace_panel_lookup",
+    "java_util_Objects": "unconditional historical Context constructor/submit/unhosted contract"
+  },
+  "mc_api_cases": [],
+  "mc_api_note": "The four raw variants differ only by D2 functional protocol additions. Do not encode those changes as Minecraft-version surrogate conditions.",
+  "preserved_base_contract": [
+    "Host remains @FunctionalInterface with one abstract submit(SFMWorkspacePanelId,SFMWorkspacePanelIntent).",
+    "The original UNAVAILABLE lambda returns SFMWorkspacePanelIntentResult.UNAVAILABLE unchanged.",
+    "Context compact constructor checks panelId and host with Objects.requireNonNull.",
+    "Context submit retains its exact panelId and checks intent before forwarding.",
+    "Context unhosted uses the real historical Host.UNAVAILABLE instance, not a fabricated implementation."
+  ],
+  "closure_audit": [
+    {
+      "reference": "SFMWorkspacePanelId",
+      "status": "Existing exact core model/prior source rule provides stable IDs. No body or rule is replaced by this slice."
+    },
+    {
+      "reference": "SFMWorkspacePanelIntentResult",
+      "status": "Earlier immutable leaf tranche supplies exact enum; root promotion remains separate."
+    },
+    {
+      "reference": "SFMWorkspacePanelIntent",
+      "status": "Real sealed request model remains a source gap. Its later D2 metadata/reopen/stack members need independent owners; not fabricated here."
+    },
+    {
+      "reference": "SFMWorkspacePanelMetrics",
+      "status": "Earlier immutable primitive tranche supplies exact D2 value; workspace_panels OR real terminal consumers provides membership. These Context/Host classes themselves require workspace_panels."
+    },
+    {
+      "reference": "SFMScreenPanelBounds",
+      "status": "Earlier primitive tranche supplies the true all10 bounds carrier."
+    },
+    {
+      "reference": "SFMScreenPanel",
+      "status": "Previous immutable protocol tranche supplies the real shared all10 interface and narrow optional members."
+    },
+    {
+      "reference": "SFMScreenMultiplexer",
+      "status": "Real mutable/native Minecraft Screen host remains a separately reviewed implementation, not imported to hide closure gaps."
+    },
+    {
+      "reference": "terminal/editor callers",
+      "status": "Actual caller feature-on closure and fallback authoring remain pending. Source presence/mask tests do not establish compiled or live behavior."
+    }
+  ],
+  "validation": {
+    "completed": [
+      "Reused the exact immutable 20 Git membership audit for these two named paths, then bounded-read all 4 raw blob identities independently.",
+      "Verified zero CRLF/lone-CR/BOM, preserved final LF and all source tokens/comments/spacing.",
+      "Whole-file apply_patch Add and actual disk reread match intended 2,420 bytes.",
+      "Independent controlled whole-line expansion reconstructs all 4 raw bodies and all 4 protocol combinations for each source.",
+      "Original off Host was checked byte-for-byte, including no stray blank line after abstract submit."
+    ],
+    "independent_expansion_is_not_production_renderer": true,
+    "no_cargo_java_graph_tools_or_downloads_run": true,
+    "pending": [
+      "Register approved owners and all 10 workspace_panels sparse rules with public flags still off.",
+      "Promote exact sources and register bounded actual selector/renderer/collector tests.",
+      "Run 20 source goldens/40 membership cells,16 D2 mask-source outputs, off/minimal unsupported and common-edit proofs.",
+      "Close real PanelIntent/dispatcher/host implementation and caller-fallback source graph before Java/runtime claims."
+    ]
+  },
+  "constraints": [
+    "Do not edit prior delivered ledgers or stages, live canonical sources, catalog/metadata or registered Rust.",
+    "No invented interfaces, unavailable stubs, host/native implementation imports, blanket workspace runtime owner, whole-class historic dispatch or environment selection.",
+    "No dependency/lock/build/process/cache effects; stop immediately on disk-space errors without cleanup."
+  ]
+}

@@ -1,0 +1,1798 @@
+{
+  "workspace_directional_opening": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_focus_tracking": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_panel_entry_controls": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_stack_controls",
+      "workspace_panel_actions",
+      "command_palette"
+    ]
+  },
+  "workspace_panel_move_gestures": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panel_entry_controls",
+      "pointer_modifier_ingress"
+    ]
+  },
+  "workspace_notifications": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels",
+      "font_formatted_text"
+    ]
+  },
+  "theme_file_icon_matching": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_theme"
+    ]
+  },
+  "theme_file_icon_defaults": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_theme"
+    ]
+  },
+  "theme_preview_rules": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_theme"
+    ]
+  },
+  "workspace_dividers": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_panel_metadata": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_stack_controls": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels",
+      "workspace_panel_metadata"
+    ]
+  },
+  "workspace_directional_resize": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_layout_focus_fix": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_layout_rounding_fix": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_panel_reopening": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "workspace_keyboard_context": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "keyboard_profiles"
+    ]
+  },
+  "workspace_widget_hosts": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_panel_tooltips": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_panel_measurement": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_panel_lookup": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "screen_diagnostics": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "mekanism_sidedness_messages": {
+    "supported_targets": [
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "editor_pointer_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "editor_search": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "explorer_navigation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "keybinding_settings": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "keyboard_profiles"
+    ]
+  },
+  "terminal_focus_gestures": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_control_cli": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "structured_logs": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "version_adapter_notes": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "ae2_mekanism_bank_tests": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "energy_starvation_characterization_tests": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "input_diagnostics_panel": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "input_diagnostics_screen": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "terminal_local": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "terminal_keyboard_input": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "packet_terminal_worker_tests": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_computation",
+      "packet_transport_private",
+      "gametest_sides"
+    ]
+  },
+  "syntax_languages": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "developer_world_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "developer_tools"
+    ]
+  },
+  "terminal_vox_runtime": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "terminal_properties": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "terminal_clipboard": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "terminal_paste_confirmation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "terminal_server_lifecycle": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "legacy_review_retirement": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "review_sessions"
+    ]
+  },
+  "legacy_repository_review": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "legacy_comment_review": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "legacy_source_review": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "legacy_file_explorer": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "item_picker": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_theme"
+    ]
+  },
+  "timeline_panels": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "client_action_help": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "editor_overlay_push"
+    ]
+  },
+  "clipboard_action_commands": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "focus_target_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "workspace_legacy_open_action": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels"
+    ]
+  },
+  "client_action_listing": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_actions",
+      "structured_action_results"
+    ]
+  },
+  "client_control_file_actions": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_actions",
+      "structured_action_results"
+    ]
+  },
+  "client_log_read_actions": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_actions",
+      "structured_action_results"
+    ]
+  },
+  "client_screen_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "manager_direct_edit_action": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "manager_editor_actions"
+    ]
+  },
+  "repository_review_bundle_actions": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels"
+    ]
+  },
+  "terminal_legacy_open_actions": {
+    "supported_targets": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels",
+      "terminal_remote"
+    ]
+  },
+  "terminal_presentation_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels",
+      "terminal_remote"
+    ]
+  },
+  "terminal_repl_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels"
+    ]
+  },
+  "terminal_tuning_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels",
+      "terminal_remote"
+    ]
+  },
+  "workspace_panel_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels"
+    ]
+  },
+  "workspace_toast_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions",
+      "workspace_panels"
+    ]
+  },
+  "workspace_toast_path_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_toast_actions",
+      "file_explorer"
+    ]
+  },
+  "mekanism_sidedness_linter": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": []
+  },
+  "item_inspection_language": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "editor_documents"
+    ]
+  },
+  "editor_v1_event_modifiers": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "editor_v1_adaptive_layout": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "editor_v1_widget_focus": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "editor_v1_panel_clipping": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels"
+    ]
+  },
+  "client_overlay_input": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "pointer_modifier_ingress": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "client_overlay_scenes": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "client_program_reads": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "document_history": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "explorer_compaction": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "explorer_search": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "file_explorer": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "icon_rules": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "java_symbols": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "packet_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "registry_explorer": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "release_review": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "review_sessions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "route_comparison": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "spatial_coverage": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "trajectory_panels": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_counterfactuals": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "workspace_lifecycle": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "developer_tools": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "single_line_input": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "manager_editor_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "tick_graph_null_safety": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "item_inspection": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "item_details_jei": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "item_inspection"
+    ]
+  },
+  "client_launch_screen": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_properties"
+    ]
+  },
+  "font_formatted_text": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "font_caller_owned_batches": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "screen_fractional_highlights": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": []
+  },
+  "editor_overlay_push": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "editor_v2_cursor_advance": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "editor_documents": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "editor_document_panels": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "workspace_panels",
+      "editor_documents"
+    ]
+  },
+  "editor_async_save": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "editor_documents"
+    ]
+  },
+  "buffer_image_persistence": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "image_resources"
+    ]
+  },
+  "touch_display_furnace_placement": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "touch_display"
+    ]
+  },
+  "touch_display_seamless_surface": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "touch_display"
+    ]
+  },
+  "tooltip_mode_override": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "disk_readonly_access": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "form_readonly_access": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "confirmation_review_callbacks": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "gametest_sides": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "gametest_static_names": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_properties": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_automation_pause_restore": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_automation_keep_open_default": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_automation_registry_copy": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": []
+  },
+  "client_automation_harness_annotations": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "gametest_mekanism_dependency_isolation": {
+    "supported_targets": [
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "game_puppet_runtime": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_properties"
+    ]
+  },
+  "client_smoke_harness": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_properties"
+    ]
+  },
+  "client_manager_custom_textures": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_manager"
+    ]
+  },
+  "touch_display_custom_textures": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "touch_display"
+    ]
+  },
+  "terminal_remote": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "terminal_vox": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "canvas_text_editor": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "canvas_pointer_defaults": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "canvas_text_editor"
+    ]
+  },
+  "client_manager_gui": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": [
+      "client_manager"
+    ]
+  },
+  "label_readonly_access": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "client_program_signing": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_frame_language",
+      "client_program_actions"
+    ]
+  },
+  "multiplayer_packets": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_inbox",
+      "client_frame_language",
+      "client_program_actions"
+    ]
+  },
+  "manager_operator_queries": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": []
+  },
+  "packet_direction_validation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "manager_menu_request_validation": {
+    "supported_targets": [
+      "1.19.2"
+    ],
+    "requires": []
+  },
+  "redstone_live_read": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "redstone_buffer_storage": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "redstone_signal_documentation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "item_icon_context_safety": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "item_icon_fallback_indicator": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "sfml_literal_globs": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "sfml_interval_overflow_validation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "mod_event_filtering": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "computercraft": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "mod_event_filtering",
+      "disk_readonly_access",
+      "label_readonly_access"
+    ]
+  },
+  "client_theme": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "keyboard_profiles": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "workspace_panels": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "structured_action_results": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "command_palette": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions",
+      "client_theme",
+      "keyboard_profiles"
+    ]
+  },
+  "typed_command_palette": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "command_palette"
+    ]
+  },
+  "command_history": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "typed_command_palette"
+    ]
+  },
+  "context_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "typed_command_palette",
+      "workspace_panels"
+    ]
+  },
+  "client_action_completion_diagnostics": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "client_action_nullable_suggestions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "packet_values": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "runtime_resource_cleanup": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "packet_computation": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values",
+      "runtime_resource_cleanup"
+    ]
+  },
+  "packet_transport_private": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_computation"
+    ]
+  },
+  "client_inbox": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_transport_private"
+    ]
+  },
+  "client_program_consent": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "sfml_execution_side"
+    ]
+  },
+  "client_manager": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "sfml_execution_side",
+      "client_program_consent",
+      "disk_readonly_access"
+    ]
+  },
+  "client_program_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_actions",
+      "packet_values",
+      "sfml_execution_side",
+      "client_manager",
+      "client_program_consent",
+      "packet_computation"
+    ]
+  },
+  "touch_display": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values",
+      "image_resources"
+    ]
+  },
+  "image_resources": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values"
+    ]
+  },
+  "client_frame_language": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_manager",
+      "sfml_execution_side",
+      "client_program_consent"
+    ]
+  },
+  "client_frame_render": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "client_frame_language",
+      "touch_display",
+      "image_resources"
+    ]
+  },
+  "tick_graph_null_samples": {
+    "supported_targets": [
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "test_barrel_constructor_delegation": {
+    "supported_targets": [
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "unloaded_config_defaults": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "client_actions": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "sfml_execution_side": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "sfml_worded_intervals": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "echo_action": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions"
+    ]
+  },
+  "touch_display_terminal_mount": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "regex_overlap_fix": {
+    "supported_targets": [
+      "1.19.2",
+      "26.1.2"
+    ],
+    "requires": []
+  },
+  "terminal_frame_metadata": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "terminal_host_escape": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "terminal_focus_gestures"
+    ]
+  }
+}

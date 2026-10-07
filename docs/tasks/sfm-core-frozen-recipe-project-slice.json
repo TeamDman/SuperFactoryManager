@@ -1,0 +1,82 @@
+{
+  "schema": "sfm:core_frozen_recipe_project_slice@1",
+  "status": "authored_unregistered_read_only_preparation_not_compiled_or_built",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": "Bind an explicit frozen schema-2 recipe to a checked catalog-owned project without a synthetic branch, schema-4 profile, dependency mutation or native execution.",
+  "owned_new_files": [
+    "platform/cli/sfm-propagate-changes/src/source_projection/frozen_recipe_project.rs",
+    "docs/tasks/sfm-core-frozen-recipe-project-slice.json",
+    "docs/tasks/sfm-core-named-native-engine-integration-review.json"
+  ],
+  "source_witness": {
+    "module_bytes": 34548,
+    "module_sha256": "78f5a0bf0cd828d850af7c806a61acac148f2135003b1a8d94fdb9871d30b04b",
+    "frozen_recipe_review": "docs/tasks/sfm-core-released-native-adapter-review.json",
+    "frozen_recipe_review_sha256": "8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21",
+    "integration_review_sha256": "d822307f0b374e76c0ac9e070b9cc23a54642dd1dfaa867f9caf2c5d5822e9c5",
+    "raw_identity": "The module checks the unchanged compiled recipe document, original raw schema-2 lock and uniquely selected exact-copy role inputs. No historical source lookup or normalization is performed."
+  },
+  "api": {
+    "entry_point": "prepare_frozen_recipe_project(CatalogOwnedProject, exact_recipe_id, refresh, exact_byte_witnesses) -> FrozenRecipeProject",
+    "checked_owner": "CatalogOwnedProject has private fields and verifies exact current catalog, metadata, context, authored/generated membership, selected bytes and provenance. This slice consumes that handle; it does not clone Check/Apply policy.",
+    "recipe": "An exact reviewed recipe ID is required. The target, actual Minecraft version, compiler release and loader must match the checked receipt. There is no default recipe or parsing of key spelling.",
+    "bindings": "sfm-toolchain.lock.json must be an exact copy of the recipe's original source_path. All thirteen role inputs resolve through exact_authored_input(source_path), which requires one selected output with equal raw/output bytes. Output names are not inferred from the first three review rows, which omit output fields.",
+    "dependencies": "One private Arc<PreparedDependencyInputs> retains original ordered rows, pins, provenance, frozen aliases, source exclusions and strict request identity. Existing ReleasedNativeInputs performs all role/Gradle-line/artifact checks and exact weak-byte promotion.",
+    "receipt": "FrozenRecipeProjectReceipt nests portable checked-owner, released-input and prepared-input receipts, exact selected role/lock bindings, compiler_release, tool_jvm_minimum and explicit non-build/external-effect gates. jdk_identity is None: actual JDK selection remains a later independently verified input.",
+    "recheck": "FrozenRecipeProject::recheck(refresh) rejects refresh first, rechecks current project ownership, verifies raw source-lock bytes against the prepared handle and compares every role binding. It is not a filesystem lock or execution permit.",
+    "cache": "preparation_identity hashes exact key/environment/context, owner/source/provenance, recipe, lock, request catalog and compiler/tool boundary. preparation_cache_relative_path returns a relative name only, never creates it, and is not a complete build-cache identity before the actual JDK/tool identities are added."
+  },
+  "target_boundaries": [
+    { "target_id": "1.19.2", "minecraft_version": "1.19.2", "compiler_release": 17, "tool_jvm_minimum": 17, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.19.4", "minecraft_version": "1.19.4", "compiler_release": 17, "tool_jvm_minimum": 17, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected", "exact_loader": "net.minecraftforge:forge:1.19.4-45.0.9" },
+    { "target_id": "1.20", "minecraft_version": "1.20", "compiler_release": 17, "tool_jvm_minimum": 17, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.20.1", "minecraft_version": "1.20.1", "compiler_release": 17, "tool_jvm_minimum": 17, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.20.2", "minecraft_version": "1.20.2", "compiler_release": 17, "tool_jvm_minimum": 21, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.20.3", "minecraft_version": "1.20.3", "compiler_release": 17, "tool_jvm_minimum": 21, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.20.4", "minecraft_version": "1.20.4", "compiler_release": 17, "tool_jvm_minimum": 21, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.21.0", "minecraft_version": "1.21", "compiler_release": 21, "tool_jvm_minimum": 21, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "1.21.1", "minecraft_version": "1.21.1", "compiler_release": 21, "tool_jvm_minimum": 21, "role_inputs": 13, "without_extra_byte_witness": "preparation_expected" },
+    { "target_id": "26.1.2", "minecraft_version": "26.1.2", "compiler_release": 25, "tool_jvm_minimum": 25, "role_inputs": 13, "without_extra_byte_witness": "refuse_original_weak_pin_exact_bytes_required" }
+  ],
+  "weak_boundary": {
+    "original_pin": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+    "behavior": "Both 26.1.2 release/dev fixtures refuse absent exact bytes. A caller may provide bytes only for the original reviewed weak-artifact indexes; existing promotion verifies the unchanged original pin. There is no local-cache discovery, replacement checksum, truncated-metadata acceptance or download route.",
+    "separate_existing_evidence": "docs/tasks/sfm-core-native-artifact-identity-proof.json records root-owned read-only actual-byte evidence. This new module's fixtures do not embed or acquire those artifacts and do not claim positive 26.1.2 native preparation/build proof."
+  },
+  "authored_tests_not_run": [
+    "twenty_owned_contexts_bind_exact_frozen_inputs_without_writes",
+    "actual_minecraft_alias_and_compiler_tool_jvm_boundaries_are_explicit",
+    "refresh_unknown_recipe_and_target_mismatch_refuse_before_recheck",
+    "matching_raw_role_hash_is_not_a_selected_source_binding",
+    "selected_lock_requires_original_authored_path_not_only_equal_bytes",
+    "rendered_roles_and_duplicate_selected_role_outputs_are_refused",
+    "checked_but_changed_frozen_role_and_lock_bytes_are_refused",
+    "preparation_and_recheck_refuse_unowned_or_changed_sources_without_repair",
+    "source_lock_and_request_handles_stay_immutable_and_context_isolated",
+    "unrelated_exact_byte_witnesses_do_not_promote_a_recipe"
+  ],
+  "fixture_contract": {
+    "owner": "New catalog_owned_project::tests::Fixture is shared only under cfg(test).",
+    "contexts": "Ten supported target identities and actual Minecraft values, each with a synthetic nested release and ignored-dev key; release/dev feature differences remain explicit fixture context. These are ownership/preparation fixtures, not a claim that all current gameplay features compile.",
+    "real_inputs": "Exact thirteen frozen role bytes and the original schema-2 lock are read from existing core-owned sources. Real current CoreProjectInputs selectors determine unique role output bindings. Only the selected target's fixture mappings are replaced; other target predicates remain intact.",
+    "expected_matrix": "Eighteen non-weak contexts prepare; two 26.1.2 contexts refuse missing original exact-byte evidence. Project file hashes and absence of build/cache directories are checked before and after preparation/refusal.",
+    "specific_regressions": "The stable target 1.21.0 uses actual Minecraft 1.21 and dependency/java-toolchain output directories named 1.21. The 1.19.4 recipe keeps Forge 45.0.9 and refuses 45.0.42. Java --release 17 is not changed to 21 merely because NeoGradle tools need Java 21."
+  },
+  "validation_performed": {
+    "rustfmt": "Scoped rustfmt --edition 2024 on this new module completed; installed stable rustfmt reported unsupported imports_granularity/group_imports settings. No Cargo command was run by this agent.",
+    "json": "The integration review parsed as JSON with ten target rows. New slice JSON parsing/hash verification is performed at handoff.",
+    "binding_reconnaissance": "Read-only current metadata confirmed the thirteen 1.21.0 source-to-output bindings, including the actual 1.21 directory aliases, all template:false.",
+    "run_status": "Unregistered. No unit test, compile, source acquisition, native JAR, launch, cache repair, JDK resolution or lock write was performed by this agent. Root owns registration and focused/full gates."
+  },
+  "next_integration": [
+    "Root registers catalog_owned_project and frozen_recipe_project together after its active gate, then runs the ten bounded preparation tests and shared ownership tests.",
+    "Later engine routing distinguishes a real catalog-owned named target from WorktreeTarget/BranchName. Prepared inputs propagate to the opt-in strict Resolver and immutable source-lock writer refusal.",
+    "Before any effects, shared named Check and source membership must be current; release never auto-syncs and dev uses only the established guarded ignored root workflow.",
+    "Native execution remains refused until direct version-JSON children/pipeline consumers, external NeoForm manifest closure, source-build misses, actual JDK identity and frozen runtime/JUnit consumers are sealed. The 541 preserved unexpanded pipeline roles are not claimed exercised."
+  ],
+  "unchanged": [
+    "Existing registered Rust, source templates, catalog, feature definitions and core metadata were not edited by this slice.",
+    "No Cargo/Gradle/SFM toolchain dependency, original schema-2 lock or provenance was changed.",
+    "No build, acquisition, game process, cache cleanup, process termination, installation or commit was performed."
+  ]
+}

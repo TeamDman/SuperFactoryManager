@@ -1,14 +1,126 @@
 use super::ArtifactAuditIssueKind;
 
 #[test]
-fn interactive_and_puppet_hotswap_release_the_build_lock() {
-    let enabled = RunOptions { client_hotswap_port: Some(5006), ..RunOptions::default() };
-    for kind in [RunKind::Client, RunKind::GameTestPreview] {
-        assert!(super::releases_build_cache_lock_before_launch(kind, &enabled));
-        assert!(!super::releases_build_cache_lock_before_launch(kind, &RunOptions::default()));
+fn java_tool_diagnostics_are_debug_only_but_runtime_logs_remain_info() {
+    struct Capture(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+    impl std::io::Write for Capture {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
     }
-    for kind in [RunKind::Server, RunKind::ClientSmoke, RunKind::GameTestServer, RunKind::Test] {
-        assert!(!super::releases_build_cache_lock_before_launch(kind, &enabled));
+    for level in [tracing::Level::INFO, tracing::Level::DEBUG] {
+        let bytes = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let writer = std::sync::Arc::clone(&bytes);
+        let subscriber = tracing_subscriber::fmt()
+            .without_time()
+            .with_ansi(false)
+            .with_max_level(level)
+            .with_writer(move || Capture(std::sync::Arc::clone(&writer)))
+            .finish();
+        tracing::subscriber::with_default(subscriber, || {
+            super::trace_subprocess_line("java-tool", "decompiler", "stdout", "tool-trace-marker");
+            super::trace_subprocess_line("minecraft", "client", "stdout", "runtime-info-marker");
+        });
+        let output = String::from_utf8(bytes.lock().unwrap().clone()).unwrap();
+        assert!(output.contains("runtime-info-marker"));
+        assert_eq!(
+            output.contains("tool-trace-marker"),
+            level == tracing::Level::DEBUG
+        );
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn development_java_launch_transports_long_cwd_but_retains_diagnostic_location() -> eyre::Result<()>
+{
+    let fixture = tempfile::tempdir()?;
+    let mut diagnostic = fixture.path().to_path_buf();
+    while diagnostic.as_os_str().len() < 273 {
+        diagnostic.push("projection-cache-segment");
+    }
+    std::fs::create_dir_all(&diagnostic)?;
+    let exe = std::env::current_exe()?;
+    let original = std::process::Command::new(&exe)
+        .args(["--list", "no_matching_regression_test"])
+        .current_dir(super::java_tool_launch_cwd(&diagnostic, None)?)
+        .output()
+        .unwrap_err();
+    assert_eq!(original.raw_os_error(), Some(267));
+    let scratch = super::RetainedSpecialSourceScratch::create()?;
+    let cwd = super::java_tool_launch_cwd(&diagnostic, Some(&scratch))?;
+    assert_ne!(cwd, diagnostic);
+    assert!(cwd.as_os_str().len() < 240);
+    assert!(
+        std::process::Command::new(exe)
+            .args(["--list", "no_matching_regression_test"])
+            .current_dir(cwd)
+            .output()?
+            .status
+            .success()
+    );
+    std::fs::write(scratch.path.join("unexpected.bin"), b"changed")?;
+    assert!(super::java_tool_launch_cwd(&diagnostic, Some(&scratch)).is_err());
+    assert!(diagnostic.is_dir());
+    Ok(())
+}
+
+#[test]
+fn java_tool_argument_file_transport_retains_exact_bytes_and_owned_lifetime() {
+    let contents = b"-cp\n\"literal long classpath\"\nexample.Main\n";
+    let transport = super::java_tool_argfile_transport(contents).unwrap();
+    let path = transport.path().to_path_buf();
+    assert_eq!(std::fs::read(&path).unwrap(), contents);
+    let mut expected = std::ffi::OsString::from("@");
+    expected.push(&path);
+    assert_eq!(super::java_tool_argfile_argument(&path).unwrap(), expected);
+    drop(transport);
+    assert!(!path.exists());
+}
+
+#[test]
+fn java_tool_argument_file_refuses_relative_transport_paths() {
+    assert!(super::java_tool_argfile_argument(std::path::Path::new("java.args")).is_err());
+}
+
+#[cfg(windows)]
+#[test]
+fn java_tool_argument_file_refuses_long_and_verbatim_windows_transports() {
+    let long = std::path::PathBuf::from("C:/").join("a".repeat(300));
+    assert!(super::java_tool_argfile_argument(&long).is_err());
+    assert!(
+        super::java_tool_argfile_argument(std::path::Path::new(r"\\?\C:\short\java.args")).is_err()
+    );
+}
+
+#[test]
+fn interactive_and_puppet_hotswap_release_the_build_lock() {
+    let enabled = RunOptions {
+        client_hotswap_port: Some(5006),
+        ..RunOptions::default()
+    };
+    for kind in [RunKind::Client, RunKind::GameTestPreview] {
+        assert!(super::releases_build_cache_lock_before_launch(
+            kind, &enabled
+        ));
+        assert!(!super::releases_build_cache_lock_before_launch(
+            kind,
+            &RunOptions::default()
+        ));
+    }
+    for kind in [
+        RunKind::Server,
+        RunKind::ClientSmoke,
+        RunKind::GameTestServer,
+        RunKind::Test,
+    ] {
+        assert!(!super::releases_build_cache_lock_before_launch(
+            kind, &enabled
+        ));
     }
 }
 
@@ -22,6 +134,7 @@ fn java_cache_identity_changes_with_verified_archive_digest() {
         selection: "lockfile-pin".to_owned(),
         pin_url: Some("https://example.invalid/jbrsdk.zip".to_owned()),
         pin_sha512: Some("a".repeat(128)),
+        execution_identity: None,
     };
     let first = java.cache_identity();
     java.home = Some(std::path::PathBuf::from("another-jdk-cache-home"));
@@ -45,6 +158,7 @@ use super::ArtifactSource;
 use super::BuildMode;
 use super::BuildOptions;
 use super::BuildPlan;
+use super::BuildProjectIdentity;
 use super::ChangedEntry;
 use super::DependencyLockEntry;
 use super::DependencyPlan;
@@ -72,27 +186,25 @@ use super::RunOptions;
 use super::SourceBuildProvenance;
 use super::SourceBuildSystem;
 use super::TargetJarCompareReport;
-use super::apply_client_automation_timing_properties;
+use super::acquire_build_cache_lock;
 use super::add_loader_jarjar_entries;
-use super::apply_game_puppet_game_test_property;
-use super::apply_game_puppet_filter_property;
-use super::apply_game_test_filter_property;
+use super::apply_client_automation_timing_properties;
 use super::apply_client_title_screen_property;
+use super::apply_game_puppet_filter_property;
+use super::apply_game_puppet_game_test_property;
+use super::apply_game_test_filter_property;
 use super::artifact_lock_path;
 use super::artifact_portability_audit;
 use super::audit_artifact_lockfile;
-use super::acquire_build_cache_lock;
 use super::build_artifact_lockfile;
 use super::build_cache_lock_path;
 use super::cargo_source_build_target_dir;
-use super::source_build_root;
 use super::compare_version_text;
 use super::copy_file_to_path_checked;
+use super::dependency_selected_for_run;
 use super::diagnostic_counts_from_log_text;
 use super::download_to_path_overwrite_with_expected_hash;
 use super::enforce_portable_artifacts;
-use super::project_v3_artifact_lockfile;
-use super::refresh_maintained_lockfile_document;
 use super::execute_targets_parallel;
 use super::execute_targets_parallel_with_cancellation;
 use super::extract_client_puppet_failure;
@@ -100,8 +212,8 @@ use super::extract_client_puppet_pass_count;
 use super::extract_failed_gametest_names;
 use super::extract_sfm_game_test_names;
 use super::game_puppet_launch_timeout;
-use super::is_excluded_source;
 use super::is_api_classifier;
+use super::is_excluded_source;
 use super::minecraft_library_jars_from_version_json;
 use super::normalize_manifest_bytes;
 use super::parchment_coordinate;
@@ -110,25 +222,27 @@ use super::partition_game_test_candidates;
 use super::portable_cache_path;
 use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
+use super::preview_program_args;
+use super::project_v3_artifact_lockfile;
 use super::read_optional_artifact_lockfile;
+use super::refresh_maintained_lockfile_document;
 use super::replace_artifact_file;
 use super::resolve_loader_toolchain;
 use super::run_dependency_configurations;
 use super::run_max_launch_attempts;
 use super::rust_output_jar_path;
-use super::preview_program_args;
 use super::set_minecraft_option;
-use super::should_include_project_run_dependencies;
 use super::should_include_plain_run_dependencies;
+use super::should_include_project_run_dependencies;
 use super::should_keep_split_minecraft_runtime_entry;
 use super::should_package_project_entry;
 use super::source_build_checkout_key;
 use super::source_build_provenance;
+use super::source_build_root;
 use super::source_git_provenance;
-use super::dependency_selected_for_run;
+use super::validate_game_puppet_completion;
 use super::write_compare_reports;
 use super::write_unique_temp_file;
-use super::validate_game_puppet_completion;
 use crate::artifact_lock::ArtifactLock;
 use crate::branch_targets::BranchName;
 use crate::branch_targets::BranchQuery;
@@ -256,14 +370,13 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
     )
     .expect("write existing options");
 
-    let prepared =
-        prepare_client_automation_options(
-            &minecraft_dir,
-            &puppet_dir,
-            RunKind::ClientPuppet,
-            &RunOptions::default(),
-        )
-        .expect("prepare client puppet options");
+    let prepared = prepare_client_automation_options(
+        &minecraft_dir,
+        &puppet_dir,
+        RunKind::ClientPuppet,
+        &RunOptions::default(),
+    )
+    .expect("prepare client puppet options");
 
     assert_eq!(prepared, Some(options_path.clone()));
     let updated = fs::read_to_string(&options_path).expect("read updated options");
@@ -297,8 +410,7 @@ fn game_puppet_options_set_the_requested_master_volume() {
     let puppet_dir = minecraft_dir.join("runGameTestPreview");
     fs::create_dir_all(&puppet_dir).expect("create puppet run dir");
     let options_path = puppet_dir.join("options.txt");
-    fs::write(&options_path, "soundCategory_master:0.25\n")
-        .expect("write existing options");
+    fs::write(&options_path, "soundCategory_master:0.25\n").expect("write existing options");
 
     prepare_client_automation_options(
         &minecraft_dir,
@@ -511,7 +623,14 @@ fn game_puppet_completion_requires_an_explicit_success_marker() {
         GamePuppetKeepOpen::None,
     )
     .is_err());
-    assert!(validate_game_puppet_completion("ordinary client exit", launch_log, GamePuppetKeepOpen::None).is_err());
+    assert!(
+        validate_game_puppet_completion(
+            "ordinary client exit",
+            launch_log,
+            GamePuppetKeepOpen::None
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -519,13 +638,34 @@ fn game_puppet_hold_requires_complete_assertions_and_matching_explicit_viewport_
     let launch_log = Path::new("held-preview.log");
     let complete = "SFM_GAME_PUPPET_COMPLETE failed=0 total=2";
     let viewport = "SFM_GAME_PUPPET_VIEWPORT_RETAINED keep_open_seconds=-1 variant=1920x1080@3 actual_width=1920 actual_height=1080 framebuffer_width=1920 framebuffer_height=1080 requested_gui_scale=3 effective_gui_scale=3 logical_width=640 logical_height=360";
-    let held = format!("SFM_GAME_PUPPET_SUCCEEDED puppet=last\n{complete}\n{viewport}\nSFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN");
+    let held = format!(
+        "SFM_GAME_PUPPET_SUCCEEDED puppet=last\n{complete}\n{viewport}\nSFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN"
+    );
     validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::Forever).unwrap();
     assert!(validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::None).is_err());
-    assert!(validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).is_err());
+    assert!(
+        validate_game_puppet_completion(
+            &held,
+            launch_log,
+            GamePuppetKeepOpen::Countdown { seconds: 5 }
+        )
+        .is_err()
+    );
     let countdown = held.replace("keep_open_seconds=-1", "keep_open_seconds=5");
-    validate_game_puppet_completion(&countdown, launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).unwrap();
-    validate_game_puppet_completion(&format!("{countdown}\nSFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720"), launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).unwrap();
+    validate_game_puppet_completion(
+        &countdown,
+        launch_log,
+        GamePuppetKeepOpen::Countdown { seconds: 5 },
+    )
+    .unwrap();
+    validate_game_puppet_completion(
+        &format!(
+            "{countdown}\nSFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720"
+        ),
+        launch_log,
+        GamePuppetKeepOpen::Countdown { seconds: 5 },
+    )
+    .unwrap();
     for invalid in [
         held.replace(complete, "SFM_GAME_PUPPET_SUCCEEDED puppet=last"),
         held.replace("failed=0", "failed=1"),
@@ -537,7 +677,11 @@ fn game_puppet_hold_requires_complete_assertions_and_matching_explicit_viewport_
         format!("{held}\nSFM_GAME_PUPPET_FAILED puppet=earlier error=assertion"),
         format!("{held}\n{viewport}"),
     ] {
-        assert!(validate_game_puppet_completion(&invalid, launch_log, GamePuppetKeepOpen::Forever).is_err(), "accepted invalid held output: {invalid}");
+        assert!(
+            validate_game_puppet_completion(&invalid, launch_log, GamePuppetKeepOpen::Forever)
+                .is_err(),
+            "accepted invalid held output: {invalid}"
+        );
     }
 }
 
@@ -706,11 +850,7 @@ fn client_title_screen_sets_title_screen_property() {
         ..RunOptions::default()
     };
     let mut client_properties = BTreeMap::new();
-    apply_client_title_screen_property(
-        &mut client_properties,
-        RunKind::Client,
-        &run_options,
-    );
+    apply_client_title_screen_property(&mut client_properties, RunKind::Client, &run_options);
     assert_eq!(
         client_properties
             .get("sfm.clientRun.titleScreen")
@@ -719,11 +859,7 @@ fn client_title_screen_sets_title_screen_property() {
     );
 
     let mut smoke_properties = BTreeMap::new();
-    apply_client_title_screen_property(
-        &mut smoke_properties,
-        RunKind::ClientSmoke,
-        &run_options,
-    );
+    apply_client_title_screen_property(&mut smoke_properties, RunKind::ClientSmoke, &run_options);
     assert!(!smoke_properties.contains_key("sfm.clientRun.titleScreen"));
 
     let mut disabled_properties = BTreeMap::new();
@@ -930,7 +1066,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let forge_plan = resolve_loader_toolchain(&forge, "1.19.2", "43.4.0")
@@ -946,7 +1083,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         coordinate: MavenCoordinate::parse("net.neoforged:forge:1.20.1-47.1.65")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let transitional_plan = resolve_loader_toolchain(&transitional_neoforge, "1.20.1", "47.1.65")
@@ -965,7 +1103,8 @@ fn detects_loader_toolchain_from_versioned_dependencies() {
         coordinate: MavenCoordinate::parse("net.neoforged:neoforge:20.2.86")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     }];
     let neogradle_plan = resolve_loader_toolchain(&neogradle, "1.20.2", "20.2.86")
@@ -992,7 +1131,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         coordinate: MavenCoordinate::parse("mekanism:Mekanism:1.19.2-10.3.8.477:api")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(super::should_plan_project_dependency(
@@ -1005,7 +1145,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         coordinate: MavenCoordinate::parse("net.minecraftforge:forge:1.19.2-43.4.0")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(!super::should_plan_project_dependency(
@@ -1018,7 +1159,8 @@ fn forge_project_dependency_planning_includes_plain_compile_inputs() {
         coordinate: MavenCoordinate::parse("org.junit.jupiter:junit-jupiter-api:5.10.0")
             .expect("coordinate should parse"),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
     };
     assert!(!super::should_plan_project_dependency(
@@ -1034,8 +1176,7 @@ fn forge_deobfuscation_only_transforms_loader_managed_mods() {
         bundle: None,
         artifact_treatment:
             crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
-        data_run_policy:
-            crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
         notation: "example:api:1".to_owned(),
         resolved_notation: "example:api:1".to_owned(),
         source: DependencySource::Maven,
@@ -1065,21 +1206,10 @@ fn loader_jarjar_metadata_is_deterministic_for_forge_and_neogradle() {
         fs::create_dir_all(&plan.minecraft_dir).expect("minecraft dir");
         plan.loader_toolchain.kind = kind;
         plan.dependencies = vec![
-            bundled_dependency(
-                "example:zeta:1.5.0",
-                &first,
-                "[1.0,2.0)",
-                "1.5.0",
-            ),
-            bundled_dependency(
-                "example:alpha:3.1.4",
-                &second,
-                "[3.1,4.0)",
-                "3.1.4",
-            ),
+            bundled_dependency("example:zeta:1.5.0", &first, "[1.0,2.0)", "1.5.0"),
+            bundled_dependency("example:alpha:3.1.4", &second, "[3.1,4.0)", "3.1.4"),
         ];
-        let context =
-            ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
+        let context = ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
         let mut entries = BTreeMap::new();
         add_loader_jarjar_entries(&context, &mut entries).expect("JarJar entries");
         assert_eq!(
@@ -1127,8 +1257,7 @@ fn loader_jarjar_rejects_duplicate_paths_and_policy_mismatch() {
         .expect_err("duplicate nested filename");
     assert!(error.to_string().contains("Duplicate JarJar"));
 
-    plan.dependencies =
-        vec![bundled_dependency("one:shared:1.0", &one, "[1.0]", "2.0")];
+    plan.dependencies = vec![bundled_dependency("one:shared:1.0", &one, "[1.0]", "2.0")];
     let context = ExecutionContext::new(&plan, CancellationToken::new()).expect("context");
     let error = add_loader_jarjar_entries(&context, &mut BTreeMap::new())
         .expect_err("artifact version mismatch");
@@ -1164,8 +1293,7 @@ fn bundled_dependency(
         ),
         artifact_treatment:
             crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
-        data_run_policy:
-            crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
+        data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
         notation: coordinate.to_string(),
         resolved_notation: coordinate.to_string(),
         source: DependencySource::Maven,
@@ -1186,8 +1314,7 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     let cc: Vec<_> = projected
         .iter()
         .filter(|dependency| {
-            dependency.coordinate.to_string()
-                == "org.squiddev:cc-tweaked-1.19.2:1.101.3"
+            dependency.coordinate.to_string() == "org.squiddev:cc-tweaked-1.19.2:1.101.3"
         })
         .collect();
     assert_eq!(cc.len(), 2);
@@ -1206,17 +1333,14 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     let mekanism_api = projected
         .iter()
         .find(|dependency| {
-            dependency.coordinate.to_string()
-                == "mekanism:Mekanism:1.19.2-10.3.8.477:api"
+            dependency.coordinate.to_string() == "mekanism:Mekanism:1.19.2-10.3.8.477:api"
         })
         .expect("Mekanism API projection");
     assert_eq!(mekanism_api.configuration, "implementation");
     assert!(!mekanism_api.loader_managed());
     let vox_java = projected
         .iter()
-        .find(|dependency| {
-            dependency.coordinate.to_string() == "org.facet:vox-java:0.10.0-rc.5"
-        })
+        .find(|dependency| dependency.coordinate.to_string() == "org.facet:vox-java:0.10.0-rc.5")
         .expect("Vox Java projection");
     assert_eq!(vox_java.configuration, "implementation");
     assert!(!vox_java.loader_managed());
@@ -1237,12 +1361,16 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
         })
         .map(|dependency| dependency.coordinate.to_string())
         .collect();
-    assert!(solo_smoke_plain.iter().any(|coordinate| {
-        coordinate == "org.facet:vox-java:0.10.0-rc.5"
-    }));
-    assert!(!solo_smoke_plain
-        .iter()
-        .any(|coordinate| coordinate.starts_with("mekanism:Mekanism:")));
+    assert!(
+        solo_smoke_plain
+            .iter()
+            .any(|coordinate| { coordinate == "org.facet:vox-java:0.10.0-rc.5" })
+    );
+    assert!(
+        !solo_smoke_plain
+            .iter()
+            .any(|coordinate| coordinate.starts_with("mekanism:Mekanism:"))
+    );
     assert!(projected.iter().any(|dependency| {
         dependency.configuration == "minecraft"
             && dependency.coordinate.to_string() == "net.minecraftforge:forge:1.19.2-43.4.0"
@@ -1368,14 +1496,14 @@ fn facet_json_roundtrips_artifact_lockfile_and_provenance() {
     };
     let json = facet_json::to_string_pretty(&lockfile).expect("lockfile should serialize");
     assert!(json.contains("remote-maven"));
-    let parsed = crate::toolchain_lockfile_schema::upgrade_to_latest(&json)
-        .expect("lockfile should parse");
+    let parsed =
+        crate::toolchain_lockfile_schema::upgrade_to_latest(&json).expect("lockfile should parse");
     assert_eq!(parsed.artifacts[0].source, ArtifactSource::RemoteMaven);
 }
 
 #[test]
 fn toolchain_lockfile_v1_upgrades_without_weak_artifacts() {
-        let json = r#"
+    let json = r#"
 {
     "schema_version": 1,
     "minecraft_version": "1.19.2",
@@ -1402,20 +1530,20 @@ fn toolchain_lockfile_v1_upgrades_without_weak_artifacts() {
 }
 "#;
 
-        let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
-                .expect("v1 lockfile should upgrade");
+    let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+        .expect("v1 lockfile should upgrade");
 
-        assert_eq!(
-                lockfile.schema_version,
-                crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
-        );
-        assert_eq!(lockfile.artifacts.len(), 1);
-        assert_eq!(lockfile.artifacts[0].weak, None);
+    assert_eq!(
+        lockfile.schema_version,
+        crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
+    );
+    assert_eq!(lockfile.artifacts.len(), 1);
+    assert_eq!(lockfile.artifacts[0].weak, None);
 }
 
 #[test]
 fn toolchain_lockfile_v1_rejects_weak_artifacts() {
-        let json = r#"
+    let json = r#"
 {
     "schema_version": 1,
     "minecraft_version": "1.19.2",
@@ -1442,18 +1570,18 @@ fn toolchain_lockfile_v1_rejects_weak_artifacts() {
 }
 "#;
 
-        let error = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
-                .expect_err("v1 lockfile with weak should fail");
+    let error = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+        .expect_err("v1 lockfile with weak should fail");
 
-        assert!(
-                error.to_string().contains("schema_version 1")
-                        && error.to_string().contains("v2-only field `weak`")
-        );
+    assert!(
+        error.to_string().contains("schema_version 1")
+            && error.to_string().contains("v2-only field `weak`")
+    );
 }
 
 #[test]
 fn toolchain_lockfile_v2_supports_weak_artifacts() {
-        let json = r#"
+    let json = r#"
 {
     "schema_version": 2,
     "minecraft_version": "1.19.2",
@@ -1480,17 +1608,20 @@ fn toolchain_lockfile_v2_supports_weak_artifacts() {
 }
 "#;
 
-        let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
-                .expect("v2 lockfile should parse");
-        let weak = lockfile.artifacts[0]
-                .weak
-                .as_ref()
-                .expect("weak metadata should parse");
+    let lockfile = crate::toolchain_lockfile_schema::upgrade_to_latest(json)
+        .expect("v2 lockfile should parse");
+    let weak = lockfile.artifacts[0]
+        .weak
+        .as_ref()
+        .expect("weak metadata should parse");
 
-        assert_eq!(lockfile.schema_version, 2);
-        assert_eq!(weak.metadata_path, PathBuf::from("META-INF/neoforge.mods.toml"));
-        assert_eq!(weak.mod_id, "example");
-        assert_eq!(weak.version, "1.0.0");
+    assert_eq!(lockfile.schema_version, 2);
+    assert_eq!(
+        weak.metadata_path,
+        PathBuf::from("META-INF/neoforge.mods.toml")
+    );
+    assert_eq!(weak.mod_id, "example");
+    assert_eq!(weak.version, "1.0.0");
 }
 
 #[test]
@@ -1529,7 +1660,8 @@ fn migrated_common_cache_lockfile_does_not_duplicate_old_cache_entries() {
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "g:a:1".to_string(),
         resolved_notation: "g:a:1".to_string(),
@@ -1901,7 +2033,10 @@ fn resolver_refreshes_cursemaven_from_locked_url_before_repository_candidates() 
     server.join().expect("test server should finish");
 
     assert!(artifact.downloaded);
-    assert_eq!(fs::read(&artifact.cache_path).expect("artifact should read"), bytes);
+    assert_eq!(
+        fs::read(&artifact.cache_path).expect("artifact should read"),
+        bytes
+    );
     assert_eq!(artifact.provenance.source, ArtifactSource::RemoteMaven);
     assert_eq!(artifact.repository.as_deref(), Some("CurseMaven"));
     assert_eq!(artifact.url.as_deref(), Some(url.as_str()));
@@ -2008,9 +2143,7 @@ fn resolver_prefers_explicit_artifact_source_over_locked_source_build() {
         build_system: SourceBuildSystem::GradleWrapper,
         tasks: vec!["jar".to_string()],
         environment: BTreeMap::new(),
-        output_path: Path::new("build")
-            .join("libs")
-            .join(coordinate.file_name()),
+        output_path: Path::new("build").join("libs").join(coordinate.file_name()),
     };
     let hash = ContentHash::from_bytes(b"explicit source", ContentHashAlgorithm::Blake3);
     let lockfile = ArtifactLockfile {
@@ -2163,8 +2296,11 @@ fn explicit_source_vox_artifacts_record_cargo_source_build_commands() {
         .join("vox-java-0.10.0-rc.5.jar");
     fs::create_dir_all(source_root.join("vox").join("xtask"))
         .expect("Vox xtask directory should be created");
-    fs::write(source_root.join("Cargo.toml"), "[workspace]\nmembers = [\"vox/xtask\"]\n")
-        .expect("Cargo workspace marker should be written");
+    fs::write(
+        source_root.join("Cargo.toml"),
+        "[workspace]\nmembers = [\"vox/xtask\"]\n",
+    )
+    .expect("Cargo workspace marker should be written");
     fs::write(
         source_root.join("vox").join("xtask").join("Cargo.toml"),
         "[package]\nname = \"vox-xtask\"\nversion = \"0.1.0\"\n",
@@ -2226,7 +2362,9 @@ fn explicit_source_vox_artifacts_record_cargo_source_build_commands() {
 
 #[test]
 fn cargo_source_build_target_dir_avoids_long_managed_checkout_paths() {
-    let checkout = Path::new(r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319");
+    let checkout = Path::new(
+        r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319",
+    );
     let target = cargo_source_build_target_dir(checkout);
 
     assert_eq!(target.file_name(), checkout.file_name());
@@ -2236,7 +2374,9 @@ fn cargo_source_build_target_dir_avoids_long_managed_checkout_paths() {
 
 #[test]
 fn source_build_root_is_not_nested_in_the_managed_cache() {
-    let checkout = Path::new(r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319");
+    let checkout = Path::new(
+        r"C:\Users\Teamy\AppData\Local\teamdman\sfm-propagate-changes\cache\minecraft-toolchain\source-builds\facet-aa75598dabb2138b18365cdf0d97ca94a34c5319",
+    );
 
     assert!(!source_build_root().starts_with(checkout));
     #[cfg(windows)]
@@ -2379,8 +2519,8 @@ fn resolver_materializes_locked_artifact_from_source_build() {
 #[test]
 fn cached_artifact_repairs_source_build_provenance_from_the_lock() {
     let test_dir = TestDir::new("resolver-repairs-source-build-provenance");
-    let coordinate = MavenCoordinate::parse("org.facet:vox-java:0.10.0-rc.5")
-        .expect("coordinate should parse");
+    let coordinate =
+        MavenCoordinate::parse("org.facet:vox-java:0.10.0-rc.5").expect("coordinate should parse");
     let cache_path = test_dir
         .path
         .join("maven/org/facet/vox-java/0.10.0-rc.5/vox-java-0.10.0-rc.5.jar");
@@ -2742,7 +2882,11 @@ fn parallel_targets_return_plans_in_input_order() {
                 thread::sleep(Duration::from_millis(25));
             }
             let mut plan = minimal_plan_for_paths();
-            plan.branch_name = target.branch.clone();
+            plan.branch_name = Some(target.branch.clone());
+            plan.identity = BuildProjectIdentity::Worktree {
+                branch: target.branch.clone(),
+                root: target.worktree_path.as_path().to_path_buf(),
+            };
             Ok(plan)
         },
     )
@@ -2751,7 +2895,7 @@ fn parallel_targets_return_plans_in_input_order() {
     let branches = summary
         .plans
         .iter()
-        .map(|plan| plan.branch_name.as_ref())
+        .map(|plan| plan.branch_name.as_ref().expect("legacy branch").as_ref())
         .collect::<Vec<_>>();
     assert_eq!(branches, vec!["1.19.2", "1.20.1"]);
 }
@@ -2776,7 +2920,11 @@ fn parallel_targets_stop_starting_after_cancellation() {
         move |_options, target, _cancellation_token| {
             execute_started.fetch_add(1, AtomicOrdering::Relaxed);
             let mut plan = minimal_plan_for_paths();
-            plan.branch_name = target.branch.clone();
+            plan.branch_name = Some(target.branch.clone());
+            plan.identity = BuildProjectIdentity::Worktree {
+                branch: target.branch.clone(),
+                root: target.worktree_path.as_path().to_path_buf(),
+            };
             execute_cancellation_token.request_cancel("Operation cancelled by Ctrl+C");
             Ok(plan)
         },
@@ -2798,9 +2946,9 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
     let plan = BuildPlan {
         schema_version: 1,
         mode: "plan".to_string(),
-        branch_name: BranchName::from("1.19.2"),
+        branch_name: Some(BranchName::from("1.19.2")),
         minecraft_version: MinecraftVersion::parse("1.19.2").expect("version should parse"),
-        worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        worktree_path: Some(PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2")),
         minecraft_dir: PathBuf::from("platform/minecraft"),
         gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
         rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
@@ -2832,6 +2980,7 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             selection: "legacy-discovery".to_string(),
             pin_url: None,
             pin_sha512: None,
+            execution_identity: None,
         },
         java_release: 17,
         refresh: false,
@@ -2850,13 +2999,14 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         },
         artifacts: vec![artifact.clone()],
         minecraft: MinecraftPlan {
-            version_manifest: artifact.clone(),
+            version_manifest: Some(artifact.clone()),
             version_json: artifact.clone(),
             client_jar_url: "https://example.test/client.jar".to_string(),
             server_jar_url: "https://example.test/server.jar".to_string(),
             client_mappings_url: Some("https://example.test/client.txt".to_string()),
             server_mappings_url: Some("https://example.test/server.txt".to_string()),
             libraries_count: 0,
+            authenticated_inputs: None,
         },
         forge_userdev: Some(super::ForgeUserdevPlan {
             artifact: artifact.clone(),
@@ -2889,8 +3039,10 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         dependencies: vec![DependencyPlan {
             configuration: "implementation".to_string(),
             bundle: None,
-            artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
-            data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
+            artifact_treatment:
+                crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+            data_run_policy:
+                crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
             notation: "g:a:1".to_string(),
             resolved_notation: "g:a:1".to_string(),
             source: DependencySource::Maven,
@@ -2908,6 +3060,11 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         }],
         artifact_portability: ArtifactPortabilityAudit::default(),
         warnings: Vec::new(),
+        catalog_project: None,
+        identity: BuildProjectIdentity::Worktree {
+            branch: BranchName::from("1.19.2"),
+            root: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        },
     };
 
     let json = facet_json::to_string_pretty(&plan).expect("plan should serialize");
@@ -3032,7 +3189,8 @@ fn artifact_portability_audit_reads_dependency_provenance() {
     plan.dependencies = vec![DependencyPlan {
         configuration: "implementation".to_string(),
         bundle: None,
-        artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
+        artifact_treatment:
+            crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::Plain,
         data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Include,
         notation: "example:local-only:1.0.0".to_string(),
         resolved_notation: "example:local-only:1.0.0".to_string(),
@@ -3118,8 +3276,8 @@ fn artifact_audit_verifies_sfm_cache_lockfile_artifact() {
 
 #[test]
 fn artifact_audit_reader_accepts_checked_in_schema_v4_lockfile() {
-    let lockfile_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../minecraft/sfm-toolchain.lock.json");
+    let lockfile_path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../minecraft/sfm-toolchain.lock.json");
     let lockfile = read_optional_artifact_lockfile(&lockfile_path, "1.19.2")
         .expect("schema-v4 lockfile should parse")
         .expect("checked-in lockfile should exist");
@@ -3128,10 +3286,11 @@ fn artifact_audit_reader_accepts_checked_in_schema_v4_lockfile() {
         lockfile.schema_version,
         crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
     );
-    assert!(lockfile
-        .artifacts
-        .iter()
-        .any(|artifact| artifact.coordinate.as_deref() == Some("org.facet:vox-java:0.10.0-rc.5")));
+    assert!(
+        lockfile.artifacts.iter().any(
+            |artifact| artifact.coordinate.as_deref() == Some("org.facet:vox-java:0.10.0-rc.5")
+        )
+    );
 }
 
 #[test]
@@ -3548,14 +3707,25 @@ fn minimal_provenance() -> ArtifactProvenance {
     }
 }
 
+#[test]
+fn named_compile_preserves_complete_legacy_build_plan_wire() {
+    let encoded = facet_json::to_string_pretty(&minimal_plan_for_paths())
+        .expect("existing complete plan must serialize");
+    assert_eq!(encoded.len(), 4279);
+    assert_eq!(
+        crate::source_projection::provenance::sha256(encoded.as_bytes()),
+        "sha256:14106f776a5ca86f609d735fea05e3d2c4236136957d711ad9cf93c95a0a1f33"
+    );
+}
+
 fn minimal_plan_for_paths() -> BuildPlan {
     let artifact = minimal_artifact();
     BuildPlan {
         schema_version: 1,
         mode: "plan".to_string(),
-        branch_name: BranchName::from("1.19.2"),
+        branch_name: Some(BranchName::from("1.19.2")),
         minecraft_version: MinecraftVersion::parse("1.19.2").expect("version should parse"),
-        worktree_path: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        worktree_path: Some(PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2")),
         minecraft_dir: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft"),
         gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
         rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
@@ -3583,6 +3753,7 @@ fn minimal_plan_for_paths() -> BuildPlan {
             selection: "legacy-discovery".to_string(),
             pin_url: None,
             pin_sha512: None,
+            execution_identity: None,
         },
         java_release: 17,
         refresh: false,
@@ -3599,13 +3770,14 @@ fn minimal_plan_for_paths() -> BuildPlan {
         },
         artifacts: vec![artifact.clone()],
         minecraft: MinecraftPlan {
-            version_manifest: artifact.clone(),
+            version_manifest: Some(artifact.clone()),
             version_json: artifact,
             client_jar_url: "https://example.test/client.jar".to_string(),
             server_jar_url: "https://example.test/server.jar".to_string(),
             client_mappings_url: None,
             server_mappings_url: None,
             libraries_count: 0,
+            authenticated_inputs: None,
         },
         forge_userdev: None,
         mcp_config: None,
@@ -3613,6 +3785,11 @@ fn minimal_plan_for_paths() -> BuildPlan {
         graph: Vec::new(),
         artifact_portability: ArtifactPortabilityAudit::default(),
         warnings: Vec::new(),
+        catalog_project: None,
+        identity: BuildProjectIdentity::Worktree {
+            branch: BranchName::from("1.19.2"),
+            root: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2"),
+        },
     }
 }
 
@@ -3827,6 +4004,305 @@ fn write_fake_gradle_wrapper(source_root: &Path, output_path: &Path) {
     }
 }
 
+// Append inside the existing engine_tests.rs module after root review.
+// This reuses the complete existing legacy BuildPlan fixture, not a reduced
+// identity-only substitute.
+#[test]
+fn named_forge_cohort_preserves_complete_legacy_plan_wire_after_recipe_selection() {
+    let plan = minimal_plan_for_paths();
+    let before = facet_json::to_string_pretty(&plan).expect("legacy plan serializes");
+    assert_eq!(before.len(), 4279);
+    assert_eq!(
+        crate::source_projection::provenance::sha256(before.as_bytes()),
+        "sha256:14106f776a5ca86f609d735fea05e3d2c4236136957d711ad9cf93c95a0a1f33",
+    );
+    for (target, kind, coordinate) in [
+        (
+            "1.19.2",
+            "forge_gradle_forge",
+            "net.minecraftforge:forge:1.19.2-43.4.0",
+        ),
+        (
+            "1.19.4",
+            "forge_gradle_forge",
+            "net.minecraftforge:forge:1.19.4-45.0.9",
+        ),
+        (
+            "1.20",
+            "forge_gradle_forge",
+            "net.minecraftforge:forge:1.20-46.0.10",
+        ),
+        (
+            "1.20.1",
+            "forge_gradle_neoforge_group",
+            "net.neoforged:forge:1.20.1-47.1.65",
+        ),
+    ] {
+        super::named_forge_compile_recipe(
+            target,
+            target,
+            &format!("sfm:released-native-inputs/4.34.0/{target}@1"),
+            kind,
+            coordinate,
+            17,
+            17,
+        )
+        .expect("reviewed recipe");
+        assert_eq!(
+            facet_json::to_string_pretty(&plan).expect("legacy plan serializes"),
+            before,
+        );
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn cache_reset_accepts_long_child_of_short_cache_without_prefix_mismatch() {
+    use std::os::windows::ffi::OsStrExt as _;
+
+    let temporary = tempfile::tempdir().unwrap();
+    let mut cache = dunce::canonicalize(temporary.path()).unwrap().join("cache");
+    while cache.as_os_str().encode_wide().count() < 210 {
+        cache = cache.join("cache-root-segment");
+    }
+    fs::create_dir_all(&cache).unwrap();
+    assert!(cache.as_os_str().encode_wide().count() < 260);
+    let mut output = cache.join("project/generated-src/antlr/main");
+    while output.as_os_str().encode_wide().count() < 300 {
+        output = output.join("generated-source-segment");
+    }
+    fs::create_dir_all(&output).unwrap();
+    let stale = output.join("stale.txt");
+    fs::write(&stale, "owned generated output").unwrap();
+    assert_ne!(
+        super::canonicalize_lenient(&cache)
+            .unwrap()
+            .components()
+            .next(),
+        super::canonicalize_lenient(&output)
+            .unwrap()
+            .components()
+            .next(),
+    );
+    super::reset_cache_directory(&cache, &output).unwrap();
+    assert!(output.is_dir());
+    assert!(!stale.exists());
+    let missing = output.join("not-created-yet");
+    super::reset_cache_directory(&cache, &missing).unwrap();
+    assert!(missing.is_dir());
+}
+
+#[test]
+fn project_java_collection_includes_parsers_from_identity_scoped_antlr_output() {
+    let temporary = tempfile::tempdir().unwrap();
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan
+        .minecraft_dir
+        .join("build/sfm-toolchain/native-project")
+        .join("5b2aed170c7de82c9d5614d915454edc9e0aa3fe5dc0ae89586fa9e08a1db80f");
+    let generated = plan
+        .cache_dir
+        .join("project/generated-src/antlr/main/ca/teamdman/langs");
+    let declared = plan.minecraft_dir.join("src/main/java/UsesParser.java");
+    fs::create_dir_all(declared.parent().unwrap()).unwrap();
+    fs::create_dir_all(&generated).unwrap();
+    fs::write(&declared, "import ca.teamdman.langs.SFMLLexer;\n").unwrap();
+    let parser = generated.join("SFMLLexer.java");
+    fs::write(&parser, "package ca.teamdman.langs;\n").unwrap();
+    fs::write(generated.join("SFML.tokens"), "tokens are not Java\n").unwrap();
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).unwrap();
+    let sources = super::collect_project_java_sources(&context, &generated).unwrap();
+    assert!(sources.contains(&declared));
+    assert!(sources.contains(&parser), "actual ANTLR output was omitted");
+    assert_eq!(sources.len(), 2);
+    let argfile = plan.cache_dir.join("project/javac-main.args");
+    super::write_javac_argfile(
+        &context,
+        &argfile,
+        &[],
+        &sources,
+        &plan.cache_dir.join("project/classes"),
+    )
+    .unwrap();
+    let arguments = fs::read_to_string(argfile).unwrap();
+    let parser_argument = super::escape_argfile_arg(parser.display().to_string());
+    assert_eq!(
+        arguments
+            .lines()
+            .filter(|line| *line == parser_argument)
+            .count(),
+        1,
+        "the generated parser must reach javac exactly once",
+    );
+}
+
+#[test]
+fn project_java_collection_preserves_legacy_antlr_output() {
+    let temporary = tempfile::tempdir().unwrap();
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    let generated = plan
+        .cache_dir
+        .join("project/generated-src/antlr/main/ca/teamdman/langs");
+    fs::create_dir_all(&generated).unwrap();
+    let parser = generated.join("SFMLParser.java");
+    fs::write(&parser, "package ca.teamdman.langs;\n").unwrap();
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).unwrap();
+    assert_eq!(
+        super::collect_project_java_sources(&context, &generated).unwrap(),
+        vec![parser],
+    );
+}
+
+#[test]
+fn legacy_source_exclusions_keep_existing_file_and_fingerprint_semantics() {
+    let temporary = tempfile::tempdir().unwrap();
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    let exclusions = plan
+        .minecraft_dir
+        .join("gradle/source-excludes/1.19.2/datagen-java.txt");
+    fs::create_dir_all(exclusions.parent().unwrap()).unwrap();
+    fs::write(
+        &exclusions,
+        "# existing legacy configuration\nLegacy.java\n",
+    )
+    .unwrap();
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).unwrap();
+    assert_eq!(
+        super::read_source_excludes(&context, "datagen").unwrap(),
+        vec!["Legacy.java"],
+    );
+    assert_eq!(
+        super::source_exclusion_fingerprint_path(&context, "datagen").unwrap(),
+        Some(exclusions),
+    );
+    assert!(
+        super::read_source_excludes(&context, "gametest")
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        super::source_exclusion_fingerprint_path(&context, "gametest").unwrap(),
+        None,
+    );
+}
+
+#[test]
+fn project_java_collection_ignores_stale_legacy_parsers_and_preserves_declared_excludes() {
+    let temporary = tempfile::tempdir().unwrap();
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan
+        .minecraft_dir
+        .join("build/sfm-toolchain/native-project/owned-identity");
+    let generated = plan
+        .cache_dir
+        .join("project/generated-src/antlr/main/ca/teamdman/langs");
+    let stale_root = plan
+        .minecraft_dir
+        .join("build/sfm-toolchain/project/generated-src/antlr/main/ca/teamdman/langs");
+    let declared_root = plan.minecraft_dir.join("src/main/java");
+    let excludes = plan
+        .minecraft_dir
+        .join("gradle/source-excludes/1.19.2/main-java.txt");
+    for directory in [
+        &generated,
+        &stale_root,
+        &declared_root,
+        excludes.parent().unwrap(),
+    ] {
+        fs::create_dir_all(directory).unwrap();
+    }
+    let parser = generated.join("SFMLLexer.java");
+    fs::write(&parser, "package ca.teamdman.langs;\n").unwrap();
+    fs::write(stale_root.join("StaleParser.java"), "obsolete parser\n").unwrap();
+    fs::write(declared_root.join("Excluded.java"), "excluded source\n").unwrap();
+    fs::write(&excludes, "Excluded.java\nSFMLLexer.java\n").unwrap();
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).unwrap();
+    assert_eq!(
+        super::collect_project_java_sources(&context, &generated).unwrap(),
+        vec![parser],
+        "declared exclusions must not exclude generated parsers or import stale outputs",
+    );
+}
+
+#[test]
+#[ignore = "Requires explicit paths to an existing native project and its real ANTLR outputs; no JVM is launched"]
+fn project_java_collection_replays_actual_native_antlr_outputs() {
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = PathBuf::from(
+        std::env::var_os("SFM_TEST_NATIVE_MINECRAFT_ROOT").expect("explicit Minecraft root"),
+    );
+    let generated = PathBuf::from(
+        std::env::var_os("SFM_TEST_NATIVE_GENERATED_ROOT").expect("explicit ANTLR output root"),
+    );
+    assert!(plan.minecraft_dir.is_absolute());
+    assert!(generated.is_absolute());
+    assert!(
+        generated.starts_with(
+            plan.minecraft_dir
+                .join("build/sfm-toolchain/native-project")
+        )
+    );
+    let context = ExecutionContext::new(&plan, CancellationToken::new()).unwrap();
+    let parsers = super::collect_java_sources_under(&context, &generated).unwrap();
+    assert_eq!(parsers.len(), 12, "actual failing ANTLR output membership");
+    for parser in &parsers {
+        assert!(
+            fs::read_to_string(parser)
+                .unwrap()
+                .contains("package ca.teamdman.langs;")
+        );
+    }
+    let sources = super::collect_project_java_sources(&context, &generated).unwrap();
+    for parser in parsers {
+        assert!(
+            sources.contains(&parser),
+            "missing real parser: {}",
+            parser.display()
+        );
+    }
+}
+
+#[test]
+fn cache_reset_refuses_external_existing_and_missing_targets() {
+    let temporary = tempfile::tempdir().unwrap();
+    let cache = temporary.path().join("cache");
+    let outside = temporary.path().join("cache-neighbour");
+    fs::create_dir_all(&cache).unwrap();
+    fs::create_dir_all(&outside).unwrap();
+    let sentinel = outside.join("keep.txt");
+    fs::write(&sentinel, "not owned by this cache").unwrap();
+    assert!(super::reset_cache_directory(&cache, &outside).is_err());
+    assert!(super::reset_cache_directory(&cache, &cache.join("../cache-neighbour")).is_err());
+    assert!(super::reset_cache_directory(&cache, &outside.join("missing")).is_err());
+    assert_eq!(
+        fs::read_to_string(sentinel).unwrap(),
+        "not owned by this cache"
+    );
+    assert!(!outside.join("missing").exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn cache_reset_refuses_outward_directory_symlinks() {
+    let temporary = tempfile::tempdir().unwrap();
+    let cache = temporary.path().join("cache");
+    let outside = temporary.path().join("outside");
+    fs::create_dir_all(&cache).unwrap();
+    fs::create_dir_all(&outside).unwrap();
+    let sentinel = outside.join("keep.txt");
+    fs::write(&sentinel, "external data").unwrap();
+    let link = cache.join("alias");
+    std::os::unix::fs::symlink(&outside, &link).unwrap();
+    assert!(super::reset_cache_directory(&cache, &link).is_err());
+    assert!(super::reset_cache_directory(&cache, &link.join("missing")).is_err());
+    assert_eq!(fs::read_to_string(sentinel).unwrap(), "external data");
+}
+
 struct TestDir {
     path: PathBuf,
     _dir: tempfile::TempDir,
@@ -3841,4 +4317,376 @@ impl TestDir {
         let path = dir.path().to_path_buf();
         Self { path, _dir: dir }
     }
+}
+// Catalog release packaging regressions use the actual checked project handles.
+// These fixture tests launch no Java/native tool.
+
+fn catalog_release_packaging_properties(target: &str) -> BTreeMap<String, String> {
+    BTreeMap::from([
+        ("minecraft_version".to_owned(), target.to_owned()),
+        ("mod_version".to_owned(), "4.34.0".to_owned()),
+        ("mod_id".to_owned(), "sfm".to_owned()),
+        ("mod_authors".to_owned(), "TeamDman".to_owned()),
+    ])
+}
+
+fn catalog_release_packaging_fixture_plan(
+    target: &str,
+    environment: &str,
+) -> eyre::Result<(
+    crate::source_projection::catalog_owned_project::tests::Fixture,
+    BuildPlan,
+)> {
+    let (fixture, slot, recipe, _) = super::named_forge_compile_cohort_tests::fixture(target)?;
+    // Ordinary source resources belong to core/src discovery, never project_files.
+    let owned_grammar = fixture
+        .repository()
+        .join(crate::source_projection::core_inputs::CORE_ROOT)
+        .join("src/main/resources/assets/sfm/grammar/already-owned.g4");
+    fs::create_dir_all(owned_grammar.parent().unwrap())?;
+    fs::write(
+        owned_grammar,
+        b"this is an explicitly owned ordinary resource, not synthesized grammar\n",
+    )?;
+    let project =
+        super::named_forge_compile_cohort_tests::prepared(&fixture, slot, environment, &recipe)?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = dunce::simplified(project.project().project_root()).to_path_buf();
+    plan.cache_dir = plan
+        .minecraft_dir
+        .join("build/sfm-toolchain/packaging-fixture");
+    plan.worktree_path = None;
+    plan.branch_name = None;
+    plan.schema_version = 2;
+    plan.minecraft_version = MinecraftVersion::parse(target)?;
+    plan.properties = catalog_release_packaging_properties(target);
+    plan.catalog_project = Some(project.receipt().clone());
+    plan.identity = BuildProjectIdentity::Catalog {
+        frozen: Arc::new(project),
+    };
+    Ok((fixture, plan))
+}
+
+fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionContext<'_> {
+    // Isolated resource-helper test only: no SDK discovery or external launch.
+    // The production packaging policy still validates the genuine frozen
+    // project handle, exact recipe/tool and current authored/generated inputs.
+    // This context is not used by execute_build or any process/Resolver API.
+    ExecutionContext {
+        plan,
+        forbidden_input_roots: Vec::new(),
+        cancellation_token: CancellationToken::new(),
+        minecraft_libraries_cache: std::sync::Mutex::new(None),
+        held_neoform_compile_jar: None,
+    }
+}
+
+#[test]
+fn catalog_release_packaging_fixture_rejects_source_resource_as_project_role() -> eyre::Result<()> {
+    let (mut fixture, _, _, _) = super::named_forge_compile_cohort_tests::fixture("1.20")?;
+    let error = fixture
+        .set_project_file_for(
+            "1.20",
+            "src/main/resources/assets/sfm/grammar/already-owned.g4",
+            "build/fixture/package/1.20/already-owned.g4",
+            b"this is an explicitly owned ordinary resource, not synthesized grammar\n",
+            false,
+        )
+        .expect_err("source ownership must not be bypassed by a packaging fixture");
+    assert!(format!("{error:#}").contains("must not shadow source rules"));
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_four_exact_titles_use_checked_metadata_not_key_names()
+-> eyre::Result<()> {
+    for (target, title) in [
+        ("1.19.2", "sfm-1.19.2"),
+        ("1.19.4", "sfm-1.19.4"),
+        ("1.20", "sfm-1.20"),
+        ("1.20.1", "sfm-1.20.1"),
+    ] {
+        let (_fixture, plan) = catalog_release_packaging_fixture_plan(target, "release")?;
+        let context = catalog_release_packaging_resource_context(&plan);
+        let project = plan.named_project().unwrap();
+        assert!(
+            project
+                .receipt()
+                .ownership
+                .projection_key
+                .starts_with("published/nested/slot-")
+        );
+        let policy = super::checked_catalog_release_packaging_policy(&plan)?.unwrap();
+        assert_eq!(policy.implementation_title, title);
+        assert!(!super::stage_synthesized_antlr_grammar_resources(Some(
+            policy
+        )));
+        let manifest = super::build_project_manifest(&context)?;
+        assert!(manifest.contains(&format!("Implementation-Title: {title}\r\n")));
+        assert!(manifest.contains("Implementation-Version: 4.34.0\r\n"));
+        assert!(manifest.contains("MixinConfigs: sfm.mixins.json\r\n"));
+        assert!(manifest.ends_with("\r\n\r\n"));
+    }
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_direct_stage_omits_only_extra_raw_grammar_and_keeps_owned_roots()
+-> eyre::Result<()> {
+    for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+        let (_fixture, plan) = catalog_release_packaging_fixture_plan(target, "release")?;
+        let context = catalog_release_packaging_resource_context(&plan);
+        let javac = plan.cache_dir.join("project/resources");
+        fs::create_dir_all(&javac)?;
+        fs::write(
+            javac.join("sfm.refmap.json"),
+            b"{\"fixture\":\"processor output\"}\n",
+        )?;
+        let output = plan.cache_dir.join("project/staged-resources");
+        super::stage_project_resources(&context, &output, &javac)?;
+        assert_eq!(fs::read(output.join("fixture.bin"))?, [0, 255, 13, 10]);
+        assert_eq!(
+            fs::read(output.join("fixture.json"))?,
+            b"{\"fixture\":true}\n"
+        );
+        assert_eq!(
+            fs::read(output.join("sfm.refmap.json"))?,
+            b"{\"fixture\":\"processor output\"}\n",
+        );
+        assert_eq!(
+            fs::read(output.join("assets/sfm/grammar/already-owned.g4"))?,
+            b"this is an explicitly owned ordinary resource, not synthesized grammar\n",
+        );
+        assert!(
+            !output
+                .join("assets/sfm/grammar/fixture/fixture.g4")
+                .exists()
+        );
+        assert_eq!(
+            fs::read(plan.minecraft_dir.join("src/main/antlr/fixture/Fixture.g4"))?,
+            b"grammar Fixture; value: EOF;\n",
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_direct_development_jar_writes_exact_title_and_resource_payloads()
+-> eyre::Result<()> {
+    let (_fixture, plan) = catalog_release_packaging_fixture_plan("1.20", "release")?;
+    let context = catalog_release_packaging_resource_context(&plan);
+    let classes = plan.cache_dir.join("project/classes");
+    let resources = plan.cache_dir.join("project/resources");
+    fs::create_dir_all(&classes)?;
+    fs::create_dir_all(&resources)?;
+    fs::write(
+        classes.join("Example.class"),
+        b"literal test class entry, not a compiled producer",
+    )?;
+    fs::write(resources.join("owned-resource.bin"), [0, 255, 13, 10])?;
+    let output = plan.cache_dir.join("project/dev.jar");
+    super::write_project_development_jar(&context, &classes, &resources, &output)?;
+    let mut archive = zip::ZipArchive::new(fs::File::open(&output)?)?;
+    assert_eq!(archive.len(), 3);
+    let mut manifest = String::new();
+    std::io::Read::read_to_string(&mut archive.by_name("META-INF/MANIFEST.MF")?, &mut manifest)?;
+    assert!(manifest.contains("Implementation-Title: sfm-1.20\r\n"));
+    let mut resource = Vec::new();
+    std::io::Read::read_to_end(&mut archive.by_name("owned-resource.bin")?, &mut resource)?;
+    assert_eq!(resource, [0, 255, 13, 10]);
+    // Packaging fixture payloads do not authenticate class/map/processor producers.
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_named_development_retains_default_title_and_grammar()
+-> eyre::Result<()> {
+    for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+        let (_fixture, plan) = catalog_release_packaging_fixture_plan(target, "dev")?;
+        let context = catalog_release_packaging_resource_context(&plan);
+        assert!(super::checked_catalog_release_packaging_policy(&plan)?.is_none());
+        assert_eq!(
+            super::project_manifest_implementation_title(&context)?,
+            "sfm"
+        );
+        assert!(super::stage_synthesized_antlr_grammar_resources(None));
+        let output = plan.cache_dir.join("project/staged-resources");
+        super::stage_project_resources(&context, &output, &plan.cache_dir.join("empty-javac"))?;
+        assert_eq!(
+            fs::read(output.join("assets/sfm/grammar/fixture/fixture.g4"))?,
+            b"grammar Fixture; value: EOF;\n",
+        );
+        assert!(super::build_project_manifest(&context)?.contains("Implementation-Title: sfm\r\n"));
+    }
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_legacy_preserves_title_fallback_and_grammar_staging()
+-> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    plan.worktree_path = Some(temporary.path().join("legacy-custom-name"));
+    plan.properties = catalog_release_packaging_properties("1.19.2");
+    let grammar = plan.minecraft_dir.join("src/main/antlr/Mixed/Case.g4");
+    fs::create_dir_all(grammar.parent().unwrap())?;
+    fs::write(&grammar, b"literal original legacy staging bytes\n")?;
+    let context = catalog_release_packaging_resource_context(&plan);
+    assert!(super::checked_catalog_release_packaging_policy(&plan)?.is_none());
+    assert_eq!(
+        super::project_manifest_implementation_title(&context)?,
+        "sfm-legacy-custom-name"
+    );
+    let output = plan.cache_dir.join("project/staged-resources");
+    super::stage_project_resources(&context, &output, &plan.cache_dir.join("empty-javac"))?;
+    assert_eq!(
+        fs::read(output.join("assets/sfm/grammar/mixed/case.g4"))?,
+        b"literal original legacy staging bytes\n"
+    );
+    assert!(
+        super::build_project_manifest(&context)?
+            .contains("Implementation-Title: sfm-legacy-custom-name\r\n")
+    );
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_ten_legacy_manifest_titles_and_loader_attributes_remain_original()
+-> eyre::Result<()> {
+    for (target, actual, title, neo_gradle) in [
+        ("1.19.2", "1.19.2", "sfm-1.19.2", false),
+        ("1.19.4", "1.19.4", "sfm-1.19.4", false),
+        ("1.20", "1.20", "sfm-1.20", false),
+        ("1.20.1", "1.20.1", "sfm-1.20.1", false),
+        ("1.20.2", "1.20.2", "sfm-1.20.2", true),
+        ("1.20.3", "1.20.3", "sfm-1.20.3", true),
+        ("1.20.4", "1.20.4", "sfm-1.20.4", true),
+        ("1.21.0", "1.21", "sfm-1.21.0", true),
+        ("1.21.1", "1.21.1", "sfm-1.21.1", true),
+        ("26.1.2", "26.1.2", "sfm-26.1.2", true),
+    ] {
+        let mut plan = minimal_plan_for_paths();
+        plan.worktree_path = Some(PathBuf::from("example/current-checkout").join(target));
+        plan.minecraft_version = MinecraftVersion::parse(actual)?;
+        plan.properties = catalog_release_packaging_properties(actual);
+        plan.loader_toolchain.kind = if neo_gradle {
+            LoaderToolchainKind::NeoGradleUserdev
+        } else if target == "1.20.1" {
+            LoaderToolchainKind::ForgeGradleNeoForgeGroup
+        } else {
+            LoaderToolchainKind::ForgeGradleForge
+        };
+        let context = catalog_release_packaging_resource_context(&plan);
+        assert!(super::checked_catalog_release_packaging_policy(&plan)?.is_none());
+        assert_eq!(
+            super::project_manifest_implementation_title(&context)?,
+            title
+        );
+        let manifest = super::build_project_manifest(&context)?;
+        assert!(manifest.contains(&format!("Implementation-Title: {title}\r\n")));
+        assert_eq!(
+            manifest.contains("MixinConfigs: sfm.mixins.json\r\n"),
+            !neo_gradle
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_receipt_and_property_mismatches_refuse() -> eyre::Result<()> {
+    let (_fixture, plan) = catalog_release_packaging_fixture_plan("1.20", "release")?;
+    let original = plan.named_project().unwrap().receipt();
+    let properties = &plan.properties;
+    for field in ["target", "minecraft", "recipe", "lock", "compiler", "tool"] {
+        let mut changed = original.clone();
+        match field {
+            "target" => changed.ownership.target_id = "1.19.4".to_owned(),
+            "minecraft" => changed.ownership.minecraft_version = "1.20.1".to_owned(),
+            "recipe" => changed.released_inputs.recipe_id = "unknown".to_owned(),
+            "lock" => changed.prepared_inputs.source_lock_sha256 = "sha256:unreviewed".to_owned(),
+            "compiler" => changed.compiler_release = 21,
+            "tool" => changed.tool_jvm_minimum = 21,
+            _ => unreachable!(),
+        }
+        assert!(
+            super::catalog_release_packaging_policy_for_receipt(&changed, properties).is_err(),
+            "{field}"
+        );
+    }
+    for target in ["1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"] {
+        let mut changed = original.clone();
+        changed.ownership.target_id = target.to_owned();
+        changed.ownership.minecraft_version = target.to_owned();
+        changed.released_inputs.recipe_id = format!("sfm:released-native-inputs/4.34.0/{target}@1");
+        assert!(
+            super::catalog_release_packaging_policy_for_receipt(
+                &changed,
+                &catalog_release_packaging_properties(target)
+            )
+            .is_err()
+        );
+    }
+    for (key, bad) in [("minecraft_version", "1.20.1"), ("mod_version", "4.34.1")] {
+        let mut changed = properties.clone();
+        changed.insert(key.to_owned(), bad.to_owned());
+        assert!(super::catalog_release_packaging_policy_for_receipt(original, &changed).is_err());
+        changed.remove(key);
+        assert!(super::catalog_release_packaging_policy_for_receipt(original, &changed).is_err());
+    }
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_refuses_before_stage_reset_or_development_jar_creation()
+-> eyre::Result<()> {
+    let (_fixture, mut plan) = catalog_release_packaging_fixture_plan("1.20", "release")?;
+    plan.properties
+        .insert("mod_version".to_owned(), "4.34.1".to_owned());
+    let output = plan.cache_dir.join("project/staged-resources");
+    fs::create_dir_all(&output)?;
+    fs::write(
+        output.join("retained.bin"),
+        b"older test-only staging evidence",
+    )?;
+    let classes = plan.cache_dir.join("project/classes");
+    let resources = plan.cache_dir.join("project/resources");
+    let jar = plan.cache_dir.join("project/dev.jar");
+    let context = catalog_release_packaging_resource_context(&plan);
+    assert!(super::stage_project_resources(&context, &output, &resources).is_err());
+    assert_eq!(
+        fs::read(output.join("retained.bin"))?,
+        b"older test-only staging evidence"
+    );
+    assert!(super::write_project_development_jar(&context, &classes, &resources, &jar).is_err());
+    assert!(!jar.exists());
+    assert!(!classes.exists() && !resources.exists());
+    Ok(())
+}
+
+#[test]
+fn catalog_release_packaging_stale_real_owned_input_refuses_before_output_reset() -> eyre::Result<()>
+{
+    let (_fixture, plan) = catalog_release_packaging_fixture_plan("1.20", "release")?;
+    let output = plan.cache_dir.join("project/staged-resources");
+    fs::create_dir_all(&output)?;
+    fs::write(
+        output.join("retained.bin"),
+        b"retain prior test-only evidence",
+    )?;
+    fs::write(
+        plan.minecraft_dir.join("src/main/resources/fixture.bin"),
+        b"changed owned resource",
+    )?;
+    let context = catalog_release_packaging_resource_context(&plan);
+    assert!(
+        super::stage_project_resources(&context, &output, &plan.cache_dir.join("empty-javac"))
+            .is_err()
+    );
+    assert_eq!(
+        fs::read(output.join("retained.bin"))?,
+        b"retain prior test-only evidence"
+    );
+    Ok(())
 }

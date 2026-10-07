@@ -1,0 +1,69 @@
+{
+  "schema": "sfm:provider_wave_complete_tooling_gate@1",
+  "date": "2026-10-02",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "status": "closed_native_exit_zero_current1959_rust_tooling_only",
+  "actual_execution": {
+    "command": ".\\check-all.ps1",
+    "working_directory": "platform/cli/sfm-propagate-changes",
+    "root_owned_session": 13437,
+    "terminal_result_chunk": "7d2bfb",
+    "native_exit_code": 0,
+    "restarted_or_replayed": false,
+    "dependency_policy": "passed",
+    "formatting": "passed",
+    "all_feature_production_clippy": "passed",
+    "all_feature_build": "passed",
+    "ordered_unique_test_groups": 191,
+    "library_cases_passed_including_standalone_fixture": 2203,
+    "library_cases_ignored": 15,
+    "integration_cases_passed": 70,
+    "failed_cases": 0,
+    "binary_cases_discovered": 0,
+    "documentation_cases_discovered": 0,
+    "final_default_feature_cli_build": "passed"
+  },
+  "root_independent_observations": {
+    "group_count_and_index_chunk": "bcff98",
+    "current_core_and_frozen_inputs_chunk": "84eb23",
+    "earlier_count_helper_error": "4b379c: the root regex expected a second colon in the fixture result. Only the read-only counter was corrected; the test run was not repeated."
+  },
+  "log": {
+    "path": "platform/cli/sfm-propagate-changes/target/provider-wave-checkall-20261002-v1.log",
+    "bytes": 40606,
+    "sha256": "74c1007ef50d730732d12cbbbed0b02ee03612e93978ef6f75f2763bde362dca"
+  },
+  "default_operational_cli": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "e0d4de9f496f0cb5df753baf92e8a256b800ed44537754b1467d05ec5e107236",
+    "installed_path_freshness": "not_performed"
+  },
+  "source_checkpoint": {
+    "core_files": 1959,
+    "core_bytes": 9130171,
+    "core_sha256": "04cb5226a6cdd06253f35854e72c1aed694372b0c6e99ee1a2cb8e74b8909c85",
+    "metadata_rules": 676,
+    "metadata_variants": 861,
+    "metadata_bytes": 469698,
+    "metadata_sha256": "26409f0f06ac3218d85111c4bb1e1d4e9885bca774833272cde65c825b72add5",
+    "feature_definitions": 180,
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "catalog_entries": 20,
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+    "module_registration_sha256": "08d6e4808e43cf2ebe038a3e3fca02bed282da52f3b7b40ceb5ce28485ae9cf1",
+    "original_staged_records": 98,
+    "original_staged_raw_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1",
+    "original_staged_names_sha256": "5ba82be5e48169a45816f87f92138ab2213b87bdddce776a6b1bf26c43905fed"
+  },
+  "claim_limits": [
+    "The final default CLI is rebuilt, not installed into PATH.",
+    "Fresh twenty-context generation remains pending before the next source admission.",
+    "No current Minecraft compilation, gameplay or full release parity is proved.",
+    "Prepared Accessor, palette, widget, tooltip and analyser successors remain outside this applied source checkpoint.",
+    "Passing child results are not lifecycle fault injection or aggregate-memory proof.",
+    "The complete ten-version/twenty-projection goal remains active."
+  ]
+}

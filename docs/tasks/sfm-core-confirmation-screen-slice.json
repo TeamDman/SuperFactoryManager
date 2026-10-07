@@ -1,0 +1,88 @@
+{
+  "schema": "sfm:core-confirmation-screen-slice@1",
+  "status": "reviewed_ignored_template_and_unregistered_tests_not_real_renderer_or_java_acceptance",
+  "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMConfirmationScreen.java",
+  "authored": {
+    "sha256": "sha256:3fc7b6d5e1ea41f246f4574ef942edfcfdff9480f2a47556fdb1d4b19e09cf6a",
+    "bytes": 6157,
+    "common_lines": 40,
+    "conditional_fragments": 8
+  },
+  "membership": "shared_all_ten_targets_all_feature_masks",
+  "owner": {
+    "id": "confirmation_review_callbacks",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": []
+  },
+  "normalization": {
+    "policy": "only_replace_CRLF_with_LF_for_three_explicit_raw_witnesses",
+    "final_lf": "preserved_no_append",
+    "lone_cr": "forbidden",
+    "bom": "forbidden",
+    "other_changes": false
+  },
+  "variants": [
+    {
+      "oid": "d7c0949f05611cb712e21711ddff12b4f6fa3929",
+      "bytes": 3874,
+      "sha256": "sha256:a1176bf6931966e333040eba0fcd1054d03c4785ae73f13feb9f218067aa391f",
+      "crlf": 35,
+      "finalLF": true,
+      "normalized_bytes": 3839,
+      "normalized_sha256": "sha256:8e0f934891696ebbf0ce42b82cde65fe63d405539ecde7231b4d671ca2bf0c37",
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "oid": "859c7b6b3c671a81bdd9ba95bfe0f27cb39c4e04",
+      "bytes": 1519,
+      "sha256": "sha256:7689a1d98e2857616f6ad683696e9f610afa27d74906e5ca2b266398d1419890",
+      "crlf": 49,
+      "finalLF": true,
+      "normalized_bytes": 1470,
+      "normalized_sha256": "sha256:6253dbd0de67dacc25fe350a0c49eefb7909606e3785680be00f69af22cd5071",
+      "contexts": [
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "dev/1.20",
+        "release/1.20.1",
+        "dev/1.20.1",
+        "release/1.20.2",
+        "dev/1.20.2",
+        "release/1.20.3",
+        "dev/1.20.3",
+        "release/1.20.4",
+        "dev/1.20.4",
+        "release/1.21.0",
+        "dev/1.21.0",
+        "release/1.21.1",
+        "dev/1.21.1"
+      ]
+    },
+    {
+      "oid": "1f78d448e788876536e55f616da28518bc740d74",
+      "bytes": 1657,
+      "sha256": "sha256:d95e19d13c13d89bf2b9c9071802c74df0fc14d96911732d91a8355c3e1ed6e6",
+      "crlf": 55,
+      "finalLF": true,
+      "normalized_bytes": 1602,
+      "normalized_sha256": "sha256:535b3d2516cfaa5cadeb77b97e9ab0b192f2834ac6641691fb1b5451b409412a",
+      "contexts": [
+        "release/26.1.2",
+        "dev/26.1.2"
+      ]
+    }
+  ],
+  "scope": "The explicit denial/dismissal callback, one-choice guard, cancel-first focus and approval-delay restoration are one evidenced confirmation-review contract, independently usable without consent, signing or actions. Existing callers retain the released approval-only behavior when disabled. The 26.1.2 init-time delay API remains baseline.",
+  "evidence_limits": [
+    "Exact raw Git OIDs, SHA256, strict UTF8 and CRLF counts are reviewed; only those three CRLF-to-LF conversions are approved.",
+    "Production class selection and real Liquid tests remain unregistered until root promotion.",
+    "No Minecraft screen was opened and no Java compilation is claimed."
+  ]
+}

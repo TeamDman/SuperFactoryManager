@@ -10,7 +10,6 @@
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::core_slice_test_support::CoreTestFixture;
 use super::core_slice_test_support::read_bounded;
 use super::core_slice_test_support::read_git_blobs;
@@ -38,6 +37,7 @@ const BUFFER: &str = "redstone_buffer_storage";
 const DOCS: &str = "redstone_signal_documentation";
 const IMAGE: &str = "image_resources";
 const FLAGS: [&str; 4] = [LIVE, BUFFER, DOCS, IMAGE];
+const ALL_FLAGS: [&str; 5] = [LIVE, BUFFER, DOCS, IMAGE, "packet_values"];
 const LEDGER: &str = "docs/tasks/sfm-core-redstone-capability-slice.json";
 const CORE_PREFIX: &str = "platform/minecraft/core-liquid-template/";
 const STAGE_PREFIX: &str =
@@ -323,8 +323,12 @@ impl RedstoneFixture {
                 .ok_or_else(|| eyre::eyre!("redstone/image flag is not registered: {flag}"))?;
             ensure!(
                 same_names(&definition.supported_targets, &TARGETS[..2])
-                    && definition.requires.is_empty(),
-                "redstone member owners must be independent D2 features"
+                    && if flag == IMAGE {
+                        same_names(&definition.requires, &["packet_values"])
+                    } else {
+                        definition.requires.is_empty()
+                    },
+                "redstone owners are independent; image requires the real value codec"
             );
         }
         let mut seen = BTreeSet::new();
@@ -392,7 +396,12 @@ impl RedstoneFixture {
                     .ok_or_else(|| eyre::eyre!("invalid pinned redstone context"))?;
                 let enabled = environment == "dev" && is_d2(target);
                 let row = golden(raw_oid(&input.path, target, enabled)?)?;
-                let flags = if enabled { &FLAGS[..] } else { &[][..] };
+                // The frozen ledger records four owner flags, not the later
+                // packet-values prerequisite needed for current image validation.
+                // Keep that original witness identity unchanged while validating
+                // the explicitly dependency-closed current invocation context.
+                let witness_flags = if enabled { &FLAGS[..] } else { &[][..] };
+                let flags = if enabled { &ALL_FLAGS[..] } else { &[][..] };
                 core.context(target, flags)?;
                 ensure!(
                     contexts.insert(witness.context.clone())
@@ -404,7 +413,7 @@ impl RedstoneFixture {
                         && witness.normalized_sha256 == row.normalized_digest
                         && witness.normalized_bytes == row.normalized_bytes
                         && witness.mode == "100644"
-                        && same_names(&witness.explicit_registered_features, flags)
+                        && same_names(&witness.explicit_registered_features, witness_flags)
                         && witness.feature_context_origin
                             == "reconstructed_independent_member_owner_not_historical_flag_claim"
                         && witness.stage_preview_normalized_exact,
@@ -453,7 +462,9 @@ impl RedstoneFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Vec<u8>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let input = selection
             .inputs
             .get(path)
@@ -593,7 +604,7 @@ fn redstone_family_reconstructs_eighty_full_normalized_historical_witnesses() ->
         let enabled = environment == "dev" && is_d2(target);
         let context = fixture
             .core
-            .context(target, if enabled { &FLAGS[..] } else { &[][..] })?;
+            .context(target, if enabled { &ALL_FLAGS[..] } else { &[][..] })?;
         fixture.assert_expected(&context, target)?;
         cases += 4;
     }
@@ -623,12 +634,15 @@ fn redstone_member_owners_are_independent_in_all_supported_d2_combinations() -> 
     let mut bodies = 0;
     for target in &TARGETS[..2] {
         for mask in 0_u8..16 {
-            let enabled = FLAGS
+            let mut enabled = FLAGS
                 .iter()
                 .enumerate()
                 .filter(|(index, _)| mask & (1 << index) != 0)
                 .map(|(_, flag)| *flag)
                 .collect::<Vec<_>>();
+            if mask & 8 != 0 {
+                enabled.push("packet_values");
+            }
             let context = fixture.core.context(target, &enabled)?;
             fixture.assert_expected(&context, target)?;
             let provider = fixture.body(PROVIDER, &context)?;
@@ -757,7 +771,11 @@ fn live_observations_and_counter_transfer_semantics_keep_distinct_members() -> R
 fn descriptive_environment_and_nested_keys_do_not_select_redstone_source() -> Result<()> {
     let fixture = RedstoneFixture::load()?;
     for target in TARGETS {
-        let flags = if is_d2(target) { &FLAGS[..] } else { &[][..] };
+        let flags = if is_d2(target) {
+            &ALL_FLAGS[..]
+        } else {
+            &[][..]
+        };
         for environment in ["release", "dev"] {
             for enabled in [flags, &[][..]] {
                 let mut context = fixture.core.context(target, enabled)?;

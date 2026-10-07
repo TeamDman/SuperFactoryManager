@@ -1,0 +1,70 @@
+{
+  "schema": "sfm:four_source_current_twenty_generation_checkpoint@1",
+  "date": "2026-10-02",
+  "status": "closed_current_generation_dry_runs_root_native_audit_passed_peer_review_pending",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "gate_receipt": "docs/tasks/sfm-core-four-source-tooling-gate-20261002.json",
+  "core": {
+    "files": 1937,
+    "bytes": 8949630,
+    "sha256": "3f6838393924ee5f3946acd2af58c8fc97cfdde0334a4213a9f5902c2feead24"
+  },
+  "executable": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "49fe247894a6de53771cf59c2722d9990278110df678441389a539475510e614"
+  },
+  "caller": {
+    "capsule": "sfm-current-twenty-dry-run-20261002-v9",
+    "driver_bytes": 22523,
+    "driver_sha256": "0213d819d10ae7486449c3cb8f360cbb7da9e8e4f40dc43b01f6e556bdd9e75b",
+    "root_full_source_review": true,
+    "exact_literal_successor_groups": 4,
+    "runtime_function_unchanged": true,
+    "preflight_exit": 0,
+    "session": 17977,
+    "actual_exit": 0,
+    "marker": "CURRENT_TWENTY_DRY_RUN_EXIT=0",
+    "terminal_state": "closed_and_retired"
+  },
+  "run": {
+    "bytes": 15052,
+    "sha256": "dea5854bb4bd49835c77a6644d935db2c0ff6ddda2a9d041366b15ce494946b0",
+    "normal_children": 20,
+    "invocation_attempts": 20,
+    "failures": 0,
+    "initial_final_core_and_cli_equal": true
+  },
+  "root_native_audit": {
+    "marker": "ROOT_CURRENT1937_TWENTY81FILES60RAW20REPORTS_AUTHORED_AND_OUTPUT_PINS_EXIT=0",
+    "retained_files": 81,
+    "retained_bytes": 13015199,
+    "raw_pins": 60,
+    "typed_reports": 20,
+    "artifact_descriptors": 22882,
+    "distinct_authored_source_hashes": 1521,
+    "existing_output_file_hashes": 3420,
+    "existing_projection_roots": 3,
+    "absent_projection_roots": 17,
+    "planned_creates": 19462,
+    "planned_updates": 0,
+    "unchanged_outputs": 3420,
+    "every_writes_flag_typed_false": true,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed",
+    "child_receipts": {
+      "exit0_eof_reaped": 20,
+      "killed": 0,
+      "failure": 0
+    },
+    "independent_peer_audit": "pending"
+  },
+  "limits": [
+    "This is current generation planning and retained-data verification, not twenty materialized Gradle roots or Java builds.",
+    "Only release 1.19.2, 1.19.4 and 1.20 projection roots exist; the other seventeen remain absent.",
+    "Recorded successful EOF and reap are not independent past OS or fault-injection evidence.",
+    "Unreleased feature preservation, Java provider closure, full build/runtime matrix, release parity and final installed-tool freshness remain open.",
+    "Old V8 source and closed 1,933-file observations remain historical; no overwrite, cleanup, dependencies, merge, push, tag, publication or goal completion."
+  ]
+}

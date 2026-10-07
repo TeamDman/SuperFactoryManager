@@ -1,0 +1,3689 @@
+package ca.teamdman.sfm.client.terminal;
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import ca.teamdman.sfm.SFM;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.ConnectionOptions;
+import org.facet.vox.ConnectionState;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.CallOptions;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.LaneOptions;
+import org.facet.vox.ServiceLane;
+import org.facet.vox.VoxConnection;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.VoxChannels;
+import org.facet.vox.VoxRx;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.VoxResult;
+import org.facet.vox.generated.TerminalCapabilities;
+import org.facet.vox.generated.TerminalClient;
+import org.facet.vox.generated.TerminalCancelRequest;
+import org.facet.vox.generated.TerminalConnectRequest;
+import org.facet.vox.generated.TerminalConnectResult;
+import org.facet.vox.generated.TerminalContentRequest;
+import org.facet.vox.generated.TerminalContentResult;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalCopySelectionDisposition;
+import org.facet.vox.generated.TerminalCopySelectionRequest;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.generated.TerminalDisconnectRequest;
+import org.facet.vox.generated.TerminalError;
+import org.facet.vox.generated.TerminalFrameEncoding;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalFrameEvent;
+import org.facet.vox.generated.TerminalFrameOrigin;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.generated.TerminalFrameKind;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalAlphaMode;
+import org.facet.vox.generated.TerminalColorSpace;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.generated.TerminalInputResult;
+import org.facet.vox.generated.TerminalKeyInput;
+import org.facet.vox.generated.TerminalMouseInput;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalOperationResult;
+import org.facet.vox.generated.TerminalPasteDisposition;
+import org.facet.vox.generated.TerminalPastePolicy;
+import org.facet.vox.generated.TerminalPasteRequest;
+import org.facet.vox.generated.TerminalPasteSource;
+import org.facet.vox.generated.TerminalPublicationTelemetry;
+import org.facet.vox.generated.TerminalPresentationCapabilitiesRequest;
+import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
+import org.facet.vox.generated.TerminalPresentationMode;
+import org.facet.vox.generated.TerminalRasterFrameEvent;
+import org.facet.vox.generated.TerminalRasterFrameKind;
+import org.facet.vox.generated.TerminalRasterRendererTelemetry;
+import org.facet.vox.generated.TerminalRasterRegion;
+import org.facet.vox.generated.TerminalRasterSubscribeRequest;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.generated.TerminalResizeRequest;
+import org.facet.vox.generated.TerminalResizeResult;
+import org.facet.vox.generated.TerminalServiceDescriptor;
+import org.facet.vox.generated.TerminalSnapshot;
+import org.facet.vox.generated.TerminalSnapshotRequest;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalSubscribeRequest;
+import org.facet.vox.generated.TerminalSurfaceMetrics;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import org.facet.vox.generated.TerminalState;
+import org.facet.vox.generated.TerminalTextInput;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import org.facet.vox.generated.TerminalTuningMode;
+import org.facet.vox.generated.TerminalTuningRequest;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+
+import java.net.InetSocketAddress;
+import java.time.Duration;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+import java.util.ArrayList;
+{% endcase %}
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Callable;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+import java.util.concurrent.ScheduledExecutorService;
+{% endcase %}
+import java.util.concurrent.TimeUnit;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+
+/**
+ * Optional Java client for the generated Vox terminal service.
+ *
+ * <p>Rust owns the PTY, VT state, and rasterization. Java only sends terminal
+ * input and retains the latest bounded full-frame PNG for presentation. The
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+ * Java-local service is a separate explicit REPL surface, never an implicit
+ * fallback for this scene.
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+ * Java-local service is still available as an explicit degradation path when
+ * the endpoint cannot be reached.
+{% endcase %}
+ */
+public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
+    private static final int REQUEST_WIDTH = 120;
+    private static final int REQUEST_HEIGHT = 40;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private static final int MAX_FRAME_BYTES = 64 * 1024 * 1024;
+    /** Payload ceiling plus room for the Vox/Phon message envelope. */
+    private static final int MAX_WIRE_FRAME_BYTES = MAX_FRAME_BYTES + 1024 * 1024;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private static final int MAX_FRAME_BYTES = 4 * 1024 * 1024;
+{% endcase %}
+    private static final int MAX_CONTENT_CHARS = 256 * 1024;
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration CONTENT_READINESS_TIMEOUT = Duration.ofSeconds(3);
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private static final Duration SUBSCRIPTION_IDLE_TIMEOUT = Duration.ofDays(3650);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private static final long FRAME_POLL_MILLIS = 50;
+{% endcase %}
+
+    private final InetSocketAddress endpoint;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private final SFMTerminalService fallbackService;
+{% endcase %}
+    private final ConnectionOptions connectionOptions;
+    private final Duration callTimeout;
+    private final ExecutorService driver;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private final ExecutorService connectionDriver;
+    private final ExecutorService subscriptionReceiver;
+    private final ExecutorService rasterSubscriptionReceiver;
+    private final ExecutorService transportCleanup;
+    private final SFMVoxTerminalTelemetry telemetry = new SFMVoxTerminalTelemetry();
+    private final SFMVoxTerminalFrameInbox frameInbox =
+            new SFMVoxTerminalFrameInbox(MAX_FRAME_BYTES);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private final ScheduledExecutorService poller;
+{% endcase %}
+    private final Object lock = new Object();
+    private VoxConnection connection;
+    private ServiceLane lane;
+    private TerminalClient client;
+    private String sessionId;
+    private String failure;
+    private TerminalSnapshot latestSnapshot;
+    private TerminalContentResult latestContent;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private VoxRx<TerminalFrameEvent> frameReceiver;
+    private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> subscriptionCall;
+    private SFMVoxTerminalFrameInbox.Subscription subscription;
+    private final SFMVoxTerminalRasterHandoff<RasterStream> rasterHandoff;
+    private List<TerminalPresentationMode> presentationModes = List.of();
+    private SFMTerminalPresentationCatalog presentationCatalog =
+            SFMTerminalPresentationCatalog.undiscovered();
+    private SFMTerminalPresentationSelection requestedPresentation =
+            SFMTerminalPresentationSelection.DEFAULT;
+    private SFMTerminalPresentationSelection activePresentation;
+    private String presentationTransitionFailure;
+    private SFMTerminalFrame pendingRasterFrame;
+    private long presentationRequestGeneration;
+    private boolean presentationExplicitlyRequested;
+    private String acceptedRasterPresentationGeneration = "";
+    private String rasterConnectionEpoch = "";
+    private String rasterSessionEpoch = "";
+    private long rasterLastTerminalSequence;
+    private long rasterLastFrameSequence;
+    private long rasterSubscriptionsStarted;
+    private long rasterFramesReceived;
+    private long rasterFramesAccepted;
+    private long rasterFramesRejected;
+    private long rasterStaleFrames;
+    private long rasterReceiverFailures;
+    private long rasterFullFrames;
+    private long rasterDirtyFrames;
+    private long rasterFullResyncFrames;
+    private int rasterMaximumPayloadBytes;
+    private TerminalPublicationTelemetry latestRasterPublication;
+    private final AtomicLong clientSequence = new AtomicLong();
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private long clientSequence;
+{% endcase %}
+    private int requestedWidth = REQUEST_WIDTH;
+    private int requestedHeight = REQUEST_HEIGHT;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private int requestedPixelWidth;
+    private int requestedPixelHeight;
+    private int requestedFontPixelSize;
+    private SFMTerminalTuningSettings requestedTuning = SFMTerminalTuningSettings.automatic();
+    private SFMTerminalTuningRejection tuningFailure;
+    private long resizeVersion;
+    private long acceptedResizeVersion;
+    private boolean resizeTaskQueued;
+    private MouseOperation pendingMouseMotion;
+    private boolean mouseMotionTaskQueued;
+    private SFMTerminalSelection latestSelection;
+    private long latestInteractionSequence;
+    private boolean connectionInFlight;
+    private long transportGeneration;
+    private volatile Thread driverThread;
+    private long nextConnectionAttemptNanos;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private boolean polling;
+    private boolean snapshotInFlight;
+{% endcase %}
+    private boolean closed;
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private record Transport(TerminalClient client, String sessionId, long generation) {}
+
+    private record DetachedSubscription(
+            VoxRx<TerminalFrameEvent> receiver,
+            CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call) {}
+
+    private record RasterSubscription(
+            long generation,
+            String sessionId,
+            String presentationGeneration,
+            SFMTerminalPresentationSelection selection,
+            TerminalPresentationMode mode) {}
+
+    private static final class RasterStream {
+        private final RasterSubscription subscription;
+        private final ServiceLane lane;
+        private final VoxRx<TerminalRasterFrameEvent> receiver;
+        private final SFMTerminalRgbaCompositor compositor =
+                new SFMTerminalRgbaCompositor(SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS);
+        private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call;
+        private String acceptedPresentationGeneration = "";
+        private String connectionEpoch = "";
+        private String sessionEpoch = "";
+        private long lastTerminalSequence;
+        private long lastFrameSequence;
+        private int logicalColumns;
+        private int logicalRows;
+        private int targetPanelWidth;
+        private int targetPanelHeight;
+        private int nativeWidth;
+        private int nativeHeight;
+        private int cellWidth;
+        private int cellHeight;
+        private int fontPixelSize;
+        private String fontId = "";
+        private String fontSha256 = "";
+        private int frameContractVersion;
+        private long baseFrameSequence;
+        private boolean fullResync;
+        private TerminalRasterFrameKind frameKind;
+        private int payloadBytes;
+        private int maximumPayloadBytes;
+        private int dirtyRegions;
+        private TerminalRasterRendererTelemetry rendererTelemetry;
+        private boolean cleanupScheduled;
+
+        private RasterStream(
+                RasterSubscription subscription,
+                ServiceLane lane,
+                VoxRx<TerminalRasterFrameEvent> receiver) {
+            this.subscription = subscription;
+            this.lane = lane;
+            this.receiver = receiver;
+        }
+
+        private void recordAcceptedFrame(TerminalRasterFrameEvent event) {
+            org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+            TerminalSurfaceMetrics surface = frame.surface();
+            logicalColumns = frame.logicalColumns();
+            logicalRows = frame.logicalRows();
+            targetPanelWidth = surface.panelWidth();
+            targetPanelHeight = surface.panelHeight();
+            nativeWidth = frame.width();
+            nativeHeight = frame.height();
+            cellWidth = surface.cellWidth();
+            cellHeight = surface.cellHeight();
+            fontPixelSize = surface.fontPixelSize();
+            fontId = frame.fontId();
+            fontSha256 = frame.fontSha256();
+            frameContractVersion = event.frameContractVersion();
+            baseFrameSequence = event.baseFrameSequence();
+            fullResync = event.fullResync();
+            frameKind = frame.kind();
+            payloadBytes = frame.payload().length;
+            maximumPayloadBytes = Math.max(maximumPayloadBytes, payloadBytes);
+            dirtyRegions = frame.regions().size();
+            rendererTelemetry = frame.renderer();
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    public SFMVoxTerminalService(InetSocketAddress endpoint) {
+        this(endpoint, new SFMJavaLocalTerminalService());
+{% endcase %}
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private record DetachedTransport(
+            TerminalClient client,
+            String sessionId,
+            ServiceLane lane,
+            VoxConnection connection,
+            boolean requestDisconnect) {}
+
+    private record ResizeOperation(
+            int width,
+            int height,
+            int panelWidth,
+            int panelHeight,
+            int fontPixelSize,
+            SFMTerminalTuningSettings tuning,
+            long version) {}
+
+    private static final class TerminalApplicationException extends IllegalStateException {
+        private final SFMTerminalError terminalError;
+
+        private TerminalApplicationException(String operation, TerminalError error) {
+            super(operation + ": " + error.message());
+            this.terminalError = SFMVoxTerminalPresentationAdapter.terminalError(error);
+        }
+    }
+
+    private record MouseOperation(
+            int x,
+            int y,
+            int buttons,
+            int button,
+            boolean pressed,
+            boolean motion,
+            int wheelX,
+            int wheelY) {}
+
+    @FunctionalInterface
+    private interface RemoteOperation {
+        void run(Transport transport) throws Exception;
+    }
+
+    public SFMVoxTerminalService(InetSocketAddress endpoint) {
+        this(endpoint, ConnectionOptions.builder()
+                .maxFrameBytes(MAX_WIRE_FRAME_BYTES)
+                .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
+        this(endpoint, fallbackService, ConnectionOptions.builder()
+{% endcase %}
+                .handshakeTimeout(Duration.ofMillis(500))
+                .idleTimeout(DEFAULT_TIMEOUT)
+                .closeTimeout(Duration.ofSeconds(1))
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+                .initialChannelCredit(1)
+                .build(), DEFAULT_TIMEOUT);
+    }
+
+    /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
+    public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
+        this(endpoint, ConnectionOptions.builder()
+                .maxFrameBytes(MAX_WIRE_FRAME_BYTES)
+                .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
+                .handshakeTimeout(Duration.ofMillis(500))
+                .idleTimeout(DEFAULT_TIMEOUT)
+                .closeTimeout(Duration.ofSeconds(1))
+                .initialChannelCredit(1)
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+                .build(), DEFAULT_TIMEOUT);
+    }
+
+    public SFMVoxTerminalService(
+            InetSocketAddress endpoint,
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            SFMTerminalService fallbackService,
+{% endcase %}
+            ConnectionOptions connectionOptions,
+            Duration callTimeout) {
+        this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        this.fallbackService = Objects.requireNonNull(fallbackService, "fallbackService");
+{% endcase %}
+        this.connectionOptions = Objects.requireNonNull(connectionOptions, "connectionOptions");
+        this.callTimeout = requirePositive(callTimeout, "callTimeout");
+        this.driver = Executors.newSingleThreadExecutor(runnable -> {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            Thread thread = new Thread(() -> {
+                driverThread = Thread.currentThread();
+                runnable.run();
+            }, "sfm-vox-terminal-request");
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-driver");
+{% endcase %}
+            thread.setDaemon(true);
+            return thread;
+        });
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        this.connectionDriver = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-connection");
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        this.poller = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-frame-poller");
+{% endcase %}
+            thread.setDaemon(true);
+            return thread;
+        });
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        this.subscriptionReceiver = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-frame-receiver");
+            thread.setDaemon(true);
+            return thread;
+        });
+        AtomicLong rasterReceiverSequence = new AtomicLong();
+        this.rasterSubscriptionReceiver = new ThreadPoolExecutor(
+                2,
+                2,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(2),
+                runnable -> {
+                    Thread thread = new Thread(runnable,
+                            "sfm-vox-terminal-raster-receiver-"
+                                    + rasterReceiverSequence.incrementAndGet());
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.AbortPolicy());
+        this.transportCleanup = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "sfm-vox-terminal-cleanup");
+            thread.setDaemon(true);
+            return thread;
+        });
+        this.rasterHandoff = new SFMVoxTerminalRasterHandoff<>(this::retireRasterStreamLocked);
+    }
+
+    /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
+    public SFMVoxTerminalService(
+            InetSocketAddress endpoint,
+            SFMTerminalService ignoredFallback,
+            ConnectionOptions connectionOptions,
+            Duration callTimeout) {
+        this(endpoint, connectionOptions, callTimeout);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    }
+
+    @Override
+    public SFMTerminalSession openSession() {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return new Session();
+    }
+
+    @Override
+    public void requestConnect() {
+        synchronized (lock) {
+            if (closed || sessionId != null || connectionInFlight
+                    || failure != null && System.nanoTime() < nextConnectionAttemptNanos) return;
+            connectionInFlight = true;
+        }
+        try {
+            driver.execute(() -> {
+                try {
+                    ensureConnected();
+                } catch (Exception ignored) {
+                    // The panel exposes the failure and keeps the retry button available.
+                } finally {
+                    synchronized (lock) {
+                        connectionInFlight = false;
+                    }
+                }
+            });
+        } catch (RejectedExecutionException ignored) {
+            synchronized (lock) {
+                connectionInFlight = false;
+            }
+        }
+    }
+
+    @Override
+    public boolean isConnected() {
+        synchronized (lock) {
+            return sessionId != null;
+        }
+    }
+
+    @Override
+    public boolean isConnecting() {
+        synchronized (lock) {
+            return connectionInFlight;
+        }
+    }
+
+    @Override
+    public Optional<String> failureMessage() {
+        synchronized (lock) {
+            return Optional.ofNullable(failure);
+        }
+    }
+
+    @Override
+    public SFMTerminalConnectionSnapshot connectionSnapshot() {
+        synchronized (lock) {
+            RasterStream stream = rasterHandoff.active();
+            boolean presentationReady = latestSnapshot != null
+                    || stream != null && stream.lastFrameSequence >= 1;
+            return new SFMTerminalConnectionSnapshot(
+                    sessionId != null,
+                    connectionInFlight,
+                    presentationReady,
+                    transportGeneration,
+                    Optional.ofNullable(failure));
+        }
+    }
+
+    @Override
+    public Optional<SFMTerminalTuningRejection> tuningFailure() {
+        synchronized (lock) {
+            return Optional.ofNullable(tuningFailure);
+        }
+    }
+
+    @Override
+    public boolean tuningPending() {
+        synchronized (lock) {
+            return tuningFailure == null && acceptedResizeVersion != resizeVersion;
+        }
+    }
+
+    @Override
+    public Optional<SFMTerminalPresentationDiagnostics> presentationDiagnostics() {
+        synchronized (lock) {
+            RasterStream stream = rasterHandoff.active();
+            if (stream == null || activePresentation == null || stream.lastFrameSequence < 1) {
+                return Optional.empty();
+            }
+            return Optional.of(new SFMTerminalPresentationDiagnostics(
+                    acceptedRasterPresentationGeneration,
+                    rasterLastTerminalSequence,
+                    rasterLastFrameSequence,
+                    stream.baseFrameSequence,
+                    stream.fullResync,
+                    stream.frameKind == null ? "" : stream.frameKind.name(),
+                    stream.payloadBytes,
+                    stream.maximumPayloadBytes,
+                    rasterFramesReceived,
+                    rasterFramesAccepted,
+                    rasterFramesRejected,
+                    rasterStaleFrames,
+                    rasterReceiverFailures,
+                    rasterFullResyncFrames,
+                    MAX_FRAME_BYTES));
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        startPolling();
+        return new Session(fallbackService.openSession());
+{% endcase %}
+    }
+
+    /** Returns the latest bounded frame received from Vox, if any. */
+    public Optional<TerminalSnapshot> latestSnapshot() {
+        synchronized (lock) {
+            return Optional.ofNullable(latestSnapshot);
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    /** Returns bounded machine-readable subscription and explicit-snapshot evidence. */
+    public SFMVoxTerminalTelemetry.Snapshot telemetry() {
+        return telemetry.snapshot();
+    }
+
+    /** Validates and serializes the live bounded-push invariants for puppet evidence. */
+    @Override
+    public String assertPushEvidenceForAutomation(boolean reconnectExpected) {
+        synchronized (lock) {
+            if (rasterSubscriptionsStarted > 0) {
+                if (activePresentation == null || rasterFramesAccepted < 1
+                        || rasterLastFrameSequence < 1 || latestRasterPublication == null) {
+                    throw new IllegalStateException(
+                            "Java raster subscription has no accepted live evidence"
+                                    + " requested=" + requestedPresentation.label()
+                                    + " active=" + (activePresentation == null
+                                    ? "none" : activePresentation.label())
+                                    + " subscriptions=" + rasterSubscriptionsStarted
+                                    + " received=" + rasterFramesReceived
+                                    + " accepted=" + rasterFramesAccepted
+                                    + " rejected=" + rasterFramesRejected
+                                    + " stale=" + rasterStaleFrames
+                                    + " lane=" + (rasterHandoff.active() == null
+                                    ? "none" : rasterHandoff.active().lane.state())
+                                    + " failure=" + failure);
+                }
+                if (!rasterDeliveryCountsValid(
+                        reconnectExpected,
+                        rasterSubscriptionsStarted,
+                        rasterFramesRejected,
+                        rasterReceiverFailures)) {
+                    throw new IllegalStateException(
+                            "Java raster delivery recorded rejected frames or receiver failures"
+                                    + " reconnect_expected=" + reconnectExpected
+                                    + " subscriptions=" + rasterSubscriptionsStarted
+                                    + " rejected=" + rasterFramesRejected
+                                    + " receiver_failures=" + rasterReceiverFailures);
+                }
+                TerminalPublicationTelemetry producer = latestRasterPublication;
+                RasterStream activeStream = rasterHandoff.active();
+                if (activeStream == null
+                        || activeStream.logicalColumns <= 0 || activeStream.logicalRows <= 0
+                        || activeStream.targetPanelWidth <= 0 || activeStream.targetPanelHeight <= 0
+                        || activeStream.nativeWidth <= 0 || activeStream.nativeHeight <= 0
+                        || activeStream.cellWidth <= 0 || activeStream.cellHeight <= 0
+                        || activeStream.fontPixelSize <= 0
+                        || activeStream.fontId.isBlank()
+                        || !activeStream.fontSha256.matches("[0-9a-fA-F]{64}")
+                        || activeStream.rendererTelemetry == null) {
+                    throw new IllegalStateException(
+                            "Accepted Rust raster stream has incomplete grid/native metric evidence");
+                }
+                if (producer.pendingDepth() < 0 || producer.pendingDepth() > 1
+                        || producer.pendingDepthMax() < 0 || producer.pendingDepthMax() > 1) {
+                    throw new IllegalStateException("Rust raster producer violated its bounded pending depth");
+                }
+                validateRendererTelemetry(
+                        activeStream.rendererTelemetry,
+                        activePresentation,
+                        activeStream.nativeWidth,
+                        activeStream.nativeHeight);
+                String result = String.join("\n",
+                        "transport=vox.txrx.raster",
+                        "session_id=" + activeStream.subscription.sessionId(),
+                        "connection_epoch=" + activeStream.connectionEpoch,
+                        "session_epoch=" + activeStream.sessionEpoch,
+                        "requested_renderer=" + requestedPresentation.rendererId().wireId(),
+                        "requested_transport=" + requestedPresentation.transportId().wireId(),
+                        "active_renderer=" + activePresentation.rendererId().wireId(),
+                        "active_transport=" + activePresentation.transportId().wireId(),
+                        "rasterization_owner=" + activePresentation.rendererId()
+                                .rasterizationOwner().wireId(),
+                        "damage_mode_id=" + activeStream.subscription.mode().damageModeId(),
+                        "transport_version=" + activeStream.subscription.mode().transportVersion(),
+                        "frame_contract_version=" + activeStream.frameContractVersion,
+                        "presentation_generation=" + acceptedRasterPresentationGeneration,
+                        "raster_subscriptions_started=" + rasterSubscriptionsStarted,
+                        "raster_frames_received=" + rasterFramesReceived,
+                        "raster_frames_accepted=" + rasterFramesAccepted,
+                        "raster_frames_rejected=" + rasterFramesRejected,
+                        "raster_stale_frames=" + rasterStaleFrames,
+                        "raster_receiver_failures=" + rasterReceiverFailures,
+                        "raster_full_frames=" + rasterFullFrames,
+                        "raster_dirty_frames=" + rasterDirtyFrames,
+                        "raster_full_resync_frames=" + rasterFullResyncFrames,
+                        "latest_terminal_sequence=" + rasterLastTerminalSequence,
+                        "latest_interaction_sequence=" + latestInteractionSequence,
+                        "selection_present=" + (latestSelection != null),
+                        "selection_anchor_x=" + selectionCoordinate(latestSelection, true, true),
+                        "selection_anchor_y=" + selectionCoordinate(latestSelection, true, false),
+                        "selection_focus_x=" + selectionCoordinate(latestSelection, false, true),
+                        "selection_focus_y=" + selectionCoordinate(latestSelection, false, false),
+                        "latest_frame_sequence=" + rasterLastFrameSequence,
+                        "latest_base_frame_sequence=" + activeStream.baseFrameSequence,
+                        "latest_full_resync=" + activeStream.fullResync,
+                        "latest_frame_kind=" + activeStream.frameKind,
+                        "latest_payload_bytes=" + activeStream.payloadBytes,
+                        "maximum_payload_bytes=" + activeStream.maximumPayloadBytes,
+                        "service_maximum_payload_bytes=" + rasterMaximumPayloadBytes,
+                        "maximum_wire_frame_bytes=" + MAX_WIRE_FRAME_BYTES,
+                        "latest_dirty_regions=" + activeStream.dirtyRegions,
+                        "logical_columns=" + activeStream.logicalColumns,
+                        "logical_rows=" + activeStream.logicalRows,
+                        "panel_width=" + activeStream.targetPanelWidth,
+                        "panel_height=" + activeStream.targetPanelHeight,
+                        "native_width=" + activeStream.nativeWidth,
+                        "native_height=" + activeStream.nativeHeight,
+                        "cell_width=" + activeStream.cellWidth,
+                        "cell_height=" + activeStream.cellHeight,
+                        "font_pixel_size=" + activeStream.fontPixelSize,
+                        "font_id=" + activeStream.fontId,
+                        "font_sha256=" + activeStream.fontSha256.toLowerCase(java.util.Locale.ROOT),
+                        rendererTelemetryEvidence(activeStream.rendererTelemetry),
+                        "producer_renders_started=" + producer.rendersStarted(),
+                        "producer_renders_completed=" + producer.rendersCompleted(),
+                        "producer_frames_pushed=" + producer.framesPushed(),
+                        "producer_pending_depth=" + producer.pendingDepth(),
+                        "producer_pending_depth_max=" + producer.pendingDepthMax(),
+                        "producer_mutation_to_send_us=" + producer.mutationToSendUs(),
+                        "producer_credit_wait_us=" + producer.creditWaitUs());
+                SFM.LOGGER.info("SFM_VOX_TERMINAL_RASTER_EVIDENCE {}", result.replace('\n', ' '));
+                return result + "\n";
+            }
+        }
+        SFMVoxTerminalTelemetry.Snapshot evidence = telemetry.snapshot();
+        SFMVoxTerminalFrameInbox.Snapshot inbox = frameInbox.snapshot();
+        SFMVoxTerminalTelemetry.ProducerMetadata producer = evidence.latestProducer()
+                .orElseThrow(() -> new IllegalStateException("No Rust push producer telemetry was received"));
+        SFMVoxTerminalTelemetry.SubscriptionEventMetadata event = evidence.latestSubscriptionEvent()
+                .orElseThrow(() -> new IllegalStateException("No accepted Rust push event was received"));
+        if (evidence.pollsStarted() != 0
+                || evidence.pollsCompleted() != 0
+                || evidence.pollsFailed() != 0
+                || evidence.pollsSkippedInFlight() != 0
+                || evidence.pollsSkippedUnavailable() != 0) {
+            throw new IllegalStateException("Steady terminal presentation used the retired polling path");
+        }
+        if (evidence.snapshotCalls() != 0) {
+            throw new IllegalStateException(
+                    "Steady terminal presentation made " + evidence.snapshotCalls() + " snapshot calls");
+        }
+        long minimumSubscriptions = reconnectExpected ? 2 : 1;
+        if (evidence.subscriptionsStarted() < minimumSubscriptions) {
+            throw new IllegalStateException("Expected at least " + minimumSubscriptions
+                    + " terminal subscriptions, observed " + evidence.subscriptionsStarted());
+        }
+        if (reconnectExpected && evidence.subscriptionChannelsClosed() < 1) {
+            throw new IllegalStateException("The server restart did not close the original subscription");
+        }
+        if (evidence.subscriptionEventsReceived() < 1
+                || evidence.subscriptionEventsAccepted() < 1
+                || evidence.acceptedFrames() < 1
+                || producer.rendersCompleted() < 1) {
+            throw new IllegalStateException("The pushed frame path did not deliver accepted live evidence");
+        }
+        if (producer.pendingDepth() < 0 || producer.pendingDepth() > 1
+                || producer.pendingDepthMax() < 0 || producer.pendingDepthMax() > 1
+                || producer.rendersStarted() < producer.rendersCompleted()
+                || producer.rendersStarted() - producer.rendersCompleted() > 1) {
+            throw new IllegalStateException("Rust producer violated the one-in-flight plus one-pending bound");
+        }
+        if (inbox.state() != SFMVoxTerminalFrameInbox.State.LIVE
+                || inbox.lastTerminalSequence() < 0
+                || inbox.lastFrameSequence() < 1
+                || inbox.framesDelivered() < 1) {
+            throw new IllegalStateException("Java pushed-frame inbox is not live and ordered");
+        }
+        String result = String.join("\n",
+                "transport=vox.txrx",
+                "steady_snapshot_calls=" + evidence.snapshotCalls(),
+                "steady_polls_started=" + evidence.pollsStarted(),
+                "subscriptions_started=" + evidence.subscriptionsStarted(),
+                "subscription_channels_closed=" + evidence.subscriptionChannelsClosed(),
+                "subscription_events_received=" + evidence.subscriptionEventsReceived(),
+                "subscription_events_accepted=" + evidence.subscriptionEventsAccepted(),
+                "subscription_events_rejected=" + evidence.subscriptionEventsRejected(),
+                "java_frames_delivered=" + inbox.framesDelivered(),
+                "java_frames_superseded=" + inbox.eventsSuperseded(),
+                "producer_mutations=" + producer.mutations(),
+                "producer_renders_started=" + producer.rendersStarted(),
+                "producer_renders_completed=" + producer.rendersCompleted(),
+                "producer_pre_render_coalesced=" + producer.preRenderCoalesced(),
+                "producer_credit_blocked_sends=" + producer.creditBlockedSends(),
+                "producer_frames_pushed=" + producer.framesPushed(),
+                "producer_pending_depth=" + producer.pendingDepth(),
+                "producer_pending_depth_max=" + producer.pendingDepthMax(),
+                "producer_mutation_to_send_us=" + producer.mutationToSendUs(),
+                "producer_credit_wait_us=" + producer.creditWaitUs(),
+                "latest_connection_epoch=" + event.connectionEpoch(),
+                "latest_session_epoch=" + event.sessionEpoch(),
+                "latest_terminal_sequence=" + event.terminalSequence(),
+                "latest_frame_sequence=" + event.frameSequence());
+        SFM.LOGGER.info("SFM_VOX_TERMINAL_PUSH_EVIDENCE {}", result.replace('\n', ' '));
+        return result + "\n";
+    }
+
+    static boolean rasterDeliveryCountsValid(
+            boolean reconnectExpected,
+            long subscriptionsStarted,
+            long rejectedFrames,
+            long receiverFailures
+    ) {
+        if (rejectedFrames != 0 || receiverFailures < 0) return false;
+        if (!reconnectExpected) return receiverFailures == 0;
+        return subscriptionsStarted >= 2 && receiverFailures < subscriptionsStarted;
+    }
+
+    private static int selectionCoordinate(
+            SFMTerminalSelection selection,
+            boolean anchor,
+            boolean horizontal
+    ) {
+        if (selection == null) return -1;
+        if (anchor) return horizontal ? selection.anchorX() : selection.anchorY();
+        return horizontal ? selection.focusX() : selection.focusY();
+    }
+
+    private static void validateRendererTelemetry(
+            TerminalRasterRendererTelemetry renderer,
+            SFMTerminalPresentationSelection activePresentation,
+            int nativeWidth,
+            int nativeHeight
+    ) {
+        boolean gpuExpected = activePresentation.rendererId() == SFMTerminalRendererId.RUST_GPU_SLUG;
+        if (renderer.gpuStagesPresent() != gpuExpected) {
+            throw new IllegalStateException("Renderer telemetry GPU-stage presence did not match "
+                    + activePresentation.rendererId().wireId());
+        }
+        if (gpuExpected) {
+            if (renderer.deviceIdentity().isBlank() || renderer.shaderIdentity().isBlank()) {
+                throw new IllegalStateException("GPU renderer telemetry omitted device or shader identity");
+            }
+            validateGpuPixelTelemetry(
+                    renderer.requestedPixels(),
+                    renderer.readbackBytes(),
+                    nativeWidth,
+                    nativeHeight,
+                    activePresentation.transportId());
+            if (renderer.targetAllocationId() <= 0
+                    || renderer.targetCapacity() <= 0
+                    || renderer.retainedTargets() <= 0
+                    || renderer.retainedTargets() > renderer.targetCapacity()
+                    || renderer.targetAllocations() + renderer.targetReuses() <= 0) {
+                throw new IllegalStateException("GPU renderer target/cache telemetry is incomplete");
+            }
+        } else if (!renderer.deviceIdentity().isBlank() || !renderer.shaderIdentity().isBlank()) {
+            throw new IllegalStateException("CPU renderer unexpectedly reported GPU device/shader identity");
+        }
+
+        boolean pngExpected = activePresentation.transportId() == SFMTerminalTransportId.FULL_PNG;
+        if (renderer.pngPacketPackPresent() != pngExpected
+                || renderer.rawPacketPackPresent() == pngExpected) {
+            throw new IllegalStateException("Renderer packet-stage presence did not match "
+                    + activePresentation.transportId().wireId());
+        }
+        requireNonNegativeRendererTelemetry(renderer);
+        requireCacheBounds(
+                "GPU glyph",
+                renderer.retainedGlyphs(),
+                renderer.glyphCapacity());
+        requireCacheBounds(
+                "GPU target",
+                renderer.retainedTargets(),
+                renderer.targetCapacity());
+        requireCacheBounds(
+                "CPU font renderer",
+                renderer.fontRendererCacheLen(),
+                renderer.fontRendererCacheCapacity());
+        requireCacheBounds(
+                "CPU glyph",
+                renderer.cachedGlyphs(),
+                renderer.glyphCacheCapacity());
+    }
+
+    static void validateGpuPixelTelemetry(
+            long requestedPixels,
+            long readbackBytes,
+            int nativeWidth,
+            int nativeHeight,
+            SFMTerminalTransportId transport
+    ) {
+        long targetPixels = (long) nativeWidth * nativeHeight;
+        boolean dirtyTransport = transport == SFMTerminalTransportId.DIRTY_RAW_RGBA;
+        if (requestedPixels <= 0
+                || requestedPixels > targetPixels
+                || !dirtyTransport && requestedPixels != targetPixels) {
+            throw new IllegalStateException("GPU renderer requested " + requestedPixels
+                    + " pixels for a " + nativeWidth + "x" + nativeHeight + " raster");
+        }
+        if (readbackBytes < requestedPixels * 4L) {
+            throw new IllegalStateException("GPU renderer readback was smaller than its requested RGBA8 pixels");
+        }
+    }
+
+    private static void requireCacheBounds(String name, long retained, long capacity) {
+        if (retained < 0 || capacity < 0 || retained > capacity) {
+            throw new IllegalStateException(name + " cache retained " + retained
+                    + " entries with capacity " + capacity);
+        }
+    }
+
+    private static void requireNonNegativeRendererTelemetry(TerminalRasterRendererTelemetry renderer) {
+        long[] values = {
+                renderer.geometryBuildUs(), renderer.outlineExtractionUs(),
+                renderer.directionalBandBuildUs(), renderer.uploadBytes(), renderer.uploadUs(),
+                renderer.commandRecordUs(), renderer.queueSubmitUs(), renderer.gpuCompletionWaitUs(),
+                renderer.readbackMapCopyUs(), renderer.fullRgbaPackUs(), renderer.dirtyRegionPackUs(),
+                renderer.rawPacketPackUs(), renderer.pngPacketPackUs(), renderer.requestedPixels(),
+                renderer.readbackBytes(), renderer.targetAllocationId(), renderer.geometryHits(),
+                renderer.geometryMisses(), renderer.geometryEvictions(), renderer.retainedGlyphs(),
+                renderer.glyphCapacity(), renderer.bufferAllocations(), renderer.targetCapacity(),
+                renderer.retainedTargets(), renderer.targetAllocations(), renderer.targetReuses(),
+                renderer.targetEvictions(), renderer.targetDestructions(),
+                renderer.fontCatalogAcquisitions(), renderer.processFontCatalogLoads(),
+                renderer.fontRendererCacheHits(), renderer.fontRendererCacheMisses(),
+                renderer.fontRendererConstructions(), renderer.fontRendererEvictions(),
+                renderer.fontRendererCacheLen(), renderer.fontRendererCacheCapacity(),
+                renderer.glyphCacheHits(), renderer.glyphCacheMisses(), renderer.glyphCacheEvictions(),
+                renderer.cachedGlyphs(), renderer.glyphCacheCapacity(), renderer.frameBufferGrows(),
+                renderer.frameBufferReuses(), renderer.frameBufferCapacityBytes(),
+                renderer.pngBufferGrows(), renderer.pngBufferReuses(), renderer.pngBufferCapacityBytes(),
+                renderer.transportPayloadCopies()
+        };
+        for (long value : values) {
+            if (value < 0) {
+                throw new IllegalStateException("Renderer telemetry contained a negative counter or duration");
+            }
+        }
+    }
+
+    private static String rendererTelemetryEvidence(TerminalRasterRendererTelemetry renderer) {
+        return String.join("\n",
+                "renderer_device_identity=" + renderer.deviceIdentity(),
+                "renderer_shader_identity=" + renderer.shaderIdentity(),
+                "renderer_gpu_stages_present=" + renderer.gpuStagesPresent(),
+                "renderer_full_rgba_pack_present=" + renderer.fullRgbaPackPresent(),
+                "renderer_dirty_region_pack_present=" + renderer.dirtyRegionPackPresent(),
+                "renderer_raw_packet_pack_present=" + renderer.rawPacketPackPresent(),
+                "renderer_png_packet_pack_present=" + renderer.pngPacketPackPresent(),
+                "renderer_geometry_build_us=" + renderer.geometryBuildUs(),
+                "renderer_outline_extraction_us=" + renderer.outlineExtractionUs(),
+                "renderer_directional_band_build_us=" + renderer.directionalBandBuildUs(),
+                "renderer_upload_bytes=" + renderer.uploadBytes(),
+                "renderer_upload_us=" + renderer.uploadUs(),
+                "renderer_command_record_us=" + renderer.commandRecordUs(),
+                "renderer_queue_submit_us=" + renderer.queueSubmitUs(),
+                "renderer_gpu_completion_wait_us=" + renderer.gpuCompletionWaitUs(),
+                "renderer_readback_map_copy_us=" + renderer.readbackMapCopyUs(),
+                "renderer_full_rgba_pack_us=" + renderer.fullRgbaPackUs(),
+                "renderer_dirty_region_pack_us=" + renderer.dirtyRegionPackUs(),
+                "renderer_raw_packet_pack_us=" + renderer.rawPacketPackUs(),
+                "renderer_png_packet_pack_us=" + renderer.pngPacketPackUs(),
+                "renderer_requested_pixels=" + renderer.requestedPixels(),
+                "renderer_readback_bytes=" + renderer.readbackBytes(),
+                "renderer_target_allocation_id=" + renderer.targetAllocationId(),
+                "renderer_geometry_hits=" + renderer.geometryHits(),
+                "renderer_geometry_misses=" + renderer.geometryMisses(),
+                "renderer_geometry_evictions=" + renderer.geometryEvictions(),
+                "renderer_retained_glyphs=" + renderer.retainedGlyphs(),
+                "renderer_glyph_capacity=" + renderer.glyphCapacity(),
+                "renderer_buffer_allocations=" + renderer.bufferAllocations(),
+                "renderer_target_capacity=" + renderer.targetCapacity(),
+                "renderer_retained_targets=" + renderer.retainedTargets(),
+                "renderer_target_allocations=" + renderer.targetAllocations(),
+                "renderer_target_reuses=" + renderer.targetReuses(),
+                "renderer_target_evictions=" + renderer.targetEvictions(),
+                "renderer_target_destructions=" + renderer.targetDestructions(),
+                "renderer_font_catalog_acquisitions=" + renderer.fontCatalogAcquisitions(),
+                "renderer_process_font_catalog_loads=" + renderer.processFontCatalogLoads(),
+                "renderer_font_renderer_cache_hits=" + renderer.fontRendererCacheHits(),
+                "renderer_font_renderer_cache_misses=" + renderer.fontRendererCacheMisses(),
+                "renderer_font_renderer_constructions=" + renderer.fontRendererConstructions(),
+                "renderer_font_renderer_evictions=" + renderer.fontRendererEvictions(),
+                "renderer_font_renderer_cache_len=" + renderer.fontRendererCacheLen(),
+                "renderer_font_renderer_cache_capacity=" + renderer.fontRendererCacheCapacity(),
+                "renderer_glyph_cache_hits=" + renderer.glyphCacheHits(),
+                "renderer_glyph_cache_misses=" + renderer.glyphCacheMisses(),
+                "renderer_glyph_cache_evictions=" + renderer.glyphCacheEvictions(),
+                "renderer_cached_glyphs=" + renderer.cachedGlyphs(),
+                "renderer_glyph_cache_capacity=" + renderer.glyphCacheCapacity(),
+                "renderer_frame_buffer_grows=" + renderer.frameBufferGrows(),
+                "renderer_frame_buffer_reuses=" + renderer.frameBufferReuses(),
+                "renderer_frame_buffer_capacity_bytes=" + renderer.frameBufferCapacityBytes(),
+                "renderer_png_buffer_grows=" + renderer.pngBufferGrows(),
+                "renderer_png_buffer_reuses=" + renderer.pngBufferReuses(),
+                "renderer_png_buffer_capacity_bytes=" + renderer.pngBufferCapacityBytes(),
+                "renderer_transport_payload_copies=" + renderer.transportPayloadCopies());
+    }
+
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    @Override
+    public Optional<SFMTerminalFrame> latestFrame() {
+        synchronized (lock) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            if (pendingRasterFrame != null) {
+                SFMTerminalFrame frame = pendingRasterFrame;
+                pendingRasterFrame = null;
+                return Optional.of(frame);
+            }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            if (latestSnapshot == null) return Optional.empty();
+            return Optional.of(new SFMTerminalFrame(
+                    latestSnapshot.sequence(),
+                    latestSnapshot.kind() == TerminalFrameKind.FULL,
+                    latestSnapshot.encoding() == TerminalFrameEncoding.PNG,
+                    latestSnapshot.payload()));
+{% endcase %}
+        }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return frameInbox.takeLatest();
+    }
+
+    @Override
+    public boolean canPresentRetainedFrame() {
+        synchronized (lock) {
+            return sessionId != null && (activePresentation != null || frameInbox.isLive());
+        }
+    }
+
+    @Override
+    public List<SFMTerminalRendererOption> rendererOptions() {
+        synchronized (lock) {
+            return presentationCatalog.rendererOptions(requestedPresentation.transportId());
+        }
+    }
+
+    @Override
+    public List<SFMTerminalTransportOption> transportOptions() {
+        synchronized (lock) {
+            return presentationCatalog.transportOptions(requestedPresentation.rendererId());
+        }
+    }
+
+    @Override
+    public String requestedRendererId() {
+        synchronized (lock) {
+            return requestedPresentation.rendererId().wireId();
+        }
+    }
+
+    @Override
+    public String requestedTransportId() {
+        synchronized (lock) {
+            return requestedPresentation.transportId().wireId();
+        }
+    }
+
+    @Override
+    public Optional<String> activeRendererId() {
+        synchronized (lock) {
+            return Optional.ofNullable(activePresentation)
+                    .map(selection -> selection.rendererId().wireId());
+        }
+    }
+
+    @Override
+    public Optional<String> activeTransportId() {
+        synchronized (lock) {
+            return Optional.ofNullable(activePresentation)
+                    .map(selection -> selection.transportId().wireId());
+        }
+    }
+
+    @Override
+    public SFMTerminalPresentationTransitionState presentationState() {
+        synchronized (lock) {
+            return new SFMTerminalPresentationTransitionState(
+                    requestedPresentation,
+                    Optional.ofNullable(activePresentation),
+                    Optional.ofNullable(presentationTransitionFailure));
+        }
+    }
+
+    @Override
+    public SFMTerminalPresentationChangeResult requestRenderer(String rendererId) {
+        final SFMTerminalRendererId renderer;
+        try {
+            renderer = SFMTerminalRendererId.fromWireId(rendererId);
+        } catch (IllegalArgumentException error) {
+            return SFMTerminalPresentationChangeResult.rejected(error.getMessage());
+        }
+        final SFMTerminalPresentationSelection requested;
+        synchronized (lock) {
+            requested = requestedPresentation.withRenderer(renderer);
+        }
+        return requestPresentation(requested);
+    }
+
+    @Override
+    public SFMTerminalPresentationChangeResult requestTransport(String transportId) {
+        final SFMTerminalTransportId transport;
+        try {
+            transport = SFMTerminalTransportId.fromWireId(transportId);
+        } catch (IllegalArgumentException error) {
+            return SFMTerminalPresentationChangeResult.rejected(error.getMessage());
+        }
+        final SFMTerminalPresentationSelection requested;
+        synchronized (lock) {
+            requested = requestedPresentation.withTransport(transport);
+        }
+        return requestPresentation(requested);
+    }
+
+    private SFMTerminalPresentationChangeResult requestPresentation(
+            SFMTerminalPresentationSelection requested
+    ) {
+        final String currentSession;
+        final long generation;
+        final boolean alreadyActive;
+        synchronized (lock) {
+            if (closed) return SFMTerminalPresentationChangeResult.rejected("Rust terminal is closed");
+            if (presentationCatalog.discovered()
+                    && presentationCatalog.supportedMode(requested).isEmpty()) {
+                return SFMTerminalPresentationChangeResult.rejected(
+                        "Terminal presentation '" + requested.label() + "' is unavailable: "
+                                + presentationCatalog.unavailableReason(requested));
+            }
+            if (requested.equals(requestedPresentation)
+                    && (requested.equals(activePresentation)
+                    || rasterHandoff.pending() != null
+                    && requested.equals(rasterHandoff.pending().subscription.selection()))) {
+                return SFMTerminalPresentationChangeResult.accepted(
+                        "Terminal presentation is already " + requested.label());
+            }
+            requestedPresentation = requested;
+            presentationExplicitlyRequested = true;
+            presentationTransitionFailure = null;
+            presentationRequestGeneration = incrementGeneration(
+                    presentationRequestGeneration, "terminal presentation request generation");
+            generation = presentationRequestGeneration;
+            RasterStream supersededPending = rasterHandoff.pending();
+            if (supersededPending != null) rasterHandoff.failPending(supersededPending);
+            alreadyActive = requested.equals(activePresentation);
+            currentSession = sessionId;
+        }
+        if (currentSession == null) {
+            return SFMTerminalPresentationChangeResult.accepted(
+                    "Terminal presentation " + requested.label() + " will activate after connection");
+        }
+        if (alreadyActive) {
+            return SFMTerminalPresentationChangeResult.accepted(
+                    "Terminal presentation is already active as " + requested.label());
+        }
+        if (!submitDriver(() -> switchRasterSubscription(currentSession, requested, generation))) {
+            synchronized (lock) {
+                if (generation == presentationRequestGeneration) {
+                    presentationTransitionFailure =
+                            "Rust terminal presentation switch could not be queued";
+                }
+            }
+            return SFMTerminalPresentationChangeResult.rejected(
+                    "Rust terminal presentation switch could not be queued");
+        }
+        return SFMTerminalPresentationChangeResult.accepted(
+                "Requested terminal presentation " + requested.label()
+                        + "; awaiting full resynchronization");
+    }
+
+    private SFMTerminalFrameMetadata frameMetadata(TerminalSnapshot snapshot) {
+        return frameMetadata(snapshot, "rust.cpu.fontdue", "vox", snapshot.correlationId());
+    }
+
+    private SFMTerminalFrameMetadata frameMetadata(
+            TerminalSnapshot snapshot,
+            String backendId,
+            String transportId,
+            String correlationId) {
+        var timing = snapshot.timing();
+        return new SFMTerminalFrameMetadata(
+                snapshot.requestSequence(),
+                snapshot.logicalColumns(),
+                snapshot.logicalRows(),
+                snapshot.width(),
+                snapshot.height(),
+                snapshot.panelWidth(),
+                snapshot.panelHeight(),
+                snapshot.cellWidth(),
+                snapshot.cellHeight(),
+                snapshot.fontPixelSize(),
+                backendId,
+                transportId,
+                timing.ptyDrainUs(),
+                0L,
+                timing.terminalSnapshotUs(),
+                timing.fontLoadUs(),
+                timing.rasterUs(),
+                0L,
+                timing.pngEncodeUs(),
+                timing.totalUs(),
+                correlationId);
+    }
+
+    private static SFMVoxTerminalTelemetry.NativeFrameMetadata nativeFrameMetadata(
+            TerminalSnapshot snapshot) {
+        return nativeFrameMetadata(snapshot, "rust.cpu.fontdue", "vox", snapshot.correlationId());
+    }
+
+    private static SFMVoxTerminalTelemetry.NativeFrameMetadata nativeFrameMetadata(
+            TerminalSnapshot snapshot,
+            String backendId,
+            String transportId,
+            String correlationId) {
+        var timing = snapshot.timing();
+        return new SFMVoxTerminalTelemetry.NativeFrameMetadata(
+                snapshot.sequence(),
+                snapshot.requestSequence(),
+                snapshot.logicalColumns(),
+                snapshot.logicalRows(),
+                snapshot.panelWidth(),
+                snapshot.panelHeight(),
+                snapshot.cellWidth(),
+                snapshot.cellHeight(),
+                snapshot.fontPixelSize(),
+                backendId,
+                transportId,
+                correlationId,
+                timing.totalUs(),
+                snapshot.payload().length);
+    }
+
+    private static SFMVoxTerminalTelemetry.ProducerMetadata producerMetadata(
+            TerminalPublicationTelemetry producer) {
+        return new SFMVoxTerminalTelemetry.ProducerMetadata(
+                producer.mutations(),
+                producer.rendersStarted(),
+                producer.rendersCompleted(),
+                producer.preRenderCoalesced(),
+                producer.creditBlockedSends(),
+                producer.framesPushed(),
+                producer.pendingDepth(),
+                producer.pendingDepthMax(),
+                producer.mutationToSendUs(),
+                producer.creditWaitUs());
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    }
+
+    /** Returns a defensive copy of the latest frame payload for a renderer. */
+    public Optional<byte[]> latestSnapshotPayload() {
+        synchronized (lock) {
+            return latestSnapshot == null
+                    ? Optional.empty()
+                    : Optional.of(Arrays.copyOf(latestSnapshot.payload(), latestSnapshot.payload().length));
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    /** Returns the latest Rust-owned visible text witness from an explicit automation read. */
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    /** Returns the latest Rust-owned visible text witness, if polling has produced one. */
+{% endcase %}
+    public Optional<String> latestContentText() {
+        synchronized (lock) {
+            return latestContent == null ? Optional.empty() : Optional.of(latestContent.text());
+        }
+    }
+
+    /** Reads a bounded Rust-owned visible text witness for deterministic automation assertions. */
+    public String contentForAutomation() {
+        try {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            return runOnDriverBlocking(() -> {
+                ensureConnected();
+                Transport transport = requireCurrentTransport();
+                try {
+                    TerminalContentResult content = readReadyContent(
+                            transport.client(), transport.sessionId());
+                    synchronized (lock) {
+                        if (isCurrentTransportLocked(transport)) latestContent = content;
+                    }
+                    return content.text();
+                } catch (Exception error) {
+                    failTransportIfCurrent(transport, "Vox terminal content unavailable: ", error);
+                    throw error;
+                }
+            });
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            ensureConnected();
+            TerminalClient currentClient;
+            String currentSession;
+            synchronized (lock) {
+                currentClient = client;
+                currentSession = sessionId;
+            }
+            TerminalContentResult content = readReadyContent(currentClient, currentSession);
+            synchronized (lock) {
+                latestContent = content;
+            }
+            return content.text();
+{% endcase %}
+        } catch (Exception error) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            throw new IllegalStateException(
+                    "Vox terminal content unavailable: " + describe(error), error);
+        }
+    }
+
+    /**
+     * Performs one explicit unary capture for diagnostics or recovery tools.
+     * Live presentation never calls this method; it consumes the subscription.
+     */
+    public Optional<TerminalSnapshot> snapshotForDiagnostics() {
+        try {
+            return Optional.of(runOnDriverBlocking(() -> {
+                ensureConnected();
+                Transport transport = requireCurrentTransport();
+                try {
+                    return requestSnapshot(
+                            transport.client(), transport.sessionId(), 0, "diagnostic-snapshot");
+                } catch (Exception error) {
+                    failTransportIfCurrent(
+                            transport, "Vox terminal diagnostic snapshot unavailable: ", error);
+                    throw error;
+                }
+            }));
+        } catch (Exception error) {
+            throw new IllegalStateException("Vox terminal diagnostic snapshot unavailable: "
+                    + describe(error), error);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            synchronized (lock) {
+                failure = "Vox terminal content unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+            throw new IllegalStateException(failure, error);
+{% endcase %}
+        }
+    }
+
+    /**
+     * A newly created ConPTY can expose one or more empty frames before the
+     * shell has written its prompt.  Automation reads are a synchronization
+     * surface, so wait briefly for the Rust-owned prompt instead of turning
+     * that normal startup window into a false reconnect failure.
+     */
+    private TerminalContentResult readReadyContent(TerminalClient currentClient, String currentSession)
+            throws Exception {
+        long deadline = System.nanoTime() + Math.min(
+                callTimeout.toNanos(), CONTENT_READINESS_TIMEOUT.toNanos());
+        TerminalContentResult content;
+        do {
+            content = requireSuccess(
+                    await(currentClient.getContent(new TerminalContentRequest(
+                            currentSession, 0, MAX_CONTENT_CHARS, nextSequence())),
+                            "reading terminal content"),
+                    "reading terminal content");
+            if (!content.text().isBlank() || content.prompt().promptPresent()) {
+                return content;
+            }
+            if (System.nanoTime() >= deadline) {
+                return content;
+            }
+            Thread.sleep(25);
+        } while (true);
+    }
+
+    public int logicalWidth() {
+        synchronized (lock) {
+            return requestedWidth;
+        }
+    }
+
+    public int logicalHeight() {
+        synchronized (lock) {
+            return requestedHeight;
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private TerminalSurfaceMetrics requestedSurface() {
+        return new TerminalSurfaceMetrics(
+                requestedWidth, requestedHeight, requestedPixelWidth, requestedPixelHeight,
+                0, 0, requestedFontPixelSize);
+    }
+
+    static TerminalTuningRequest requestedTuningRequest(
+            String rendererId,
+            SFMTerminalTuningSettings requested,
+            int columns,
+            int rows,
+            int surfaceWidth,
+            int surfaceHeight,
+            int fontPixelSize
+    ) {
+        TerminalTuningMode surfaceMode = requested.surfaceWidth() == 0
+                && requested.surfaceHeight() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        TerminalTuningMode fontMode = requested.fontPixelSize() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        TerminalTuningMode cellsMode = requested.columns() == 0
+                && requested.rows() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        return new TerminalTuningRequest(
+                rendererId,
+                surfaceMode,
+                surfaceWidth,
+                surfaceHeight,
+                fontMode,
+                fontPixelSize,
+                cellsMode,
+                columns,
+                rows
+        );
+    }
+
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    /** Clears a failed transport so the next command attempts a fresh connection. */
+    public void reconnect() {
+        synchronized (lock) {
+            if (closed) return;
+            closeTransportLocked(false);
+            failure = null;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            nextConnectionAttemptNanos = 0;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+            latestSnapshot = null;
+            latestContent = null;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            clientSequence = 0;
+{% endcase %}
+        }
+    }
+
+    @Override
+    public void close() {
+        synchronized (lock) {
+            if (closed) return;
+            closed = true;
+            closeTransportLocked(true);
+        }
+        driver.shutdownNow();
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        connectionDriver.shutdownNow();
+        subscriptionReceiver.shutdownNow();
+        rasterSubscriptionReceiver.shutdownNow();
+        transportCleanup.shutdown();
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        poller.shutdownNow();
+{% endcase %}
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private void startFrameSubscription(TerminalClient currentClient, String currentSession) {
+        VoxChannels.Pair<TerminalFrameEvent> channel = VoxChannels.channel(TerminalFrameEvent.ADAPTER);
+        SFMVoxTerminalFrameInbox.Subscription currentSubscription;
+        long requestSequence = nextSequence();
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private void startPolling() {
+{% endcase %}
+        synchronized (lock) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            if (closed || client != currentClient || !Objects.equals(sessionId, currentSession)) {
+                channel.rx().close();
+                return;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            if (closed || polling) return;
+            polling = true;
+            poller.scheduleWithFixedDelay(this::pollSnapshot, 0, FRAME_POLL_MILLIS, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * Polls the Rust-owned frame independently of Java input events. An empty
+     * snapshot means the server sequence has not changed and is deliberately
+     * ignored, avoiding needless PNG uploads and repaints.
+     */
+    private void pollSnapshot() {
+        TerminalClient currentClient;
+        String currentSession;
+        long afterSequence;
+        synchronized (lock) {
+            if (closed || client == null || sessionId == null || snapshotInFlight) return;
+            snapshotInFlight = true;
+            currentClient = client;
+            currentSession = sessionId;
+            afterSequence = latestSnapshot == null ? 0 : latestSnapshot.sequence();
+        }
+        CompletableFuture<VoxResult<TerminalSnapshot, TerminalError>> future;
+        try {
+            future = currentClient.snapshot(new TerminalSnapshotRequest(
+                    currentSession, afterSequence, MAX_FRAME_BYTES, nextSequence()));
+            TerminalSnapshot snapshot = requireSuccess(
+                    await(future, "polling terminal snapshot"), "polling terminal snapshot");
+            synchronized (lock) {
+                snapshotInFlight = false;
+                if (closed || (snapshot.payload().length == 0 && !snapshot.complete())) return;
+                validateSnapshot(snapshot, "polled terminal snapshot");
+                latestSnapshot = snapshot;
+{% endcase %}
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            closeFrameSubscriptionLocked();
+            currentSubscription = frameInbox.begin(currentSession);
+            subscription = currentSubscription;
+            frameReceiver = channel.rx();
+            telemetry.recordSubscriptionStarted();
+        }
+
+        // Facet currently requires a positive per-call idle timeout and has no
+        // explicit never-time-out value. Keep normal terminal idleness from
+        // cycling a healthy request-scoped subscription; transport close and
+        // Rx reset remain the actual lifetime controls.
+        CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
+                currentClient.subscribeFrames(
+                        new TerminalSubscribeRequest(
+                                currentSession,
+                                0,
+                                MAX_FRAME_BYTES,
+                                requestSequence,
+                                correlationId("subscribe", requestSequence)),
+                        channel.tx(),
+                        CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
+        synchronized (lock) {
+            if (!frameInbox.isCurrent(currentSubscription)) {
+                currentCall.cancel(true);
+                return;
+            }
+            subscriptionCall = currentCall;
+        }
+        currentCall.whenComplete((result, error) ->
+                subscriptionCompleted(currentSubscription, currentClient, currentSession, result, error));
+        try {
+            subscriptionReceiver.execute(() ->
+                    receiveFrames(currentSubscription, currentClient, currentSession, channel.rx()));
+        } catch (RejectedExecutionException error) {
+            channel.rx().close();
+            throw error;
+        }
+    }
+
+    private void receiveFrames(
+            SFMVoxTerminalFrameInbox.Subscription currentSubscription,
+            TerminalClient currentClient,
+            String currentSession,
+            VoxRx<TerminalFrameEvent> receiver) {
+        Throwable failureCause = null;
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                TerminalFrameEvent event = receiver.receive();
+                if (event == null) break;
+                acceptSubscriptionEvent(currentSubscription, event);
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            failureCause = error;
+        } catch (Exception error) {
+            failureCause = error;
+        } finally {
+            telemetry.recordSubscriptionChannelClosed();
+            subscriptionReceiverStopped(
+                    currentSubscription, currentClient, currentSession, failureCause);
+        }
+    }
+
+    private void acceptSubscriptionEvent(
+            SFMVoxTerminalFrameInbox.Subscription currentSubscription,
+            TerminalFrameEvent event) {
+        telemetry.recordSubscriptionEventReceived();
+        TerminalSnapshot snapshot = event.frame();
+        SFMTerminalFrame frame = new SFMTerminalFrame(
+                event.frameSequence(),
+                snapshot.kind() == TerminalFrameKind.FULL,
+                snapshot.encoding() == TerminalFrameEncoding.PNG,
+                snapshot.payload(),
+                frameMetadata(snapshot, event.backendId(), event.transportId(), event.correlationId()),
+                streamIdentity(event.connectionEpoch(), event.sessionEpoch()));
+        SFMVoxTerminalFrameInbox.OfferResult result = frameInbox.offer(
+                currentSubscription,
+                new SFMVoxTerminalFrameInbox.Event(
+                        event.sessionId(),
+                        event.connectionEpoch(),
+                        event.sessionEpoch(),
+                        event.terminalSequence(),
+                        event.frameSequence(),
+                        event.fullResync(),
+                        event.maxFrameBytes(),
+                        event.backendId(),
+                        event.transportId(),
+                        event.correlationId(),
+                        snapshot.sessionId(),
+                        snapshot.sequence(),
+                        snapshot.complete(),
+                        frame));
+        if (!result.accepted()) {
+            telemetry.recordSubscriptionEventRejected();
+            telemetry.recordDropped();
+            if (result == SFMVoxTerminalFrameInbox.OfferResult.REJECTED_EPOCH
+                    || result == SFMVoxTerminalFrameInbox.OfferResult.REJECTED_SEQUENCE
+                    || result == SFMVoxTerminalFrameInbox.OfferResult.REJECTED_STALE_SUBSCRIPTION) {
+                telemetry.recordStale();
+            }
+            return;
+        }
+
+        synchronized (lock) {
+            if (!frameInbox.isCurrent(currentSubscription)) return;
+            latestSnapshot = snapshot;
+            acceptSelection(
+                    event.terminalSequence(),
+                    snapshot.selectionPresent(),
+                    snapshot.selection());
+            failure = null;
+            telemetry.recordSubscriptionEventAccepted(result.superseded());
+            telemetry.recordAccepted(result.superseded());
+            telemetry.recordObserved(nativeFrameMetadata(
+                    snapshot, event.backendId(), event.transportId(), event.correlationId()));
+            telemetry.recordProducer(producerMetadata(event.publication()));
+            telemetry.recordSubscriptionEvent(new SFMVoxTerminalTelemetry.SubscriptionEventMetadata(
+                    event.sessionId(),
+                    event.connectionEpoch(),
+                    event.sessionEpoch(),
+                    event.terminalSequence(),
+                    event.frameSequence(),
+                    event.fullResync(),
+                    event.maxFrameBytes(),
+                    event.correlationId()));
+        }
+    }
+
+    private void subscriptionCompleted(
+            SFMVoxTerminalFrameInbox.Subscription currentSubscription,
+            TerminalClient currentClient,
+            String currentSession,
+            VoxResult<TerminalOperationResult, TerminalError> result,
+            Throwable error) {
+        synchronized (lock) {
+            if (closed
+                    || client != currentClient
+                    || !Objects.equals(sessionId, currentSession)
+                    || !frameInbox.isCurrent(currentSubscription)) {
+                return;
+            }
+            if (error == null && result != null && result.isSuccess()) {
+                telemetry.recordSubscriptionCompleted();
+                SFM.LOGGER.info(
+                        "SFM_VOX_TERMINAL_SUBSCRIPTION_COMPLETED session={} result={}",
+                        currentSession,
+                        result.success().state());
+                return;
+            }
+            telemetry.recordSubscriptionFailed();
+            failure = "Vox terminal frame subscription failed: "
+                    + (error == null ? describeSubscriptionResult(result) : describe(error));
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_SUBSCRIPTION_FAILED session={} failure={}",
+                    currentSession,
+                    failure,
+                    error);
+            nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+            closeTransportLocked();
+        }
+    }
+
+    private void subscriptionReceiverStopped(
+            SFMVoxTerminalFrameInbox.Subscription currentSubscription,
+            TerminalClient currentClient,
+            String currentSession,
+            Throwable error) {
+        synchronized (lock) {
+            if (closed
+                    || client != currentClient
+                    || !Objects.equals(sessionId, currentSession)
+                    || !frameInbox.isCurrent(currentSubscription)) {
+                return;
+            }
+            failure = error == null
+                    ? "Vox terminal frame subscription closed"
+                    : "Vox terminal frame subscription unavailable: " + describe(error);
+            if (error == null) {
+                SFM.LOGGER.warn(
+                        "SFM_VOX_TERMINAL_SUBSCRIPTION_RECEIVER_CLOSED session={} reason=graceful_eof",
+                        currentSession);
+            } else {
+                SFM.LOGGER.warn(
+                        "SFM_VOX_TERMINAL_SUBSCRIPTION_RECEIVER_FAILED session={} failure={}",
+                        currentSession,
+                        failure,
+                        error);
+            }
+            nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+            closeTransportLocked();
+        }
+    }
+
+    static SFMTerminalPresentationCatalog intersectPresentationModes(
+            List<TerminalPresentationMode> modes) {
+        return SFMTerminalPresentationCatalog.intersect(
+                SFMTerminalRendererId.RUST_CPU_FONTDUE.wireId(),
+                SFMTerminalTransportId.FULL_PNG.wireId(),
+                modes.stream()
+                        .map(SFMVoxTerminalPresentationAdapter::advertisedMode)
+                        .toList());
+    }
+
+    private void discoverPresentationModes(TerminalClient currentClient, String currentSession)
+            throws Exception {
+        TerminalPresentationCapabilitiesResult result = requireSuccess(
+                await(currentClient.presentationCapabilities(
+                        new TerminalPresentationCapabilitiesRequest(currentSession, nextSequence())),
+                        "reading terminal presentation capabilities"),
+                "reading terminal presentation capabilities");
+        if (!currentSession.equals(result.sessionId())) {
+            throw new IllegalStateException("terminal presentation capabilities returned another session");
+        }
+        List<TerminalPresentationMode> modes = List.copyOf(result.modes());
+        SFMTerminalPresentationCatalog catalog =
+                SFMVoxTerminalPresentationAdapter.catalog(result);
+        SFMTerminalPresentationSelection selected;
+        long generation;
+        synchronized (lock) {
+            if (closed || client != currentClient || !Objects.equals(sessionId, currentSession)) {
+                throw new IllegalStateException("terminal capability discovery was superseded");
+            }
+            presentationModes = modes;
+            presentationCatalog = catalog;
+            boolean requestedSupported = catalog.supportedMode(requestedPresentation).isPresent();
+            if (!requestedSupported) {
+                if (presentationExplicitlyRequested) {
+                    throw new IllegalStateException(
+                            "requested terminal presentation is not supported: "
+                                    + requestedPresentation.label() + ": "
+                                    + catalog.unavailableReason(requestedPresentation));
+                }
+                if (catalog.supportedMode(catalog.defaultSelection()).isEmpty()) {
+                    throw new IllegalStateException(
+                            "server default terminal presentation has no Java presenter: "
+                                    + catalog.defaultSelection().label());
+                }
+                requestedPresentation = catalog.defaultSelection();
+            }
+            selected = requestedPresentation;
+            presentationTransitionFailure = null;
+            presentationRequestGeneration = incrementGeneration(
+                    presentationRequestGeneration, "terminal presentation request generation");
+            generation = presentationRequestGeneration;
+        }
+        switchRasterSubscription(currentSession, selected, generation);
+    }
+
+    private TerminalPresentationMode presentationMode(
+            SFMTerminalPresentationSelection selection
+    ) {
+        return presentationModes.stream()
+                .filter(mode -> mode.rendererId().equals(selection.rendererId().wireId()))
+                .filter(mode -> mode.transportId().equals(selection.transportId().wireId()))
+                .filter(mode -> SFMTerminalPresentationCatalog.intersect(
+                                selection.rendererId().wireId(),
+                                selection.transportId().wireId(),
+                                List.of(SFMVoxTerminalPresentationAdapter.advertisedMode(mode)))
+                        .supportedMode(selection).isPresent())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void switchRasterSubscription(
+            String currentSession,
+            SFMTerminalPresentationSelection selection,
+            long generation) {
+        try {
+            VoxConnection currentConnection;
+            TerminalPresentationMode mode;
+            synchronized (lock) {
+                if (closed || !Objects.equals(sessionId, currentSession)
+                        || generation != presentationRequestGeneration
+                        || !requestedPresentation.equals(selection)) return;
+                currentConnection = connection;
+                mode = presentationMode(selection);
+                if (currentConnection == null || mode == null) {
+                    presentationTransitionFailure =
+                            "Terminal presentation '" + selection.label() + "' is unavailable";
+                    return;
+                }
+                RasterStream activeStream = rasterHandoff.active();
+                if (activeStream != null
+                        && selection.equals(activeStream.subscription.selection())) {
+                    RasterStream pendingStream = rasterHandoff.pending();
+                    if (pendingStream != null) rasterHandoff.failPending(pendingStream);
+                    presentationTransitionFailure = null;
+                    return;
+                }
+            }
+            startRasterSubscription(currentConnection, currentSession, selection, mode, generation);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            pollContent();
+{% endcase %}
+        } catch (Exception error) {
+            synchronized (lock) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+                if (generation == presentationRequestGeneration
+                        && Objects.equals(sessionId, currentSession)) {
+                    presentationTransitionFailure =
+                            "Vox terminal presentation switch failed: " + describe(error);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+                snapshotInFlight = false;
+                // A poll may belong to a transport that reconnect() already
+                // replaced. Never let that stale completion tear down the
+                // replacement client.
+                if (!closed && client == currentClient && Objects.equals(sessionId, currentSession)) {
+                    failure = "Vox terminal snapshot unavailable: " + describe(error);
+                    latestSnapshot = null;
+                    latestContent = null;
+                    closeTransportLocked();
+{% endcase %}
+                }
+            }
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private void startRasterSubscription(
+            VoxConnection currentConnection,
+            String currentSession,
+            SFMTerminalPresentationSelection selection,
+            TerminalPresentationMode mode,
+            long generation) throws Exception {
+        ServiceLane currentRasterLane = currentConnection.openLane(
+                TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
+        RasterStream openedStream = null;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private void pollContent() {
+        TerminalClient currentClient;
+        String currentSession;
+        long afterSequence;
+        synchronized (lock) {
+            if (closed || client == null || sessionId == null) return;
+            currentClient = client;
+            currentSession = sessionId;
+            afterSequence = latestContent == null ? 0 : latestContent.sequence();
+        }
+{% endcase %}
+        try {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            await(currentRasterLane.opened(), "opening terminal raster lane");
+            TerminalClient currentClient = new TerminalClient(currentRasterLane);
+            VoxChannels.Pair<TerminalRasterFrameEvent> channel = VoxChannels.channel(
+                    TerminalRasterFrameEvent.ADAPTER);
+            long requestSequence = nextSequence();
+            String wireGeneration = "sfm-presentation-" + generation + "-" + requestSequence;
+            long maxFrameBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
+            int maxRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
+            RasterSubscription currentSubscription = new RasterSubscription(
+                    generation, currentSession, wireGeneration, selection, mode);
+            RasterStream currentStream = new RasterStream(
+                    currentSubscription, currentRasterLane, channel.rx());
+            openedStream = currentStream;
+            if (mode.encoding() == TerminalFrameEncoding.RGBA8) {
+                currentStream.compositor.expectGeneration(wireGeneration);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            TerminalContentResult content = requireSuccess(
+                    await(currentClient.getContent(new TerminalContentRequest(
+                            currentSession, afterSequence, MAX_CONTENT_CHARS, nextSequence())),
+                            "polling terminal content"),
+                    "polling terminal content");
+            synchronized (lock) {
+                if (!closed && content.complete()) latestContent = content;
+{% endcase %}
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            synchronized (lock) {
+                if (closed || connection != currentConnection
+                        || !Objects.equals(sessionId, currentSession)
+                        || generation != presentationRequestGeneration
+                        || !requestedPresentation.equals(selection)) {
+                    retireRasterStreamLocked(currentStream);
+                    return;
+                }
+                rasterHandoff.beginPending(currentStream);
+                rasterSubscriptionsStarted = incrementGeneration(
+                        rasterSubscriptionsStarted, "raster subscriptions started");
+                SFM.LOGGER.info(
+                        "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} renderer={} transport={} "
+                                + "presentation_generation={} lane={}",
+                        currentSession,
+                        mode.rendererId(),
+                        mode.transportId(),
+                        wireGeneration,
+                        currentRasterLane.state());
+            }
+            CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
+                    currentClient.subscribeRasterFrames(
+                            SFMVoxTerminalPresentationAdapter.subscribeRequest(
+                                    currentSession,
+                                    mode,
+                                    wireGeneration,
+                                    maxFrameBytes,
+                                    maxRegions,
+                                    requestSequence,
+                                    correlationId("raster-subscribe", requestSequence)),
+                            channel.tx(),
+                            CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
+            synchronized (lock) {
+                if (rasterHandoff.role(currentStream)
+                        != SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    retireRasterStreamLocked(currentStream);
+                    return;
+                }
+                currentStream.call = currentCall;
+            }
+            currentCall.whenComplete((result, error) ->
+                    rasterSubscriptionCompleted(currentStream, result, error));
+            synchronized (lock) {
+                if (rasterHandoff.role(currentStream)
+                        != SFMVoxTerminalRasterHandoff.Role.PENDING) return;
+            }
+            try {
+                rasterSubscriptionReceiver.execute(() -> receiveRasterFrames(currentStream));
+            } catch (RejectedExecutionException error) {
+                synchronized (lock) {
+                    failPendingRasterStreamLocked(
+                            currentStream,
+                            "Vox terminal raster receiver capacity is exhausted");
+                }
+                throw error;
+            }
+        } catch (Exception error) {
+            synchronized (lock) {
+                if (openedStream == null) {
+                    currentRasterLane.close();
+                } else if (rasterHandoff.role(openedStream)
+                        == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    rasterHandoff.failPending(openedStream);
+                } else {
+                    retireRasterStreamLocked(openedStream);
+                }
+            }
+            throw error;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        } catch (Exception ignored) {
+            // The PNG stream remains the user-facing path; content is a test/debug witness.
+{% endcase %}
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private void receiveRasterFrames(RasterStream currentStream) {
+        Throwable receiverFailure = null;
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                TerminalRasterFrameEvent event = currentStream.receiver.receive();
+                if (event == null) break;
+                acceptRasterFrame(currentStream, event);
+            }
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            receiverFailure = error;
+        } catch (Exception error) {
+            receiverFailure = error;
+        } finally {
+            rasterReceiverStopped(currentStream, receiverFailure);
+        }
+    }
+
+    private void acceptRasterFrame(
+            RasterStream currentStream,
+            TerminalRasterFrameEvent event) {
+        String eventPresentationGeneration =
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
+        try {
+            synchronized (lock) {
+                rasterFramesReceived = incrementGeneration(rasterFramesReceived, "raster frames received");
+                SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+                if (role == SFMVoxTerminalRasterHandoff.Role.STALE) {
+                    rasterStaleFrames = incrementGeneration(rasterStaleFrames, "raster stale frames");
+                    return;
+                }
+                RasterSubscription currentSubscription = currentStream.subscription;
+                if (role == SFMVoxTerminalRasterHandoff.Role.PENDING
+                        && (currentSubscription.generation() != presentationRequestGeneration
+                        || !currentSubscription.selection().equals(requestedPresentation)
+                        || !Objects.equals(currentSubscription.sessionId(), sessionId))) {
+                    rasterStaleFrames = incrementGeneration(rasterStaleFrames, "raster stale frames");
+                    rasterHandoff.failPending(currentStream);
+                    return;
+                }
+                validateRasterEnvelopeLocked(currentStream, event);
+                org.facet.vox.generated.TerminalRasterFrame nativeFrame = event.frame();
+                byte[] presentedPayload;
+                boolean png;
+                if (nativeFrame.encoding() == TerminalFrameEncoding.PNG) {
+                    validatePngRasterFrame(currentSubscription, event);
+                    presentedPayload = nativeFrame.payload();
+                    png = true;
+                } else {
+                    SFMTerminalRasterFrame rasterFrame = toRasterFrame(event);
+                    SFMTerminalRasterLimits negotiated = new SFMTerminalRasterLimits(
+                            currentSubscription.mode().maxPixelWidth(),
+                            currentSubscription.mode().maxPixelHeight(),
+                            Math.min(currentSubscription.mode().maxFrameBytes(),
+                                    SFMTerminalRasterLimits.RGBA8_V1_MAX_PAYLOAD_BYTES),
+                            Math.min(currentSubscription.mode().maxRegions(),
+                                    SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS));
+                    SFMTerminalRasterFrameValidator.validateRgba8(rasterFrame, negotiated);
+                    if (currentStream.compositor.apply(rasterFrame)
+                            == SFMTerminalRgbaCompositor.ApplyResult.STALE_GENERATION) return;
+                    presentedPayload = currentStream.compositor.pixels();
+                    png = false;
+                }
+                SFMTerminalFrame frame = new SFMTerminalFrame(
+                        event.frameSequence(), true, png, presentedPayload,
+                        rasterFrameMetadata(event),
+                        streamIdentity(event.connectionEpoch(), event.sessionEpoch())
+                                + ":" + eventPresentationGeneration);
+                boolean promoted = false;
+                if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    promoted = rasterHandoff.promotePending(
+                            currentStream,
+                            event.fullResync()
+                                    && event.frame().kind() == TerminalRasterFrameKind.FULL
+                                    && event.baseFrameSequence() == 0);
+                    if (!promoted) {
+                        rasterStaleFrames = incrementGeneration(
+                                rasterStaleFrames, "raster stale frames");
+                        return;
+                    }
+                }
+                pendingRasterFrame = frame;
+                acceptSelection(
+                        event.terminalSequence(),
+                        nativeFrame.selectionPresent(),
+                        nativeFrame.selection());
+                activePresentation = currentSubscription.selection();
+                currentStream.acceptedPresentationGeneration = eventPresentationGeneration;
+                currentStream.connectionEpoch = event.connectionEpoch();
+                currentStream.sessionEpoch = event.sessionEpoch();
+                currentStream.lastTerminalSequence = event.terminalSequence();
+                currentStream.lastFrameSequence = event.frameSequence();
+                currentStream.recordAcceptedFrame(event);
+                rasterMaximumPayloadBytes = Math.max(
+                        rasterMaximumPayloadBytes,
+                        event.frame().payload().length);
+                acceptedRasterPresentationGeneration = eventPresentationGeneration;
+                rasterConnectionEpoch = event.connectionEpoch();
+                rasterSessionEpoch = event.sessionEpoch();
+                rasterLastTerminalSequence = event.terminalSequence();
+                rasterLastFrameSequence = event.frameSequence();
+                rasterFramesAccepted = incrementGeneration(rasterFramesAccepted, "raster frames accepted");
+                if (event.frame().kind() == TerminalRasterFrameKind.FULL) {
+                    rasterFullFrames = incrementGeneration(rasterFullFrames, "raster full frames");
+                } else {
+                    rasterDirtyFrames = incrementGeneration(rasterDirtyFrames, "raster dirty frames");
+                }
+                if (event.fullResync()) {
+                    rasterFullResyncFrames = incrementGeneration(
+                            rasterFullResyncFrames, "raster full resynchronization frames");
+                }
+                latestRasterPublication = event.publication();
+                failure = null;
+                if (promoted || rasterHandoff.pending() == null
+                        && requestedPresentation.equals(activePresentation)) {
+                    presentationTransitionFailure = null;
+                }
+                if (event.fullResync()) {
+                    SFM.LOGGER.info(
+                            "SFM_VOX_TERMINAL_RASTER_ACTIVE session={} renderer={} transport={} "
+                                    + "presentation_generation={} frame_sequence={}",
+                            event.sessionId(),
+                            event.rendererId(),
+                            event.transportId(),
+                            eventPresentationGeneration,
+                            event.frameSequence());
+                }
+            }
+        } catch (RuntimeException error) {
+            synchronized (lock) {
+                SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+                if (role != SFMVoxTerminalRasterHandoff.Role.STALE) {
+                    rasterFramesRejected = incrementGeneration(
+                            rasterFramesRejected, "raster frames rejected");
+                    String rejection = "Rejected malformed terminal raster frame: " + describe(error);
+                    if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                        presentationTransitionFailure = rejection;
+                        if (rasterHandoff.active() == null) failure = rejection;
+                        rasterHandoff.failPending(currentStream);
+                    } else {
+                        failure = rejection;
+                        if (rasterHandoff.pending() == null) {
+                            presentationTransitionFailure = rejection;
+                        }
+                    }
+                    SFM.LOGGER.warn(
+                            "SFM_VOX_TERMINAL_RASTER_FRAME_REJECTED session={} renderer={} transport={} "
+                                    + "presentation_generation={} "
+                                    + "terminal_sequence={} frame_sequence={} base_frame_sequence={} "
+                                    + "full_resync={} frame_kind={} frame_encoding={} failure={}",
+                            event.sessionId(),
+                            event.rendererId(),
+                            event.transportId(),
+                            eventPresentationGeneration,
+                            event.terminalSequence(),
+                            event.frameSequence(),
+                            event.baseFrameSequence(),
+                            event.fullResync(),
+                            event.frame().kind(),
+                            event.frame().encoding(),
+                            rejection,
+                            error);
+                }
+            }
+        }
+    }
+
+    private void validateRasterEnvelopeLocked(
+            RasterStream currentStream,
+            TerminalRasterFrameEvent event) {
+        RasterSubscription currentSubscription = currentStream.subscription;
+        TerminalPresentationMode mode = currentSubscription.mode();
+        String eventPresentationGeneration =
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
+        long negotiatedBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
+        int negotiatedRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
+        if (!currentSubscription.sessionId().equals(event.sessionId())
+                || !currentSubscription.presentationGeneration().equals(eventPresentationGeneration)
+                || !mode.rendererId().equals(event.rendererId())
+                || !mode.damageModeId().equals(event.damageModeId())
+                || !mode.transportId().equals(event.transportId())
+                || mode.transportVersion() != event.transportVersion()
+                || mode.frameContractVersion() != event.frameContractVersion()
+                || negotiatedBytes != event.maxFrameBytes()
+                || negotiatedRegions != event.maxRegions()
+                || event.terminalSequence() < 0 || event.frameSequence() <= 0
+                || event.frame().payload().length > negotiatedBytes) {
+            throw new IllegalArgumentException("raster event does not match its negotiated subscription");
+        }
+        boolean first = currentStream.acceptedPresentationGeneration.isEmpty();
+        if (first) {
+            if (!event.fullResync()
+                    || event.frame().kind() != TerminalRasterFrameKind.FULL
+                    || event.baseFrameSequence() != 0) {
+                throw new IllegalArgumentException(
+                        "replacement presentation must begin with a full resynchronization"
+                                + " [full_resync=" + event.fullResync()
+                                + ", frame_kind=" + event.frame().kind()
+                                + ", base_frame_sequence=" + event.baseFrameSequence() + "]");
+            }
+        } else if (!currentStream.acceptedPresentationGeneration.equals(eventPresentationGeneration)
+                || !currentStream.connectionEpoch.equals(event.connectionEpoch())
+                || !currentStream.sessionEpoch.equals(event.sessionEpoch())
+                || event.terminalSequence() < currentStream.lastTerminalSequence
+                || event.frameSequence() <= currentStream.lastFrameSequence) {
+            throw new IllegalArgumentException("stale or out-of-order raster event");
+        }
+    }
+
+    private static void validatePngRasterFrame(
+            RasterSubscription subscription,
+            TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        if (!"full-png".equals(subscription.mode().transportId())
+                || frame.encoding() != TerminalFrameEncoding.PNG
+                || frame.kind() != TerminalRasterFrameKind.FULL
+                || frame.origin() != TerminalFrameOrigin.TOP_LEFT
+                || frame.alphaMode() != TerminalAlphaMode.STRAIGHT
+                || frame.colorSpace() != TerminalColorSpace.SRGB
+                || frame.width() <= 0 || frame.width() > subscription.mode().maxPixelWidth()
+                || frame.height() <= 0 || frame.height() > subscription.mode().maxPixelHeight()
+                || frame.stride() != 0 || !frame.regions().isEmpty()
+                || !frame.complete()
+                || !isPng(frame.payload())) {
+            throw new IllegalArgumentException("malformed full-png raster frame");
+        }
+    }
+
+    private static SFMTerminalRasterFrame toRasterFrame(TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        if (frame.encoding() != TerminalFrameEncoding.RGBA8
+                || frame.origin() != TerminalFrameOrigin.TOP_LEFT
+                || frame.alphaMode() != TerminalAlphaMode.STRAIGHT
+                || frame.colorSpace() != TerminalColorSpace.SRGB
+                || !frame.complete()) {
+            throw new IllegalArgumentException("raw raster metadata does not match RGBA8 contract v1");
+        }
+        List<SFMTerminalRasterRegion> regions = frame.regions().stream()
+                .map(region -> new SFMTerminalRasterRegion(
+                        region.x(), region.y(), region.width(), region.height(), region.stride(),
+                        region.payloadOffset(), region.payloadLength()))
+                .toList();
+        return new SFMTerminalRasterFrame(
+                SFMTerminalTransportId.fromWireId(event.transportId()),
+                event.transportVersion(), event.frameContractVersion(),
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event),
+                event.frameSequence(), event.baseFrameSequence(), event.fullResync(),
+                SFMTerminalRasterEncoding.RGBA8,
+                frame.kind() == TerminalRasterFrameKind.FULL
+                        ? SFMTerminalRasterFrameKind.FULL
+                        : SFMTerminalRasterFrameKind.DIRTY_REGIONS,
+                SFMTerminalRasterOrigin.TOP_LEFT,
+                SFMTerminalRasterAlphaMode.STRAIGHT,
+                SFMTerminalRasterColorSpace.SRGB,
+                frame.width(), frame.height(), frame.stride(), frame.payload(), regions);
+    }
+
+    private static SFMTerminalFrameMetadata rasterFrameMetadata(TerminalRasterFrameEvent event) {
+        org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+        var timing = frame.timing();
+        var surface = frame.surface();
+        return new SFMTerminalFrameMetadata(
+                event.frameSequence(), frame.logicalColumns(), frame.logicalRows(),
+                frame.width(), frame.height(), surface.panelWidth(), surface.panelHeight(),
+                surface.cellWidth(), surface.cellHeight(),
+                surface.fontPixelSize(), event.rendererId(), event.transportId(),
+                timing.ptyDrainUs(), 0L, timing.terminalSnapshotUs(), timing.fontLoadUs(),
+                timing.rasterUs(), timing.payloadPackUs(), timing.pngEncodeUs(), timing.totalUs(),
+                event.correlationId());
+    }
+
+    private void rasterSubscriptionCompleted(
+            RasterStream currentStream,
+            VoxResult<TerminalOperationResult, TerminalError> result,
+            Throwable error) {
+        synchronized (lock) {
+            SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+            if (role == SFMVoxTerminalRasterHandoff.Role.STALE) return;
+            if (error == null && result != null && result.isSuccess()) return;
+            String streamFailure = "Vox terminal raster subscription failed: "
+                    + (error == null ? describeSubscriptionResult(result) : describe(error));
+            recordRasterStreamFailureLocked(currentStream, role, streamFailure);
+            RasterSubscription currentSubscription = currentStream.subscription;
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_FAILED session={} renderer={} transport={} "
+                            + "presentation_generation={} failure={}",
+                    currentSubscription.sessionId(),
+                    currentSubscription.selection().rendererId().wireId(),
+                    currentSubscription.mode().transportId(),
+                    currentSubscription.presentationGeneration(),
+                    streamFailure,
+                    error);
+        }
+    }
+
+    private void rasterReceiverStopped(RasterStream currentStream, Throwable error) {
+        synchronized (lock) {
+            SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+            if (role == SFMVoxTerminalRasterHandoff.Role.STALE) return;
+            if (error != null && !(error instanceof InterruptedException)) {
+                rasterReceiverFailures = incrementGeneration(
+                        rasterReceiverFailures, "raster receiver failures");
+            }
+            String streamFailure = error == null
+                    ? "Vox terminal raster subscription closed"
+                    : "Vox terminal raster subscription unavailable: " + describe(error);
+            recordRasterStreamFailureLocked(currentStream, role, streamFailure);
+            RasterSubscription currentSubscription = currentStream.subscription;
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_RASTER_RECEIVER_STOPPED session={} renderer={} transport={} "
+                            + "presentation_generation={} failure={}",
+                    currentSubscription.sessionId(),
+                    currentSubscription.selection().rendererId().wireId(),
+                    currentSubscription.mode().transportId(),
+                    currentSubscription.presentationGeneration(),
+                    streamFailure,
+                    error);
+        }
+    }
+
+    private void recordRasterStreamFailureLocked(
+            RasterStream currentStream,
+            SFMVoxTerminalRasterHandoff.Role role,
+            String streamFailure) {
+        if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+            failPendingRasterStreamLocked(currentStream, streamFailure);
+            return;
+        }
+        failure = streamFailure;
+        if (rasterHandoff.pending() == null) presentationTransitionFailure = streamFailure;
+        if (rasterHandoff.failActive(currentStream)) {
+            activePresentation = null;
+            clearAcceptedRasterStateLocked();
+        }
+    }
+
+    private void failPendingRasterStreamLocked(RasterStream currentStream, String streamFailure) {
+        if (rasterHandoff.role(currentStream) != SFMVoxTerminalRasterHandoff.Role.PENDING) return;
+        presentationTransitionFailure = streamFailure;
+        if (rasterHandoff.active() == null) failure = streamFailure;
+        rasterHandoff.failPending(currentStream);
+    }
+
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    private void ensureConnected() throws Exception {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        long attemptGeneration;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+        synchronized (lock) {
+            if (closed) throw new IllegalStateException("Vox terminal service is closed");
+            if (sessionId != null) return;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            // A failed optional endpoint is retryable. The server may be started
+            // after Minecraft, so a prior fallback must not poison this service.
+{% endcase %}
+            failure = null;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            attemptGeneration = transportGeneration;
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        VoxConnection newConnection = null;
+        ServiceLane newLane = null;
+        TerminalClient newClient = null;
+        String newSessionId = null;
+        try {
+            newConnection = VoxConnection.connect(endpoint, freshConnectionOptions());
+            // The request executor may be synchronously waiting for this
+            // connection to open. Drive the transport on its own executor so
+            // requestConnect() cannot deadlock before the first lane opens.
+            CompletableFuture<Void> closedFuture = newConnection.start(connectionDriver);
+            awaitConnectionOpen(newConnection, closedFuture);
+            newLane = newConnection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
+            await(newLane.opened(), "opening terminal lane");
+            newClient = new TerminalClient(newLane);
+            TerminalCapabilities capabilities = new TerminalCapabilities(
+                    true, true, true, false, true, true, false, false,
+                    requestedWidth, requestedHeight, MAX_FRAME_BYTES,
+                    "rust.cpu.fontdue", "vox");
+            long requestSequence = nextSequence();
+            TerminalConnectRequest request = new TerminalConnectRequest(
+                    "sfm-terminal", requestedWidth, requestedHeight, requestedSurface(), capabilities,
+                    requestSequence, correlationId("connect", requestSequence), true,
+                    requestedTuningRequest(
+                            requestedPresentation.rendererId().wireId(),
+                            requestedTuning,
+                            requestedWidth,
+                            requestedHeight,
+                            requestedPixelWidth,
+                            requestedPixelHeight,
+                            requestedFontPixelSize));
+            TerminalConnectResult connected = requireSuccess(
+                    await(newClient.connect(request), "connecting terminal"), "connecting terminal");
+            newSessionId = connected.sessionId();
+            synchronized (lock) {
+                if (closed || transportGeneration != attemptGeneration || sessionId != null) {
+                    throw new IllegalStateException("Vox terminal connection attempt was superseded");
+                }
+                connection = newConnection;
+                lane = newLane;
+                client = newClient;
+                sessionId = newSessionId;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            try {
+                connection = VoxConnection.connect(endpoint, freshConnectionOptions());
+                CompletableFuture<Void> closedFuture = connection.start(driver);
+                awaitConnectionOpen(closedFuture);
+                lane = connection.openLane(TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
+                await(lane.opened(), "opening terminal lane");
+                client = new TerminalClient(lane);
+                TerminalCapabilities capabilities = new TerminalCapabilities(
+                        true, true, true, false, true, false, false, false,
+                        requestedWidth, requestedHeight, MAX_FRAME_BYTES);
+                TerminalConnectRequest request = new TerminalConnectRequest(
+                        "sfm-terminal", requestedWidth, requestedHeight, capabilities, nextSequence());
+                TerminalConnectResult connected = requireSuccess(
+                        await(client.connect(request), "connecting terminal"), "connecting terminal");
+                sessionId = connected.sessionId();
+            } catch (Exception error) {
+                failure = "Vox terminal unavailable: " + describe(error);
+                closeTransportLocked();
+                throw new IllegalStateException(failure, error);
+{% endcase %}
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            discoverPresentationModes(newClient, newSessionId);
+        } catch (Exception error) {
+            if (newLane != null) newLane.close();
+            if (newConnection != null) newConnection.close();
+            synchronized (lock) {
+                if (transportGeneration == attemptGeneration
+                        && (client == null || client == newClient)
+                        && (sessionId == null || Objects.equals(sessionId, newSessionId))) {
+                    failure = "Vox terminal unavailable: " + describe(error);
+                    nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+                    if (client == newClient) closeTransportLocked();
+                }
+            }
+            throw new IllegalStateException("Vox terminal unavailable: " + describe(error), error);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+        }
+    }
+
+    /** Sends a bounded logical terminal resize; the next frame remains Rust-owned. */
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    @Override
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    public boolean resize(int width, int height) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        int panelWidth;
+        int panelHeight;
+        int fontPixelSize;
+        SFMTerminalTuningSettings tuning;
+        synchronized (lock) {
+            panelWidth = requestedPixelWidth;
+            panelHeight = requestedPixelHeight;
+            fontPixelSize = requestedFontPixelSize;
+            tuning = requestedTuning.withCells(width, height);
+        }
+        return resizeInternal(width, height, panelWidth, panelHeight, fontPixelSize, tuning);
+    }
+
+    @Override
+    public boolean resize(int width, int height, int panelWidth, int panelHeight) {
+        int fontPixelSize;
+        synchronized (lock) {
+            fontPixelSize = requestedFontPixelSize;
+        }
+        return resize(width, height, panelWidth, panelHeight, fontPixelSize);
+    }
+
+    @Override
+    public boolean resize(int width, int height, int panelWidth, int panelHeight, int fontPixelSize) {
+        SFMTerminalTuningSettings tuning = new SFMTerminalTuningSettings(
+                panelWidth,
+                panelHeight,
+                fontPixelSize,
+                width,
+                height
+        );
+        return resizeInternal(width, height, panelWidth, panelHeight, fontPixelSize, tuning);
+    }
+
+    @Override
+    public boolean resize(
+            SFMTerminalTuningSettings requested,
+            SFMTerminalTuningSettings.Effective effective
+    ) {
+        Objects.requireNonNull(requested, "requested");
+        Objects.requireNonNull(effective, "effective");
+        return resizeInternal(
+                effective.columns(),
+                effective.rows(),
+                effective.surfaceWidth(),
+                effective.surfaceHeight(),
+                effective.fontPixelSize(),
+                requested
+        );
+    }
+
+    private boolean resizeInternal(
+            int width,
+            int height,
+            int panelWidth,
+            int panelHeight,
+            int fontPixelSize,
+            SFMTerminalTuningSettings tuning
+    ) {
+        String request = describeResizeRequest(width, height, panelWidth, panelHeight, fontPixelSize);
+        String invalid = null;
+        if (width < 1 || width > SFMTerminalTuningSettings.MAX_COLUMNS) {
+            invalid = "Terminal columns must be between 1 and " + SFMTerminalTuningSettings.MAX_COLUMNS;
+        } else if (height < 1 || height > SFMTerminalTuningSettings.MAX_ROWS) {
+            invalid = "Terminal rows must be between 1 and " + SFMTerminalTuningSettings.MAX_ROWS;
+        } else if (panelWidth < 0 || panelWidth > SFMTerminalRasterLimits.RGBA8_V1_MAX_WIDTH) {
+            invalid = "Terminal surface width must be between 0 and "
+                    + SFMTerminalRasterLimits.RGBA8_V1_MAX_WIDTH;
+        } else if (panelHeight < 0 || panelHeight > SFMTerminalRasterLimits.RGBA8_V1_MAX_HEIGHT) {
+            invalid = "Terminal surface height must be between 0 and "
+                    + SFMTerminalRasterLimits.RGBA8_V1_MAX_HEIGHT;
+        } else if (fontPixelSize != 0 && (fontPixelSize < 8 || fontPixelSize > 64)) {
+            invalid = "Font pixel size must be automatic (0) or between 8 and 64";
+        }
+        if (invalid != null) {
+            synchronized (lock) {
+                tuningFailure = SFMTerminalTuningRejection.localInvalid(invalid, request);
+            }
+            return false;
+        }
+        int boundedWidth = width;
+        int boundedHeight = height;
+        int boundedPanelWidth = panelWidth;
+        int boundedPanelHeight = panelHeight;
+        boolean schedule;
+        long queuedVersion;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        int boundedWidth = Math.max(1, Math.min(240, width));
+        int boundedHeight = Math.max(1, Math.min(120, height));
+{% endcase %}
+        synchronized (lock) {
+            if (closed) return false;
+            requestedWidth = boundedWidth;
+            requestedHeight = boundedHeight;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            requestedPixelWidth = boundedPanelWidth;
+            requestedPixelHeight = boundedPanelHeight;
+            requestedFontPixelSize = fontPixelSize;
+            requestedTuning = tuning;
+            tuningFailure = null;
+            resizeVersion = incrementGeneration(resizeVersion, "terminal resize version");
+            queuedVersion = resizeVersion;
+            schedule = !resizeTaskQueued;
+            if (schedule) resizeTaskQueued = true;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            if (sessionId == null) return true;
+            try {
+                TerminalResizeResult resized = requireSuccess(
+                        await(client.resize(new TerminalResizeRequest(
+                                sessionId, boundedWidth, boundedHeight, nextSequence())), "resizing terminal"),
+                        "resizing terminal");
+                if (resized.width() != boundedWidth || resized.height() != boundedHeight) {
+                    throw new IllegalStateException("resize response dimensions were "
+                            + resized.width() + "x" + resized.height() + " instead of "
+                            + boundedWidth + "x" + boundedHeight);
+                }
+                TerminalSnapshot snapshot = requireSuccess(
+                        await(client.snapshot(new TerminalSnapshotRequest(
+                                sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading resized terminal snapshot"),
+                        "reading resized terminal snapshot");
+                if (snapshot.payload().length != 0) {
+                    validateSnapshot(snapshot, "resized terminal snapshot");
+                    latestSnapshot = snapshot;
+                }
+                return true;
+            } catch (Exception error) {
+                failure = "Vox terminal resize unavailable: " + describe(error);
+                latestSnapshot = null;
+                latestContent = null;
+                closeTransportLocked();
+                return false;
+            }
+{% endcase %}
+        }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        if (!schedule) return true;
+        if (submitDriver(() -> {
+            SFM.LOGGER.info(
+                    "SFM_VOX_TERMINAL_RESIZE_QUEUED version={} requested={}x{} surface={}x{} font_px={} scheduled=true",
+                    queuedVersion,
+                    boundedWidth,
+                    boundedHeight,
+                    boundedPanelWidth,
+                    boundedPanelHeight,
+                    fontPixelSize);
+            runLatestResize();
+        })) return true;
+        synchronized (lock) {
+            resizeTaskQueued = false;
+        }
+        return false;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    }
+
+    /** Send exact printable bytes; no implicit Enter is added. */
+    public boolean sendText(String text) {
+        if (text == null || text.isEmpty()) return true;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return enqueueRemoteOperation("Vox terminal input unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            TerminalInputResult result = requireSuccess(
+                    await(transport.client().sendText(new TerminalTextInput(
+                            transport.sessionId(), text, requestSequence,
+                            correlationId("text", requestSequence))), "sending terminal text"),
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        try {
+            ensureConnected();
+            String currentSession;
+            TerminalClient currentClient;
+            synchronized (lock) {
+                currentSession = sessionId;
+                currentClient = client;
+            }
+            requireSuccess(
+                    await(currentClient.sendText(new TerminalTextInput(
+                            currentSession, text, nextSequence())), "sending terminal text"),
+{% endcase %}
+                    "sending terminal text");
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            acceptInteractionResult(transport, result);
+        });
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            return true;
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal input unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+            return false;
+        }
+{% endcase %}
+    }
+
+    /** Send a physical key transition to Rust; printable text arrives separately. */
+    public boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return enqueueRemoteOperation("Vox terminal key unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            TerminalInputResult result = requireSuccess(
+                    await(transport.client().sendKey(new TerminalKeyInput(
+                            transport.sessionId(), keyCode, modifiers, pressed, repeat, requestSequence,
+                            correlationId("key", requestSequence))),
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        try {
+            ensureConnected();
+            String currentSession;
+            TerminalClient currentClient;
+            synchronized (lock) {
+                currentSession = sessionId;
+                currentClient = client;
+            }
+            requireSuccess(
+                    await(currentClient.sendKey(new TerminalKeyInput(
+                            currentSession, keyCode, modifiers, pressed, repeat, nextSequence())),
+{% endcase %}
+                            "sending terminal key"),
+                    "sending terminal key");
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            acceptInteractionResult(transport, result);
+        });
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            return true;
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal key unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+            return false;
+        }
+{% endcase %}
+    }
+
+    /** Request a server-side interrupt while retaining the Rust terminal session. */
+    public boolean cancel() {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return enqueueRemoteOperation("Vox terminal cancellation unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            TerminalOperationResult result = requireSuccess(
+                    await(transport.client().cancel(new TerminalCancelRequest(
+                            transport.sessionId(),
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        try {
+            ensureConnected();
+            String currentSession;
+            TerminalClient currentClient;
+            synchronized (lock) {
+                currentSession = sessionId;
+                currentClient = client;
+            }
+            return requireSuccess(
+                    await(currentClient.cancel(new TerminalCancelRequest(
+                            currentSession,
+{% endcase %}
+                            0,
+                            "SFM terminal cancellation",
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+                            requestSequence, correlationId("cancel", requestSequence))),
+                            "cancelling terminal operation"),
+                    "cancelling terminal operation");
+            if (result.state() != TerminalState.READY) {
+                throw new IllegalStateException("terminal cancellation did not leave the session ready");
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+                            nextSequence())), "cancelling terminal operation"),
+                    "cancelling terminal operation").state() == TerminalState.READY;
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal cancellation unavailable: " + describe(error);
+                closeTransportLocked();
+{% endcase %}
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        });
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            return false;
+        }
+{% endcase %}
+    }
+
+    /** Send a terminal mouse transition in logical terminal-cell coordinates. */
+    public boolean sendMouse(
+            int x,
+            int y,
+            int buttons,
+            int button,
+            boolean pressed,
+            boolean motion,
+            int wheelX,
+            int wheelY) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        return sendMouse(x, y, buttons, button, pressed, motion, wheelX, wheelY, null);
+    }
+
+    @Override
+    public boolean sendMouse(
+            int x,
+            int y,
+            int buttons,
+            int button,
+            boolean pressed,
+            boolean motion,
+            int wheelX,
+            int wheelY,
+            Consumer<SFMTerminalInputDisposition> completion
+    ) {
+        int maximumX;
+        int maximumY;
+        synchronized (lock) {
+            maximumX = Math.max(0, requestedWidth - 1);
+            maximumY = Math.max(0, requestedHeight - 1);
+        }
+        MouseOperation operation = new MouseOperation(
+                Math.max(0, Math.min(maximumX, x)),
+                Math.max(0, Math.min(maximumY, y)),
+                Math.max(0, Math.min(255, buttons)),
+                Math.max(0, Math.min(255, button)),
+                pressed,
+                motion,
+                wheelX,
+                wheelY);
+        if (motion && completion == null) return enqueueLatestMouseMotion(operation);
+        return enqueueRemoteOperation("Vox terminal mouse unavailable: ", transport -> {
+            TerminalInputResult result = performMouse(transport, operation);
+            if (completion != null && isCurrentResult(transport, result.sessionId())) {
+                completeInteraction(completion, mapInputDisposition(result));
+            }
+        });
+    }
+
+    private TerminalInputResult performMouse(Transport transport, MouseOperation operation) throws Exception {
+        long requestSequence = nextSequence();
+        TerminalInputResult result = requireSuccess(
+                await(transport.client().sendMouse(new TerminalMouseInput(
+                        transport.sessionId(),
+                        operation.x(),
+                        operation.y(),
+                        operation.buttons(),
+                        operation.button(),
+                        operation.pressed(),
+                        operation.motion(),
+                        operation.wheelX(),
+                        operation.wheelY(),
+                        requestSequence,
+                        correlationId("mouse", requestSequence))), "sending terminal mouse"),
+                "sending terminal mouse");
+        acceptInteractionResult(transport, result);
+        return result;
+    }
+
+    @Override
+    public Optional<SFMTerminalSelection> selection() {
+        synchronized (lock) {
+            return Optional.ofNullable(latestSelection);
+        }
+    }
+
+    @Override
+    public long interactionEpoch() {
+        synchronized (lock) {
+            return transportGeneration;
+        }
+    }
+
+    @Override
+    public boolean copySelection(Consumer<SFMTerminalCopyResult> completion) {
+        Objects.requireNonNull(completion, "completion");
+        return enqueueRemoteOperation("Vox terminal selection copy unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            org.facet.vox.generated.TerminalCopySelectionResult result = requireSuccess(
+                    await(transport.client().copySelection(new TerminalCopySelectionRequest(
+                            transport.sessionId(),
+                            requestSequence,
+                            correlationId("copy-selection", requestSequence))),
+                            "copying terminal selection"),
+                    "copying terminal selection");
+            if (!isCurrentResult(transport, result.sessionId())) return;
+            acceptSelection(
+                    result.serverSequence(),
+                    result.selectionPresent(),
+                    result.selection());
+            SFMTerminalCopyResult mapped = new SFMTerminalCopyResult(
+                    result.disposition() == TerminalCopySelectionDisposition.COPIED
+                            ? SFMTerminalCopyResult.Disposition.COPIED
+                            : SFMTerminalCopyResult.Disposition.NO_SELECTION,
+                    result.text());
+            completeInteraction(completion, mapped);
+        });
+    }
+
+    @Override
+    public boolean pasteWithGuard(String text, Consumer<SFMTerminalPasteResult> completion) {
+        return paste(text, "", TerminalPastePolicy.GUARD_MULTILINE, completion);
+    }
+
+    @Override
+    public boolean pasteWithoutGuard(
+            String text,
+            String approvedContentId,
+            Consumer<SFMTerminalPasteResult> completion
+    ) {
+        if (approvedContentId == null || approvedContentId.isBlank()) return false;
+        return paste(text, approvedContentId, TerminalPastePolicy.BYPASS_GUARD, completion);
+    }
+
+    private boolean paste(
+            String text,
+            String approvedContentId,
+            TerminalPastePolicy policy,
+            Consumer<SFMTerminalPasteResult> completion
+    ) {
+        Objects.requireNonNull(completion, "completion");
+        String suppliedText = text == null ? "" : text;
+        String contentId = approvedContentId == null ? "" : approvedContentId;
+        return enqueueRemoteOperation("Vox terminal paste unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            org.facet.vox.generated.TerminalPasteResult result = requireSuccess(
+                    await(transport.client().paste(new TerminalPasteRequest(
+                            transport.sessionId(),
+                            policy,
+                            TerminalPasteSource.SUPPLIED,
+                            suppliedText,
+                            contentId,
+                            requestSequence,
+                            correlationId("paste", requestSequence))),
+                            "pasting terminal text"),
+                    "pasting terminal text");
+            if (!isCurrentResult(transport, result.sessionId())) return;
+            SFMTerminalPasteResult mapped = new SFMTerminalPasteResult(
+                    result.disposition() == TerminalPasteDisposition.PASTED
+                            ? SFMTerminalPasteResult.Disposition.PASTED
+                            : SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                    result.preview(),
+                    result.contentId());
+            completeInteraction(completion, mapped);
+        });
+    }
+
+    private void acceptInteractionResult(Transport transport, TerminalInputResult result) {
+        if (!isCurrentResult(transport, result.sessionId())) return;
+        acceptSelection(
+                result.serverSequence(),
+                result.selectionPresent(),
+                result.selection());
+    }
+
+    private void acceptSelection(
+            long serverSequence,
+            boolean selectionPresent,
+            org.facet.vox.generated.TerminalSelection selection
+    ) {
+        synchronized (lock) {
+            if (serverSequence < latestInteractionSequence) return;
+            latestInteractionSequence = serverSequence;
+            latestSelection = selectionPresent
+                    ? new SFMTerminalSelection(
+                            selection.anchorX(),
+                            selection.anchorY(),
+                            selection.focusX(),
+                            selection.focusY())
+                    : null;
+        }
+    }
+
+    private boolean isCurrentResult(Transport transport, String resultSessionId) {
+        synchronized (lock) {
+            return !closed
+                    && transport.generation() == transportGeneration
+                    && transport.client() == client
+                    && Objects.equals(transport.sessionId(), sessionId)
+                    && Objects.equals(resultSessionId, sessionId);
+        }
+    }
+
+    private static SFMTerminalInputDisposition mapInputDisposition(TerminalInputResult result) {
+        return switch (result.disposition()) {
+            case FORWARDED -> SFMTerminalInputDisposition.FORWARDED;
+            case SELECTION_CHANGED -> SFMTerminalInputDisposition.SELECTION_CHANGED;
+            case NO_CHANGE -> SFMTerminalInputDisposition.NO_CHANGE;
+        };
+    }
+
+    private static <T> void completeInteraction(Consumer<T> completion, T result) {
+        try {
+            completion.accept(result);
+        } catch (RuntimeException error) {
+            SFM.LOGGER.warn("Terminal interaction completion callback failed", error);
+        }
+    }
+
+    private boolean enqueueLatestMouseMotion(MouseOperation operation) {
+        boolean schedule;
+        synchronized (lock) {
+            if (closed) return false;
+            pendingMouseMotion = operation;
+            schedule = !mouseMotionTaskQueued;
+            if (schedule) mouseMotionTaskQueued = true;
+        }
+        if (!schedule) return true;
+        if (submitDriver(this::runLatestMouseMotion)) return true;
+        synchronized (lock) {
+            mouseMotionTaskQueued = false;
+            pendingMouseMotion = null;
+        }
+        return false;
+    }
+
+    private void runLatestMouseMotion() {
+        MouseOperation operation;
+        synchronized (lock) {
+            operation = pendingMouseMotion;
+            pendingMouseMotion = null;
+        }
+        if (operation != null) {
+            try {
+                ensureConnected();
+                Transport transport = requireCurrentTransport();
+                try {
+                    performMouse(transport, operation);
+                } catch (Exception error) {
+                    failTransportIfCurrent(transport, "Vox terminal mouse unavailable: ", error);
+                }
+            } catch (Exception ignored) {
+                // ensureConnected records the current connection failure.
+            }
+        }
+        boolean repeat;
+        synchronized (lock) {
+            repeat = !closed && pendingMouseMotion != null;
+            if (!repeat) mouseMotionTaskQueued = false;
+        }
+        if (repeat && !submitDriver(this::runLatestMouseMotion)) {
+            synchronized (lock) {
+                mouseMotionTaskQueued = false;
+                pendingMouseMotion = null;
+            }
+        }
+    }
+
+    private void runLatestResize() {
+        ResizeOperation operation;
+        synchronized (lock) {
+            operation = new ResizeOperation(
+                    requestedWidth,
+                    requestedHeight,
+                    requestedPixelWidth,
+                    requestedPixelHeight,
+                    requestedFontPixelSize,
+                    requestedTuning,
+                    resizeVersion);
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+        try {
+            ensureConnected();
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            Transport transport = requireCurrentTransport();
+            try {
+                long requestSequence = nextSequence();
+                VoxResult<TerminalResizeResult, TerminalError> resizeResult =
+                        await(transport.client().resize(new TerminalResizeRequest(
+                                transport.sessionId(),
+                                operation.width(),
+                                operation.height(),
+                                new TerminalSurfaceMetrics(
+                                        operation.width(),
+                                        operation.height(),
+                                        operation.panelWidth(),
+                                        operation.panelHeight(),
+                                        0,
+                                        0,
+                                        operation.fontPixelSize()),
+                                requestSequence,
+                                correlationId("resize", requestSequence),
+                                true,
+                                requestedTuningRequest(
+                                        requestedPresentation.rendererId().wireId(),
+                                        operation.tuning(),
+                                        operation.width(),
+                                        operation.height(),
+                                        operation.panelWidth(),
+                                        operation.panelHeight(),
+                                        operation.fontPixelSize()))),
+                                "resizing terminal");
+                if (resizeResult.isApplicationError()) {
+                    throw new TerminalApplicationException(
+                            "resizing terminal",
+                            resizeResult.applicationError());
+                }
+                TerminalResizeResult resized = requireSuccess(resizeResult, "resizing terminal");
+                if (resized.width() != operation.width() || resized.height() != operation.height()) {
+                    throw new IllegalStateException("resize response dimensions were "
+                            + resized.width() + "x" + resized.height() + " instead of "
+                            + operation.width() + "x" + operation.height());
+                }
+                synchronized (lock) {
+                    if (resizeVersion == operation.version()) {
+                        tuningFailure = null;
+                        acceptedResizeVersion = operation.version();
+                    }
+                }
+                SFM.LOGGER.info(
+                        "SFM_VOX_TERMINAL_RESIZE_ACCEPTED session={} version={} requested={}x{} surface={}x{} font_px={}",
+                        transport.sessionId(),
+                        operation.version(),
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize());
+            } catch (Exception error) {
+                synchronized (lock) {
+                    if (isCurrentTransportLocked(transport) && resizeVersion == operation.version()) {
+                        tuningFailure = tuningRejection(operation, error);
+                    }
+                }
+                SFM.LOGGER.warn(
+                        "SFM_VOX_TERMINAL_RESIZE_REJECTED session={} requested={}x{} surface={}x{} font_px={} failure={}",
+                        transport.sessionId(),
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize(),
+                        describe(error));
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            String currentSession;
+            TerminalClient currentClient;
+            synchronized (lock) {
+                currentSession = sessionId;
+                currentClient = client;
+{% endcase %}
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        } catch (Exception ignored) {
+            // ensureConnected records the current connection failure.
+        }
+        boolean repeat;
+        synchronized (lock) {
+            repeat = !closed && resizeVersion != operation.version();
+            if (!repeat) resizeTaskQueued = false;
+        }
+        if (repeat && !submitDriver(this::runLatestResize)) {
+            synchronized (lock) {
+                resizeTaskQueued = false;
+            }
+        }
+    }
+
+    private boolean enqueueRemoteOperation(String failurePrefix, RemoteOperation operation) {
+        synchronized (lock) {
+            if (closed) return false;
+        }
+        return submitDriver(() -> {
+            try {
+                ensureConnected();
+                Transport transport = requireCurrentTransport();
+                try {
+                    operation.run(transport);
+                } catch (Exception error) {
+                    failTransportIfCurrent(transport, failurePrefix, error);
+                }
+            } catch (Exception ignored) {
+                // ensureConnected records the current connection failure.
+            }
+        });
+    }
+
+    private boolean submitDriver(Runnable operation) {
+        try {
+            driver.execute(operation);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            requireSuccess(
+                    await(currentClient.sendMouse(new TerminalMouseInput(
+                            currentSession,
+                            Math.max(0, Math.min(239, x)),
+                            Math.max(0, Math.min(119, y)),
+                            Math.max(0, Math.min(255, buttons)),
+                            Math.max(0, Math.min(255, button)),
+                            pressed,
+                            motion,
+                            wheelX,
+                            wheelY,
+                            nextSequence())), "sending terminal mouse"),
+                    "sending terminal mouse");
+{% endcase %}
+            return true;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        } catch (RejectedExecutionException error) {
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        } catch (Exception error) {
+            synchronized (lock) {
+                failure = "Vox terminal mouse unavailable: " + describe(error);
+                closeTransportLocked();
+            }
+{% endcase %}
+            return false;
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private SFMTerminalResponse execute(String command) {
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private SFMTerminalResponse execute(String command, SFMTerminalSession fallbackSession) {
+{% endcase %}
+        String workingDirectory = workingDirectory();
+        try {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            return runOnDriverBlocking(() -> {
+                ensureConnected();
+                Transport transport = requireCurrentTransport();
+                try {
+                    long requestSequence = nextSequence();
+                    TerminalInputResult input = requireSuccess(
+                            await(transport.client().sendText(new TerminalTextInput(
+                                    transport.sessionId(), command + "\r", requestSequence,
+                                    correlationId("execute", requestSequence))), "sending terminal text"),
+                            "sending terminal text");
+                    return SFMTerminalResponse.ok(List.of(
+                            "Vox terminal accepted command",
+                            "frame sequence: " + input.frameSequence()), workingDirectory);
+                } catch (Exception error) {
+                    failTransportIfCurrent(transport, "Vox terminal input unavailable: ", error);
+                    throw error;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            ensureConnected();
+            TerminalInputResult input = requireSuccess(
+                    await(client.sendText(new TerminalTextInput(
+                            sessionId, command + "\r", nextSequence())), "sending terminal text"),
+                    "sending terminal text");
+            TerminalSnapshot snapshot = requireSuccess(
+                    await(client.snapshot(new TerminalSnapshotRequest(
+                            sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading terminal snapshot"),
+                    "reading terminal snapshot");
+            if (snapshot.payload().length != 0) {
+                validateSnapshot(snapshot, "terminal snapshot");
+                synchronized (lock) {
+                    latestSnapshot = snapshot;
+{% endcase %}
+                }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            });
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            }
+            return SFMTerminalResponse.ok(List.of(
+                    "Vox terminal accepted command",
+                    "frame sequence: " + input.frameSequence()), workingDirectory);
+{% endcase %}
+        } catch (Exception error) {
+            synchronized (lock) {
+                latestSnapshot = null;
+                latestContent = null;
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            return SFMTerminalResponse.error(
+                    "Rust terminal unavailable: " + describe(error), workingDirectory);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            SFMTerminalResponse local = fallbackSession.execute(command);
+            List<String> lines = new ArrayList<>();
+            lines.add("Vox unavailable; Java-local fallback active");
+            lines.add(describe(error));
+            lines.addAll(local.lines());
+            return new SFMTerminalResponse(local.success(), lines, local.workingDirectory());
+{% endcase %}
+        }
+    }
+
+    private String workingDirectory() {
+        return "vox://" + endpoint.getHostString() + ":" + endpoint.getPort();
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private long nextSequence() {
+        long sequence = clientSequence.incrementAndGet();
+        if (sequence <= 0) throw new IllegalStateException("terminal client sequence exhausted");
+        return sequence;
+    }
+
+    private TerminalSnapshot requestSnapshot(
+            TerminalClient currentClient,
+            String currentSession,
+            long afterSequence,
+            String operation) throws Exception {
+        telemetry.recordSnapshotCall();
+        long requestSequence = nextSequence();
+        long waitStarted = System.nanoTime();
+        try {
+            TerminalSnapshot snapshot = requireSuccess(
+                    await(currentClient.snapshot(new TerminalSnapshotRequest(
+                            currentSession,
+                            Math.max(0, afterSequence),
+                            MAX_FRAME_BYTES,
+                            requestSequence,
+                            correlationId(operation, requestSequence))), operation),
+                    operation);
+            telemetry.recordVoxWait(System.nanoTime() - waitStarted, false, false);
+            validateSnapshot(snapshot, operation);
+            telemetry.recordObserved(nativeFrameMetadata(snapshot));
+            logSnapshotTiming(snapshot, elapsedMicros(waitStarted), 0, false);
+            synchronized (lock) {
+                if (!closed && client == currentClient && Objects.equals(sessionId, currentSession)) {
+                    latestSnapshot = snapshot;
+                }
+            }
+            return snapshot;
+        } catch (Exception error) {
+            telemetry.recordVoxWait(
+                    System.nanoTime() - waitStarted,
+                    true,
+                    error instanceof TimeoutException);
+            throw error;
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private synchronized long nextSequence() {
+        return ++clientSequence;
+{% endcase %}
+    }
+
+    private static void validateSnapshot(TerminalSnapshot snapshot, String operation) {
+        if (snapshot.payload().length > MAX_FRAME_BYTES) {
+            throw new IllegalStateException(operation + " exceeds the frame bound");
+        }
+        if (snapshot.kind() != TerminalFrameKind.FULL) {
+            throw new IllegalStateException(operation + " returned a dirty tile before SFM enables tiles");
+        }
+        if (snapshot.encoding() != TerminalFrameEncoding.PNG || !isPng(snapshot.payload())) {
+            throw new IllegalStateException(operation + " did not return a full PNG frame");
+        }
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private void logSnapshotTiming(
+            TerminalSnapshot snapshot, long voxWaitUs, long javaPollUs, boolean stale) {
+        int logicalColumns = snapshot.logicalColumns();
+        int logicalRows = snapshot.logicalRows();
+        int panelWidth = snapshot.panelWidth();
+        int panelHeight = snapshot.panelHeight();
+        int cellWidth = snapshot.cellWidth();
+        int cellHeight = snapshot.cellHeight();
+        String message = "SFM_VOX_TERMINAL_TIMING correlation_id={} request_sequence={} "
+                + "server_sequence={} rust_total_us={} pty_drain_us={} vt_update_us={} "
+                + "snapshot_us={} font_load_us={} raster_us={} frame_build_us={} encode_us={} "
+                + "java_vox_wait_us={} java_poll_us={} logical_columns={} logical_rows={} "
+                + "panel_width={} panel_height={} cell_width={} cell_height={} font_pixel_size={} "
+                + "payload_bytes={} backend_id={} transport_id={} rust_timing_source={} stale={}";
+        Object[] fields = {
+                snapshot.correlationId(), snapshot.requestSequence(), snapshot.sequence(),
+                snapshot.timing().totalUs(), snapshot.timing().ptyDrainUs(), 0L,
+                snapshot.timing().terminalSnapshotUs(), snapshot.timing().fontLoadUs(),
+                snapshot.timing().rasterUs(), 0L, snapshot.timing().pngEncodeUs(),
+                voxWaitUs, javaPollUs, logicalColumns, logicalRows, panelWidth, panelHeight,
+                cellWidth, cellHeight, snapshot.fontPixelSize(), snapshot.payload().length,
+                "rust.cpu.fontdue", "vox", "snapshot-metadata", stale
+        };
+        if (javaPollUs >= 100_000) {
+            SFM.LOGGER.info(message, fields);
+        } else {
+            SFM.LOGGER.debug(message, fields);
+        }
+    }
+
+    private static long elapsedMicros(long startedNanos) {
+        return Math.max(0L, (System.nanoTime() - startedNanos) / 1_000L);
+    }
+
+    private static String correlationId(String operation, long sequence) {
+        return "sfm-terminal/" + operation + "/" + sequence;
+    }
+
+    private void awaitConnectionOpen(VoxConnection currentConnection, CompletableFuture<Void> closedFuture) throws Exception {
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private void awaitConnectionOpen(CompletableFuture<Void> closedFuture) throws Exception {
+{% endcase %}
+        long deadline = System.nanoTime() + callTimeout.toNanos();
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        while (currentConnection.state() != ConnectionState.OPEN && System.nanoTime() < deadline) {
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        while (connection.state() != ConnectionState.OPEN && System.nanoTime() < deadline) {
+{% endcase %}
+            if (closedFuture.isDone()) await(closedFuture, "opening Vox connection");
+            Thread.sleep(5);
+        }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        if (currentConnection.state() != ConnectionState.OPEN) {
+            throw new IllegalStateException("connection did not open: " + currentConnection.state());
+        }
+    }
+
+    private Transport requireCurrentTransport() {
+        synchronized (lock) {
+            if (client == null || sessionId == null) {
+                throw new IllegalStateException("Vox terminal transport is not connected");
+            }
+            return new Transport(client, sessionId, transportGeneration);
+        }
+    }
+
+    private boolean isCurrentTransportLocked(Transport transport) {
+        return transport != null
+                && transport.generation() == transportGeneration
+                && transport.client() == client
+                && Objects.equals(transport.sessionId(), sessionId);
+    }
+
+    private void failTransportIfCurrent(Transport transport, String prefix, Throwable error) {
+        synchronized (lock) {
+            if (!isCurrentTransportLocked(transport)) return;
+            failure = prefix + describe(error);
+            SFM.LOGGER.warn(
+                    "SFM_VOX_TERMINAL_OPERATION_FAILED session={} failure={}",
+                    transport.sessionId(),
+                    failure,
+                    error);
+            nextConnectionAttemptNanos = System.nanoTime() + Duration.ofSeconds(2).toNanos();
+            closeTransportLocked();
+        }
+    }
+
+    private <T> T runOnDriverBlocking(Callable<T> operation) throws Exception {
+        if (Thread.currentThread() == driverThread) return operation.call();
+        CompletableFuture<T> result = new CompletableFuture<>();
+        if (!submitDriver(() -> {
+            try {
+                result.complete(operation.call());
+            } catch (Throwable error) {
+                result.completeExceptionally(error);
+            }
+        })) {
+            throw new IllegalStateException("Vox terminal request executor is unavailable");
+        }
+        try {
+            return result.get(Math.max(1L, callTimeout.toMillis() * 2L), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException error) {
+            Throwable cause = unwrap(error.getCause());
+            if (cause instanceof Exception exception) throw exception;
+            throw new IllegalStateException("Vox terminal request failed", cause);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        if (connection.state() != ConnectionState.OPEN) {
+            throw new IllegalStateException("connection did not open: " + connection.state());
+{% endcase %}
+        }
+    }
+
+    private <T> T await(CompletableFuture<T> future, String operation) throws Exception {
+        try {
+            return future.get(callTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (ExecutionException error) {
+            throw new IllegalStateException(operation + " failed", unwrap(error.getCause()));
+        }
+    }
+
+    /**
+     * Vox closes the scheduler owned by a connection when that connection is
+     * closed. Reconnects therefore need a fresh options instance rather than
+     * reusing the previous connection's scheduler.
+     */
+    private ConnectionOptions freshConnectionOptions() {
+        return ConnectionOptions.builder()
+                .maxFrameBytes(connectionOptions.maxFrameBytes())
+                .maxQueuedOutboundBytes(connectionOptions.maxQueuedOutboundBytes())
+                .maxQueuedOutboundMessages(connectionOptions.maxQueuedOutboundMessages())
+                .maxPendingRequests(connectionOptions.maxPendingRequests())
+                .maxOpenLanes(connectionOptions.maxOpenLanes())
+                .maxSchemaBytes(connectionOptions.maxSchemaBytes())
+                .maxSchemas(connectionOptions.maxSchemas())
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+                .initialChannelCredit(1)
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+                .handshakeTimeout(connectionOptions.handshakeTimeout())
+                .idleTimeout(connectionOptions.idleTimeout())
+                .closeTimeout(connectionOptions.closeTimeout())
+                .handlerExecutor(connectionOptions.handlerExecutor())
+                .build();
+    }
+
+    private static <T> T requireSuccess(VoxResult<T, TerminalError> result, String operation) {
+        if (result.isSuccess()) return result.success();
+        if (result.isApplicationError()) {
+            throw new IllegalStateException(operation + ": " + result.applicationError().message());
+        }
+        throw new IllegalStateException(operation + ": " + result.detail());
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private static SFMTerminalTuningRejection tuningRejection(
+            ResizeOperation operation,
+            Exception failure
+    ) {
+        SFMTerminalError error = failure instanceof TerminalApplicationException application
+                ? application.terminalError
+                : new SFMTerminalError(
+                        SFMTerminalErrorCode.INTERNAL,
+                        describe(failure),
+                        true,
+                        0);
+        return new SFMTerminalTuningRejection(
+                error,
+                describeResizeRequest(
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize()));
+    }
+
+    private static String describeResizeRequest(
+            int columns,
+            int rows,
+            int surfaceWidth,
+            int surfaceHeight,
+            int fontPixelSize
+    ) {
+        return "surface=" + surfaceWidth + "x" + surfaceHeight
+                + ", font=" + (fontPixelSize == 0 ? "auto" : fontPixelSize)
+                + ", cells=" + columns + "x" + rows;
+    }
+
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    private void closeTransportLocked() {
+        closeTransportLocked(false);
+    }
+
+    private void closeTransportLocked(boolean requestDisconnect) {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        transportGeneration = incrementGeneration(transportGeneration, "terminal transport generation");
+        closeFrameSubscriptionLocked();
+        closeRasterSubscriptionLocked();
+        DetachedTransport detached = new DetachedTransport(
+                client, sessionId, lane, connection, requestDisconnect);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        if (requestDisconnect && client != null && sessionId != null) {
+            try {
+                client.disconnect(new TerminalDisconnectRequest(
+                        sessionId, "SFM terminal closed", nextSequence()));
+            } catch (Exception ignored) {
+                // Transport shutdown remains best effort after a failed optional endpoint.
+            }
+        }
+        if (lane != null) lane.close();
+        if (connection != null) connection.close();
+{% endcase %}
+        client = null;
+        lane = null;
+        connection = null;
+        sessionId = null;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        latestSnapshot = null;
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+        latestContent = null;
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+        latestSelection = null;
+        latestInteractionSequence = 0;
+        pendingRasterFrame = null;
+        activePresentation = null;
+        presentationTransitionFailure = null;
+        presentationModes = List.of();
+        presentationCatalog = SFMTerminalPresentationCatalog.undiscovered();
+        if (detached.client() != null || detached.lane() != null || detached.connection() != null) {
+            scheduleTransportCleanup(() -> closeDetachedTransport(detached));
+        }
+    }
+
+    private static long incrementGeneration(long value, String name) {
+        if (value == Long.MAX_VALUE) throw new IllegalStateException(name + " exhausted");
+        return value + 1;
+    }
+
+    private void closeFrameSubscriptionLocked() {
+        SFMVoxTerminalFrameInbox.Subscription closingSubscription = subscription;
+        DetachedSubscription detached = new DetachedSubscription(frameReceiver, subscriptionCall);
+        subscription = null;
+        frameReceiver = null;
+        subscriptionCall = null;
+        if (closingSubscription != null) frameInbox.disconnect(closingSubscription);
+        if (detached.receiver() != null || detached.call() != null) {
+            scheduleTransportCleanup(() -> closeDetachedSubscription(detached));
+        }
+    }
+
+    private void closeDetachedSubscription(DetachedSubscription detached) {
+        // Retire the request with one lifecycle signal. Cancelling the call
+        // ends the remote producer and releases its request slot; also closing
+        // the Rx would enqueue a competing channel reset for the same work.
+        if (detached.call() != null) {
+            detached.call().cancel(true);
+        } else if (detached.receiver() != null) {
+            detached.receiver().close();
+        }
+    }
+
+    private void closeRasterSubscriptionLocked() {
+        rasterHandoff.closeAll();
+        clearAcceptedRasterStateLocked();
+    }
+
+    private void clearAcceptedRasterStateLocked() {
+        acceptedRasterPresentationGeneration = "";
+        rasterConnectionEpoch = "";
+        rasterSessionEpoch = "";
+        rasterLastTerminalSequence = 0;
+        rasterLastFrameSequence = 0;
+    }
+
+    private void retireRasterStreamLocked(RasterStream stream) {
+        if (stream == null || stream.cleanupScheduled) return;
+        stream.cleanupScheduled = true;
+        // A raster stream owns an independent lane. One lane close retires its
+        // request, Tx/Rx channel, and receiver without disturbing the control
+        // lane, PTY session, active sibling, or a replacement pending stream.
+        scheduleTransportCleanup(stream.lane::close);
+    }
+
+    private void closeDetachedTransport(DetachedTransport detached) {
+        if (detached.requestDisconnect() && detached.client() != null && detached.sessionId() != null) {
+            try {
+                detached.client().disconnect(new TerminalDisconnectRequest(
+                        detached.sessionId(), "SFM terminal closed", nextSequence()));
+            } catch (Exception ignored) {
+                // Transport shutdown remains best effort after a failed optional endpoint.
+            }
+        }
+        if (detached.lane() != null) detached.lane().close();
+        if (detached.connection() != null) detached.connection().close();
+    }
+
+    private void scheduleTransportCleanup(Runnable cleanup) {
+        try {
+            transportCleanup.execute(cleanup);
+        } catch (RejectedExecutionException error) {
+            Thread fallback = new Thread(cleanup, "sfm-vox-terminal-cleanup-fallback");
+            fallback.setDaemon(true);
+            fallback.start();
+        }
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    }
+
+    private static Duration requirePositive(Duration value, String name) {
+        Objects.requireNonNull(value, name);
+        if (value.isZero() || value.isNegative()) throw new IllegalArgumentException(name + " must be positive");
+        return value;
+    }
+
+    private static Throwable unwrap(Throwable error) {
+        if (error instanceof CompletionException completion && completion.getCause() != null) {
+            return unwrap(completion.getCause());
+        }
+        return error;
+    }
+
+    private static String describe(Throwable error) {
+        Throwable cause = unwrap(error);
+        String message = cause.getMessage();
+        return message == null || message.isBlank() ? cause.getClass().getSimpleName() : message;
+    }
+
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+    private static String describeSubscriptionResult(
+            VoxResult<TerminalOperationResult, TerminalError> result) {
+        if (result == null) return "subscription completed without a result";
+        if (result.isApplicationError()) return result.applicationError().message();
+        String detail = result.detail();
+        return detail == null || detail.isBlank() ? result.kind().name() : detail;
+    }
+
+    static String streamIdentity(String connectionEpoch, String sessionEpoch) {
+        return connectionEpoch + "\u0000" + sessionEpoch;
+    }
+
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+{% endcase %}
+    static boolean isPng(byte[] payload) {
+        return payload != null
+                && payload.length >= 8
+                && payload[0] == (byte) 0x89
+                && payload[1] == 0x50
+                && payload[2] == 0x4E
+                && payload[3] == 0x47
+                && payload[4] == 0x0D
+                && payload[5] == 0x0A
+                && payload[6] == 0x1A
+                && payload[7] == 0x0A;
+    }
+
+    private final class Session implements SFMTerminalSession {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        private final SFMTerminalSession fallbackSession;
+
+        private Session(SFMTerminalSession fallbackSession) {
+            this.fallbackSession = Objects.requireNonNull(fallbackSession, "fallbackSession");
+        }
+
+{% endcase %}
+        @Override
+        public SFMTerminalResponse execute(String command) {
+            if (command == null || command.isBlank()) {
+                return SFMTerminalResponse.ok(List.of(), workingDirectory());
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            return SFMVoxTerminalService.this.execute(command);
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            return SFMVoxTerminalService.this.execute(command, fallbackSession);
+{% endcase %}
+        }
+
+        @Override
+        public String workingDirectory() {
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            return SFMVoxTerminalService.this.workingDirectory();
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            return fallbackSession.workingDirectory();
+{% endcase %}
+        }
+    }
+}

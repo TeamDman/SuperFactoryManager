@@ -1,0 +1,232 @@
+{
+  "schema": "sfm:state-theme-nine-promotion-focused-evidence@1",
+  "recorded_date": "2026-10-02",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "status": "promoted_focused_pass_current_full_gate_running",
+  "scope": {
+    "new_java_sources": 9,
+    "raw_authored_java_bytes": 51437,
+    "new_source_rules": 9,
+    "new_source_variants": 9,
+    "immutable_ledgers_added": 2,
+    "new_test_modules": 2,
+    "new_test_cases": 18,
+    "production_targets_touched": 15,
+    "ordered_apply_patches": 22,
+    "provider_refinements": 0,
+    "new_owner_definitions": 0
+  },
+  "current": {
+    "core_files": 1933,
+    "core_bytes": 8940502,
+    "core_sha256": "695a9e7b358b5d0ee5361ec0b8aedbf03358132c194af5ce4779ef3bde9466d8",
+    "source_rule_paths": 650,
+    "source_rule_variants": 835,
+    "registered_owner_definitions": 180,
+    "core_digest_framing": "ordinal slash-relative path + NUL + invariant byte count + NUL + lowercase SHA256 + LF, UTF8 without BOM"
+  },
+  "application": {
+    "terminal_exit": 0,
+    "marker": "STATE_THEME_NINE_APPLY_EXIT=0",
+    "original_98_staged_records_preserved": true,
+    "definitions_catalog_defaults_prerequisites_dependency_identities_changed": false,
+    "nightly_formatting": "Only two new prepared Rust test modules changed from their sealed preformat byte identities; Java and immutable ledgers remained exact."
+  },
+  "focused": {
+    "terminal_exit": 0,
+    "marker": "STATE_THEME_NINE_FOCUSED_EXIT=0",
+    "groups": [
+      {
+        "name": "unit:source_projection:core_keybinding_state_models_slice_tests",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_keybinding_state_models_slice_tests: test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 2160 filtered out; finished in 40.20s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_runtime_six_slice_tests",
+        "passed": 10,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_runtime_six_slice_tests: test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 2158 filtered out; finished in 97.27s"
+      },
+      {
+        "name": "unit:source_projection:core_keyboard_carriers_slice_tests",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_keyboard_carriers_slice_tests: test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 2160 filtered out; finished in 161.50s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_keyboard_models_slice_tests",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_keyboard_models_slice_tests: test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 2161 filtered out; finished in 188.02s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_preview_models_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_preview_models_slice_tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2162 filtered out; finished in 453.80s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_provider_slice_tests",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_provider_slice_tests: test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 2163 filtered out; finished in 31.62s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_preview_five_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_preview_five_slice_tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2162 filtered out; finished in 43.35s"
+      }
+    ],
+    "passed": 50,
+    "failed": 0,
+    "ignored": 0,
+    "new_passed": 18,
+    "existing_control_passed": 32,
+    "retained_log": {
+      "path": "platform/cli/sfm-propagate-changes/target/core-state-theme-nine-focused-20261002-v1.log",
+      "bytes": 2971,
+      "sha256": "81f5ead31001c8f19afd0ae46939d8ed8ae95127f3027635db5320e640bdd9d7"
+    }
+  },
+  "full_gate": {
+    "status": "running_no_terminal_acceptance",
+    "command": "check-all.ps1",
+    "retained_log": "platform/cli/sfm-propagate-changes/target/core-state-theme-nine-check-all-20261002-v1.log",
+    "observed": "Policy, formatting, production all-feature Clippy and build passed; bounded suite underway.",
+    "source_freeze_active": true,
+    "fresh_twenty_projection_generation_required": true,
+    "final_default_cli_pin": null,
+    "installed_PATH_freshness_claimed": false
+  },
+  "preparation": {
+    "capsule_role": "sfm-state-theme-nine-integration-stage-20261002-v1",
+    "manifest_bytes": 47404,
+    "manifest_sha256": "93005161934423b03a0a8ae2d480b5715a08e8a375455109c7407c166c8ab1a0",
+    "independent_review_role": "sfm-state-theme-nine-integration-peer-review-20261002-v1",
+    "independent_review_bytes": 16185,
+    "independent_review_sha256": "36bf8f61c94e17ba2bd09d54dfcb4cc373b75f14ea4546ff9c3cd0044b3db9d1",
+    "literal_payloads_read_by_root": 22,
+    "maximum_payload_utf16": 14845
+  },
+  "current_promoted_target_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingUserState.java",
+      "bytes": 977,
+      "sha256": "e9860ead1b9e1398d5d2e59d0a4e4ec63dece6afa2df9382a7dac5c1048afe8a"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingListModel.java",
+      "bytes": 3943,
+      "sha256": "5f44b68a0c4e92ea117fcf36f59183eaf2126697f3a53293563bbf453dc61079"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequenceCapture.java",
+      "bytes": 5149,
+      "sha256": "61c0f5ab6b4eae5ed1be11942d19832f44e0814ef11abfbaf7565f189bc1afc1"
+    },
+    {
+      "path": "docs/tasks/sfm-core-keybinding-state-models-slice.json",
+      "bytes": 37337,
+      "sha256": "65c5219efe0cc84e8a3093482da293d71113be44db229eccee2789f703dfdfd6"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_keybinding_state_models_slice_tests.rs",
+      "bytes": 26323,
+      "sha256": "3575c7ee4ca448265fc03714b09fa4590d6cbaf1e08060a31a78ba9de90c6bc8"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeLoader.java",
+      "bytes": 13887,
+      "sha256": "4cbb42b9880480a388b572b444024954796931ff0a8707c9997af15c9c4b8c65"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeService.java",
+      "bytes": 13329,
+      "sha256": "f977ae44e499950730d8a064ab3c4fc74f20e099a0d3db1d124937441cde000c"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/SFMClientThemeTomlWriter.java",
+      "bytes": 3994,
+      "sha256": "81bee22bd4abd588412643614fdf843b50a7c38853a1fb4690dd2ddc6cbf03c1"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRuleCodec.java",
+      "bytes": 5255,
+      "sha256": "bb78bfbc0a18934427603a4a881917ef7aca576fb2da0c17d4c9c6dd799b59e5"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewThemeResolver.java",
+      "bytes": 3606,
+      "sha256": "22c9eb034584a7349cf73877568522d3689ef0c595fdf9cf7cf55aaede6b6f66"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCache.java",
+      "bytes": 1297,
+      "sha256": "f6f6cada1367faeb34f5873912d3827d84c557602cc0896b87a458f336448c65"
+    },
+    {
+      "path": "docs/tasks/sfm-core-theme-runtime-six-slice.json",
+      "bytes": 28726,
+      "sha256": "82ec059db14a83f2e30998702e98f91299836a0ef3b0b035dddfe39160a7721f"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_theme_runtime_six_slice_tests.rs",
+      "bytes": 41870,
+      "sha256": "3880921f61dd473a25c88feb360891b3cd484c8c8196e8a786fab08c7465aaf5"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 17220,
+      "sha256": "69ab5690981e880c0275b4d2ebca72c47318c583d69c30a48430053d55bd8439"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 457949,
+      "sha256": "e43043491aec02e2221e664dd46c68af363c4d0790173ed4f453f688508210d4"
+    }
+  ],
+  "frozen_contract_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 30254,
+      "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+    },
+    {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2074,
+      "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/check-all.ps1",
+      "bytes": 2783,
+      "sha256": "ee6a5a6ff57a6067e1765919a8df94634bd81c6a32fb77b27184772d2dfbc818"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/test-bounded.ps1",
+      "bytes": 11834,
+      "sha256": "2122ad3565796327b9a80cdac85d7809157af32383d53f622c10fc5b55330608"
+    }
+  ],
+  "limits": [
+    "Rust focused tests exercise actual selector, scanner, renderer and collector boundaries, not Java or in-game effects.",
+    "Public defaults continue to omit all nine newly promoted leaves.",
+    "The prior accepted1924 fullgate and twenty no-write generation contexts remain historical, not current1933 acceptance.",
+    "Pointer and small-leaf proposals remain preparation only; they are not part of this source snapshot.",
+    "No full tooling terminal pass, current20 acceptance, full Java/runtime matrix, release parity, installation, merge, push or goal completion is claimed."
+  ]
+}

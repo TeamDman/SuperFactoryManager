@@ -1,0 +1,2102 @@
+{
+  "schema": "sfm:core_mixin_closure_slice@1",
+  "scope": "six_authored_source_and_registration_inputs_staged_only_not_live_core",
+  "production_inputs": "core_owned_explicit_mc_and_functional_feature_membership_only_no_environment_key_or_historical_source_selection",
+  "stage_prefix": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/",
+  "validation_status": {
+    "authoring_reconstruction": "38_present_raw_or_explicitly_approved_normalized_matches_and_82_frozen_absences",
+    "independent_json_masks": "128_D2_six_owner_masks_all_valid_JSON_with_exact_ordered_expected_client_registrations",
+    "production_rendering": "not_run_stages_are_not_production_inputs",
+    "new_tests": "unregistered_not_run",
+    "java_or_minecraft_build": "not_run_no_claim",
+    "native_gates": "root_owned_unrelated_not_modified"
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": {
+    "client_overlay_input": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "approval": "root_approved_narrow_D2_empty_prerequisites",
+      "scope": "mouse_button_scroll_move_and_keyboard_key_character_overlay_ingress",
+      "helper_closure": "SFMClientOverlayRuntime_migration_pending_not_stubbed"
+    },
+    "pointer_modifier_ingress": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "approval": "root_approved_narrow_D2_empty_prerequisites",
+      "scope": "raw_mouse_modifier_lifetime_onPress_HEAD_RETURN_cancel_and_runtime_failure",
+      "helper_closure": "SFMPointerInputModifiers_migration_pending_not_stubbed"
+    },
+    "single_line_input": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "scope": "EditBoxAccessor_for_SFMSingleLineEditBox_only_here",
+      "approval": "root_approved_and_GUI_peer_confirmed"
+    },
+    "typed_command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "scope": "EditBoxAccessor_selection_anchor_for_command_palette",
+      "prerequisites": "current_registry_real_closure_required_not_invented"
+    },
+    "keyboard_profiles": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "scope": "D2_reserved_vanilla_key_ingress_mixin_only_here_older_profile_handlers_keep_existing_contract",
+      "prerequisites": "current_registry_client_actions_closure_required"
+    },
+    "game_puppet_runtime": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "scope": "all_target_cursor_capture_suppression_D2_raw_mouse_keyboard_invokers",
+      "prerequisites": "current_registry_client_properties_closure_required"
+    }
+  },
+  "source_rules_suggestions": {
+    "src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [],
+          "any_features": [
+            "single_line_input",
+            "typed_command_palette"
+          ],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",
+        "when": {
+          "targets": [],
+          "all_features": [],
+          "any_features": [
+            "game_puppet_runtime",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "game_puppet_runtime"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [],
+          "any_features": [
+            "keyboard_profiles",
+            "client_overlay_input"
+          ],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "game_puppet_runtime"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/main/resources/sfm.mixins.json": [
+      {
+        "input": "src/main/resources/sfm.mixins.json",
+        "when": {
+          "targets": [],
+          "all_features": [],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      }
+    ]
+  },
+  "common_existing_registration": {
+    "StructureTemplateManagerMixin": "already_core_owned_unconditional_shared_all10_do_not_edit",
+    "HopperIgnoreTunnelledManagerMixin": "already_core_owned_exact26_membership_do_not_edit",
+    "loader_compatibility": "JAVA_17_older9_JAVA_25_26_1_2_preserved_not_optional_feature"
+  },
+  "feature_combinations": {
+    "witnessed_roots": "immutable_explicit_roots_reconstruct_historical_source_not_a_claim_historical_branch_had_feature_flags",
+    "subset_contract": "overlay_only_pointer_only_profiles_only_puppet_only_and_all_other_masks_are_reviewed_reconstructed_subsets_not_raw_witness_equality",
+    "pointer_only": "begin_in_HEAD_end_in_RETURN_no_overlay_or_exception_catch_dependency",
+    "overlay_only": "route_overlay_callbacks_no_pointer_holder_calls",
+    "combined_overlay_pointer": "retain_exact_historical_try_catch_end_before_cancel_and_failure_and_RETURN_end",
+    "registration": "order_and_commas_owned_by_member_predicates_Java17_vs25_and_five_space_legacy_older_client_indent_preserved"
+  },
+  "normalization_approval": {
+    "java": "all_seven_raw_LF_with_finalLF_exact_no_normalization",
+    "resource": "only_five_exact_frozen_JSON_OIDs_CRLF_to_LF_no_loneCR_or_token_or_spacing_changes",
+    "append_one_final_lf_oids": [
+      "a4e7d758c662139d819e6ab031b1553dcb402684",
+      "e5a17eabd50c4c5fd49e07e2a9e189fdad872034"
+    ],
+    "other_changes": "none",
+    "scope": "source_authoring_only_not_jar_or_gameplay_acceptance"
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+      "template_sha256": "sha256:5a40a2cb8f8ca86a301a0d01a1cfb7acbfdff8b4f23e01aa50ee00305b93d3e0",
+      "template_bytes": 376,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "single_line_input",
+              "typed_command_palette"
+            ],
+            "none_features": []
+          },
+          "template": false
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "8d0b4466929dc3fb03006cdbc1996a10b4590eb7",
+          "raw_bytes": 376,
+          "raw_sha256": "sha256:5a40a2cb8f8ca86a301a0d01a1cfb7acbfdff8b4f23e01aa50ee00305b93d3e0",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 376,
+          "normalized_sha256": "sha256:5a40a2cb8f8ca86a301a0d01a1cfb7acbfdff8b4f23e01aa50ee00305b93d3e0",
+          "normalization": "raw_exact"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "8d0b4466929dc3fb03006cdbc1996a10b4590eb7",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "8d0b4466929dc3fb03006cdbc1996a10b4590eb7",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",
+      "template_sha256": "sha256:69d5b6a7d3ae036a8f136c2ce99b58fd7adc56c4bfe72c851102580443188ed8",
+      "template_bytes": 3808,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",
+          "when": {
+            "targets": [],
+            "all_features": [],
+            "any_features": [
+              "game_puppet_runtime",
+              "client_overlay_input",
+              "pointer_modifier_ingress"
+            ],
+            "none_features": []
+          },
+          "template": false
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "643ea852e5cab170c4e8c39fe5af2e3e1cb289b0",
+          "raw_bytes": 2743,
+          "raw_sha256": "sha256:3779bf0a7c4b432c38fb78671a0b3ebb8a547207249acd3e0363f71485c36937",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 2743,
+          "normalized_sha256": "sha256:3779bf0a7c4b432c38fb78671a0b3ebb8a547207249acd3e0363f71485c36937",
+          "normalization": "raw_exact"
+        },
+        {
+          "oid": "b1ebd296ef3f8dcf4d084b8570acce3b021a2a8e",
+          "raw_bytes": 869,
+          "raw_sha256": "sha256:0a6822f502c033b374484165b6fa167d9514f0397e46e04ef799d550669ba24c",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 869,
+          "normalized_sha256": "sha256:0a6822f502c033b374484165b6fa167d9514f0397e46e04ef799d550669ba24c",
+          "normalization": "raw_exact"
+        },
+        {
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "raw_bytes": 884,
+          "raw_sha256": "sha256:05ef4881dfd569c0fe8a86f75ee8560a6bb9d64e3c76bdc971ff1ec0e6453056",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 884,
+          "normalized_sha256": "sha256:05ef4881dfd569c0fe8a86f75ee8560a6bb9d64e3c76bdc971ff1ec0e6453056",
+          "normalization": "raw_exact"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "643ea852e5cab170c4e8c39fe5af2e3e1cb289b0",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "643ea852e5cab170c4e8c39fe5af2e3e1cb289b0",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "oid": "b1ebd296ef3f8dcf4d084b8570acce3b021a2a8e",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "oid": "b1ebd296ef3f8dcf4d084b8570acce3b021a2a8e",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "oid": "ba825c149ae9d855d4d2ee43698940fefc99dfe8",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
+      "template_sha256": "sha256:450fea7782b05412c45273ce78dadfd51718dc28cbac7ff7c94d88deb61ecff8",
+      "template_bytes": 786,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "game_puppet_runtime"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": false
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "17e22857c0761e2c87922ead1ae53460c126ebee",
+          "raw_bytes": 786,
+          "raw_sha256": "sha256:450fea7782b05412c45273ce78dadfd51718dc28cbac7ff7c94d88deb61ecff8",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 786,
+          "normalized_sha256": "sha256:450fea7782b05412c45273ce78dadfd51718dc28cbac7ff7c94d88deb61ecff8",
+          "normalization": "raw_exact"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "17e22857c0761e2c87922ead1ae53460c126ebee",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "17e22857c0761e2c87922ead1ae53460c126ebee",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
+      "template_sha256": "sha256:1625771bdf9353245a099751e968eb3403b4e4365b256daee6cf1e0568780b22",
+      "template_bytes": 2476,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "keyboard_profiles",
+              "client_overlay_input"
+            ],
+            "none_features": []
+          },
+          "template": false
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "345209e2410d3b382ca46b284631d552aa8256cd",
+          "raw_bytes": 2131,
+          "raw_sha256": "sha256:dfc7dd8c0adaa183796a87e978af76e20fdc1ce6f1556065ead26f45dc80a2c0",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 2131,
+          "normalized_sha256": "sha256:dfc7dd8c0adaa183796a87e978af76e20fdc1ce6f1556065ead26f45dc80a2c0",
+          "normalization": "raw_exact"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "345209e2410d3b382ca46b284631d552aa8256cd",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "345209e2410d3b382ca46b284631d552aa8256cd",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java",
+      "template_sha256": "sha256:a8f0bed0419f7578832d2d15970a9b6587e6049780c30158ebe67fce8ec53f56",
+      "template_bytes": 609,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerInvoker.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "game_puppet_runtime"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": false
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "e13e89eb58fdbfe161439410b81d6c3e8e3971ed",
+          "raw_bytes": 609,
+          "raw_sha256": "sha256:a8f0bed0419f7578832d2d15970a9b6587e6049780c30158ebe67fce8ec53f56",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 609,
+          "normalized_sha256": "sha256:a8f0bed0419f7578832d2d15970a9b6587e6049780c30158ebe67fce8ec53f56",
+          "normalization": "raw_exact"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "e13e89eb58fdbfe161439410b81d6c3e8e3971ed",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "e13e89eb58fdbfe161439410b81d6c3e8e3971ed",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "oid": null,
+          "git_mode": null,
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "frozen_tree_membership_absence_not_renderer_omission_proof",
+          "authoring_reconstruction_equal": null
+        }
+      ]
+    },
+    {
+      "path": "src/main/resources/sfm.mixins.json",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/sfm.mixins.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-mixin-closure-stage-v1/src/main/resources/sfm.mixins.json",
+      "template_sha256": "sha256:ae39118f9b82fa23034556d1764347577858c15fcc8badb18696d64744597c86",
+      "template_bytes": 1596,
+      "source_rules_suggestion": [
+        {
+          "input": "src/main/resources/sfm.mixins.json",
+          "when": {
+            "targets": [],
+            "all_features": [],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "raw_variants": [
+        {
+          "oid": "490bd91c6590f0595bc1696f973878facd565539",
+          "raw_bytes": 435,
+          "raw_sha256": "sha256:a0775e35b9f7c658d8576769c001e7bc08cc04c38240d275e1b4fb607d7cb29f",
+          "crlf_count": 13,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 422,
+          "normalized_sha256": "sha256:cf8282a22369432a35858c6a5bf18138add567a1cc0d49f172c8904b26277f0e",
+          "normalization": "approved_resource_CRLF_to_LF_only"
+        },
+        {
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "raw_bytes": 332,
+          "raw_sha256": "sha256:030e074ee486e20289ebfa74d7f0253cf5e946a04bd4e4680f77e7bec91711b7",
+          "crlf_count": 17,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 315,
+          "normalized_sha256": "sha256:dfec94ab4f7b6ca1be17cb4a46ec88dc2a7097b97a68f1027b6dd48b5d35e0d1",
+          "normalization": "approved_resource_CRLF_to_LF_only"
+        },
+        {
+          "oid": "db375db533741395a944058540944607e8421332",
+          "raw_bytes": 374,
+          "raw_sha256": "sha256:931691b1a3864896a6643e2d97049ab02754f4fac2c4f6cae30d6bf130a83db9",
+          "crlf_count": 18,
+          "lone_cr_count": 0,
+          "raw_final_lf": true,
+          "append_lf": false,
+          "normalized_bytes": 356,
+          "normalized_sha256": "sha256:4f9092a4a7d5f868c827577e9b9801fc6442c6572874e85c74b3fbb0e2cd70d1",
+          "normalization": "approved_resource_CRLF_to_LF_only"
+        },
+        {
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "raw_bytes": 304,
+          "raw_sha256": "sha256:6bac015c9c8be2258a8613a0fb4ea0e6de94bc5ddf21e9cec0d6b1f02174ca3a",
+          "crlf_count": 15,
+          "lone_cr_count": 0,
+          "raw_final_lf": false,
+          "append_lf": true,
+          "normalized_bytes": 290,
+          "normalized_sha256": "sha256:035386d2378de6806fbd703063a65929d25a08e0e2143deac1e9246cb6c2efa3",
+          "normalization": "approved_resource_CRLF_to_LF_then_append_exactly_one_finalLF"
+        },
+        {
+          "oid": "e5a17eabd50c4c5fd49e07e2a9e189fdad872034",
+          "raw_bytes": 346,
+          "raw_sha256": "sha256:3af85f62841d9a65770c869cd5990e9716da942f520ede806a3383b66d7e52c8",
+          "crlf_count": 16,
+          "lone_cr_count": 0,
+          "raw_final_lf": false,
+          "append_lf": true,
+          "normalized_bytes": 331,
+          "normalized_sha256": "sha256:2e5d71d2aac2738d1cf33add5321334ed91fe9f3f870d1887718a474ef40c50e",
+          "normalization": "approved_resource_CRLF_to_LF_then_append_exactly_one_finalLF"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "oid": "490bd91c6590f0595bc1696f973878facd565539",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "oid": "490bd91c6590f0595bc1696f973878facd565539",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime",
+            "single_line_input",
+            "typed_command_palette",
+            "keyboard_profiles",
+            "client_overlay_input",
+            "pointer_modifier_ingress"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "oid": "a0801d4819eb013530d61d3dfd15c6a8195b8cc4",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "oid": "db375db533741395a944058540944607e8421332",
+          "git_mode": "100644",
+          "explicit_owner_roots": [
+            "game_puppet_runtime"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "oid": "a4e7d758c662139d819e6ab031b1553dcb402684",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "oid": "e5a17eabd50c4c5fd49e07e2a9e189fdad872034",
+          "git_mode": "100644",
+          "explicit_owner_roots": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_flag_claim",
+          "proof": "independent_literal_authoring_reconstruction_not_production_renderer",
+          "authoring_reconstruction_equal": true
+        }
+      ]
+    }
+  ],
+  "consumer_evidence": [
+    {
+      "owner": "single_line_input",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/input/SFMSingleLineEditBox.java",
+      "member": "editingBuffer",
+      "reference": "EditBoxAccessor.sfm$getHighlightPos",
+      "peer_review": "core_feature_inventory_confirms_single_line_input_D2_without_palette_prerequisites"
+    },
+    {
+      "owner": "typed_command_palette",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMCommandPaletteScreen.java",
+      "reference": "EditBoxAccessor.sfm$getHighlightPos"
+    },
+    {
+      "owner": "game_puppet_runtime",
+      "path": "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java",
+      "reference": "MouseHandlerInvoker_raw_onMove_onPress_onScroll"
+    },
+    {
+      "owner": "game_puppet_runtime",
+      "path": "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ExplorePacketInspectionPuppetAction.java",
+      "reference": "KeyboardHandlerInvoker_raw_keyPress"
+    },
+    {
+      "owner": "pointer_modifier_ingress",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/input/SFMPointerInputModifiers.java",
+      "reference": "thread_local_raw_modifier_begin_end_during_isDown"
+    },
+    {
+      "owner": "pointer_modifier_ingress",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasScreen.java",
+      "reference": "isDown_shift_observer_consumer_not_forced_owner_dependency"
+    },
+    {
+      "owner": "pointer_modifier_ingress",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java",
+      "reference": "current_modifier_observer_consumer_not_blanket_explorer_dependency"
+    },
+    {
+      "owner": "client_overlay_input",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/overlay/scene/SFMClientOverlayRuntime.java",
+      "reference": "mouseButton_mouseScroll_mouseMoved_key_character"
+    },
+    {
+      "owner": "keyboard_profiles",
+      "path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/handler/SFMDynamicKeyBindingHandler.java",
+      "reference": "onPreVanillaReservedKeyPressed"
+    }
+  ],
+  "tests_intended": [
+    "all120_fixed_context_cells_38_present_82_absent_against12_verified_raw_Git_blobs_after_promotion",
+    "128_D2_masks_and32_older_independent_puppet_keyboard_masks_actual_source_selection_and_JSON_text_collection_then_registration_class_closure",
+    "independent_pointer_overlay_profiles_puppet_import_method_cleanup_and_MC_remap_contracts",
+    "common_resource_and_Java_edits_propagate_without_environment_key_switching",
+    "raw_hash_template_hash_approved_normalization_mode_metadata_unsafe_path_duplicate_rule_and_context_mutations_refuse"
+  ],
+  "open_gates": [
+    "root_promotion_of_six_templates_and_exact_feature_metadata_rules",
+    "source_closure_of_SFMClientOverlayRuntime_SFMPointerInputModifiers_SFMDynamicKeyBindingHandler_SFMProperties_and_widget_helpers",
+    "runtime_mixin_apply_input_routing_and_Java_build_acceptance_not_source_test_claim",
+    "localization269key_and_changelog301line_ownership_remain_separate_explicit_migration_tasks"
+  ]
+}

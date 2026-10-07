@@ -10,6 +10,7 @@ use crate::dependency_sources::UnavailableSource;
 use crate::payload_fetcher::PayloadFetcher;
 use crate::source_decompile::acquire_locked_decompiled_sources;
 use crate::source_decompile::derive_locked_decompile_provider;
+use crate::source_decompile::derive_locked_decompile_provider_with_runtime;
 use crate::source_provider::SourceProviderKind;
 use crate::source_provider::SourceProviderView;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactPurposeV3;
@@ -49,6 +50,20 @@ pub(crate) fn derive_locked_loader_artifact_sources(
     inventory: &DependencyInventory,
 ) -> eyre::Result<Vec<LockedArtifactSource>> {
     derive_locked_loader_artifact_sources_with(inventory, |binary, decompiler| {
+        if let Some(fixture) = crate::java_analysis::current_scenario_fixture() {
+            eyre::ensure!(
+                !fixture.decompiler_runtime_identity.trim().is_empty(),
+                "scenario decompiler runtime identity must be explicit"
+            );
+            return Ok(derive_locked_decompile_provider_with_runtime(
+                inventory,
+                binary,
+                decompiler,
+                LOCKED_DECOMPILER_PROVIDER_ID,
+                Vec::new(),
+                &fixture.decompiler_runtime_identity,
+            ));
+        }
         derive_locked_decompile_provider(
             inventory,
             binary,
@@ -279,7 +294,6 @@ mod tests {
     use crate::branch_targets::WorktreeTarget;
     use crate::paths::CacheHome;
     use crate::source_decompile::FINGERPRINT_FILE;
-    use crate::source_decompile::derive_locked_decompile_provider_with_runtime;
     use crate::toolchain_lockfile_schema::read_current;
     use std::fs;
     use std::path::PathBuf;

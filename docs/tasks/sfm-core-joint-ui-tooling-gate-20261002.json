@@ -1,0 +1,77 @@
+{
+  "schema": "sfm.core_joint_ui_closed_tooling_gate@1",
+  "date": "2026-10-02",
+  "status": "closed_native_zero_current_1965_source_tooling_only",
+  "branch": "feat/sfm-main-source-projection",
+  "command": "Run the reviewed check-all.ps1 wrapper in Full mode from platform/cli/sfm-propagate-changes",
+  "actual_process": {
+    "closed_session": 28769,
+    "native_exit": 0,
+    "terminal_checkpoint": "162126",
+    "complete_marker": "FULL_GATE_COMPLETE_NATIVE_EXIT_0",
+    "replay_allowed": false
+  },
+  "root_reconciliation": {
+    "checkpoint": "3e9f48",
+    "native_exit": 0,
+    "ordered_unique_groups": 195,
+    "source_projection_groups": 147,
+    "listed_library_cases": 2250,
+    "ordinary_library_passes": 2234,
+    "standalone_fixture_passes": 1,
+    "intentional_library_ignores": 15,
+    "integration_passes": 70,
+    "integration_ignores": 0,
+    "empty_binary_harnesses": 2,
+    "empty_documentation_harnesses": 1,
+    "policy_format_all_feature_Clippy_build_passed": true,
+    "final_default_feature_CLI_build_passed": true
+  },
+  "log": {
+    "path": "platform/cli/sfm-propagate-changes/target/joint-ui-checkall-20261002-v1.log",
+    "bytes": 41577,
+    "sha256": "fea073b132b36753ec94e873178206535bf4fbf61cd706ffca65a8ea6fe95629"
+  },
+  "default_CLI": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "b6f8045935a4b857cf641686c94ba1e877edbfe0002aaef39cc51d639dfc6720",
+    "installed_PATH_freshness_proved": false
+  },
+  "protected_source": {
+    "root": "platform/minecraft/core-liquid-template",
+    "files": 1965,
+    "bytes": 9191718,
+    "sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163",
+    "metadata_rules": 682,
+    "metadata_variants": 867,
+    "metadata_bytes": 472389,
+    "metadata_sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f",
+    "feature_definitions": 180,
+    "definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "catalog_contexts": 20,
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "Cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+    "module_sha256": "4a1691e4bc8cdd554f01bc8ee6c8d544b6ecc25559eaa91f9985bba051d37325",
+    "root_postgate_checkpoint": "0a1cbf",
+    "root_postgate_native_exit": 0,
+    "original_staged_rows": 98,
+    "original_staged_rows_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1"
+  },
+  "preceding_focused_gate": {
+    "closed_session": 49439,
+    "native_exit": 0,
+    "new_cases": 32,
+    "historical_controls": 5,
+    "scope": "Selector, renderer and collector fixture contracts; not Java or UI runtime acceptance"
+  },
+  "limits": {
+    "fresh_current_twenty_context_generation": "pending",
+    "full_feature_on_closure": "pending",
+    "Minecraft_Java_build_runtime_and_release_parity": "pending",
+    "final_installation": "pending",
+    "fault_injection_or_hard_process_deadlines_proved": false,
+    "goal_complete": false
+  },
+  "next_gate": "Keep current source and default CLI unchanged until a separately reviewed fresh twenty-context successor closes and its retained evidence is accepted. Never replay the closed 195-group gate or the historical V10 generation."
+}

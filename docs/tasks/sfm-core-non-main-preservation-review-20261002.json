@@ -1,0 +1,64 @@
+{
+  "schema": "sfm:core_non_main_preservation_review@1",
+  "date": "2026-10-02",
+  "status": "current_inventory_reviewed_historical_preservation_open",
+  "source_checkpoint": {
+    "core_files": 1965,
+    "core_bytes": 9191718,
+    "core_sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163",
+    "rules": 682,
+    "variants": 867,
+    "metadata_sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f"
+  },
+  "current_inventory": {
+    "java_source_paths": 241,
+    "bytes": 1146726,
+    "package_partitions": 26,
+    "source_sets": {
+      "test": { "paths": 34, "package_info_paths": 5 },
+      "gametest": { "paths": 192, "package_info_paths": 17 },
+      "datagen": { "paths": 15, "package_info_paths": 2 }
+    },
+    "compatibility_subtree": { "paths": 36, "package_info_paths": 7 },
+    "stored_row_order_sha256": "d31359fa42ec4815ee10acf15e767fba8cf7216defc2135951d7517f5dcda480",
+    "ordinal_path_order_sha256": "08b7d6c1499066d4505978d4804291f66f5010c16c4c56b82a243efa2f98dd32",
+    "framing": "path NUL decimal-byte-length NUL lowercase-SHA256 LF",
+    "count_meaning": "Java source paths, including package metadata; not classes or executable test definitions"
+  },
+  "review_evidence": {
+    "subject_manifest_sha256": "22f113409ec6ca95f4c15a5c9054dade039127738d901a0661a44a4204683710",
+    "subject_seal_sha256": "78a3a76decc52eaa2a824043a4de73727b4b25acb6b5b3fb2b0a9167b70e74f3",
+    "independent_manifest_sha256": "647d21c268c2b2b57ae77023767825cbee92379b247ffd9102f05de4eadd2b58",
+    "independent_seal_sha256": "eadc3debc00e611451250f98922e159bd559d209a7892761e6fd5ca7c81445c6",
+    "independent_report_sha256": "f78f6f390e068708d00233f311cdf4761c5fbc5c9e89faf9706417dbb0973ce3",
+    "independent_native_receipt": "bb8d9c exit 0",
+    "root_review": "Read the complete report, manifest and seal; verified all four sealed artifact identities",
+    "findings": [
+      "NM-F1: retain source-path wording and package-info counts",
+      "NM-F2: distinguish stored row order from explicit ordinal path ordering"
+    ]
+  },
+  "historical_boundary": {
+    "retained_twenty_tree_scope": "main/java only",
+    "retained_301_raw_body_scope": "main Java only",
+    "non_main_path_union": null,
+    "non_main_missing_union": null,
+    "non_main_raw_blob_union": null,
+    "meaning": "Unknown, not zero",
+    "inherited_template_pins": 16,
+    "inherited_witness_cells": 320,
+    "inherited_distinct_oids": 82,
+    "witness_limit": "Inherited ledger claims, not a fresh complete historical raw-body acquisition"
+  },
+  "next_required_work": [
+    "Review a separately bounded caller for twenty exact-revision tree queries across test/java, gametest/java and datagen/java",
+    "Review actual retained tree results before fixing any raw-body acquisition cohort",
+    "Preserve remaining non-main sources and verify enabled Java test and puppet provider closure"
+  ],
+  "limits": [
+    "Zero explicit source rules does not mean unrendered Java copying; the actual collector renders implicit Java inputs",
+    "No Git acquisition, source application, fixture selection, Cargo or Java test was performed by this review",
+    "Current inventory acceptance does not prove historical preservation, feature closure, gameplay or release parity",
+    "The full ten-version and twenty-projection consolidation goal remains active"
+  ]
+}

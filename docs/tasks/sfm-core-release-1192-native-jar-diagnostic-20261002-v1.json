@@ -1,0 +1,87 @@
+{
+  "schema": "sfm:release-native-jar-diagnostic@1",
+  "date": "2026-10-02",
+  "target": "1.19.2",
+  "projection": "sfm-4.34.0/mc-1.19.2",
+  "status": "native_packaging_passed_release_parity_not_accepted",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "frozen_inputs": {
+    "core_files": 1875,
+    "core_bytes": 8419075,
+    "core_sha256": "6b9582a1c1707010f575317c7d0f5964a7d01c64f02c4097a2fe0d7e9917295b",
+    "source_rules": 592,
+    "project_inputs_sha256": "25391eaddcd5c2b075b002dbaf7d523cfbe5bd4ac6135257880f863a731de966",
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "original_schema2_lock_sha256": "4e25ec4540fb6feecba27836c90ec7eab6a0109bc21f193ef358c64f558567ae"
+  },
+  "execution": {
+    "recipe": "sfm:released-native-inputs/4.34.0/1.19.2@1",
+    "cli_bytes": 93378560,
+    "cli_sha256": "61e2e5d51253755e1254a2851f764c04c3b43991c131f0f22692389f0004ff64",
+    "sdk_identity": "156276d2e5afa3cbca981032b26335a2886b70de3668931c83b15fb31cdc228a",
+    "native_exit": 0,
+    "check_exit": 0,
+    "main_sources": 538,
+    "gametest_sources": 192,
+    "datagen_sources": 15,
+    "main_javac_ms": 40829,
+    "gametest_javac_ms": 48698,
+    "datagen_javac_ms": 35715,
+    "javac_executed_for_all_three_source_sets": true,
+    "jar_packaging": "completed_this_invocation_no_unreceipted_jar_cache_reuse",
+    "application_execution": "not_performed",
+    "runtime_compatibility": "not_performed",
+    "immutable_source_lock": true,
+    "installed_tool_freshness": "not_performed"
+  },
+  "artifacts": {
+    "original": {"bytes": 1623810, "sha256": "f2c0242a984b8b782cc995e20a59e71bbdb48981873ab31a4531f0d1db3af038"},
+    "candidate": {"bytes": 1625963, "sha256": "4215a605adc8b0c8a27ce6e91a92ebc22382f1f0261fbb70d8a3f79e04259491", "content_hash": "blake3:cc2fcfac752dfd36b0ced0acbda5898b676ec7cc"}
+  },
+  "physical_comparison": {
+    "file_entries_each": 1053,
+    "classes_each": 837,
+    "class_major_version": 61,
+    "missing_or_extra_entries": 0,
+    "duplicate_or_path_alias_entries": 0,
+    "identical_payloads": 399,
+    "changed_payloads": 654,
+    "identical_classes": 188,
+    "changed_classes": 649,
+    "debug_attribute_only_classes": 563,
+    "debug_and_compiler_generated_temporary_name_classes": 3,
+    "instruction_or_bootstrap_divergent_classes": 83,
+    "field_method_surface_or_member_order_changes": 0,
+    "json_changed_but_parse_equal": 4,
+    "manifest_difference": "Implementation-Timestamp only",
+    "method": "Independent in-memory ZIP and full class-structure inspection; strip only Code LineNumberTable, LocalVariableTable and LocalVariableTypeTable for classification. No class execution or semantic waiver."
+  },
+  "actual_cli_comparisons": {
+    "default_exit": 1,
+    "strict_manifest_exit": 1,
+    "matches": false,
+    "changed_nonmanifest_entries_each": 653,
+    "default_manifest_changed": false,
+    "strict_manifest_changed": true,
+    "default_report_bytes": 151918,
+    "default_report_sha256": "00d21c0e1c505323e79f64687fed3326967851c31bfe761b3b3f26a163aea99d",
+    "strict_report_bytes": 151917,
+    "strict_report_sha256": "a33fa9397f344783a868e9ff331b7b02f4e61d2023d78cb2f97f1f0f46795fa0"
+  },
+  "retained_evidence": {
+    "cli_relative_root": "target/named-release-1192-native-proof-20261002-v1",
+    "native_receipt": {"path": "jar.stdout.json", "bytes": 633572, "sha256": "b6d45260fc8b2893496f430c0fc653e6ac1943f12095773f683398d904989696"},
+    "progress": {"path": "jar.progress.jsonl", "bytes": 180504289, "sha256": "e348b57c26b1671c51726d02cce3f52e4d900f6557f31bdc4a6468226d308a15"},
+    "console": {"path": "jar.stderr.log", "bytes": 32581063, "sha256": "2ef2b00806a86a7d74ef68edab88d125341afcd81e1a5e53c0a865ddf4f71666"},
+    "comparison_cli_relative_root": "target/core-release-1192-final-jar-comparator-20261002-v1"
+  },
+  "acceptance_limits": [
+    "Structural difference classification is not executable equivalence or release compatibility.",
+    "The 83 instruction/bootstrap differences remain unaccepted, not debug-only.",
+    "The separate 1.20 report has 84 refusals and is not evidence for this target.",
+    "No Gradle, Minecraft application, GameTest execution, player-world access or runtime proof occurred.",
+    "This artifact is bound to the pre-promotion 1875-file core and 592 rules, not future source edits.",
+    "No source, dependency, lockfile, SDK or installed executable was changed by this diagnostic."
+  ]
+}

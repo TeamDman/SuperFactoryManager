@@ -1,0 +1,1694 @@
+{
+  "schema": "sfm:core-baseline-client-registration-slice@1",
+  "status": "seven_ignored_staged_templates_and_unregistered_post_promotion_tests",
+  "scope": "seven_baseline_client_registration_files_only",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "source_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "source_strategy": "Shared authored class bodies with grouped Minecraft-version import/API/member choices. Real functional flags own optional members; source witnesses are test evidence only, not production fallback inputs.",
+  "normalization": {
+    "policy": "only_approved_twelve_raw_blobs_CRLF_to_LF",
+    "removed_cr_total": 852,
+    "approved_raw_oids": [
+      "a55ad3e4edfba8eb162fc8aae9616e7f6a79f3dd",
+      "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+      "66800c378c767d4d0ba087b433e14a8b21c5b86b",
+      "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+      "00073f1d2456858a89a34479a763bca483f9f320",
+      "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+      "d60fe085a9cbe74f8b80b048712abe6cbb286a8b",
+      "72b2960a140ddcf0741b5f9f47a17309438a806c",
+      "d80eec0cbdceac858496356a40acbe19c44ceb88",
+      "c2375485ac9bb0ba86f14897ca14a1d808fd8b8d",
+      "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+      "24980a79950af0223fe4bc360aa60f434a55630f"
+    ],
+    "preserve": "All existing final-LF bytes remain final-LF. No BOM, lone CR, append, tokens or other whitespace changes permitted.",
+    "scope": "Four of seven classes contain historical mixed/CRLF witnesses; all other21 raw variants remain byte exact."
+  },
+  "owners": [
+    {
+      "id": "touch_display",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ],
+      "decision": "Only the D2 optional renderer import and registration. Released Printing Press registration stays unconditional. The renderer/frame/image implementation closure remains separate."
+    },
+    {
+      "id": "command_palette",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "client_theme",
+        "keyboard_profiles"
+      ],
+      "decision": "Ctrl+K localization, field and key-list entry only; baseline mappings and target key API/category remain unconditional."
+    },
+    {
+      "id": "client_manager_gui",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [
+        "client_manager"
+      ],
+      "decision": "Only 1.19.2's ClientManagerScreen import and CLIENT_MANAGER menu registration. No GUI method is fabricated on 1.19.4."
+    },
+    {
+      "id": "client_overlay_scenes",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "decision": "Only D2 scene-host import, lazy field and HUD registration. Old reminders/order remain unconditional; actual scene/theme/action helper closure is not accepted by this source proof."
+    },
+    {
+      "id": "canvas_text_editor",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "decision": "D2 V3/text_editor_v3 versus older-eight DRAW/draw; V1/V2 remain unconditional. Canvas implementation interfaces/dependencies remain separate."
+    },
+    {
+      "id": "item_details_jei",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [
+        "item_inspection"
+      ],
+      "decision": "Only 1.19.2's copied hovered-item Optional supplier and JEI runtime lifecycle registration; generic item_inspection is not packet_values."
+    },
+    {
+      "id": "client_launch_screen",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_properties"
+      ],
+      "decision": "All ten opt-in property-selected title launches; off retains firstTime=false and disabled legacy direct editor construction. The mixed title-screen enum and property implementation are unresolved closure."
+    }
+  ],
+  "proposed_companion_owner": {
+    "id": "item_inspection",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [],
+    "status": "proposed_taxonomy_not_registered_or_compilation_accepted",
+    "evidence": "SFMItemInspectionDocument.captureHovered/hoveredStack/capture supplies generic item-id/count/tooltip/SNBT; shared SFMTextEditorScreenType.open/recipeFor consumes Captured as a read-only literal typed editor document on D2. Packet-specific additions must later be separately guarded, not silently turn generic inspection into packet_values.",
+    "witnesses": [
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/inspection/SFMItemInspectionDocument.java",
+        "witnesses": [
+          {
+            "context": "dev/1.19.2",
+            "blob": "d8cd38731617f26982148540ac743fcfb6b3f24d"
+          },
+          {
+            "context": "dev/1.19.4",
+            "blob": "7d0acb3c7e293cb3d1ea343745e1e2b2f5c8dc4e"
+          },
+          {
+            "context": "dev/1.20",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.1",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.2",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.3",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.4",
+            "blob": null
+          },
+          {
+            "context": "dev/1.21.0",
+            "blob": null
+          },
+          {
+            "context": "dev/1.21.1",
+            "blob": null
+          },
+          {
+            "context": "dev/26.1.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.19.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.19.4",
+            "blob": null
+          },
+          {
+            "context": "release/1.20",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.1",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.3",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.4",
+            "blob": null
+          },
+          {
+            "context": "release/1.21.0",
+            "blob": null
+          },
+          {
+            "context": "release/1.21.1",
+            "blob": null
+          },
+          {
+            "context": "release/26.1.2",
+            "blob": null
+          }
+        ]
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTextEditorScreenType.java",
+        "witnesses": [
+          {
+            "context": "dev/1.19.2",
+            "blob": "6b4eb0f1b067987bc90c39fd5950f2d37b212762"
+          },
+          {
+            "context": "dev/1.19.4",
+            "blob": "6b4eb0f1b067987bc90c39fd5950f2d37b212762"
+          },
+          {
+            "context": "dev/1.20",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.1",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.2",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.3",
+            "blob": null
+          },
+          {
+            "context": "dev/1.20.4",
+            "blob": null
+          },
+          {
+            "context": "dev/1.21.0",
+            "blob": null
+          },
+          {
+            "context": "dev/1.21.1",
+            "blob": null
+          },
+          {
+            "context": "dev/26.1.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.19.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.19.4",
+            "blob": null
+          },
+          {
+            "context": "release/1.20",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.1",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.2",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.3",
+            "blob": null
+          },
+          {
+            "context": "release/1.20.4",
+            "blob": null
+          },
+          {
+            "context": "release/1.21.0",
+            "blob": null
+          },
+          {
+            "context": "release/1.21.1",
+            "blob": null
+          },
+          {
+            "context": "release/26.1.2",
+            "blob": null
+          }
+        ]
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMBlockEntityRenderers.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+      "source_sha256": "sha256:a30fe955fd87954be491b65f74e3c4f9adb3fb93484b6512d8bdf8cb8b87140a",
+      "source_bytes": 1385,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "touch_display"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "a55ad3e4edfba8eb162fc8aae9616e7f6a79f3dd",
+        "dev/1.19.4": "a55ad3e4edfba8eb162fc8aae9616e7f6a79f3dd",
+        "dev/1.20": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "dev/1.20.1": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "dev/1.20.2": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "dev/1.20.3": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "dev/1.20.4": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "dev/1.21.0": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "dev/1.21.1": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "dev/26.1.2": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/1.19.2": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "release/1.19.4": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "release/1.20": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "release/1.20.1": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+        "release/1.20.2": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/1.20.3": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/1.20.4": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/1.21.0": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/1.21.1": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+        "release/26.1.2": "f01670cf122329d37d5f6df69da5fc94552a2a5b"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMKeyMappings.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+      "source_sha256": "sha256:e54808974f06dd90b3acb96300b2cabbd1ef528b6ab9503b713b3b58d908a3ef",
+      "source_bytes": 19359,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "command_palette"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "47b87ac8ad9467cf31e47543a01994c2da6d72c3",
+        "dev/1.19.4": "47b87ac8ad9467cf31e47543a01994c2da6d72c3",
+        "dev/1.20": "47b87ac8ad9467cf31e47543a01994c2da6d72c3",
+        "dev/1.20.1": "47b87ac8ad9467cf31e47543a01994c2da6d72c3",
+        "dev/1.20.2": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+        "dev/1.20.3": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+        "dev/1.20.4": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+        "dev/1.21.0": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+        "dev/1.21.1": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+        "dev/26.1.2": "9ce52e450cb5ed0de3cbc3492ee05efbda127754",
+        "release/1.19.2": "281d527e9053fc559fce2341b2990fadbd780d4d",
+        "release/1.19.4": "281d527e9053fc559fce2341b2990fadbd780d4d",
+        "release/1.20": "281d527e9053fc559fce2341b2990fadbd780d4d",
+        "release/1.20.1": "281d527e9053fc559fce2341b2990fadbd780d4d",
+        "release/1.20.2": "682afc2118a0f61177bb915ce80e34a4fc999903",
+        "release/1.20.3": "682afc2118a0f61177bb915ce80e34a4fc999903",
+        "release/1.20.4": "682afc2118a0f61177bb915ce80e34a4fc999903",
+        "release/1.21.0": "682afc2118a0f61177bb915ce80e34a4fc999903",
+        "release/1.21.1": "682afc2118a0f61177bb915ce80e34a4fc999903",
+        "release/26.1.2": "758f175bf865066e6a51745f9239552705938ef9"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMMenuScreens.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+      "source_sha256": "sha256:cc4e39bf1617dcad42d6cb506a066866349ef260de67b53307c606438ff24e50",
+      "source_bytes": 2469,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_manager_gui"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "d89cd329f09bc830588d6f7b1af3b6af5e0a7288",
+        "dev/1.19.4": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.20": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.20.1": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.20.2": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.20.3": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.20.4": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "dev/1.21.0": "dc7ce44b98d96d2b18d3a36dd50e599694dcbde3",
+        "dev/1.21.1": "dc7ce44b98d96d2b18d3a36dd50e599694dcbde3",
+        "dev/26.1.2": "2d748aadc704a714dc6796eedda282215963e8c7",
+        "release/1.19.2": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.19.4": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.20": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.20.1": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.20.2": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.20.3": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.20.4": "85d108feb10610ae698e3388d42c9dea7827091a",
+        "release/1.21.0": "dc7ce44b98d96d2b18d3a36dd50e599694dcbde3",
+        "release/1.21.1": "dc7ce44b98d96d2b18d3a36dd50e599694dcbde3",
+        "release/26.1.2": "2d748aadc704a714dc6796eedda282215963e8c7"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMOverlays.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+      "source_sha256": "sha256:80462170f846887fd634bcb53f8663abcaf371ace2f1156f65c7f72fe3e8e0d0",
+      "source_bytes": 3975,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_overlay_scenes"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "66800c378c767d4d0ba087b433e14a8b21c5b86b",
+        "dev/1.19.4": "66800c378c767d4d0ba087b433e14a8b21c5b86b",
+        "dev/1.20": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "dev/1.20.1": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "dev/1.20.2": "b3bad8f2a8fa6fc3bfcc8c5b7ea7fa214c991dc4",
+        "dev/1.20.3": "b3bad8f2a8fa6fc3bfcc8c5b7ea7fa214c991dc4",
+        "dev/1.20.4": "d73d2914fa7db57d7136bba0d6446b11e7d4f6c1",
+        "dev/1.21.0": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+        "dev/1.21.1": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+        "dev/26.1.2": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+        "release/1.19.2": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "release/1.19.4": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "release/1.20": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "release/1.20.1": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+        "release/1.20.2": "b3bad8f2a8fa6fc3bfcc8c5b7ea7fa214c991dc4",
+        "release/1.20.3": "b3bad8f2a8fa6fc3bfcc8c5b7ea7fa214c991dc4",
+        "release/1.20.4": "d73d2914fa7db57d7136bba0d6446b11e7d4f6c1",
+        "release/1.21.0": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+        "release/1.21.1": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+        "release/26.1.2": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMTextEditors.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+      "source_sha256": "sha256:7b381761342c5f0723f34881b84844d275e1d4088c063d9a30f42974a0577737",
+      "source_bytes": 3593,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "canvas_text_editor"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "2fe8f071d151a4e5fc26861a6cb7138653c0469e",
+        "dev/1.19.4": "2fe8f071d151a4e5fc26861a6cb7138653c0469e",
+        "dev/1.20": "8791e765fb5c6bfee327c8ecaf8b077f393aeb66",
+        "dev/1.20.1": "8791e765fb5c6bfee327c8ecaf8b077f393aeb66",
+        "dev/1.20.2": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "dev/1.20.3": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "dev/1.20.4": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "dev/1.21.0": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "dev/1.21.1": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "dev/26.1.2": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+        "release/1.19.2": "6d0833663f518a532efd49eb9e77fb5e90b3fea3",
+        "release/1.19.4": "6d0833663f518a532efd49eb9e77fb5e90b3fea3",
+        "release/1.20": "6d0833663f518a532efd49eb9e77fb5e90b3fea3",
+        "release/1.20.1": "6d0833663f518a532efd49eb9e77fb5e90b3fea3",
+        "release/1.20.2": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+        "release/1.20.3": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+        "release/1.20.4": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+        "release/1.21.0": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+        "release/1.21.1": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+        "release/26.1.2": "9bb363d795b1fa362e7418c9dcee5614785a2be3"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/SFMJEIPlugin.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+      "source_sha256": "sha256:b0908117d8dc646df4bdacf4b5bbb47b950a864352e5a1d48bc6461752ad4725",
+      "source_bytes": 14410,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "item_details_jei"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "00073f1d2456858a89a34479a763bca483f9f320",
+        "dev/1.19.4": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+        "dev/1.20": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+        "dev/1.20.1": "d60fe085a9cbe74f8b80b048712abe6cbb286a8b",
+        "dev/1.20.2": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "dev/1.20.3": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "dev/1.20.4": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "dev/1.21.0": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "dev/1.21.1": "d80eec0cbdceac858496356a40acbe19c44ceb88",
+        "dev/26.1.2": "c2375485ac9bb0ba86f14897ca14a1d808fd8b8d",
+        "release/1.19.2": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+        "release/1.19.4": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+        "release/1.20": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+        "release/1.20.1": "d60fe085a9cbe74f8b80b048712abe6cbb286a8b",
+        "release/1.20.2": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "release/1.20.3": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "release/1.20.4": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "release/1.21.0": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+        "release/1.21.1": "d80eec0cbdceac858496356a40acbe19c44ceb88",
+        "release/26.1.2": "c2375485ac9bb0ba86f14897ca14a1d808fd8b8d"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-baseline-client-registration-stage-v1/TitleScreenOpenTextEditorOnLaunchHandler.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+      "source_sha256": "sha256:dc064e987efe003d0dac54c7c27db36644b06284ad7ad31439397a51d568bb89",
+      "source_bytes": 2260,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_launch_screen"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "f6f2cd292bf2db13e353efd51ed1b661a8675efa",
+        "dev/1.19.4": "f6f2cd292bf2db13e353efd51ed1b661a8675efa",
+        "dev/1.20": "f6f2cd292bf2db13e353efd51ed1b661a8675efa",
+        "dev/1.20.1": "f6f2cd292bf2db13e353efd51ed1b661a8675efa",
+        "dev/1.20.2": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "dev/1.20.3": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "dev/1.20.4": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "dev/1.21.0": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "dev/1.21.1": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "dev/26.1.2": "6ca534f7de0f1867a75b362a279a268c37840bae",
+        "release/1.19.2": "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+        "release/1.19.4": "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+        "release/1.20": "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+        "release/1.20.1": "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+        "release/1.20.2": "24980a79950af0223fe4bc360aa60f434a55630f",
+        "release/1.20.3": "24980a79950af0223fe4bc360aa60f434a55630f",
+        "release/1.20.4": "24980a79950af0223fe4bc360aa60f434a55630f",
+        "release/1.21.0": "24980a79950af0223fe4bc360aa60f434a55630f",
+        "release/1.21.1": "24980a79950af0223fe4bc360aa60f434a55630f",
+        "release/26.1.2": "24980a79950af0223fe4bc360aa60f434a55630f"
+      }
+    }
+  ],
+  "raw_variants": [
+    {
+      "blob": "a55ad3e4edfba8eb162fc8aae9616e7f6a79f3dd",
+      "raw_sha256": "sha256:2974bf6fa68215899374be475963873a18ee89f6acfc63409858764f1365175b",
+      "raw_bytes": 939,
+      "raw_cr_count": 12,
+      "raw_lf_count": 22,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:57da7b5bf346f92d7b43701a056011ef7c124bb0aaa284b917baa0f0e337cc6e",
+      "normalized_bytes": 927,
+      "removed_cr": 12,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.19.4"
+        }
+      ]
+    },
+    {
+      "blob": "a6ce912ea926844e3ab8a4fc88351e0612b32739",
+      "raw_sha256": "sha256:778270682e67c4ffc4e7aee654bd6553f7ddfff21167a13e2cc6c5a67d4b6b2d",
+      "raw_bytes": 713,
+      "raw_cr_count": 17,
+      "raw_lf_count": 17,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:a6aaf4651dc57effd4eadffffb16ce509efe889ee812ca6fdf14bda930ec1436",
+      "normalized_bytes": 696,
+      "removed_cr": 17,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.20.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "f01670cf122329d37d5f6df69da5fc94552a2a5b",
+      "raw_sha256": "sha256:e26d919d0e4730de999dc0857ca7e620b076d5cfb73cb6c54a8b2d967972e8eb",
+      "raw_bytes": 700,
+      "raw_cr_count": 0,
+      "raw_lf_count": 17,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:e26d919d0e4730de999dc0857ca7e620b076d5cfb73cb6c54a8b2d967972e8eb",
+      "normalized_bytes": 700,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "dev/26.1.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "47b87ac8ad9467cf31e47543a01994c2da6d72c3",
+      "raw_sha256": "sha256:ddc6d2f8b11f95ac6b083180e71155bcacbac3f73a808c9a131f51a7296e7653",
+      "raw_bytes": 14366,
+      "raw_cr_count": 0,
+      "raw_lf_count": 368,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:ddc6d2f8b11f95ac6b083180e71155bcacbac3f73a808c9a131f51a7296e7653",
+      "normalized_bytes": 14366,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "4b6d83fa0f93c7a91f4c97fe82ab8177b65e4ea4",
+      "raw_sha256": "sha256:f6585009d2cdb974fa12c992a581be3f8de549cf7cc3c17210a29a7076324c02",
+      "raw_bytes": 14382,
+      "raw_cr_count": 0,
+      "raw_lf_count": 368,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:f6585009d2cdb974fa12c992a581be3f8de549cf7cc3c17210a29a7076324c02",
+      "normalized_bytes": 14382,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/1.21.1"
+        }
+      ]
+    },
+    {
+      "blob": "9ce52e450cb5ed0de3cbc3492ee05efbda127754",
+      "raw_sha256": "sha256:98ba634b486d333589b54016c205348884e47422517a0929abf7334e83bb1f93",
+      "raw_bytes": 14391,
+      "raw_cr_count": 0,
+      "raw_lf_count": 372,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:98ba634b486d333589b54016c205348884e47422517a0929abf7334e83bb1f93",
+      "normalized_bytes": 14391,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "dev/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "281d527e9053fc559fce2341b2990fadbd780d4d",
+      "raw_sha256": "sha256:35d6090507e3d81fb8737029b37d8a46a3e1d5ad01c974110a5939bfab3f2432",
+      "raw_bytes": 13694,
+      "raw_cr_count": 0,
+      "raw_lf_count": 351,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:35d6090507e3d81fb8737029b37d8a46a3e1d5ad01c974110a5939bfab3f2432",
+      "normalized_bytes": 13694,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "682afc2118a0f61177bb915ce80e34a4fc999903",
+      "raw_sha256": "sha256:60bf9dbb4df068351f43b2f303aaf1e6d96b7baee4fc64e9a14d8f93db45d94d",
+      "raw_bytes": 13710,
+      "raw_cr_count": 0,
+      "raw_lf_count": 351,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:60bf9dbb4df068351f43b2f303aaf1e6d96b7baee4fc64e9a14d8f93db45d94d",
+      "normalized_bytes": 13710,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/1.21.1"
+        }
+      ]
+    },
+    {
+      "blob": "758f175bf865066e6a51745f9239552705938ef9",
+      "raw_sha256": "sha256:dbf688fadae20053d2a53a85b12b5a0b7facfa1268ce08e7f15fd7419e09bf76",
+      "raw_bytes": 13731,
+      "raw_cr_count": 0,
+      "raw_lf_count": 355,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:dbf688fadae20053d2a53a85b12b5a0b7facfa1268ce08e7f15fd7419e09bf76",
+      "normalized_bytes": 13731,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "d89cd329f09bc830588d6f7b1af3b6af5e0a7288",
+      "raw_sha256": "sha256:f2daac9c9cda2eae115aaa211db508d7c51bf1f4795baf2044319b50d0897aab",
+      "raw_bytes": 652,
+      "raw_cr_count": 0,
+      "raw_lf_count": 15,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:f2daac9c9cda2eae115aaa211db508d7c51bf1f4795baf2044319b50d0897aab",
+      "normalized_bytes": 652,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.19.2"
+        }
+      ]
+    },
+    {
+      "blob": "85d108feb10610ae698e3388d42c9dea7827091a",
+      "raw_sha256": "sha256:ced18367de52e8e7172a000bd906eb76b2879b0fdd9d275dcc55f9d4169834dd",
+      "raw_bytes": 507,
+      "raw_cr_count": 0,
+      "raw_lf_count": 13,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:ced18367de52e8e7172a000bd906eb76b2879b0fdd9d275dcc55f9d4169834dd",
+      "normalized_bytes": 507,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.20.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.20.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.20.4"
+        }
+      ]
+    },
+    {
+      "blob": "dc7ce44b98d96d2b18d3a36dd50e599694dcbde3",
+      "raw_sha256": "sha256:b70b64eb172394696eead5abfc16b530733db42b036f29c41b92e48822669286",
+      "raw_bytes": 623,
+      "raw_cr_count": 0,
+      "raw_lf_count": 15,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:b70b64eb172394696eead5abfc16b530733db42b036f29c41b92e48822669286",
+      "normalized_bytes": 623,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/1.21.1"
+        }
+      ]
+    },
+    {
+      "blob": "2d748aadc704a714dc6796eedda282215963e8c7",
+      "raw_sha256": "sha256:fc78a16f48fa912cce3bafb7c2decc82490dadea146f51febb897afa28d30081",
+      "raw_bytes": 1090,
+      "raw_cr_count": 0,
+      "raw_lf_count": 26,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:fc78a16f48fa912cce3bafb7c2decc82490dadea146f51febb897afa28d30081",
+      "normalized_bytes": 1090,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "dev/26.1.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "66800c378c767d4d0ba087b433e14a8b21c5b86b",
+      "raw_sha256": "sha256:bdaad32bedf8212af72900d81effe92661e9aad7f8baf66db4fb0d6376a36721",
+      "raw_bytes": 1566,
+      "raw_cr_count": 20,
+      "raw_lf_count": 35,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:4eaac695a539b611c7462df4f0f813ad237c69deb4790e5c2c9668c9be8c3793",
+      "normalized_bytes": 1546,
+      "removed_cr": 20,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.19.4"
+        }
+      ]
+    },
+    {
+      "blob": "0ea6959a4d65c4a3ecd1dae9ed9a8487eae04415",
+      "raw_sha256": "sha256:0e74aede7b94604defbf4c875e25c4bdd8be40ce53f427fcc7906c719c07b042",
+      "raw_bytes": 1242,
+      "raw_cr_count": 28,
+      "raw_lf_count": 28,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:cee7a6529cf18c95012d48d13bedcc30a1b581a19b58e8c86df8483ce7601bae",
+      "normalized_bytes": 1214,
+      "removed_cr": 28,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.20.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "b3bad8f2a8fa6fc3bfcc8c5b7ea7fa214c991dc4",
+      "raw_sha256": "sha256:23d2776a0607e912938135e3b4986518f09e5f8f266a0e88f1f9ece6dfcfa89c",
+      "raw_bytes": 1349,
+      "raw_cr_count": 0,
+      "raw_lf_count": 29,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:23d2776a0607e912938135e3b4986518f09e5f8f266a0e88f1f9ece6dfcfa89c",
+      "normalized_bytes": 1349,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.20.3"
+        }
+      ]
+    },
+    {
+      "blob": "d73d2914fa7db57d7136bba0d6446b11e7d4f6c1",
+      "raw_sha256": "sha256:66da12dd8a2cca7fd1df794355b6e39cd9ab5f85cbfd59fe6099fd2a0a1c8118",
+      "raw_bytes": 1473,
+      "raw_cr_count": 0,
+      "raw_lf_count": 32,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:66da12dd8a2cca7fd1df794355b6e39cd9ab5f85cbfd59fe6099fd2a0a1c8118",
+      "normalized_bytes": 1473,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.20.4"
+        }
+      ]
+    },
+    {
+      "blob": "eb2d0e39f889eae297ef7b73aa94c61f90f6f4e0",
+      "raw_sha256": "sha256:9b0a8ac3dd9c9a7f0a3475a2f229619a3fd4fcb69ebee52c9f71be49aa5473d4",
+      "raw_bytes": 1324,
+      "raw_cr_count": 0,
+      "raw_lf_count": 29,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:9b0a8ac3dd9c9a7f0a3475a2f229619a3fd4fcb69ebee52c9f71be49aa5473d4",
+      "normalized_bytes": 1324,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "dev/26.1.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "2fe8f071d151a4e5fc26861a6cb7138653c0469e",
+      "raw_sha256": "sha256:4b7e41aee92bb423e203ed578e5b609e76662dfe613713fe2c823ea51deb80ce",
+      "raw_bytes": 2339,
+      "raw_cr_count": 0,
+      "raw_lf_count": 54,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:4b7e41aee92bb423e203ed578e5b609e76662dfe613713fe2c823ea51deb80ce",
+      "normalized_bytes": 2339,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.19.4"
+        }
+      ]
+    },
+    {
+      "blob": "8791e765fb5c6bfee327c8ecaf8b077f393aeb66",
+      "raw_sha256": "sha256:d418bcb7704739f998a7de8f02ad1465f280977f2bfb85d6907d9a4fef4a2e94",
+      "raw_bytes": 2355,
+      "raw_cr_count": 0,
+      "raw_lf_count": 54,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:d418bcb7704739f998a7de8f02ad1465f280977f2bfb85d6907d9a4fef4a2e94",
+      "normalized_bytes": 2355,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "ce635435bf6697bc0534919c2ccab1ad7724993c",
+      "raw_sha256": "sha256:8baa14e8212135a015a77d409153fb9982752a1b820f3de1c2fafd11f3fa0bed",
+      "raw_bytes": 2345,
+      "raw_cr_count": 0,
+      "raw_lf_count": 54,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:8baa14e8212135a015a77d409153fb9982752a1b820f3de1c2fafd11f3fa0bed",
+      "normalized_bytes": 2345,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "dev/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "6d0833663f518a532efd49eb9e77fb5e90b3fea3",
+      "raw_sha256": "sha256:725aed374aa1a1d654d0e6579283db96a99936aa4f9ff882decbc57a8daf3c5c",
+      "raw_bytes": 2060,
+      "raw_cr_count": 0,
+      "raw_lf_count": 48,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:725aed374aa1a1d654d0e6579283db96a99936aa4f9ff882decbc57a8daf3c5c",
+      "normalized_bytes": 2060,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "9bb363d795b1fa362e7418c9dcee5614785a2be3",
+      "raw_sha256": "sha256:91c9957d9a170db94e193eb3b31b29735b3fa528928d3d4873cd192a8a8b71b6",
+      "raw_bytes": 2050,
+      "raw_cr_count": 0,
+      "raw_lf_count": 48,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:91c9957d9a170db94e193eb3b31b29735b3fa528928d3d4873cd192a8a8b71b6",
+      "normalized_bytes": 2050,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "00073f1d2456858a89a34479a763bca483f9f320",
+      "raw_sha256": "sha256:037e3fd16c8bdd13c4e56dd91a220d7fff3c1e897373936a70ef3f935f42d10a",
+      "raw_bytes": 4881,
+      "raw_cr_count": 85,
+      "raw_lf_count": 116,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:5c402d6d0a1fec78cf99796af8881f60e14bdafa8a56ea549ba9563a84fabc85",
+      "normalized_bytes": 4796,
+      "removed_cr": 85,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.19.2"
+        }
+      ]
+    },
+    {
+      "blob": "a2b3ac83d8d50e35da1611a338ac3fc1ce2e6dd8",
+      "raw_sha256": "sha256:dce53096d3ba22e5b77e14805e71587ac94729ffaafd4e98e3e93d1606b48b03",
+      "raw_bytes": 3835,
+      "raw_cr_count": 90,
+      "raw_lf_count": 90,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:54795a57ab08e1568c77cddb0437d09ac9f856d5f771d332b13dc911771383b4",
+      "normalized_bytes": 3745,
+      "removed_cr": 90,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.20"
+        }
+      ]
+    },
+    {
+      "blob": "d60fe085a9cbe74f8b80b048712abe6cbb286a8b",
+      "raw_sha256": "sha256:bda40e19df89b3345b34e6af0f7c606033a8366fba99aafdb24c4b73b196b6e8",
+      "raw_bytes": 4593,
+      "raw_cr_count": 116,
+      "raw_lf_count": 116,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:05b4a62471877c17e534b86759ef5c836ea90653db31c06cc9d4d58a3e80f096",
+      "normalized_bytes": 4477,
+      "removed_cr": 116,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.20.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "72b2960a140ddcf0741b5f9f47a17309438a806c",
+      "raw_sha256": "sha256:80eb6427a447a41d18b4b25acc83ce676ae8bf606935ca9c212ed5ad5cc0c577",
+      "raw_bytes": 4609,
+      "raw_cr_count": 116,
+      "raw_lf_count": 116,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:623f9b1d6f3c4eda3d37489fb4f7f52dbcfb8f369303649b386cf89b1cb6fb76",
+      "normalized_bytes": 4493,
+      "removed_cr": 116,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.21.0"
+        }
+      ]
+    },
+    {
+      "blob": "d80eec0cbdceac858496356a40acbe19c44ceb88",
+      "raw_sha256": "sha256:8c58a154a70686aa12dacc7f526a07712b851a327090f6e7efe0b62236298ce3",
+      "raw_bytes": 5668,
+      "raw_cr_count": 152,
+      "raw_lf_count": 152,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:a51c40f499bbc83d1ec827e0307f124afb9a55a04b996b59e9e085ec7a439fd1",
+      "normalized_bytes": 5516,
+      "removed_cr": 152,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/1.21.1"
+        }
+      ]
+    },
+    {
+      "blob": "c2375485ac9bb0ba86f14897ca14a1d808fd8b8d",
+      "raw_sha256": "sha256:eee1f9c63996f81b6129329f63cb58929107dc18d8ab342c8043d4176c40df08",
+      "raw_bytes": 5676,
+      "raw_cr_count": 152,
+      "raw_lf_count": 152,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:b203034c3e0c97bfc88784ec2fd5044c3986f5a9a2799852cdb54da06b95cde9",
+      "normalized_bytes": 5524,
+      "removed_cr": 152,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "dev/26.1.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "f6f2cd292bf2db13e353efd51ed1b661a8675efa",
+      "raw_sha256": "sha256:d674b2f5e6030f28b6bc1516f654c05459656f479d4531a9bee00550e338fa10",
+      "raw_bytes": 850,
+      "raw_cr_count": 0,
+      "raw_lf_count": 22,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:d674b2f5e6030f28b6bc1516f654c05459656f479d4531a9bee00550e338fa10",
+      "normalized_bytes": 850,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "6ca534f7de0f1867a75b362a279a268c37840bae",
+      "raw_sha256": "sha256:2f248fd117a828eb00d547ec5a12a6c8de1107ac036546ca63b5a5c2139d3360",
+      "raw_bytes": 854,
+      "raw_cr_count": 0,
+      "raw_lf_count": 22,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:2f248fd117a828eb00d547ec5a12a6c8de1107ac036546ca63b5a5c2139d3360",
+      "normalized_bytes": 854,
+      "removed_cr": 0,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "dev/26.1.2"
+        }
+      ]
+    },
+    {
+      "blob": "3e5ecf9ee3bdcb18b7ed0f34904c04fc0dd42468",
+      "raw_sha256": "sha256:f709241d5f030ce64bcfb1561ad6b041233b4367ae01fcb68df27214182086d1",
+      "raw_bytes": 1452,
+      "raw_cr_count": 32,
+      "raw_lf_count": 32,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:da0124675b96da07084eb10d5ca9819cf2ddfc99610da679af1d4ca8be04f5aa",
+      "normalized_bytes": 1420,
+      "removed_cr": 32,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.19.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.19.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.20"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.20.1"
+        }
+      ]
+    },
+    {
+      "blob": "24980a79950af0223fe4bc360aa60f434a55630f",
+      "raw_sha256": "sha256:887dd61a10eb75a96e67fcf00c67aefe9e6c60dcaf0fedc88d68d4946ff4c31a",
+      "raw_bytes": 1456,
+      "raw_cr_count": 32,
+      "raw_lf_count": 32,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:cb28f0ed35b6a086ea68851f17dddc11a06bcbcfdda2486b86cfc4c18a6efe0a",
+      "normalized_bytes": 1424,
+      "removed_cr": 32,
+      "contexts": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.20.2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.20.3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.20.4"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.21.0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/1.21.1"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+          "context": "release/26.1.2"
+        }
+      ]
+    }
+  ],
+  "key_api_adapters": [
+    "Forge imports through1.20.1; NeoForge from1.20.2.",
+    "26.1.2 KeyMapping.Category/Identifier and Window API retained; no Lazy-category copy from1.19.2.",
+    "1.21 menus use RegisterMenuScreensEvent;26 picture-in-picture TickTimeGraph registration remains released baseline.",
+    "1.21 overlays use RegisterGuiLayersEvent/VanillaGuiLayers;1.20.4 extra historical imports retained.",
+    "JEI baseline1.20.1+ singleton/runtime lifecycle preserved;1.20.2+ RecipeHolder.value;1.21.1 expanded baseline method layout;26 Identifier/craftingStation/serverRecipeMap preserved."
+  ],
+  "unresolved_closures": [
+    {
+      "owner": "item_inspection",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/client/inspection/SFMItemInspectionDocument.java",
+        "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextDocumentLanguage.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTextEditorScreenType.java"
+      ],
+      "gap": "Current generic helper imports PacketItem/SFMValueJsonCodec; separately factor those optional members. The typed editor reader also has workspace/document dependencies, which cannot be inferred solely from JEI supplier presence."
+    },
+    {
+      "owner": "client_launch_screen",
+      "paths": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMTitleScreenDevScreen.java",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "blob": "6058aa1cf2a980a86a9162c5df8237cf63eaf14c"
+            },
+            {
+              "context": "dev/1.19.4",
+              "blob": "6058aa1cf2a980a86a9162c5df8237cf63eaf14c"
+            },
+            {
+              "context": "dev/1.20",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.20.1",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.20.2",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.20.3",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.20.4",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.21.0",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/1.21.1",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "dev/26.1.2",
+              "blob": "30409fc85f31c7ac5e0286f167f3405bfe43883f"
+            },
+            {
+              "context": "release/1.19.2",
+              "blob": null
+            },
+            {
+              "context": "release/1.19.4",
+              "blob": null
+            },
+            {
+              "context": "release/1.20",
+              "blob": null
+            },
+            {
+              "context": "release/1.20.1",
+              "blob": null
+            },
+            {
+              "context": "release/1.20.2",
+              "blob": null
+            },
+            {
+              "context": "release/1.20.3",
+              "blob": null
+            },
+            {
+              "context": "release/1.20.4",
+              "blob": null
+            },
+            {
+              "context": "release/1.21.0",
+              "blob": null
+            },
+            {
+              "context": "release/1.21.1",
+              "blob": null
+            },
+            {
+              "context": "release/26.1.2",
+              "blob": null
+            }
+          ]
+        }
+      ],
+      "gap": "The D2 enum has TEXT_EDITOR/INPUT_DIAG; older-eight also canvas/file explorer/item picker/source/comment review imports and constants. Future field-level ownership must preserve these exact witnessed variants without enabling all UIs or requiring a bootstrap catchall."
+    },
+    {
+      "owner": "client_overlay_scenes",
+      "gap": "Scene-host class/backend and optional action/theme usage require their own reviewed input membership. This bounded registrar proof does not accept every flag combination as Java compilable."
+    },
+    {
+      "owner": "canvas_text_editor",
+      "gap": "V3 and older-eight DrawCanvas registration implementation closures remain unproven; no attempt to silently unify their distinct factories."
+    }
+  ],
+  "metadata_proposal": {
+    "source_rules": "No sparse whole-class membership: all seven released registration classes are one core-relative input shared across all ten targets and all feature masks.",
+    "feature_definitions": "Only narrow absent member owners approved conceptually here; root owns review/registration/catalog enabling. Existing owners retain witnessed support. No development/environment/bootstrapping umbrella."
+  },
+  "validation": {
+    "static_source_reconstruction": {
+      "method": "Read-only pinned Git bytes captured with raw hashes, normalized only approved CRLF bytes; in-memory whole-line conditional extraction (not production renderer).",
+      "contexts": 140,
+      "matched": 140,
+      "independent_member_predicate_probes": 490,
+      "independent_member_predicate_matched": 490,
+      "independent_member_predicate_scope": "Each of seven owners selected alone on each actual Minecraft version, rendering all seven files. Direct predicate probes include deliberately globally-true unsupported-target flags solely to prove target member guards retain released text; they do not accept those invalid registered contexts.",
+      "writes": "Only seven ignored staged authored files. No generated roots, current core, dependencies, locks, metadata or runtime changed.",
+      "limits": "Direct source extraction does not prove registered prerequisites, Java linkage, Gradle/native compilation, JAR behavior or gameplay."
+    },
+    "post_promotion_tests": "New unregistered core_baseline_client_registration_slice_tests uses actual promoted core selection, production renderer, fixed raw/normalized goldens and registered prerequisite closures; no staged-source fallback."
+  },
+  "repro_read_only": [
+    "git ls-tree <fixed-commit> -- platform/minecraft/<source-path>",
+    "git cat-file blob <fixed-oid>",
+    "After explicit promotion/registration: cargo test --locked --offline core_baseline_client_registration_slice_tests (root-owned execution only)."
+  ]
+}

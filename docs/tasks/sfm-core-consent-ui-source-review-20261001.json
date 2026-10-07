@@ -1,0 +1,119 @@
+{
+  "schema": "sfm:core-consent-ui-source-review@1",
+  "date": "2026-10-01",
+  "goal_status": "active_incomplete",
+  "scope": "Full source and prepared-test review only; no promotion or execution acceptance",
+  "frozen_source_boundary": {
+    "authored_files": 1859,
+    "source_rules": 576,
+    "authored_tree_sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "project_inputs_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+    "original_staged_records": 98,
+    "original_staged_records_unchanged": true
+  },
+  "consent_ui_seven": {
+    "stage": "platform/cli/sfm-propagate-changes/target/core-consent-panel-closure-stage-v1",
+    "authored_java_files": 7,
+    "authored_java_bytes": 45140,
+    "historical_cells": 140,
+    "historical_present": 14,
+    "historical_absent": 126,
+    "raw_git_objects": 9,
+    "raw_git_bytes": 49002,
+    "root_full_reads": [
+      "Seven whole authored Java sources",
+      "Nine whole offline Git golden Java bodies",
+      "Original 544-line prepared test module",
+      "Complete 1918-line ledger, proposed source rules and delivery review",
+      "Derived 715-line current-rule refinement module, all replacement regions and review"
+    ],
+    "ledger": {
+      "bytes": 67269,
+      "sha256": "9671eda55874deedfbafa0fede6f822fdf691e9919284e4d0bc6c87c29d29a1a"
+    },
+    "original_tests": {
+      "bytes": 33029,
+      "sha256": "f1b7aa63d5974b4b13481a4ef4416cb21cf2167d5b3c527819ce5228d4f95f83",
+      "prepared_cases": 8,
+      "registered": false,
+      "executed": false
+    },
+    "current_rule_refinement": {
+      "stage": "platform/cli/sfm-propagate-changes/target/core-consent-ui7-test-refinement-stage-v2",
+      "bytes": 40644,
+      "sha256": "d0a2e553ecfea5b62df4411871760377553c0720a2ab31d1787399caba090d4d",
+      "review_sha256": "45239ed0a1ef28751333bb3d76774b0751a421fe7b92ad19ce99ec4301ba8e06",
+      "prepared_cases": 9,
+      "original_cases_preserved": 8,
+      "sole_current_provider_rule": "SFMClientActionContext: exact any_features union of client_actions and workspace_panels",
+      "context_body_bytes": 2894,
+      "context_body_sha256": "2713d367601d6441a697e2c25650a7e187a4157f7785e0c35e407a0650e97a68",
+      "other_provider_bodies_and_rules_retained": 18,
+      "original_ledger_and_raw_witnesses_changed": false,
+      "independent_peer_review": "No source or prepared-test blocker; original and derived modules read completely",
+      "registered": false,
+      "executed": false
+    },
+    "root_findings": [
+      "Human consent controls retain current-host and exact originating-panel checks. No programmatic descriptor or handler was added.",
+      "Signing-disabled output retains real consent controls and the consent-service-only constructor without signer providers.",
+      "Widget-only ownership does not force client action effects, signing, frame execution or command palette support.",
+      "The command-palette-disabled path retains the original string action executor and captured-host feedback behavior.",
+      "Historical bytes and EOL identities remain immutable evidence. Current provider-rule changes use a separate strict refinement."
+    ]
+  },
+  "screen_factory_three": {
+    "stage": "platform/cli/sfm-propagate-changes/target/core-consent-screen-factory-stage-v1",
+    "root_full_reads": [
+      "Three whole authored Java sources and six offline Git golden bodies",
+      "Eight prepared tests",
+      "Complete ledger, review, both proposed rule files and current-carrier test refinements"
+    ],
+    "ledger_sha256": "c1f38badb689623e8010e5b653a6225f895ad9e2e79e4c6f8d7956711e6cbe44",
+    "prepared_tests_sha256": "4595c99f9130c932f92317da9b795fe81b077f049ff34949496e7b6562e845eb",
+    "independent_fresh_review": {
+      "reviewer": "core_liquid_scanner",
+      "author_not_counted_as_peer": true,
+      "historical_cells_checked": 60,
+      "present": 22,
+      "absent": 38,
+      "raw_git_identities_checked": 6,
+      "sealed_artifact_pins_checked": 8,
+      "current_provider_body_pins_checked": 11,
+      "current_feature_contracts_checked": 8,
+      "finding": "No source or prepared-test preservation blocker. Workspace-only selects pure carriers and Type/Registry; reopening-off uses the genuine panel fallback."
+    },
+    "promotion_obligations": [
+      "Apply the three exact pure-carrier OR rules without changing their bodies or the action-effect provider rules.",
+      "Apply the Action current-omission refinement and Choice2 strict historical-rule/current-OR helper.",
+      "Apply the separately sealed UI7 Context-only current-rule refinement.",
+      "Register and execute the actual source tests after the frozen packaging and full-tooling checks finish."
+    ],
+    "resource_consumer_follow_up": {
+      "key": "gui.sfm.client_action.context.originating_host_changed",
+      "observation": "The key remains client_actions-owned while the proposed Context API is also selected by workspace_panels.",
+      "affected_workspace_only_caller_found": false,
+      "runtime_failure_reproduced": false,
+      "disposition": "Check the key's exact consumer ownership when the workspace-only error path is exercised; do not widen all action localization resources."
+    },
+    "promoted": false,
+    "actual_tests_executed": false
+  },
+  "acceptance_limits": {
+    "source_review": "completed for the listed staged inputs",
+    "production_source_changes": "none in this review",
+    "production_test_registration": "not performed",
+    "production_selector_and_renderer_tests": "not executed for these proposals",
+    "java_compilation": "not performed",
+    "factory_discovery": "not performed",
+    "gui_and_consent_effects": "not performed",
+    "private_key_store_or_network_effects": "not performed",
+    "complete_development_preservation": "not established",
+    "dependency_changes": "none",
+    "historical_sources_as_production_inputs": "none"
+  },
+  "path_reference_policy": {
+    "repository_relative_only": true,
+    "machine_specific_sdk_or_cache_paths_persisted": false
+  }
+}

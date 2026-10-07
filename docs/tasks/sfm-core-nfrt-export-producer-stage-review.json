@@ -1,0 +1,212 @@
+{
+  "schema": "sfm:nfrt_export_producer_stage_review@1",
+  "status": "authored_unregistered_foundations_and_ignored_java_proposal_not_executed",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "conclusion": "The strict input exporter and fresh producer receipt model are ready for root review and focused registration tests. They do not provide a filesystem writer, actual SDK attestation, an OS network sandbox or an enabled named NFRT engine.",
+  "scope": {
+    "registered_existing_rust_changes": 0,
+    "core_or_catalog_changes": 0,
+    "dependency_or_lock_changes": 0,
+    "cargo_runs": 0,
+    "javac_runs": 0,
+    "java_or_child_graph_runs": 0,
+    "downloads_or_cache_writes": 0,
+    "appcontainer_acl_firewall_or_windows_feature_changes": 0,
+    "cleanup": 0,
+    "disk_errors": 0,
+    "scoped_rustfmt": "passed on the two new unregistered modules only",
+    "selected_original_role_files_rehashed": 78,
+    "selected_original_role_hashes_all_match": true
+  },
+  "artifacts": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/nfrt_launch_contract.rs",
+      "bytes": 36085,
+      "sha256": "e04dd228ddb5c0c63751e282020f5e905d0c23cfb0515c92d53c93c6155ca20a",
+      "registration": "not registered",
+      "authored_tests": 4,
+      "tests_run": 0
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/nfrt_producer_output_receipt.rs",
+      "bytes": 18478,
+      "sha256": "dd41e6ced4324b591ee8a54657f8573e1efd26378791ea24e66281bf3c45dc05",
+      "registration": "not registered",
+      "authored_tests": 4,
+      "tests_run": 0
+    },
+    {
+      "path": "target/core-nfrt-producer-stage-v1/SFMFreshNodeOutputGate.java",
+      "bytes": 15896,
+      "sha256": "e05640d2336c83e3338713dcf139e373766cdac96b140423d94c4392ac57a1b8",
+      "registration": "ignored source proposal only",
+      "javac_or_execution": "not performed"
+    }
+  ],
+  "preserved_adapter": {
+    "path": "target/core-nfrt-launcher-stage-v1/SFMNamedNeoFormLauncher.java",
+    "bytes": 28819,
+    "sha256": "3a3868fe950d8a0be3c3cde04a95b299190468a407a64dd6f3d6c1cd571a5c38",
+    "unchanged": true,
+    "node_output_policy": "still refuses every NodeOutputItem",
+    "main_policy": "still unconditionally refuses named graph execution"
+  },
+  "source_inputs": [
+    {
+      "path": "docs/tasks/sfm-core-named-nfrt-compile-review.json",
+      "sha256": "8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d",
+      "use": "frozen parent coordinates, exact function argument/classpath data and joined graph-step order"
+    },
+    {
+      "path": "docs/tasks/sfm-core-released-native-adapter-review.json",
+      "sha256": "8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21",
+      "use": "test fixture exact original lock and 13 selected role mappings"
+    },
+    {
+      "path": "docs/tasks/sfm-core-nfrt-windows-child-network-review.json",
+      "sha256": "4b547918a8e58fd17fe144522e3be60a31bc7d6fbf1a4907b046cea3b899673c",
+      "use": "producer-hook exact pinned public API witnesses and separate OS boundary review"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "sha256": "cb448dccf3fc88ab13b93e0fd6e0828464c6091db25ec928754129622ac54f0c",
+      "unchanged": true
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+      "unchanged": true
+    }
+  ],
+  "strict_exporter": {
+    "entry_point": "jar_build::nfrt_launch_contract::NfrtExportPlan::prepare",
+    "why_jar_build": "Reuse existing pub(super) authenticated Minecraft request handles and parser directly. Do not copy that authentication model or widen existing visibility.",
+    "input_authority": [
+      "actual private FrozenRecipeProject and PreparedDependencyInputs handles",
+      "target-bound approved NfrtChildIdentitySupplement",
+      "typed already-selected ResolvedJava plus supplied executable bytes",
+      "bounded fresh invocation identity token, not an external filesystem path"
+    ],
+    "emitted_contract": "sfm:named_nfrt_invocation_input@1",
+    "parent_checks": "Original ContentHash for all selected original requests, plus approved supplement full SHA and exact bounded entry verification for NFRT, NeoForm and userdev parents.",
+    "minecraft_checks": "Existing authenticate_version_json verifies the original direct parent pin. All selected compile downloads and ordinary libraries require exact authenticated URLs, sizes and original SHA1 child identities; missing optional mappings remain absent.",
+    "child_checks": "Approved exact child handles preserve source-consumer order and verify their full SHA256 and byte lengths.",
+    "order": [
+      "all original prepared dependency rows remain in their original sequence",
+      "runtime roots and global frozen transitive rows retain their original sequence",
+      "function order is the explicitly witnessed five older functions or two 26.1.2 functions",
+      "function classpaths, argument arrays and JVM argument arrays are copied without sorting/deduplication",
+      "joined graph steps retain the original ordered array",
+      "first occurrence controls immutable original byte snapshots; ordered consumer rows remain separate"
+    ],
+    "target_matrix": [
+      { "target": "1.20.2", "minecraft": "1.20.2", "compiler_release": 17, "minimum_tool_jvm": 21, "functions": 5 },
+      { "target": "1.20.3", "minecraft": "1.20.3", "compiler_release": 17, "minimum_tool_jvm": 21, "functions": 5 },
+      { "target": "1.20.4", "minecraft": "1.20.4", "compiler_release": 17, "minimum_tool_jvm": 21, "functions": 5 },
+      { "target": "1.21.0", "minecraft": "1.21", "compiler_release": 21, "minimum_tool_jvm": 21, "functions": 5 },
+      { "target": "1.21.1", "minecraft": "1.21.1", "compiler_release": 21, "minimum_tool_jvm": 21, "functions": 5 },
+      { "target": "26.1.2", "minecraft": "26.1.2", "compiler_release": 25, "minimum_tool_jvm": 25, "functions": 2 }
+    ],
+    "bounds": {
+      "supplied_total_bytes": 1073741824,
+      "total_input_count": 8192,
+      "serialized_contract_bytes": 4194304,
+      "selected_executable_bytes": 67108864,
+      "invocation_token_bytes": 128,
+      "per_function_argument_count": 512,
+      "per_function_jvm_argument_count": 128,
+      "per_argument_bytes": 16384
+    },
+    "portable_sdk_binding": "Emit actual selected major, a portable selection category, optional original archive URL/SHA512 and exact supplied executable length/full SHA256. Do not persist ResolvedJava.selection diagnostic paths.",
+    "sdk_limit": "Supplied bytes are not proof they came from the selected executable path. actual_sdk_rechecked remains false; later host must recheck the exact archive/executable and safe copy before launch.",
+    "serialization_limit": "DTO and immutable memory snapshots are not yet a Java LaunchContract parser or a filesystem writer. Unknown/source-built transport and authenticated library names must be explicitly adapted, not invented.",
+    "execution": "PreparedNfrtInvocationInput::require_native_execution always refuses"
+  },
+  "producer_model": {
+    "entry_point": "source_projection::nfrt_producer_output_receipt::NfrtProducerPlan::seal_classpath_batch",
+    "scope_fields": [
+      "fresh invocation ID",
+      "prepared contract identity",
+      "checked named project preparation identity",
+      "original source-lock identity",
+      "explicit recipe ID",
+      "sealed graph-plan identity",
+      "exact selected tool-SDK transfer identity"
+    ],
+    "declaration_fields": [
+      "producer/output IDs and output type",
+      "safe exact work-relative output path",
+      "producer input receipt identity",
+      "tool classpath/argument identity"
+    ],
+    "preflight": "All observations must match the exact declaration/scope, fresh engine, completed state, no cache restore, regular-file/reparse boundary and stable bounded metadata before any byte callback.",
+    "read_completion": "Callback returns supplied payload plus post-read identity/length/ancestry. Changed observations refuse before issuing a memory receipt.",
+    "copy": "Copy once into private immutable Arc bytes and rehash. Duplicate consumers retain original order and share that same immutable snapshot.",
+    "identity_limit": "Generated full SHA is an execution-output transfer identity, never a new artifact pin.",
+    "host_limit": "Observation booleans and strings are data, not proof of actual OS handles. os_filesystem_attested and native_execution_enabled remain false. A later private host adapter must obtain the facts from the actual engine/filesystem.",
+    "bounds": { "consumer_count": 256, "single_output_bytes": 536870912, "batch_bytes": 1073741824 }
+  },
+  "ignored_java_hook": {
+    "entry_point": "SFMFreshNodeOutputGate.createFresh / prepareCopies",
+    "exact_integration_site": "ExactArtifactManager.resolveClasspath(NodeOutputItem), after full mixed-item batch semantic preflight",
+    "not_an_integration_site": "CacheManager.saveOutputs is not a complete producer hook; not every output is saved there.",
+    "proposal": [
+      "register exact fresh ExecutionNode and NodeOutput object identities before any node starts",
+      "reject unknown IDs/types, path aliases and nonfresh graph declarations before creating directories",
+      "create a new invocation/work/input directory set; never adopt or overwrite an existing root",
+      "require exact completed output object and declared work-relative result path",
+      "batch-preflight source metadata, then stream to CREATE_NEW snapshot while hashing",
+      "check source before/after identity and rehash the copy",
+      "reuse one copied output across duplicate consumers, checking previous source identity and copy hash",
+      "pathsForChild remains unconditionally refused until root integrates the Rust/Windows immutable-file boundary"
+    ],
+    "cache_limit": "The pinned public API does not expose complete(fromCache) as a retained receipt. The always-disabled cache manager and a sealed fresh graph must be proven at host integration; the declared-disabled boolean is not such proof.",
+    "filesystem_limit": "Java real-path/file-key checks are not transactional Windows handle/reparse/ACL proof. No policy or read-only ACL is added. Copy receipts explicitly report no OS attestation and no native permission.",
+    "shape_limit": "No javac-only shape test was authorized/run for this new source. Public methods/enums were checked against existing pinned API witnesses and supporting source; root must review and schedule shape validation separately.",
+    "main_or_graph": "none"
+  },
+  "authored_tests_not_run": [
+    {
+      "module": "jar_build::nfrt_launch_contract::tests",
+      "tests": [
+        "frozen_six_recipe_function_argument_and_compiler_matrix_is_exact",
+        "selected_sdk_byte_binding_does_not_claim_runtime_attestation",
+        "pure_snapshots_use_only_generated_relative_names_and_bound_full_hashes",
+        "five_recipe_ten_context_preparations_keep_order_raw_locks_and_main_refusal"
+      ],
+      "coverage_limit": "Five real prepared recipe fixtures cover release/dev contexts structurally. 26.1.2 is structural inventory evidence only here; its original weak exact-byte requirement is unchanged and cannot be bypassed. Full authentic parent/child byte export and actual filesystem/JVM behavior have not run."
+    },
+    {
+      "module": "source_projection::nfrt_producer_output_receipt::tests",
+      "tests": [
+        "batch_refusal_has_zero_read_callbacks",
+        "copies_once_preserves_order_duplicates_and_cannot_enable_native",
+        "declaration_and_byte_mismatches_fail_closed",
+        "post_read_change_refuses_before_issuing_snapshot"
+      ],
+      "coverage_limit": "Synthetic pure-memory observations only; not actual NFRT node execution or Windows filesystem/process evidence."
+    }
+  ],
+  "original_locks_rehashed_unchanged": [
+    { "target": "1.20.2", "sha256": "df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9" },
+    { "target": "1.20.3", "sha256": "fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d" },
+    { "target": "1.20.4", "sha256": "565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406" },
+    { "target": "1.21.0", "sha256": "2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4" },
+    { "target": "1.21.1", "sha256": "2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876" },
+    { "target": "26.1.2", "sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de" }
+  ],
+  "root_integration_order": [
+    "Review/register the two pure modules and run their focused tests under the current tool gate.",
+    "Approve/schedule a pinned-JAR javac-only shape proof for the new Java hook; no graph execution follows from it.",
+    "Factor an exact safe create-new host writer and authenticated library-name/source-built transport mapping. Recheck project and original 13 role bindings before any effect.",
+    "Seal exact engine graph and always-disabled cache manager; wire mixed classpath preflight and immutable snapshot reuse without fallback.",
+    "Resolve actual SDK/process/network authority separately, then review enabling any named NFRT target. Packaging, JUnit, runtime and release parity remain separate."
+  ],
+  "operational_readiness": {
+    "tool_installation": "Not applicable: new Rust is unregistered, ignored Java is unwired, installed tools unchanged.",
+    "process_changes": "None",
+    "dependency_posture": "Frozen original schema2/role/Cargo inputs; separately approved child supplement unchanged.",
+    "manual_test": "Root must register/review before focused Cargo tests; there is no user launch command for this stage.",
+    "completion_claim": "Source/model delivery only, not native compile or launch acceptance."
+  }
+}

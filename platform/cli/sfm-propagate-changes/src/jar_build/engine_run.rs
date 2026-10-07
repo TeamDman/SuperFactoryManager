@@ -11,20 +11,18 @@ fn ensure_forge_gradle_execution_supported(plan: &BuildPlan) -> eyre::Result<()>
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum BuildTarget {
+    /// Compile selected source sets; no launch or jar packaging.
+    Compile,
     Jar,
     Run,
     SourceOutputs,
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "build orchestration keeps the node order and timing output visible."
-)]
 #[tracing::instrument(
     level = "info",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version,
         loader = ?plan.loader_toolchain.kind,
         graph_nodes = plan.graph.len(),
@@ -39,6 +37,8 @@ fn execute_build(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     cancellation_token.bail_if_cancelled()?;
+    plan.recheck_named_inputs()?;
+    validate_named_native_build_target(plan, target)?;
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let total_started = Instant::now();
 
@@ -74,6 +74,11 @@ fn execute_build(
         "complete",
     )?;
 
+    if plan.identity.is_catalog_owned()
+        && plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+    {
+        return execute_named_neoform_compile(&context, target, total_started);
+    }
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
@@ -113,10 +118,19 @@ fn execute_build(
         );
         return Ok(());
     }
+    execute_project_build(&context, target, total_started)
+}
+
+fn execute_project_build(
+    context: &ExecutionContext<'_>,
+    target: BuildTarget,
+    total_started: Instant,
+) -> eyre::Result<()> {
+    let plan = context.plan;
     let started = Instant::now();
     tracing::info!("Build node deobfuscate-mod-dependencies: start");
     context.bail_if_cancelled()?;
-    execute_dependency_deobf(&context)?;
+    execute_dependency_deobf(context)?;
     context.bail_if_cancelled()?;
     tracing::info!(
         "Build node deobfuscate-mod-dependencies: done in {} ms",
@@ -125,7 +139,7 @@ fn execute_build(
     let started = Instant::now();
     tracing::info!("Build node compile-project: start");
     context.bail_if_cancelled()?;
-    execute_project_compile(&context)?;
+    execute_project_compile(context)?;
     context.bail_if_cancelled()?;
     tracing::info!(
         "Build node compile-project: done in {} ms",
@@ -135,7 +149,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node package-and-reobfuscate-jar: start");
         context.bail_if_cancelled()?;
-        execute_package_and_reobfuscate(&context)?;
+        execute_package_and_reobfuscate(context)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node package-and-reobfuscate-jar: done in {} ms",
@@ -166,7 +180,9 @@ fn execute_build(
 impl RunKind {
     const fn userdev_name(self) -> &'static str {
         match self {
-            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => "client",
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => {
+                "client"
+            }
             Self::Server => "server",
             Self::Data => "data",
             Self::GameTestServer => "gameTestServer",
@@ -177,7 +193,9 @@ impl RunKind {
     const fn userdev_names(self) -> &'static [&'static str] {
         match self {
             Self::Data => &["data", "clientData"],
-            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => &["client"],
+            Self::Client | Self::ClientSmoke | Self::ClientPuppet | Self::GameTestPreview => {
+                &["client"]
+            }
             Self::Server => &["server"],
             Self::GameTestServer => &["gameTestServer"],
             Self::Test => &["test"],
@@ -390,7 +408,7 @@ fn execute_game_test_bisect(
     tracing::info!(
         "Starting game-test bisection for {} on {}.",
         qualify_sfm_game_test_name(&target),
-        plan.branch_name
+        plan.target_label()
     );
 
     let mut run_count = 0usize;
@@ -588,7 +606,7 @@ fn execute_game_test_bisect(
     level = "info",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version,
         kind = kind.command_name(),
         loader = ?plan.loader_toolchain.kind,
@@ -602,6 +620,7 @@ fn execute_run(
     dry_run: bool,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    plan.require_legacy_branch()?;
     cancellation_token.bail_if_cancelled()?;
     if matches!(kind, RunKind::Test) {
         return execute_junit_tests(
@@ -636,7 +655,7 @@ fn execute_run(
     let automation_options_path =
         prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind, run_options)?;
     let game_puppet_control_cli = prepare_game_puppet_control_cli(
-        &plan.worktree_path,
+        plan.repository_root(),
         kind,
         run_options.control_cli_source_root.as_deref(),
         dry_run,
@@ -732,11 +751,7 @@ fn execute_run(
     apply_game_puppet_filter_property(&mut properties, kind, run_options);
     apply_game_puppet_game_test_property(&mut properties, kind, run_options);
     apply_game_puppet_viewport_selection_property(&mut properties, kind, run_options);
-    apply_game_puppet_control_cli_property(
-        &mut properties,
-        kind,
-        game_puppet_control_cli.as_ref(),
-    );
+    apply_game_puppet_control_cli_property(&mut properties, kind, game_puppet_control_cli.as_ref());
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -762,7 +777,9 @@ fn execute_run(
         "-XX:+AllowEnhancedClassRedefinition".to_string(),
         "-XX:+AllowRedefinitionToAddDeleteMethods".to_string(),
     ]);
-    if matches!(kind, RunKind::Client | RunKind::GameTestPreview) && let Some(port) = run_options.client_hotswap_port {
+    if matches!(kind, RunKind::Client | RunKind::GameTestPreview)
+        && let Some(port) = run_options.client_hotswap_port
+    {
         jvm_args.push(format!(
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:{port}"
         ));
@@ -1038,7 +1055,7 @@ const JUNIT_EVENT_RUNNER_SOURCE: &str = include_str!("junit_event_runner.java");
     level = "info",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version,
         dry_run,
         action = ?test_options.action,
@@ -1052,6 +1069,7 @@ fn execute_junit_tests(
     test_options: &RunTestOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    plan.require_legacy_branch()?;
     cancellation_token.bail_if_cancelled()?;
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
     let project_root = plan.cache_dir.join("project");
@@ -1686,7 +1704,8 @@ fn emit_junit_terminal_summary(
     test_options: &RunTestOptions,
     report: &JunitExecutionReport,
 ) {
-    let _span = tracing::info_span!("junit_terminal_summary", branch = %plan.branch_name).entered();
+    let _span =
+        tracing::info_span!("junit_terminal_summary", branch = %plan.target_label()).entered();
     let source = "java-tool";
     let process = "junit-test";
     match test_options.action {
@@ -1721,7 +1740,8 @@ fn emit_junit_terminal_summary(
 }
 
 fn trace_junit_test_list_entry(plan: &BuildPlan, info: &JunitTestInfo) {
-    let _span = tracing::info_span!("junit_test_list_entry", branch = %plan.branch_name).entered();
+    let _span =
+        tracing::info_span!("junit_test_list_entry", branch = %plan.target_label()).entered();
     let source = "java-tool";
     let process = "junit-test";
     let test = info.label();
@@ -1736,7 +1756,7 @@ fn trace_junit_test_list_entry(plan: &BuildPlan, info: &JunitTestInfo) {
 }
 
 fn trace_junit_test_line(plan: &BuildPlan, info: &JunitTestInfo, stream: &str, line: &str) {
-    let _span = tracing::info_span!("junit_test_output", branch = %plan.branch_name).entered();
+    let _span = tracing::info_span!("junit_test_output", branch = %plan.target_label()).entered();
     let source = "java-tool";
     let process = "junit-test";
     let test = info.label();
@@ -1752,7 +1772,7 @@ fn trace_junit_test_line(plan: &BuildPlan, info: &JunitTestInfo, stream: &str, l
 }
 
 fn trace_junit_test_failure(plan: &BuildPlan, failure: &JunitFinishedTest) {
-    let _span = tracing::info_span!("junit_test_failure", branch = %plan.branch_name).entered();
+    let _span = tracing::info_span!("junit_test_failure", branch = %plan.target_label()).entered();
     let source = "java-tool";
     let process = "junit-test";
     let stream = "stderr";
@@ -2029,7 +2049,7 @@ fn resolve_test_dependency_classpath(
     kind: TestClasspathKind,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
+    let dependencies = context.plan.parsed_dependencies()?;
     let configurations: &[&str] = match kind {
         TestClasspathKind::Compile => &["testImplementation", "testCompileOnly"],
         TestClasspathKind::Runtime => &["testImplementation", "testRuntimeOnly"],
@@ -2094,7 +2114,7 @@ fn resolve_junit_console_standalone(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
 ) -> eyre::Result<ArtifactPlan> {
-    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
+    let dependencies = context.plan.parsed_dependencies()?;
     let platform_version = junit_platform_version(&dependencies)?;
     let coordinate = MavenCoordinate::parse(&format!(
         "org.junit.platform:junit-platform-console-standalone:{platform_version}"
@@ -2216,9 +2236,15 @@ fn apply_client_automation_timing_properties(
         RunKind::GameTestPreview => {
             properties.insert(
                 "sfm.clientRun.keepOpenSeconds".to_string(),
-                run_options.game_puppet_keep_open.property_seconds().to_string(),
+                run_options
+                    .game_puppet_keep_open
+                    .property_seconds()
+                    .to_string(),
             );
-            properties.insert("sfm.clientRun.titleExitSeconds".to_string(), "1".to_string());
+            properties.insert(
+                "sfm.clientRun.titleExitSeconds".to_string(),
+                "1".to_string(),
+            );
         }
         _ => {}
     }
@@ -2854,7 +2880,7 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
     level = "info",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version,
         java = %plan.java.executable.display(),
         argfile = %argfile.display(),
@@ -2872,6 +2898,7 @@ fn run_launch_command(
     log_path: &Path,
     timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
+    plan.require_legacy_branch()?;
     cancellation_token.bail_if_cancelled()?;
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
@@ -2896,8 +2923,8 @@ fn run_launch_command(
         .stderr
         .take()
         .ok_or_else(|| eyre::eyre!("Failed to capture launch stderr"))?;
-    let stdout_branch = plan.branch_name.clone();
-    let stderr_branch = plan.branch_name.clone();
+    let stdout_branch = plan.require_legacy_branch()?.clone();
+    let stderr_branch = plan.require_legacy_branch()?.clone();
     let stdout_launch_log = launch_log.clone();
     let stderr_launch_log = launch_log.clone();
     let stdout_thread = thread::spawn(move || {
@@ -2990,12 +3017,15 @@ fn prepare_launch_log_file(
         return Ok(None);
     }
 
-    let mut log =
-        File::create(log_path).wrap_err_with(|| format!("Failed to create {}", log_path.display()))?;
+    let mut log = File::create(log_path)
+        .wrap_err_with(|| format!("Failed to create {}", log_path.display()))?;
     writeln!(log, "argfile={}", argfile.display())?;
     writeln!(log, "working_dir={}", working_dir.display())?;
     writeln!(log)?;
-    tracing::info!("Minecraft JVM output will be written to {}", log_path.display());
+    tracing::info!(
+        "Minecraft JVM output will be written to {}",
+        log_path.display()
+    );
     Ok(Some(Arc::new(Mutex::new(log))))
 }
 
@@ -3106,16 +3136,53 @@ fn join_launch_stream(
         .wrap_err_with(|| format!("Failed to read launch {name}"))
 }
 
+#[derive(Clone, Debug)]
+struct ProcessSpawnReport {
+    child_pid: Option<u32>,
+    io_error_kind: Option<String>,
+    raw_os_error: Option<i32>,
+}
+
+fn observe_process_spawn_result<T>(
+    result: std::io::Result<T>,
+    child_pid: impl FnOnce(&T) -> u32,
+    observer: impl FnOnce(&ProcessSpawnReport),
+) -> std::io::Result<T> {
+    let report = match &result {
+        Ok(child) => ProcessSpawnReport {
+            child_pid: Some(child_pid(child)),
+            io_error_kind: None,
+            raw_os_error: None,
+        },
+        Err(error) => ProcessSpawnReport {
+            child_pid: None,
+            io_error_kind: Some(format!("{:?}", error.kind())),
+            raw_os_error: error.raw_os_error(),
+        },
+    };
+    observer(&report);
+    result
+}
+
 fn run_command_capture_output(
     cancellation_token: &CancellationToken,
     command: &mut Command,
     process_name: &str,
 ) -> eyre::Result<CancellableOutput> {
+    run_command_capture_output_observing_spawn(cancellation_token, command, process_name, |_| {})
+}
+
+fn run_command_capture_output_observing_spawn(
+    cancellation_token: &CancellationToken,
+    command: &mut Command,
+    process_name: &str,
+    observer: impl FnOnce(&ProcessSpawnReport),
+) -> eyre::Result<CancellableOutput> {
     cancellation_token.bail_if_cancelled()?;
     command.stdout(Stdio::piped()).stderr(Stdio::piped());
-    let mut child = command
-        .spawn()
-        .wrap_err_with(|| format!("Failed to spawn {process_name}"))?;
+    let mut child =
+        observe_process_spawn_result(command.spawn(), std::process::Child::id, observer)
+            .wrap_err_with(|| format!("Failed to spawn {process_name}"))?;
     let stdout = child
         .stdout
         .take()
@@ -3196,7 +3263,7 @@ fn trace_subprocess_bytes(
     bytes: &[u8],
 ) {
     let _span =
-        tracing::info_span!("forward_subprocess_bytes", branch = %plan.branch_name).entered();
+        tracing::info_span!("forward_subprocess_bytes", branch = %plan.target_label()).entered();
     let content = String::from_utf8_lossy(bytes);
     for line in content.lines() {
         trace_subprocess_line(source, process, stream, line);
@@ -3226,6 +3293,13 @@ fn write_java_tool_console_log(
 }
 
 fn trace_subprocess_line(source: &'static str, process: &str, stream: &'static str, line: &str) {
+    if source == "java-tool" {
+        // Tool stdout/stderr is preserved byte-for-byte in its console.log.
+        // Decompilers emit enormous TRACE streams; routine INFO progress must
+        // not duplicate every line into both the host console and JSON log.
+        tracing::debug!(source, process = %process, stream, "{line}");
+        return;
+    }
     tracing::info!(
         source,
         process = %process,
@@ -3529,10 +3603,9 @@ fn resolve_neogradle_run_classpath(
             tracing::debug_span!("resolve_neogradle_run_classpath_run_dependencies").entered();
         userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, true)?);
     } else if should_include_plain_run_dependencies(kind, run_options) {
-        let _span = tracing::debug_span!(
-            "resolve_neogradle_run_classpath_required_plain_dependencies"
-        )
-        .entered();
+        let _span =
+            tracing::debug_span!("resolve_neogradle_run_classpath_required_plain_dependencies")
+                .entered();
         userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, false)?);
     } else {
         tracing::info!(
@@ -3598,30 +3671,61 @@ fn validate_game_puppet_completion(
             launch_log.display()
         );
     }
-    tracing::info!(retained_viewport = retained, "Validated game puppet preview completion.");
+    tracing::info!(
+        retained_viewport = retained,
+        "Validated game puppet preview completion."
+    );
     Ok(())
 }
 
 fn puppet_marker_fields<'a>(output: &'a str, marker: &str) -> Vec<BTreeMap<&'a str, &'a str>> {
-    output.lines().filter_map(|line| {
-        let (_, fields) = line.split_once(marker)?;
-        // A prefix such as COMPLETE_PENDING is not the terminal marker.
-        if !fields.starts_with(char::is_whitespace) { return None; }
-        Some(fields.split_whitespace().filter_map(|field| field.split_once('=')).collect())
-    }).collect()
+    output
+        .lines()
+        .filter_map(|line| {
+            let (_, fields) = line.split_once(marker)?;
+            // A prefix such as COMPLETE_PENDING is not the terminal marker.
+            if !fields.starts_with(char::is_whitespace) {
+                return None;
+            }
+            Some(
+                fields
+                    .split_whitespace()
+                    .filter_map(|field| field.split_once('='))
+                    .collect(),
+            )
+        })
+        .collect()
 }
 
-fn valid_retained_puppet_viewport(output: &str, keep_open: crate::jar_build::GamePuppetKeepOpen) -> bool {
-    if matches!(keep_open, crate::jar_build::GamePuppetKeepOpen::None) { return false; }
+fn valid_retained_puppet_viewport(
+    output: &str,
+    keep_open: crate::jar_build::GamePuppetKeepOpen,
+) -> bool {
+    if matches!(keep_open, crate::jar_build::GamePuppetKeepOpen::None) {
+        return false;
+    }
     let retained = puppet_marker_fields(output, "SFM_GAME_PUPPET_VIEWPORT_RETAINED");
-    if retained.len() != 1 { return false; }
+    if retained.len() != 1 {
+        return false;
+    }
     let fields = &retained[0];
-    if fields.get("keep_open_seconds").and_then(|value| value.parse::<i32>().ok())
-        != Some(keep_open.property_seconds()) { return false; }
-    let Some(viewport) = parse_game_puppet_preview_viewport(fields) else { return false; };
-    viewport.actual_window_width > 0 && viewport.actual_window_height > 0
-        && viewport.framebuffer_width > 0 && viewport.framebuffer_height > 0
-        && viewport.effective_gui_scale > 0 && viewport.logical_width > 0 && viewport.logical_height > 0
+    if fields
+        .get("keep_open_seconds")
+        .and_then(|value| value.parse::<i32>().ok())
+        != Some(keep_open.property_seconds())
+    {
+        return false;
+    }
+    let Some(viewport) = parse_game_puppet_preview_viewport(fields) else {
+        return false;
+    };
+    viewport.actual_window_width > 0
+        && viewport.actual_window_height > 0
+        && viewport.framebuffer_width > 0
+        && viewport.framebuffer_height > 0
+        && viewport.effective_gui_scale > 0
+        && viewport.logical_width > 0
+        && viewport.logical_height > 0
 }
 
 #[derive(Debug)]
@@ -3847,6 +3951,7 @@ fn publish_game_puppet_preview_artifacts(
     run_options: &RunOptions,
     launch_output: &str,
 ) -> eyre::Result<PathBuf> {
+    plan.require_legacy_branch()?;
     let staging_dir = working_dir.join("screenshots");
     if !staging_dir.is_dir() {
         eyre::bail!(
@@ -3854,7 +3959,7 @@ fn publish_game_puppet_preview_artifacts(
             staging_dir.display()
         );
     }
-    let artifact_root = game_puppet_preview_artifact_root(&plan.worktree_path);
+    let artifact_root = game_puppet_preview_artifact_root(plan.repository_root());
     fs::create_dir_all(&artifact_root)
         .wrap_err_with(|| format!("Failed to create {}", artifact_root.display()))?;
     let (_preview_run_id, preview_run_root) = create_game_puppet_preview_run_root(
@@ -3887,21 +3992,41 @@ fn publish_game_puppet_preview_artifacts(
         let file_name = staging_path
             .file_name()
             .and_then(|name| name.to_str())
-            .ok_or_else(|| eyre::eyre!("Screenshot filename was not valid UTF-8: {}", staging_path.display()))?;
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Screenshot filename was not valid UTF-8: {}",
+                    staging_path.display()
+                )
+            })?;
         let metadata = capture_metadata.get(file_name).cloned().ok_or_else(|| {
             eyre::eyre!("Preview screenshot had no authoritative capture marker: {file_name}")
         })?;
-        let puppet_name = metadata.puppet.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted puppet for {file_name}"))?;
-        let capture_name = metadata.capture.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted capture for {file_name}"))?;
-        let variant = metadata.variant.as_deref().ok_or_else(|| eyre::eyre!("Capture marker omitted viewport variant for {file_name}"))?;
-        if !is_safe_preview_name(puppet_name) || !is_safe_preview_name(capture_name) || !is_safe_variant_id(variant) {
+        let puppet_name = metadata
+            .puppet
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Capture marker omitted puppet for {file_name}"))?;
+        let capture_name = metadata
+            .capture
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("Capture marker omitted capture for {file_name}"))?;
+        let variant = metadata.variant.as_deref().ok_or_else(|| {
+            eyre::eyre!("Capture marker omitted viewport variant for {file_name}")
+        })?;
+        if !is_safe_preview_name(puppet_name)
+            || !is_safe_preview_name(capture_name)
+            || !is_safe_variant_id(variant)
+        {
             eyre::bail!("Preview screenshot marker was not safely namespaced: {file_name}");
         }
 
         let bytes = fs::read(&staging_path)
             .wrap_err_with(|| format!("Failed to read {}", staging_path.display()))?;
-        let (width, height) = png_dimensions(&bytes)
-            .ok_or_else(|| eyre::eyre!("Preview screenshot was not a valid PNG: {}", staging_path.display()))?;
+        let (width, height) = png_dimensions(&bytes).ok_or_else(|| {
+            eyre::eyre!(
+                "Preview screenshot was not a valid PNG: {}",
+                staging_path.display()
+            )
+        })?;
         let viewport = metadata.viewport.as_ref().ok_or_else(|| {
             eyre::eyre!("Preview screenshot marker omitted viewport geometry: {file_name}")
         })?;
@@ -3910,11 +4035,14 @@ fn publish_game_puppet_preview_artifacts(
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
 
         let figure_number = metadata.figure_number.ok_or_else(|| {
-            eyre::eyre!(
-                "Preview screenshot did not report a positive figure number: {file_name}"
-            )
+            eyre::eyre!("Preview screenshot did not report a positive figure number: {file_name}")
         })?;
-        if !used_figure_numbers.insert((puppet_name.to_string(), capture_name.to_string(), variant.to_string(), figure_number)) {
+        if !used_figure_numbers.insert((
+            puppet_name.to_string(),
+            capture_name.to_string(),
+            variant.to_string(),
+            figure_number,
+        )) {
             eyre::bail!(
                 "Preview screenshots reported duplicate figure number {figure_number}: {file_name}"
             );
@@ -3922,7 +4050,10 @@ fn publish_game_puppet_preview_artifacts(
         let relative_path = preview_run_relative_root
             .join(puppet_name)
             .join(variant.replace('@', "_"))
-            .join(game_puppet_preview_artifact_file_name(figure_number, capture_name));
+            .join(game_puppet_preview_artifact_file_name(
+                figure_number,
+                capture_name,
+            ));
         let destination = artifact_root.join(&relative_path);
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)
@@ -4019,8 +4150,18 @@ fn publish_game_puppet_preview_artifacts(
         });
     }
     terminal_artifacts.sort_by(|left, right| {
-        (&left.puppet_name, &left.variant, &left.artifact_name, &left.kind)
-            .cmp(&(&right.puppet_name, &right.variant, &right.artifact_name, &right.kind))
+        (
+            &left.puppet_name,
+            &left.variant,
+            &left.artifact_name,
+            &left.kind,
+        )
+            .cmp(&(
+                &right.puppet_name,
+                &right.variant,
+                &right.artifact_name,
+                &right.kind,
+            ))
     });
 
     let data_artifacts = publish_game_puppet_data_artifacts(
@@ -4044,10 +4185,16 @@ fn publish_game_puppet_preview_artifacts(
     fs::write(&manifest_path, manifest)
         .wrap_err_with(|| format!("Failed to write {}", manifest_path.display()))?;
     let index_path = preview_run_root.join("index.html");
-    fs::write(&index_path, render_game_puppet_preview_contact_sheet(&artifacts, true))
-        .wrap_err_with(|| format!("Failed to write {}", index_path.display()))?;
-    fs::write(artifact_root.join("index.html"), render_game_puppet_preview_contact_sheet(&artifacts, false))
-        .wrap_err("Failed to write latest viewport contact sheet")?;
+    fs::write(
+        &index_path,
+        render_game_puppet_preview_contact_sheet(&artifacts, true),
+    )
+    .wrap_err_with(|| format!("Failed to write {}", index_path.display()))?;
+    fs::write(
+        artifact_root.join("index.html"),
+        render_game_puppet_preview_contact_sheet(&artifacts, false),
+    )
+    .wrap_err("Failed to write latest viewport contact sheet")?;
     tracing::info!(preview_contact_sheet = %index_path.display(), "Game puppet viewport contact sheet");
     tracing::info!(preview_manifest = %run_manifest_path.display(), "Durable game puppet preview manifest");
     Ok(manifest_path)
@@ -4075,7 +4222,10 @@ fn allocate_game_puppet_preview_run_root(
 ) -> eyre::Result<(String, PathBuf)> {
     // A 16-character hint, 15-character full-year timestamp and fixed-width
     // counter keep every run ID inside the legacy Windows file-URL budget.
-    eyre::ensure!(run_base.len() + 4 <= 36, "game-puppet preview run ID is too long");
+    eyre::ensure!(
+        run_base.len() + 4 <= 36,
+        "game-puppet preview run ID is too long"
+    );
     for index in 0..1000_u32 {
         let run_id = format!("{run_base}-{index:03}");
         let candidate = run_parent.join(&run_id);
@@ -4135,8 +4285,7 @@ fn parse_game_puppet_capture_metadata(
             Path::new(file)
                 .extension()
                 .is_some_and(|extension| extension.eq_ignore_ascii_case("png"))
-        })
-        else {
+        }) else {
             continue;
         };
         let metadata = GamePuppetPreviewCaptureMetadata {
@@ -4169,8 +4318,7 @@ fn parse_game_puppet_terminal_artifact_metadata(
 ) -> eyre::Result<Vec<GamePuppetPreviewTerminalArtifactMetadata>> {
     const CONTENT_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN";
     const PUSH_EVIDENCE_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN";
-    const PROPERTIES_EVIDENCE_MARKER: &str =
-        "SFM_GAME_PUPPET_TERMINAL_PROPERTIES_EVIDENCE_WRITTEN";
+    const PROPERTIES_EVIDENCE_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_PROPERTIES_EVIDENCE_WRITTEN";
     let mut artifacts = Vec::new();
     let mut reported_files = BTreeSet::new();
     for line in launch_output.lines() {
@@ -4274,10 +4422,7 @@ fn publish_game_puppet_data_artifacts(
             || !is_safe_preview_name(&metadata.artifact_name)
             || metadata.artifact_name.len() > 64
             || !is_safe_variant_id(&metadata.variant)
-            || !is_safe_game_puppet_data_artifact_file_name(
-                &metadata.file_name,
-                &metadata.format,
-            )
+            || !is_safe_game_puppet_data_artifact_file_name(&metadata.file_name, &metadata.format)
             || metadata.file_name != expected_file_name
         {
             eyre::bail!(
@@ -4333,8 +4478,18 @@ fn publish_game_puppet_data_artifacts(
         });
     }
     artifacts.sort_by(|left, right| {
-        (&left.puppet_name, &left.variant, &left.artifact_name, &left.format)
-            .cmp(&(&right.puppet_name, &right.variant, &right.artifact_name, &right.format))
+        (
+            &left.puppet_name,
+            &left.variant,
+            &left.artifact_name,
+            &left.format,
+        )
+            .cmp(&(
+                &right.puppet_name,
+                &right.variant,
+                &right.artifact_name,
+                &right.format,
+            ))
     });
     Ok(artifacts)
 }
@@ -4367,12 +4522,13 @@ fn validate_game_puppet_data_artifact_payload(
         )
     })?;
     if metadata.format == "json" {
-        let _: facet_json::RawJson<'_> = facet_json::from_str_borrowed(text).wrap_err_with(|| {
-            format!(
-                "Game puppet JSON artifact was not valid JSON: {}",
-                metadata.file_name
-            )
-        })?;
+        let _: facet_json::RawJson<'_> =
+            facet_json::from_str_borrowed(text).wrap_err_with(|| {
+                format!(
+                    "Game puppet JSON artifact was not valid JSON: {}",
+                    metadata.file_name
+                )
+            })?;
     }
     Ok(())
 }
@@ -4394,13 +4550,13 @@ fn is_safe_game_puppet_data_artifact_file_name(value: &str, format: &str) -> boo
             .extension()
             .is_some_and(|actual| actual.eq_ignore_ascii_case(extension))
         && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'_' | b'-' | b'.')
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.')
         })
 }
 
-fn parse_game_puppet_preview_viewport(fields: &BTreeMap<&str, &str>) -> Option<GamePuppetPreviewVariantObservation> {
+fn parse_game_puppet_preview_viewport(
+    fields: &BTreeMap<&str, &str>,
+) -> Option<GamePuppetPreviewVariantObservation> {
     let number = |name| fields.get(name)?.parse::<u16>().ok();
     Some(GamePuppetPreviewVariantObservation {
         actual_window_width: number("actual_width")?,
@@ -4416,8 +4572,9 @@ fn parse_game_puppet_preview_viewport(fields: &BTreeMap<&str, &str>) -> Option<G
 
 fn is_safe_variant_id(value: &str) -> bool {
     value.split_once('@').is_some_and(|(size, scale)| {
-        size.split_once('x').is_some_and(|(width, height)| width.parse::<u16>().is_ok() && height.parse::<u16>().is_ok())
-            && (scale == "auto" || scale.parse::<std::num::NonZeroU16>().is_ok())
+        size.split_once('x').is_some_and(|(width, height)| {
+            width.parse::<u16>().is_ok() && height.parse::<u16>().is_ok()
+        }) && (scale == "auto" || scale.parse::<std::num::NonZeroU16>().is_ok())
     })
 }
 
@@ -4431,9 +4588,7 @@ fn is_safe_terminal_artifact_file_name(value: &str) -> bool {
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("txt"))
         && value.bytes().all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'_' | b'-' | b'.')
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.')
         })
 }
 
@@ -4452,7 +4607,13 @@ fn game_puppet_preview_terminal_artifact_file_name(
 fn parse_game_puppet_preview_camera(
     fields: &BTreeMap<&str, &str>,
 ) -> Option<GamePuppetPreviewCamera> {
-    let parse = |name| fields.get(name)?.parse::<f64>().ok().filter(|value| value.is_finite());
+    let parse = |name| {
+        fields
+            .get(name)?
+            .parse::<f64>()
+            .ok()
+            .filter(|value| value.is_finite())
+    };
     Some(GamePuppetPreviewCamera {
         x: parse("camera_x")?,
         y: parse("camera_y")?,
@@ -4464,9 +4625,9 @@ fn parse_game_puppet_preview_camera(
 
 fn is_safe_preview_name(value: &str) -> bool {
     !value.is_empty()
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-'))
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-')
+        })
 }
 
 pub(crate) fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
@@ -4518,8 +4679,9 @@ fn render_game_puppet_preview_manifest(
     terminal_artifacts: &[GamePuppetPreviewTerminalArtifact],
     data_artifacts: &[GamePuppetPreviewDataArtifact],
 ) -> eyre::Result<String> {
+    plan.require_legacy_branch()?;
     let manifest = GamePuppetPreviewManifest {
-        branch: plan.branch_name.as_ref().to_string(),
+        branch: plan.require_legacy_branch()?.as_ref().to_string(),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
         game_test: run_options.game_puppet_game_test.clone(),
@@ -4587,7 +4749,8 @@ fn render_game_puppet_preview_manifest(
 fn game_puppet_preview_source_identity(
     plan: &BuildPlan,
 ) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
-    let worktree = plan.worktree_path.display().to_string();
+    plan.require_legacy_branch()?;
+    let worktree = plan.repository_root().display().to_string();
     let git_revision = Command::new("git")
         .args(["-C", worktree.as_str(), "rev-parse", "HEAD"])
         .output()
@@ -4611,13 +4774,16 @@ fn game_puppet_preview_source_identity(
         .is_none_or(|output| !output.stdout.is_empty());
 
     let source_inputs = [
-        plan.worktree_path.join("platform/minecraft/src"),
-        plan.worktree_path.join("platform/cli/sfm/src"),
-        plan.worktree_path.join("platform/cli/sfm/Cargo.toml"),
-        plan.worktree_path.join("platform/cli/sfm/Cargo.lock"),
-        plan.worktree_path.join("platform/cli/sfm-propagate-changes/src"),
-        plan.worktree_path.join("platform/cli/sfm-propagate-changes/Cargo.toml"),
-        plan.worktree_path.join("platform/cli/sfm-propagate-changes/Cargo.lock"),
+        plan.repository_root().join("platform/minecraft/src"),
+        plan.repository_root().join("platform/cli/sfm/src"),
+        plan.repository_root().join("platform/cli/sfm/Cargo.toml"),
+        plan.repository_root().join("platform/cli/sfm/Cargo.lock"),
+        plan.repository_root()
+            .join("platform/cli/sfm-propagate-changes/src"),
+        plan.repository_root()
+            .join("platform/cli/sfm-propagate-changes/Cargo.toml"),
+        plan.repository_root()
+            .join("platform/cli/sfm-propagate-changes/Cargo.lock"),
         plan.lockfile_path.clone(),
     ];
     let mut files = Vec::new();
@@ -4632,10 +4798,11 @@ fn game_puppet_preview_source_identity(
     files.dedup();
     let mut fingerprint_input = b"sfm-game-puppet-source-identity-v1\n".to_vec();
     for file in files {
-        let relative = file.strip_prefix(&plan.worktree_path).wrap_err_with(|| {
-            format!("Preview source escaped worktree: {}", file.display())
-        })?;
-        fingerprint_input.extend_from_slice(relative.to_string_lossy().replace('\\', "/").as_bytes());
+        let relative = file
+            .strip_prefix(plan.repository_root())
+            .wrap_err_with(|| format!("Preview source escaped worktree: {}", file.display()))?;
+        fingerprint_input
+            .extend_from_slice(relative.to_string_lossy().replace('\\', "/").as_bytes());
         fingerprint_input.push(b'\n');
         fingerprint_input.extend_from_slice(
             ContentHash::from_path(&file, ContentHashAlgorithm::Blake3)?
@@ -4654,13 +4821,7 @@ fn game_puppet_preview_source_identity(
     })
 }
 
-fn render_game_puppet_preview_contact_sheet(artifacts: &[GamePuppetPreviewArtifact], from_run_root: bool) -> String {
-    let mut groups = BTreeMap::<(&str, &str), Vec<&GamePuppetPreviewArtifact>>::new();
-    for artifact in artifacts {
-        groups.entry((&artifact.puppet_name, &artifact.capture_name)).or_default().push(artifact);
-    }
-    let mut html = String::from(
-        r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SFM viewport preview</title><style>
+const GAME_PUPPET_PREVIEW_CONTACT_SHEET_HEADER: &str = r#"<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SFM viewport preview</title><style>
 body{font:14px/1.4 system-ui,sans-serif;background:#111;color:#eee;margin:clamp(12px,3vw,24px)}
 h1{margin:0 0 1rem;font-size:clamp(1.35rem,2vw,2rem)}
 .preview-sections{display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem}
@@ -4674,26 +4835,96 @@ th{background:#181818;text-align:left}
 .cell img{display:block;width:100%;max-width:420px;height:auto}
 .meta{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;margin-bottom:8px;color:#8ee;white-space:normal;overflow-wrap:anywhere}
 @media (max-width:700px){body{margin:12px}.preview-sections{display:block}.capture-section{max-width:none;margin-bottom:1rem}.capture-section:last-child{margin-bottom:0}}
-</style></head><body><h1>SFM viewport preview</h1><main class="preview-sections">"#,
-    );
+</style></head><body><h1>SFM viewport preview</h1><main class="preview-sections">"#;
+
+fn render_game_puppet_preview_contact_sheet(
+    artifacts: &[GamePuppetPreviewArtifact],
+    from_run_root: bool,
+) -> String {
+    let mut groups = BTreeMap::<(&str, &str), Vec<&GamePuppetPreviewArtifact>>::new();
+    for artifact in artifacts {
+        groups
+            .entry((&artifact.puppet_name, &artifact.capture_name))
+            .or_default()
+            .push(artifact);
+    }
+    let mut html = String::from(GAME_PUPPET_PREVIEW_CONTACT_SHEET_HEADER);
     for ((puppet, capture), cells) in groups {
-        let sizes = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| (view.actual_window_width, view.actual_window_height))).collect::<BTreeSet<_>>();
-        let mut scales = cells.iter().filter_map(|cell| cell.metadata.viewport.as_ref().map(|view| view.requested_gui_scale.clone())).collect::<Vec<_>>();
-        scales.sort_by_key(|scale| if scale == "auto" { 0 } else { scale.parse::<u16>().unwrap_or(u16::MAX).saturating_add(1) });
+        let sizes = cells
+            .iter()
+            .filter_map(|cell| {
+                cell.metadata
+                    .viewport
+                    .as_ref()
+                    .map(|view| (view.actual_window_width, view.actual_window_height))
+            })
+            .collect::<BTreeSet<_>>();
+        let mut scales = cells
+            .iter()
+            .filter_map(|cell| {
+                cell.metadata
+                    .viewport
+                    .as_ref()
+                    .map(|view| view.requested_gui_scale.clone())
+            })
+            .collect::<Vec<_>>();
+        scales.sort_by_key(|scale| {
+            if scale == "auto" {
+                0
+            } else {
+                scale.parse::<u16>().unwrap_or(u16::MAX).saturating_add(1)
+            }
+        });
         scales.dedup();
-        let _ = write!(html, "<section class=\"capture-section\"><h2>{} / {}</h2><div class=\"table-wrap\"><table><thead><tr><th scope=\"col\">Window</th>", escape_html(puppet), escape_html(capture));
-        for scale in &scales { let _ = write!(html, "<th scope=\"col\">GUI {}</th>", escape_html(scale)); }
+        let _ = write!(
+            html,
+            "<section class=\"capture-section\"><h2>{} / {}</h2><div class=\"table-wrap\"><table><thead><tr><th scope=\"col\">Window</th>",
+            escape_html(puppet),
+            escape_html(capture)
+        );
+        for scale in &scales {
+            let _ = write!(html, "<th scope=\"col\">GUI {}</th>", escape_html(scale));
+        }
         html.push_str("</tr></thead><tbody>");
         for (width, height) in sizes {
             let _ = write!(html, "<tr><th>{width}×{height}</th>");
             for scale in &scales {
-                let cell = cells.iter().find(|cell| cell.metadata.viewport.as_ref().is_some_and(|view| view.actual_window_width == width && view.actual_window_height == height && view.requested_gui_scale == *scale));
+                let cell = cells.iter().find(|cell| {
+                    cell.metadata.viewport.as_ref().is_some_and(|view| {
+                        view.actual_window_width == width
+                            && view.actual_window_height == height
+                            && view.requested_gui_scale == *scale
+                    })
+                });
                 if let Some(artifact) = cell {
-                    let view = artifact.metadata.viewport.as_ref().expect("filtered viewport cell");
-                    let path = if from_run_root { artifact.relative_path.components().skip(2).collect::<PathBuf>() } else { artifact.relative_path.clone() };
+                    let view = artifact
+                        .metadata
+                        .viewport
+                        .as_ref()
+                        .expect("filtered viewport cell");
+                    let path = if from_run_root {
+                        artifact
+                            .relative_path
+                            .components()
+                            .skip(2)
+                            .collect::<PathBuf>()
+                    } else {
+                        artifact.relative_path.clone()
+                    };
                     let path = escape_html(&path.to_string_lossy().replace('\\', "/"));
-                    let _ = write!(html, "<td class=\"cell\"><div class=\"meta\">effective {} · logical {}×{} · framebuffer {}×{}</div><a href=\"{path}\"><img loading=\"lazy\" src=\"{path}\" alt=\"{}\"></a></td>", view.effective_gui_scale, view.logical_width, view.logical_height, view.framebuffer_width, view.framebuffer_height, escape_html(capture));
-                } else { html.push_str("<td>unsupported</td>"); }
+                    let _ = write!(
+                        html,
+                        "<td class=\"cell\"><div class=\"meta\">effective {} · logical {}×{} · framebuffer {}×{}</div><a href=\"{path}\"><img loading=\"lazy\" src=\"{path}\" alt=\"{}\"></a></td>",
+                        view.effective_gui_scale,
+                        view.logical_width,
+                        view.logical_height,
+                        view.framebuffer_width,
+                        view.framebuffer_height,
+                        escape_html(capture)
+                    );
+                } else {
+                    html.push_str("<td>unsupported</td>");
+                }
             }
             html.push_str("</tr>");
         }
@@ -4704,7 +4935,11 @@ th{background:#181818;text-align:left}
 }
 
 fn escape_html(value: &str) -> String {
-    value.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;")
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 #[cfg(test)]
@@ -4941,8 +5176,8 @@ mod game_puppet_preview_tests {
 
     #[test]
     fn preview_contact_sheet_wraps_independent_capture_sections() {
-        let artifact = |puppet: &str, capture: &str, figure: u32, scale: &str| {
-            GamePuppetPreviewArtifact {
+        let artifact =
+            |puppet: &str, capture: &str, figure: u32, scale: &str| GamePuppetPreviewArtifact {
                 puppet_name: puppet.to_string(),
                 variant: format!("1280x720@{scale}"),
                 capture_name: capture.to_string(),
@@ -4977,8 +5212,7 @@ mod game_puppet_preview_tests {
                         logical_height: 240,
                     }),
                 },
-            }
-        };
+            };
         let html = render_game_puppet_preview_contact_sheet(
             &[
                 artifact("puppet_a", "first", 1, "auto"),
@@ -4988,7 +5222,10 @@ mod game_puppet_preview_tests {
         );
 
         assert!(html.contains("<main class=\"preview-sections\">"));
-        assert_eq!(html.matches("<section class=\"capture-section\">").count(), 2);
+        assert_eq!(
+            html.matches("<section class=\"capture-section\">").count(),
+            2
+        );
         assert!(html.contains("display:flex"));
         assert!(html.contains("flex-wrap:wrap"));
         assert!(html.contains("overflow-x:auto"));
@@ -5064,8 +5301,8 @@ mod game_puppet_preview_tests {
             logical_width: 427,
             logical_height: 240,
         };
-        let (caption, crop) = captioned_viewport_geometry(1280, 834, &normal)
-            .expect("normal caption geometry");
+        let (caption, crop) =
+            captioned_viewport_geometry(1280, 834, &normal).expect("normal caption geometry");
         assert_eq!(caption, 114);
         assert_eq!(
             crop,
@@ -5164,7 +5401,8 @@ mod game_puppet_preview_tests {
             }],
         };
 
-        let json = facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
+        let json =
+            facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
         assert!(json.contains("\"minecraftVersion\": \"1.19.2\""));
         assert!(json.contains("\"puppetSelection\": \"move_1_stack_direct_walkthrough\""));
         assert!(json.contains("\"gitRevision\": \"0123456789abcdef\""));
@@ -5213,9 +5451,8 @@ mod game_puppet_preview_tests {
         assert_eq!(published.len(), 1);
         assert_eq!(published[0].content_type, "application/json");
         assert_eq!(published[0].bytes, u64::try_from(payload.len()).unwrap());
-        let relative = Path::new(
-            "runs/probe/artifact-probe/1280x720_auto/artifact_machine-state.json",
-        );
+        let relative =
+            Path::new("runs/probe/artifact-probe/1280x720_auto/artifact_machine-state.json");
         assert_eq!(published[0].relative_path, relative);
         assert_eq!(
             fs::read_to_string(artifact_root.join(relative)).expect("read published artifact"),
@@ -5239,8 +5476,7 @@ mod game_puppet_preview_tests {
         );
 
         let temporary = tempdir().expect("temporary preview roots");
-        let mismatched_marker =
-            "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=p variant=1280x720@auto artifact=a format=utf8 file=p__other__1280x720_auto.txt bytes=1";
+        let mismatched_marker = "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=p variant=1280x720@auto artifact=a format=utf8 file=p__other__1280x720_auto.txt bytes=1";
         assert!(
             publish_game_puppet_data_artifacts(
                 mismatched_marker,
@@ -5341,7 +5577,10 @@ mod game_puppet_preview_tests {
         let capture = metadata
             .get("move_1_stack_direct_walkthrough__overview-00.png")
             .expect("capture metadata should be indexed by emitted file");
-        let camera = capture.camera.as_ref().expect("camera pose should be recorded");
+        let camera = capture
+            .camera
+            .as_ref()
+            .expect("camera pose should be recorded");
         assert!((camera.x - 7.5).abs() < f64::EPSILON);
         assert!((camera.y + 52.5).abs() < f64::EPSILON);
         assert!((camera.yaw - 90.0).abs() < f64::EPSILON);
@@ -5349,7 +5588,13 @@ mod game_puppet_preview_tests {
         assert_eq!(capture.screen.as_deref(), Some("world"));
         assert_eq!(capture.hud_hidden, Some(true));
         assert_eq!(capture.variant.as_deref(), Some("1280x720@auto"));
-        assert_eq!(capture.viewport.as_ref().map(|viewport| viewport.logical_width), Some(427));
+        assert_eq!(
+            capture
+                .viewport
+                .as_ref()
+                .map(|viewport| viewport.logical_width),
+            Some(427)
+        );
     }
 
     #[test]
@@ -5388,10 +5633,7 @@ pub(super) fn should_include_plain_run_dependencies(
         || matches!(kind, RunKind::Client | RunKind::ClientSmoke)
 }
 
-fn is_solo_client_like_launch(
-    kind: RunKind,
-    run_options: &RunOptions,
-) -> bool {
+fn is_solo_client_like_launch(kind: RunKind, run_options: &RunOptions) -> bool {
     run_options.client_solo && matches!(kind, RunKind::Client | RunKind::ClientSmoke)
 }
 
@@ -5645,7 +5887,7 @@ fn resolve_run_plain_dependencies(
 ) -> eyre::Result<Vec<PathBuf>> {
     let _span = tracing::debug_span!("resolve_run_plain_dependencies", kind = %kind.command_name())
         .entered();
-    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
+    let dependencies = context.plan.parsed_dependencies()?;
     let mut artifacts = Vec::new();
     for (index, dependency) in dependencies
         .iter()
@@ -5713,20 +5955,15 @@ fn resolve_run_deobf_dependencies(
         ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?
     };
     let mut selected = Vec::new();
-    for dependency in context
-        .plan
-        .dependencies
-        .iter()
-        .filter(|dependency| {
-            dependency.artifact_treatment
-                == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
-                && dependency_selected_for_run(
-                    &dependency.configuration,
-                    dependency.data_run_policy,
-                    kind,
-                )
-        })
-    {
+    for dependency in context.plan.dependencies.iter().filter(|dependency| {
+        dependency.artifact_treatment
+            == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+            && dependency_selected_for_run(
+                &dependency.configuration,
+                dependency.data_run_policy,
+                kind,
+            )
+    }) {
         let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
         if is_api_classifier(&coordinate) {
             continue;
@@ -5966,11 +6203,7 @@ fn copy_directory_contents(
                 .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
         }
         fs::copy(&file, &output).wrap_err_with(|| {
-            format!(
-                "Failed to copy {} to {}",
-                file.display(),
-                output.display()
-            )
+            format!("Failed to copy {} to {}", file.display(), output.display())
         })?;
     }
     Ok(())
@@ -6216,4 +6449,6 @@ struct ExecutionContext<'a> {
     forbidden_input_roots: Vec<PathBuf>,
     cancellation_token: CancellationToken,
     minecraft_libraries_cache: Mutex<Option<Vec<PathBuf>>>,
+    // Borrowed only inside the owned NeoForm session's consumer callback.
+    held_neoform_compile_jar: Option<&'a Path>,
 }

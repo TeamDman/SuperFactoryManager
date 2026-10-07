@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+{% if features.client_manager_custom_textures %}
+    "bottom": "sfm:block/client_manager_bottom",
+{% else %}
+    "bottom": "sfm:block/manager_bot",
+{% endif %}
+    "particle": "#top",
+{% if features.client_manager_custom_textures %}
+    "side": "sfm:block/client_manager_side",
+{% else %}
+    "side": "minecraft:block/cyan_concrete",
+{% endif %}
+{% if features.client_manager_custom_textures %}
+    "top": "sfm:block/client_manager_top"
+{% else %}
+    "top": "sfm:block/manager_top"
+{% endif %}
+  }
+}

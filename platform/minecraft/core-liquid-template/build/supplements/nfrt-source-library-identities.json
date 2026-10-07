@@ -1,0 +1,51 @@
+{
+  "schema": "sfm:nfrt_source_library_identity_supplement@1",
+  "authorization": "exact_four_original_recipe_libraries_20261006",
+  "original_tool_supplement_sha256": "be8fbfd87a20f6ba018056f651f3f3d2bec054a0c19424c89127ae2c75311b6f",
+  "artifacts": [
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.2:api",
+      "bytes": 2550,
+      "sha256": "568e4bf03a0da636d7908305d6d9e226acbd58f3865fe4a29a0344201c77e34e",
+      "official_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.2/mergetool-2.0.2-api.jar",
+      "official_checksum_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.2/mergetool-2.0.2-api.jar.sha256",
+      "checksum_algorithm": "sha256",
+      "checksum_value": "568e4bf03a0da636d7908305d6d9e226acbd58f3865fe4a29a0344201c77e34e",
+      "checksum_body_sha256": "13a6508f3143fb74a40698f57112b517685ab6905748b0f5dd1e6ff7e7af77fe",
+      "targets": ["1.20.3", "1.20.4"]
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.3:api",
+      "bytes": 2550,
+      "sha256": "e13e61c0437d6db17e7b3581ff261292015dcd9e11683f5a365b4b9a5c192283",
+      "official_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.3/mergetool-2.0.3-api.jar",
+      "official_checksum_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.3/mergetool-2.0.3-api.jar.sha256",
+      "checksum_algorithm": "sha256",
+      "checksum_value": "e13e61c0437d6db17e7b3581ff261292015dcd9e11683f5a365b4b9a5c192283",
+      "checksum_body_sha256": "cb505161ea93e2d8832e14cb988c618e23a1051b8d120c65be782aed59f83a7c",
+      "targets": ["1.21.1"]
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:24.1.0",
+      "bytes": 30570,
+      "sha256": "27a770dc7ce50500918bb8c3c0660c98290630ec796b5e3cf6b90f403b3033c6",
+      "official_url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/24.1.0/annotations-24.1.0.jar",
+      "official_checksum_url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/24.1.0/annotations-24.1.0.jar.sha1",
+      "checksum_algorithm": "sha1",
+      "checksum_value": "7af6a669488450c4a07c2c3254e2151df42d7d04",
+      "checksum_body_sha256": "041968a7ef26b4d78f2593bfc18cdb8da3d1516b2ff685581e1e39b1abccebfa",
+      "targets": ["1.20.3", "1.20.4", "1.21.0", "1.21.1"]
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:26.0.2-1",
+      "bytes": 31170,
+      "sha256": "2037be378980d3ba9333e97955f3b2cde392aa124d04ca73ce2eee6657199297",
+      "official_url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/26.0.2-1/annotations-26.0.2-1.jar",
+      "official_checksum_url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/26.0.2-1/annotations-26.0.2-1.jar.sha1",
+      "checksum_algorithm": "sha1",
+      "checksum_value": "c7ce3cdeda3d18909368dfe5977332dfad326c6d",
+      "checksum_body_sha256": "4a56cc61ceaea12deea7ef984f5a0001c22a2bfc5ee211a020ac4c27372b118d",
+      "targets": ["26.1.2"]
+    }
+  ]
+}

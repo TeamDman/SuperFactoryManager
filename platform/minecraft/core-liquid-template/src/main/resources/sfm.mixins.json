@@ -1,0 +1,59 @@
+{
+  "required": false,
+  "minVersion": "0.8.3",
+  "package": "ca.teamdman.sfm.mixins",
+  "refmap": "sfm.refmap.json",
+{% case minecraft_version %}
+{% when "26.1.2" %}
+  "compatibilityLevel": "JAVA_25",
+{% else %}
+  "compatibilityLevel": "JAVA_17",
+{% endcase %}
+  "mixins": [
+{% case minecraft_version %}
+{% when "26.1.2" %}
+    "HopperIgnoreTunnelledManagerMixin",
+{% endcase %}
+    "StructureTemplateManagerMixin"
+  ],
+  "client": [
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+{% if features.single_line_input or features.typed_command_palette or features.document_history %}
+{% if features.game_puppet_runtime or features.client_overlay_input or features.pointer_modifier_ingress or features.keyboard_profiles %}
+    "EditBoxAccessor",
+{% else %}
+    "EditBoxAccessor"
+{% endif %}
+{% endif %}
+{% if features.game_puppet_runtime or features.client_overlay_input or features.pointer_modifier_ingress %}
+{% if features.game_puppet_runtime or features.client_overlay_input or features.keyboard_profiles %}
+    "MouseHandlerMixin",
+{% else %}
+    "MouseHandlerMixin"
+{% endif %}
+{% endif %}
+{% if features.game_puppet_runtime %}
+    "MouseHandlerInvoker",
+{% endif %}
+{% if features.keyboard_profiles or features.client_overlay_input %}
+{% if features.game_puppet_runtime %}
+    "KeyboardHandlerMixin",
+{% else %}
+    "KeyboardHandlerMixin"
+{% endif %}
+{% endif %}
+{% if features.game_puppet_runtime %}
+    "KeyboardHandlerInvoker"
+{% endif %}
+{% else %}
+{% if features.game_puppet_runtime %}
+     "MouseHandlerMixin"
+{% endif %}
+{% endcase %}
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

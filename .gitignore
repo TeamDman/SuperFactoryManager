@@ -45,6 +45,8 @@ eclipse
 /platform/minecraft/.sfm-source-promotion-stage-*/
 # Named development projections are local generated projects, not release sources.
 /platform/minecraft/projections/sfm-dev/
+# Exact local development-minus-echo acceptance projection.
+/platform/minecraft/projections/sfm-review/no-echo/mc-1.19.2/
 platform/minecraft/run/
 runClient
 runClientSmoke

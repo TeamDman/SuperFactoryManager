@@ -1,0 +1,25 @@
+{
+  "values": [
+    "sfm:cable",
+    "sfm:cable_facade",
+    "sfm:fancy_cable",
+    "sfm:fancy_cable_facade",
+    "sfm:tough_cable",
+    "sfm:tough_cable_facade",
+    "sfm:tough_fancy_cable",
+    "sfm:tough_fancy_cable_facade",
+    "sfm:tunnelled_cable",
+    "sfm:tunnelled_cable_facade",
+    "sfm:tunnelled_fancy_cable",
+    "sfm:tunnelled_fancy_cable_facade",
+    "sfm:manager",
+{% if features.client_manager %}
+    "sfm:client_manager",
+{% endif %}
+    "sfm:tunnelled_manager",
+{% if features.touch_display %}
+    "sfm:touch_display",
+{% endif %}
+    "sfm:printing_press"
+  ]
+}

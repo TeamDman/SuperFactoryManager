@@ -1,0 +1,101 @@
+{
+  "spec": 6,
+  "version": "26.1.2",
+  "java_target": 25,
+  "encoding": "UTF-8",
+  "data": {
+    "patches": "patches/"
+  },
+  "steps": {
+    "joined": [
+      {
+        "type": "downloadManifest"
+      },
+      {
+        "type": "downloadJson",
+        "json": "{downloadManifestOutput}"
+      },
+      {
+        "type": "downloadClient",
+        "json": "{downloadJsonOutput}"
+      },
+      {
+        "type": "downloadServer",
+        "json": "{downloadJsonOutput}"
+      },
+      {
+        "type": "listLibraries",
+        "json": "{downloadJsonOutput}"
+      },
+      {
+        "type": "preProcessJar",
+        "inputServerJar": "{downloadServerOutput}",
+        "inputClientJar": "{downloadClientOutput}"
+      },
+      {
+        "type": "decompile",
+        "inputLibraries": "{listLibrariesOutput}",
+        "input": "{preProcessJarOutput}"
+      },
+      {
+        "type": "patch",
+        "input": "{decompileOutput}"
+      }
+    ]
+  },
+  "functions": {
+    "preProcessJar": {
+      "classpath": [
+        "net.neoforged.installertools:installertools:4.0.16:fatjar"
+      ],
+      "args": [
+        "--task",
+        "PROCESS_MINECRAFT_JAR",
+        "--input",
+        "{inputClientJar}",
+        "--input",
+        "{inputServerJar}",
+        "--output",
+        "{output}",
+        "--no-mod-manifest"
+      ],
+      "jvmargs": [],
+      "java_version": 25
+    },
+    "decompile": {
+      "classpath": [
+        "org.vineflower:vineflower:1.11.2",
+        "net.neoforged:vineflower-plugins:0.1.5"
+      ],
+      "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+      "args": [
+        "--decompile-inner",
+        "--remove-bridge",
+        "--decompile-generics",
+        "--ascii-strings",
+        "--remove-synthetic",
+        "--include-classpath",
+        "--ignore-invalid-bytecode",
+        "--bytecode-source-mapping",
+        "--dump-code-lines",
+        "--indent-string\u003d    ",
+        "--log-level\u003dWARN",
+        "-cfg\u003d{inputLibraries}",
+        "{input}",
+        "{output}"
+      ],
+      "jvmargs": [
+        "-Xmx4g"
+      ],
+      "java_version": 25
+    }
+  },
+  "libraries": {
+    "joined": [
+      "net.neoforged:mergetool:2.0.7:api",
+      "com.google.code.findbugs:jsr305:3.0.2",
+      "org.jetbrains:annotations:26.0.2-1",
+      "ca.weblite:java-objc-bridge:1.1"
+    ]
+  }
+}

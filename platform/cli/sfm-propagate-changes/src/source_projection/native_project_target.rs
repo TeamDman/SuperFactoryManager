@@ -1,6 +1,6 @@
 //! Read-only native preflight for an exact catalog-owned Minecraft project.
 //!
-//! This is an unregistered integration foundation, not a build/run entry point.
+//! This is a registered integration foundation, not a build/run entry point.
 //! It never synchronizes outputs, resolves a JDK, acquires dependencies, creates
 //! caches, or claims compilation/release parity. Existing named `Check` owns the
 //! generated-output transaction. A later shared preparation hook must preserve
@@ -8,31 +8,13 @@
 //! that policy here or disguise a projection as a Git branch.
 
 use super::candidate_lock::checked_directory;
-use super::candidate_lock::checked_file;
-use super::core_catalog::CoreCatalog;
-use super::core_catalog::read_bounded_catalog_input;
-use super::core_features::FEATURE_DEFINITIONS_PATH;
-use super::core_inputs::CORE_METADATA_PATH;
-use super::core_inputs::CORE_ROOT;
-use super::core_inputs::CoreProjectInputs;
-use super::core_inputs::MAX_CORE_FILE_BYTES;
-use super::core_inputs::MAX_CORE_METADATA_BYTES;
-use super::core_inputs::collect_core_artifacts;
-use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
-use super::named_root::catalog_projection_root;
-use super::projection_catalog::CATALOG_PATH;
+use super::catalog_owned_project::CatalogOwnedProject;
+use super::catalog_owned_project::collect_catalog_project;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::validate_projection_key;
-use super::provenance::CatalogProjectionOwner;
-use super::provenance::MAX_MANIFEST_BYTES;
-use super::provenance::ProjectionProvenance;
 use super::provenance::sha256;
 use super::sync::CatalogProjectionIdentity;
-use super::sync::MANIFEST_FILE;
 use super::sync::ProjectedArtifact;
-use super::sync::SyncMode;
-use super::sync::sync_catalog_projection;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
 use crate::toolchain_lockfile_schema::parse_document;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
@@ -43,10 +25,7 @@ use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use std::collections::BTreeMap;
-use std::collections::BTreeSet;
 use std::fs;
-use std::io::Read as _;
-use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -54,6 +33,38 @@ pub const NATIVE_DEPENDENCY_PROFILE: &str = "rust-toolchain";
 const LOCKFILE: &str = "sfm-toolchain.lock.json";
 const RECEIPT_SCHEMA: &str = "sfm:native_project_preflight@1";
 const CACHE_PARENT: &str = "build/sfm-toolchain/native-project";
+
+/// The captured `ForgeGradle` family; `NeoForm` needs its own development adapter.
+pub(crate) fn development_forge_loader(target: &str, minecraft: &str) -> Result<&'static str> {
+    ensure!(
+        target == minecraft,
+        "development Forge target/version mismatch"
+    );
+    match target {
+        "1.19.2" | "1.19.4" | "1.20" => Ok("forge"),
+        "1.20.1" => Ok("neoforge"),
+        _ => eyre::bail!(
+            "development native admission requires a captured Forge-family target: 1.19.2, 1.19.4, 1.20 or 1.20.1"
+        ),
+    }
+}
+
+/// Exact captured targets admitted by the two native development adapters.
+pub(crate) fn development_native_loader(target: &str, minecraft: &str) -> Result<&'static str> {
+    if matches!(target, "1.19.2" | "1.19.4" | "1.20" | "1.20.1") {
+        return development_forge_loader(target, minecraft);
+    }
+    let expected = match target {
+        "1.20.2" | "1.20.3" | "1.20.4" | "1.21.1" | "26.1.2" => target,
+        "1.21.0" => "1.21",
+        _ => eyre::bail!("development target has no captured native adapter"),
+    };
+    ensure!(
+        cfg!(windows) && minecraft == expected,
+        "development NeoForm target/version requires its exact Windows adapter"
+    );
+    Ok("neoforge")
+}
 
 /// Portable evidence, separate from the actual repository/project paths.
 ///
@@ -127,6 +138,41 @@ impl NativeProjectReceipt {
 }
 
 impl NativeProjectTarget {
+    /// Derive profile evidence from the retained checked owner, not a re-render.
+    pub(crate) fn from_checked_project(
+        project: &CatalogOwnedProject,
+        declared_profile: &str,
+    ) -> Result<Self> {
+        ensure!(
+            declared_profile == NATIVE_DEPENDENCY_PROFILE,
+            "named native target requires the explicit rust-toolchain profile"
+        );
+        project.recheck()?;
+        let profile = selected_profile(project.artifacts(), project.identity(), declared_profile)?;
+        let target = target_from_checked(project, declared_profile, profile)?;
+        project.recheck()?;
+        Ok(target)
+    }
+
+    /// Reuse a retained owner, but freshly validate its exact input bytes.
+    /// This avoids collecting and rendering the same project at each launch.
+    pub(crate) fn recheck_with_project(&self, project: &CatalogOwnedProject) -> Result<()> {
+        ensure!(
+            self.receipt.dependency_profile == NATIVE_DEPENDENCY_PROFILE,
+            "retained native target lost its rust-toolchain profile"
+        );
+        project.recheck()?;
+        let profile = selected_profile(
+            project.artifacts(),
+            project.identity(),
+            &self.receipt.dependency_profile,
+        )?;
+        let current = target_from_checked(project, &self.receipt.dependency_profile, profile)?;
+        ensure!(current == *self, "retained native project target changed");
+        project.recheck()?;
+        Ok(())
+    }
+
     /// Revalidate the complete selected inputs, root policy and current output.
     ///
     /// # Errors
@@ -168,81 +214,66 @@ pub fn preflight_native_project(
         declared_profile == NATIVE_DEPENDENCY_PROFILE,
         "named native preflight requires explicit declared profile `{NATIVE_DEPENDENCY_PROFILE}`, not `{declared_profile}`; no implicit Gradle/Rust profile conversion is supported"
     );
-    let loaded = CoreCatalog::load(repo_root, invocation_dir)?;
-    let context = loaded.context(projection_key)?;
-    let identity = CatalogProjectionIdentity::from_catalog(&loaded.catalog, projection_key)?;
-    let metadata_bytes = read_checked(
-        &loaded.repo_root,
-        CORE_METADATA_PATH,
-        MAX_CORE_METADATA_BYTES,
+    let collected = collect_catalog_project(repo_root, invocation_dir, projection_key)?;
+    // Preserve compatibility refusal before named ownership Check. A recipe is
+    // a separate explicit adapter, never a fabricated schema-4 profile.
+    let profile = selected_profile(
+        collected.artifacts(),
+        collected.identity(),
+        declared_profile,
     )?;
-    let metadata = CoreProjectInputs::from_json(
-        std::str::from_utf8(&metadata_bytes)?,
-        &loaded.registered_features,
-    )?;
-    let core = checked_directory(&loaded.repo_root.join(CORE_ROOT))?;
-    let inventory = discover_core_source_files(&core)?;
-    let selection = select_core_inputs(&metadata, &context, &inventory)?;
-    let artifacts = collect_core_artifacts(&core, &selection, &context)?;
-    let profile = selected_profile(&artifacts, &identity, declared_profile)?;
-
-    // Reuse the named boundary and Check transaction. Never introduce Apply,
-    // a release auto-sync, or a duplicated development generation policy.
-    let minecraft_dir = catalog_projection_root(
-        &loaded.repo_root,
-        &loaded.catalog,
-        projection_key,
-        &artifacts,
-    )?;
-    sync_catalog_projection(&minecraft_dir, &identity, &artifacts, SyncMode::Check).wrap_err(
+    let checked = collected.check_current().wrap_err(
         "named native preflight needs a current owned project; prepare it through the existing named source workflow (release outputs are never auto-synced)",
     )?;
-    let provenance_bytes = read_checked(&minecraft_dir, MANIFEST_FILE, MAX_MANIFEST_BYTES as u64)?;
-    let provenance = ProjectionProvenance::from_json(std::str::from_utf8(&provenance_bytes)?)?;
-    ensure!(
-        provenance.target_id == identity.target_id
-            && provenance.minecraft_version == identity.minecraft_version
-            && provenance.catalog.as_ref()
-                == Some(&CatalogProjectionOwner {
-                    projection_key: identity.projection_key.clone(),
-                    environment: identity.environment,
-                    context_identity: identity.context_identity.clone(),
-                })
-            && provenance.files.len() == artifacts.len(),
-        "named native provenance has a different owner or selected file set"
-    );
-    let files = check_owned_files(&loaded.repo_root, &minecraft_dir, &artifacts, &provenance)?;
-    recheck_generation_snapshot(
-        &loaded,
-        &metadata_bytes,
-        &core,
-        &inventory,
-        &minecraft_dir,
-        &provenance_bytes,
-    )?;
-    let project_dir = portable_path(&loaded.catalog.project_dir(projection_key)?)?;
+    let target = target_from_checked(&checked, declared_profile, profile)?;
+    checked.recheck()?;
+    Ok(target)
+}
+
+fn target_from_checked(
+    checked: &CatalogOwnedProject,
+    declared_profile: &str,
+    profile: SelectedProfile,
+) -> Result<NativeProjectTarget> {
+    let owned = checked.receipt();
+    // Keep the exact legacy @1 receipt field set and serialization order.
+    // Added ownership inventory/template/byte evidence stays in its own receipt.
     let receipt = NativeProjectReceipt {
         schema: RECEIPT_SCHEMA.to_owned(),
         compilation: NativeValidationStatus::NotPerformed,
         release_compatibility: NativeValidationStatus::NotPerformed,
-        projection_key: identity.projection_key,
-        environment: identity.environment,
-        target_id: identity.target_id,
-        minecraft_version: identity.minecraft_version,
-        java_major: selection.build_target.java_major,
-        loader: selection.build_target.loader,
-        context_identity: identity.context_identity,
-        project_dir,
+        projection_key: owned.projection_key.clone(),
+        environment: owned.environment,
+        target_id: owned.target_id.clone(),
+        minecraft_version: owned.minecraft_version.clone(),
+        java_major: owned.java_major,
+        loader: owned.loader.clone(),
+        context_identity: owned.context_identity.clone(),
+        project_dir: owned.project_dir.clone(),
         dependency_profile: declared_profile.to_owned(),
-        catalog_sha256: loaded.catalog_sha256,
-        feature_definitions_sha256: loaded.feature_definitions_sha256,
-        project_inputs_sha256: sha256(&metadata_bytes),
-        provenance_sha256: sha256(&provenance_bytes),
-        lockfile_sha256: sha256(&artifacts[LOCKFILE].output_bytes),
+        catalog_sha256: owned.catalog_sha256.clone(),
+        feature_definitions_sha256: owned.feature_definitions_sha256.clone(),
+        project_inputs_sha256: owned.project_inputs_sha256.clone(),
+        provenance_sha256: owned.provenance_sha256.clone(),
+        lockfile_sha256: sha256(checked.selected_input(LOCKFILE)?.output_bytes()),
         effective_dependencies_sha256: profile.dependencies_sha256,
         effective_source_exclusions_sha256: profile.source_exclusions_sha256,
-        files,
+        files: owned
+            .files
+            .iter()
+            .map(|(output, file)| {
+                (
+                    output.clone(),
+                    NativeProjectFile {
+                        authored_input: file.authored_input.clone(),
+                        source_sha256: file.source_sha256.clone(),
+                        output_sha256: file.output_sha256.clone(),
+                    },
+                )
+            })
+            .collect(),
     };
+    let minecraft_dir = checked.project_root().to_path_buf();
     let cache_identity = receipt.cache_identity()?;
     let digest = cache_identity
         .strip_prefix("sha256:")
@@ -250,7 +281,7 @@ pub fn preflight_native_project(
     let cache_relative = format!("{CACHE_PARENT}/{digest}");
     inspect_cache_ancestors(&minecraft_dir, &cache_relative)?;
     Ok(NativeProjectTarget {
-        repo_root: loaded.repo_root,
+        repo_root: checked.repo_root().to_path_buf(),
         cache_dir: minecraft_dir.join(cache_relative),
         minecraft_dir,
         cache_identity,
@@ -258,92 +289,21 @@ pub fn preflight_native_project(
     })
 }
 
-fn check_owned_files(
-    repo_root: &Path,
-    minecraft_dir: &Path,
-    artifacts: &BTreeMap<String, ProjectedArtifact>,
-    provenance: &ProjectionProvenance,
-) -> Result<BTreeMap<String, NativeProjectFile>> {
-    let mut files = BTreeMap::new();
-    for (output, artifact) in artifacts {
-        let source_sha256 = sha256(&artifact.source_bytes);
-        let output_sha256 = sha256(&artifact.output_bytes);
-        ensure!(
-            sha256(&read_checked(
-                repo_root,
-                &artifact.source_path,
-                MAX_CORE_FILE_BYTES
-            )?) == source_sha256,
-            "selected authored input changed during native preflight: {}",
-            artifact.source_path
-        );
-        ensure!(
-            sha256(&read_checked(minecraft_dir, output, MAX_CORE_FILE_BYTES)?) == output_sha256,
-            "selected generated output changed during native preflight: {output}"
-        );
-        let witnessed = provenance
-            .files
-            .get(output)
-            .ok_or_else(|| eyre::eyre!("native provenance does not own `{output}`"))?;
-        ensure!(
-            witnessed.source_path == artifact.source_path
-                && witnessed.source_sha256 == source_sha256
-                && witnessed.output_sha256 == output_sha256
-                && witnessed.overlay.is_none(),
-            "native provenance changed after named Check: {output}"
-        );
-        files.insert(
-            output.clone(),
-            NativeProjectFile {
-                authored_input: artifact.source_path.clone(),
-                source_sha256,
-                output_sha256,
-            },
-        );
-    }
-    Ok(files)
-}
-
-fn recheck_generation_snapshot(
-    loaded: &CoreCatalog,
-    metadata_bytes: &[u8],
-    core: &Path,
-    inventory: &BTreeSet<String>,
-    minecraft_dir: &Path,
-    provenance_bytes: &[u8],
-) -> Result<()> {
-    ensure!(
-        loaded.catalog_sha256
-            == sha256(&read_bounded_catalog_input(
-                &loaded.repo_root,
-                CATALOG_PATH
-            )?)
-            && loaded.feature_definitions_sha256
-                == sha256(&read_bounded_catalog_input(
-                    &loaded.repo_root,
-                    FEATURE_DEFINITIONS_PATH
-                )?)
-            && sha256(metadata_bytes)
-                == sha256(&read_checked(
-                    &loaded.repo_root,
-                    CORE_METADATA_PATH,
-                    MAX_CORE_METADATA_BYTES
-                )?)
-            && *inventory == discover_core_source_files(core)?
-            && sha256(provenance_bytes)
-                == sha256(&read_checked(
-                    minecraft_dir,
-                    MANIFEST_FILE,
-                    MAX_MANIFEST_BYTES as u64
-                )?),
-        "named native generation inputs changed during preflight"
-    );
-    Ok(())
-}
-
 struct SelectedProfile {
     dependencies_sha256: String,
     source_exclusions_sha256: String,
+}
+
+pub(crate) fn validate_collected_native_profile(
+    project: &super::catalog_owned_project::CollectedCatalogProject,
+    profile: &str,
+) -> Result<()> {
+    ensure!(
+        profile == NATIVE_DEPENDENCY_PROFILE,
+        "unsupported native dependency profile"
+    );
+    selected_profile(project.artifacts(), project.identity(), profile)?;
+    Ok(())
 }
 
 fn selected_profile(
@@ -482,39 +442,7 @@ fn exact_property<'a>(properties: &'a str, key: &str) -> Result<&'a str> {
     Ok(values[0])
 }
 
-fn read_checked(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
-    let path = checked_file(root, relative)?;
-    let file =
-        fs::File::open(path).wrap_err_with(|| format!("cannot read native input `{relative}`"))?;
-    ensure!(
-        file.metadata()?.len() <= limit,
-        "native input `{relative}` exceeds its bounded byte limit"
-    );
-    let mut bytes = Vec::new();
-    file.take(limit + 1).read_to_end(&mut bytes)?;
-    ensure!(
-        bytes.len() as u64 <= limit,
-        "native input `{relative}` grew beyond its bounded byte limit"
-    );
-    Ok(bytes)
-}
-
-fn portable_path(path: &Path) -> Result<String> {
-    path.components()
-        .map(|component| match component {
-            Component::Normal(value) => value
-                .to_str()
-                .map(str::to_owned)
-                .ok_or_else(|| eyre::eyre!("native project path is not UTF-8")),
-            _ => Err(eyre::eyre!(
-                "native project path is not an exact relative path"
-            )),
-        })
-        .collect::<Result<Vec<_>>>()
-        .map(|parts| parts.join("/"))
-}
-
-fn inspect_cache_ancestors(project: &Path, relative: &str) -> Result<()> {
+pub(crate) fn inspect_cache_ancestors(project: &Path, relative: &str) -> Result<()> {
     let mut current = checked_directory(project)?;
     for part in relative.split('/') {
         for sibling in fs::read_dir(&current)? {
@@ -543,9 +471,22 @@ fn inspect_cache_ancestors(project: &Path, relative: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source_projection::core_catalog::CoreCatalog;
+    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::core_inputs::BuildTargetMetadata;
+    use crate::source_projection::core_inputs::CORE_METADATA_PATH;
+    use crate::source_projection::core_inputs::CORE_ROOT;
+    use crate::source_projection::core_inputs::CoreProjectInputs;
     use crate::source_projection::core_inputs::InputPredicate;
     use crate::source_projection::core_inputs::InputVariant;
+    use crate::source_projection::core_inputs::collect_core_artifacts;
+    use crate::source_projection::core_inputs::discover_core_source_files;
+    use crate::source_projection::core_inputs::select_core_inputs;
+    use crate::source_projection::named_root::catalog_projection_root;
+    use crate::source_projection::projection_catalog::CATALOG_PATH;
+    use crate::source_projection::sync::MANIFEST_FILE;
+    use crate::source_projection::sync::SyncMode;
+    use crate::source_projection::sync::sync_catalog_projection;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use crate::toolchain_lockfile_schema::version::v4::FeatureComponentV4;
     use crate::toolchain_lockfile_schema::version::v4::FeatureV4;
@@ -674,6 +615,50 @@ mod tests {
             panic!("v4 fixture")
         };
         lock
+    }
+
+    #[test]
+    fn development_forge_admission_rejects_newer_and_mismatched_targets() {
+        for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+            let expected = if target == "1.20.1" {
+                "neoforge"
+            } else {
+                "forge"
+            };
+            assert_eq!(development_forge_loader(target, target).unwrap(), expected);
+            assert!(development_forge_loader(target, "different-version").is_err());
+        }
+        for (target, minecraft) in super::super::projection_catalog::SUPPORTED_TARGETS
+            .iter()
+            .skip(4)
+        {
+            assert!(development_forge_loader(target, minecraft).is_err());
+        }
+        assert!(development_forge_loader("unknown", "unknown").is_err());
+    }
+
+    #[test]
+    fn checked_owner_target_matches_full_preflight_and_rejects_later_edits() -> Result<()> {
+        let fixture = Fixture::new(RAW_V4, "ignored/nested", "dev");
+        fixture.publish();
+        let checked = collect_catalog_project(
+            fixture.temp.path(),
+            fixture.temp.path(),
+            &fixture.identity.projection_key,
+        )?
+        .check_current()?;
+        let retained =
+            NativeProjectTarget::from_checked_project(&checked, NATIVE_DEPENDENCY_PROFILE)?;
+        assert_eq!(retained, fixture.check()?);
+        assert!(NativeProjectTarget::from_checked_project(&checked, "gradle").is_err());
+        assert!(!fixture.root.join("build").exists());
+        let changed = fixture.root.join(LOCKFILE);
+        fs::write(&changed, b"{}")?;
+        assert!(
+            NativeProjectTarget::from_checked_project(&checked, NATIVE_DEPENDENCY_PROFILE).is_err()
+        );
+        assert_eq!(fs::read(changed)?, b"{}");
+        Ok(())
     }
 
     #[test]
@@ -958,5 +943,35 @@ mod tests {
         assert!(fixture.check().is_err());
         fs::remove_dir(path).unwrap();
         assert!(fs::read_dir(external.path()).unwrap().next().is_none());
+    }
+    #[test]
+    fn unowned_src_inputs_refuse_before_native_scans_or_cache_creation() {
+        for (key, environment) in [(KEY, "release"), ("ignored/nested", "dev")] {
+            for extra in [
+                "src/main/java/Injected.java",
+                "src/main/resources/injected.bin",
+                "src/main/antlr/fixture/Injected.g4",
+                "src/gametest/resources/injected.txt",
+                "src/unregistered/input.custom",
+            ] {
+                let fixture = Fixture::new(RAW_V4, key, environment);
+                fixture.publish();
+                let target = fixture.check().unwrap();
+                let manifest_before = fs::read(fixture.root.join(MANIFEST_FILE)).unwrap();
+                let source = fixture.root.join(extra);
+                fs::create_dir_all(source.parent().unwrap()).unwrap();
+                fs::write(&source, b"unowned physical source input").unwrap();
+                let error = format!("{:#}", fixture.check().unwrap_err());
+                assert!(error.contains("extra unowned source inputs"), "{error}");
+                assert!(target.recheck().is_err());
+                assert_eq!(fs::read(&source).unwrap(), b"unowned physical source input");
+                assert_eq!(
+                    fs::read(fixture.root.join(MANIFEST_FILE)).unwrap(),
+                    manifest_before
+                );
+                assert!(!target.cache_dir.exists());
+                assert!(!fixture.root.join("build").exists());
+            }
+        }
     }
 }

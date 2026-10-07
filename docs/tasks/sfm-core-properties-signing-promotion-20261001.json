@@ -1,0 +1,70 @@
+{
+  "schema": "sfm:properties_signing_core_promotion@1",
+  "recorded": "2026-10-01",
+  "scope": "actual shared Liquid source/selector/collector proofs; not Java compilation, signing effects, UI behavior or complete development preservation",
+  "source_rule_count": 576,
+  "project_inputs_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+  "core_file_count": 1859,
+  "core_tree_sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+  "core_tree_encoding": "ordinal relative path,NUL,decimal bytes,NUL,lowercase SHA256,LF;UTF8",
+  "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+  "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+  "cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+  "sources": {
+    "files": 12,
+    "authored_bytes": 72116,
+    "portable_ledgers": [
+      "docs/tasks/sfm-core-signing-transport-slice.json",
+      "docs/tasks/sfm-core-signing-delegates-slice.json",
+      "docs/tasks/sfm-core-properties-provider-slice.json",
+      "docs/tasks/sfm-core-signing-runtime-ui-slice.json"
+    ]
+  },
+  "focused_tests": [
+    {
+      "filter": "core_signing_transport_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 13.01
+    },
+    {
+      "filter": "core_signing_delegates_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 9.99
+    },
+    {
+      "filter": "core_properties_provider_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 13.21
+    },
+    {
+      "filter": "core_signing_runtime_ui_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 24
+    }
+  ],
+  "validation_command": "cargo test --offline --locked --all-features --lib <filter> -- --test-threads=1",
+  "retained_logs": "platform/cli/sfm-propagate-changes/target/core-props-signing-retry-v2-<filter>-20261001.log",
+  "observed_failure": {
+    "filter": "core_signing_transport_slice_tests",
+    "failed": 8,
+    "effect": "typed metadata parse refusal before source rendering or effects",
+    "cause": "two delegate source-rule values accidentally wrapped in { variants: [...] }; actual CoreProjectInputs requires each value be an array",
+    "repair": "remove only the two wrappers, preserving exact predicates; original failed log retained",
+    "retained_log": "platform/cli/sfm-propagate-changes/target/core-props-signing-first-core_signing_transport_slice_tests-20261001.log"
+  },
+  "limits": [
+    "prior 169-shard full gate predates this promotion; a new full gate remains required",
+    "default CLI rebuild and exact release1.20 retry are separate unfinished proofs",
+    "no dependency, feature support or prerequisite change",
+    "genuine remaining UI/host/history/action provider closures remain open",
+    "no store/key/private-key/network/Minecraft runtime effects were executed"
+  ]
+}

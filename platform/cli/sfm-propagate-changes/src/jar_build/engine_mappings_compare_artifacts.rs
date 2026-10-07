@@ -1035,7 +1035,7 @@ fn write_artifact_lockfile(plan: &BuildPlan) -> eyre::Result<()> {
     level = "info",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version,
         artifacts = plan.artifacts.len(),
         dependencies = plan.dependencies.len(),
@@ -1046,6 +1046,7 @@ fn write_artifact_lockfile_with_extra_cache_paths(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<()> {
+    if plan.identity.is_catalog_owned() { plan.recheck_named_inputs()?; return Ok(()); }
     if let Ok(input) = std::fs::read_to_string(&plan.lockfile_path)
         && matches!(
             crate::toolchain_lockfile_schema::parse_document(&input),
@@ -1118,7 +1119,7 @@ fn refresh_maintained_lockfile_document(
     level = "debug",
     skip_all,
     fields(
-        branch = %plan.branch_name,
+        branch = %plan.target_label(),
         mc = %plan.minecraft_version
     )
 )]
@@ -1130,6 +1131,7 @@ fn build_artifact_lockfile(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<ArtifactLockfile> {
+    eyre::ensure!(!plan.identity.is_catalog_owned(), "immutable catalog project cannot enter an artifact lock writer");
     let mut artifacts = Vec::new();
     let mut entries = Vec::new();
     if let Some(existing_lockfile) = &plan.lockfile {
@@ -1595,7 +1597,7 @@ fn print_plan_summary(plan: &BuildPlan) {
     let lines = [
         "Clean-slate jar build plan resolved.".to_string(),
         format!("Minecraft:    {}", plan.minecraft_version),
-        format!("Worktree:     {}", plan.worktree_path.display()),
+        format!("Worktree:     {}", plan.repository_root().display()),
         format!("Gradle jar:   {}", plan.gradle_output_jar.display()),
         format!("Rust jar:     {}", plan.rust_output_jar.display()),
         format!("Java:         {}", plan.java.executable.display()),

@@ -6,6 +6,7 @@ mod artifact_audit_report;
 mod artifact_audit_severity;
 mod artifact_id;
 mod artifact_purpose;
+pub(crate) mod authenticated_minecraft_inputs;
 mod build_command;
 mod build_mode;
 mod build_options;
@@ -19,6 +20,20 @@ pub(crate) mod hash;
 mod json_branch_name;
 mod json_minecraft_version;
 pub(crate) mod json_path;
+#[cfg(windows)]
+mod nfrt_child_process;
+#[cfg(windows)]
+mod nfrt_child_tool;
+#[cfg(windows)]
+mod nfrt_host_protocol;
+#[cfg(windows)]
+mod nfrt_host_session;
+#[cfg(windows)]
+pub(crate) mod nfrt_launch_contract;
+#[cfg(windows)]
+mod nfrt_owned_host;
+#[cfg(windows)]
+mod nfrt_requests;
 mod parallelism;
 mod run_command;
 mod run_kind;
@@ -57,11 +72,17 @@ pub(crate) use engine::DependencyLockEntry;
 pub(crate) use engine::GamePuppetPreviewManifest;
 pub(crate) use engine::GamePuppetPreviewVariantObservation;
 pub(crate) use engine::GamePuppetPreviewViewportCrop;
+pub(crate) use engine::NamedCompileOptions;
 pub(crate) use engine::Repository;
 pub(crate) use engine::SourceBuildProvenance;
 pub(crate) use engine::SourceGitProvenance;
 pub(crate) use engine::WeakArtifactValidation;
+pub(crate) use engine::invoke_development_project;
+pub(crate) use engine::invoke_named_compile;
+pub(crate) use engine::invoke_named_jar;
 pub(crate) use engine::png_dimensions;
+pub(crate) use engine::preflight_named_neoform_recipe;
+pub(crate) use engine::prepare_named_frozen_recipe_project;
 pub use error_action::ErrorAction;
 pub(crate) use game_puppet_preview_artifact_root::game_puppet_preview_artifact_root;
 pub use parallelism::Parallelism;

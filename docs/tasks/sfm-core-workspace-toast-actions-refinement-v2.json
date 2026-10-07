@@ -1,0 +1,648 @@
+{
+  "schema": "sfm:core_workspace_toast_actions_refinement@2",
+  "status": "reviewed ignored-only staged source and test proposal; not promoted or executed",
+  "scope": "Refine toast action access to the existing pure queue without granting notification rendering, captured content or clipboard capabilities.",
+  "source_snapshot": {
+    "head": "aa080df6e4e42ff78d565431a06e1d087a639064",
+    "working_state": "Root-owned source/metadata freeze during tooling gate 64658 and the subsequent named native Compile boundary; new ignored stage and this portable receipt only."
+  },
+  "new_definitions": [],
+  "support_changes": [],
+  "prerequisite_changes": [],
+  "unchanged_feature_contracts": {
+    "workspace_notifications": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "font_formatted_text"
+      ]
+    },
+    "workspace_toast_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "workspace_toast_path_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_toast_actions",
+        "file_explorer"
+      ]
+    },
+    "font_formatted_text": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "immutable_evidence": [
+    {
+      "path": "docs/tasks/sfm-core-workspace-host-slice.json",
+      "bytes": 255693,
+      "sha256": "sha256:dd4def0a8b762b49cec2f5e9d3db9307afa8e1548930ac1210e22d35600bf882",
+      "scope": "Original v1 source facts, 106 profiles, 318 independent goldens and full historical witnesses remain byte-identical."
+    },
+    {
+      "path": "docs/tasks/sfm-core-echo-palette-slice.json",
+      "bytes": 88341,
+      "sha256": "sha256:fb705a4cdd818579f2e28e12d36c684efe6f6778a80f25b4c3688abb357da1cb",
+      "scope": "Original v1 source facts, 104 member owner/order records, 145 independent profiles and 40 frozen witness cells remain byte-identical."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-stage-v1/SFMScreenMultiplexer.java",
+      "bytes": 161046,
+      "sha256": "sha256:41d5786bac8fb951d022f1232edc9422a7c0f26452f5da1aff2001ccc933958b",
+      "scope": "Original host template is unchanged; reversing only the eight reviewed edits reproduces these exact bytes."
+    }
+  ],
+  "files": [
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMScreenMultiplexer.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+      "stage_bytes": 161388,
+      "stage_sha256": "sha256:242f4706e7cbd20c3f153c0aae214eb12c0286a948b3832bfdfee534ab1097bc",
+      "original": {
+        "bytes": 161046,
+        "sha256": "sha256:41d5786bac8fb951d022f1232edc9422a7c0f26452f5da1aff2001ccc933958b",
+        "edits": 8
+      },
+      "normalization": "none"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMCommandPaletteActions.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMCommandPaletteActions.java",
+      "stage_bytes": 32162,
+      "stage_sha256": "sha256:57c2d33c1b40378761e8aeaafbc586caa6986368da55fcccff24223d9862734d",
+      "original": {
+        "bytes": 31977,
+        "sha256": "sha256:1862eb535ea1ee1b0a9f44906a6e257b5fe700211261fc42323536e0b47cd0b1",
+        "edits": 5
+      },
+      "normalization": "none"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastAction.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastAction.java",
+      "stage_bytes": 5360,
+      "stage_sha256": "sha256:743bbe69a02501f662e06ce2e77eea66e986bae1197db4b09a66e209bc622914",
+      "original": {
+        "git_blob": "e6701a5c3d10ee843fdc79922148f67452dc76ff",
+        "bytes": 5036,
+        "sha256": "sha256:b41ca97c88eee1376e9972d6ae1971cad7680a819855db8b5976db4e1ac985e6",
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "final_lf": true,
+        "bom": false,
+        "edits": 6
+      },
+      "normalization": "none"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/SFMToastPathAction.java",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+      "stage_bytes": 7438,
+      "stage_sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a",
+      "original": {
+        "git_blob": "e6b7855e2c2f980889fc4e8e320df4617b47145c",
+        "bytes": 7438,
+        "sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a",
+        "crlf_count": 0,
+        "lone_cr_count": 0,
+        "final_lf": true,
+        "bom": false,
+        "edits": 0
+      },
+      "normalization": "none"
+    }
+  ],
+  "host_edits": [
+    {
+      "id": "queue_field",
+      "before": "{% if features.workspace_notifications %}\n    private @Nullable SFMWorkspaceToastQueue workspaceToasts = new SFMWorkspaceToastQueue();\n{% endif %}",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n    private @Nullable SFMWorkspaceToastQueue workspaceToasts = new SFMWorkspaceToastQueue();\n{% endif %}"
+    },
+    {
+      "id": "queue_tick",
+      "before": "{% if features.workspace_notifications %}\n        toastQueue().tick();\n{% endif %}",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n        toastQueue().tick();\n{% endif %}"
+    },
+    {
+      "id": "queue_close",
+      "before": "{% if features.workspace_notifications %}\n        toastQueue().close();\n        workspaceToastHitRegions = List.of();\n{% endif %}",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n        toastQueue().close();\n{% endif %}\n{% if features.workspace_notifications %}\n        workspaceToastHitRegions = List.of();\n{% endif %}"
+    },
+    {
+      "id": "activeWorkspaceToastIds",
+      "before": "{% if features.workspace_notifications %}\n\n    public List<SFMWorkspaceToastQueue.ToastId> activeWorkspaceToastIds",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n\n    public List<SFMWorkspaceToastQueue.ToastId> activeWorkspaceToastIds"
+    },
+    {
+      "id": "stopWorkspaceToastTimer",
+      "before": "{% if features.workspace_notifications %}\n\n    public SFMWorkspaceToastQueue.MutationResult stopWorkspaceToastTimer",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n\n    public SFMWorkspaceToastQueue.MutationResult stopWorkspaceToastTimer"
+    },
+    {
+      "id": "resumeWorkspaceToastTimer",
+      "before": "{% if features.workspace_notifications %}\n\n    public SFMWorkspaceToastQueue.MutationResult resumeWorkspaceToastTimer",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n\n    public SFMWorkspaceToastQueue.MutationResult resumeWorkspaceToastTimer"
+    },
+    {
+      "id": "dismissWorkspaceToast",
+      "before": "{% if features.workspace_notifications %}\n\n    public SFMWorkspaceToastQueue.MutationResult dismissWorkspaceToast",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n\n    public SFMWorkspaceToastQueue.MutationResult dismissWorkspaceToast"
+    },
+    {
+      "id": "toastQueue",
+      "before": "{% if features.workspace_notifications %}\n\n    private SFMWorkspaceToastQueue toastQueue",
+      "after": "{% if features.workspace_notifications or features.workspace_toast_actions %}\n\n    private SFMWorkspaceToastQueue toastQueue"
+    }
+  ],
+  "registrar_edits": [
+    {
+      "id": "COPY_TOAST_PATH",
+      "before": "{% if features.workspace_toast_path_actions %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> COPY_TOAST_PATH",
+      "after": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> COPY_TOAST_PATH"
+    },
+    {
+      "id": "OPEN_TOAST_PATH_TEXT",
+      "before": "{% if features.workspace_toast_path_actions %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_TEXT",
+      "after": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_TEXT"
+    },
+    {
+      "id": "OPEN_TOAST_PATH_EXPLORER",
+      "before": "{% if features.workspace_toast_path_actions %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_EXPLORER",
+      "after": "{% if features.workspace_toast_path_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_EXPLORER"
+    },
+    {
+      "id": "COPY_TOAST",
+      "before": "{% if features.workspace_toast_actions %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST =",
+      "after": "{% if features.workspace_toast_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST ="
+    },
+    {
+      "id": "COPY_TOAST_DETAILS",
+      "before": "{% if features.workspace_toast_actions %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST_DETAILS =",
+      "after": "{% if features.workspace_toast_actions and features.workspace_notifications %}\n    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST_DETAILS ="
+    }
+  ],
+  "mixed_action_edits": [
+    {
+      "id": "enum_copy",
+      "before": "        COPY,\n        COPY_DETAILS,\n",
+      "after": "{% if features.workspace_notifications %}\n        COPY,\n        COPY_DETAILS,\n{% endif %}\n"
+    },
+    {
+      "id": "title_copy",
+      "before": "            case COPY -> \"Copy toast text\";\n            case COPY_DETAILS -> \"Copy complete notification details\";\n",
+      "after": "{% if features.workspace_notifications %}\n            case COPY -> \"Copy toast text\";\n            case COPY_DETAILS -> \"Copy complete notification details\";\n{% endif %}\n"
+    },
+    {
+      "id": "description_copy",
+      "before": "            case COPY -> \"Copy the exact addressed notification to the clipboard\";\n            case COPY_DETAILS -> \"Copy the diagnostic payload associated with this exact notification\";\n",
+      "after": "{% if features.workspace_notifications %}\n            case COPY -> \"Copy the exact addressed notification to the clipboard\";\n            case COPY_DETAILS -> \"Copy the diagnostic payload associated with this exact notification\";\n{% endif %}\n"
+    },
+    {
+      "id": "execute_copy",
+      "before": "            case COPY -> workspace.copyWorkspaceToast(id);\n            case COPY_DETAILS -> workspace.copyWorkspaceToastDetails(id);\n",
+      "after": "{% if features.workspace_notifications %}\n            case COPY -> workspace.copyWorkspaceToast(id);\n            case COPY_DETAILS -> workspace.copyWorkspaceToastDetails(id);\n{% endif %}\n"
+    },
+    {
+      "id": "copy_error",
+      "before": "            if (operation == Operation.COPY || operation == Operation.COPY_DETAILS) throw new SimpleCommandExceptionType(\n                    Component.literal(\"Clipboard unavailable or the notification expired\")).create();\n",
+      "after": "{% if features.workspace_notifications %}\n            if (operation == Operation.COPY || operation == Operation.COPY_DETAILS) throw new SimpleCommandExceptionType(\n                    Component.literal(\"Clipboard unavailable or the notification expired\")).create();\n{% endif %}\n"
+    },
+    {
+      "id": "copy_feedback",
+      "before": "            case COPY -> \"Copied notification \" + id.value() + \" to the clipboard\";\n            case COPY_DETAILS -> \"Copied details for notification \" + id.value() + \" to the clipboard\";\n",
+      "after": "{% if features.workspace_notifications %}\n            case COPY -> \"Copied notification \" + id.value() + \" to the clipboard\";\n            case COPY_DETAILS -> \"Copied details for notification \" + id.value() + \" to the clipboard\";\n{% endif %}\n"
+    }
+  ],
+  "reverse_proof": {
+    "performed": "Read-only strict UTF-8 in-memory reversal of exact unique anchors from staged physical files; full SHA-256 and byte counts checked.",
+    "host_edits": 8,
+    "registrar_edits": 5,
+    "mixed_action_edits": 6,
+    "unchanged_path_action": true,
+    "result": "All three reversed sources match the exact original identities above; path action matches its unchanged frozen Git blob."
+  },
+  "source_rules": [
+    {
+      "output": "src/main/java/ca/teamdman/sfm/client/action/SFMToastAction.java",
+      "input": "src/main/java/ca/teamdman/sfm/client/action/SFMToastAction.java",
+      "template": true,
+      "when": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_toast_actions"
+        ]
+      }
+    },
+    {
+      "output": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+      "input": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+      "template": true,
+      "when": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_toast_path_actions",
+          "workspace_notifications"
+        ]
+      }
+    }
+  ],
+  "source_rule_changes": "Only the two staged companion classes need the explicit rules above. Existing host and registrar source membership is retained. No flags are registered or enabled by this receipt.",
+  "raw_action_witnesses": [
+    {
+      "git_blob": "e6701a5c3d10ee843fdc79922148f67452dc76ff",
+      "bytes": 5036,
+      "sha256": "sha256:b41ca97c88eee1376e9972d6ae1971cad7680a819855db8b5976db4e1ac985e6",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "e6b7855e2c2f980889fc4e8e320df4617b47145c",
+      "bytes": 7438,
+      "sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    }
+  ],
+  "action_membership_witnesses": [
+    {
+      "context": "dev/1.19.2",
+      "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "present": true,
+      "action_git_blob": "e6701a5c3d10ee843fdc79922148f67452dc76ff",
+      "path_action_git_blob": "e6b7855e2c2f980889fc4e8e320df4617b47145c"
+    },
+    {
+      "context": "dev/1.19.4",
+      "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+      "present": true,
+      "action_git_blob": "e6701a5c3d10ee843fdc79922148f67452dc76ff",
+      "path_action_git_blob": "e6b7855e2c2f980889fc4e8e320df4617b47145c"
+    },
+    {
+      "context": "dev/1.20",
+      "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.20.1",
+      "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.20.2",
+      "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.20.3",
+      "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.20.4",
+      "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.21.0",
+      "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/1.21.1",
+      "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "dev/26.1.2",
+      "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.19.2",
+      "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.19.4",
+      "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.20",
+      "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.20.1",
+      "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.20.2",
+      "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.20.3",
+      "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.20.4",
+      "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.21.0",
+      "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/1.21.1",
+      "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    },
+    {
+      "context": "release/26.1.2",
+      "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+      "present": false,
+      "action_git_blob": null,
+      "path_action_git_blob": null
+    }
+  ],
+  "member_contract": {
+    "pure_queue_owner": "workspace_notifications OR workspace_toast_actions",
+    "pure_host_members": [
+      "queue_field",
+      "queue_tick",
+      "queue_close",
+      "activeWorkspaceToastIds",
+      "stopWorkspaceToastTimer",
+      "resumeWorkspaceToastTimer",
+      "dismissWorkspaceToast",
+      "toastQueue"
+    ],
+    "unchanged_queue_import_and_action_id_constants": true,
+    "snapshot_latest_accessors": "Remain notification-only: no actual frozen toast action caller requires them.",
+    "mixed_action_owner": "workspace_toast_actions",
+    "copy_members": "COPY and COPY_DETAILS plus their title/description/execute/error/feedback branches require workspace_notifications.",
+    "timer_members": "STOP_TIMER, RESUME_TIMER and DISMISS retain action-only ownership.",
+    "registrar_copy_fields": "COPY_TOAST and COPY_TOAST_DETAILS require workspace_toast_actions AND workspace_notifications.",
+    "registrar_path_fields": "COPY_TOAST_PATH, OPEN_TOAST_PATH_TEXT and OPEN_TOAST_PATH_EXPLORER require workspace_toast_path_actions AND workspace_notifications.",
+    "notification_only_unchanged": [
+      "Content capture/storage/producers/details",
+      "Layout/render/hit-testing/narration",
+      "clipboard read/write helpers and confirmation-key constants",
+      "captured path helpers"
+    ],
+    "constant_or_stub_changes": false
+  },
+  "golden_separation": {
+    "historical_v1": "Original 106 profiles and all 318 goldens are immutable. The staged host test reverses exact current source edits and uses the production renderer to test those historical expectations independently.",
+    "current_v2": "The staged host test uses the unchanged 106 profiles; only the three current host rows below have new expectations. Prior/Drop unchanged. Full historical raw output remains unchanged.",
+    "profiles": 106,
+    "stored_golden_rows": 318,
+    "d2_current_comparisons": 636,
+    "changed_stored_rows": 3,
+    "changed_d2_comparisons": 6,
+    "static_oracle": {
+      "oracle": "bounded_whole_line_directive_static_evaluator_not_production_renderer",
+      "historical106matched": 106,
+      "changed_current_goldens": [
+        {
+          "profile": "only_workspace_toast_actions",
+          "name": "SFMScreenMultiplexer",
+          "old_bytes": 16287,
+          "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+          "current_bytes": 17260,
+          "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+        },
+        {
+          "profile": "only_workspace_toast_path_actions",
+          "name": "SFMScreenMultiplexer",
+          "old_bytes": 16287,
+          "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+          "current_bytes": 17260,
+          "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+        },
+        {
+          "profile": "full_without_workspace_notifications",
+          "name": "SFMScreenMultiplexer",
+          "old_bytes": 81554,
+          "old_sha256": "sha256:bfca296c534fb4aa8ce30e26204ae0f37b61e0c36f608d0c9e2f5f92bdc247fa",
+          "current_bytes": 82527,
+          "current_sha256": "sha256:4b104a5639adf140934f3279ec871896da498cba26171f0cabfd2df8c14a9890"
+        }
+      ],
+      "executed_production_renderer": false,
+      "scope": "Read-only whole-line if/else/endif and case/when/endcase evaluator. Before predicting current rows, all 106 original host outputs matched immutable v1 byte counts and hashes. This is static authoring evidence, not production acceptance."
+    },
+    "changed_current_goldens": [
+      {
+        "profile": "only_workspace_toast_actions",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 16287,
+        "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+        "current_bytes": 17260,
+        "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+      },
+      {
+        "profile": "only_workspace_toast_path_actions",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 16287,
+        "old_sha256": "sha256:db833767c642f0b41dd7ef6a62fc1423fa1b3bcbd198d767ad3f46389696dbba",
+        "current_bytes": 17260,
+        "current_sha256": "sha256:31c933766a89c364a4e2dc87c43aa054a695c8fe5bb2fb3864c5dd49eba7e3f8"
+      },
+      {
+        "profile": "full_without_workspace_notifications",
+        "name": "SFMScreenMultiplexer",
+        "old_bytes": 81554,
+        "old_sha256": "sha256:bfca296c534fb4aa8ce30e26204ae0f37b61e0c36f608d0c9e2f5f92bdc247fa",
+        "current_bytes": 82527,
+        "current_sha256": "sha256:4b104a5639adf140934f3279ec871896da498cba26171f0cabfd2df8c14a9890"
+      }
+    ]
+  },
+  "echo_test_refinement": {
+    "immutable_ledger_and_raw_goldens_unchanged": true,
+    "reverse_guard_edits": 5,
+    "current_registrar": {
+      "bytes": 32162,
+      "sha256": "sha256:57c2d33c1b40378761e8aeaafbc586caa6986368da55fcccff24223d9862734d"
+    },
+    "original_registrar": {
+      "bytes": 31977,
+      "sha256": "sha256:1862eb535ea1ee1b0a9f44906a6e257b5fe700211261fc42323536e0b47cd0b1"
+    },
+    "independent_profile_count": 145,
+    "historical_members": "Test original 104-member ownership/order through the reversed original template; current output removes only the five reviewed fields when notifications are off.",
+    "current_full_profile_refinement": "For D2 only, validate each exact original Echo full profile first, then explicitly add only workspace_notifications and font_formatted_text to preserve full frozen raw output. The old profile, feature contract and ledger remain unchanged.",
+    "existing_source_witness_cells": 40,
+    "production_source_route": "None. Historical reversal is test-only and selected-input binding is checked first."
+  },
+  "tests": [
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_workspace_host_slice_tests.rs",
+      "intended_registered_path": "platform/cli/sfm-propagate-changes/src/source_projection/core_workspace_host_slice_tests.rs",
+      "tests": 9,
+      "bytes": 39169,
+      "sha256": "sha256:190240feee22b062cd66fcc3cadc873e823266c6932ef39463875f22d3c088ea",
+      "base_bytes": 33006,
+      "base_sha256": "sha256:6699d2d9868e4680ae187563af3610325da08192a6de2788823b22453e04d21f"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_echo_palette_slice_tests.rs",
+      "intended_registered_path": "platform/cli/sfm-propagate-changes/src/source_projection/core_echo_palette_slice_tests.rs",
+      "tests": 8,
+      "bytes": 44859,
+      "sha256": "sha256:139a10e5fad6ed807bea8c36829aaa1368e4ca01d240f940c28928a8e0f0fbd2",
+      "base_bytes": 38660,
+      "base_sha256": "sha256:390364f482249a530b37558e66c3672afada3f77d55bbed9c6c3224e6a167620"
+    },
+    {
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/core_workspace_toast_actions_slice_tests.rs",
+      "intended_registered_path": "platform/cli/sfm-propagate-changes/src/source_projection/core_workspace_toast_actions_slice_tests.rs",
+      "tests": 4,
+      "bytes": 13329,
+      "sha256": "sha256:bf5671c2265a15a45d7ca69bd14e1e2cd490912cdb4ce6d17f5cf5c4633edf6c",
+      "scope": "Real CoreTestFixture membership/rendering for timer-only positives, render/content/clipboard negatives, mixed copy/path members, 40 frozen action/path cells, owner/support refusal, and unchanged pure queue/path authority source markers."
+    }
+  ],
+  "patches": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/source-refinement.patch",
+      "bytes": 6611,
+      "sha256": "sha256:6656208f42db5b7e33169be04b89d9f28f67121127fc75d7358ce87dea633da7",
+      "scope": "Eight host guards and five registrar guards only. Host base is immutable host-v1 stage, not yet a live core file."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-workspace-toast-actions-stage-v2/existing-tests-refinement.patch",
+      "bytes": 19161,
+      "sha256": "sha256:d72fb02695e18c886d34763efdb8faa9590d24be9a8a3274226e113364e86ed4",
+      "scope": "Test-only historical/current seams for existing host and Echo modules. No original ledger/golden mutation."
+    }
+  ],
+  "validation": {
+    "performed": [
+      "Bounded read-only ls-tree validation of all 20 frozen contexts: 40 action/path source cells, four present with exact raw OIDs and 36 absent.",
+      "Bounded read-only frozen Git blob byte/hash proof for both mixed action classes.",
+      "Exact physical staged UTF-8 source byte/hash checks.",
+      "In-memory reverse receipt identity proof for 8 host / 5 registrar / 6 action changes.",
+      "Static whole-line oracle reconstruction of all 106 original host profiles and exactly three changed current rows.",
+      "Read-only baseline ledger/live registrar/existing test identity checks.",
+      "Ignored-stage membership confirmed with Git check-ignore."
+    ],
+    "not_performed": [
+      "Cargo/type checking/formatting/test execution",
+      "Production CLI/Liquid renderer execution for this v2 stage",
+      "Java compilation",
+      "Minecraft/runtime/timer/clipboard behavior",
+      "Native execution or OS/network permission effects"
+    ],
+    "acceptance_limit": "Source-boundary proposal only. Root must review/register rules, promote after the frozen native boundary, format narrowly and run the staged real-core tests before claiming renderer acceptance. Java/provider/behavior closure remains separate."
+  },
+  "real_dependency_closure": {
+    "pure_action": "SFMClientAction/Requirement/Source/Context originating-host and feedback APIs, Brigadier, Minecraft Component, host pure queue APIs and SFMWorkspaceToastQueue.",
+    "path_action": "Original SFMExplorerRuntime authorized filesystem-root/path hierarchy/reveal and workspace captured-path/text/panel services. Membership requires actual path-actions AND notifications, but their provider/Java closure is not proved here.",
+    "ui_only": "The host notification/clipboard branches retain their existing feature guards and exact code; this refinement does not confer UI, clipboard or filesystem operation through timer-only selection.",
+    "remaining_gates": [
+      "Actual source rules/known definitions integration",
+      "Real renderer current/historical member tests",
+      "Feature-on Java compilation with real providers",
+      "Runtime stale-ID/timer/lifecycle/clipboard/path authorization testing"
+    ],
+    "no_blanket_prerequisite": true
+  }
+}

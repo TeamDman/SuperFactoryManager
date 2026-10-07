@@ -1,0 +1,353 @@
+{
+  "schema": "sfm:current_twenty_projection_generation_acceptance@1",
+  "date": "2026-10-02",
+  "status": "accepted_root_and_independent_retained_evidence_audits",
+  "source_branch": "feat/sfm-main-source-projection",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "boundary": "Actual read-only source generation on the frozen current 1,924-file core; not Java, gameplay, release parity or installation acceptance.",
+  "terminal": {
+    "session": 46955,
+    "exit_code": 0,
+    "observed_marker": "CURRENT_TWENTY_DRY_RUN_EXIT=0",
+    "marker_is_not_added_to_retained_artifacts": true
+  },
+  "source_snapshot": {
+    "files": 1924,
+    "bytes": 8884982,
+    "sha256": "978e3a40be3e92b5cf159fb7a50fb7fb760f68d6c2e192433f7801bc22903414",
+    "aggregate_framing": "ordinal_slash_relative_path_nul_invariant_length_nul_lower_file_sha256_lf",
+    "metadata": {
+      "bytes": 453866,
+      "sha256": "d6016e7b3b70288535916182e393c0ab7aff28343cb3fdf4ed25cca827351e8a",
+      "source_rule_paths": 641,
+      "source_rule_variants": 826
+    },
+    "owner_definitions": {
+      "count": 180,
+      "bytes": 30254,
+      "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+    },
+    "catalog": {
+      "path": "platform/minecraft/projections.json",
+      "keys": 20,
+      "bytes": 2074,
+      "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    }
+  },
+  "operational_cli": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "c580c1b1ed5f0be6369c568288f9f8de0dd9c1daf0f75ca9b464c2c42c55fe61",
+    "default_features": true,
+    "installed_path_freshness_claimed": false
+  },
+  "actual_execution": {
+    "catalog_contexts_attempted": 20,
+    "catalog_contexts_completed": 20,
+    "serial": true,
+    "normal_exit_codes": 20,
+    "read_only": true,
+    "source_writes": false,
+    "compile_and_release_comparison": "not_performed",
+    "child_work_timeout_ms": 120000,
+    "cohort_work_timeout_ms": 900000,
+    "pipe_drain_timeout_ms": 5000,
+    "owned_reap_timeout_ms": 5000,
+    "stdout_cap_bytes": 2097152,
+    "stderr_cap_bytes": 262144,
+    "duplicate_terminal_trace_cap_bytes": 262144,
+    "trace_format": "Exact duplicated terminal stderr; not a JSONL logging file.",
+    "all_children_reaped": true,
+    "all_pipe_eof": true,
+    "kill_attempts": 0,
+    "disk_space_errors": 0,
+    "fault_injection_performed": false,
+    "limits": "Work deadlines do not preempt synchronous filesystem or operating-system API calls. No claim of universal failure-path validation."
+  },
+  "retained_evidence": {
+    "run_receipt": {
+      "relative_file": "evidence/run.json",
+      "bytes": 15052,
+      "sha256": "724dc9b921c093281791c0a75002358ee0bdbace4d9563ac3997fe3888f67757"
+    },
+    "raw_files": 60,
+    "raw_total_bytes": 12945594,
+    "child_receipts": 20,
+    "total_artifact_files": 81,
+    "preserved_without_rewrite": true
+  },
+  "root_read_only_audit": {
+    "raw_file_bytes_and_sha256_verified": 60,
+    "child_receipts_verified": 20,
+    "descriptor_source_checks": 22882,
+    "distinct_live_authored_file_pins": 1521,
+    "context_key_environment_target_actual_minecraft_verified": true,
+    "source_sha256_checked_against_actual_authored_files": true,
+    "child_exit_reap_eof_budget_and_no_write_fields_verified": true,
+    "disposition_total_counts_verified": true,
+    "scope": "Root retained-evidence audit; independent audit remains separate."
+  },
+  "independent_retained_evidence_audit": {
+    "status": "accepted_limited_retained_evidence_scope",
+    "receipt": {
+      "capsule": "sfm-current-twenty-v6-independent-audit-20261002-v1",
+      "path": "review.json",
+      "bytes": 33054,
+      "sha256": "296e8de468171094fe05cbb60643bb5ce2ea58c3931a57f879d6a31cd0fddfea"
+    },
+    "seal": {
+      "bytes": 713,
+      "sha256": "0c845634929d93986fb81ee09dfa624032d1abdd74b7ef75f70e9d10802bd48e"
+    },
+    "actual_read_only_helper_exit_code": 0,
+    "evidence_artifacts_byte_and_sha256_checks": 81,
+    "exact_contexts_and_membership_checks": 20,
+    "authored_source_descriptor_checks": 22882,
+    "distinct_actual_authored_input_pins": 1521,
+    "existing_unchanged_output_byte_and_sha256_checks": 3420,
+    "planned_created_paths_verified_absent": 19462,
+    "promoted_eight_leaf_default_omissions": 160,
+    "unchanged_physical_roots": 3,
+    "planned_roots_not_materialized": 17,
+    "all_evidence_before_after_pins_match": true,
+    "correction_before_audit_seal": "A verifier assumption requiring all twenty roots to already exist failed closed. The reviewer corrected that assumption to respect real dry-run dispositions; no source or original evidence changed.",
+    "limits": "Independent retained-evidence audit, not a CLI rerun, second renderer, failure-path injection, held-handle race guarantee or external historical descendant census. Context IDs were matched to exact unchanged catalog and same-catalog witnesses, not rederived with an external hash tool."
+  },
+  "projections": [
+    {
+      "projection": "sfm-4.34.0/mc-1.19.2",
+      "minecraft_version": "1.19.2",
+      "artifacts": 1140,
+      "created": 0,
+      "updated": 0,
+      "unchanged": 1140,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "minecraft_version": "1.19.4",
+      "artifacts": 1140,
+      "created": 0,
+      "updated": 0,
+      "unchanged": 1140,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "minecraft_version": "1.20",
+      "artifacts": 1140,
+      "created": 0,
+      "updated": 0,
+      "unchanged": 1140,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "minecraft_version": "1.20.1",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "minecraft_version": "1.20.2",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "minecraft_version": "1.20.3",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "minecraft_version": "1.20.4",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "minecraft_version": "1.21",
+      "artifacts": 1144,
+      "created": 1144,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "minecraft_version": "1.21.1",
+      "artifacts": 1145,
+      "created": 1145,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "minecraft_version": "26.1.2",
+      "artifacts": 1156,
+      "created": 1156,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.19.2",
+      "minecraft_version": "1.19.2",
+      "artifacts": 1154,
+      "created": 1154,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.19.4",
+      "minecraft_version": "1.19.4",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.20",
+      "minecraft_version": "1.20",
+      "artifacts": 1140,
+      "created": 1140,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.20.1",
+      "minecraft_version": "1.20.1",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.20.2",
+      "minecraft_version": "1.20.2",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.20.3",
+      "minecraft_version": "1.20.3",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.20.4",
+      "minecraft_version": "1.20.4",
+      "artifacts": 1142,
+      "created": 1142,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.21.0",
+      "minecraft_version": "1.21",
+      "artifacts": 1144,
+      "created": 1144,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-1.21.1",
+      "minecraft_version": "1.21.1",
+      "artifacts": 1145,
+      "created": 1145,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    },
+    {
+      "projection": "sfm-dev/mc-26.1.2",
+      "minecraft_version": "26.1.2",
+      "artifacts": 1156,
+      "created": 1156,
+      "updated": 0,
+      "unchanged": 0,
+      "child_exit": 0,
+      "reaped": true,
+      "writes_performed": false
+    }
+  ],
+  "disposition_meaning": "Created/updated/unchanged are proposed dry-run dispositions. Created does not mean a file was written.",
+  "preservation": {
+    "original_staged_records": 98,
+    "original_staged_records_and_names_unchanged": true,
+    "feature_definitions_catalog_dependency_lockfiles_unchanged": true,
+    "current_core_hash_before_and_after_unchanged": true,
+    "old_1916_file_generation_receipts_preserved_as_historical": true
+  },
+  "excluded_acceptance": [
+    "Prepared State3 and corrected Theme6 v2 nine-source cohort not promoted or tested in this graph.",
+    "Terminal backend and caller/raster proposals not admitted by this result.",
+    "No current feature-on Java compilation, complete target build/runtime matrix or complete 4.34.0 release parity.",
+    "No default activation, installed-PATH freshness, publication or complete-goal acceptance."
+  ],
+  "publication_review": "Repository-relative paths, public branch/hash identities and technical counts only; private absolute checkout/cache/driver paths omitted."
+}

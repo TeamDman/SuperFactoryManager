@@ -1,0 +1,86 @@
+{
+  "schema": "sfm:core-release-source-banner-review@1",
+  "date": "2026-10-01",
+  "branch": "feat/sfm-main-source-projection",
+  "projection": "sfm-4.34.0/mc-1.20",
+  "release_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+  "evidence_capsule": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-release-120-source-banner-provenance-20261001-v1/receipt.json",
+    "bytes": 1404333,
+    "sha256": "298cbf584b407e5176793f8140945febe3e3290dbbc0e96dcc77b8cdc1a69921",
+    "source_rows": 718,
+    "class_attribution_rows": 817,
+    "actual_javac_source_rows": 699
+  },
+  "source_provenance": {
+    "manifested_main": 526,
+    "manifested_gametest": 192,
+    "missing_original_bodies": 0,
+    "unexplained_body_changes": 0,
+    "banner": "Exactly one generated warning line, LF or CRLF; no token trimming or semantic canonicalization.",
+    "profiles": {
+      "banner_removed_raw_exact": 637,
+      "banner_removed_crlf_to_lf_only": 59,
+      "banner_removed_one_final_lf_only": 20,
+      "banner_removed_crlf_to_lf_and_one_final_lf": 2
+    },
+    "raw_git_witnesses": 718
+  },
+  "actual_compilation": {
+    "main_arguments": 528,
+    "main_owned": 516,
+    "main_generated_antlr": 12,
+    "gametest_arguments": 156,
+    "datagen_arguments": 15,
+    "owned_units_not_compiled": 46,
+    "limit": "718 manifested units does not mean 718 compiled units; no shipped class attributes to GameTest or datagen."
+  },
+  "class_attribution": {
+    "shipped_classes": 817,
+    "changed_classes": 630,
+    "changed_unique_owned_main_sources": 448,
+    "changed_top_level": 448,
+    "changed_member_inner": 130,
+    "changed_local_or_anonymous": 52,
+    "unresolved_source_attributions": 0,
+    "generated_antlr_classes": 102,
+    "generated_antlr_classes_raw_exact": 102,
+    "basis": "Both archives' this_class, SourceFile, InnerClasses, EnclosingMethod and NestHost metadata, exact actual javac argument membership and checked ownership. No dollar-sign filename heuristic."
+  },
+  "root_recheck": {
+    "capsule_byte_pin": true,
+    "source_row_uniqueness": 718,
+    "generated_file_sha256": 718,
+    "authored_file_sha256": 718,
+    "exact_banner_bytes_and_body_sha256": 718,
+    "actual_source_argument_sha256": 699,
+    "argfile_sha256": 3,
+    "grammar_file_sha256": 3,
+    "class_row_uniqueness_and_exact_actual_source_relation": 817,
+    "counts_recomputed": true,
+    "limit": "Root rechecked all named file pins and attribution relations; it did not independently reparse every classfile or reread every raw Git blob."
+  },
+  "grammar_difference": {
+    "sfml_raw_git_oid": "3c2e70f7828622b4f98638d9c36a47d95f333f15",
+    "sfml_raw_bytes": 7927,
+    "sfml_raw_sha256": "6b33125cb1e6fe7af1deafc215766d88d6eb33c68771d5daa5c32dd643374d30",
+    "sfml_generated_bytes": 7928,
+    "sfml_generated_sha256": "48271a8d940f61e89d4e2d750e8b614dfb49db40039e3d988f3abab687d827a2",
+    "observed": "Exactly one appended terminal LF; no BOM or CR, identical original prefix. Both Toml grammar inputs are raw-exact.",
+    "disposition": "Explicit source-format difference, separately pending release acceptance; generated-class equality is not a blanket generator or grammar semantic waiver."
+  },
+  "frozen_core": {
+    "files": 1859,
+    "bytes": 8326920,
+    "sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "metadata_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+  },
+  "limits": [
+    "Source-attribution metadata framing is not a full JVM verifier or behavioral proof.",
+    "The separate strict line-table helper still refuses 84 classes; this receipt does not change its admission rules.",
+    "The separately retained class-difference receipt establishes an executable String.valueOf(Object) lowering difference in Cursor.toString; this source-attribution audit does not classify all remaining executable differences.",
+    "The two same-length non-line-cell refusals require a separately retained exact source-bound proof before any debug-only admission.",
+    "No build, Java, Minecraft, native engine, cache mutation, publication or merge was performed by this source audit."
+  ]
+}

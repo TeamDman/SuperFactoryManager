@@ -1,0 +1,1043 @@
+{
+  "schema": "sfm:core-config-slice@1",
+  "status": "authored_staged_source_proof_not_promoted_or_compiled",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "source_root": "platform/minecraft/src",
+  "intended_core_root": "platform/minecraft/core-liquid-template",
+  "reference": "docs/tasks/sfm-core-ui-feature-ownership.json",
+  "scope": {
+    "classes": 3,
+    "witness_membership_cells": 60,
+    "present_cells": 60,
+    "raw_blobs": 13,
+    "raw_exact_outputs": 32,
+    "approved_normalized_outputs": 28,
+    "corrected_assignment": "SFMClientConfig, SFMClientTextEditorConfig, SFMConfigTracker. SFMCommonConfig is not a frozen/current path; the separate common configuration surface is outside this slice.",
+    "generation": "Common core bodies with functional member guards and genuine Minecraft API cases. No environment, preset, projection key, whole historical-tree dispatch or production Git lookup."
+  },
+  "owners": {
+    "command_history": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "typed_command_palette"
+      ],
+      "members": [
+        "SFMClientConfig.commandPaletteHistoryEnabled",
+        "ClientConfig define history default true",
+        "SFMConfigTracker.saveClientConfig()"
+      ],
+      "consumers": [
+        "src/main/java/ca/teamdman/sfm/client/action/PaletteHistoryPersistenceAction.java:50,52",
+        "src/main/java/ca/teamdman/sfm/client/command/SFMCommandHistoryService.java:35"
+      ],
+      "off": "Omit only history field/define/persistence method; retain all released config discovery and reminder defaults."
+    },
+    "terminal_remote": {
+      "support": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "members": [
+        "terminalRustServerAddress",
+        "terminalRustServerExecutable",
+        "the exact endpoint/executable define calls"
+      ],
+      "consumer_union": [
+        "terminal_remote",
+        "terminal_vox"
+      ],
+      "consumers": [
+        "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalServiceFactory.java:startRustServer",
+        "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalServiceFactory.java:configuredEndpoint"
+      ],
+      "off": "Omit the two fields and define calls only when both remote and Vox owners are disabled.",
+      "closure": "Only shared config members are reviewed here. Backend/UI registration, remote process control and network authority are not implemented or validated by this flag slice."
+    },
+    "terminal_vox": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "members": [
+        "same terminal_remote OR terminal_vox shared settings"
+      ],
+      "consumers": [
+        "SFMTerminalServiceFactory.configuredEndpoint/createRust/startRustServer"
+      ],
+      "off": "Vox does not own Java-local terminal creation or command history.",
+      "closure": "Witnessed working raster implementation support remains D2. Reflective Rust lookup strings in later service factories do not establish a later working Vox backend."
+    },
+    "canvas_text_editor": {
+      "support": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "members": [],
+      "role": "Prerequisite of pointer defaults, not a guard that widens those D2-specific fields to the other eight canvas implementations.",
+      "closure": "Canvas implementation and UI closure are outside the three config templates."
+    },
+    "canvas_pointer_defaults": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "canvas_text_editor"
+      ],
+      "members": [
+        "SFMClientTextEditorConfig.canvasWheelZooms",
+        "SFMClientTextEditorConfig.canvasMiddlePans",
+        "exact builder comments and true defaults"
+      ],
+      "consumers": [
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasScreen.java:170,171,311,312"
+      ],
+      "off": "Keep all released showLineNumbers/intellisense/preferredEditor settings and default editor fallback.",
+      "refinement": "The earlier UI ledger grouped this under canvas_text_editor. Separate D2 pointer-preference ownership preserves every target witness without expanding newer DRAW implementations."
+    }
+  },
+  "normalization": {
+    "policy": "sfm:java_lf_final_newline@1",
+    "approved_git_blobs": [
+      "4c80e469c376c1baed20d51d24aaae9693f191b0",
+      "a27e3d45f39e78468ddd13c0a45b8451710faa68",
+      "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+      "ab3f3be0cba9dd3ead3d9a8c9d8a177ca28104d8",
+      "ae26f51253b0258048aa0a923655141160865872",
+      "baa8be99ca10c81625dbb066eaa0703f7846fcac",
+      "eb80dd0950c5cf18e27dc6939f0fa31e25b4818d"
+    ],
+    "crlf_to_lf_only": true,
+    "append_final_lf": true,
+    "other_whitespace_changes": false,
+    "rule": "Only the seven pinned raw blobs may replace CRLF pairs; only the three listed lf_added=true blobs may append exactly one LF. Preserve tokens, comments, indentation, existing LF and all other bytes.",
+    "reject": [
+      "BOM",
+      "lone CR",
+      "broader whitespace cleanup",
+      "changed raw digest or size",
+      "unknown normalization witness"
+    ],
+    "evidence": [
+      {
+        "lf_added": false,
+        "normalized_bytes": 1068,
+        "raw_bytes": 1072,
+        "oid": "baa8be99ca10c81625dbb066eaa0703f7846fcac",
+        "crlf_count": 4,
+        "normalized_sha256": "sha256:ce6f7d0a1c3574f2855ab39f4648aa4fdf6cd6e18ba044eeaee89ce3d85dea22",
+        "raw_sha256": "sha256:7a1cfcd27794c4b9b2ee801b26a9b215f2260a3fe3502e895e537b4266d61749",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": false,
+        "normalized_bytes": 899,
+        "raw_bytes": 903,
+        "oid": "eb80dd0950c5cf18e27dc6939f0fa31e25b4818d",
+        "crlf_count": 4,
+        "normalized_sha256": "sha256:fcbff9c544672e989a8a0433f41bceede2f3e9e08c9caff9d8f707c7613e0958",
+        "raw_sha256": "sha256:01e9b731620f845abbc18c1a736c784ae7ed2ae7588ffe70c593deb5e79c67a0",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": false,
+        "normalized_bytes": 527,
+        "raw_bytes": 540,
+        "oid": "4c80e469c376c1baed20d51d24aaae9693f191b0",
+        "crlf_count": 13,
+        "normalized_sha256": "sha256:00fb8d3f40169e8d57900a261b82ba520ce8312eeedf0557b402515b4f621c85",
+        "raw_sha256": "sha256:456bf3dc5b58755a312760280cbc8670e1ef9c46c535ee54e06fbd79568a8db1",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": false,
+        "normalized_bytes": 2281,
+        "raw_bytes": 2324,
+        "oid": "ab3f3be0cba9dd3ead3d9a8c9d8a177ca28104d8",
+        "crlf_count": 43,
+        "normalized_sha256": "sha256:b11adc86a2c83faffabd580a8b91c5cd8d8d823cb4395be2b2ac2de6c384fcca",
+        "raw_sha256": "sha256:9f767711a26e330f50816275d5cb0c74528e7a115e4cd107c22415f137826a55",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": true,
+        "normalized_bytes": 1797,
+        "raw_bytes": 1841,
+        "oid": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+        "crlf_count": 45,
+        "normalized_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+        "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": true,
+        "normalized_bytes": 1789,
+        "raw_bytes": 1831,
+        "oid": "ae26f51253b0258048aa0a923655141160865872",
+        "crlf_count": 43,
+        "normalized_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+        "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+        "bom": false,
+        "lone_cr_count": 0
+      },
+      {
+        "lf_added": true,
+        "normalized_bytes": 1782,
+        "raw_bytes": 1822,
+        "oid": "a27e3d45f39e78468ddd13c0a45b8451710faa68",
+        "crlf_count": 41,
+        "normalized_sha256": "sha256:795be371bd79da97f8d6d55c3d3dbab6bb614f5cf4395329cf73606d60c0707f",
+        "raw_sha256": "sha256:321a0fafa2ff0dfaa89c54930c8c5282f13512a07da49949d97625a347e3189c",
+        "bom": false,
+        "lone_cr_count": 0
+      }
+    ]
+  },
+  "version_contracts": {
+    "client": "ForgeConfigSpec on 1.19.2/1.19.4/1.20/1.20.1; ModConfigSpec on 1.20.2 onward. Retain exact released reminder keys/defaults.",
+    "text_editor": "Before 26.1.2 use ResourceLocation/defaultId.location()/Objects.requireNonNullElse. On 26.1.2 use Identifier/defaultId.identifier()/Holder.Reference::value lookup. Preserve existing blank-line differences and invalid-ID clobber fallback.",
+    "tracker": "Through 1.20.4 retain parameterized IConfigSpec, public ConfigTracker.configSets(), NightConfig FileConfig/childConfig reflection. On 1.21.0/1.21.1/26.1.2 retain raw IConfigSpec, reflective configSets and loadedConfig/path extraction. Preserve historical import/Javadoc omissions, catch behavior and nested-class indentation."
+  },
+  "metadata_suggestions": {
+    "source_rules": [],
+    "membership": "All three released shared classes stay unconditional/default core-owned; no sparse rules or template overrides are needed because Java is always Liquid input.",
+    "feature_definitions": "Register terminal_remote, terminal_vox, canvas_text_editor, canvas_pointer_defaults using the exact support/requires contracts above. Existing command_history contract remains unchanged; keep all public presets disabled until their full feature closure is validated."
+  },
+  "files": [
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/config/SFMClientConfig.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-config-template-stage-v1/SFMClientConfig.java",
+      "stage_sha256": "sha256:84fe84d40051b8a4acf5225451fba47580370f47674a23d460b9a51a855c6c2f",
+      "stage_bytes": 2212,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "command_history",
+        "terminal_remote",
+        "terminal_vox"
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "baa8be99ca10c81625dbb066eaa0703f7846fcac",
+          "raw_sha256": "sha256:7a1cfcd27794c4b9b2ee801b26a9b215f2260a3fe3502e895e537b4266d61749",
+          "raw_bytes": 1072,
+          "crlf_count": 4,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:ce6f7d0a1c3574f2855ab39f4648aa4fdf6cd6e18ba044eeaee89ce3d85dea22",
+          "expected_bytes": 1068,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "baa8be99ca10c81625dbb066eaa0703f7846fcac",
+          "raw_sha256": "sha256:7a1cfcd27794c4b9b2ee801b26a9b215f2260a3fe3502e895e537b4266d61749",
+          "raw_bytes": 1072,
+          "crlf_count": 4,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:ce6f7d0a1c3574f2855ab39f4648aa4fdf6cd6e18ba044eeaee89ce3d85dea22",
+          "expected_bytes": 1068,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "eb80dd0950c5cf18e27dc6939f0fa31e25b4818d",
+          "raw_sha256": "sha256:01e9b731620f845abbc18c1a736c784ae7ed2ae7588ffe70c593deb5e79c67a0",
+          "raw_bytes": 903,
+          "crlf_count": 4,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:fcbff9c544672e989a8a0433f41bceede2f3e9e08c9caff9d8f707c7613e0958",
+          "expected_bytes": 899,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "eb80dd0950c5cf18e27dc6939f0fa31e25b4818d",
+          "raw_sha256": "sha256:01e9b731620f845abbc18c1a736c784ae7ed2ae7588ffe70c593deb5e79c67a0",
+          "raw_bytes": 903,
+          "crlf_count": 4,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:fcbff9c544672e989a8a0433f41bceede2f3e9e08c9caff9d8f707c7613e0958",
+          "expected_bytes": 899,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "8311f71d4486f0df49e23d5eb1ce9a27febad705",
+          "raw_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "raw_bytes": 891,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b58764bdcbdd09dcd8af8093ac03efd53dd5f0c9d0cb83411489d78ccc4fa0f3",
+          "expected_bytes": 891,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "4c80e469c376c1baed20d51d24aaae9693f191b0",
+          "raw_sha256": "sha256:456bf3dc5b58755a312760280cbc8670e1ef9c46c535ee54e06fbd79568a8db1",
+          "raw_bytes": 540,
+          "crlf_count": 13,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:00fb8d3f40169e8d57900a261b82ba520ce8312eeedf0557b402515b4f621c85",
+          "expected_bytes": 527,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "4c80e469c376c1baed20d51d24aaae9693f191b0",
+          "raw_sha256": "sha256:456bf3dc5b58755a312760280cbc8670e1ef9c46c535ee54e06fbd79568a8db1",
+          "raw_bytes": 540,
+          "crlf_count": 13,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:00fb8d3f40169e8d57900a261b82ba520ce8312eeedf0557b402515b4f621c85",
+          "expected_bytes": 527,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "4c80e469c376c1baed20d51d24aaae9693f191b0",
+          "raw_sha256": "sha256:456bf3dc5b58755a312760280cbc8670e1ef9c46c535ee54e06fbd79568a8db1",
+          "raw_bytes": 540,
+          "crlf_count": 13,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:00fb8d3f40169e8d57900a261b82ba520ce8312eeedf0557b402515b4f621c85",
+          "expected_bytes": 527,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "4c80e469c376c1baed20d51d24aaae9693f191b0",
+          "raw_sha256": "sha256:456bf3dc5b58755a312760280cbc8670e1ef9c46c535ee54e06fbd79568a8db1",
+          "raw_bytes": 540,
+          "crlf_count": 13,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:00fb8d3f40169e8d57900a261b82ba520ce8312eeedf0557b402515b4f621c85",
+          "expected_bytes": 527,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "1ffb03d8f79f9c05353fcc4a3cfba9e29a66912b",
+          "raw_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "raw_bytes": 523,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:57476670078cc1fcb102da2ff459d3efd60efaf48333b97ffd8f0738bbf00d5f",
+          "expected_bytes": 523,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/config/SFMClientTextEditorConfig.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-config-template-stage-v1/SFMClientTextEditorConfig.java",
+      "stage_sha256": "sha256:7baaea2fe478c3cea69d9acbe7ca2f178e18ae5c73379c370cec297044802a56",
+      "stage_bytes": 3866,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "canvas_pointer_defaults"
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "ab3f3be0cba9dd3ead3d9a8c9d8a177ca28104d8",
+          "raw_sha256": "sha256:9f767711a26e330f50816275d5cb0c74528e7a115e4cd107c22415f137826a55",
+          "raw_bytes": 2324,
+          "crlf_count": 43,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b11adc86a2c83faffabd580a8b91c5cd8d8d823cb4395be2b2ac2de6c384fcca",
+          "expected_bytes": 2281,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "ab3f3be0cba9dd3ead3d9a8c9d8a177ca28104d8",
+          "raw_sha256": "sha256:9f767711a26e330f50816275d5cb0c74528e7a115e4cd107c22415f137826a55",
+          "raw_bytes": 2324,
+          "crlf_count": 43,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:b11adc86a2c83faffabd580a8b91c5cd8d8d823cb4395be2b2ac2de6c384fcca",
+          "expected_bytes": 2281,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "a27e3d45f39e78468ddd13c0a45b8451710faa68",
+          "raw_sha256": "sha256:321a0fafa2ff0dfaa89c54930c8c5282f13512a07da49949d97625a347e3189c",
+          "raw_bytes": 1822,
+          "crlf_count": 41,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:795be371bd79da97f8d6d55c3d3dbab6bb614f5cf4395329cf73606d60c0707f",
+          "expected_bytes": 1782,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "a621347dd214438adfc3bfddc96fe6a4fa37d627",
+          "raw_sha256": "sha256:473d24858262d55c2d091a85c1dea46d039916b73c3e5695c7e5e3b3ffd1c44e",
+          "raw_bytes": 1841,
+          "crlf_count": 45,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:ff6854b2a4558625716dbdb6ad0a2f5e3261747443bc93812bce800b11395bb3",
+          "expected_bytes": 1797,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "ae26f51253b0258048aa0a923655141160865872",
+          "raw_sha256": "sha256:72a1dce770ea5849c6c0701ac4a6c550856b70e0f4b7ad172eb5505587f7d191",
+          "raw_bytes": 1831,
+          "crlf_count": 43,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:0e8f3a0137f2fd803bb034cbda39dd3df897108352bb85d82c3fffe61b2b2822",
+          "expected_bytes": 1789,
+          "normalization": "sfm:java_lf_final_newline@1"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "a27e3d45f39e78468ddd13c0a45b8451710faa68",
+          "raw_sha256": "sha256:321a0fafa2ff0dfaa89c54930c8c5282f13512a07da49949d97625a347e3189c",
+          "raw_bytes": 1822,
+          "crlf_count": 41,
+          "raw_final_lf": false,
+          "lf_added": true,
+          "expected_sha256": "sha256:795be371bd79da97f8d6d55c3d3dbab6bb614f5cf4395329cf73606d60c0707f",
+          "expected_bytes": 1782,
+          "normalization": "sfm:java_lf_final_newline@1"
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/config/SFMConfigTracker.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-config-template-stage-v1/SFMConfigTracker.java",
+      "stage_sha256": "sha256:854267f57d9ebd9c2e8d0817bb9d8d6b02b193e1272d791c14a2c2d821df39da",
+      "stage_bytes": 9143,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "command_history"
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "31c63766c191ea12bc49216abdba8c8ddb421d71",
+          "raw_sha256": "sha256:9b652348b8ad1fb85214804787901747bf605836681f29aee5ae54c79d04e889",
+          "raw_bytes": 5215,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:9b652348b8ad1fb85214804787901747bf605836681f29aee5ae54c79d04e889",
+          "expected_bytes": 5215,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "31c63766c191ea12bc49216abdba8c8ddb421d71",
+          "raw_sha256": "sha256:9b652348b8ad1fb85214804787901747bf605836681f29aee5ae54c79d04e889",
+          "raw_bytes": 5215,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:9b652348b8ad1fb85214804787901747bf605836681f29aee5ae54c79d04e889",
+          "expected_bytes": 5215,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "7c49648b0a37e450e641d14390726d13b7502332",
+          "raw_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "raw_bytes": 4828,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:072c967b0db57c296956c85efdfba74531c7d8523b7825e8861981b67cda119f",
+          "expected_bytes": 4828,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "563e2ae37f17c0954e65360874cf0b8a5396256b",
+          "raw_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "raw_bytes": 4757,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:400fcda7273ad2ee68fa0d742dbe7867d47bd3149703510f12ffa39a8ee5bb53",
+          "expected_bytes": 4757,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "9ff571eb8b41bc72a089c210a893722cc04e15d6",
+          "raw_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "raw_bytes": 4935,
+          "crlf_count": 0,
+          "raw_final_lf": true,
+          "lf_added": false,
+          "expected_sha256": "sha256:92b5077fe7d98716d9108bc9d4b102e673cac6b772982eb5a60af96185343dd8",
+          "expected_bytes": 4935,
+          "normalization": "none"
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "independent_preflight": {
+      "status": "passed",
+      "engine": "Small strict independent whole-line directive interpreter, not the production Rust/Liquid renderer",
+      "witness_outputs": 60,
+      "raw_exact": 32,
+      "approved_normalized": 28
+    },
+    "authored_strict_tests": {
+      "status": "unregistered_not_run",
+      "module": "platform/cli/sfm-propagate-changes/src/source_projection/core_config_slice_tests.rs",
+      "registration": "#[cfg(test)] mod core_config_slice_tests;",
+      "tests": [
+        "sixty exact raw/approved-normalized outputs through actual core selection/renderer",
+        "all twenty raw Git membership contexts",
+        "48 dependency-closed independent owner masks plus unsupported-target negatives",
+        "pointer defaults and remote/Vox settings remain independently owned with minimal prerequisites",
+        "nine isolated common edits across three target API eras",
+        "seven exact transformations and mutation rejection",
+        "real promoted core hashes match the pinned migration goldens"
+      ]
+    },
+    "limitations": [
+      "No Cargo or Java/Minecraft compilation run by the authoring agent.",
+      "No generated public projections or existing core inputs changed.",
+      "Source-proof contexts do not assert complete-project wire-layout or backend/GUI closure.",
+      "Future deliberate core changes require reviewing the pinned migration source hashes and expected output goldens."
+    ]
+  }
+}

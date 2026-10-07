@@ -1,0 +1,633 @@
+{
+  "schema": "sfm:core-program-relations-slice@1",
+  "status": "exact_source_bodies_staged_pending_root_promotion_and_sparse_membership_registration",
+  "scope": "seven_common_program_relations_and_resource_observation_inputs",
+  "source_review_head": "aa080df6e4e42ff78d565431a06e1d087a639064",
+  "source_review_state": "Starting HEAD is a locator, not the identity of concurrent dirty promotions; every approved raw and staged source is independently pinned.",
+  "stage_root": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "feature_contract": {
+    "owner": "packet_computation",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values",
+      "runtime_resource_cleanup"
+    ],
+    "prerequisites_changed": false,
+    "additional_features_registered": false
+  },
+  "input_accounting": {
+    "paths": 7,
+    "unique_raw_blobs": 7,
+    "source_bytes": 9918,
+    "frozen_contexts": 20,
+    "witness_membership_cells": 140,
+    "witness_present_cells": 14,
+    "witness_absent_cells": 126,
+    "carriage_returns_removed": 0,
+    "generated_or_core_inputs_written": 0
+  },
+  "files": {
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramOccurrenceId.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramOccurrenceId.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramOccurrenceId.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramOccurrenceId.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramOccurrenceId.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "af268df0ab76b59a9e79c4e6f4d49652bfa62190",
+      "source_sha256": "sha256:858e32e9b0466db092f3592b3f80533024079555e74833c7aa73d6cba379363f",
+      "source_bytes": 461,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 17,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:858e32e9b0466db092f3592b3f80533024079555e74833c7aa73d6cba379363f",
+      "staged_sha256": "sha256:858e32e9b0466db092f3592b3f80533024079555e74833c7aa73d6cba379363f",
+      "witnesses": {
+        "dev/1.19.2": "af268df0ab76b59a9e79c4e6f4d49652bfa62190",
+        "dev/1.19.4": "af268df0ab76b59a9e79c4e6f4d49652bfa62190",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "JDK only; reference identity remains execution-local and non-serialized."
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramRelation.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramRelation.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramRelation.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramRelation.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramRelation.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "c2995835a0957047865631ce873847beec2eeccb",
+      "source_sha256": "sha256:64f4b3414dc8ddb205d4ccdfdcb0f27dccc8dbaca3c39596a66c19acae978a8a",
+      "source_bytes": 899,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 27,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:64f4b3414dc8ddb205d4ccdfdcb0f27dccc8dbaca3c39596a66c19acae978a8a",
+      "staged_sha256": "sha256:64f4b3414dc8ddb205d4ccdfdcb0f27dccc8dbaca3c39596a66c19acae978a8a",
+      "witnesses": {
+        "dev/1.19.2": "c2995835a0957047865631ce873847beec2eeccb",
+        "dev/1.19.4": "c2995835a0957047865631ce873847beec2eeccb",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "ProgramRelationRow",
+        "ProgramOccurrenceId",
+        "JDK immutable ordered List and Function"
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramRelationRow.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramRelationRow.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramRelationRow.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramRelationRow.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramRelationRow.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "c479e592fb9f2fb21f9ef120eb13c744ad8b4e0b",
+      "source_sha256": "sha256:1f57487ac6ea6454ab7dee5d74c4903fb804ce31ed01c0bbbb26985df614572f",
+      "source_bytes": 475,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 18,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:1f57487ac6ea6454ab7dee5d74c4903fb804ce31ed01c0bbbb26985df614572f",
+      "staged_sha256": "sha256:1f57487ac6ea6454ab7dee5d74c4903fb804ce31ed01c0bbbb26985df614572f",
+      "witnesses": {
+        "dev/1.19.2": "c479e592fb9f2fb21f9ef120eb13c744ad8b4e0b",
+        "dev/1.19.4": "c479e592fb9f2fb21f9ef120eb13c744ad8b4e0b",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "ProgramOccurrenceId",
+        "JDK Objects"
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObservation.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObservation.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObservation.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramResourceObservation.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObservation.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "b94b3ec20cdd5a42850f2fc36bf9fcb7cceccde8",
+      "source_sha256": "sha256:02c68f935f172de410a1cebf4a974ff6c61b2583d9c22acb19846699b5f2413e",
+      "source_bytes": 478,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 16,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:02c68f935f172de410a1cebf4a974ff6c61b2583d9c22acb19846699b5f2413e",
+      "staged_sha256": "sha256:02c68f935f172de410a1cebf4a974ff6c61b2583d9c22acb19846699b5f2413e",
+      "witnesses": {
+        "dev/1.19.2": "b94b3ec20cdd5a42850f2fc36bf9fcb7cceccde8",
+        "dev/1.19.4": "b94b3ec20cdd5a42850f2fc36bf9fcb7cceccde8",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "released ResourceType API; amount must be positive"
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObserver.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObserver.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObserver.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramResourceObserver.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObserver.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "c285961dc46dca97c7cfbab8d6e46e6f94c086f6",
+      "source_sha256": "sha256:7d8cee665b8ce3ec665e5fd1f9ec4270c7af773e026f7dc942f148fa25451b51",
+      "source_bytes": 5228,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 139,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:7d8cee665b8ce3ec665e5fd1f9ec4270c7af773e026f7dc942f148fa25451b51",
+      "staged_sha256": "sha256:7d8cee665b8ce3ec665e5fd1f9ec4270c7af773e026f7dc942f148fa25451b51",
+      "witnesses": {
+        "dev/1.19.2": "c285961dc46dca97c7cfbab8d6e46e6f94c086f6",
+        "dev/1.19.4": "c285961dc46dca97c7cfbab8d6e46e6f94c086f6",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "ProgramContext",
+        "ProgramInputSource",
+        "LimitedInputSlot",
+        "IInputResourceTracker.forkForObservation",
+        "ObservationInputResourceTracker",
+        "released ResourceType API"
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceValue.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceValue.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramResourceValue.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramResourceValue.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceValue.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "d70cc8659c387f79b27a5a15f81bf6196832a7e1",
+      "source_sha256": "sha256:e988a8f9ece8058be095fc70311031534a5afc482e896646e93da88c15eab33e",
+      "source_bytes": 728,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 22,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:e988a8f9ece8058be095fc70311031534a5afc482e896646e93da88c15eab33e",
+      "staged_sha256": "sha256:e988a8f9ece8058be095fc70311031534a5afc482e896646e93da88c15eab33e",
+      "witnesses": {
+        "dev/1.19.2": "d70cc8659c387f79b27a5a15f81bf6196832a7e1",
+        "dev/1.19.4": "d70cc8659c387f79b27a5a15f81bf6196832a7e1",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "released ResourceType API; fromObservation copies a single-unit stack"
+      ]
+    },
+    "src/main/java/ca/teamdman/sfm/common/program/ProgramValueReference.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramValueReference.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramValueReference.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/ProgramValueReference.java",
+      "feature_owner": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "required_features": [
+        "packet_computation"
+      ],
+      "feature_prerequisites": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "membership": {
+        "input": "src/main/java/ca/teamdman/sfm/common/program/ProgramValueReference.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "source_blob": "cee01176fede2246c98f509a43a21cf34873573a",
+      "source_sha256": "sha256:8fbabaa05a9a83688f9c8f27f0d14dbd06d43f48e6d2326d8c5f8101d9b522e8",
+      "source_bytes": 1649,
+      "line_endings": "lf",
+      "carriage_return_count": 0,
+      "line_feed_count": 51,
+      "final_newline": "exactly_one_lf",
+      "normalized": false,
+      "token_or_whitespace_edits": false,
+      "current_canonical_sha256": "sha256:8fbabaa05a9a83688f9c8f27f0d14dbd06d43f48e6d2326d8c5f8101d9b522e8",
+      "staged_sha256": "sha256:8fbabaa05a9a83688f9c8f27f0d14dbd06d43f48e6d2326d8c5f8101d9b522e8",
+      "witnesses": {
+        "dev/1.19.2": "cee01176fede2246c98f509a43a21cf34873573a",
+        "dev/1.19.4": "cee01176fede2246c98f509a43a21cf34873573a",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "dependencies": [
+        "packet_values: SFMValue",
+        "locked JetBrains Nullable annotation",
+        "JDK Supplier and Objects; both result and failure memoized"
+      ]
+    }
+  },
+  "consumer_anchors": [
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/program/ProgramVariableEnvironment.java",
+      "members": [
+        "setRelation",
+        "getRelation",
+        "ProgramValueReference"
+      ]
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+      "members": [
+        "ProgramRelation.EMPTY",
+        "ProgramRelationRow",
+        "ProgramResourceObserver.observe",
+        "ProgramResourceValue"
+      ]
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfml/ast/ProgramInputSelection.java",
+      "members": [
+        "ProgramResourceValue",
+        "ProgramValueReference"
+      ],
+      "remaining_direct_dependency": "SFMTextResourceAdapters"
+    }
+  ],
+  "preserved_source_contracts": [
+    "A relation keeps immutable ordered rows; mapping retains occurrence identity.",
+    "ProgramOccurrenceId remains reference-based, execution-local and non-serialized.",
+    "ProgramValueReference memoizes both success and RuntimeException/Error without eagerly changing resolved(value).",
+    "Observation forks live trackers, respects quantity and retention, and does not mutate live tracker bookkeeping.",
+    "Physical resource grouping uses resource type plus handler reference identity and slot; largest eligible quantity wins in encounter order."
+  ],
+  "remaining_closure": [
+    {
+      "area": "text-capability selection",
+      "paths": [
+        "src/main/java/ca/teamdman/sfml/ast/SFMTextResourceAdapters.java"
+      ],
+      "status": "Missing core-owned adapter; directly consumed by the already-owned ProgramInputSelection."
+    },
+    {
+      "area": "packet expression and statement graph",
+      "examples": [
+        "ProgramValueExpression",
+        "ObjectConstructionValueExpression",
+        "ObjectFieldValueExpression",
+        "TextReadValueExpression",
+        "LET/CREATE/BROADCAST declarations"
+      ],
+      "status": "Out of this seven-file slice; requires separate exact membership/owner review and source promotion."
+    },
+    {
+      "area": "materialization providers",
+      "examples": [
+        "ProgramEphemeralResource",
+        "ProgramEphemeralItemResource",
+        "GeneratedItemProgramInputSource"
+      ],
+      "status": "Out of slice; existing runtime materialization interfaces do not prove their concrete implementation closure."
+    },
+    {
+      "area": "network, inbox, action and client frame effects",
+      "status": "Independent owners remain separate; these classes do not import or enable their effect services."
+    }
+  ],
+  "validation": {
+    "completed": [
+      "Read-only frozen Git ls-tree checks on all twenty exact commits.",
+      "Independent canonical and staged raw byte count/SHA256/LF checks for all seven; exact raw witnesses preserved.",
+      "No live core, metadata, registered Rust, lock, dependency, SDK or cache changes.",
+      "Portable ledger parses as JSON with seven input records and twenty context commits; the new unregistered module passes isolated nightly rustfmt."
+    ],
+    "prepared_not_executed": [
+      "New unregistered real-core selector/renderer regression module: all 140 witness membership cells; complete owner masks; all-off and prerequisite-only omission; unsupported-target and missing-flag refusal; isolated common edit; exact raw source contracts."
+    ],
+    "test_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_program_relations_slice_tests.rs",
+    "staged_test_module": "platform/cli/sfm-propagate-changes/target/core-program-relations-stage-v1/core_program_relations_slice_tests.rs",
+    "test_module_bytes": 26354,
+    "test_module_sha256": "sha256:a890d84dfc5600a95716728716d40445c110a5992619599dbfd4b02dd9c8bb9b",
+    "test_count": 7,
+    "test_execution": "not_registered_or_executed_by_subagent",
+    "cargo_run": false,
+    "java_run": false,
+    "compile_acceptance": false,
+    "gameplay_acceptance": false
+  },
+  "reproducible_read_only_commands": [
+    "git ls-tree <exact context_commits commit> -- platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/<reviewed basename>.java",
+    "git cat-file --batch < exact reviewed source_blob IDs; verify raw Git blob framing before comparison",
+    "Get-FileHash -LiteralPath <staged_path> -Algorithm SHA256; compare source_bytes and exact LF/final-newline shape"
+  ],
+  "promotion_contract": [
+    "Root reviews/promotes only these seven raw-exact inputs and adds their existing packet_computation/D2 sparse rules atomically.",
+    "Register the prepared test module only after real core and metadata are promoted; tests never read a staging fallback or synthesize production rules.",
+    "Full Java closure, compilation and gameplay remain open; passing this evidence module cannot close those gates."
+  ]
+}

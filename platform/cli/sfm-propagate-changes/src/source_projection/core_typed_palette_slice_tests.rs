@@ -266,7 +266,9 @@ impl TypedPaletteFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(path) else {
             ensure!(
                 selection.omitted_paths.contains(path),
@@ -382,7 +384,7 @@ fn typed_palette_cohort_reconstructs_twenty_exact_historical_contexts() -> Resul
 }
 
 #[test]
-fn current_catalog_excludes_all_typed_helpers_before_input_reads() -> Result<()> {
+fn typed_helpers_feature_off_controls_omit_before_input_reads() -> Result<()> {
     let mut fixture = TypedPaletteFixture::load()?;
     let catalog = CoreCatalog::load(&fixture.core.repository, &fixture.core.repository)?;
     assert_eq!(catalog.catalog.0.len(), 20);
@@ -392,7 +394,10 @@ fn current_catalog_excludes_all_typed_helpers_before_input_reads() -> Result<()>
         .join("deliberately_missing_typed_palette_boundary");
     let mut omitted = 0;
     for key in catalog.catalog.0.keys() {
-        fixture.assert_cohort(&catalog.context(key)?, false)?;
+        fixture.assert_cohort(
+            &fixture.core.historical_feature_off_catalog_context(key)?,
+            false,
+        )?;
         omitted += 4;
     }
     assert_eq!(omitted, 80);

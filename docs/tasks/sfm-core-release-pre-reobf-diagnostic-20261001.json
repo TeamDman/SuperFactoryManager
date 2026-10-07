@@ -1,0 +1,60 @@
+{
+  "schema": "sfm:release_pre_reobf_jar_diagnostic@1",
+  "recorded": "2026-10-01",
+  "scope": "Actual retained unremapped 1.20 development JAR versus existing official 4.34.0 JAR; not accepted final native JAR, reobfuscation, class semantics, gameplay or release parity",
+  "cli_sha256": "d958a66521acb13dac124820e0dcd1997b7d7083f5bd31b64689da2b7d2e021a",
+  "command_shape": "<retained-default-cli> jar compare --branch 1.20 --gradle-jar <existing-official-1.20-4.34.0-jar> --rust-jar <retained-unremapped-dev-jar> --report-json <ignored-report>",
+  "command_limit": "The existing comparator uses legacy branch context for path selection. This diagnostic is not a named-project provenance receipt.",
+  "exit_code": 1,
+  "matches": false,
+  "normalized_comparator": {
+    "report": "platform/cli/sfm-propagate-changes/target/core-release-120-pre-reobf-comparator-20261001-v1/report.json",
+    "sha256": "787654b6023fa118755b7808143b3044d28bed585962416841d3f9201523dabe",
+    "official_entries": 1033,
+    "development_entries": 1036,
+    "missing": [],
+    "extra": [
+      "assets/sfm/grammar/sfml/sfml.g4",
+      "assets/sfm/grammar/toml/tomllexer.g4",
+      "assets/sfm/grammar/toml/tomlparser.g4"
+    ],
+    "changed_nonmanifest_entries": 821,
+    "changed_classes": 817,
+    "changed_resources": [
+      "assets/sfm/blockstates/buffer.json",
+      "assets/sfm/lang/en_us.json",
+      "data/minecraft/tags/blocks/mineable/pickaxe.json",
+      "sfm.mixins.json"
+    ],
+    "manifest_changed": true,
+    "implementation_timestamp_ignored": true,
+    "limit": "The comparator collapses duplicate ZIP entry names. Independent inspection below checked raw entry sets."
+  },
+  "official": {
+    "basename": "Super Factory Manager (SFM)-MC1.20-4.34.0.jar",
+    "bytes": 1577376,
+    "sha256": "9943c04e04f7afc433e3f9ccea223ab15f42ba0930c4cebe31b2008ad3b35ecd"
+  },
+  "retained_development": {
+    "path": "platform/minecraft/projections/sfm-4.34.0/mc-1.20/build/sfm-toolchain/native-project/ec303b0e13ca5b117ae5b9fe52e6fe3d43fa22897a20a59beb1e007070de8878/project/dev.jar",
+    "bytes": 1571670,
+    "sha256": "369d1d399e0706369d6f94365fb484f2d0c8880e2d0700beb4efd134ef6cd470",
+    "kind": "Unremapped intermediate from terminal failed native packaging attempt; finished release output remains absent."
+  },
+  "independent_raw_zip_review": {
+    "receipt": "platform/cli/sfm-propagate-changes/target/core-release-packaging-independent-review-v1/review.json",
+    "bytes": 26911,
+    "sha256": "39548623aa2862711b05ae587b4f2c3d18c770bd5958c5c3a6ff7bff3d92a8ae",
+    "duplicate_names_official": 0,
+    "duplicate_names_development": 0,
+    "common_entries": 1033,
+    "exact_payloads": 211,
+    "changed_payloads_including_manifest": 822,
+    "resource_classification": "Three JSON files differ only by an added terminal LF; sfm.mixins.json differs only by CRLF to LF plus terminal LF. Parsed JSON is unchanged.",
+    "manifest_classification": "Implementation-Title and timestamp differ. Proposed release packaging policy fixes the title, not historical timestamps.",
+    "refmap": "sfm.refmap.json is byte-identical in these retained artifacts; no producer/runtime authentication inference.",
+    "classes": "All 817 common class payloads differ. Do not infer semantic correctness from an unremapped development JAR."
+  },
+  "next_acceptance": "Apply and execute the independently reviewed argument-spelling and release-packaging policies after the live full gate; build an accepted final reobfuscated output, compare actual entries/payloads, then review exact-hash runtime admission.",
+  "path_safety": "Only repository-relative paths and public artifact identity are persisted."
+}

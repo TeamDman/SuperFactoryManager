@@ -1,0 +1,98 @@
+{
+  "schema": "sfm:core_human_theme8_tooling_gate@1",
+  "date": "2026-10-02",
+  "scope": "complete_current_tooling_gate_not_java_runtime_or_release_acceptance",
+  "branch": "feat/sfm-main-source-projection",
+  "source_commit": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "promotion_receipt": "docs/tasks/sfm-core-human-theme8-promotion-20261002.json",
+  "command": "pwsh -NoProfile -File ./check-all.ps1",
+  "process_evidence": {
+    "exec_session": 24909,
+    "exit_code": 0,
+    "terminal_marker": "HUMAN_THEME8_FULL_GATE_EXIT=0",
+    "terminal_marker_location": "exec_session_terminal_output_not_retained_log",
+    "all184_group_ordinals_unique_and_ordered": true,
+    "one_passing_summary_per_group": true,
+    "host_process_retirement_query_completed": true,
+    "remaining_task_related_processes": 0,
+    "sandbox_process_query": "access_denied_not_retirement_evidence",
+    "process_mutations": false
+  },
+  "checks": {
+    "direct_dependency_policy": "passed",
+    "nightly_formatting": "passed",
+    "production_all_feature_clippy": "passed",
+    "all_feature_build": "passed",
+    "bounded_test_groups": 184,
+    "library_listed": 2150,
+    "library_passed": 2136,
+    "library_ignored": 14,
+    "integration_targets": 4,
+    "integration_passed": 70,
+    "integration_ignored": 0,
+    "failed": 0,
+    "bin_harnesses": 2,
+    "bin_tests": 0,
+    "doc_harnesses": 1,
+    "doc_tests": 0,
+    "bin_and_doc_harness_exit_codes": 0,
+    "default_feature_operational_cli_build": "passed"
+  },
+  "test_partition": {
+    "unsplit_library_modules": 42,
+    "source_projection_child_modules": 136,
+    "source_projection_listed_tests": 1059,
+    "standalone_library_tests": 1,
+    "dedicated_fixture": 1,
+    "library_groups": 180,
+    "integration_groups": 4
+  },
+  "log": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-human-theme8-full-gate-20261002-v1.log",
+    "bytes": 38957,
+    "sha256": "f4b63984c713e3b4bb24e0e6b41951280f8cdb517f7bdfead43a750548726dc5",
+    "lines": 397,
+    "final_line": "Building the default-feature operational CLI...",
+    "outer_terminal_exit_independently_observed": true
+  },
+  "operational_cli": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "role": "fresh_default_feature_gate_output_not_installed_path_cli",
+    "bytes": 93378560,
+    "sha256": "c580c1b1ed5f0be6369c568288f9f8de0dd9c1daf0f75ca9b464c2c42c55fe61"
+  },
+  "inputs": {
+    "core_files": 1924,
+    "core_bytes": 8884982,
+    "core_sha256": "978e3a40be3e92b5cf159fb7a50fb7fb760f68d6c2e192433f7801bc22903414",
+    "core_hash_method": "Ordinal slash-relative path + NUL + invariant decimal byte length + NUL + lowercase per-file SHA256 + LF; concatenated UTF8 without BOM then SHA256.",
+    "source_rule_paths": 641,
+    "source_rule_variants": 826,
+    "project_inputs_sha256": "d6016e7b3b70288535916182e393c0ab7aff28343cb3fdf4ed25cca827351e8a",
+    "feature_definitions": 180,
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+  },
+  "runner_pins": {
+    "check_all_sha256": "ee6a5a6ff57a6067e1765919a8df94634bd81c6a32fb77b27184772d2dfbc818",
+    "test_bounded_sha256": "2122ad3565796327b9a80cdac85d7809157af32383d53f622c10fc5b55330608"
+  },
+  "source_freeze": "Production Rust and authored core were held through terminal gate. Preserve this current1924 graph for fresh twenty-context dry-runs before the separate next source promotion.",
+  "preserved_work": {
+    "head_unchanged": true,
+    "older_staged_records": 98,
+    "older_staged_raw_and_name_status_snapshot_byte_exact": true,
+    "diff_check": "passed",
+    "broad_staging_reset_or_cleanup": false
+  },
+  "followup_generation": "Fresh twenty-context runs on these exact inputs remain pending; the earlier v4 audit binds the prior1916 graph only.",
+  "limits": [
+    "No Minecraft Java compilation, gameplay, UI, terminal/backend effects or release-JAR parity accepted by this tooling gate.",
+    "The existing eight-source promotion is covered; separately prepared State3, correctedTheme6v2, Backend4, Caller8 and Vox modules are not registered or executed by this gate.",
+    "Production Clippy scope is the repository-established check-all target, not a claim that all-targets Clippy passed.",
+    "The complete original library test-name list was not retained; exact-once test partition verification relies on the pinned bounded runner and its recorded partition. Root separately checked all184 ordered group headers and unique passing summaries.",
+    "Default-feature build output is fresh; installed PATH tools and full operational installer remain separate final obligations.",
+    "The complete ten-target/twenty-projection goal remains active; full source consolidation and runtime matrix are unfinished."
+  ]
+}

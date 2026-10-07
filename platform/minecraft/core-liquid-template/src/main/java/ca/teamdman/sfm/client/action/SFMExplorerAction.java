@@ -1,0 +1,410 @@
+package ca.teamdman.sfm.client.action;
+
+import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
+import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.SFMPathExpression;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionRequest;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionResult;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSettingRegistry;
+import ca.teamdman.sfm.client.search.SFMTextMatchOptions;
+import com.mojang.brigadier.arguments.BoolArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+import net.minecraft.network.chat.Component;
+
+import java.util.List;
+import java.util.Locale;
+
+/** One registered action adapter for the authoritative typed explorer engine. */
+public final class SFMExplorerAction implements SFMClientAction<SFMClientActionContext> {
+    public enum Operation {
+        NODE_EXPAND,
+        NODE_COLLAPSE,
+        NODE_TOGGLE,
+        NODE_REFRESH,
+        ROOT_ADD,
+        ROOT_REMOVE,
+        VIEW_SET,
+        SORT_SET,
+        GROUP_SET,
+        HOIST_SET,
+        PATH_DISPLAY_SET,
+        FILTER_SET,
+        FILTER_MATCH,
+        FILTER_CLEAR,
+        FIND_SET,
+        FIND_MATCH,
+        FIND_NEXT,
+        FIND_PREVIOUS,
+        FIND_CLEAR
+    }
+
+    private final Operation operation;
+
+    public SFMExplorerAction(Operation operation) {
+        this.operation = java.util.Objects.requireNonNull(operation, "operation");
+    }
+
+    @Override
+    public Component title() {
+        return Component.literal(switch (operation) {
+            case NODE_EXPAND -> "Expand explorer node";
+            case NODE_COLLAPSE -> "Collapse explorer node";
+            case NODE_TOGGLE -> "Toggle explorer node";
+            case NODE_REFRESH -> "Refresh explorer node";
+            case ROOT_ADD -> "Add explorer root";
+            case ROOT_REMOVE -> "Remove explorer root";
+            case VIEW_SET -> "Set explorer view";
+            case SORT_SET -> "Set explorer sort";
+            case GROUP_SET -> "Set explorer grouping";
+            case HOIST_SET -> "Set explorer root hoisting";
+            case PATH_DISPLAY_SET -> "Set explorer path labels";
+            case FILTER_SET -> "Set explorer fuzzy filter";
+            case FILTER_MATCH -> "Set explorer filter with match options";
+            case FILTER_CLEAR -> "Clear explorer fuzzy filter";
+            case FIND_SET -> "Find in explorer";
+            case FIND_MATCH -> "Find in explorer with match options";
+            case FIND_NEXT -> "Find next explorer entry";
+            case FIND_PREVIOUS -> "Find previous explorer entry";
+            case FIND_CLEAR -> "Clear explorer finder";
+        });
+    }
+
+    @Override
+    public Component description() {
+        return Component.literal("Apply one explicit selector-targeted explorer operation");
+    }
+
+    @Override
+    public SFMClientActionRequirement<SFMClientActionContext> requirement() {
+        return context -> context.originatingHostIsCurrent().getAsBoolean()
+                ? SFMClientActionAvailability.available(context)
+                : SFMClientActionAvailability.unavailable(
+                        SFMClientActionContext.ORIGINATING_HOST_CHANGED.getComponent()
+                );
+    }
+
+    @Override
+    public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+        RequiredArgumentBuilder<SFMClientActionSource, String> selector = RequiredArgumentBuilder
+                .<SFMClientActionSource, String>argument(
+                        "explorer_selector",
+                        SFMCanonicalTokenArgument.token()
+                )
+                .suggests((context, builder) -> {
+                    builder.suggest("focused");
+                    builder.suggest("all");
+                    SFMExplorerRuntime.get().repository().stateSnapshot().explorers().keySet().forEach(id ->
+                            builder.suggest(SFMEntitySelector.exact(
+                                    SFMEntitySelector.Domain.EXPLORER,
+                                    id.value()
+                            ).canonical())
+                    );
+                    return builder.buildFuture();
+                });
+        if (takesPath()) {
+            RequiredArgumentBuilder<SFMClientActionSource, String> path = RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument(
+                            "path_expression",
+                            SFMCanonicalTokenArgument.token()
+                    )
+                    .suggests((context, builder) -> {
+                        builder.suggest("registry://minecraft/item/");
+                        return builder.buildFuture();
+                    });
+            if (operation == Operation.ROOT_ADD) {
+                path.executes(context -> invokeOperation(
+                        context,
+                        SFMExplorerActionRequest.IfNoMatch.FAIL
+                ));
+                path.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("--if-no-match")
+                        .then(LiteralArgumentBuilder.<SFMClientActionSource>literal("fail")
+                                .executes(context -> invokeOperation(
+                                        context,
+                                        SFMExplorerActionRequest.IfNoMatch.FAIL
+                                )))
+                        .then(LiteralArgumentBuilder.<SFMClientActionSource>literal("open-new")
+                                .executes(context -> invokeOperation(
+                                        context,
+                                        SFMExplorerActionRequest.IfNoMatch.OPEN_NEW
+                                ))));
+            } else {
+                path.executes(context -> invokeOperation(
+                        context,
+                        SFMExplorerActionRequest.IfNoMatch.FAIL
+                ));
+            }
+            selector.then(path);
+        } else if (takesOnlySelector()) {
+            selector.executes(context -> invokeOperation(
+                    context,
+                    SFMExplorerActionRequest.IfNoMatch.FAIL
+            ));
+        } else if (takesQuery()) {
+            var query = RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument(
+                            "query",
+                            StringArgumentType.greedyString()
+                    )
+                    .executes(context -> invokeOperation(
+                            context,
+                            SFMExplorerActionRequest.IfNoMatch.FAIL
+                    ));
+            if (takesMatchOptions()) {
+                selector.then(RequiredArgumentBuilder.<SFMClientActionSource, String>argument("match_mode", StringArgumentType.word())
+                        .suggests((context, builder) -> {
+                            builder.suggest("literal");
+                            builder.suggest("fuzzy");
+                            builder.suggest("regex");
+                            return builder.buildFuture();
+                        })
+                        .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("match_case", BoolArgumentType.bool())
+                                .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("whole_word", BoolArgumentType.bool())
+                                        .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("dot_all", BoolArgumentType.bool())
+                                                .then(query)))));
+            } else selector.then(query);
+        } else {
+            RequiredArgumentBuilder<SFMClientActionSource, String> setting = RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument("setting", SFMCanonicalTokenArgument.token())
+                    .suggests((context, builder) -> {
+                        suggestSettings(builder);
+                        return builder.buildFuture();
+                    })
+                    .executes(context -> invokeOperation(
+                            context,
+                            SFMExplorerActionRequest.IfNoMatch.FAIL
+                    ));
+            selector.then(setting);
+        }
+        node.then(selector);
+    }
+
+    @Override
+    public int execute(
+            SFMClientActionContext target,
+            CommandContext<SFMClientActionSource> context
+    ) throws CommandSyntaxException {
+        throw new SimpleCommandExceptionType(Component.literal(
+                "Provide an explorer selector and the required operation argument"
+        )).create();
+    }
+
+    private int invokeOperation(
+            CommandContext<SFMClientActionSource> context,
+            SFMExplorerActionRequest.IfNoMatch ifNoMatch
+    ) throws CommandSyntaxException {
+{% if features.workspace_panels %}
+        try {
+            SFMEntitySelector selector = SFMEntitySelector.parseCanonical(
+                    SFMEntitySelector.Domain.EXPLORER,
+                    SFMCanonicalTokenArgument.get(context, "explorer_selector")
+            );
+            SFMExplorerActionRequest request = new SFMExplorerActionRequest(
+                    selector,
+                    typedOperation(context),
+                    ifNoMatch
+            );
+            SFMExplorerActionResult result = SFMExplorerRuntime.get().executeAndOpen(
+                    request,
+                    context.getSource().context()
+            );
+            if (result.status() != SFMExplorerActionResult.Status.SUCCEEDED) {
+                String detail = result.diagnostics().isEmpty()
+                        ? result.status().name().toLowerCase(Locale.ROOT)
+                        : result.diagnostics().get(0);
+                throw new SimpleCommandExceptionType(Component.literal(
+                        "Explorer operation failed: " + detail
+                )).create();
+            }
+            for (SFMExplorerActionResult.TargetResult target : result.targets()) {
+                context.getSource().sendFeedback(Component.literal(
+                        target.explorerId().value() + ": "
+                                + target.outcome().name().toLowerCase(Locale.ROOT).replace('_', '-')
+                ));
+            }
+            return (int) Math.max(1, result.targets().size());
+        } catch (CommandSyntaxException failure) {
+            throw failure;
+        } catch (RuntimeException failure) {
+            throw new SimpleCommandExceptionType(Component.literal(
+                    failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage()
+            )).create();
+        }
+{% else %}
+        throw new SimpleCommandExceptionType(Component.literal(
+                "Explorer UI actions require workspace_panels"
+        )).create();
+{% endif %}
+    }
+
+    private SFMExplorerActionRequest.Operation typedOperation(CommandContext<SFMClientActionSource> context) {
+        if (takesPath()) {
+            SFMPath path = concretePath(SFMCanonicalTokenArgument.get(context, "path_expression"));
+            return switch (operation) {
+                case NODE_EXPAND -> new SFMExplorerActionRequest.NodeExpand(
+                        path,
+                        SFMExplorerRuntime.DEFAULT_PAGE_SIZE
+                );
+                case NODE_COLLAPSE -> new SFMExplorerActionRequest.NodeCollapse(path);
+                case NODE_TOGGLE -> new SFMExplorerActionRequest.NodeToggle(
+                        path,
+                        SFMExplorerRuntime.DEFAULT_PAGE_SIZE
+                );
+                case NODE_REFRESH -> new SFMExplorerActionRequest.NodeRefresh(
+                        path,
+                        SFMExplorerRuntime.DEFAULT_PAGE_SIZE
+                );
+                case ROOT_ADD -> new SFMExplorerActionRequest.RootAdd(path);
+                case ROOT_REMOVE -> new SFMExplorerActionRequest.RootRemove(path);
+                default -> throw new AssertionError("Path operation expected");
+            };
+        }
+        if (takesQuery()) {
+            String query = StringArgumentType.getString(context, "query");
+            return switch (operation) {
+                case FILTER_SET -> new SFMExplorerActionRequest.FilterSet(query);
+                case FIND_SET -> new SFMExplorerActionRequest.FindSet(query);
+                case FILTER_MATCH -> new SFMExplorerActionRequest.FilterSet(query, matchOptions(context));
+                case FIND_MATCH -> new SFMExplorerActionRequest.FindSet(query, matchOptions(context));
+                default -> throw new AssertionError("Query operation expected");
+            };
+        }
+        if (takesOnlySelector()) {
+            return switch (operation) {
+                case FILTER_CLEAR -> new SFMExplorerActionRequest.FilterClear();
+                case FIND_NEXT -> new SFMExplorerActionRequest.FindNext();
+                case FIND_PREVIOUS -> new SFMExplorerActionRequest.FindPrevious();
+                case FIND_CLEAR -> new SFMExplorerActionRequest.FindClear();
+                default -> throw new AssertionError("Selector-only operation expected");
+            };
+        }
+        String setting = SFMCanonicalTokenArgument.get(context, "setting");
+        return switch (operation) {
+            case VIEW_SET -> new SFMExplorerActionRequest.ViewSet(parseView(setting));
+            case SORT_SET -> new SFMExplorerActionRequest.SortSet(parseSort(setting));
+            case GROUP_SET -> new SFMExplorerActionRequest.GroupSet(parseGroup(setting));
+            case HOIST_SET -> new SFMExplorerActionRequest.HoistSet(parseHoist(setting));
+            case PATH_DISPLAY_SET -> new SFMExplorerActionRequest.PathDisplaySet(parsePathDisplay(setting));
+            default -> throw new AssertionError("Setting operation expected");
+        };
+    }
+
+    private boolean takesPath() {
+        return switch (operation) {
+            case NODE_EXPAND, NODE_COLLAPSE, NODE_TOGGLE, NODE_REFRESH, ROOT_ADD, ROOT_REMOVE -> true;
+            case VIEW_SET, SORT_SET, GROUP_SET, HOIST_SET, PATH_DISPLAY_SET,
+                    FILTER_SET, FILTER_MATCH, FILTER_CLEAR, FIND_SET, FIND_MATCH, FIND_NEXT, FIND_PREVIOUS, FIND_CLEAR -> false;
+        };
+    }
+
+    private boolean takesQuery() {
+        return operation == Operation.FILTER_SET || operation == Operation.FIND_SET || takesMatchOptions();
+    }
+
+    private boolean takesMatchOptions() {
+        return operation == Operation.FILTER_MATCH || operation == Operation.FIND_MATCH;
+    }
+
+    private static SFMTextMatchOptions matchOptions(CommandContext<SFMClientActionSource> context) {
+        var mode = switch (StringArgumentType.getString(context, "match_mode")) {
+            case "literal" -> SFMTextMatchOptions.Mode.LITERAL;
+            case "fuzzy" -> SFMTextMatchOptions.Mode.FUZZY;
+            case "regex" -> SFMTextMatchOptions.Mode.REGEX;
+            default -> throw new IllegalArgumentException("Supported match modes: literal, fuzzy, regex");
+        };
+        return new SFMTextMatchOptions(mode, BoolArgumentType.getBool(context, "match_case"),
+                BoolArgumentType.getBool(context, "whole_word"), BoolArgumentType.getBool(context, "dot_all"));
+    }
+
+    private boolean takesOnlySelector() {
+        return operation == Operation.FILTER_CLEAR
+                || operation == Operation.FIND_NEXT
+                || operation == Operation.FIND_PREVIOUS
+                || operation == Operation.FIND_CLEAR;
+    }
+
+    private List<String> settingSuggestions() {
+        return switch (operation) {
+            case VIEW_SET -> SFMExplorerSettingRegistry.views().stream()
+                    .map(SFMExplorerSettingRegistry.Option::id)
+                    .toList();
+            case PATH_DISPLAY_SET -> SFMExplorerSettingRegistry.pathDisplays().stream()
+                    .map(SFMExplorerSettingRegistry.Option::id)
+                    .toList();
+            case SORT_SET -> List.of("sfm:name", "sfm:extension", "sfm:icon");
+            case GROUP_SET -> List.of("sfm:hierarchy", "sfm:none");
+            case HOIST_SET -> List.of("auto", "show-roots");
+            default -> List.of();
+        };
+    }
+
+    private void suggestSettings(com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        if (operation == Operation.VIEW_SET) {
+            SFMExplorerSettingRegistry.views().forEach(option -> builder.suggest(
+                    option.id(),
+                    Component.literal(option.label() + ": " + option.description())
+            ));
+            return;
+        }
+        if (operation == Operation.PATH_DISPLAY_SET) {
+            SFMExplorerSettingRegistry.pathDisplays().forEach(option -> builder.suggest(
+                    option.id(),
+                    Component.literal(option.label() + ": " + option.description())
+            ));
+            return;
+        }
+        settingSuggestions().forEach(builder::suggest);
+    }
+
+    private static SFMPath concretePath(String text) {
+        SFMPathExpression expression = SFMPathExpression.parse(text);
+        if (!expression.canonical().equals(text)) {
+            throw new IllegalArgumentException(
+                    "Explorer path expression must use its canonical spelling: " + expression.canonical()
+            );
+        }
+        if (!(expression instanceof SFMPathExpression.Literal literal)) {
+            throw new IllegalArgumentException("This explorer operation requires one concrete path");
+        }
+        return literal.path();
+    }
+
+    private static SFMExplorerProjection.View parseView(String value) {
+        return SFMExplorerSettingRegistry.requireView(value);
+    }
+
+    private static SFMExplorerProjection.PathDisplay parsePathDisplay(String value) {
+        return SFMExplorerSettingRegistry.requirePathDisplay(value);
+    }
+
+    private static SFMExplorerProjection.Sort parseSort(String value) {
+        return switch (value) {
+            case "sfm:name" -> SFMExplorerProjection.Sort.NAME;
+            case "sfm:extension" -> SFMExplorerProjection.Sort.EXTENSION;
+            case "sfm:icon" -> SFMExplorerProjection.Sort.ICON;
+            default -> throw new IllegalArgumentException("Unknown explorer sort: " + value);
+        };
+    }
+
+    private static SFMExplorerProjection.Group parseGroup(String value) {
+        return switch (value) {
+            case "sfm:hierarchy" -> SFMExplorerProjection.Group.HIERARCHY;
+            case "sfm:none" -> SFMExplorerProjection.Group.NONE;
+            default -> throw new IllegalArgumentException("Unknown explorer group: " + value);
+        };
+    }
+
+    private static SFMExplorerProjection.Hoist parseHoist(String value) {
+        return switch (value) {
+            case "auto" -> SFMExplorerProjection.Hoist.AUTO;
+            case "show-roots" -> SFMExplorerProjection.Hoist.SHOW_ROOTS;
+            default -> throw new IllegalArgumentException("Unknown explorer root-hoist mode: " + value);
+        };
+    }
+}

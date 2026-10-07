@@ -7,6 +7,7 @@ use super::core_seed_cli::CoreBuildSeedArgs;
 use super::core_seed_cli::CoreSeedArgs;
 use super::core_seed_cli::CoreVersionSeedArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
+use super::oracle_cli::SourceOracleArgs;
 use super::projection_catalog_cli::SourceListArgs;
 use super::projection_catalog_cli::SourceRenderArgs;
 use super::projection_catalog_cli::SourceShowArgs;
@@ -91,6 +92,8 @@ pub struct SourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum SourceCommand {
+    /// Compare pinned local Git oracles with fresh core-rendered projections.
+    Oracle(SourceOracleArgs),
     /// Generate named projects from core Liquid inputs only; legacy preset commands remain separate.
     Project(CoreProjectArgs),
     /// Preview or explicitly apply the reviewed shared-source authoring seed; never a production fallback.
@@ -396,6 +399,7 @@ impl SourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let (args, mode) = match self.command {
+            SourceCommand::Oracle(args) => return args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Project(args) => return args.invoke_in(cancellation, invocation_dir),
             SourceCommand::SeedShared(args) => return args.invoke_in(cancellation, invocation_dir),
             SourceCommand::SeedVersions(args) => {

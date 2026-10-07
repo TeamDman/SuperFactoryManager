@@ -1,3 +1,7 @@
+{% if features.canvas_text_editor %}
+import java.util.Locale
+
+{% endif %}
 if (project.ext.has('sfmGenerateGrammarSourceConfigured')) {
     throw new GradleException("generate-grammar-source.gradle must not be applied more than once")
 }
@@ -15,12 +19,32 @@ generateGrammarSource {
     ]
     outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
 
+{% if features.canvas_text_editor %}
+    include 'sfml/SFML.g4'
+    include 'toml/TomlLexer.g4'
+    include 'toml/TomlParser.g4'
+    include 'antlr4/ANTLRv4Lexer.g4'
+    include 'antlr4/ANTLRv4Parser.g4'
+{% else %}
 //    include 'sfml/SFML.g4'
 //    // Include the lexer first
 //    include 'toml/TomlLexer.g4'
 //    include 'toml/TomlParser.g4'
+{% endif %}
 }
 
 compileJava {
     dependsOn generateGrammarSource
 }
+{% if features.canvas_text_editor %}
+
+processResources {
+    from("src/main/antlr") {
+        include "**/*.g4"
+        into "assets/sfm/grammar"
+        eachFile { details ->
+            details.path = details.path.toLowerCase(Locale.ROOT)
+        }
+    }
+}
+{% endif %}

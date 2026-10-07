@@ -1,0 +1,3214 @@
+{
+  "schema": "sfm:core_keyboard_carriers_slice@1",
+  "status": "ignored_stage_source_preservation_prepared_tests_not_run",
+  "starting_head": "aa080df6e4e42ff78d565431a06e1d087a639064",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "input_freeze": {
+    "project_inputs_sha256": "sha256:73a643905fd5b281690d69e2e4cd467f8ff98ac62ca8c03c1bbf9b9592b2b0e1",
+    "feature_definitions_sha256": "sha256:38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "catalog_sha256": "sha256:6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "source_rule_count": 528,
+    "feature_count": 180,
+    "visible_core_source_files": 1284,
+    "visible_core_files": 1809
+  },
+  "normalization": "none_raw_exact_lf_final_lf",
+  "scope": {
+    "files": 10,
+    "cells": 200,
+    "present": 76,
+    "absent": 124,
+    "raw_groups": 11,
+    "raw_unique_bytes": 5876
+  },
+  "ownership": {
+    "feature": "keyboard_profiles",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [
+      "client_actions"
+    ],
+    "feature_definition_changes": [],
+    "prerequisite_changes": [],
+    "support_widening": []
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+      "template_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+      "template_bytes": 118,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "e7c504859e8c92707fea85afc1f3b3d151be7b81"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyModifier.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "e7c504859e8c92707fea85afc1f3b3d151be7b81",
+          "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+          "raw_bytes": 118,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+      "template_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+      "template_bytes": 601,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "08e794eee9faa52e2bca9f6dae5ffde362276e03"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyStroke.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "08e794eee9faa52e2bca9f6dae5ffde362276e03",
+          "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+          "raw_bytes": 601,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+      "template_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+      "template_bytes": 437,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "5338b77f87274c48c7f43e1669fb04348c7bfda7"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeySequence.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "5338b77f87274c48c7f43e1669fb04348c7bfda7",
+          "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+          "raw_bytes": 437,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+      "template_sha256": "sha256:d6316750e06a542d2a09e8b0d551cde13acafedd08a8c4e0ac73bd1eabafa128",
+      "template_bytes": 1131,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "0c0fab98ebea8f72246f0e0e1b054576a4f2b6df",
+        "09f14e6e93ea5fcc415f6bca47950387dd4a5af9"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBinding.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "0c0fab98ebea8f72246f0e0e1b054576a4f2b6df",
+          "raw_sha256": "sha256:761cd2568bfeb4da30afa5c5018f7b2b250a4edb219aa2b625afed7e9b6f3c8a",
+          "raw_bytes": 742,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "0c0fab98ebea8f72246f0e0e1b054576a4f2b6df",
+          "raw_sha256": "sha256:761cd2568bfeb4da30afa5c5018f7b2b250a4edb219aa2b625afed7e9b6f3c8a",
+          "raw_bytes": 742,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "09f14e6e93ea5fcc415f6bca47950387dd4a5af9",
+          "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+          "raw_bytes": 596,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyInputEvent.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyInputEvent.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyInputEvent.java",
+      "template_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+      "template_bytes": 466,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "6518c7e2642f6b8db7c2df5610df58a5b43db030"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyInputEvent.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "6518c7e2642f6b8db7c2df5610df58a5b43db030",
+          "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+          "raw_bytes": 466,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingSnapshot.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingSnapshot.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingSnapshot.java",
+      "template_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+      "template_bytes": 359,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "b5310df5876ed25447da9c1e6dd19d86030a11d7"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingSnapshot.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "b5310df5876ed25447da9c1e6dd19d86030a11d7",
+          "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+          "raw_bytes": 359,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMActionInvocationIntent.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMActionInvocationIntent.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMActionInvocationIntent.java",
+      "template_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+      "template_bytes": 261,
+      "membership": {
+        "targets": [],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "2be8bcf30f81cd259c56cb40d1f53d3d2b760530"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMActionInvocationIntent.java",
+        "when": {
+          "targets": [],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "raw_oid": "2be8bcf30f81cd259c56cb40d1f53d3d2b760530",
+          "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+          "raw_bytes": 261,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+      "template_sha256": "sha256:125730bddd4a27915b8210c36e46e234960ac3d830cad20935e403235f440199",
+      "template_bytes": 1267,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "0746adfd0a11768a53cf5879ce37d7d5e4b07eb9"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingOverride.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "0746adfd0a11768a53cf5879ce37d7d5e4b07eb9",
+          "raw_sha256": "sha256:125730bddd4a27915b8210c36e46e234960ac3d830cad20935e403235f440199",
+          "raw_bytes": 1267,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "0746adfd0a11768a53cf5879ce37d7d5e4b07eb9",
+          "raw_sha256": "sha256:125730bddd4a27915b8210c36e46e234960ac3d830cad20935e403235f440199",
+          "raw_bytes": 1267,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingConflict.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingConflict.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingConflict.java",
+      "template_sha256": "sha256:2b5d22c4325d60aa2cecd95f898575d554c8d713c02ff8b215ae9236e390fa34",
+      "template_bytes": 449,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "409b2bcb96299bdf1fe766ab2aa2863c29a4637f"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingConflict.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "409b2bcb96299bdf1fe766ab2aa2863c29a4637f",
+          "raw_sha256": "sha256:2b5d22c4325d60aa2cecd95f898575d554c8d713c02ff8b215ae9236e390fa34",
+          "raw_bytes": 449,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "409b2bcb96299bdf1fe766ab2aa2863c29a4637f",
+          "raw_sha256": "sha256:2b5d22c4325d60aa2cecd95f898575d554c8d713c02ff8b215ae9236e390fa34",
+          "raw_bytes": 449,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingMatchResult.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingMatchResult.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-keyboard-carriers-stage-v1/sources/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingMatchResult.java",
+      "template_sha256": "sha256:25aafb5387e8394a89cd65c1ea9098d2415ba2d8cef2094b49cb5f1857fa6659",
+      "template_bytes": 580,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "keyboard_profiles"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [],
+      "raw_oids": [
+        "00a3c108aa7e5e62e21cec73632bc8de5bac0288"
+      ],
+      "proposed_source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingMatchResult.java",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "keyboard_profiles"
+          ]
+        },
+        "template": false
+      },
+      "pre_authoring_presence": {
+        "physical": false,
+        "output_rule": false,
+        "input_aliases": []
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "00a3c108aa7e5e62e21cec73632bc8de5bac0288",
+          "raw_sha256": "sha256:25aafb5387e8394a89cd65c1ea9098d2415ba2d8cef2094b49cb5f1857fa6659",
+          "raw_bytes": 580,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "00a3c108aa7e5e62e21cec73632bc8de5bac0288",
+          "raw_sha256": "sha256:25aafb5387e8394a89cd65c1ea9098d2415ba2d8cef2094b49cb5f1857fa6659",
+          "raw_bytes": 580,
+          "mode": "100644",
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [
+            "client_actions",
+            "keyboard_profiles"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    }
+  ],
+  "raw_blobs": {
+    "e7c504859e8c92707fea85afc1f3b3d151be7b81": {
+      "raw_sha256": "sha256:ba8c53488b937c0fdef8147c5ca0faf263167c481d897a79bf92997a994d3831",
+      "raw_bytes": 118,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 8,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "08e794eee9faa52e2bca9f6dae5ffde362276e03": {
+      "raw_sha256": "sha256:225efdea8693a16e1dadd870e0b5a7fd3529b31b8d8a16a6bb0f053c93ddd30a",
+      "raw_bytes": 601,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 18,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "5338b77f87274c48c7f43e1669fb04348c7bfda7": {
+      "raw_sha256": "sha256:58b0d1d84d9accfd3f3c24d346f284276a3e44613e5d73f236411b8bbbbea732",
+      "raw_bytes": 437,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 14,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "0c0fab98ebea8f72246f0e0e1b054576a4f2b6df": {
+      "raw_sha256": "sha256:761cd2568bfeb4da30afa5c5018f7b2b250a4edb219aa2b625afed7e9b6f3c8a",
+      "raw_bytes": 742,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 26,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "6518c7e2642f6b8db7c2df5610df58a5b43db030": {
+      "raw_sha256": "sha256:04cd860d2351c0a96c14eda11560e2b11aab9e62baaa837324721e95c4fdb871",
+      "raw_bytes": 466,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 20,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "b5310df5876ed25447da9c1e6dd19d86030a11d7": {
+      "raw_sha256": "sha256:6fd5882e7fe4da6832cd88c98d93197cd19c5f61d02a7de85819de6d899c1c1d",
+      "raw_bytes": 359,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 12,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "2be8bcf30f81cd259c56cb40d1f53d3d2b760530": {
+      "raw_sha256": "sha256:a28cbd07d515b1a092dac63e4e63263b5d4a90292ee9539c19283883ca5514cb",
+      "raw_bytes": 261,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 11,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "0746adfd0a11768a53cf5879ce37d7d5e4b07eb9": {
+      "raw_sha256": "sha256:125730bddd4a27915b8210c36e46e234960ac3d830cad20935e403235f440199",
+      "raw_bytes": 1267,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 40,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "409b2bcb96299bdf1fe766ab2aa2863c29a4637f": {
+      "raw_sha256": "sha256:2b5d22c4325d60aa2cecd95f898575d554c8d713c02ff8b215ae9236e390fa34",
+      "raw_bytes": 449,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 16,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "00a3c108aa7e5e62e21cec73632bc8de5bac0288": {
+      "raw_sha256": "sha256:25aafb5387e8394a89cd65c1ea9098d2415ba2d8cef2094b49cb5f1857fa6659",
+      "raw_bytes": 580,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 18,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    },
+    "09f14e6e93ea5fcc415f6bca47950387dd4a5af9": {
+      "raw_sha256": "sha256:fb86fba1165ad5945f692c3edd433a19001be3231284683bdc53f38a577c30a5",
+      "raw_bytes": 596,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 22,
+      "final_lf": true,
+      "normalization": "none",
+      "prefix_hex": "7061636b61676520"
+    }
+  },
+  "consolidation": {
+    "shared_raw_exact_inputs": 9,
+    "version_adapted_input": "SFMKeyBinding.java",
+    "version_guard": "minecraft_version case/when 1.19.2 or 1.19.4 for situation import/field/non-null and withEnabled constructor argument",
+    "shared_body": "One record body; no whole-class historical dispatch, environment/preset/key dispatch or new feature names.",
+    "older_version_shape": "The older eight original binding records do not contain ResourceLocation or situationId. D2-only Override/Conflict/MatchResult remain omitted on those eight targets, even with the all-target keyboard_profiles feature true.",
+    "actual_121_alias": "Matrix target1.21.0 uses actual minecraft_version1.21; no alternate ResourceLocation mapping is introduced by this cohort."
+  },
+  "direct_type_dependencies": {
+    "SFMKeyModifier": [],
+    "SFMKeyStroke": [
+      "SFMKeyModifier"
+    ],
+    "SFMKeySequence": [
+      "SFMKeyStroke"
+    ],
+    "SFMKeyBinding": [
+      "SFMKeySequence",
+      "ResourceLocation only in the two original D2 variants"
+    ],
+    "SFMKeyInputEvent": [
+      "SFMKeyModifier"
+    ],
+    "SFMKeyBindingSnapshot": [
+      "SFMKeyBinding"
+    ],
+    "SFMActionInvocationIntent": [],
+    "SFMKeyBindingOverride": [
+      "SFMKeyBinding",
+      "SFMKeySequence",
+      "ResourceLocation D2"
+    ],
+    "SFMKeyBindingConflict": [
+      "SFMKeySequence",
+      "ResourceLocation D2"
+    ],
+    "SFMKeyBindingMatchResult": [
+      "SFMActionInvocationIntent",
+      "SFMKeyBindingConflict"
+    ]
+  },
+  "real_consumers": [
+    {
+      "paths": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingEngine.java"
+      ],
+      "uses": [
+        "SFMKeyInputEvent",
+        "SFMKeyStroke",
+        "SFMKeySequence",
+        "SFMKeyBinding",
+        "SFMActionInvocationIntent",
+        "SFMKeyBindingConflict",
+        "SFMKeyBindingMatchResult"
+      ],
+      "boundary": "Matching/time/reserved-chord implementation remains separate; no runtime execution acceptance."
+    },
+    {
+      "paths": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingService.java"
+      ],
+      "uses": [
+        "SFMKeyInputEvent",
+        "SFMActionInvocationIntent",
+        "SFMKeyBindingConflict",
+        "SFMKeyBindingSnapshot"
+      ],
+      "boundary": "Input capture/dispatch/action provider remains outside this stage."
+    },
+    {
+      "paths": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingProfile.java",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingStorage.java"
+      ],
+      "uses": [
+        "SFMKeyBinding",
+        "SFMKeyBindingOverride",
+        "SFMKeyBindingSnapshot"
+      ],
+      "boundary": "Profile/user-state and filesystem/Gson persistence remain outside this stage."
+    },
+    {
+      "paths": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingDefaults.java",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingDisplay.java",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/SFMKeyBindingCycle.java"
+      ],
+      "uses": [
+        "SFMKeyBinding",
+        "SFMKeySequence",
+        "SFMKeyStroke"
+      ],
+      "boundary": "GLFW, display, action/cycling operations are not preserved by this pure carrier cohort."
+    },
+    {
+      "paths": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMClientActionInvocationTrace.java"
+      ],
+      "uses": [
+        "SFMKeyInputEvent",
+        "SFMKeyBindingConflict",
+        "SFMKeyBindingSnapshot"
+      ],
+      "boundary": "Trace consumer and full action capture/dispatch wiring are not inferred from carrier presence."
+    }
+  ],
+  "preserved_contracts": [
+    "Defensive EnumSet/Set.copyOf modifier handling remains unchanged.",
+    "Sequence list copy and nonempty check remain unchanged.",
+    "Binding non-null checks and withEnabled preserve exact original D2/older API shapes.",
+    "Snapshot sorts by bindingId; no order changes.",
+    "D2 override preserves id matching and original action/command/situation rewrite semantics.",
+    "Match result preserves UNMATCHED, list-copy and consumed boolean semantics."
+  ],
+  "tests": {
+    "intended_module": "core_keyboard_carriers_slice_tests.rs",
+    "status": "prepared_unregistered_not_executed",
+    "historical_cells": 200,
+    "positive_owner_masks": "all ten targets, exact dependency-closed keyboard_profiles+client_actions; D2-only leaves omitted on older eight",
+    "negative_owner_masks": "empty features or client_actions alone; missing client_actions prerequisite; unrelated theme/workspace owners must not imply keyboard ownership",
+    "collector": "Real select_core_inputs, controlled render_java_source and an isolated fixed CORE_ROOT collector fixture with copied selected project-role bytes, not metadata.template=true assumptions.",
+    "common_edit": "One shared withEnabled method parameter/body edit must propagate both witnessed Minecraft groups.",
+    "pending": [
+      "Root must promote all ten source inputs, sparse source rules and this portable ledger together before registering/running tests.",
+      "No Cargo/Rust type check, javac/Gradle build, SFM process, game/input dispatch, profile storage, real Lua/terminal or runtime proof is performed."
+    ]
+  },
+  "reproducible_read_only_commands": [
+    "git -c safe.directory=<exact-repository-root> ls-tree -r <exact-frozen-commit> -- platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/",
+    "git -c safe.directory=<exact-repository-root> cat-file blob <exact-reviewed-oid>",
+    "Get-FileHash -LiteralPath <exact-stage-source> -Algorithm SHA256"
+  ],
+  "effects": {
+    "live_core_edits": 0,
+    "live_metadata_edits": 0,
+    "live_rust_edits": 0,
+    "feature_changes": 0,
+    "cargo_runs": 0,
+    "jvm_runs": 0,
+    "sfm_cli_runs": 0,
+    "gradle_runs": 0,
+    "network_calls": 0,
+    "cache_or_lock_mutations": 0
+  }
+}

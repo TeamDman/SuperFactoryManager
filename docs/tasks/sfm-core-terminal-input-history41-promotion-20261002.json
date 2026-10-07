@@ -1,0 +1,393 @@
+{
+  "schema": "sfm:core-terminal-input-history41-promotion@1",
+  "status": "source-promotion-complete; focused48-passed; replacement-full-gate-running-no-terminal-acceptance",
+  "date": "2026-10-02",
+  "authority": "Root performed production promotion, formatting and focused runner launch. This receipt draft does not authorize further effects.",
+  "cohort": {
+    "terminal_models": 26,
+    "terminal_presentation": 6,
+    "input_diagnostics": 3,
+    "document_history": 4,
+    "single_line_input": 2,
+    "new_java_files": 41,
+    "new_java_bytes": 427284,
+    "new_ledgers": 5,
+    "new_test_modules": 5,
+    "new_files": 51,
+    "new_test_cases": 40
+  },
+  "detail_ledgers": [
+    {
+      "path": "docs/tasks/sfm-core-terminal-model-providers-slice.json",
+      "bytes": 84565,
+      "sha256": "f8f46287da7fe98bef7e707999b04c844986d87dc8f8ac7ef966a1888ffb4a9b"
+    },
+    {
+      "path": "docs/tasks/sfm-core-terminal-presentation-providers-slice.json",
+      "bytes": 168123,
+      "sha256": "af7d2ba383bab807f2f78e9f697261284733fced4d076f8f54c94db965a31286"
+    },
+    {
+      "path": "docs/tasks/sfm-core-input-diagnostics-slice.json",
+      "bytes": 11090,
+      "sha256": "eadc2b71e41592ee3999c05442133cdd15a1acecc3fb9f7fe511c58ee595256f"
+    },
+    {
+      "path": "docs/tasks/sfm-core-document-history-providers-slice.json",
+      "bytes": 18434,
+      "sha256": "b0cada4e26d0d21e2b0b5258f6ae901a7ca50fbe14993cba126118094530367b"
+    },
+    {
+      "path": "docs/tasks/sfm-core-single-line-input-slice.json",
+      "bytes": 9381,
+      "sha256": "d6d8257bb0c4b451bf7e0bfdfed82770856355d9ddf1e17ba6cf5dceb7382eb0"
+    }
+  ],
+  "promotion": {
+    "initial_attempt": {
+      "new_files_created_and_verified": 51,
+      "compatibility_patch_applied": true,
+      "final_activation_exit_code": 1,
+      "reason": "Existing carrier hunks went Error, ErrorCode, Line, Response. The forward-only parser could not return to Line.",
+      "activation_targets_remained_exact_base": true
+    },
+    "narrow_retry": {
+      "activation_patch_bytes": 17323,
+      "activation_patch_sha256": "f03560d1e2f842c19637617720588da98e0d33f88e7c7d2b0f6d7c78ae05e377",
+      "only_change": "Four byte-identical hunks reordered to Line, Response, Error, ErrorCode.",
+      "before_write_checks": "51 existing outputs, exact metadata/module bases, current compatibility and immutable inputs",
+      "exit_code": 0,
+      "updated_files": [
+        "platform/minecraft/core-liquid-template/project-inputs.json",
+        "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs"
+      ],
+      "no_recreation_or_compatibility_reapplication": true
+    },
+    "pre_format_modified_output_pins": [
+      {
+        "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+        "bytes": 451451,
+        "sha256": "96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+        "bytes": 16999,
+        "sha256": "d5fbfb7c1a93294279b9bf53a0007349d344766305546be28429d9c50bf12ac9"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_value_models_slice_tests.rs",
+        "bytes": 41614,
+        "sha256": "ca46aa7c6c31f527e1cea610a274dea5294a9992047012b80f488a767e2e0cae"
+      }
+    ],
+    "exact_inverse_metadata_and_module_bytes": true
+  },
+  "rules": {
+    "sparse_paths_before": 592,
+    "sparse_paths_after": 633,
+    "variants_before": 776,
+    "variants_after": 818,
+    "new_rule_paths": 41,
+    "existing_rule_replacements": 4,
+    "pure_or_refinements": [
+      {
+        "classes": [
+          "SFMTerminalError",
+          "SFMTerminalErrorCode"
+        ],
+        "append": [
+          "terminal_remote",
+          "terminal_properties"
+        ]
+      },
+      {
+        "classes": [
+          "SFMTerminalLine",
+          "SFMTerminalResponse",
+          "SFMTerminalService",
+          "SFMTerminalScrollback"
+        ],
+        "append": [
+          "terminal_properties"
+        ]
+      }
+    ],
+    "pure_carrier_bodies_unchanged": true,
+    "service_and_scrollback_are_new_cohort_sources": true
+  },
+  "compatibility": {
+    "module": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_value_models_slice_tests.rs",
+    "actual_live_rules_checked_before_historical_view": true,
+    "private_historical_view": "Only the four reviewed carrier any_features lists are derived back to unchanged historical owner lists.",
+    "immutable_evidence": {
+      "test_cases_retained": 8,
+      "historical_cells": 320,
+      "present": 48,
+      "absent": 272,
+      "independent_masks": 336
+    },
+    "added_live_rule_damage_refusals": 44,
+    "actual_current_membership_proof": "The model-v2 and presentation-v2 modules use real current selector, renderer and collector paths.",
+    "no_live_metadata_or_collector_membership_relaxation": true
+  },
+  "current_core": {
+    "root": "platform/minecraft/core-liquid-template",
+    "file_count": 1916,
+    "bytes": 8861692,
+    "aggregate_sha256": "68c0078d9612b011fa0e594d6b1a75c7347ef266495c034305c268c7e72b7142",
+    "scope": "Every core file, including src, build inputs and metadata. This is not a Java file count.",
+    "aggregate_recipe": "Enumerate all core files recursively; core-relative slash paths in ordinal order. Each record is path + NUL + invariant decimal byte length + NUL + lowercase file SHA-256 + LF. SHA-256 the concatenated UTF-8 bytes without BOM.",
+    "growth": {
+      "before_files": 1875,
+      "before_bytes": 8419075,
+      "new_java_bytes": 427284,
+      "metadata_growth_bytes": 15333
+    },
+    "metadata": {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 451451,
+      "sha256": "96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857"
+    },
+    "module_registration": {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 16999,
+      "sha256": "d5fbfb7c1a93294279b9bf53a0007349d344766305546be28429d9c50bf12ac9"
+    },
+    "definitions_count": 180,
+    "unchanged_inputs": [
+      {
+        "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+        "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+        "bytes": 30254
+      },
+      {
+        "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+        "path": "platform/minecraft/projections.json",
+        "bytes": 2074
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+        "bytes": 147020,
+        "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+      }
+    ],
+    "dependency_identities_unchanged": true,
+    "original_staged_index_records_unchanged": 98
+  },
+  "formatting": {
+    "toolchain": "existing repository nightly",
+    "executed_by": "root",
+    "formatted_before_focused_v1_rust_module_pins": [
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_model_providers_slice_tests.rs",
+        "bytes": 46385,
+        "sha256": "3bbc86b39354ebb11398a681ffb070c003088b801d1b139f35731c3674d198ff"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_presentation_providers_slice_tests.rs",
+        "bytes": 63494,
+        "sha256": "f5170e28da66c3966df5e833773909662fe80dc5d6b4e748c1a4058a9a204581"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_input_diagnostics_slice_tests.rs",
+        "bytes": 37078,
+        "sha256": "f285a84f2079d63b5345916045575daacc47643c096d1ce4020c15e17aa82248"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_document_history_providers_slice_tests.rs",
+        "bytes": 28125,
+        "sha256": "a375611e089b67f6770fa072ae752c8046b2cf179ad27b8882bc87d108c1d795"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_single_line_input_slice_tests.rs",
+        "bytes": 25187,
+        "sha256": "5a959821edba9ca42f297df7203d3138ac05e51202a95c90ca55a168b34ef921"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_value_models_slice_tests.rs",
+        "bytes": 41866,
+        "sha256": "ccfb50e3c7666441043ccbee771a558563f4d31e54973c2dace6070df1e17414"
+      }
+    ],
+    "source_and_ledger_pins": "All 41 Java and five ledger pins remain exact. Metadata and registration pins remain exact.",
+    "current_rust_module_pins": [
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_model_providers_slice_tests.rs",
+        "bytes": 46612,
+        "sha256": "e5fb5dd3dc3265a48c6d9275a2f619553bbddb00b5f229b4d1e3bcf9a9970041"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_presentation_providers_slice_tests.rs",
+        "bytes": 63494,
+        "sha256": "f5170e28da66c3966df5e833773909662fe80dc5d6b4e748c1a4058a9a204581"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_input_diagnostics_slice_tests.rs",
+        "bytes": 37078,
+        "sha256": "f285a84f2079d63b5345916045575daacc47643c096d1ce4020c15e17aa82248"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_document_history_providers_slice_tests.rs",
+        "bytes": 28125,
+        "sha256": "a375611e089b67f6770fa072ae752c8046b2cf179ad27b8882bc87d108c1d795"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_single_line_input_slice_tests.rs",
+        "bytes": 25187,
+        "sha256": "5a959821edba9ca42f297df7203d3138ac05e51202a95c90ca55a168b34ef921"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_value_models_slice_tests.rs",
+        "bytes": 41866,
+        "sha256": "ccfb50e3c7666441043ccbee771a558563f4d31e54973c2dace6070df1e17414"
+      }
+    ]
+  },
+  "focused_validation": {
+    "state": "completed-after-assertion-only-refinement",
+    "expected_cases": 48,
+    "new_cases": 40,
+    "retained_value_model_cases": 8,
+    "modules": [
+      "core_terminal_model_providers_slice_tests",
+      "core_terminal_presentation_providers_slice_tests",
+      "core_input_diagnostics_slice_tests",
+      "core_document_history_providers_slice_tests",
+      "core_single_line_input_slice_tests",
+      "core_terminal_value_models_slice_tests"
+    ],
+    "discovery": {
+      "listed_cases": 2137,
+      "source_children": 134
+    },
+    "first_attempt": {
+      "log": "platform/cli/sfm-propagate-changes/target/core-promotion41-focused-20261002-v1.log",
+      "module": "core_terminal_model_providers_slice_tests",
+      "failed_case": "source_projection::core_terminal_model_providers_slice_tests::properties_metadata_is_an_independent_method_guard_with_exact_all_on_raw_body",
+      "passed": 7,
+      "failed": 1,
+      "ignored": 0,
+      "elapsed_seconds": 185.6,
+      "remaining_five_modules_executed": false,
+      "failure": "A forbidden frame.streamIdentity() string conflated retained AcceptedFrame output with the omitted fromFrame(SFMTerminalFrame frame) method.",
+      "log_final_pin": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-promotion41-focused-20261002-v1.log",
+        "bytes": 1267,
+        "sha256": "47c26e1465d8642a483b2fff741f94d1e195fd8c61e1f41ea368e6175fa069a0"
+      }
+    },
+    "root_owned_assertion_correction": {
+      "forbidden_token": "Replace only frame.streamIdentity() with the typed SFMTerminalFrame frame boundary.",
+      "positive_assertion": "Retain the exact AcceptedFrame stream-identity output line.",
+      "unchanged_off_golden": {
+        "bytes": 15406,
+        "sha256": "dca88b8ddccd6f845ed098b13e254b7c2fe9286a047c74261a244e1f426fd18e"
+      },
+      "java_rules_defaults_or_golden_changed": false,
+      "final_formatted_model_test_pin": {
+        "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_terminal_model_providers_slice_tests.rs",
+        "bytes": 46612,
+        "sha256": "e5fb5dd3dc3265a48c6d9275a2f619553bbddb00b5f229b4d1e3bcf9a9970041"
+      }
+    },
+    "replacement": {
+      "state": "completed-exit0",
+      "proposed_log": "platform/cli/sfm-propagate-changes/target/core-promotion41-focused-20261002-v2.log",
+      "result": {
+        "terminal_exit_code": 0,
+        "unique_cases": 48,
+        "case_invocations_in_six_shards": 48,
+        "failed": 0,
+        "ignored": 0,
+        "modules": [
+          {
+            "module": "core_input_diagnostics_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 27.74
+          },
+          {
+            "module": "core_document_history_providers_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 14.03
+          },
+          {
+            "module": "core_single_line_input_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 8.73
+          },
+          {
+            "module": "core_terminal_presentation_providers_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 174.14
+          },
+          {
+            "module": "core_terminal_value_models_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 53.72
+          },
+          {
+            "module": "core_terminal_model_providers_slice_tests",
+            "passed": 8,
+            "failed": 0,
+            "ignored": 0,
+            "elapsed_seconds": 130.76
+          }
+        ],
+        "separate_exact_regression": {
+          "passed": 1,
+          "elapsed_seconds": 0.94,
+          "case": "properties_metadata_is_an_independent_method_guard_with_exact_all_on_raw_body"
+        },
+        "runner": "scripts/test-bounded.ps1 -Shard unit:source_projection:<module>, offline locked all-features, one test thread"
+      },
+      "log_final_pin": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-promotion41-focused-20261002-v2.log",
+        "bytes": 2820,
+        "sha256": "1168fad2922069ee0b872151b2ed14e6d258a3e95d4d7fabeee6bb8b8eeaa64f"
+      }
+    },
+    "root_must_complete": "Focused evidence is bound. Preserve production inputs during the full gate; bind its terminal result separately."
+  },
+  "next_gate": {
+    "complete_tooling_gate": "running; terminal acceptance pending",
+    "proposed_log": "platform/cli/sfm-propagate-changes/target/core-next-promotion41-full-gate-20261002-v1.log",
+    "prior_consent_gate": "Interrupted without terminal result; historical partial evidence is not a complete pass."
+  },
+  "acceptance_limits": {
+    "source_only": true,
+    "full_tooling_pass": false,
+    "current_twenty_projection_audit": false,
+    "current_java_compile": false,
+    "current_jar_or_runtime_acceptance": false,
+    "complete_provider_graph_closure": false,
+    "backend4_and_vox2": "Excluded; separate contracts, fixture review and promotion.",
+    "release_parity_and_twenty_projection_matrix": "Remain required and open.",
+    "effect_authority": "No process launch, endpoint connection, native Java execution, catalog enablement or dependency change follows from source promotion."
+  },
+  "draft_intent_audit": {
+    "scope": "Only this requested receipt and three current-note amendments; no new full-goal intent audit claim.",
+    "extraction": "Preserves successful creation/compatibility, failed activation, exact retry, current core counts/pins, formatting, the focused-v1 failure, narrow assertion correction, pending v2 and all stated acceptance limits.",
+    "traceability": "Facts map to promotion, current_core, formatting and focused_validation; limits map to acceptance_limits; plan draft touches only checkpoint, tasks 2.3/3.2 and the current report note under 4.2.",
+    "adversarial_check": "Does not treat failed activation as rollback, formatting as tests, running tests as a pass, the complete core count as Java count, or historical gates as current acceptance.",
+    "source_limitation": "Earlier conversation is partly compacted; sealed v2/v3 evidence and root supplied current facts supply provenance. This draft does not claim fresh complete-goal review."
+  },
+  "report_checkpoint": {
+    "pin": {
+      "path": "docs/reports/sfm-core-liquid-progress-20261001.html",
+      "bytes": 48943,
+      "sha256": "5838ae950ba5cd1bad7774e33b49ae5b810210959b6f8bd40a13382a736d9555"
+    },
+    "source_checks": "23 unique IDs,22 resolved links,no external dependencies; CSS/JS unchanged",
+    "current_browser_mobile_print_execution": "not_performed"
+  }
+}

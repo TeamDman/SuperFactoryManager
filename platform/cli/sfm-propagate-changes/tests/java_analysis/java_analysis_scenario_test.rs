@@ -120,6 +120,7 @@ fn java_analysis_scenario_cache_is_thread_scoped() -> eyre::Result<()> {
                     JavaAnalysisScenarioFixture {
                         jdk_source_tree,
                         cache_home: CacheHome(cache_path.clone()),
+                        decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
                     },
                     || -> eyre::Result<()> {
                         barrier.wait();
@@ -188,6 +189,56 @@ fn partial_index_identity_changes_when_java_release_changes() -> eyre::Result<()
     })
 }
 
+#[test]
+fn partial_index_fixture_does_not_acquire_sdk_in_empty_scoped_cache() -> eyre::Result<()> {
+    with_partial_index_context(|branch, context, cache_home| {
+        let sdk_cache = cache_home.0.join("minecraft-toolchain/jbrsdk");
+        eyre::ensure!(!sdk_cache.exists(), "fixture must begin with no SDK cache");
+        let (identity, _) = scenario_dependency_index_inputs(branch, context, cache_home)?;
+        identity.validate()?;
+        eyre::ensure!(
+            !sdk_cache.exists(),
+            "read-only scenario index preparation acquired a real SDK"
+        );
+        Ok(())
+    })
+}
+
+#[test]
+fn partial_index_fixture_runtime_identity_is_explicit_and_scope_restores() -> eyre::Result<()> {
+    with_partial_index_context(|branch, context, cache_home| {
+        let (original, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+        let fixture = |runtime: &str| JavaAnalysisScenarioFixture {
+            jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/java_analysis/jdk_sources"),
+            cache_home: cache_home.clone(),
+            decompiler_runtime_identity: runtime.to_owned(),
+        };
+        let alternate = with_java_analysis_scenario_fixture(
+            fixture("sfm:scenario_decompiler_runtime/alternate@1"),
+            || scenario_dependency_index_inputs(branch, context, cache_home.clone()),
+        )?;
+        eyre::ensure!(
+            original.digest != alternate.0.digest,
+            "fixture runtime omitted from identity"
+        );
+        let refused = with_java_analysis_scenario_fixture(fixture(""), || {
+            scenario_dependency_index_inputs(branch, context, cache_home.clone())
+        });
+        eyre::ensure!(refused.is_err(), "empty fixture identity was accepted");
+        let (restored, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+        eyre::ensure!(
+            original == restored,
+            "nested runtime fixture leaked into caller scope"
+        );
+        eyre::ensure!(
+            !cache_home.0.join("minecraft-toolchain/jbrsdk").exists(),
+            "identity-only fixture work created an SDK cache"
+        );
+        Ok(())
+    })
+}
+
 fn with_partial_index_context<T>(
     test: impl FnOnce(&BranchSelector, &JavaAnalysisContextOutput, CacheHome) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
@@ -200,6 +251,7 @@ fn with_partial_index_context<T>(
         jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/java_analysis/jdk_sources"),
         cache_home: cache_home.clone(),
+        decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
     };
     with_java_analysis_scenario_fixture(fixture, || {
         let workspace = JavaSourceWorkspace::resolve(
@@ -427,6 +479,7 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
         jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests/java_analysis/jdk_sources"),
         cache_home: cache_home.clone(),
+        decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
     };
     let (rendered, actual_exit_code) = with_java_analysis_scenario_fixture(fixture, || {
         let partial_identity = if is_partial_index_scenario(scenario) {

@@ -1,0 +1,21 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+{% if features.touch_display_custom_textures %}
+    "bottom": "sfm:block/touch_display_bottom",
+{% else %}
+    "bottom": "sfm:block/manager_bot",
+{% endif %}
+    "particle": "#top",
+{% if features.touch_display_custom_textures %}
+    "side": "sfm:block/touch_display_side",
+{% else %}
+    "side": "sfm:block/manager_side",
+{% endif %}
+{% if features.touch_display_custom_textures %}
+    "top": "sfm:block/touch_display_face"
+{% else %}
+    "top": "sfm:block/buffer_unknown"
+{% endif %}
+  }
+}

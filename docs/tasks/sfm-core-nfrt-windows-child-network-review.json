@@ -1,0 +1,892 @@
+{
+  "schema": "sfm:nfrt_windows_child_network_boundary_review@1",
+  "status": "read_only_feasibility_and_exporter_producer_design_not_implemented_or_executed",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "conclusion": {
+    "actual_deny_network": "Windows AppContainer without network capabilities is an enforceable candidate, unlike Job Objects or proxy settings. It is not implemented or tested here.",
+    "smallest_safe_progress_now": "Implement the strict, read-only Rust launch-contract exporter model and producer-output receipt validation independently. Both can be tested without Java/network execution or OS policy changes.",
+    "current_existing_libraries": "The locked windows0.62.2 package already includes the required system API definitions. Its Isolation module is not enabled by either direct SFM or teamy-windows declarations. A typed implementation needs only the existing crate's Win32_Security_Isolation feature, not a new package/version. A narrowly reviewed authored userenv FFI can avoid even that feature edit.",
+    "authority_gap": "Both AppContainer routes still need explicit bounded permission to create/remove a private per-user profile, grant its SID access only to private invocation roots, and launch/inspect sandboxed test processes. This review grants none of those effects.",
+    "no_artificial_blocker": "A general OS sandbox and a trusted exact-tool/closed-argument contract are different acceptance claims. Do not label the latter deny-network or block unrelated exporter/source consolidation on the former."
+  },
+  "scope": {
+    "existing_dependency_mutations": 0,
+    "clones": 0,
+    "cargo_runs": 0,
+    "java_runs": 0,
+    "child_tool_runs": 0,
+    "acl_token_job_firewall_profile_mutations": 0,
+    "network_probe_processes": 0,
+    "official_documentation_read": true,
+    "artifact_acquisition": 0,
+    "cache_repair": 0,
+    "cleanup": 0,
+    "approved_unique_child_identities": 15,
+    "current_slice_exact_jar_rechecks": 12,
+    "uncovered_exact_bytecode_identities": 3
+  },
+  "source_inputs": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "bytes": 5485,
+      "sha256": "cb448dccf3fc88ab13b93e0fd6e0828464c6091db25ec928754129622ac54f0c"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "docs/tasks/sfm-core-nfrt-child-official-identity-proof.json",
+      "sha256": "48c66c4ef25a2906c8fcbf60562b6ae5ab88a86c0e3f8f930df65efc4ea8870c"
+    },
+    {
+      "path": "docs/tasks/sfm-core-named-nfrt-compile-review.json",
+      "sha256": "8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d"
+    },
+    {
+      "path": "docs/tasks/sfm-core-nfrt-launcher-adapter-stage-review.json",
+      "sha256": "2b0b747082492aded962f8819b365f5e0ebd24aa8cb9adb5f10c445223dc3e84"
+    }
+  ],
+  "locked_windows_libraries": {
+    "packages": [
+      {
+        "name": "windows",
+        "version": "0.62.2",
+        "archive_bytes": 9360572,
+        "archive_sha256": "527fadee13e0c05939a6a05d5bd6eec6cd2e3dbd648b9f8e447c6518133d8580",
+        "matches_original_cargo_lock": true
+      },
+      {
+        "name": "teamy-windows",
+        "version": "0.9.0",
+        "archive_bytes": 54620,
+        "archive_sha256": "bd5e159f4a0ba7d4a52d009a36120365826893e16c3002548a8572262f19ca23",
+        "matches_original_cargo_lock": true
+      }
+    ],
+    "source_members": [
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/Cargo.toml",
+        "bytes": 31766,
+        "sha256": "1faa29a77d208ba8b39979243819dbf07fb10a6e075420c8a847d5eca108db4a",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/src/Windows/Win32/NetworkManagement/WindowsFilteringPlatform/mod.rs",
+        "bytes": 333653,
+        "sha256": "e0e0b2bc3741bb54bc51ab960be2b58876297cf0086c3bbb9c17697a4af4b5d0",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/src/Windows/Win32/NetworkManagement/WindowsFirewall/mod.rs",
+        "bytes": 463467,
+        "sha256": "1b20b1351e006dd79d6f149873926c969f082d6b47ba7d93e138453b7d90e646",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/src/Windows/Win32/Security/Isolation/mod.rs",
+        "bytes": 19651,
+        "sha256": "676aed696c20c83fb02a6e9f6233cc65a3201037a441fe7625ed2049ddd72364",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/src/Windows/Win32/Security/mod.rs",
+        "bytes": 159316,
+        "sha256": "65f19fcaec7fee4384743553c2c5b57d3f80fac709fbd9b6479645227f968388",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "windows-0.62.2.crate",
+        "entry": "windows-0.62.2/src/Windows/Win32/System/Threading/mod.rs",
+        "bytes": 230722,
+        "sha256": "a4caf28ab454d5c886b02cb1caacec628f2d0ef55df507fca545145be2900893",
+        "local_source_matches_locked_archive": true
+      },
+      {
+        "archive": "teamy-windows-0.9.0.crate",
+        "entry": "teamy-windows-0.9.0/Cargo.toml",
+        "bytes": 3354,
+        "sha256": "3a4aeb9917135c54c6ee3376e6b059b7fa9eef4cfddc821718d26b3a44016f9f",
+        "local_source_matches_locked_archive": true
+      }
+    ],
+    "direct_enabled": [
+      "Win32_Foundation",
+      "Win32_Security",
+      "Win32_Security_Authorization",
+      "Win32_Security_Cryptography",
+      "Win32_System_Com",
+      "Win32_System_JobObjects",
+      "Win32_System_TaskScheduler",
+      "Win32_System_Threading",
+      "Win32_System_Variant"
+    ],
+    "relevant_transitively_enabled_from_teamy_windows": [
+      "Win32_Storage_FileSystem",
+      "Win32_System_Memory",
+      "Win32_System_LibraryLoader",
+      "Win32_System_Registry",
+      "Win32_Networking_WinSock"
+    ],
+    "typed_binding_gaps": [
+      "Win32_Security_Isolation",
+      "Win32_NetworkManagement_WindowsFirewall",
+      "Win32_NetworkManagement_WindowsFilteringPlatform"
+    ],
+    "available_now": [
+      "SECURITY_CAPABILITIES",
+      "PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES",
+      "InitializeProcThreadAttributeList",
+      "UpdateProcThreadAttribute",
+      "CreateProcessW",
+      "CreateProcessAsUserW",
+      "GetTokenInformation/TokenIsAppContainer",
+      "CreateRestrictedToken",
+      "CreateJobObjectW/AssignProcessToJobObject",
+      "narrow security descriptor APIs through Authorization"
+    ],
+    "no_cargo_feature_change_claim": "All archive and seven selected source-member hashes were checked read-only. No Cargo.toml/Cargo.lock/feature was changed."
+  },
+  "enforcement_options": [
+    {
+      "option": "Private zero-capability AppContainer with child inheritance",
+      "recommendation": "Preferred actual deny-network experiment after bounded authority. Use unique invocation/profile identity, zero capabilities, no broker or loopback exemption.",
+      "evidence": [
+        {
+          "claim": "Microsoft describes network access as capability-gated, with no network capability denying network access.",
+          "source": "https://learn.microsoft.com/en-us/windows/win32/secauthz/implementing-an-appcontainer"
+        },
+        {
+          "claim": "An unpackaged app uses a profile; its child processes normally inherit the AppContainer token.",
+          "source": "https://learn.microsoft.com/en-us/windows/win32/secauthz/appcontainer-for-legacy-applications-"
+        },
+        {
+          "claim": "Setting PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES creates an AppContainer process.",
+          "source": "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute"
+        }
+      ],
+      "dependency_option_a": "Add only Win32_Security_Isolation to existing windows0.62.2 declared features. No new version/package expected. This is still a dependency-feature declaration change requiring approval under frozen posture.",
+      "dependency_option_b": "Author a tiny reviewed extern-system userenv wrapper for CreateAppContainerProfile/DeleteAppContainerProfile/DeriveAppContainerSidFromAppContainerName using already available Win32 Security types. This avoids Cargo feature changes but adds unsafe FFI and needs signature/ownership tests.",
+      "required_os_authority": [
+        "Create one fresh per-user profile for the owned test invocation; refuse collisions rather than reuse unreviewed profiles.",
+        "Grant only that SID read/execute access to private verified SDK/input copies and modify access to private work/output/temp roots; never broaden a user cache, checkout or shared SDK ACL.",
+        "Launch suspended with startup attribute and an explicit inherited pipe-handle list, attach a kill-on-close private Job Object before resume, then inspect actual token/capabilities.",
+        "After process-tree completion, remove only the exact goal-owned profile and private scoped ACL state with recorded lifecycle."
+      ],
+      "verification": [
+        "Parent and nested child actual AppContainer SID/capabilities must match.",
+        "With positive outside control, deny IPv4/IPv6 outbound, TCP/UDP and loopback in parent and child. Do not infer denial from absent internet.",
+        "Real verified JVM21 and JVM25 must read sealed inputs and write bounded outputs successfully.",
+        "Refuse if profile/token/setup/policy probe fails; no plain CreateProcess fallback.",
+        "No general malware-containment claim: direct network denial does not alone prove all broker/IPC/administrator channels cannot relay data."
+      ],
+      "not_run": true
+    },
+    {
+      "option": "Windows Filtering Platform or firewall",
+      "recommendation": "Not the smallest SFM route. It needs additional feature/API binding plus privileged policy authority and careful process-tree identity.",
+      "evidence": [
+        {
+          "claim": "BFE applies access checks to filter/object changes; default write rights are not generally available to ordinary users.",
+          "source": "https://learn.microsoft.com/en-us/windows/win32/fwp/access-control"
+        },
+        {
+          "claim": "WFP filters are kernel-enforced network policy.",
+          "source": "https://learn.microsoft.com/en-us/windows/win32/fwp/basic-operation"
+        }
+      ],
+      "limitations": [
+        "A block rule keyed only to a shared java.exe path could affect unrelated Java applications.",
+        "A PID-only rule must cover descendants and creation races; scoped app/user identity is safer.",
+        "Dynamic-session filter cleanup and process lifetime require proof; do not copy persistent global provider/filter setup from another tool."
+      ],
+      "local_reference": "An existing official Codex checkout uses separate WFP policy/setup code and older additional Windows bindings. It is a design reference, not an SFM dependency or reusable preapproved authority.",
+      "not_run": true
+    },
+    {
+      "option": "Existing Job Objects, restricted token, environment or Java downloader hooks",
+      "recommendation": "Keep for lifecycle/resource/closed-request discipline, but never call these a general deny-network sandbox.",
+      "local_evidence_paths": [
+        "platform/cli/sfm-propagate-changes/src/java_analysis/live_definition_worker.rs",
+        "platform/cli/sfm-propagate-changes/src/java_analysis/dependency_index_worker.rs",
+        "target/core-nfrt-launcher-stage-v1/SFMNamedNeoFormLauncher.java"
+      ],
+      "limitations": [
+        "The current job flags govern process count/memory/kill-on-close, not general network denial.",
+        "Restricted token is not AppContainer and there is no reviewed AF-network device/WFP denial here.",
+        "Proxy variables, offline command switches and closed ArtifactManager only constrain cooperating paths. Direct child Java sockets or code-loading paths are separate."
+      ],
+      "not_run": true
+    }
+  ],
+  "child_tools": {
+    "scan_method": "For the twelve exact current JARs, verify full SHA against the official ledger before read-only ZIP/class-byte inspection. Scan raw class bytes for explicit java/net URL/socket/http and known HTTP-client references. Unfold JAR manifest continuation lines for Main-Class. No child/class/JVM execution.",
+    "scan_limit": "A reference count is not call reachability. URLClassLoader can read local files; Gson URL serialization is not a network request. An absence of token matches is not proof against reflection, JDK implementation, native code or future plugins. Broad Runtime-token counts were intentionally omitted because RuntimeException and ordinary runtime APIs would overstate subprocess execution.",
+    "reviewed_rows": [
+      {
+        "coordinate": "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "targets": [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "approved_bytes": 57946324,
+        "approved_sha256": "89f6567e00d1c2cd5c2d347762a28e502ec6fa110df4e3ada8abd63b12f9a69c",
+        "current_slice_exact_bytes_reverified": false,
+        "assessment": "Not located in the bounded current Maven/Gradle module roots. Original approved identity remains valid; this slice does not claim exact bytecode coverage or acquire replacements."
+      },
+      {
+        "coordinate": "io.codechicken:DiffPatch:2.0.0.36:all",
+        "targets": [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "approved_bytes": 22580704,
+        "approved_sha256": "30d1ff26c112bf3a488e1e5a32a345f75ff0ef985c3315b2d987d607e7038580",
+        "current_slice_exact_bytes_reverified": false,
+        "assessment": "Not located in the bounded current Maven/Gradle module roots. Original approved identity remains valid; this slice does not claim exact bytecode coverage or acquire replacements."
+      },
+      {
+        "coordinate": "org.vineflower:vineflower:1.9.3",
+        "targets": [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4"
+        ],
+        "approved_bytes": 1001253,
+        "approved_sha256": "2e563300af223b04772195709539fba69237e61eba14090ee3a44e2992c41cdb",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+        "class_count": 347,
+        "network_reference_class_count": 0,
+        "network_reference_samples": [],
+        "service_descriptors": [],
+        "assessment": "No selected network-token references were found in the full pinned JAR class-byte scan. This is not a proof against reflection, runtime/JDK paths or arbitrary subprocess networking."
+      },
+      {
+        "coordinate": "net.neoforged:mergetool:2.0.0:fatjar",
+        "targets": [
+          "1.20.2"
+        ],
+        "approved_bytes": 467899,
+        "approved_sha256": "d02c919d9d15db3e4ef5ba5322896f5349c4da525d7f45f5ffbe1b9854f64dcb",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.neoforged.mergetool.ConsoleMerger",
+        "class_count": 232,
+        "network_reference_class_count": 0,
+        "network_reference_samples": [],
+        "service_descriptors": [],
+        "assessment": "No selected network-token references were found in the full pinned JAR class-byte scan. This is not a proof against reflection, runtime/JDK paths or arbitrary subprocess networking."
+      },
+      {
+        "coordinate": "net.neoforged:AutoRenamingTool:1.0.7:all",
+        "targets": [
+          "1.20.2"
+        ],
+        "approved_bytes": 740831,
+        "approved_sha256": "ae0b4bdc0ad0a64347df48422ba7de40dd8ffb468a34cfd3ffeee5f86ec8f7c2",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.minecraftforge.fart.Main",
+        "class_count": 465,
+        "network_reference_class_count": 2,
+        "network_reference_samples": [
+          "com/google/gson/internal/bind/TypeAdapters$21.class",
+          "com/google/gson/internal/bind/TypeAdapters.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "Network-reference classes are Gson URL serialization or a progress helper, not proof that frozen rename arguments perform network requests. No OS containment claim."
+      },
+      {
+        "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
+        "targets": [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4"
+        ],
+        "approved_bytes": 5716684,
+        "approved_sha256": "b9caa6293aa4b291efca656e256dc278285278952ed6eb79bf8804b866622765",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.minecraftforge.installertools.ConsoleTool",
+        "class_count": 3949,
+        "network_reference_class_count": 19,
+        "network_reference_samples": [
+          "net/minecraftforge/installertools/DeobfRealms.class",
+          "net/minecraftforge/installertools/util/ManifestJson$VersionInfo.class",
+          "net/minecraftforge/installertools/util/VersionJson$Download.class",
+          "net/minecraftforge/installertools/util/ManifestJson.class",
+          "net/minecraftforge/installertools/DownloadMojmaps.class",
+          "net/md_5/specialsource/util/FileLocator.class",
+          "com/google/gson/internal/bind/TypeAdapters$21.class",
+          "com/google/gson/internal/bind/TypeAdapters.class",
+          "com/google/common/base/FinalizableReferenceQueue$DecoupledLoader.class",
+          "com/google/common/io/Resources$1.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "Pinned JAR contains direct network-task classes. Frozen selected MERGE_MAPPING/bundler_extract arguments do not select DownloadMojmaps or DeobfRealms. Reachability and exact dispatcher validation still require reviewed bytecode/call checks before a trusted-tool offline claim."
+      },
+      {
+        "coordinate": "net.neoforged:mergetool:2.0.2:fatjar",
+        "targets": [
+          "1.20.3",
+          "1.20.4"
+        ],
+        "approved_bytes": 467900,
+        "approved_sha256": "b5768cfe7d8a70d854f2e53901396514d5087fa77ed63d2737af56d7bf833134",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.neoforged.mergetool.ConsoleMerger",
+        "class_count": 232,
+        "network_reference_class_count": 0,
+        "network_reference_samples": [],
+        "service_descriptors": [],
+        "assessment": "No selected network-token references were found in the full pinned JAR class-byte scan. This is not a proof against reflection, runtime/JDK paths or arbitrary subprocess networking."
+      },
+      {
+        "coordinate": "net.neoforged:AutoRenamingTool:1.0.11:all",
+        "targets": [
+          "1.20.3",
+          "1.20.4"
+        ],
+        "approved_bytes": 740830,
+        "approved_sha256": "f53912794da01ef0d3854ef1f3db20de3b246ffb93bd798fbce7c3182346fbb7",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.minecraftforge.fart.Main",
+        "class_count": 465,
+        "network_reference_class_count": 2,
+        "network_reference_samples": [
+          "com/google/gson/internal/bind/TypeAdapters$21.class",
+          "com/google/gson/internal/bind/TypeAdapters.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "Network-reference classes are Gson URL serialization or a progress helper, not proof that frozen rename arguments perform network requests. No OS containment claim."
+      },
+      {
+        "coordinate": "org.vineflower:vineflower:1.10.1",
+        "targets": [
+          "1.21.0",
+          "1.21.1"
+        ],
+        "approved_bytes": 1778509,
+        "approved_sha256": "b9b208e50793b64657a6b6292067526613f549de7405f9243624b02f4276e409",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+        "class_count": 400,
+        "network_reference_class_count": 1,
+        "network_reference_samples": [
+          "org/jetbrains/java/decompiler/main/plugins/JarPluginLoader.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "JarPluginLoader references URL class loading. A local-file classloader is not itself a network request. Plugin sources and discovery paths must be frozen; no general deny-network is proven."
+      },
+      {
+        "coordinate": "net.neoforged:mergetool:2.0.3:fatjar",
+        "targets": [
+          "1.21.0",
+          "1.21.1"
+        ],
+        "approved_bytes": 467899,
+        "approved_sha256": "3dbd19d9489348e838b1bedcf7ffd6d9810dac40543f3c34d3bcf6e39e674922",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.neoforged.mergetool.ConsoleMerger",
+        "class_count": 232,
+        "network_reference_class_count": 0,
+        "network_reference_samples": [],
+        "service_descriptors": [],
+        "assessment": "No selected network-token references were found in the full pinned JAR class-byte scan. This is not a proof against reflection, runtime/JDK paths or arbitrary subprocess networking."
+      },
+      {
+        "coordinate": "net.neoforged:AutoRenamingTool:2.0.3:all",
+        "targets": [
+          "1.21.0",
+          "1.21.1"
+        ],
+        "approved_bytes": 746919,
+        "approved_sha256": "43fcb978664ba04fc0b3b1b1a14eccabb4bc87b7a415e0eb8bdd1c2f12324321",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.neoforged.art.Main",
+        "class_count": 471,
+        "network_reference_class_count": 3,
+        "network_reference_samples": [
+          "net/neoforged/art/relocated/net/neoforged/cliutils/progress/ProgressReporter.class",
+          "com/google/gson/internal/bind/TypeAdapters$21.class",
+          "com/google/gson/internal/bind/TypeAdapters.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "Network-reference classes are Gson URL serialization or a progress helper, not proof that frozen rename arguments perform network requests. No OS containment claim."
+      },
+      {
+        "coordinate": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+        "targets": [
+          "1.21.0",
+          "1.21.1"
+        ],
+        "approved_bytes": 5742231,
+        "approved_sha256": "9fe7c6df17299f661b9cd07fc1c4e85493b63efae6bb9da0255a97d9d0a87c60",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "net.neoforged.installertools.ConsoleTool",
+        "class_count": 3970,
+        "network_reference_class_count": 20,
+        "network_reference_samples": [
+          "net/neoforged/installertools/DownloadMojmaps.class",
+          "net/neoforged/installertools/util/ManifestJson.class",
+          "net/neoforged/installertools/util/VersionJson$Download.class",
+          "net/neoforged/installertools/util/ManifestJson$VersionInfo.class",
+          "net/neoforged/installertools/DeobfRealms.class",
+          "net/md_5/specialsource/util/FileLocator.class",
+          "com/google/gson/internal/bind/TypeAdapters.class",
+          "com/google/gson/internal/bind/TypeAdapters$20.class",
+          "net/neoforged/cliutils/progress/ProgressReporter.class",
+          "com/google/common/base/FinalizableReferenceQueue$DecoupledLoader.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "Pinned JAR contains direct network-task classes. Frozen selected MERGE_MAPPING/bundler_extract arguments do not select DownloadMojmaps or DeobfRealms. Reachability and exact dispatcher validation still require reviewed bytecode/call checks before a trusted-tool offline claim."
+      },
+      {
+        "coordinate": "net.neoforged.installertools:installertools:4.0.16:fatjar",
+        "targets": [
+          "26.1.2"
+        ],
+        "approved_bytes": 814037,
+        "approved_sha256": "f8e5d76e3a388a106cf8a77cb34c604cb03517806b9f5f20e8e2201b9ec671e4",
+        "current_slice_exact_bytes_reverified": false,
+        "assessment": "Not located in the bounded current Maven/Gradle module roots. Original approved identity remains valid; this slice does not claim exact bytecode coverage or acquire replacements."
+      },
+      {
+        "coordinate": "org.vineflower:vineflower:1.11.2",
+        "targets": [
+          "26.1.2"
+        ],
+        "approved_bytes": 1856529,
+        "approved_sha256": "e1e2415e7f78b34960402c4beddfc88e033d7842a23ecd132a8ec2eadd54f6bf",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+        "class_count": 416,
+        "network_reference_class_count": 1,
+        "network_reference_samples": [
+          "org/jetbrains/java/decompiler/main/plugins/JarPluginLoader.class"
+        ],
+        "service_descriptors": [],
+        "assessment": "JarPluginLoader references URL class loading. A local-file classloader is not itself a network request. Plugin sources and discovery paths must be frozen; no general deny-network is proven."
+      },
+      {
+        "coordinate": "net.neoforged:vineflower-plugins:0.1.5",
+        "targets": [
+          "26.1.2"
+        ],
+        "approved_bytes": 9426,
+        "approved_sha256": "ebd5712d8cf801bbecaa9e48eca9013ef408b33993a29e4b89dc877098eccc60",
+        "current_slice_exact_bytes_reverified": true,
+        "main_class": "",
+        "class_count": 4,
+        "network_reference_class_count": 0,
+        "network_reference_samples": [],
+        "service_descriptors": [
+          "META-INF/services/",
+          "META-INF/services/org.jetbrains.java.decompiler.api.plugin.Plugin"
+        ],
+        "assessment": "Pinned plugin classes and service descriptor observed. SPI presence requires exact classpath/plugin closure; no arbitrary network proof."
+      }
+    ],
+    "selected_installer_tasks": [
+      {
+        "targets": [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4"
+        ],
+        "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
+        "task_arguments": [
+          "MERGE_MAPPING",
+          "bundler_extract"
+        ],
+        "source": "requested_functions_in_original_property_order in the parent-identity-bound review"
+      },
+      {
+        "targets": [
+          "1.21.0",
+          "1.21.1"
+        ],
+        "coordinate": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+        "task_arguments": [
+          "MERGE_MAPPING",
+          "bundler_extract"
+        ],
+        "source": "same frozen function evidence"
+      },
+      {
+        "targets": [
+          "26.1.2"
+        ],
+        "coordinate": "net.neoforged.installertools:installertools:4.0.16:fatjar",
+        "task_arguments": [
+          "PROCESS_MINECRAFT_JAR"
+        ],
+        "source": "same frozen function evidence; exact local bytecode not re-opened in this slice"
+      }
+    ],
+    "selected_vs_dormant": "DownloadMojmaps and DeobfRealms exist in pinned earlier installer JARs but are not selected by these exact frozen functions. Their presence is not proof that the named source route performs a network request. Reject changed task/args/main/classpath before effects instead of conflating dormant code with an active request.",
+    "current_source_references": [
+      {
+        "repository": "https://github.com/neoforged/InstallerTools",
+        "revision": "1a089bce191cfd77cef2484d61f27210014a1f2d",
+        "paths": [
+          "src/main/java/net/neoforged/installertools/DownloadMojmaps.java"
+        ],
+        "observed": "Direct launcher-version/mapping URL connections exist in this separate task.",
+        "limit": "No exact matching version tag was found; source is a flow reference, not a replacement for approved JAR identity."
+      },
+      {
+        "repository": "https://github.com/neoforged/JavaSourceTransformer",
+        "revision": "924de60507be98906cbd17d7f796fcbf53062aca",
+        "paths": [
+          "cli/src/main/java/net/neoforged/jst/cli/Main.java"
+        ],
+        "observed": "Main loads SourceTransformerPlugin through ServiceLoader before command parsing.",
+        "limit": "Exact2.0.8 JAR not found in current bounded roots. This reference does not claim an exact2.0.8 call audit."
+      }
+    ],
+    "trustworthy_closed_argument_contract": {
+      "useful_without_os_mutation": true,
+      "required": [
+        "Bind exact tool/main/classpath/JVM/program argument arrays and original parent function order, not only child coordinates.",
+        "Sanitize JAVA_TOOL_OPTIONS, JDK_JAVA_OPTIONS, JDK_JAVAC_OPTIONS, CLASSPATH and agent/injection hooks; do not inherit ambient user tool/plugin settings.",
+        "Use a fresh working/home/temp root and only reviewed service/provider/plugin JARs; no adjacent discovered plugin or arbitrary user path.",
+        "Resolve every input/config/library only through original pins/authenticated manifest children/approved supplement.",
+        "Audit reachable tool branches before claiming offline behavior; the remaining three exact-code gaps and plugin discovery need explicit closure."
+      ],
+      "claims": "This can support a trusted pinned-tool/closed-download contract. It is not an OS per-process network denial or a substitute for negative network tests.",
+      "native_permission": "None; launcher remains disabled."
+    }
+  },
+  "fresh_producer_receipt_design": {
+    "purpose": "Allow reviewed fresh NodeOutput classpath consumption without trusting inherited cache-marker/file existence.",
+    "exact_pinned_api_witnesses": [
+      {
+        "entry": "net/neoforged/neoform/runtime/graph/NodeOutput.class",
+        "bytes": 4511,
+        "sha256": "e915d07af346d3e1dc0f2619a3dd217521a9b50ab09f7ab367618f514be676dc",
+        "public_methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Ljava/lang/String;Lnet/neoforged/neoform/runtime/graph/NodeOutputType;Ljava/lang/String;)V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getNode",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/ExecutionNode;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getResultPath",
+            "descriptor": "()Ljava/nio/file/Path;",
+            "final": false,
+            "synchronized": true
+          },
+          {
+            "name": "id",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "type",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/NodeOutputType;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "description",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "toString",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "asInput",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/NodeInput;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getResultRepresentation",
+            "descriptor": "(Lnet/neoforged/neoform/runtime/graph/ResultRepresentation;)Ljava/lang/Object;",
+            "final": false,
+            "synchronized": true
+          }
+        ]
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/graph/ExecutionNode.class",
+        "bytes": 9214,
+        "sha256": "3698694de572f267e6f6b3587ea0c6ebb1c46288f585f1744e2026dfccc08bd9",
+        "public_methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Lnet/neoforged/neoform/runtime/graph/ExecutionNodeAction;)V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "start",
+            "descriptor": "()V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "fail",
+            "descriptor": "()V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "complete",
+            "descriptor": "(Ljava/util/Map;Z)V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getState",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/NodeState;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "id",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getRequiredInput",
+            "descriptor": "(Ljava/lang/String;)Lnet/neoforged/neoform/runtime/graph/NodeInput;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "setInput",
+            "descriptor": "(Ljava/lang/String;Lnet/neoforged/neoform/runtime/graph/NodeInput;)V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "inputs",
+            "descriptor": "()Ljava/util/Map;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "hasInput",
+            "descriptor": "(Ljava/lang/String;)Z",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "hasOutput",
+            "descriptor": "(Ljava/lang/String;)Z",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getRequiredOutput",
+            "descriptor": "(Ljava/lang/String;)Lnet/neoforged/neoform/runtime/graph/NodeOutput;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "outputs",
+            "descriptor": "()Ljava/util/Map;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "action",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/ExecutionNodeAction;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "toString",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "getPredecessors",
+            "descriptor": "()Ljava/util/Set;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "setAction",
+            "descriptor": "(Lnet/neoforged/neoform/runtime/graph/ExecutionNodeAction;)V",
+            "final": false,
+            "synchronized": false
+          }
+        ]
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/graph/NodeState.class",
+        "bytes": 1308,
+        "sha256": "404a6db9db35ec43af210a822714410cc8978729c6accca85f7e8f1fea9afd90",
+        "public_methods": [
+          {
+            "name": "values",
+            "descriptor": "()[Lnet/neoforged/neoform/runtime/graph/NodeState;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "valueOf",
+            "descriptor": "(Ljava/lang/String;)Lnet/neoforged/neoform/runtime/graph/NodeState;",
+            "final": false,
+            "synchronized": false
+          }
+        ]
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem$NodeOutputItem.class",
+        "bytes": 1841,
+        "sha256": "82eedc6e4e6e52c0ba5550cba8fbef83e640bf3965ca282034d9f34101197de5",
+        "public_methods": [
+          {
+            "name": "<init>",
+            "descriptor": "(Lnet/neoforged/neoform/runtime/graph/NodeOutput;)V",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "toString",
+            "descriptor": "()Ljava/lang/String;",
+            "final": false,
+            "synchronized": false
+          },
+          {
+            "name": "hashCode",
+            "descriptor": "()I",
+            "final": true,
+            "synchronized": false
+          },
+          {
+            "name": "equals",
+            "descriptor": "(Ljava/lang/Object;)Z",
+            "final": true,
+            "synchronized": false
+          },
+          {
+            "name": "output",
+            "descriptor": "()Lnet/neoforged/neoform/runtime/graph/NodeOutput;",
+            "final": false,
+            "synchronized": false
+          }
+        ]
+      }
+    ],
+    "current_source_flow_reference": {
+      "repository": "https://github.com/neoforged/NeoFormRuntime",
+      "revision": "2728293a0c43178e2ab775f481a217af1f32b090",
+      "path": "src/main/java/net/neoforged/neoform/runtime/engine/NeoFormEngine.java",
+      "observation": "runNode waits for dependencies, starts the producer, tries cache restore, executes its action, calls saveOutputs only if every output is under its workspace, then completes the node.",
+      "limit": "Inspected source is not tagged exact2.0.19. The API witnesses above came from the exact verified original JAR. Full original-bytecode flow and javac-only shape checks remain a gate before implementing the hook."
+    },
+    "smallest_existing_hook": "Use ExactArtifactManager.resolveClasspath(NodeOutputItem), not CacheManager.saveOutputs. Read item.output().getNode()/id/type/getState/getResultPath through the exact pinned API.",
+    "preflight": [
+      "Require a private invocation ID and exact expected producer/output ID/type declared from the authenticated graph/recipe; reject unknown items before file I/O.",
+      "Require producer object identity belongs to this freshly created engine graph, producer state COMPLETED, always-disabled inherited cache restore, and no graph mutation after sealing.",
+      "Require an absolute regular output path under the owned fresh work root, exact required archive/type shape, bounded length, no reparse/symlink ancestors and stable read identity.",
+      "Batch-preflight every classpath item before copying or opening any generated output; preserve original order and duplicates."
+    ],
+    "sealing": [
+      "Copy the fresh producer result once into a create-new invocation-owned private input snapshot, hashing streamed bytes and checking source before/after identity.",
+      "Seal that snapshot read-only to the child and bind its byte length/full hash to producer identity, declared inputs/tool/function args and graph/recipe/context identity.",
+      "Return only the sealed snapshot path to the classpath consumer, never the mutable workspace output.",
+      "After graph completion, rehash declared final results and issue a result receipt; no source locks, original artifact pins or shared caches are rewritten."
+    ],
+    "proposed_receipt_fields": [
+      "schema",
+      "invocation_identity",
+      "named_project_preparation_identity",
+      "recipe_id",
+      "source_lock_sha256",
+      "graph_plan_sha256",
+      "producer_object_or_registered_id",
+      "producer_output_id",
+      "producer_output_type",
+      "producer_input_receipts",
+      "tool_coordinate_classpath_and_argument_identity",
+      "tool_sdk_identity",
+      "original_output_relative_path",
+      "snapshot_relative_path",
+      "bytes",
+      "full_sha256",
+      "completion_was_fresh",
+      "cache_restore_disabled"
+    ],
+    "identity_limit": "Generated output full SHA is an execution result tied to declared original inputs, not an accepted replacement dependency pin.",
+    "independent_tests": [
+      "Unknown/noncompleted/foreign-engine/from-cache/reparse/outside-work/oversized output refuses with zero copy callbacks.",
+      "Changed source during read or snapshot overwrite attempt refuses.",
+      "Correct sealed producer output preserves requested classpath order and duplicate consumers.",
+      "Different context/SDK/argument/input/producer identities cannot reuse a receipt.",
+      "No original/schema2 role bytes change and no named graph/native execution is required for synthetic receipt tests."
+    ],
+    "current_stage": "Existing Java still rejects NodeOutputItem unconditionally. No producer implementation or Java execution added by this review."
+  },
+  "exporter_first_slice": {
+    "proposed_files": [
+      "NEW source_projection/nfrt_launch_contract.rs pure model/validation tests",
+      "NEW source_projection/nfrt_producer_output_receipt.rs pure model/validation tests",
+      "later separately reviewed Java adapter extension for sealed producer items"
+    ],
+    "required_order": [
+      "Build the pure bounded export plan from private FrozenRecipeProject/PreparedDependencyInputs/supplement handles; no arbitrary external paths.",
+      "Recheck named ownership, original raw lock and13 role bindings before effects.",
+      "Verify original parent and child bytes plus authenticated version-JSON descendants; preserve runtime/function/classpath sequence.",
+      "Create a fresh private invocation root and create-new immutable input snapshots only after the complete preflight passes.",
+      "Keep serialization/export identity separate from actual SDK/process/network/run receipts; refuse execution while its own gates remain open."
+    ],
+    "contract_limits": "Bound bytes/counts/UTF-8/relative paths. Recipe declarations, input authority, exact actual MC, compiler release, tool JVM minimum, classpath order and SDK transfer identity are explicit. No fake BranchName or mutable schema4 reinterpretation.",
+    "os_network_independent": true,
+    "no_production_edits_in_this_review": true
+  },
+  "missing_or_deferred": [
+    "Three exact approved child JARs were not located in the bounded current cache roots; do not infer invalid dependency identity or acquire substitutes.",
+    "No actual AppContainer/profile/ACL/token/network behavior proof has run; generalized deny-network is not currently established.",
+    "No exact pinned producer-hook implementation/shape proof or Rust contract exporter exists yet.",
+    "The native launcher remains disabled; no six-target compile, packaging, JUnit, runtime or release-parity claim."
+  ],
+  "reproducible_read_only_commands": [
+    "Read Cargo.toml/Cargo.lock and inspect the locked windows/teamy-windows feature declarations without Cargo.",
+    "Hash existing registry .crate archives against original Cargo.lock, stream selected TAR members without extraction, and compare exact local API source bytes.",
+    "For each approved coordinate, inspect only its exact <gradle-module-cache>/<group>/<artifact>/<version> root; choose the exact JAR only after matching the official full SHA.",
+    "Open verified JARs as read-only ZIPs; inspect manifests/class bytes without Java execution. Raw method parsing uses big-endian constant-pool/method descriptors only.",
+    "Read exact parent-identity-bound requested function/task arrays from docs/tasks/sfm-core-named-nfrt-compile-review.json.",
+    "Read official Microsoft API/security documentation at the direct links in enforcement_options; do not invoke policy/network tools."
+  ],
+  "operational_readiness": {
+    "tool_installation": "Not applicable. This slice writes only one new portable review JSON and changes no installed or registered tool behavior.",
+    "process_changes": "None",
+    "dependency_and_policy_changes": "None",
+    "disk_errors": "None",
+    "next_action": "Review the pure exporter/producer-receipt slice for implementation first. Decide separately whether actual AppContainer deny-network is required, then request only its explicit narrow authority."
+  }
+}

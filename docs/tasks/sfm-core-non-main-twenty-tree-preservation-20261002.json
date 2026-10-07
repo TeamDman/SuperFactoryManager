@@ -1,0 +1,114 @@
+{
+  "schema": "sfm:core_non_main_twenty_tree_preservation_checkpoint@1",
+  "date": "2026-10-02",
+  "status": "audited_historical_tree_membership_not_body_or_runtime_preservation",
+  "branch": "feat/sfm-main-source-projection",
+  "scope": {
+    "contexts": 20,
+    "minecraft_versions": 10,
+    "environments": ["release", "dev"],
+    "historical_roots": [
+      "platform/minecraft/src/test/java",
+      "platform/minecraft/src/gametest/java",
+      "platform/minecraft/src/datagen/java"
+    ],
+    "current_root": "platform/minecraft/core-liquid-template",
+    "counts_are_source_paths_not_classes_or_test_definitions": true
+  },
+  "execution": {
+    "launch_chunk": "600d2c",
+    "closed_session": 86237,
+    "terminal_chunk": "250bc7",
+    "native_exit": 0,
+    "successful_fixed_tree_children": 20,
+    "blob_queries": 0,
+    "normal_exit_EOF_reap_receipts": 20,
+    "kill_requests": 0,
+    "stderr_bytes": 0,
+    "raw_stdout_bytes": 1234512,
+    "retained_evidence_files": 62,
+    "retained_evidence_bytes": 2810061,
+    "evidence_role": "sfm-non-main-java-twenty-tree-run-20261002-v1",
+    "evidence_storage": "Retained private local evidence; not copied into production source.",
+    "evidence_ordinal_member_tuple_sha256": "3399cce89e5f9d64bc9603310c9b2467db4ad850a8653a5d3fc7e19815d1c7b0",
+    "matrix": {
+      "role": "non-main-twenty-tree-matrix.json",
+      "bytes": 1543779,
+      "sha256": "ec2a9f4de673354eabc08a44820cfd7f66dccb6f6d91697ecd2775cfacc413f5"
+    },
+    "preflight": {
+      "bytes": 1363,
+      "sha256": "7781c960fcff49bae7500e44f9fcb62402e2931a548204b6f9e4a3a27d4c0ce9"
+    }
+  },
+  "historical_membership": {
+    "tree_records": 7703,
+    "ignored_non_java_records": 60,
+    "java_path_context_occurrences": 7643,
+    "java_source_path_union": 1007,
+    "package_info_path_union": 24,
+    "other_java_path_union": 983,
+    "scope_path_union": {"test": 486, "gametest": 506, "datagen": 15},
+    "current_physical_input_paths": 241,
+    "existing_alternate_owned_input_paths": 0,
+    "no_current_physical_or_owned_input_paths": 766,
+    "missing_scope_paths": {"test": 452, "gametest": 314, "datagen": 0},
+    "missing_paths_with_release_witness": 0,
+    "missing_paths_with_dev_witness_only": 766,
+    "release_witness_path_union": 241,
+    "unique_historical_blob_OIDs": 1348,
+    "unique_OIDs_for_missing_paths": 893,
+    "unique_OIDs_for_physical_paths": 455,
+    "overlap_between_those_OID_sets": 0,
+    "ordinal_union_path_sha256": "630a0bf4191ba5302fd1634b1de1807b6b50f94cbefdd9f3ad7e86a8c6c4a590",
+    "ordinal_membership_identity_sha256": "58266ca0b6e806c4f618a077a53db7c386b3f8062d5f9f4733c703f61ee4c3d5"
+  },
+  "current_controls": {
+    "core_files": 1965,
+    "core_bytes": 9191718,
+    "core_sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163",
+    "metadata_rules": 682,
+    "metadata_variants": 867,
+    "metadata_sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f",
+    "feature_owners": 180,
+    "current_non_main_java_paths": 241,
+    "current_package_info_paths": 24,
+    "current_ordinal_source_tuple_sha256": "08b7d6c1499066d4505978d4804291f66f5010c16c4c56b82a243efa2f98dd32",
+    "original_staged_rows": 98,
+    "original_staged_rows_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1",
+    "predecessor_seal_and_nine_inputs_preserved_after_run": true,
+    "caller_and_source_review_capsules_preserved_after_run": true,
+    "production_source_mutations": 0,
+    "changing_CLI_not_frozen_or_invoked": true
+  },
+  "review": {
+    "root_source_review": "Complete caller and metadata read; sealed input pins 0f0a55.",
+    "root_admission": "1cf8ec checked native Git, branch, original 98 staged rows and independent source-review pins.",
+    "root_actual_evidence_audit": "168954 checked all 20 raw children, exact argv, record identities, ordinal frames and predecessor seal.",
+    "root_post_run_controls": "319b6d rehashed the whole core, original staged rows and actual preflight/matrix.",
+    "independent_actual_audit_role": "sfm-non-main-java-twenty-tree-run-peer-audit-20261002-v1",
+    "independent_manifest_bytes": 4347,
+    "independent_manifest_sha256": "417f4ec9e5472f008caf0087d1314fa868a1013747493bef491b378d505e4e60",
+    "independent_seal_bytes": 3006,
+    "independent_seal_sha256": "0aadd291b1e42fe2acf261785322a7f275af106d74577a91f12959af35bedbe6",
+    "independent_actual_audit_chunks": ["608b19", "df292f", "6d5f81", "476106", "047f3c"],
+    "root_full_independent_report_read": "a3cf5b",
+    "independent_review_authorship_overlap": false
+  },
+  "limits": [
+    "Tree membership and physical presence do not prove historical body preservation or selected masks.",
+    "Release-path presence does not prove version-specific source content, Java closure, JAR parity or gameplay.",
+    "Historical raw bodies were not acquired by this Phase A run.",
+    "Normal successful children do not prove timeout, disk-failure or cancellation fault handling.",
+    "Synchronous local IO and held-child termination remain non-preempted; descendant isolation is not independently proven.",
+    "The original stored-order inventory digest remains distinct from the new ordinal frame.",
+    "No source migration, feature-default expansion, dependency change or completion waiver follows."
+  ],
+  "next": [
+    "Review the complete historical body/cohort inventory and preserve already available exact contents.",
+    "Separately review and admit bounded fixed-OID body acquisition.",
+    "Restore genuine common templates with their independent owners and all supported version differences.",
+    "Prove actual selection, generation, Java, release parity and runtime acceptance across the full matrix."
+  ],
+  "full_goal_complete": false
+}

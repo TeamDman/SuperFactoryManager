@@ -1,0 +1,818 @@
+{
+  "schema": "sfm:core-frame-evaluator-manifest-slice@1",
+  "status": "staged_source_preservation_unregistered_tests_not_executed",
+  "stage_root": "platform/cli/sfm-propagate-changes/target/core-frame-evaluator-manifest-stage-v1",
+  "core_destination": "platform/minecraft/core-liquid-template",
+  "normalization": "none",
+  "contract_changes": false,
+  "scope": {
+    "authored_java_files": 2,
+    "raw_unique_blobs": 2,
+    "raw_java_bytes": 13900,
+    "authored_java_bytes": 16388,
+    "historical_membership_cells": 40,
+    "present_cells": 4,
+    "absent_cells": 36,
+    "guarded_regions": 21,
+    "definitions": 13,
+    "distinct_body_variants": 7
+  },
+  "definitions": {
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "runtime_resource_cleanup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "disk_readonly_access": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_program_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "packet_values",
+        "sfml_execution_side",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation"
+      ]
+    },
+    "client_frame_language": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_manager",
+        "sfml_execution_side",
+        "client_program_consent"
+      ]
+    },
+    "client_frame_render": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "touch_display",
+        "image_resources"
+      ]
+    },
+    "image_resources": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values"
+      ]
+    },
+    "touch_display": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ]
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "owner": "client_frame_language",
+      "raw_oid": "badd733c7343f6be8c4a24aeefbd941776b37394",
+      "raw_bytes": 5144,
+      "raw_sha256": "sha256:7ebc676240953132c3ea169c07d167287ee25f90bd9f595b234e78c4155e4f58",
+      "raw_cr_count": 0,
+      "raw_lf_count": 95,
+      "raw_final_lf": true,
+      "authored_bytes": 7315,
+      "authored_sha256": "sha256:0b649fa35a918b3749b6ac5fccc6f5e9e74e4d177b975e023dd70cb43e33bc91",
+      "witnesses": {
+        "dev/1.19.2": "badd733c7343f6be8c4a24aeefbd941776b37394",
+        "dev/1.19.4": "badd733c7343f6be8c4a24aeefbd941776b37394",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_frame_language"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "regions": [
+        {
+          "name": "value_imports",
+          "original": "import ca.teamdman.sfm.common.value.SFMValue;\nimport ca.teamdman.sfm.common.value.SFMValueSchema;\n",
+          "template": "{% if features.client_program_actions %}\nimport ca.teamdman.sfm.common.value.SFMValue;\nimport ca.teamdman.sfm.common.value.SFMValueSchema;\n{% endif %}\n",
+          "original_bytes": 98,
+          "original_sha256": "sha256:c4f846a057bf2f659443788d9ec0d3b7eed3843615eb1b646c090bbfacd390f6",
+          "template_bytes": 151,
+          "template_sha256": "sha256:e703291a08dcabdd25b6049a26bbc0e4ecafcd410a10f556edf6ea259e873a4b"
+        },
+        {
+          "name": "optional_image_entry",
+          "original": "        return evaluate(trigger, frameIndex, (action, input) -> {\n            throw new IllegalStateException(\"No client action service supplied\");\n        }, true).image();\n",
+          "template": "{% if features.client_program_actions %}\n        return evaluate(trigger, frameIndex, (action, input) -> {\n            throw new IllegalStateException(\"No client action service supplied\");\n        }, true).image();\n{% else %}\n        if (frameIndex < 0) throw new IllegalArgumentException(\"Frame index must be non-negative\");\n        return evaluateBlock(trigger.block(), frameIndex, true);\n{% endif %}\n",
+          "original_bytes": 174,
+          "original_sha256": "sha256:deb233723c9c6f90b8f55369ebfeab1d580e937548f49df93b7fbce39a8d3f0a",
+          "template_bytes": 403,
+          "template_sha256": "sha256:bdce9b9de3be4789c1fac6ff2d7ab7ce284b75fec68a1f23ba9adff7bfd3f2e7"
+        },
+        {
+          "name": "typed_action_api",
+          "original": "    @FunctionalInterface\n    public interface Actions { SFMValue invoke(ResourceLocation action, SFMValue input); }\n\n    public record Evaluation(Optional<ResourceLocation> image, Map<String, SFMValue> values) {\n        public Evaluation { values = Map.copyOf(values); }\n    }\n\n    public static Evaluation evaluate(FrameTrigger trigger, long frameIndex, Actions actions, boolean renderAllowed) {\n        if (frameIndex < 0) throw new IllegalArgumentException(\"Frame index must be non-negative\");\n        Map<String, SFMValue> values = new HashMap<>();\n        return new Evaluation(evaluateBlock(trigger.block(), frameIndex, values, actions, renderAllowed), values);\n    }\n\n",
+          "template": "{% if features.client_program_actions %}\n    @FunctionalInterface\n    public interface Actions { SFMValue invoke(ResourceLocation action, SFMValue input); }\n\n    public record Evaluation(Optional<ResourceLocation> image, Map<String, SFMValue> values) {\n        public Evaluation { values = Map.copyOf(values); }\n    }\n\n    public static Evaluation evaluate(FrameTrigger trigger, long frameIndex, Actions actions, boolean renderAllowed) {\n        if (frameIndex < 0) throw new IllegalArgumentException(\"Frame index must be non-negative\");\n        Map<String, SFMValue> values = new HashMap<>();\n        return new Evaluation(evaluateBlock(trigger.block(), frameIndex, values, actions, renderAllowed), values);\n    }\n\n{% endif %}\n",
+          "original_bytes": 675,
+          "original_sha256": "sha256:38f8151114903439037eb4cc9dad5e58ad6cfa7981d97af36700813230cb1ea2",
+          "template_bytes": 728,
+          "template_sha256": "sha256:1e867728ea596dc01c3c50490d640f07c41a7ae07f86a38e84ac12a132524c90"
+        },
+        {
+          "name": "block_parameters",
+          "original": "    private static Optional<ResourceLocation> evaluateBlock(Block block, long frameIndex,\n            Map<String, SFMValue> values, Actions actions, boolean renderAllowed) {\n",
+          "template": "{% if features.client_program_actions %}\n    private static Optional<ResourceLocation> evaluateBlock(Block block, long frameIndex,\n            Map<String, SFMValue> values, Actions actions, boolean renderAllowed) {\n{% else %}\n    private static Optional<ResourceLocation> evaluateBlock(Block block, long frameIndex, boolean renderAllowed) {\n{% endif %}\n",
+          "original_bytes": 174,
+          "original_sha256": "sha256:07d5a6d0d7023b8f1e8d9d35a909405e7c2c1753491476a9783d11f910d316ad",
+          "template_bytes": 353,
+          "template_sha256": "sha256:fbb835a3e3e46841c14f6e68ef0f68430262d165036137d35fc4165d9e1650ba"
+        },
+        {
+          "name": "render_statement",
+          "original": "            if (statement instanceof RenderImageStatement render) {\n                if (renderAllowed) last = Optional.of(render.image());\n",
+          "template": "{% if features.client_frame_render %}\n            if (statement instanceof RenderImageStatement render) {\n                if (renderAllowed) last = Optional.of(render.image());\n{% endif %}\n",
+          "original_bytes": 139,
+          "original_sha256": "sha256:116015de06ae527d2d6934f648e97db88f29aad845b3ae8a5d0b5bf5794c0cc7",
+          "template_bytes": 189,
+          "template_sha256": "sha256:784692fd86ad9340499f2f5f350f5c89b73ff9510207ccc14aea6f5ae295d599"
+        },
+        {
+          "name": "value_statements",
+          "original": "            } else if (statement instanceof LetStatement let) {\n                SFMValue value;\n                if (let.expression() instanceof ClientValueExpression.JsonLiteral json) value = json.value();\n                else if (let.expression() instanceof ClientValueExpression.Field field) {\n                    value = ClientProgramActionManifest.field(require(values, field.variable()), field.field());\n                } else if (let.expression() instanceof ClientValueExpression.Invoke invoke) {\n                    value = actions.invoke(invoke.action(), require(values, invoke.argument()));\n                } else throw new IllegalStateException(\"Unexpected client value expression\");\n                values.put(ClientProgramActionManifest.key(let.variableName()), Objects.requireNonNull(value));\n                if (values.size() > ClientProgramActionManifest.MAX_VARIABLES\n                    || values.values().stream().mapToInt(SFMValueSchema::boundedEncodedBytes).sum() > 64 * 1024) {\n                    throw new IllegalStateException(\"Client value binding budget exceeded\");\n                }\n",
+          "template": "{% if features.client_program_actions %}\n{% if features.client_frame_render %}\n            } else if (statement instanceof LetStatement let) {\n{% else %}\n            if (statement instanceof LetStatement let) {\n{% endif %}\n                SFMValue value;\n                if (let.expression() instanceof ClientValueExpression.JsonLiteral json) value = json.value();\n                else if (let.expression() instanceof ClientValueExpression.Field field) {\n                    value = ClientProgramActionManifest.field(require(values, field.variable()), field.field());\n                } else if (let.expression() instanceof ClientValueExpression.Invoke invoke) {\n                    value = actions.invoke(invoke.action(), require(values, invoke.argument()));\n                } else throw new IllegalStateException(\"Unexpected client value expression\");\n                values.put(ClientProgramActionManifest.key(let.variableName()), Objects.requireNonNull(value));\n                if (values.size() > ClientProgramActionManifest.MAX_VARIABLES\n                    || values.values().stream().mapToInt(SFMValueSchema::boundedEncodedBytes).sum() > 64 * 1024) {\n                    throw new IllegalStateException(\"Client value binding budget exceeded\");\n                }\n{% endif %}\n",
+          "original_bytes": 1110,
+          "original_sha256": "sha256:aff5bfaa2c6bb28242eb67c1c2fa746bd308d93388bd1ed794e8eb59347d55c5",
+          "template_bytes": 1281,
+          "template_sha256": "sha256:49f7ed0201bb670eb8abb19c15732d6124daa89993b2b78694c0fc107b89e7af"
+        },
+        {
+          "name": "if_statement_header",
+          "original": "            } else if (statement instanceof IfStatement branch) {\n",
+          "template": "{% if features.client_frame_render or features.client_program_actions %}\n            } else if (statement instanceof IfStatement branch) {\n{% else %}\n            if (statement instanceof IfStatement branch) {\n{% endif %}\n",
+          "original_bytes": 66,
+          "original_sha256": "sha256:3ce0126541b9e4ee855a2dc7854084e1f14e4e1a9a1ef18572674f5ab332c5b0",
+          "template_bytes": 221,
+          "template_sha256": "sha256:b944c60b54e1f34bb9750f4c3a304faf2ed27bd0972d7d3e842db69a4bc726fa"
+        },
+        {
+          "name": "branch_condition_call",
+          "original": "                        evaluateCondition(branch.condition(), frameIndex, values)\n",
+          "template": "{% if features.client_program_actions %}\n                        evaluateCondition(branch.condition(), frameIndex, values)\n{% else %}\n                        evaluateCondition(branch.condition(), frameIndex)\n{% endif %}\n",
+          "original_bytes": 82,
+          "original_sha256": "sha256:a90aa7436da269b51d294b396c2c69a89f4ae623af498b18180a7ef02096221f",
+          "template_bytes": 220,
+          "template_sha256": "sha256:0749d411a2d6123f76a05e80931e9a3560b96805f63132353219b528110bd4a8"
+        },
+        {
+          "name": "branch_value_copy",
+          "original": "                        new HashMap<>(values), actions, renderAllowed\n",
+          "template": "{% if features.client_program_actions %}\n                        new HashMap<>(values), actions, renderAllowed\n{% else %}\n                        renderAllowed\n{% endif %}\n",
+          "original_bytes": 70,
+          "original_sha256": "sha256:c7b343e3881eeac2c6ddbc86d99b6b5255e03a9778bffe64c2440eda12cfc7e8",
+          "template_bytes": 172,
+          "template_sha256": "sha256:8ab3bc4db04d101cf0307b2d6077f8b0842e6444674af82a61bb29b0387ef0db"
+        },
+        {
+          "name": "bound_value_lookup",
+          "original": "    private static SFMValue require(Map<String, SFMValue> values, String name) {\n        SFMValue value = values.get(ClientProgramActionManifest.key(name));\n        if (value == null) throw new IllegalStateException(\"Unbound client value: \" + name);\n        return value;\n    }\n\n",
+          "template": "{% if features.client_program_actions %}\n    private static SFMValue require(Map<String, SFMValue> values, String name) {\n        SFMValue value = values.get(ClientProgramActionManifest.key(name));\n        if (value == null) throw new IllegalStateException(\"Unbound client value: \" + name);\n        return value;\n    }\n\n{% endif %}\n",
+          "original_bytes": 279,
+          "original_sha256": "sha256:7aecf89d83fe8778c6c36c81cf67d943930c0cf2f486507f8489d4e2c26fab44",
+          "template_bytes": 332,
+          "template_sha256": "sha256:440003977778893b18db18af88e41c9cff05a971db979ec989881a705e19d03e"
+        },
+        {
+          "name": "condition_parameters",
+          "original": "    private static boolean evaluateCondition(BoolExpr condition, long frameIndex, Map<String, SFMValue> values) {\n",
+          "template": "{% if features.client_program_actions %}\n    private static boolean evaluateCondition(BoolExpr condition, long frameIndex, Map<String, SFMValue> values) {\n{% else %}\n    private static boolean evaluateCondition(BoolExpr condition, long frameIndex) {\n{% endif %}\n",
+          "original_bytes": 114,
+          "original_sha256": "sha256:213a5ab8080875238416eeb4fb9067de6d26bd50b37d604b99a62e111df3b8a8",
+          "template_bytes": 262,
+          "template_sha256": "sha256:f12879d9227ed253f605212bd63731dc23925f52ceed3eff773fdbdc2f71dba4"
+        },
+        {
+          "name": "value_condition",
+          "original": "        if (condition instanceof BoolClientValueEquals comparison) {\n            return require(values, comparison.variable()).equals(comparison.expected());\n        }\n",
+          "template": "{% if features.client_program_actions %}\n        if (condition instanceof BoolClientValueEquals comparison) {\n            return require(values, comparison.variable()).equals(comparison.expected());\n        }\n{% endif %}\n",
+          "original_bytes": 168,
+          "original_sha256": "sha256:366ed3b8c43e55add183cb16eb63918e53b62f794bde8224f73162f0b284f1f0",
+          "template_bytes": 221,
+          "template_sha256": "sha256:2cc484c90c77618bfe676e82572edd67a260d0f22988595f9580a35e3e9fc074"
+        },
+        {
+          "name": "parenthesized_condition",
+          "original": "            return evaluateCondition(parenthesized.inner(), frameIndex, values);\n",
+          "template": "{% if features.client_program_actions %}\n            return evaluateCondition(parenthesized.inner(), frameIndex, values);\n{% else %}\n            return evaluateCondition(parenthesized.inner(), frameIndex);\n{% endif %}\n",
+          "original_bytes": 81,
+          "original_sha256": "sha256:c1cad4ab81a8973d9da4e7fbf49771e5baaab70e9066ae017d5953bac5d0f6f7",
+          "template_bytes": 218,
+          "template_sha256": "sha256:0c34cc4f135a9b2de3c3d5a2ca08a7b95828f31b4cad41de7a88f32be26a5ac1"
+        },
+        {
+          "name": "negated_condition",
+          "original": "            return !evaluateCondition(negated.inner(), frameIndex, values);\n",
+          "template": "{% if features.client_program_actions %}\n            return !evaluateCondition(negated.inner(), frameIndex, values);\n{% else %}\n            return !evaluateCondition(negated.inner(), frameIndex);\n{% endif %}\n",
+          "original_bytes": 76,
+          "original_sha256": "sha256:16e0a523c8f96218a68bcaeec8fd2661718b52997bfc1d2c010d1f9679ce0f17",
+          "template_bytes": 208,
+          "template_sha256": "sha256:c4faae5eeaf4fe51cb61b91ebda5b6ba84a2cbd33d6768c6c23269c545d4da3b"
+        },
+        {
+          "name": "and_left_condition",
+          "original": "            return evaluateCondition(both.left(), frameIndex, values)\n",
+          "template": "{% if features.client_program_actions %}\n            return evaluateCondition(both.left(), frameIndex, values)\n{% else %}\n            return evaluateCondition(both.left(), frameIndex)\n{% endif %}\n",
+          "original_bytes": 70,
+          "original_sha256": "sha256:1ae95ba7112d08e896c1d1e02634ca56390fdaa3edaaf505d2ef8d0bb54ceaef",
+          "template_bytes": 196,
+          "template_sha256": "sha256:2b69bad8213ca18bd259d1a576051aca41ca58b79353fdb71380fe7920aff819"
+        },
+        {
+          "name": "and_right_condition",
+          "original": "                   && evaluateCondition(both.right(), frameIndex, values);\n",
+          "template": "{% if features.client_program_actions %}\n                   && evaluateCondition(both.right(), frameIndex, values);\n{% else %}\n                   && evaluateCondition(both.right(), frameIndex);\n{% endif %}\n",
+          "original_bytes": 75,
+          "original_sha256": "sha256:18231ce615ffd51488937667ab1a40db64ec3fdea35f529be205032e8276eec1",
+          "template_bytes": 206,
+          "template_sha256": "sha256:3a8fbbeffd51d2923b95f495e62cbf503d1b24b23e9296efc2132609220dd445"
+        },
+        {
+          "name": "or_left_condition",
+          "original": "            return evaluateCondition(either.left(), frameIndex, values)\n",
+          "template": "{% if features.client_program_actions %}\n            return evaluateCondition(either.left(), frameIndex, values)\n{% else %}\n            return evaluateCondition(either.left(), frameIndex)\n{% endif %}\n",
+          "original_bytes": 72,
+          "original_sha256": "sha256:64ed373293630eafdddd1309731b1e16eac1b653481d1d89d3d68b1c08b0cf3d",
+          "template_bytes": 200,
+          "template_sha256": "sha256:cc26ec8ca1a4ac154ca956e5daca098183349817fad3ae71181eaa22a742c255"
+        },
+        {
+          "name": "or_right_condition",
+          "original": "                   || evaluateCondition(either.right(), frameIndex, values);\n",
+          "template": "{% if features.client_program_actions %}\n                   || evaluateCondition(either.right(), frameIndex, values);\n{% else %}\n                   || evaluateCondition(either.right(), frameIndex);\n{% endif %}\n",
+          "original_bytes": 77,
+          "original_sha256": "sha256:22dcf42edcf14b942ecbebd5fa3b63663dcb38f2c41e60a61ee4cf4de1df0eeb",
+          "template_bytes": 210,
+          "template_sha256": "sha256:1e66274b08e2c785d5488d97a27be78b424b66a40bdf2ab193c32f1abf622658"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "owner": "client_program_actions",
+      "raw_oid": "efba229f4e6285bc2973279e09a3706122465686",
+      "raw_bytes": 8756,
+      "raw_sha256": "sha256:cdbdd3e18171d2a2e02d89bdf2c0f16538e96b8401fb12fb10779bc00898f5d4",
+      "raw_cr_count": 0,
+      "raw_lf_count": 134,
+      "raw_final_lf": true,
+      "authored_bytes": 9073,
+      "authored_sha256": "sha256:7aabec5131c06094ff4399f9fbdef2078c3722d809227fda1697fb56b83201e6",
+      "witnesses": {
+        "dev/1.19.2": "efba229f4e6285bc2973279e09a3706122465686",
+        "dev/1.19.4": "efba229f4e6285bc2973279e09a3706122465686",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_actions"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "regions": [
+        {
+          "name": "frame_link_entry",
+          "original": "        Set<ResourceLocation> permissions = new HashSet<>(Set.of(ClientProgramConsentGate.EXECUTE));\n        Map<ResourceLocation, Set<SFMClientActionDescriptor.DataScope>> scopes = new HashMap<>();\n        for (Trigger trigger : program.triggers()) {\n            if (!(trigger instanceof FrameTrigger frame)) throw new IllegalArgumentException(\"Client program requires frame triggers\");\n            link(frame.block(), new HashMap<>(), actions, permissions, scopes);\n        }\n        return new ClientProgramActionManifest(permissions, scopes);\n",
+          "template": "{% if features.client_frame_language %}\n        Set<ResourceLocation> permissions = new HashSet<>(Set.of(ClientProgramConsentGate.EXECUTE));\n        Map<ResourceLocation, Set<SFMClientActionDescriptor.DataScope>> scopes = new HashMap<>();\n        for (Trigger trigger : program.triggers()) {\n            if (!(trigger instanceof FrameTrigger frame)) throw new IllegalArgumentException(\"Client program requires frame triggers\");\n            link(frame.block(), new HashMap<>(), actions, permissions, scopes);\n        }\n        return new ClientProgramActionManifest(permissions, scopes);\n{% else %}\n        throw new IllegalArgumentException(\"Client program requires frame triggers\");\n{% endif %}\n",
+          "original_bytes": 547,
+          "original_sha256": "sha256:500af56776608494c930368965f809a8f71eac57396ce1ab67c7b3dee50debd9",
+          "template_bytes": 696,
+          "template_sha256": "sha256:74b93fd566a4d36c558ec80c1bc469f1e2a185dff684a3cd5efe69896270dc18"
+        },
+        {
+          "name": "render_capability",
+          "original": "            if (statement instanceof RenderImageStatement) {\n                permissions.add(ClientProgramConsentGate.RENDER);\n",
+          "template": "{% if features.client_frame_render %}\n            if (statement instanceof RenderImageStatement) {\n                permissions.add(ClientProgramConsentGate.RENDER);\n{% endif %}\n",
+          "original_bytes": 127,
+          "original_sha256": "sha256:376fe29bed2b2bd41714cb2140f83857c578a0322c9ca70cf93c8a2c6a296f91",
+          "template_bytes": 177,
+          "template_sha256": "sha256:74d426f7f92c4ebc9206fe65537fa2fecabea63a17370370241a1df0f8077753"
+        },
+        {
+          "name": "value_statement_header",
+          "original": "            } else if (statement instanceof LetStatement let) {\n",
+          "template": "{% if features.client_frame_render %}\n            } else if (statement instanceof LetStatement let) {\n{% else %}\n            if (statement instanceof LetStatement let) {\n{% endif %}\n",
+          "original_bytes": 64,
+          "original_sha256": "sha256:f081e877cb20b4838af6f5bd9562ee548babb349e2c4cd5223b80fa44d3be212",
+          "template_bytes": 182,
+          "template_sha256": "sha256:c90f1ba4948d046a65f890f6d2674bfeafebf30f19891dc7ef86805b6ad1e519"
+        }
+      ]
+    }
+  ],
+  "body_variants": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "features": {
+        "client_program_actions": false,
+        "client_frame_language": true,
+        "client_frame_render": false
+      },
+      "bytes": 2482,
+      "sha256": "sha256:f579637cdbe73227e7aa6957904a0fccd739c2b60d214aca667f838171a00ae2",
+      "lf_count": 54,
+      "historical": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "features": {
+        "client_program_actions": true,
+        "client_frame_language": true,
+        "client_frame_render": false
+      },
+      "bytes": 4998,
+      "sha256": "sha256:02a3819953104e1e90330afe9afdcfa3dbd7dddacba1b4b85fda48816526039c",
+      "lf_count": 93,
+      "historical": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "features": {
+        "client_program_actions": false,
+        "client_frame_language": true,
+        "client_frame_render": true
+      },
+      "bytes": 2628,
+      "sha256": "sha256:a6a68d2d8e8147d7f16588e4238a11b62930ab2eb7a093347cc099efcfd69640",
+      "lf_count": 56,
+      "historical": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "features": {
+        "client_program_actions": true,
+        "client_frame_language": true,
+        "client_frame_render": true
+      },
+      "bytes": 5144,
+      "sha256": "sha256:7ebc676240953132c3ea169c07d167287ee25f90bd9f595b234e78c4155e4f58",
+      "lf_count": 95,
+      "historical": true
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "features": {
+        "client_program_actions": true,
+        "client_frame_language": false,
+        "client_frame_render": false
+      },
+      "bytes": 8161,
+      "sha256": "sha256:374c5d6bba2ee53f4d09cd66d0c251d0a655e56f73b1ff0b5a0683d1ba22486d",
+      "lf_count": 126,
+      "historical": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "features": {
+        "client_program_actions": true,
+        "client_frame_language": true,
+        "client_frame_render": false
+      },
+      "bytes": 8622,
+      "sha256": "sha256:19b819b89fbd314a040936bf9fe3ca24fafc456c64d7f9050303d6b524dd0364",
+      "lf_count": 132,
+      "historical": false
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "features": {
+        "client_program_actions": true,
+        "client_frame_language": true,
+        "client_frame_render": true
+      },
+      "bytes": 8756,
+      "sha256": "sha256:cdbdd3e18171d2a2e02d89bdf2c0f16538e96b8401fb12fb10779bc00898f5d4",
+      "lf_count": 134,
+      "historical": true
+    }
+  ],
+  "current_source_profiles": {
+    "owner_off": [],
+    "frame_without_actions_or_render": [
+      "client_frame_language",
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "sfml_execution_side"
+    ],
+    "actions_without_frame": [
+      "client_actions",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ],
+    "frame_with_actions_without_render": [
+      "client_actions",
+      "client_frame_language",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ],
+    "frame_render_without_actions": [
+      "client_frame_language",
+      "client_frame_render",
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "image_resources",
+      "packet_values",
+      "sfml_execution_side",
+      "touch_display"
+    ],
+    "frame_render_actions": [
+      "client_actions",
+      "client_frame_language",
+      "client_frame_render",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "disk_readonly_access",
+      "image_resources",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side",
+      "touch_display"
+    ]
+  },
+  "authoring_contracts": [
+    "Only existing client_frame_language, client_program_actions and client_frame_render select source members; no environment, key, preset or historical source lookup.",
+    "Evaluator class remains frame-language owned. Actions/value imports, Actions interface, Evaluation record, four-argument public overload, value maps, LET/FIELD/INVOKE/value equality and typed helpers require program-actions independently.",
+    "Evaluator retains the original two-argument Optional-image entry. Actions-off validates the same non-negative frame index and traverses the same block/if/boolean/render algorithm without values or a fake action service.",
+    "Render-on/actions-off retains last-image selection. Render-off leaves RenderImageStatement unavailable to the evaluator and preserves its original unsupported-statement error.",
+    "Manifest class remains program-actions owned. Frame-off compile returns the exact existing requires-frame-triggers error without FrameTrigger references; it does not fake trigger identity or accept empty compilation.",
+    "Manifest render capability detection is independent of actions and frame entry. The original data scopes, typed input and result schemas, variable/action/scope budgets, field handling and immutable construction remain unchanged.",
+    "New actions-off traversal and frame-off compile bodies are reviewed source counterfactuals, not raw historical bodies or executed behavior."
+  ],
+  "algorithm_preservation": {
+    "shared_original_anchors": [
+      "Optional<ResourceLocation> last = Optional.empty();",
+      "for (Statement statement : block.statements()) {",
+      "? branch.trueBlock() : branch.falseBlock(), frameIndex,",
+      "if (nested.isPresent()) last = nested;",
+      "return last;",
+      "if (condition instanceof BoolFrameModulo frame) return frame.testFrame(frameIndex);",
+      "if (condition instanceof BoolTrue) return true;",
+      "if (condition instanceof BoolFalse) return false;",
+      "Unexpected client frame statement: ",
+      "Unexpected client frame condition: "
+    ],
+    "actions_off_signature_changes": [
+      "Private evaluateBlock drops only value map and Actions parameters; renderAllowed remains.",
+      "Private evaluateCondition drops only value map. Parentheses, negation, conjunction and disjunction retain exact recursion/short-circuit operators.",
+      "Branch-local value-map copying remains exact when actions are on. No values exist in actions-off traversal."
+    ],
+    "budget_boundary": "Original frame-index check remains. Typed value budget remains under its real action owner. FrameTrigger constructor retains its actual body/nesting/unknown-operation budgets independently; no new evaluator scheduler or runtime budget is asserted."
+  },
+  "provider_boundary": [
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/FrameTrigger.java",
+      "status": "real current core, frame-language owned",
+      "anchors": [
+        "public record FrameTrigger(",
+        "validateBlock(",
+        "checkBudget(",
+        "MAX_BODY_NODES = 512",
+        "MAX_NESTING = 32"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/RenderImageStatement.java",
+      "status": "real current core, frame-render owned",
+      "anchors": [
+        "public record RenderImageStatement(",
+        "ResourceLocation image",
+        "String binding"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/ClientValueExpression.java",
+      "status": "real current core, program-actions owned",
+      "anchors": [
+        "public sealed interface ClientValueExpression",
+        "record JsonLiteral(",
+        "record Invoke(",
+        "record Field("
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/BoolClientValueEquals.java",
+      "status": "real current core, program-actions owned",
+      "anchors": [
+        "public record BoolClientValueEquals(",
+        "SFMValue expected"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/LetStatement.java",
+      "status": "real current core, packet-computation owned prerequisite of program-actions",
+      "anchors": [
+        "public record LetStatement(",
+        "ProgramValueExpression expression"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/Program.java",
+      "status": "real current core, shared",
+      "anchors": [
+        "public record Program(",
+        "List<Trigger>"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java",
+      "status": "real current core, packet-values prerequisite",
+      "anchors": [
+        "interface SFMValueSchema",
+        "boundedEncodedBytes(",
+        "canonicalActionJson("
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptor.java",
+      "status": "real current core, program-actions prerequisite",
+      "anchors": [
+        "public record SFMClientActionDescriptor(",
+        "public record DataScope(",
+        "checkInput(",
+        "checkResult("
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentGate.java",
+      "status": "real current core, consent prerequisite",
+      "anchors": [
+        "EXECUTE",
+        "RENDER",
+        "public synchronized Evaluation evaluate("
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentStore.java",
+      "status": "real current core, consent prerequisite",
+      "anchors": [
+        "MAX_CAPABILITIES = 64"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramActionDispatcher.java",
+      "status": "genuine previous ignored dispatcher stage; root promotion required before these provider assertions",
+      "anchors": [
+        "public record Binding(",
+        "public interface Lookup",
+        "public static SFMValueSchema resultSchema("
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "status": "owned peer in this tranche; selected only with program-actions",
+      "anchors": [
+        "MAX_VARIABLES = 64",
+        "static String key(",
+        "public static SFMValue field("
+      ]
+    }
+  ],
+  "closure_limits": [
+    "Genuine ClientManagerFrameRuntime, ClientManagerBlockEntity and ClientProgramConsentRuntime remain separate deferred providers; no runtime or scheduler is introduced.",
+    "Previous dispatcher4 must be promoted separately before the manifest's actual-core provider test can select it.",
+    "Frame-only two-argument evaluation exists, but real runtime must deliberately call it when actions are off; this slice does not edit the runtime.",
+    "Human-only SFMPacketSendAction and its authorization path remain separately reviewed closure work.",
+    "Rendering source checks do not prove GPU/display availability, consent, rate limits or process/network admission."
+  ],
+  "evidence": {
+    "executed": [
+      "40 exact frozen Git tree cells independently verified offline:4present/36absent.",
+      "Two raw blobs independently checked by exact Git blob SHA-1 and SHA-256 framing, CR=0 and final LF retained.",
+      "Independent in-memory whole-line guard expansion reconstructs both all-on raw witnesses and seven pinned bodies; it is not the production renderer.",
+      "Staged Java files fully read from disk; authored disk SHA-256 and byte lengths match in-memory source.",
+      "Complete prepared test source read back from disk; all 21 region fingerprints and 13 current definitions rechecked; both Java sources and the test module are Git-ignored."
+    ],
+    "pre_run_review_corrections": [
+      "Initial AddFile patches left one extra terminal LF in each new staged template; disk readback identified and removed those authored-only blank lines before handoff. No raw witness was normalized or changed.",
+      "Read-only provider checks corrected two prose anchors before handoff: Program is a record and ConsentStore.MAX_CAPABILITIES is 64. Prepared assertions use the actual signatures; no source, witness or feature contract changed."
+    ],
+    "pending": [
+      "Actual production selection/render/collector tests after root promotion/registration.",
+      "Java compilation and actual evaluator/linker behavior.",
+      "Full frame runtime, dispatch/effect/render liveness and consent execution proof."
+    ],
+    "not_claimed": [
+      "Seven counterfactual body hashes are historical witnesses.",
+      "Source collection is complete-project or runtime acceptance.",
+      "Fabricated action/value/evaluation/runtime providers.",
+      "Any JVM/build/dependency/network effect."
+    ]
+  },
+  "prepared_test_module": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-frame-evaluator-manifest-stage-v1/core_frame_evaluator_manifest_slice_tests.rs",
+    "registered": false,
+    "executed": false,
+    "formatted": false,
+    "bytes": 46424,
+    "sha256": "sha256:5bb3d474ad415b0b965bd84b44ff465570f4faec0ce3450bddc8f1e5b327acb6",
+    "tests": 8,
+    "authored_count_assertions_not_executed": {
+      "historical_cells": 40,
+      "historical_present_cells": 4,
+      "historical_absent_cells": 36,
+      "independent_profile_cells": 24,
+      "independent_selected_cells": 14,
+      "independent_omitted_cells": 10,
+      "distinct_body_variants": 7,
+      "direct_prerequisite_refusals": 24,
+      "auto_java_collector_outputs": 14,
+      "common_edit_outputs": 14
+    },
+    "coverage": [
+      "Exact historical cells/raw all-on bodies and immutable region reconstruction",
+      "Six dependency-closed profiles and seven pinned bodies through the real renderer",
+      "Value-free shared traversal, typed budgets and independent image evaluation",
+      "Manifest unavailable compile, immutable scopes and typed field/schema APIs",
+      "Real selected core and separately promoted dispatcher provider signatures",
+      "Strict prerequisites/missing keys/unsupported targets/raw mutations",
+      "Omission-before-read and automatic Java template:false collection",
+      "Shared edits across both versions and every selected owner mask"
+    ]
+  }
+}

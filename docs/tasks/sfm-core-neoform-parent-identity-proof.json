@@ -1,0 +1,143 @@
+{
+  "schema": "sfm:core_neoform_parent_identity_proof@1",
+  "date": "2026-10-01",
+  "scope": "Read-only cached parent-byte verification against unchanged original schema-2 ContentHash pins; not child-pin acceptance or native execution",
+  "algorithm": "BLAKE3 full 32-byte digest; its first 20 bytes equal the original ContentHash XOF identity",
+  "verifier": {
+    "source_sha256": "sha256:b2e0c27853855f7003c235c744cac44b772d5ed0d3f6908025bcb492aa96860e",
+    "executable_sha256": "sha256:c1e25ee0662b338d919e7ac39cbeb7d5a82f2d30c84f99001b063f93308d4ec8",
+    "locked_crate": "blake3 1.8.5",
+    "known_vectors": "empty and abc passed before every invocation",
+    "bounds": "absolute regular files, at most 64 MiB; size rechecked after streaming"
+  },
+  "parents": [
+    {
+      "target": "1.20.2",
+      "coordinate": "net.neoforged:neoforge:20.2.86:userdev",
+      "locked_hash": "blake3:6ed4051437648b1c7de4d44f6cd83d207e6db43a",
+      "full_blake3": "blake3:6ed4051437648b1c7de4d44f6cd83d207e6db43a96084888ed37623e8a2faa4c",
+      "bytes": 3588851,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-2.json",
+      "source_lock_sha256": "sha256:df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.20.2",
+      "coordinate": "net.neoforged:neoform:1.20.2-20231019.002635@zip",
+      "locked_hash": "blake3:ba7abd19d442b85fc77a8b1d28396da8dccf1308",
+      "full_blake3": "blake3:ba7abd19d442b85fc77a8b1d28396da8dccf1308a838bb021630df54df905c9c",
+      "bytes": 1720346,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-2.json",
+      "source_lock_sha256": "sha256:df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.20.3",
+      "coordinate": "net.neoforged:neoforge:20.3.8-beta:userdev",
+      "locked_hash": "blake3:312dea13eac8741fec87ddec5362fa4bf038faa4",
+      "full_blake3": "blake3:312dea13eac8741fec87ddec5362fa4bf038faa42c962932b973feead1846ba2",
+      "bytes": 3596132,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.3/schema-2.json",
+      "source_lock_sha256": "sha256:fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.20.3",
+      "coordinate": "net.neoforged:neoform:1.20.3-20231205.165107@zip",
+      "locked_hash": "blake3:8ccc46247981591cb0d648bddc1b6e616921fca7",
+      "full_blake3": "blake3:8ccc46247981591cb0d648bddc1b6e616921fca7c205d83d045d37c6d6c0e334",
+      "bytes": 1785114,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.3/schema-2.json",
+      "source_lock_sha256": "sha256:fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.20.4",
+      "coordinate": "net.neoforged:neoforge:20.4.231:userdev",
+      "locked_hash": "blake3:c8186bce8892b9a8cd703372cd3f770acc435b71",
+      "full_blake3": "blake3:c8186bce8892b9a8cd703372cd3f770acc435b71da44de88abb1ff8c93e17975",
+      "bytes": 3697677,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.4/schema-2.json",
+      "source_lock_sha256": "sha256:565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.20.4",
+      "coordinate": "net.neoforged:neoform:1.20.4-20231207.154220@zip",
+      "locked_hash": "blake3:af9b38aa9afc5620f0eaaa4e8793d30ec303d1d2",
+      "full_blake3": "blake3:af9b38aa9afc5620f0eaaa4e8793d30ec303d1d2b57e12be733e4bd7c27ddfbf",
+      "bytes": 1785114,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.4/schema-2.json",
+      "source_lock_sha256": "sha256:565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.21.0",
+      "coordinate": "net.neoforged:neoforge:21.0.143:userdev",
+      "locked_hash": "blake3:80adfede0c23d4cf520a6cf7c30af66f0248147d",
+      "full_blake3": "blake3:80adfede0c23d4cf520a6cf7c30af66f0248147d7baa89c7c6588b46133e4a2d",
+      "bytes": 3819798,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-2.json",
+      "source_lock_sha256": "sha256:2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.21.0",
+      "coordinate": "net.neoforged:neoform:1.21-20240613.152323@zip",
+      "locked_hash": "blake3:6e1d2309b587f8d17c1573994195b90a40b56ebc",
+      "full_blake3": "blake3:6e1d2309b587f8d17c1573994195b90a40b56ebc80de13797e452f314aa95817",
+      "bytes": 1689762,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-2.json",
+      "source_lock_sha256": "sha256:2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.21.1",
+      "coordinate": "net.neoforged:neoforge:21.1.206:userdev",
+      "locked_hash": "blake3:a1eed39b88e5c7f7fa250d96de653e3e8639d566",
+      "full_blake3": "blake3:a1eed39b88e5c7f7fa250d96de653e3e8639d566cadaf149261ec2a2fcc4f310",
+      "bytes": 3973795,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-2.json",
+      "source_lock_sha256": "sha256:2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876",
+      "original_pin_verified": true
+    },
+    {
+      "target": "1.21.1",
+      "coordinate": "net.neoforged:neoform:1.21.1-20240808.144430@zip",
+      "locked_hash": "blake3:93b04805230706400a2ab580d470efa00da6de74",
+      "full_blake3": "blake3:93b04805230706400a2ab580d470efa00da6de74a6878ba78fafcad2f2f0ab03",
+      "bytes": 1683830,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-2.json",
+      "source_lock_sha256": "sha256:2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876",
+      "original_pin_verified": true
+    },
+    {
+      "target": "26.1.2",
+      "coordinate": "net.neoforged:neoforge:26.1.2.72:userdev",
+      "locked_hash": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0f",
+      "full_blake3": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0fedd0332f275f42e8b8245c57",
+      "bytes": 4472859,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
+      "source_lock_sha256": "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+      "original_pin_verified": true
+    },
+    {
+      "target": "26.1.2",
+      "coordinate": "net.neoforged:neoform:26.1.2-1@zip",
+      "locked_hash": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda",
+      "full_blake3": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda6f861480b337003f089e93d4",
+      "bytes": 103496,
+      "source_lock": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
+      "source_lock_sha256": "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+      "original_pin_verified": true
+    }
+  ],
+  "effects": {
+    "downloads": false,
+    "dependency_changes": false,
+    "lockfile_changes": false,
+    "user_cache_writes": false,
+    "minecraft_launch": false
+  },
+  "limitations": "The authenticated parent entries name child coordinates but do not necessarily pin child bytes. This receipt does not approve new child identities, change the frozen dependency posture, seal external processes or prove any Minecraft compilation."
+}

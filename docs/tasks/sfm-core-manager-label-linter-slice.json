@@ -1,0 +1,857 @@
+{
+  "schema": "sfm:core-manager-label-linter-slice@1",
+  "scope": "three_released_manager_label_linter_files_only",
+  "status": "staged_templates_and_unregistered_post_promotion_tests_not_java_acceptance",
+  "source_witness_definition": "Each context identifies the exact immutable release or development commit; each path resolves platform/minecraft/<path> at that commit. Git blobs are bounded test evidence, never production rendering inputs.",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "source_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": [
+    {
+      "id": "sfml_worded_intervals",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "status": "existing_registered_owner",
+      "members": "LegacyIntervalOffsetProgramLinter registration; only the two witnessed older targets"
+    },
+    {
+      "id": "single_line_input",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "status": "approved_narrow_proposal_not_registered_by_this_slice",
+      "members": "LabelGunScreen constructor plus SFMSingleLineEditBox/SFMSingleLineInput/EditBoxAccessor closure"
+    },
+    {
+      "id": "manager_editor_actions",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ],
+      "status": "broader_proposed_owner_from_prior_client_registration_evidence",
+      "members": "ManagerScreen action-driven editor members restricted to 1.19.2/1.19.4; document action registrar is witnessed on all ten targets"
+    },
+    {
+      "id": "tick_graph_null_safety",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "status": "approved_narrow_proposal_not_registered_by_this_slice",
+      "members": "ManagerScreen host/array null guards, independently of the existing 26.1.2-only tick_graph_null_samples renderer owner"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMProgramLinters.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-manager-label-linter-stage-v1/SFMProgramLinters.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMProgramLinters.java",
+      "source_sha256": "sha256:2cf5564bd491d9215add45fafeb592844c3deeba562762469c774754e32039bc",
+      "source_bytes": 4246,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "sfml_worded_intervals"
+      ],
+      "version_groups": [
+        [
+          "1.19.2"
+        ],
+        [
+          "1.19.4"
+        ],
+        [
+          "1.20",
+          "1.20.1"
+        ],
+        [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "3935e549c494c90714bcfa8499c3818f571da6a2",
+        "dev/1.19.4": "07bf30a1b97fbd740753c088a7509e7e53305871",
+        "dev/1.20": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+        "dev/1.20.1": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+        "dev/1.20.2": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "dev/1.20.3": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "dev/1.20.4": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "dev/1.21.0": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "dev/1.21.1": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "dev/26.1.2": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/1.19.2": "5b416b3cdd56ab789c6e7ad61d88de39918b50c4",
+        "release/1.19.4": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+        "release/1.20": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+        "release/1.20.1": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+        "release/1.20.2": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/1.20.3": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/1.20.4": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/1.21.0": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/1.21.1": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+        "release/26.1.2": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/LabelGunScreen.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-manager-label-linter-stage-v1/LabelGunScreen.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/LabelGunScreen.java",
+      "source_sha256": "sha256:9351cbdab0967834121224e3fe22f5e198b89a76846e721eba7532eda1e96453",
+      "source_bytes": 11711,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "single_line_input"
+      ],
+      "version_groups": [
+        [
+          "1.19.2",
+          "1.19.4"
+        ],
+        [
+          "1.20",
+          "1.20.1"
+        ],
+        [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1"
+        ],
+        [
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "fb3b04874b718fa61a599148fef35d5d6aa596c9",
+        "dev/1.19.4": "fb3b04874b718fa61a599148fef35d5d6aa596c9",
+        "dev/1.20": "0e2e801b6c658bc9d4d441f18f6890ab75b2f7dc",
+        "dev/1.20.1": "0e2e801b6c658bc9d4d441f18f6890ab75b2f7dc",
+        "dev/1.20.2": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "dev/1.20.3": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "dev/1.20.4": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "dev/1.21.0": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "dev/1.21.1": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "dev/26.1.2": "09988b9d84fdf8f1a90ba58acb6f2548097a3dcd",
+        "release/1.19.2": "02ae34b6e22836b5f8cc9fc2643a9ce653d2328d",
+        "release/1.19.4": "02ae34b6e22836b5f8cc9fc2643a9ce653d2328d",
+        "release/1.20": "0e2e801b6c658bc9d4d441f18f6890ab75b2f7dc",
+        "release/1.20.1": "0e2e801b6c658bc9d4d441f18f6890ab75b2f7dc",
+        "release/1.20.2": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "release/1.20.3": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "release/1.20.4": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "release/1.21.0": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "release/1.21.1": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+        "release/26.1.2": "09988b9d84fdf8f1a90ba58acb6f2548097a3dcd"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-manager-label-linter-stage-v1/ManagerScreen.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java",
+      "source_sha256": "sha256:3c38085f78d89948344ef64ccb40e001b2ae8fb147fedaf4e454317ab42f23f6",
+      "source_bytes": 58940,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "manager_editor_actions",
+        "tick_graph_null_safety"
+      ],
+      "version_groups": [
+        [
+          "1.19.2"
+        ],
+        [
+          "1.19.4"
+        ],
+        [
+          "1.20",
+          "1.20.1"
+        ],
+        [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4"
+        ],
+        [
+          "1.21",
+          "1.21.1"
+        ],
+        [
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "2d06d4a0ae2ca6797d705d63f24965e53f5b3659",
+        "dev/1.19.4": "94300fc885aadc6be334a8334591062fbd39577a",
+        "dev/1.20": "be3a30de4f0e5a913e727af364e1f5f79f4342c8",
+        "dev/1.20.1": "be3a30de4f0e5a913e727af364e1f5f79f4342c8",
+        "dev/1.20.2": "4fb75dd30ab45e33f6a60af897206c82cb8f335d",
+        "dev/1.20.3": "4fb75dd30ab45e33f6a60af897206c82cb8f335d",
+        "dev/1.20.4": "4fb75dd30ab45e33f6a60af897206c82cb8f335d",
+        "dev/1.21.0": "8d33ce6aa5bb1a420c9419205892eeafb323b3c7",
+        "dev/1.21.1": "8d33ce6aa5bb1a420c9419205892eeafb323b3c7",
+        "dev/26.1.2": "bd35ea47bc711c2dfc42613fb598deae7ae73cc8",
+        "release/1.19.2": "ec8e9f3056c1e1183a5d93cf0bf4dc2cc5103a94",
+        "release/1.19.4": "6fe163a6f7138b12656cd8c15caebc2f4c135215",
+        "release/1.20": "a1c3fabf59f263f86a180decc8bfe091cabbd653",
+        "release/1.20.1": "a1c3fabf59f263f86a180decc8bfe091cabbd653",
+        "release/1.20.2": "6b9cae4ea1f6b812afaad7fa3e4b6babbfe27206",
+        "release/1.20.3": "6b9cae4ea1f6b812afaad7fa3e4b6babbfe27206",
+        "release/1.20.4": "6b9cae4ea1f6b812afaad7fa3e4b6babbfe27206",
+        "release/1.21.0": "0c882b5035f510d0d0159c9c2cea91bfe59e6ef3",
+        "release/1.21.1": "0c882b5035f510d0d0159c9c2cea91bfe59e6ef3",
+        "release/26.1.2": "596fe0cf33b5e9855823eb2cc6ce469263c4f75c"
+      }
+    }
+  ],
+  "raw_variants": [
+    {
+      "blob": "3935e549c494c90714bcfa8499c3818f571da6a2",
+      "raw_sha256": "sha256:8765208e9b3620030260aeb7bfe31200a1282632521bbb899df7d748859ad8ff",
+      "raw_bytes": 3632,
+      "raw_cr_count": 0,
+      "raw_lf_count": 98,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:8765208e9b3620030260aeb7bfe31200a1282632521bbb899df7d748859ad8ff",
+      "normalized_bytes": 3632,
+      "removed_cr": 0
+    },
+    {
+      "blob": "07bf30a1b97fbd740753c088a7509e7e53305871",
+      "raw_sha256": "sha256:15017968e121cc4d6262d92c346ea4f3c53469522acef32fb1d7f17b15a83eb3",
+      "raw_bytes": 3578,
+      "raw_cr_count": 0,
+      "raw_lf_count": 97,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:15017968e121cc4d6262d92c346ea4f3c53469522acef32fb1d7f17b15a83eb3",
+      "normalized_bytes": 3578,
+      "removed_cr": 0
+    },
+    {
+      "blob": "ac9a6f0a4e536a631d0b93961a737632594f03f3",
+      "raw_sha256": "sha256:87654d37be08e65dab9c01832931cd2b0f2226f74e939831445b3c11c9a769a4",
+      "raw_bytes": 3330,
+      "raw_cr_count": 0,
+      "raw_lf_count": 91,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:87654d37be08e65dab9c01832931cd2b0f2226f74e939831445b3c11c9a769a4",
+      "normalized_bytes": 3330,
+      "removed_cr": 0
+    },
+    {
+      "blob": "257b4a82878cc7cded7a565cd03e23e63cb0e9ff",
+      "raw_sha256": "sha256:691721ef735dc69a04de2735644f508f9f6493f406a024de953b2b0d17ec2f5e",
+      "raw_bytes": 3320,
+      "raw_cr_count": 0,
+      "raw_lf_count": 91,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:691721ef735dc69a04de2735644f508f9f6493f406a024de953b2b0d17ec2f5e",
+      "normalized_bytes": 3320,
+      "removed_cr": 0
+    },
+    {
+      "blob": "5b416b3cdd56ab789c6e7ad61d88de39918b50c4",
+      "raw_sha256": "sha256:4697d42301ca70a57de27dd719e510f5cb513e11b9e1fd88d4f32e7e51d326fe",
+      "raw_bytes": 3384,
+      "raw_cr_count": 0,
+      "raw_lf_count": 92,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:4697d42301ca70a57de27dd719e510f5cb513e11b9e1fd88d4f32e7e51d326fe",
+      "normalized_bytes": 3384,
+      "removed_cr": 0
+    },
+    {
+      "blob": "fb3b04874b718fa61a599148fef35d5d6aa596c9",
+      "raw_sha256": "sha256:229b26ee5eba74dd12524dcc3a445ab7a941c06ddeecdcc7504174466911d3c0",
+      "raw_bytes": 9375,
+      "raw_cr_count": 0,
+      "raw_lf_count": 264,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:229b26ee5eba74dd12524dcc3a445ab7a941c06ddeecdcc7504174466911d3c0",
+      "normalized_bytes": 9375,
+      "removed_cr": 0
+    },
+    {
+      "blob": "0e2e801b6c658bc9d4d441f18f6890ab75b2f7dc",
+      "raw_sha256": "sha256:c6527414fd989f83389fbe02560bf9e705e782d841a216a47b85a088b20722e4",
+      "raw_bytes": 9333,
+      "raw_cr_count": 0,
+      "raw_lf_count": 264,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:c6527414fd989f83389fbe02560bf9e705e782d841a216a47b85a088b20722e4",
+      "normalized_bytes": 9333,
+      "removed_cr": 0
+    },
+    {
+      "blob": "b5423a4e8adcef7fe647fe5feb242043833359fa",
+      "raw_sha256": "sha256:7d3b644d7e83e0033e858d7396be4ffee3390480d8dda73f92f9c67f4be6a70e",
+      "raw_bytes": 9344,
+      "raw_cr_count": 0,
+      "raw_lf_count": 264,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:7d3b644d7e83e0033e858d7396be4ffee3390480d8dda73f92f9c67f4be6a70e",
+      "normalized_bytes": 9344,
+      "removed_cr": 0
+    },
+    {
+      "blob": "09988b9d84fdf8f1a90ba58acb6f2548097a3dcd",
+      "raw_sha256": "sha256:24579d9f4a077b1aa6fa5567acb09abe8060b0c9f5c75d733ec9ce0ddf64b76d",
+      "raw_bytes": 9350,
+      "raw_cr_count": 0,
+      "raw_lf_count": 261,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:24579d9f4a077b1aa6fa5567acb09abe8060b0c9f5c75d733ec9ce0ddf64b76d",
+      "normalized_bytes": 9350,
+      "removed_cr": 0
+    },
+    {
+      "blob": "02ae34b6e22836b5f8cc9fc2643a9ce653d2328d",
+      "raw_sha256": "sha256:e194c69d514f912186219bb3f0f5ef1d50702a3984724f0261ae1a67cb786d5a",
+      "raw_bytes": 9333,
+      "raw_cr_count": 0,
+      "raw_lf_count": 264,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:e194c69d514f912186219bb3f0f5ef1d50702a3984724f0261ae1a67cb786d5a",
+      "normalized_bytes": 9333,
+      "removed_cr": 0
+    },
+    {
+      "blob": "2d06d4a0ae2ca6797d705d63f24965e53f5b3659",
+      "raw_sha256": "sha256:37d89b405ae3dca9afebbc9b3eed0ed2c7188aab1634b37cddba849e4c023964",
+      "raw_bytes": 36528,
+      "raw_cr_count": 910,
+      "raw_lf_count": 947,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:800c0e0c965df736b16eaecb95131f087b12cb82a5111277653c71f1f96b27b6",
+      "normalized_bytes": 35618,
+      "removed_cr": 910
+    },
+    {
+      "blob": "94300fc885aadc6be334a8334591062fbd39577a",
+      "raw_sha256": "sha256:8bcc5dceee3f431a39bb94d8268c4cb2e1bac69d25dd7f7f86d55e74697737d4",
+      "raw_bytes": 36540,
+      "raw_cr_count": 910,
+      "raw_lf_count": 947,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:63c6883afb72f810e601c46e5cab78e20431f48ab926fe7b40295ec4b41f5f2b",
+      "normalized_bytes": 35630,
+      "removed_cr": 910
+    },
+    {
+      "blob": "be3a30de4f0e5a913e727af364e1f5f79f4342c8",
+      "raw_sha256": "sha256:eec1e7c796f16af1e3c64821b941503a22524cfbc487f205690df9b48d46470b",
+      "raw_bytes": 36003,
+      "raw_cr_count": 933,
+      "raw_lf_count": 933,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:5011212fc002f131c76cfd347c8f79054835e126ee50b6458168cab921624d12",
+      "normalized_bytes": 35070,
+      "removed_cr": 933
+    },
+    {
+      "blob": "4fb75dd30ab45e33f6a60af897206c82cb8f335d",
+      "raw_sha256": "sha256:3e754f2ac6bcf90c821ba71a7586b917844e313ae04467383042f67c2d151a2f",
+      "raw_bytes": 36014,
+      "raw_cr_count": 933,
+      "raw_lf_count": 933,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:cedfc8b2228cc98c1974ed97cf98425528263cea5607d7545b5250dd31106e50",
+      "normalized_bytes": 35081,
+      "removed_cr": 933
+    },
+    {
+      "blob": "8d33ce6aa5bb1a420c9419205892eeafb323b3c7",
+      "raw_sha256": "sha256:9a930936eec949456c28d63cb077c14af5b3ac7c1ecb26603945bc8dd76705b0",
+      "raw_bytes": 35908,
+      "raw_cr_count": 920,
+      "raw_lf_count": 928,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:7bfe9cf355a39e9015d6832ab10b2768074d0bb9e91d9dc5b216e20ddbc045e6",
+      "normalized_bytes": 34988,
+      "removed_cr": 920
+    },
+    {
+      "blob": "bd35ea47bc711c2dfc42613fb598deae7ae73cc8",
+      "raw_sha256": "sha256:99d8f989216fa1d3167d45ece5832ec3cff920aa627751d3acac3c4767a3f0a4",
+      "raw_bytes": 32428,
+      "raw_cr_count": 0,
+      "raw_lf_count": 865,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:99d8f989216fa1d3167d45ece5832ec3cff920aa627751d3acac3c4767a3f0a4",
+      "normalized_bytes": 32428,
+      "removed_cr": 0
+    },
+    {
+      "blob": "ec8e9f3056c1e1183a5d93cf0bf4dc2cc5103a94",
+      "raw_sha256": "sha256:a909b755f4b76436f97192172c8f5011170fd65ff42f81dc8c4facbb767778e6",
+      "raw_bytes": 35838,
+      "raw_cr_count": 932,
+      "raw_lf_count": 932,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:c955c0038ad844ef395740ee88297e1cf1302dd1bd0d5d0d1df90b896a59c44b",
+      "normalized_bytes": 34906,
+      "removed_cr": 932
+    },
+    {
+      "blob": "6fe163a6f7138b12656cd8c15caebc2f4c135215",
+      "raw_sha256": "sha256:91cda1dc5fd1539bf992fbef7350d67ea28d1edb88a2f7f0028d7ea36e8314a9",
+      "raw_bytes": 35850,
+      "raw_cr_count": 932,
+      "raw_lf_count": 932,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:5abe2641888521b7158f2f4669bf428e663a87ad58652b5c2464010499b3723c",
+      "normalized_bytes": 34918,
+      "removed_cr": 932
+    },
+    {
+      "blob": "a1c3fabf59f263f86a180decc8bfe091cabbd653",
+      "raw_sha256": "sha256:5412b91b158af57fa8cda08372ee8e83c42744b16ebbc96762f55f8e049db7e2",
+      "raw_bytes": 35813,
+      "raw_cr_count": 929,
+      "raw_lf_count": 929,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:a3e6f8ed9beb3deae15630116e6f2939ed38b678b0829e812f55937985761279",
+      "normalized_bytes": 34884,
+      "removed_cr": 929
+    },
+    {
+      "blob": "6b9cae4ea1f6b812afaad7fa3e4b6babbfe27206",
+      "raw_sha256": "sha256:2bf53ea8357793a635922c2a2555548d5bf2e0fe9662cb580db14bdfa27f9478",
+      "raw_bytes": 35824,
+      "raw_cr_count": 929,
+      "raw_lf_count": 929,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:8cde1b20f18bb8d79eaae797d21d949b4550e2151d1d3c3c146cdccfa8c83611",
+      "normalized_bytes": 34895,
+      "removed_cr": 929
+    },
+    {
+      "blob": "0c882b5035f510d0d0159c9c2cea91bfe59e6ef3",
+      "raw_sha256": "sha256:d4bf5bdee706e6216b14856611e12781aaf57dfc26811df1659482b4d002c103",
+      "raw_bytes": 35726,
+      "raw_cr_count": 924,
+      "raw_lf_count": 924,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:3f3f69413544140298be7fb829057bfa23e2640ba34e6c7c897839bd0e117127",
+      "normalized_bytes": 34802,
+      "removed_cr": 924
+    },
+    {
+      "blob": "596fe0cf33b5e9855823eb2cc6ce469263c4f75c",
+      "raw_sha256": "sha256:23f2939fe53330d6907bd478d79b29b493ff7c2a9440e0949019de6694b8a9b1",
+      "raw_bytes": 32382,
+      "raw_cr_count": 0,
+      "raw_lf_count": 864,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:23f2939fe53330d6907bd478d79b29b493ff7c2a9440e0949019de6694b8a9b1",
+      "normalized_bytes": 32382,
+      "removed_cr": 0
+    }
+  ],
+  "normalization": {
+    "approved_scope": "Exactly ten enumerated ManagerScreen raw blobs only; CRLF to LF; retain all already-LF line endings and existing final LF. The other twelve raw variants remain byte exact.",
+    "blob_count": 10,
+    "removed_cr_total": 9252,
+    "forbidden": [
+      "token edits",
+      "other whitespace changes",
+      "BOM changes",
+      "lone CR normalization",
+      "appending final newline"
+    ]
+  },
+  "manager_member_patches": [
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "",
+      "new": "import ca.teamdman.sfm.client.action.SFMClientActionContext;\nimport ca.teamdman.sfm.client.action.SFMClientActionExecutor;\nimport ca.teamdman.sfm.client.action.SFMClientActionSource;\n"
+    },
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "",
+      "new": "import ca.teamdman.sfm.client.screen.widget.SFMActionButton;\n"
+    },
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "            onEditButtonClicked();\n",
+      "new": "            invokeEditAction();\n"
+    },
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "        editButton = this.addRenderableWidget(\n                new SFMButtonBuilder()\n                        .setPosition(\n                                (this.width - this.imageWidth) / 2 - buttonWidth,\n                                (this.height - this.imageHeight) / 2 + 16 + 50\n                        )\n                        .setSize(buttonWidth, buttonHeight)\n                        .setText(MANAGER_GUI_EDIT_BUTTON)\n                        .setOnPress(button -> onEditButtonClicked())\n                        .setTooltip(\n                                this,\n                                font,\n                                MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY))\n                        )\n                        .build()\n        );\n",
+      "new": "        editButton = this.addRenderableWidget(new SFMActionButton(\n                (this.width - this.imageWidth) / 2 - buttonWidth,\n                (this.height - this.imageHeight) / 2 + 16 + 50,\n                buttonWidth,\n                buttonHeight,\n                MANAGER_GUI_EDIT_BUTTON.getComponent(),\n                new ResourceLocation(SFM.MOD_ID, \"manager/edit\"),\n                new ResourceLocation(SFM.MOD_ID, \"default\"),\n                () -> MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(),\n                () -> \"sfm action invoke sfm:manager/edit\",\n                button -> invokeEditAction()\n        ));\n"
+    },
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "    private void onEditButtonClicked() {\n",
+      "new": "    public void openProgramEditorFromAction() {\n"
+    },
+    {
+      "owner": "manager_editor_actions",
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "old": "",
+      "new": "    private void invokeEditAction() {\n        try {\n            SFMClientActionExecutor.execute(\n                    \"sfm action invoke sfm:manager/edit\",\n                    SFMClientActionContext.create(this, () -> Minecraft.getInstance().screen == this),\n                    message -> SFM.LOGGER.warn(\"Manager edit action feedback: {}\", message.getString()));\n        } catch (Exception exception) {\n            SFM.LOGGER.error(\"Manager edit action failed\", exception);\n        }\n    }\n\n"
+    },
+    {
+      "owner": "tick_graph_null_safety",
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "old": "            if (candidate.compareTo(peakTickTime) > 0) {\n",
+      "new": "            if (candidate != null && candidate.compareTo(peakTickTime) > 0) {\n"
+    },
+    {
+      "owner": "tick_graph_null_safety",
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1"
+      ],
+      "old": "            long y = menu.tickTimes[i].toNanos();\n",
+      "new": "            Duration tickTime = menu.tickTimes[i];\n            if (tickTime == null) {\n                continue;\n            }\n            long y = tickTime.toNanos();\n"
+    },
+    {
+      "owner": "tick_graph_null_safety",
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1"
+      ],
+      "old": "        var format = new DecimalFormat(\"0.000\");\n",
+      "new": "        var format = new DecimalFormat(\"0.000\"); // TODO: this should respect the user's locale\n"
+    },
+    {
+      "owner": "tick_graph_null_safety",
+      "targets": [
+        "26.1.2"
+      ],
+      "old": "            if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2\n                    && mx - leftPos <= plotPosX + spaceBetweenPoints / 2\n                    && my - topPos >= plotY - 2\n                    && my - topPos <= plotY + plotHeight + 2) {\n",
+      "new": "            if (candidate != null\n                && mx - leftPos >= plotPosX - spaceBetweenPoints / 2\n                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2\n                && my - topPos >= plotY - 2\n                && my - topPos <= plotY + plotHeight + 2) {\n"
+    }
+  ],
+  "api_adapters": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMProgramLinters.java",
+      "rule": "Forge registry imports for 1.19.2/1.19.4/1.20/1.20.1, NeoForge for later targets; live SFMMekanismCompat program-linter call/import only 1.19.2. Historical commented call on other nine targets remains exactly commented, independently of all new flags."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/LabelGunScreen.java",
+      "rule": "Forge/NeoForge imports, GuiGraphics-era rendering APIs, and 26.1.2 Identifier/input-event APIs remain ordinary version adapters; the released EditBox remains when single_line_input is off."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java",
+      "rule": "Grouped target API adapters preserve import, rendering, texture, input, lighting and tick-graph APIs without whole historical-file dispatch. Catalog target 1.21.0 renders using actual minecraft_version 1.21."
+    }
+  ],
+  "closure_witnesses": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMDocumentActionTarget.java",
+      "witnesses": {
+        "dev/1.19.2": "ec1d87af872e089864366e044eca03cbea3008e3",
+        "dev/1.19.4": "ec1d87af872e089864366e044eca03cbea3008e3",
+        "dev/1.20": "ec1d87af872e089864366e044eca03cbea3008e3",
+        "dev/1.20.1": "ec1d87af872e089864366e044eca03cbea3008e3",
+        "dev/1.20.2": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "dev/1.20.3": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "dev/1.20.4": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "dev/1.21.0": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "dev/1.21.1": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "dev/26.1.2": "ecb04e77cdb915b4feeb659c4d877518370d612a",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/ManagerEditAction.java",
+      "witnesses": {
+        "dev/1.19.2": "47fa0bf5fdd16f34fc09319c6980e2d1b34f587d",
+        "dev/1.19.4": "47fa0bf5fdd16f34fc09319c6980e2d1b34f587d",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMActionButton.java",
+      "witnesses": {
+        "dev/1.19.2": "c4ca2956e14f001517d60a1f4b034177e7a2d1a9",
+        "dev/1.19.4": "c4ca2956e14f001517d60a1f4b034177e7a2d1a9",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/input/SFMSingleLineEditBox.java",
+      "witnesses": {
+        "dev/1.19.2": "8e4b9cbb93ad180f5055e99c623695ca6c28a58f",
+        "dev/1.19.4": "8e4b9cbb93ad180f5055e99c623695ca6c28a58f",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/input/SFMSingleLineInput.java",
+      "witnesses": {
+        "dev/1.19.2": "a58fad22140d523b8965d96bcde2d01bcbc20a57",
+        "dev/1.19.4": "a58fad22140d523b8965d96bcde2d01bcbc20a57",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java",
+      "witnesses": {
+        "dev/1.19.2": "8d0b4466929dc3fb03006cdbc1996a10b4590eb7",
+        "dev/1.19.4": "8d0b4466929dc3fb03006cdbc1996a10b4590eb7",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ClientManagerScreen.java",
+      "witnesses": {
+        "dev/1.19.2": "eb9b5e617280e25f4a00fdf8242ba29c0b05bac7",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    }
+  ],
+  "closure_boundaries": [
+    "manager_editor_actions has real all-ten-target document save/save-and-close/close-without-saving consumers in SFMDocumentActionTarget and registration in SFMClientRegistrations, but this ManagerScreen action-button/member integration exists only on the two oldest targets.",
+    "ManagerEditAction, SFMActionButton and their mixed imports must be selected by actual consumers. SFMActionElement/SFMActionElementAudit can be shared pure action-context carriers under OR-consumer membership; this does not require the workspace panel runtime.",
+    "Single-line input requires its concrete edit-box/widget/model/accessor and mixin registration closure. No clipboard-history, palette or workspace prerequisite is inferred from interface presence.",
+    "Null-safe ManagerScreen sampling is not the 26.1.2 tick-graph renderer change. Existing tick_graph_null_samples support must not be widened.",
+    "These twenty ManagerScreen witnesses do not add ClientManagerScreen tooltip or menu-summary bounds behavior. The distinct primary-development ClientManagerScreen owns those existing behaviors and is not authored in this slice.",
+    "The DecimalFormat locale TODO is a nonsemantic comment in the historical null-safety delta. It remains grouped with that exact source reconstruction and is not a new functionality claim.",
+    "Program-linter source/registration preservation does not prove Mekanism compatibility, generator execution or linter runtime closure."
+  ],
+  "evidence": {
+    "historical_source_comparisons": {
+      "count": 60,
+      "passed": 60,
+      "method": "Read-only in-memory restricted directive extractor versus each fixed normalized historical blob; no production renderer or Java compiler was run."
+    },
+    "independent_predicate_probes": {
+      "count": 480,
+      "passed": 480,
+      "method": "All sixteen masks of four owners across all ten actual version selectors and all three files; Manager expectations reverse only disabled exact member patches from the fixed full-dev source. Artificial globally-true unsupported flags prove member MC guards only, not registered context acceptance."
+    },
+    "post_promotion_tests": "New unregistered core_manager_label_linter_slice_tests.rs will require actual core templates, real membership and owner contracts, production rendering, raw/normalized goldens, independent supported masks/refusal, common-edit propagation and negative evidence checks.",
+    "not_claimed": [
+      "registered feature support",
+      "Java linkage",
+      "native compilation",
+      "runtime gameplay",
+      "ClientManagerScreen fixes",
+      "artifact parity"
+    ],
+    "reproducible_read_only_commands": [
+      "git rev-parse <exact-commit>:platform/minecraft/<core-relative-path>",
+      "git cat-file blob <exact-blob-oid>",
+      "sfm-propagate-changes --output-format json source project dry-run --repo-root <repository> --projection <exact-catalog-key>"
+    ]
+  },
+  "promotion_requirements": [
+    "Root reviews and registers single_line_input and tick_graph_null_safety with the approved exact support.",
+    "Root preserves or registers manager_editor_actions all-ten document owner requiring client_actions; ManagerScreen member guards must remain D2.",
+    "Root promotes only these staged paths and adds no feature-gated whole-class membership: all three are released shared source inputs.",
+    "Root registers/runs the new post-promotion regression module before claiming actual production rendering.",
+    "Feature-on Java acceptance still requires helper/registrar/mixin closure; this source proof alone does not establish it."
+  ]
+}

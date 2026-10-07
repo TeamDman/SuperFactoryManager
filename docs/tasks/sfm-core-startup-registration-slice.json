@@ -1,0 +1,574 @@
+{
+  "schema": "sfm:core-startup-registration-slice@1",
+  "status": "three_ignored_staged_templates_and_unregistered_post_promotion_tests",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": "SFMItems_SFMBlocks_SFMBlockEntities_only",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "import_policy": "One shared class body and genuine grouped Minecraft-version cases around imports, field/property APIs, constructor registrations and original formatting deltas; frozen Git objects are test/migration witnesses only, never production source inputs.",
+  "normalization": {
+    "policy": "none",
+    "unique_raw_blobs": 16,
+    "all_strict_utf8": true,
+    "all_raw_lf": true,
+    "all_existing_final_lf": true,
+    "token_edits": false,
+    "whitespace_edits": false,
+    "bytes_normalized": 0
+  },
+  "owners": [
+    {
+      "id": "client_manager",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    {
+      "id": "touch_display",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ]
+    },
+    {
+      "id": "packet_values",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  ],
+  "inputs": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-startup-registration-stage-v1/SFMItems.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+      "source_sha256": "sha256:2153daf5e75486c4aeb575eacb7b7151e849f17ea61478c52705529926422feb",
+      "source_bytes": 13463,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_manager",
+        "touch_display",
+        "packet_values"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "8c7d8fafcbedeae4ea13592c55b139847813c9ec",
+        "dev/1.19.4": "f6df0e88ca335f7b7083da2e9c5dddfb599955c6",
+        "dev/1.20": "0d56138687c899c82f75daa52af021d8c6f8de2e",
+        "dev/1.20.1": "0d56138687c899c82f75daa52af021d8c6f8de2e",
+        "dev/1.20.2": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "dev/1.20.3": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "dev/1.20.4": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "dev/1.21.0": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "dev/1.21.1": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "dev/26.1.2": "b2996d35745d260c41e08876510b837d5e13aa7b",
+        "release/1.19.2": "12fe00b8715634c0ed05c9abfbc4bdd7eba2b4b3",
+        "release/1.19.4": "46e73b1d02f9364c03806e5a3213085e00d3d6f9",
+        "release/1.20": "0d56138687c899c82f75daa52af021d8c6f8de2e",
+        "release/1.20.1": "0d56138687c899c82f75daa52af021d8c6f8de2e",
+        "release/1.20.2": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "release/1.20.3": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "release/1.20.4": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "release/1.21.0": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "release/1.21.1": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+        "release/26.1.2": "b2996d35745d260c41e08876510b837d5e13aa7b"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-startup-registration-stage-v1/SFMBlocks.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+      "source_sha256": "sha256:c164a97e4d3117530025ad29fc06ab2e8984c60f5e3536e8b2b7d3faf8154e85",
+      "source_bytes": 21054,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_manager",
+        "touch_display"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "f7538595b682d3ea83118d1080222d43f007ea84",
+        "dev/1.19.4": "f7538595b682d3ea83118d1080222d43f007ea84",
+        "dev/1.20": "e464563211ff4900b96c86fb8e53954c0c730c6e",
+        "dev/1.20.1": "e464563211ff4900b96c86fb8e53954c0c730c6e",
+        "dev/1.20.2": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "dev/1.20.3": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "dev/1.20.4": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "dev/1.21.0": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "dev/1.21.1": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "dev/26.1.2": "430fe4d1b3558fdd8d225f63357a2e74bd559723",
+        "release/1.19.2": "ffae7e91e295a09952ad797bdf97a6e670f91f30",
+        "release/1.19.4": "ffae7e91e295a09952ad797bdf97a6e670f91f30",
+        "release/1.20": "e464563211ff4900b96c86fb8e53954c0c730c6e",
+        "release/1.20.1": "e464563211ff4900b96c86fb8e53954c0c730c6e",
+        "release/1.20.2": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "release/1.20.3": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "release/1.20.4": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "release/1.21.0": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "release/1.21.1": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+        "release/26.1.2": "430fe4d1b3558fdd8d225f63357a2e74bd559723"
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlockEntities.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-startup-registration-stage-v1/SFMBlockEntities.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlockEntities.java",
+      "source_sha256": "sha256:fb9ba557180627240a5ce77e2d9f35d7c2344855e33abe0abb2d688a96a3eb03",
+      "source_bytes": 11749,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "client_manager",
+        "touch_display"
+      ],
+      "witnesses": {
+        "dev/1.19.2": "54435d1e7187213db7b13067b97b63d2654a35aa",
+        "dev/1.19.4": "54435d1e7187213db7b13067b97b63d2654a35aa",
+        "dev/1.20": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "dev/1.20.1": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "dev/1.20.2": "c4869875e4afd3993c54920c88a1539165044e12",
+        "dev/1.20.3": "c4869875e4afd3993c54920c88a1539165044e12",
+        "dev/1.20.4": "c4869875e4afd3993c54920c88a1539165044e12",
+        "dev/1.21.0": "c4869875e4afd3993c54920c88a1539165044e12",
+        "dev/1.21.1": "c4869875e4afd3993c54920c88a1539165044e12",
+        "dev/26.1.2": "9b4c70a1813855565f4f3e8044d88e315243a865",
+        "release/1.19.2": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "release/1.19.4": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "release/1.20": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "release/1.20.1": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+        "release/1.20.2": "c4869875e4afd3993c54920c88a1539165044e12",
+        "release/1.20.3": "c4869875e4afd3993c54920c88a1539165044e12",
+        "release/1.20.4": "c4869875e4afd3993c54920c88a1539165044e12",
+        "release/1.21.0": "c4869875e4afd3993c54920c88a1539165044e12",
+        "release/1.21.1": "c4869875e4afd3993c54920c88a1539165044e12",
+        "release/26.1.2": "9b4c70a1813855565f4f3e8044d88e315243a865"
+      }
+    }
+  ],
+  "raw_variants": [
+    {
+      "blob": "0d56138687c899c82f75daa52af021d8c6f8de2e",
+      "sha256": "sha256:17e9f48e7c026d899df155568c02dc6d20921c863919b25e44ed288fac8dc32e",
+      "bytes": 4191,
+      "lf_lines": 130,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "blob": "12fe00b8715634c0ed05c9abfbc4bdd7eba2b4b3",
+      "sha256": "sha256:cb505b177d9c9e55ab7a1b0611d26c0d9ca282185cee893d09b92a5704016de5",
+      "bytes": 4210,
+      "lf_lines": 129,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "release/1.19.2"
+      ]
+    },
+    {
+      "blob": "3837e75f4aae35019042d410b10e8cceaf5057ba",
+      "sha256": "sha256:7aa47e66af9b0bc8ba567110912df2cf20c05ce6ba46bfa0656b6b666c4bcd91",
+      "bytes": 4139,
+      "lf_lines": 129,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "blob": "46e73b1d02f9364c03806e5a3213085e00d3d6f9",
+      "sha256": "sha256:08900de26a0a3ae072e4f175a7f36e8ca20ff96e78ef3235fdd0276a14fcb014",
+      "bytes": 4149,
+      "lf_lines": 129,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "release/1.19.4"
+      ]
+    },
+    {
+      "blob": "8c7d8fafcbedeae4ea13592c55b139847813c9ec",
+      "sha256": "sha256:103100ad59a84e169844ffd7140124374a8194dbbeb98beaf0580aada4305451",
+      "bytes": 4621,
+      "lf_lines": 138,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.19.2"
+      ]
+    },
+    {
+      "blob": "b2996d35745d260c41e08876510b837d5e13aa7b",
+      "sha256": "sha256:4b0456eea66a0935b1a41f892f806b87c086c06735a177602c7d9e083ba429bf",
+      "bytes": 6676,
+      "lf_lines": 192,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "blob": "f6df0e88ca335f7b7083da2e9c5dddfb599955c6",
+      "sha256": "sha256:331bfadf5e8418be4a88ee6581b0a4d0f49dc297cf4a1ce57e83bf6b61550f89",
+      "bytes": 4562,
+      "lf_lines": 138,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "blob": "430fe4d1b3558fdd8d225f63357a2e74bd559723",
+      "sha256": "sha256:5b0384efcdb92ada0e6ccf6d684f0ca248c22f9788daed283d90610cc3d7b0d9",
+      "bytes": 11383,
+      "lf_lines": 230,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "blob": "a9457794c1b9d2ae1fa30e8463f44dd5fd465765",
+      "sha256": "sha256:3a8ec013a4f0afb8069c429a0872b8467a37280079877812354e243b1a21990a",
+      "bytes": 8997,
+      "lf_lines": 209,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "blob": "e464563211ff4900b96c86fb8e53954c0c730c6e",
+      "sha256": "sha256:bf2d077914850910dfa592e30e387d693546d164865550d6e5b1e9fbb5f7a164",
+      "bytes": 9007,
+      "lf_lines": 209,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "blob": "f7538595b682d3ea83118d1080222d43f007ea84",
+      "sha256": "sha256:2fe149c8b67e7cf4195689d0c932ca4ad89a4d891c6de46fb847516c57f6dbaa",
+      "bytes": 9466,
+      "lf_lines": 215,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "blob": "ffae7e91e295a09952ad797bdf97a6e670f91f30",
+      "sha256": "sha256:df8d7e3972212659e7ac3d2f352f1c615479a4d55670c60858a6fd69900ba273",
+      "bytes": 9132,
+      "lf_lines": 208,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "release/1.19.2",
+        "release/1.19.4"
+      ]
+    },
+    {
+      "blob": "54435d1e7187213db7b13067b97b63d2654a35aa",
+      "sha256": "sha256:e90c21bf02fa0656ad040c35e23910cb4d98542dd66196c6aa06f78ad79f8980",
+      "bytes": 7123,
+      "lf_lines": 162,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "blob": "8f934f6abb6d7e70cdbac890dcbe6a650bd4f585",
+      "sha256": "sha256:36a0fbe678a1b9a96c3413da7eeb6a3b46126daa12edb04d6a170ad0ed008a36",
+      "bytes": 6418,
+      "lf_lines": 146,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "blob": "9b4c70a1813855565f4f3e8044d88e315243a865",
+      "sha256": "sha256:e53d09da4d66675cfe00d62873b50be8c0b8effe39dd56e20bd122e213d7b384",
+      "bytes": 5573,
+      "lf_lines": 117,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "blob": "c4869875e4afd3993c54920c88a1539165044e12",
+      "sha256": "sha256:889169035418924635b1a9978643e8b7dce0520b867a53f4d3f0621e9186ef0e",
+      "bytes": 6407,
+      "lf_lines": 145,
+      "cr_count": 0,
+      "final_lf": true,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    }
+  ],
+  "version_adapters": [
+    {
+      "files": [
+        "SFMItems.java"
+      ],
+      "minecraft_versions": [
+        "1.19.2"
+      ],
+      "behavior": "Retain private REGISTRY name and creative tab assignment exactly; all later targets retain public REGISTERER. Original1.19.4 blank line in label-gun properties remains."
+    },
+    {
+      "files": [
+        "SFMItems.java",
+        "SFMBlocks.java",
+        "SFMBlockEntities.java"
+      ],
+      "minecraft_versions": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1"
+      ],
+      "behavior": "Forge event bus package; original Mod import only on1.20/1.20.1 retained."
+    },
+    {
+      "files": [
+        "SFMItems.java",
+        "SFMBlocks.java",
+        "SFMBlockEntities.java"
+      ],
+      "minecraft_versions": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "behavior": "NeoForge event bus. Stable target1.21.0 uses actual Minecraft1.21."
+    },
+    {
+      "files": [
+        "SFMBlocks.java"
+      ],
+      "minecraft_versions": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "behavior": "Material/MaterialColor property APIs retained exactly."
+    },
+    {
+      "files": [
+        "SFMBlocks.java"
+      ],
+      "minecraft_versions": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21",
+        "1.21.1"
+      ],
+      "behavior": "Properties.of() and exact original NoteBlockInstrument.BASS placement/indentation. Do not add it to tunnelled/tough variants where absent."
+    },
+    {
+      "files": [
+        "SFMItems.java",
+        "SFMBlocks.java"
+      ],
+      "minecraft_versions": [
+        "26.1.2"
+      ],
+      "behavior": "ResourceKey-based item/block setId and constructor callbacks, block-description prefix, exact overloads and registration ordering."
+    },
+    {
+      "files": [
+        "SFMBlockEntities.java"
+      ],
+      "minecraft_versions": [
+        "26.1.2"
+      ],
+      "behavior": "new BlockEntityType instead of removed Builder API; original TEST_BARREL_TANK binding to TEST_BARREL deliberately preserved, not silently repaired."
+    }
+  ],
+  "functional_members": [
+    {
+      "owner": "client_manager",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMItems.CLIENT_MANAGER",
+        "SFMBlocks.CLIENT_MANAGER",
+        "SFMBlockEntities.CLIENT_MANAGER"
+      ],
+      "baseline_off": "Fields and associated constructors disappear; released registration order remains. No entire-class feature gate."
+    },
+    {
+      "owner": "touch_display",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMItems.TOUCH_DISPLAY",
+        "SFMBlocks.TOUCH_DISPLAY",
+        "SFMBlockEntities.TOUCH_DISPLAY"
+      ],
+      "baseline_off": "Fields and associated constructors disappear; released registration order remains."
+    },
+    {
+      "owner": "packet_values",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "SFMItems.PACKET"
+      ],
+      "baseline_off": "Field and PacketItem factory disappear; item wildcard import remains released-compatible."
+    }
+  ],
+  "metadata_proposal": {
+    "apply_now": false,
+    "default_shared_sources": [
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlockEntities.java"
+    ],
+    "new_feature_definitions": [],
+    "catalog_changes": [],
+    "source_rule_policy": "Implicit shared discovery or one same-path unconditional rule; no historical source alternate, target exclusion, environment selector or whole-file feature predicate."
+  },
+  "authoring_prechecks": {
+    "actual_raw_byte_and_sha_reads": 16,
+    "staged_sources_written_with_apply_patch": 3,
+    "static_conditional_extraction_cells": 60,
+    "static_conditional_extraction_equal_raw_witnesses": true,
+    "static_checker_is_production_renderer": false,
+    "production_renderer_tests": "not_run_until_promotion",
+    "rust_or_java_compilation": "not_performed"
+  },
+  "test_proposal": {
+    "module": "platform/cli/sfm-propagate-changes/src/source_projection/core_startup_registration_slice_tests.rs",
+    "registered": false,
+    "run_performed": false,
+    "require_actual_core_after_promotion": true,
+    "coverage": [
+      "All60 source/context cells equal exact raw LF witnesses.",
+      "Each D2 requested client_manager/touch_display/packet_values mask expands only the real registered prerequisite closure; assertions use effective flags, not unsupported assumed independence.",
+      "All10 zero-feature contexts preserve released fields/order/API; owner support refuses older/newer unsupported targets.",
+      "One shared isolated edit reaches all10 targets through production selector/renderer; no repository mutation.",
+      "Raw/template/manifest changes and feature-level whole-file membership mutations fail closed."
+    ]
+  },
+  "downstream_acceptance_gaps": [
+    {
+      "scope": "released_startup",
+      "gap": "Registering these classes closes three absent released declarations, not the whole startup compile closure. DiskItem, ManagerBlockEntity, registry aggregators, client adapters and other missing released classes remain independently tracked by the actual63-path audit."
+    },
+    {
+      "scope": "PacketItem",
+      "gap": "Added on D2 only; one exact raw variant. Depends on packet values/codecs plus SFMPacketTooltipFormatter, which uses shared SFMItemUtils.getRainbow. PacketItem's unconditionally called semantic more-info helper needs a physical-key fallback when tooltip_mode_override is disabled, not a dependency cycle or unconditional palette runtime."
+    },
+    {
+      "scope": "DiskItem",
+      "gap": "Nine raw variants. Both readonly accessors are added on ALL10 dev targets; D2-only client_manager/computercraft does not explain all8 other dev sources. Proposed independent all-target disk_readonly_access requires a separate reviewed slice/registry decision. Existing ComputerCraft getter calls must declare that actual dependency."
+    },
+    {
+      "scope": "DiskItem_D2",
+      "gap": "Host binding to SERVER belongs to sfml_execution_side; semantic getName/appendHoverText path belongs to tooltip_mode_override. The latter owner is proposed but not yet registered. No broad dev owner or forced Client Manager dependency."
+    }
+  ]
+}

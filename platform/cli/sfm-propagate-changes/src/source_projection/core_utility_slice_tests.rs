@@ -9,7 +9,6 @@
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::core_slice_test_support::CoreTestFixture;
 use super::core_slice_test_support::read_bounded;
 use super::core_slice_test_support::read_git_blobs;
@@ -320,7 +319,9 @@ impl UtilityFixture {
     }
 
     fn render_selected(&self, path: &str, context: &ProjectionContext) -> Result<Vec<u8>> {
-        let selected = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selected = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let input = selected
             .inputs
             .get(path)

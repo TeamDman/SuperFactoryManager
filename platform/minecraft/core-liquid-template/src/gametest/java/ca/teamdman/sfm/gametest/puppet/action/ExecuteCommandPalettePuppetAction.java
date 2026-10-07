@@ -1,0 +1,71 @@
+package ca.teamdman.sfm.gametest.puppet.action;
+
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+
+/** Executes a command through the visible command palette input. */
+public final class ExecuteCommandPalettePuppetAction implements SFMPuppetAction {
+    private final String command;
+    private int ticks;
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+    private boolean inputSet;
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% endcase %}
+    private boolean requested;
+
+    public ExecuteCommandPalettePuppetAction(String command) {
+        if (command == null || command.isBlank()) {
+            throw new IllegalArgumentException("Command palette command must not be blank");
+        }
+        this.command = command;
+    }
+
+    @Override
+    public String description() {
+        return "execute command palette command: " + this.command;
+    }
+
+    @Override
+    public boolean tick(ISFMGamePuppetRuntime runtime) {
+        if (requested) {
+            return ++ticks > SFMGamePuppetHelper.RENDER_SETTLE_TICKS;
+        }
+        if (!runtime.isScreen(SFMCommandPaletteScreen.class)) {
+            runtime.openCommandPalette();
+            if (++ticks > SFMGamePuppetHelper.SCREEN_TIMEOUT_TICKS) {
+                throw new IllegalStateException(
+                        "Timed out waiting for command palette before executing command; current screen is "
+                                + runtime.currentScreenName()
+                );
+            }
+            return false;
+        }
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+        if (!inputSet) {
+            inputSet = true;
+            runtime.setCommandPaletteInput(this.command);
+            return false;
+        }
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% endcase %}
+        if (!requested) {
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+            if (++ticks <= SFMGamePuppetHelper.COMMAND_PALETTE_OBSERVATION_TICKS) return false;
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% endcase %}
+            requested = true;
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+            runtime.submitCommandPalette();
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+            runtime.executeCommandPalette(this.command);
+{% endcase %}
+            return false;
+        }
+        throw new IllegalStateException("Unreachable command palette automation state");
+    }
+}

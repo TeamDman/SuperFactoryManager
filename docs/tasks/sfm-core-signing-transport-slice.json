@@ -1,0 +1,697 @@
+{
+  "schema": "sfm:core-signing-transport-slice@1",
+  "status": "Authored ignored source stage; prepared real-core tests unregistered and unexecuted. Root promotion and current-tool checks are required.",
+  "starting_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "scope": {
+    "java_files": 4,
+    "authored_java_bytes": 11657,
+    "historical_cells": 80,
+    "present": 8,
+    "absent": 72,
+    "production_stage": "platform/cli/sfm-propagate-changes/target/core-signing-transport-stage-v1/src",
+    "actual_java_compilation": false,
+    "runtime_or_network_validation": false,
+    "source_contract_only": true
+  },
+  "normalization": "none",
+  "contract_changes": false,
+  "definitions": {
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "runtime_resource_cleanup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "client_program_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "packet_values",
+        "sfml_execution_side",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation"
+      ]
+    },
+    "disk_readonly_access": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_program_signing": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_frame_language": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_manager",
+        "sfml_execution_side",
+        "client_program_consent"
+      ]
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ClientboundClientManagerSigningResponsePacket.java",
+      "owner": "client_program_signing",
+      "raw_oid": "c2389853349f4d1251ffae97de163e155d5241b5",
+      "raw_bytes": 3653,
+      "raw_sha256": "sha256:9e3a56674cf9122152840975cb43705d593c9272ea39a8a5d9caf48eb08059c0",
+      "authored_bytes": 3653,
+      "authored_sha256": "sha256:9e3a56674cf9122152840975cb43705d593c9272ea39a8a5d9caf48eb08059c0",
+      "cr_count": 0,
+      "lf_count": 57,
+      "final_lf": true,
+      "bom": false,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/common/net/ClientboundClientManagerSigningResponsePacket.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_signing"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.20.1": null,
+        "release/1.19.2": null,
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.19.4": "c2389853349f4d1251ffae97de163e155d5241b5",
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.19.4": null,
+        "dev/1.20": null,
+        "release/1.20.1": null,
+        "dev/1.19.2": "c2389853349f4d1251ffae97de163e155d5241b5",
+        "dev/1.20.4": null,
+        "release/1.20.4": null,
+        "release/26.1.2": null,
+        "release/1.21.1": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "release/1.21.0": null
+      },
+      "common_edit_anchor": "public record ClientboundClientManagerSigningResponsePacket",
+      "preserved_source_anchors": [
+        "PacketDirection.CLIENTBOUND",
+        "position = Objects.requireNonNull(position).immutable();",
+        "ClientManagerSigningCodec.MAX_ACKNOWLEDGEMENT_BYTES",
+        "return bytes.clone();",
+        "acknowledgement.map(byte[]::clone)",
+        "acknowledgement.map(ClientManagerSigningCodec::decodeAcknowledgement)",
+        "source.readUtf(256)",
+        "ClientManagerSigningState.Status.values().length",
+        "source.readByteArray(ClientManagerSigningCodec.MAX_ACKNOWLEDGEMENT_BYTES)",
+        "ClientManagerSigningResponses.receive(packet);"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSigningRequestPacket.java",
+      "owner": "client_program_signing",
+      "raw_oid": "7713432b7fa10fb5a42f92b7d9835cc4691783c8",
+      "raw_bytes": 4448,
+      "raw_sha256": "sha256:eb0cfbd3eb23d5857b94579ed3f3338acb1d74b0579129e0fea12cb4dc1d1af7",
+      "authored_bytes": 4448,
+      "authored_sha256": "sha256:eb0cfbd3eb23d5857b94579ed3f3338acb1d74b0579129e0fea12cb4dc1d1af7",
+      "cr_count": 0,
+      "lf_count": 73,
+      "final_lf": true,
+      "bom": false,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSigningRequestPacket.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_signing"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.20.1": null,
+        "release/1.19.2": null,
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.19.4": "7713432b7fa10fb5a42f92b7d9835cc4691783c8",
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.19.4": null,
+        "dev/1.20": null,
+        "release/1.20.1": null,
+        "dev/1.19.2": "7713432b7fa10fb5a42f92b7d9835cc4691783c8",
+        "dev/1.20.4": null,
+        "release/1.20.4": null,
+        "release/26.1.2": null,
+        "release/1.21.1": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "release/1.21.0": null
+      },
+      "common_edit_anchor": "public record ServerboundClientManagerSigningRequestPacket",
+      "preserved_source_anchors": [
+        "PacketDirection.SERVERBOUND",
+        "record Save(UUID incarnation, long revision, String source)",
+        "revision < 0 || source.length() > Program.MAX_PROGRAM_LENGTH",
+        "ProgramSignatureDescriptor.normalizedSourceBytes(source);",
+        "declaredCapabilities.isEmpty()",
+        "ProgramSignatureDescriptor.MAX_CAPABILITIES",
+        "declaredCapabilities = List.copyOf(declaredCapabilities);",
+        "capability.toString().length() > 256",
+        "getBytes(java.nio.charset.StandardCharsets.UTF_8)",
+        "count <= 0 || count > ProgramSignatureDescriptor.MAX_CAPABILITIES",
+        "target.writeUUID(save.incarnation);",
+        "target.writeLong(save.revision);",
+        "source.readUtf(Program.MAX_PROGRAM_LENGTH)",
+        "SFMServerClientManagerSigningTransport.receive(packet, context.sender());"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSignaturePacket.java",
+      "owner": "client_program_signing",
+      "raw_oid": "d55b155e8a021ac441b25933c9065665995f4ab0",
+      "raw_bytes": 2749,
+      "raw_sha256": "sha256:9d2ebebdbd15f29aad78bb77912808165e764cb9ddea6b6a7dc863fe32d5c42b",
+      "authored_bytes": 2749,
+      "authored_sha256": "sha256:9d2ebebdbd15f29aad78bb77912808165e764cb9ddea6b6a7dc863fe32d5c42b",
+      "cr_count": 0,
+      "lf_count": 45,
+      "final_lf": true,
+      "bom": false,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSignaturePacket.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_signing"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.20.1": null,
+        "release/1.19.2": null,
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.19.4": "d55b155e8a021ac441b25933c9065665995f4ab0",
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.19.4": null,
+        "dev/1.20": null,
+        "release/1.20.1": null,
+        "dev/1.19.2": "d55b155e8a021ac441b25933c9065665995f4ab0",
+        "dev/1.20.4": null,
+        "release/1.20.4": null,
+        "release/26.1.2": null,
+        "release/1.21.1": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "release/1.21.0": null
+      },
+      "common_edit_anchor": "public record ServerboundClientManagerSignaturePacket",
+      "preserved_source_anchors": [
+        "PacketDirection.SERVERBOUND",
+        "revision < 0 || dimension.toString().length() > 256 || attestation.length == 0",
+        "ProgramAttestationCodec.MAX_ATTESTATION_BYTES",
+        "attestation = attestation.clone();",
+        "return attestation.clone();",
+        "return attestation.length + 128;",
+        "target.writeLong(value.revision);",
+        "target.writeUUID(value.challenge).writeByteArray(value.attestation);",
+        "source.readByteArray(ProgramAttestationCodec.MAX_ATTESTATION_BYTES)",
+        "SFMServerClientManagerSigningTransport.receive(packet, context.sender());"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientSigningUiWorker.java",
+      "owner": "client_program_signing",
+      "raw_oid": "5eed5867d93e62d8f4da76fe7b69d0135cdb47ca",
+      "raw_bytes": 807,
+      "raw_sha256": "sha256:ac3bde67f6e94037b8db79171445558205dfcdf8054513a73b339ba8bd225685",
+      "authored_bytes": 807,
+      "authored_sha256": "sha256:ac3bde67f6e94037b8db79171445558205dfcdf8054513a73b339ba8bd225685",
+      "cr_count": 0,
+      "lf_count": 18,
+      "final_lf": true,
+      "bom": false,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientSigningUiWorker.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_signing"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.20.1": null,
+        "release/1.19.2": null,
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.19.4": "5eed5867d93e62d8f4da76fe7b69d0135cdb47ca",
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.19.4": null,
+        "dev/1.20": null,
+        "release/1.20.1": null,
+        "dev/1.19.2": "5eed5867d93e62d8f4da76fe7b69d0135cdb47ca",
+        "dev/1.20.4": null,
+        "release/1.20.4": null,
+        "release/26.1.2": null,
+        "release/1.21.1": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "release/1.21.0": null
+      },
+      "common_edit_anchor": "public final class ClientSigningUiWorker",
+      "preserved_source_anchors": [
+        "new ThreadPoolExecutor(1, 1, 30, TimeUnit.SECONDS",
+        "new ArrayBlockingQueue<>(1)",
+        "new Thread(task, \"sfm-signing-key-ui\")",
+        "thread.setDaemon(true);",
+        "new ThreadPoolExecutor.AbortPolicy()",
+        "public static Executor executor() { return WORKER; }"
+      ]
+    }
+  ],
+  "profiles": {
+    "off": [],
+    "side": [
+      "sfml_execution_side"
+    ],
+    "consent": [
+      "client_program_consent",
+      "sfml_execution_side"
+    ],
+    "manager": [
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "sfml_execution_side"
+    ],
+    "frame": [
+      "client_frame_language",
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "sfml_execution_side"
+    ],
+    "actions": [
+      "client_actions",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ],
+    "signing": [
+      "client_actions",
+      "client_frame_language",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "client_program_signing",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ]
+  },
+  "current_provider_source_receipts": [
+    {
+      "rules": [],
+      "bytes": 68,
+      "path": "src/main/java/ca/teamdman/sfm/common/net/SFMPacket.java",
+      "sha256": "sha256:e4a31a3581999e9da9f37ad8a9187911c1c9f44f8d9ccb2a0d996401631adf81"
+    },
+    {
+      "rules": [],
+      "bytes": 3787,
+      "path": "src/main/java/ca/teamdman/sfm/common/net/SFMPacketDaddy.java",
+      "sha256": "sha256:d6e14f758a30638d4dc152ee442998773610414523341f41524d527b451662be"
+    },
+    {
+      "rules": [],
+      "bytes": 9531,
+      "path": "src/main/java/ca/teamdman/sfm/common/net/SFMPacketHandlingContext.java",
+      "sha256": "sha256:090379da05475414ddc93e848a795e4f3852d142fe51774e7c44d4a2257d3c11"
+    },
+    {
+      "rules": [],
+      "bytes": 23921,
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMPackets.java",
+      "sha256": "sha256:00e65686080d1644e3bbf30c71d58f96a8bfc42c7f97dfa4090cacafa1066791"
+    },
+    {
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/program/signature/ProgramSignatureDescriptor.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_manager",
+              "manager_operator_queries",
+              "client_program_signing",
+              "multiplayer_packets"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "bytes": 4472,
+      "path": "src/main/java/ca/teamdman/sfm/common/program/signature/ProgramSignatureDescriptor.java",
+      "sha256": "sha256:fe5538c9146ef5b7e0685d3ae18b4f63833b12d186331f550fe35fa551a2cd82"
+    },
+    {
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/program/signature/ClientManagerSigningCodec.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_manager",
+              "client_program_signing"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "bytes": 7207,
+      "path": "src/main/java/ca/teamdman/sfm/common/program/signature/ClientManagerSigningCodec.java",
+      "sha256": "sha256:038be7d0522ddcc2452d6d69dec8459e569547e56a43322b0abbdf6564a49c58"
+    },
+    {
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/program/signature/ClientManagerSigningState.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_manager",
+              "client_program_signing"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "bytes": 8942,
+      "path": "src/main/java/ca/teamdman/sfm/common/program/signature/ClientManagerSigningState.java",
+      "sha256": "sha256:9c2096bdcc9b18c95c3a32373b51a7daa8be727a0c54aecc8da780d6a0ce114f"
+    },
+    {
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/program/signature/ProgramAttestationCodec.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_manager",
+              "client_program_signing"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "bytes": 6771,
+      "path": "src/main/java/ca/teamdman/sfm/common/program/signature/ProgramAttestationCodec.java",
+      "sha256": "sha256:1fcf0c493f1abba27d5f19eccfcdb516089546d13ca53005cb771f0e3b6719b9"
+    },
+    {
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientProgramSigningController.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_signing"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "bytes": 18631,
+      "path": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientProgramSigningController.java",
+      "sha256": "sha256:0cae5bda077697ac23402a29ee36c78eead52675c74948544ac1aab5be9eae8a"
+    },
+    {
+      "rules": [],
+      "bytes": 21161,
+      "path": "src/main/java/ca/teamdman/sfml/ast/Program.java",
+      "sha256": "sha256:086f8cc029be421f5eed29c4cd54edb566c444ccf9836f2e48ef0429d675382d"
+    }
+  ],
+  "ownership_evidence": [
+    {
+      "owner": "client_program_signing",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/net/ClientboundClientManagerSigningResponsePacket.java",
+        "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSigningRequestPacket.java",
+        "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSignaturePacket.java"
+      ],
+      "evidence": "The frozen SFMPackets signing block registers Request, Signature, Response in that order. Each packet is a typed bounded public-wire object, not a new permission or packet-publication action."
+    },
+    {
+      "owner": "client_program_signing",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientSigningUiWorker.java",
+      "direct_consumers": [
+        "src/main/java/ca/teamdman/sfm/client/program/signing/ClientProgramSigningRuntime.java",
+        "src/main/java/ca/teamdman/sfm/client/screen/ClientSigningKeysScreen.java"
+      ],
+      "evidence": "Only explicit signing/key UI uses this one bounded executor. No command-palette, touch, image, terminal or manager-GUI prerequisite is added."
+    }
+  ],
+  "admission_and_decode_boundaries": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ClientboundClientManagerSigningResponsePacket.java",
+      "evidence": "Wire decode validates bounded envelope fields and carries cloned opaque acknowledgement bytes. decodeAcknowledgement is a separate opt-in method. The real ClientProgramSigningController checks pending request, target, connection/live state and deadlines before its Decoder parses the acknowledgement; this stage does not wire the receiver."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSigningRequestPacket.java",
+      "evidence": "Bounded packet framing/count/source normalization precedes its server handler. Declared capabilities are authorship metadata, not server permissions. The real missing ServerSigningTransport reserves rate budget and checks its private-owner/world/dimension/chunk/alive/spectator/distance/mayInteract/loaded-manager gates before invoking review/CAS-save."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ServerboundClientManagerSignaturePacket.java",
+      "evidence": "Wire decode reads only size-limited cloned public attestation bytes. It does not call ProgramAttestationCodec.decode or verification. Existing SigningState.submitEncoded consumes the one-use challenge and checks exact incarnation/revision/body before attestation parsing; the missing real ServerSigningTransport performs actor/target admission before that call."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientSigningUiWorker.java",
+      "evidence": "One core/max worker, one queued task, daemon name and AbortPolicy preserved. Reading/staging Java never loads the class or creates worker tasks."
+    }
+  ],
+  "registrar_boundary": {
+    "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMPackets.java",
+    "existing_owner": "client_program_signing",
+    "registration_order": [
+      "ServerboundClientManagerSigningRequestPacket",
+      "ServerboundClientManagerSignaturePacket",
+      "ClientboundClientManagerSigningResponsePacket"
+    ],
+    "edited": false,
+    "evidence": "No discriminator, channel ID, channel version, direction-validation or complete-project layout contract is changed. Source-only test contexts omit SFMPackets from collector fixtures; full-project network layout must still pass the existing pre-generation validator. A signing-only source preview is not an accepted wire layout.",
+    "partial_layouts_not_approved": true
+  },
+  "missing_or_pending_closure": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/ClientManagerSigningResponses.java",
+      "status": "Exact real common receiver bridge is missing core at authoring time; response handler must not be replaced by a fake receiver."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/SFMServerClientManagerSigningTransport.java",
+      "status": "Real private-world admission/session/budget/effect bridge is missing core at authoring time. Its privilege, actor, distance, dimension, challenge consumption and invalidation semantics remain a separate bounded source tranche."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/signing/ClientProgramSigningRuntime.java",
+      "status": "Real UI/environment/worker/controller/packet receiver wiring is missing; this stage supplies typed objects and worker only."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ClientProgramSigningScreen.java",
+      "status": "Actual confirmation/pad/UI remains missing. No keys or signing action are exposed by these source rules."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ClientSigningKeysScreen.java",
+      "status": "Real key-management UI is a separate consumer; no key-store effects executed."
+    }
+  ],
+  "prepared_tests": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-signing-transport-stage-v1/core_signing_transport_slice_tests.rs",
+    "cases": 8,
+    "registered": false,
+    "executed": false,
+    "historical_cells": 80,
+    "independent_cells": 56,
+    "independent_selected": 8,
+    "independent_omitted": 48,
+    "missing_prerequisite_refusals": 20,
+    "unsupported_owner_profile_refusals": 24,
+    "automatic_java_outputs": 8,
+    "common_edit_outputs": 8,
+    "actual_apis": [
+      "CoreTestFixture.context",
+      "select_core_inputs",
+      "render_java_source",
+      "discover_core_source_files",
+      "collect_core_artifacts"
+    ],
+    "registration_after_promotion": "#[cfg(test)] mod core_signing_transport_slice_tests;"
+  },
+  "no_live_mutations": true,
+  "no_cargo_jvm_native_cli_network": true,
+  "dependencies_changed": false,
+  "key_store_or_signing_effects_executed": false
+}

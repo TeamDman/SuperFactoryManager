@@ -1,0 +1,164 @@
+{
+  "schema": "sfm:core-packet-statements-template-policy@2",
+  "status": "ignored_stage_delta_pending_root_review_and_promotion",
+  "reason": "The v1 staged fixture incorrectly required template=false for Java source rules. The actual authored-root collector always templates Java, independent of the optional non-Java template flag.",
+  "stage_root": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v2",
+  "preserves": {
+    "ledger_path": "docs/tasks/sfm-core-packet-statements-slice.json",
+    "ledger_bytes": 18539,
+    "ledger_sha256": "sha256:a6f10c70c2a8de8c60625fb1349a3dc651f8f8c373ffddf16ea9f8f83992e0b0",
+    "test_path": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v1/core_packet_statement_slice_tests.rs",
+    "test_bytes": 18568,
+    "test_sha256": "sha256:4dd181ba383d77d67163413c95ae9d21ab6e54ec86c67f4c5f79d0d8abd57a3d",
+    "raw_sources": [
+      {
+        "path": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v1/LetStatement.java",
+        "bytes": 639,
+        "sha256": "sha256:e81b46236410fbe3c526175665f4cca66fea515bdbfd488d4e6563b067678bd1"
+      },
+      {
+        "path": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v1/CreateInputStatement.java",
+        "bytes": 1804,
+        "sha256": "sha256:ed5ffc5a33d553e84ccad5f8c6a13e52535dc7bf03166948eac6bb50e2e9964d"
+      }
+    ],
+    "description": "All v1 artifacts remain immutable. Its template=false metadata is retained as the historical proposal; this separate receipt amends only that proposed declaration and the test assertion."
+  },
+  "staged_artifacts": {
+    "core_packet_statement_slice_tests.rs": {
+      "bytes": 18526,
+      "sha256": "sha256:16425553f716cead9ea17c1c900543f8f5f710c628d2aab934ced9fa9688fc7c",
+      "line_feed_count": 455,
+      "carriage_return_count": 0,
+      "test_count": 4
+    },
+    "template-policy.patch": {
+      "bytes": 762,
+      "sha256": "sha256:23f01f2ba419c070d8cf89859e11595677704f44b74c935bd1968fb6695c277e",
+      "line_feed_count": 11,
+      "carriage_return_count": 0,
+      "test_count": null
+    }
+  },
+  "exact_test_delta": {
+    "source": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v1/core_packet_statement_slice_tests.rs",
+    "replacement": "platform/cli/sfm-propagate-changes/target/core-packet-statements-stage-v2/core_packet_statement_slice_tests.rs",
+    "deleted_lines": 1,
+    "deleted_bytes": 42,
+    "deleted_line": "                    && !rules[0].template",
+    "added_lines": 0,
+    "added_bytes": 0,
+    "line_feeds_removed": 1,
+    "carriage_returns": 0,
+    "other_bytes_changed": false,
+    "preserves": "The four test bodies, frozen context/blob/SHA256 constants, actual-core readers, membership and prerequisite checks, simulation guard order, and isolated-edit assertions remain byte-identical.",
+    "recommendation": "Drop the false assertion without replacing it with a strict true assertion. Raw Java preservation is proved by the pinned source bytes and rendering; either metadata declaration is compatible with the collector."
+  },
+  "inspected_collector_evidence": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_inputs.rs",
+      "anchor": "if java || selected.template {",
+      "line": 352,
+      "implication": "Every selected Java input passes selector validation and render_java_artifact even when template is false; template controls optional non-Java text rendering."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_inputs.rs",
+      "anchor": "fn selected_java_always_renders_while_non_java_text_requires_opt_in()",
+      "line": 971,
+      "implication": "The existing test prepares a Java file with Liquid directives without opting it into template metadata, while literal non-Java text needs explicit opt-in. This test was inspected, not executed in this amendment."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/inputs.rs",
+      "anchor": "pub(crate) fn render_java_artifact(",
+      "line": 216,
+      "implication": "The Java artifact retains authored source_bytes, renders the controlled Java body and adds the generated banner only to output_bytes. It does not interpret the source-rule template declaration."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_program_relations_slice_tests.rs",
+      "anchor": "Java is always processed as a core template by the production",
+      "line": 257,
+      "implication": "The existing relation fixture validates source identity and sparse membership without constraining the optional non-Java template bit."
+    }
+  ],
+  "amended_source_rule_proposal": {
+    "src/main/java/ca/teamdman/sfml/ast/LetStatement.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfml/ast/LetStatement.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      }
+    ],
+    "src/main/java/ca/teamdman/sfml/ast/CreateInputStatement.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfml/ast/CreateInputStatement.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      }
+    ]
+  },
+  "unchanged_feature_contract": {
+    "owner": "packet_computation",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values",
+      "runtime_resource_cleanup"
+    ],
+    "support_changed": false,
+    "prerequisites_changed": false,
+    "feature_registry_changed": false
+  },
+  "promotion_prerequisite": "Promote the existing six-provider packet slice before these two statement leaves and their actual-core tests; ProgramValueExpression and GeneratedItemProgramInputSource remain direct required peers.",
+  "validation": {
+    "completed": [
+      "Read the actual authored-root collector, Java artifact renderer, selected-Java/non-Java test, and existing real-core relation fixture.",
+      "Confirmed the v1 fixture's template=false assertion was not part of the collector's Java contract.",
+      "Prepared a v2 ignored test copy with exactly one 42-byte assertion line removed.",
+      "Retained all v1 source, ledger and test identities; proposed explicit template=true separately."
+    ],
+    "prepared_not_executed": [
+      "Register and run the four corrected actual-core statement tests after source and provider promotion.",
+      "Java compilation and simulation/lazy-materialization/runtime acceptance remain separate."
+    ],
+    "builds_run": false,
+    "jvm_run": false,
+    "network_access": false,
+    "helper_processes_launched": false,
+    "cargo_run": false,
+    "cli_run": false,
+    "java_run": false,
+    "rustfmt_run": false,
+    "live_source_or_metadata_writes": 0,
+    "existing_ledger_or_test_writes": 0,
+    "compile_acceptance": false,
+    "runtime_acceptance": false
+  },
+  "promotion_contract": [
+    "Keep the v1 ledger, test and raw source artifacts byte-identical.",
+    "Use the two raw v1 Java bodies and this v2 receipt's proposed template=true source rules for promotion.",
+    "Use the corrected v2 test module; leave source identity, D2 ownership, prerequisites and guard-order checks intact.",
+    "Do not interpret dropping the template-bit assertion as permission to alter raw source bytes or skip Java rendering."
+  ]
+}

@@ -1,0 +1,2627 @@
+{
+  "schema": "sfm:core_gametest_framework_slice@1",
+  "status": "staged_only_post_promotion_tests_unregistered",
+  "scope": "five_released_gametest_framework_classes",
+  "production_import_policy": "Authored core inputs only; frozen Git objects are migration/test witnesses, never runtime fallback",
+  "source_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "scope_counts": {
+    "files": 5,
+    "cells": 100,
+    "present": 100,
+    "absent": 0,
+    "unique_raw_blobs": 41,
+    "normalization_raw_blobs": 22,
+    "already_raw_lf_blobs": 19,
+    "removed_cr": 7704
+  },
+  "normalization": {
+    "policy": "sfm:java_crlf_to_lf@1",
+    "crlf_to_lf_only": true,
+    "all_existing_final_lf": true,
+    "appended_final_lf": false,
+    "trim_whitespace": false,
+    "token_edits": false,
+    "lone_cr_rejected": true
+  },
+  "features": [
+    {
+      "name": "gametest_sides",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "files": [
+        "SFMGameTest.java",
+        "SFMGameTestDiscovery.java"
+      ],
+      "behaviour": "Physical-distribution metadata defaults to both distributions; filter annotated definitions before class loading only. Generated definitions retain original discovery.",
+      "missing_closure": []
+    },
+    {
+      "name": "gametest_static_names",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMGameTestDefinition.java"
+      ],
+      "behaviour": "Expose static testNameFor(Class) and retain instance testName results.",
+      "missing_closure": []
+    },
+    {
+      "name": "client_properties",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMClientRunHarness.java",
+        "SFMGameTestDiscovery.java",
+        "SFMGameTestHelper.java"
+      ],
+      "behaviour": "Use the common typed SFMProperties property accessors and run-mode type, rather than raw system property access. No implicit smoke, puppet, pause or delay changes.",
+      "missing_closure": [
+        "SFMProperties",
+        "property-specific SFMTitleScreenDevScreen/SFMGameTestId consumers must retain independent ownership"
+      ]
+    },
+    {
+      "name": "game_puppet_runtime",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_properties"
+      ],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Route GAME_PUPPET title/tick/pause events to SFMGamePuppetHarness; preserve ordinary client GameTests as a separate path.",
+      "missing_closure": [
+        "SFMGamePuppetHarness",
+        "reviewed own puppet discovery/runtime/render/CLI dependencies"
+      ]
+    },
+    {
+      "name": "client_smoke_harness",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_properties"
+      ],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Move SMOKE completion out of GameTest Harness and into the separate SFMClientSmokeRunHarness.",
+      "missing_closure": [
+        "SFMClientSmokeRunHarness"
+      ]
+    },
+    {
+      "name": "client_automation_pause_restore",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Capture/restore pause-on-lost-focus without options.save; restrict normal puppet pause suppression to active automation and mark completion when scheduling exit.",
+      "missing_closure": []
+    },
+    {
+      "name": "client_automation_keep_open_default",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Raise default post-test keep-open countdown from10 to25 seconds independently of property registry.",
+      "missing_closure": []
+    },
+    {
+      "name": "client_automation_registry_copy",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Acquire RegistryAccess.builtinCopy for new test-world creation instead of the released BUILTIN frozen reference.",
+      "missing_closure": []
+    },
+    {
+      "name": "client_automation_harness_annotations",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Preserve developer Nullable tracker metadata, plus the witnessed1.19.4 world-create MCVersionDependentBehaviour annotation; no runtime access expansion.",
+      "missing_closure": []
+    },
+    {
+      "name": "gametest_mekanism_dependency_isolation",
+      "supported_targets": [
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "files": [
+        "SFMGameTestHelper.java"
+      ],
+      "behaviour": "Remove embedded Mekanism imports and preparation helpers. Preserve them off for released API compatibility; do not silently repair remaining compatibility consumers.",
+      "missing_closure": [
+        "Modern frozen dev compatibility test sources still call helper.getAndPrepMekTile; these consumers need a separately reviewed helper/migration before enabled build acceptance."
+      ]
+    },
+    {
+      "name": "command_history",
+      "registered_existing_feature": true,
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires_existing_registry": true,
+      "files": [
+        "SFMClientRunHarness.java"
+      ],
+      "behaviour": "Use an in-memory command history during normal test or game-puppet automation; no disk/history isolation during manual gameplay.",
+      "missing_closure": []
+    }
+  ],
+  "inputs": [
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-gametest-framework-stage-v1/SFMClientRunHarness.java",
+      "template_sha256": "sha256:e72c37355f083d711678839474beaf3df798f0e41330a469a45936db52b438c6",
+      "template_bytes": 36612,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "d1ea53b49c605a3259bc970068297f4a920ad00e",
+          "raw_sha256": "sha256:a0c878eca26134875385f9f135e61ee0c5f1cfbd2b4cb168f2ef8df89473b2e8",
+          "raw_bytes": 15748,
+          "normalized_sha256": "sha256:a0c878eca26134875385f9f135e61ee0c5f1cfbd2b4cb168f2ef8df89473b2e8",
+          "normalized_bytes": 15748,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "47ae8c998a02b646c88814457588ecfdb0c10ca3",
+          "raw_sha256": "sha256:434de69e04b77a78a3f3308ea577c50e441264561aa260f2e37d728f28bb8b9e",
+          "raw_bytes": 15689,
+          "normalized_sha256": "sha256:434de69e04b77a78a3f3308ea577c50e441264561aa260f2e37d728f28bb8b9e",
+          "normalized_bytes": 15689,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "c67174eddd49fd83ef8c5fc9c2a5a68b5bf8fcd4",
+          "raw_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "raw_bytes": 15032,
+          "normalized_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "normalized_bytes": 15032,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "f11ad5b7b1a10f360905b3cf1b3ed661bf5130f0",
+          "raw_sha256": "sha256:c80d8b0517a054e659922764632b1bacbc6807c0130ae688cc109e187ce69621",
+          "raw_bytes": 15044,
+          "normalized_sha256": "sha256:c80d8b0517a054e659922764632b1bacbc6807c0130ae688cc109e187ce69621",
+          "normalized_bytes": 15044,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "703bb696eca41f4b67bf500e277c844b02749d44",
+          "raw_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "raw_bytes": 15078,
+          "normalized_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "normalized_bytes": 15078,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "d19f681497b3cc6dc40cec159829c5b8339ea7eb",
+          "raw_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "raw_bytes": 15193,
+          "normalized_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "normalized_bytes": 15193,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "a275cad0f878cf79a349d6609008312c0768c078",
+          "raw_sha256": "sha256:399b777370434ce489bc9c4b798040879a909e99491ac61e91de5332c036fd8e",
+          "raw_bytes": 15985,
+          "normalized_sha256": "sha256:399b777370434ce489bc9c4b798040879a909e99491ac61e91de5332c036fd8e",
+          "normalized_bytes": 15985,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "838f2bbfd63e56d29624e7d630492daa239cb954",
+          "raw_sha256": "sha256:6e94ef113f3c15b1d8330fbf1dada81801ad63ac79707689c8d5a1142b561e63",
+          "raw_bytes": 13841,
+          "normalized_sha256": "sha256:6e94ef113f3c15b1d8330fbf1dada81801ad63ac79707689c8d5a1142b561e63",
+          "normalized_bytes": 13841,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "bb073a8d3503a164d4665ecc7a521bd64a23d335",
+          "raw_sha256": "sha256:44dfe83ac0384b114c4402d375e182353b9302405f27f6be7136f21b58d64f7f",
+          "raw_bytes": 13678,
+          "normalized_sha256": "sha256:44dfe83ac0384b114c4402d375e182353b9302405f27f6be7136f21b58d64f7f",
+          "normalized_bytes": 13678,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "cf7a1e65e7d623078eb7b5b37efebf8faa07436f",
+          "raw_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "raw_bytes": 13684,
+          "normalized_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "normalized_bytes": 13684,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "4dbbef1ecbd8710fc754df12fe261fee8926741a",
+          "raw_sha256": "sha256:268fdd1d3c317f5f7c8000498126f46cc73bdab73cac79b7b867f131214673d2",
+          "raw_bytes": 13696,
+          "normalized_sha256": "sha256:268fdd1d3c317f5f7c8000498126f46cc73bdab73cac79b7b867f131214673d2",
+          "normalized_bytes": 13696,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "63799daeaa60a5dd5bcf123f2ec9249d8fd15815",
+          "raw_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "raw_bytes": 13730,
+          "normalized_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "normalized_bytes": 13730,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "0f8f86601c425330bf9855d5f805bd50125affb5",
+          "raw_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "raw_bytes": 13888,
+          "normalized_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "normalized_bytes": 13888,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "b35e6e79f05f892825b4f084ed6dbb8a002377f4",
+          "raw_sha256": "sha256:35eea92a56e1d2c1015eee3731b21e11935c4e2a995391aa27bee9bbdc2f7a26",
+          "raw_bytes": 14566,
+          "normalized_sha256": "sha256:35eea92a56e1d2c1015eee3731b21e11935c4e2a995391aa27bee9bbdc2f7a26",
+          "normalized_bytes": 14566,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d1ea53b49c605a3259bc970068297f4a920ad00e",
+          "raw_sha256": "sha256:a0c878eca26134875385f9f135e61ee0c5f1cfbd2b4cb168f2ef8df89473b2e8",
+          "raw_bytes": 15748,
+          "normalized_sha256": "sha256:a0c878eca26134875385f9f135e61ee0c5f1cfbd2b4cb168f2ef8df89473b2e8",
+          "normalized_bytes": 15748,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations",
+            "command_history",
+            "typed_command_palette",
+            "command_palette",
+            "client_actions",
+            "client_theme",
+            "keyboard_profiles",
+            "client_automation_registry_copy"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "47ae8c998a02b646c88814457588ecfdb0c10ca3",
+          "raw_sha256": "sha256:434de69e04b77a78a3f3308ea577c50e441264561aa260f2e37d728f28bb8b9e",
+          "raw_bytes": 15689,
+          "normalized_sha256": "sha256:434de69e04b77a78a3f3308ea577c50e441264561aa260f2e37d728f28bb8b9e",
+          "normalized_bytes": 15689,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations",
+            "command_history",
+            "typed_command_palette",
+            "command_palette",
+            "client_actions",
+            "client_theme",
+            "keyboard_profiles"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "c67174eddd49fd83ef8c5fc9c2a5a68b5bf8fcd4",
+          "raw_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "raw_bytes": 15032,
+          "normalized_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "normalized_bytes": 15032,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "c67174eddd49fd83ef8c5fc9c2a5a68b5bf8fcd4",
+          "raw_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "raw_bytes": 15032,
+          "normalized_sha256": "sha256:7186617dde7841ef5aa079cf5018f2ca4b4a8aa84ca1c62b6341cd42c664ee68",
+          "normalized_bytes": 15032,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "f11ad5b7b1a10f360905b3cf1b3ed661bf5130f0",
+          "raw_sha256": "sha256:c80d8b0517a054e659922764632b1bacbc6807c0130ae688cc109e187ce69621",
+          "raw_bytes": 15044,
+          "normalized_sha256": "sha256:c80d8b0517a054e659922764632b1bacbc6807c0130ae688cc109e187ce69621",
+          "normalized_bytes": 15044,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "703bb696eca41f4b67bf500e277c844b02749d44",
+          "raw_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "raw_bytes": 15078,
+          "normalized_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "normalized_bytes": 15078,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "703bb696eca41f4b67bf500e277c844b02749d44",
+          "raw_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "raw_bytes": 15078,
+          "normalized_sha256": "sha256:0f1db41fdfc49964a5bc002356be7e5354e85c9edb26a038f67edde2589d0432",
+          "normalized_bytes": 15078,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d19f681497b3cc6dc40cec159829c5b8339ea7eb",
+          "raw_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "raw_bytes": 15193,
+          "normalized_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "normalized_bytes": 15193,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d19f681497b3cc6dc40cec159829c5b8339ea7eb",
+          "raw_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "raw_bytes": 15193,
+          "normalized_sha256": "sha256:176c8988c99d295f6e78077ec3263e923bbb3193321fe3fb9717c451e1ab7545",
+          "normalized_bytes": 15193,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "a275cad0f878cf79a349d6609008312c0768c078",
+          "raw_sha256": "sha256:399b777370434ce489bc9c4b798040879a909e99491ac61e91de5332c036fd8e",
+          "raw_bytes": 15985,
+          "normalized_sha256": "sha256:399b777370434ce489bc9c4b798040879a909e99491ac61e91de5332c036fd8e",
+          "normalized_bytes": 15985,
+          "explicit_features": [
+            "client_properties",
+            "game_puppet_runtime",
+            "client_smoke_harness",
+            "client_automation_pause_restore",
+            "client_automation_keep_open_default",
+            "client_automation_harness_annotations"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "838f2bbfd63e56d29624e7d630492daa239cb954",
+          "raw_sha256": "sha256:6e94ef113f3c15b1d8330fbf1dada81801ad63ac79707689c8d5a1142b561e63",
+          "raw_bytes": 13841,
+          "normalized_sha256": "sha256:6e94ef113f3c15b1d8330fbf1dada81801ad63ac79707689c8d5a1142b561e63",
+          "normalized_bytes": 13841,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "bb073a8d3503a164d4665ecc7a521bd64a23d335",
+          "raw_sha256": "sha256:44dfe83ac0384b114c4402d375e182353b9302405f27f6be7136f21b58d64f7f",
+          "raw_bytes": 13678,
+          "normalized_sha256": "sha256:44dfe83ac0384b114c4402d375e182353b9302405f27f6be7136f21b58d64f7f",
+          "normalized_bytes": 13678,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cf7a1e65e7d623078eb7b5b37efebf8faa07436f",
+          "raw_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "raw_bytes": 13684,
+          "normalized_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "normalized_bytes": 13684,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cf7a1e65e7d623078eb7b5b37efebf8faa07436f",
+          "raw_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "raw_bytes": 13684,
+          "normalized_sha256": "sha256:21986d04d674db35b514b7813cbe4c1539ccb0a535b726d7ccc5b9ae8202fd53",
+          "normalized_bytes": 13684,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "4dbbef1ecbd8710fc754df12fe261fee8926741a",
+          "raw_sha256": "sha256:268fdd1d3c317f5f7c8000498126f46cc73bdab73cac79b7b867f131214673d2",
+          "raw_bytes": 13696,
+          "normalized_sha256": "sha256:268fdd1d3c317f5f7c8000498126f46cc73bdab73cac79b7b867f131214673d2",
+          "normalized_bytes": 13696,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "63799daeaa60a5dd5bcf123f2ec9249d8fd15815",
+          "raw_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "raw_bytes": 13730,
+          "normalized_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "normalized_bytes": 13730,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "63799daeaa60a5dd5bcf123f2ec9249d8fd15815",
+          "raw_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "raw_bytes": 13730,
+          "normalized_sha256": "sha256:bf935670d2eb17c875912b18f25a771cd9d628baa6b8187cbf4e98cc1f942a84",
+          "normalized_bytes": 13730,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0f8f86601c425330bf9855d5f805bd50125affb5",
+          "raw_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "raw_bytes": 13888,
+          "normalized_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "normalized_bytes": 13888,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0f8f86601c425330bf9855d5f805bd50125affb5",
+          "raw_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "raw_bytes": 13888,
+          "normalized_sha256": "sha256:96ae334f7adad15b04e9ff37ac66fb388e390f13599e1f4b05563a70251a51db",
+          "normalized_bytes": 13888,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "b35e6e79f05f892825b4f084ed6dbb8a002377f4",
+          "raw_sha256": "sha256:35eea92a56e1d2c1015eee3731b21e11935c4e2a995391aa27bee9bbdc2f7a26",
+          "raw_bytes": 14566,
+          "normalized_sha256": "sha256:35eea92a56e1d2c1015eee3731b21e11935c4e2a995391aa27bee9bbdc2f7a26",
+          "normalized_bytes": 14566,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        }
+      ]
+    },
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTest.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTest.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-gametest-framework-stage-v1/SFMGameTest.java",
+      "template_sha256": "sha256:8a37afc66e349cdbc6f8849d0870299c37f8ab03e07e20c67a53e610bf26bba9",
+      "template_bytes": 834,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "b018684f868b9f843520c523418a33e92d38f515",
+          "raw_sha256": "sha256:8b38cb74113947deccf046843ffe28f7751b457f9a601b516b2e3f83364688fd",
+          "raw_bytes": 633,
+          "normalized_sha256": "sha256:5d972966399bef314ceac40dd79bcc052b506f03e0622227181537fe790f0762",
+          "normalized_bytes": 625,
+          "crlf_to_lf_count": 8,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "crlf_to_lf_count": 14,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "b018684f868b9f843520c523418a33e92d38f515",
+          "raw_sha256": "sha256:8b38cb74113947deccf046843ffe28f7751b457f9a601b516b2e3f83364688fd",
+          "raw_bytes": 633,
+          "normalized_sha256": "sha256:5d972966399bef314ceac40dd79bcc052b506f03e0622227181537fe790f0762",
+          "normalized_bytes": 625,
+          "explicit_features": [
+            "gametest_sides"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "b018684f868b9f843520c523418a33e92d38f515",
+          "raw_sha256": "sha256:8b38cb74113947deccf046843ffe28f7751b457f9a601b516b2e3f83364688fd",
+          "raw_bytes": 633,
+          "normalized_sha256": "sha256:5d972966399bef314ceac40dd79bcc052b506f03e0622227181537fe790f0762",
+          "normalized_bytes": 625,
+          "explicit_features": [
+            "gametest_sides"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "327a76db6932f802e5f6ec914add7a5a9cc35f0e",
+          "raw_sha256": "sha256:583de39585e91cfab5b56aa870ae77ab706ed9a296cb9933d89d2dbe64f0b609",
+          "raw_bytes": 400,
+          "normalized_sha256": "sha256:b6d4f4f473dccc71db770bae41cc6548471821c10e097ac497dc8b2257b5f42a",
+          "normalized_bytes": 386,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        }
+      ]
+    },
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestDefinition.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestDefinition.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-gametest-framework-stage-v1/SFMGameTestDefinition.java",
+      "template_sha256": "sha256:4d38cad91e26db4b822d0b521306e3c380cb274e8a6c4e9c40cbf818f4acab23",
+      "template_bytes": 4435,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "crlf_to_lf_count": 80,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "b4ee1f1d7f5d54163d4075c63073737e16ac54a2",
+          "raw_sha256": "sha256:82a18cbce1a631df72605823c8ea46c61fe3ddcb510b1b12672e116919ab3201",
+          "raw_bytes": 2564,
+          "normalized_sha256": "sha256:6dedb6a6e8026f62f85561a0fe8063a79f229c8c6906ca945d8f7532cd201313",
+          "normalized_bytes": 2481,
+          "crlf_to_lf_count": 83,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "crlf_to_lf_count": 75,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "1fb5ccfc528c945af2d59d1d15959ca9e5644473",
+          "raw_sha256": "sha256:8370e1e96d154a766e0796da254868ad260259fd6f3fa56d8f783c6193f5c053",
+          "raw_bytes": 2454,
+          "normalized_sha256": "sha256:70229d2724fffcbddd6d182fa4c48937bd90f724e6865325017c3215b79b9009",
+          "normalized_bytes": 2376,
+          "crlf_to_lf_count": 78,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "201c5f5c70925468770ef05daff0febd265b8381",
+          "raw_sha256": "sha256:0c831f55c319ddf2186c1a52c8920f6c1df09fe3b895af75036cf8ef33bdeb64",
+          "raw_bytes": 2294,
+          "normalized_sha256": "sha256:47faea792a28445f670e3ddbb8be1296834881d472102f28e51b95581a6d381f",
+          "normalized_bytes": 2214,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "b4ee1f1d7f5d54163d4075c63073737e16ac54a2",
+          "raw_sha256": "sha256:82a18cbce1a631df72605823c8ea46c61fe3ddcb510b1b12672e116919ab3201",
+          "raw_bytes": 2564,
+          "normalized_sha256": "sha256:6dedb6a6e8026f62f85561a0fe8063a79f229c8c6906ca945d8f7532cd201313",
+          "normalized_bytes": 2481,
+          "explicit_features": [
+            "gametest_static_names"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110b37542f837b68cab8164b5e2c46207cdaf031",
+          "raw_sha256": "sha256:f36ee4cc88b839c9fb146e6ccafec794c45e55f7f5597338a4bb64be57a63eb5",
+          "raw_bytes": 2184,
+          "normalized_sha256": "sha256:e98900653576f712cad015bac32db4fcca0fbbd32309d423ffcf13473463625e",
+          "normalized_bytes": 2109,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "1fb5ccfc528c945af2d59d1d15959ca9e5644473",
+          "raw_sha256": "sha256:8370e1e96d154a766e0796da254868ad260259fd6f3fa56d8f783c6193f5c053",
+          "raw_bytes": 2454,
+          "normalized_sha256": "sha256:70229d2724fffcbddd6d182fa4c48937bd90f724e6865325017c3215b79b9009",
+          "normalized_bytes": 2376,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        }
+      ]
+    },
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestDiscovery.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestDiscovery.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-gametest-framework-stage-v1/SFMGameTestDiscovery.java",
+      "template_sha256": "sha256:f7d98744d3fe977a8d88d026188ecbba1dba78c780393633635548c9729bd9d6",
+      "template_bytes": 12495,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "9e3949ba6aaf4720c8db4639a83868e04a3ae190",
+          "raw_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "raw_bytes": 6348,
+          "normalized_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "normalized_bytes": 6348,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "7571daf43a8061892303d0f6302c64dc99ff4d03",
+          "raw_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "raw_bytes": 5415,
+          "normalized_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "normalized_bytes": 5415,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "61fdf40007ed68759a1c4501943462846f3c6f18",
+          "raw_sha256": "sha256:b93f9197147bc73602428a48af7a69964c2e093753a328909b664706561591d4",
+          "raw_bytes": 7743,
+          "normalized_sha256": "sha256:b93f9197147bc73602428a48af7a69964c2e093753a328909b664706561591d4",
+          "normalized_bytes": 7743,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "cb74ea25d474f34f87863fbdaa54d3ffe73b6a6b",
+          "raw_sha256": "sha256:8b4e14dc47a919a76e39f6db3e0b787c754443abfd11e13e034474594c80cc10",
+          "raw_bytes": 5523,
+          "normalized_sha256": "sha256:098c8a776fe9a6eac0d50326dfba28ea73a02365bcb439859b9d98e76dcdd897",
+          "normalized_bytes": 5481,
+          "crlf_to_lf_count": 42,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "crlf_to_lf_count": 42,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "4d9573ac3a3cd0a169fde578aadb9984714b3c5b",
+          "raw_sha256": "sha256:52c3991a489c448746125bdad32dd202f5055145129f4fc4d16e971fe936a3c5",
+          "raw_bytes": 7809,
+          "normalized_sha256": "sha256:52c3991a489c448746125bdad32dd202f5055145129f4fc4d16e971fe936a3c5",
+          "normalized_bytes": 7809,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9e3949ba6aaf4720c8db4639a83868e04a3ae190",
+          "raw_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "raw_bytes": 6348,
+          "normalized_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "normalized_bytes": 6348,
+          "explicit_features": [
+            "client_properties",
+            "gametest_sides"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9e3949ba6aaf4720c8db4639a83868e04a3ae190",
+          "raw_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "raw_bytes": 6348,
+          "normalized_sha256": "sha256:c82e7e230081adc28a46939af864a948262e59b059fbe53a8f5911abaf600a97",
+          "normalized_bytes": 6348,
+          "explicit_features": [
+            "client_properties",
+            "gametest_sides"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7571daf43a8061892303d0f6302c64dc99ff4d03",
+          "raw_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "raw_bytes": 5415,
+          "normalized_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "normalized_bytes": 5415,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7571daf43a8061892303d0f6302c64dc99ff4d03",
+          "raw_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "raw_bytes": 5415,
+          "normalized_sha256": "sha256:49a22cf9c53f1da6e20d031f691df9e7f2122fd41d3b29908b39aa9249d5be76",
+          "normalized_bytes": 5415,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "5ba7f810190534aa8a8458b5e3af3a53532ce11a",
+          "raw_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "raw_bytes": 5419,
+          "normalized_sha256": "sha256:168e024636e9deaf50518355089ef2f08cc5c7aa4bd9e5a816a37be71d59b4f1",
+          "normalized_bytes": 5419,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "61fdf40007ed68759a1c4501943462846f3c6f18",
+          "raw_sha256": "sha256:b93f9197147bc73602428a48af7a69964c2e093753a328909b664706561591d4",
+          "raw_bytes": 7743,
+          "normalized_sha256": "sha256:b93f9197147bc73602428a48af7a69964c2e093753a328909b664706561591d4",
+          "normalized_bytes": 7743,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cb74ea25d474f34f87863fbdaa54d3ffe73b6a6b",
+          "raw_sha256": "sha256:8b4e14dc47a919a76e39f6db3e0b787c754443abfd11e13e034474594c80cc10",
+          "raw_bytes": 5523,
+          "normalized_sha256": "sha256:098c8a776fe9a6eac0d50326dfba28ea73a02365bcb439859b9d98e76dcdd897",
+          "normalized_bytes": 5481,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cb74ea25d474f34f87863fbdaa54d3ffe73b6a6b",
+          "raw_sha256": "sha256:8b4e14dc47a919a76e39f6db3e0b787c754443abfd11e13e034474594c80cc10",
+          "raw_bytes": 5523,
+          "normalized_sha256": "sha256:098c8a776fe9a6eac0d50326dfba28ea73a02365bcb439859b9d98e76dcdd897",
+          "normalized_bytes": 5481,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cb74ea25d474f34f87863fbdaa54d3ffe73b6a6b",
+          "raw_sha256": "sha256:8b4e14dc47a919a76e39f6db3e0b787c754443abfd11e13e034474594c80cc10",
+          "raw_bytes": 5523,
+          "normalized_sha256": "sha256:098c8a776fe9a6eac0d50326dfba28ea73a02365bcb439859b9d98e76dcdd897",
+          "normalized_bytes": 5481,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cb74ea25d474f34f87863fbdaa54d3ffe73b6a6b",
+          "raw_sha256": "sha256:8b4e14dc47a919a76e39f6db3e0b787c754443abfd11e13e034474594c80cc10",
+          "raw_bytes": 5523,
+          "normalized_sha256": "sha256:098c8a776fe9a6eac0d50326dfba28ea73a02365bcb439859b9d98e76dcdd897",
+          "normalized_bytes": 5481,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "d5badda423f8ea6b924d3e68771cecfb6e512489",
+          "raw_sha256": "sha256:be0dc37e19316aae5a27b41137ceef5c1adc27eeaf7c3c56ebb9cc912b147cb3",
+          "raw_bytes": 5527,
+          "normalized_sha256": "sha256:0ab685503f60c63806a43232915b35452b501fbe4c03982df8d4b1921a03bca1",
+          "normalized_bytes": 5485,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "4d9573ac3a3cd0a169fde578aadb9984714b3c5b",
+          "raw_sha256": "sha256:52c3991a489c448746125bdad32dd202f5055145129f4fc4d16e971fe936a3c5",
+          "raw_bytes": 7809,
+          "normalized_sha256": "sha256:52c3991a489c448746125bdad32dd202f5055145129f4fc4d16e971fe936a3c5",
+          "normalized_bytes": 7809,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        }
+      ]
+    },
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-gametest-framework-stage-v1/SFMGameTestHelper.java",
+      "template_sha256": "sha256:c6114f87b04dbfc3c2a97763bea31a2e1a1f6fda946858475988fca29944e940",
+      "template_bytes": 30163,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "8ffa7f9420b98a0b484abe204b9ae8bb777d2991",
+          "raw_sha256": "sha256:deed562eca243b7f82af5cab171c695538d2d3f54c576aed45a51c27b09c07e8",
+          "raw_bytes": 17211,
+          "normalized_sha256": "sha256:7a46c7db1cf7299ff999e4887c9cf532676445d5146b6cceee3c0578d185c7e5",
+          "normalized_bytes": 16700,
+          "crlf_to_lf_count": 511,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "838d59523cdb28bb9705867da3d0397281c06f7d",
+          "raw_sha256": "sha256:6d3146b35421dbfcd20afb6ea97034a75faabee265dadc7837b299c04b407c85",
+          "raw_bytes": 17225,
+          "normalized_sha256": "sha256:d2f5f0c564bbc55deb812dc7457f39195256590e305aad9c5499bb0f5adc4091",
+          "normalized_bytes": 16714,
+          "crlf_to_lf_count": 511,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "9970803f0d8785d1f7739d60bfbad74243847769",
+          "raw_sha256": "sha256:bc95b8668641cb611da0eaee40926be1062de49aa0e5636891b930c1e4c760b2",
+          "raw_bytes": 17416,
+          "normalized_sha256": "sha256:a1baa3a777790bb0e506575f1d851169d1588ac26aea4524fcc25091a69fde87",
+          "normalized_bytes": 16901,
+          "crlf_to_lf_count": 515,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "a103ff76f246c47c8f89b043655eef0b670440b8",
+          "raw_sha256": "sha256:30af32d000743146c362ee5325784046c5259c8c21227c233d0865631d6c1949",
+          "raw_bytes": 17428,
+          "normalized_sha256": "sha256:4cfd416fc1592e661cfb27c480aec3a4a97a7894e4a8e96ad425d30c33d4f576",
+          "normalized_bytes": 16913,
+          "crlf_to_lf_count": 515,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "13e64351b268e6557d122dbfbe2072c22f860c24",
+          "raw_sha256": "sha256:fe6f9adff96afa2b0aea79c6d83e170885a1f7db157613c043aa4c325129120f",
+          "raw_bytes": 17769,
+          "normalized_sha256": "sha256:c6068417e24002a4fc65e1db43827d9279f39970aef5cc1817942ae03be37d54",
+          "normalized_bytes": 17246,
+          "crlf_to_lf_count": 523,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "422cdd7adbbbe11cef8d91a5fb1ce08b6399cb67",
+          "raw_sha256": "sha256:6c843e0401105202f9af874b61605cbe886a00678e639ee1fdf11b5efcc4b0d0",
+          "raw_bytes": 17795,
+          "normalized_sha256": "sha256:c1bc083d42a183fbbca0d83e83fb65f5ddbdddfc3045514ea5397d91587dd45f",
+          "normalized_bytes": 17272,
+          "crlf_to_lf_count": 523,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "4b728e67776130aa1f48683ac550311c12e69b7f",
+          "raw_sha256": "sha256:05988122a513c566033596f43e430387748bc1d769019f780904e620167e070c",
+          "raw_bytes": 17384,
+          "normalized_sha256": "sha256:64f91dae6d60fbef6eef861c7becfc145e10fd85d49fd30e46b0be3250d35a27",
+          "normalized_bytes": 16898,
+          "crlf_to_lf_count": 486,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "21e7bbaaaed5e6f0a24a73f2aa3693683fbe664e",
+          "raw_sha256": "sha256:47caddbe2a184bd4bcd91a5e7944ce4199e5fc75124504d56349658edc03369f",
+          "raw_bytes": 17202,
+          "normalized_sha256": "sha256:69219132a95689ac4788eb574d8c79983e796c1f0310843494b7924753afa70f",
+          "normalized_bytes": 16688,
+          "crlf_to_lf_count": 514,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "2aa7cf39f778d8a11557ada6e7931d55902dafd4",
+          "raw_sha256": "sha256:950d94af0b3c864e6a341a4503176b961a29e0a37f7d955ba64d5e685c4ae759",
+          "raw_bytes": 17216,
+          "normalized_sha256": "sha256:df2a9b04cee42582f3ea0e73777c14c754f2fd99f8b9a9691116baad97c284b0",
+          "normalized_bytes": 16702,
+          "crlf_to_lf_count": 514,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "8d1e0a9365a50ddb98ed77c1d4a73009f6c297fe",
+          "raw_sha256": "sha256:39a1a58e70908db5822ed5b33b14d18b256daaca92784bf8ef85eed8be12d7d2",
+          "raw_bytes": 17407,
+          "normalized_sha256": "sha256:4f354f665a304cd580c2553719019d45adceb151d50db30a8b611660e92ad768",
+          "normalized_bytes": 16889,
+          "crlf_to_lf_count": 518,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "fbcbffb7025431099a9f0d2bf4b1797010995ee6",
+          "raw_sha256": "sha256:cc9a95ca5e8929d676ddddbb1b0ef861fb63b62e29aba86c504466e484783a9e",
+          "raw_bytes": 17419,
+          "normalized_sha256": "sha256:144009eb4174feed0237ff614a9b7c32e0354d7d2d0631c25a56c960a9241428",
+          "normalized_bytes": 16901,
+          "crlf_to_lf_count": 518,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "3958acd387762cf1bc4f61b549e117a369b44058",
+          "raw_sha256": "sha256:dec7f7ac46f793db85a6ec42a719bc01a8c95d12a1355d7e82f5f84d866fa903",
+          "raw_bytes": 19025,
+          "normalized_sha256": "sha256:018ebf38b139ec7ce5ff8d318f594ff7154213f33e52913e7259096151884a8a",
+          "normalized_bytes": 18468,
+          "crlf_to_lf_count": 557,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "333ca8e9574b5a7dbcdd8b3df3e093b838a452fc",
+          "raw_sha256": "sha256:b47537bd45ad64d8f3fec7b7f778a0151f396288e0be7b461dffd8a5cc374be0",
+          "raw_bytes": 19051,
+          "normalized_sha256": "sha256:9d32891a0e9f4f552c9416dd0cdd733a6c757c05416ec7808b063921ba63d45d",
+          "normalized_bytes": 18494,
+          "crlf_to_lf_count": 557,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        },
+        {
+          "oid": "048c296a9bc5eaa3c58d208a4abe07db28776949",
+          "raw_sha256": "sha256:3b883910569e5a548e299414e17e68e19077d0f603c08a1f0119fb705d06b6ff",
+          "raw_bytes": 18677,
+          "normalized_sha256": "sha256:4727b0d879e88c36fa947b35467fe92b2c19843ec64b69fe2488352c54f5f062",
+          "normalized_bytes": 18157,
+          "crlf_to_lf_count": 520,
+          "appended_final_lf": false,
+          "other_whitespace_or_token_edits": false
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "8ffa7f9420b98a0b484abe204b9ae8bb777d2991",
+          "raw_sha256": "sha256:deed562eca243b7f82af5cab171c695538d2d3f54c576aed45a51c27b09c07e8",
+          "raw_bytes": 17211,
+          "normalized_sha256": "sha256:7a46c7db1cf7299ff999e4887c9cf532676445d5146b6cceee3c0578d185c7e5",
+          "normalized_bytes": 16700,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "838d59523cdb28bb9705867da3d0397281c06f7d",
+          "raw_sha256": "sha256:6d3146b35421dbfcd20afb6ea97034a75faabee265dadc7837b299c04b407c85",
+          "raw_bytes": 17225,
+          "normalized_sha256": "sha256:d2f5f0c564bbc55deb812dc7457f39195256590e305aad9c5499bb0f5adc4091",
+          "normalized_bytes": 16714,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9970803f0d8785d1f7739d60bfbad74243847769",
+          "raw_sha256": "sha256:bc95b8668641cb611da0eaee40926be1062de49aa0e5636891b930c1e4c760b2",
+          "raw_bytes": 17416,
+          "normalized_sha256": "sha256:a1baa3a777790bb0e506575f1d851169d1588ac26aea4524fcc25091a69fde87",
+          "normalized_bytes": 16901,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9970803f0d8785d1f7739d60bfbad74243847769",
+          "raw_sha256": "sha256:bc95b8668641cb611da0eaee40926be1062de49aa0e5636891b930c1e4c760b2",
+          "raw_bytes": 17416,
+          "normalized_sha256": "sha256:a1baa3a777790bb0e506575f1d851169d1588ac26aea4524fcc25091a69fde87",
+          "normalized_bytes": 16901,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "a103ff76f246c47c8f89b043655eef0b670440b8",
+          "raw_sha256": "sha256:30af32d000743146c362ee5325784046c5259c8c21227c233d0865631d6c1949",
+          "raw_bytes": 17428,
+          "normalized_sha256": "sha256:4cfd416fc1592e661cfb27c480aec3a4a97a7894e4a8e96ad425d30c33d4f576",
+          "normalized_bytes": 16913,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "a103ff76f246c47c8f89b043655eef0b670440b8",
+          "raw_sha256": "sha256:30af32d000743146c362ee5325784046c5259c8c21227c233d0865631d6c1949",
+          "raw_bytes": 17428,
+          "normalized_sha256": "sha256:4cfd416fc1592e661cfb27c480aec3a4a97a7894e4a8e96ad425d30c33d4f576",
+          "normalized_bytes": 16913,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "a103ff76f246c47c8f89b043655eef0b670440b8",
+          "raw_sha256": "sha256:30af32d000743146c362ee5325784046c5259c8c21227c233d0865631d6c1949",
+          "raw_bytes": 17428,
+          "normalized_sha256": "sha256:4cfd416fc1592e661cfb27c480aec3a4a97a7894e4a8e96ad425d30c33d4f576",
+          "normalized_bytes": 16913,
+          "explicit_features": [
+            "client_properties"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "13e64351b268e6557d122dbfbe2072c22f860c24",
+          "raw_sha256": "sha256:fe6f9adff96afa2b0aea79c6d83e170885a1f7db157613c043aa4c325129120f",
+          "raw_bytes": 17769,
+          "normalized_sha256": "sha256:c6068417e24002a4fc65e1db43827d9279f39970aef5cc1817942ae03be37d54",
+          "normalized_bytes": 17246,
+          "explicit_features": [
+            "client_properties",
+            "gametest_mekanism_dependency_isolation"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "422cdd7adbbbe11cef8d91a5fb1ce08b6399cb67",
+          "raw_sha256": "sha256:6c843e0401105202f9af874b61605cbe886a00678e639ee1fdf11b5efcc4b0d0",
+          "raw_bytes": 17795,
+          "normalized_sha256": "sha256:c1bc083d42a183fbbca0d83e83fb65f5ddbdddfc3045514ea5397d91587dd45f",
+          "normalized_bytes": 17272,
+          "explicit_features": [
+            "client_properties",
+            "gametest_mekanism_dependency_isolation"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "4b728e67776130aa1f48683ac550311c12e69b7f",
+          "raw_sha256": "sha256:05988122a513c566033596f43e430387748bc1d769019f780904e620167e070c",
+          "raw_bytes": 17384,
+          "normalized_sha256": "sha256:64f91dae6d60fbef6eef861c7becfc145e10fd85d49fd30e46b0be3250d35a27",
+          "normalized_bytes": 16898,
+          "explicit_features": [
+            "client_properties",
+            "gametest_mekanism_dependency_isolation"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "21e7bbaaaed5e6f0a24a73f2aa3693683fbe664e",
+          "raw_sha256": "sha256:47caddbe2a184bd4bcd91a5e7944ce4199e5fc75124504d56349658edc03369f",
+          "raw_bytes": 17202,
+          "normalized_sha256": "sha256:69219132a95689ac4788eb574d8c79983e796c1f0310843494b7924753afa70f",
+          "normalized_bytes": 16688,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "2aa7cf39f778d8a11557ada6e7931d55902dafd4",
+          "raw_sha256": "sha256:950d94af0b3c864e6a341a4503176b961a29e0a37f7d955ba64d5e685c4ae759",
+          "raw_bytes": 17216,
+          "normalized_sha256": "sha256:df2a9b04cee42582f3ea0e73777c14c754f2fd99f8b9a9691116baad97c284b0",
+          "normalized_bytes": 16702,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "8d1e0a9365a50ddb98ed77c1d4a73009f6c297fe",
+          "raw_sha256": "sha256:39a1a58e70908db5822ed5b33b14d18b256daaca92784bf8ef85eed8be12d7d2",
+          "raw_bytes": 17407,
+          "normalized_sha256": "sha256:4f354f665a304cd580c2553719019d45adceb151d50db30a8b611660e92ad768",
+          "normalized_bytes": 16889,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "8d1e0a9365a50ddb98ed77c1d4a73009f6c297fe",
+          "raw_sha256": "sha256:39a1a58e70908db5822ed5b33b14d18b256daaca92784bf8ef85eed8be12d7d2",
+          "raw_bytes": 17407,
+          "normalized_sha256": "sha256:4f354f665a304cd580c2553719019d45adceb151d50db30a8b611660e92ad768",
+          "normalized_bytes": 16889,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "fbcbffb7025431099a9f0d2bf4b1797010995ee6",
+          "raw_sha256": "sha256:cc9a95ca5e8929d676ddddbb1b0ef861fb63b62e29aba86c504466e484783a9e",
+          "raw_bytes": 17419,
+          "normalized_sha256": "sha256:144009eb4174feed0237ff614a9b7c32e0354d7d2d0631c25a56c960a9241428",
+          "normalized_bytes": 16901,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "fbcbffb7025431099a9f0d2bf4b1797010995ee6",
+          "raw_sha256": "sha256:cc9a95ca5e8929d676ddddbb1b0ef861fb63b62e29aba86c504466e484783a9e",
+          "raw_bytes": 17419,
+          "normalized_sha256": "sha256:144009eb4174feed0237ff614a9b7c32e0354d7d2d0631c25a56c960a9241428",
+          "normalized_bytes": 16901,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "fbcbffb7025431099a9f0d2bf4b1797010995ee6",
+          "raw_sha256": "sha256:cc9a95ca5e8929d676ddddbb1b0ef861fb63b62e29aba86c504466e484783a9e",
+          "raw_bytes": 17419,
+          "normalized_sha256": "sha256:144009eb4174feed0237ff614a9b7c32e0354d7d2d0631c25a56c960a9241428",
+          "normalized_bytes": 16901,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "3958acd387762cf1bc4f61b549e117a369b44058",
+          "raw_sha256": "sha256:dec7f7ac46f793db85a6ec42a719bc01a8c95d12a1355d7e82f5f84d866fa903",
+          "raw_bytes": 19025,
+          "normalized_sha256": "sha256:018ebf38b139ec7ce5ff8d318f594ff7154213f33e52913e7259096151884a8a",
+          "normalized_bytes": 18468,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "333ca8e9574b5a7dbcdd8b3df3e093b838a452fc",
+          "raw_sha256": "sha256:b47537bd45ad64d8f3fec7b7f778a0151f396288e0be7b461dffd8a5cc374be0",
+          "raw_bytes": 19051,
+          "normalized_sha256": "sha256:9d32891a0e9f4f552c9416dd0cdd733a6c757c05416ec7808b063921ba63d45d",
+          "normalized_bytes": 18494,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "048c296a9bc5eaa3c58d208a4abe07db28776949",
+          "raw_sha256": "sha256:3b883910569e5a548e299414e17e68e19077d0f603c08a1f0119fb705d06b6ff",
+          "raw_bytes": 18677,
+          "normalized_sha256": "sha256:4727b0d879e88c36fa947b35467fe92b2c19843ec64b69fe2488352c54f5f062",
+          "normalized_bytes": 18157,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "physical_stage_normalized_exact": true
+        }
+      ]
+    }
+  ],
+  "consumer_contexts": [
+    {
+      "context": "dev/1.19.2",
+      "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ClientManagerMenuGamePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java",
+        "platform/minecraft/src/test/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetRenderCaptureSourceTests.java"
+      ]
+    },
+    {
+      "context": "dev/1.19.4",
+      "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java",
+        "platform/minecraft/src/test/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetRenderCaptureSourceTests.java"
+      ]
+    },
+    {
+      "context": "dev/1.20",
+      "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.20.1",
+      "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.20.2",
+      "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.20.3",
+      "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.20.4",
+      "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.21.0",
+      "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java"
+      ],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/1.21.1",
+      "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/multiple/CapabilityDiscoveryMapperGameTest.java"
+      ],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "dev/26.1.2",
+      "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+      "static_name_callers": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Move1StackDirectWalkthroughGamePuppet.java"
+      ],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/multiple/CapabilityDiscoveryMapperGameTest.java"
+      ],
+      "puppet_harness_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMClientRunHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/ActivePuppet.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptionedScreenshotComposer.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptureFigureCaptionLayout.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java"
+      ]
+    },
+    {
+      "context": "release/1.19.2",
+      "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.19.4",
+      "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.20",
+      "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.20.1",
+      "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.20.2",
+      "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.20.3",
+      "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.20.4",
+      "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+      "static_name_callers": [],
+      "mek_method_mentions": [],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.21.0",
+      "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+      "static_name_callers": [],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java"
+      ],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/1.21.1",
+      "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+      "static_name_callers": [],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/multiple/CapabilityDiscoveryMapperGameTest.java"
+      ],
+      "puppet_harness_mentions": []
+    },
+    {
+      "context": "release/26.1.2",
+      "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+      "static_name_callers": [],
+      "mek_method_mentions": [
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekChemtankInfusionSomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyEmptyGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyFullGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergySomeGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekEnergyTenGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/MekInductionGameTest.java",
+        "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/multiple/CapabilityDiscoveryMapperGameTest.java"
+      ],
+      "puppet_harness_mentions": []
+    }
+  ],
+  "version_api_contracts": {
+    "annotation": "No actual MC API branches; only independently supported physical-side metadata.",
+    "definition": "26.1.2 FunctionGameTestInstance/TestData/Identifier/environment-holder/function-key protocol vs original TestFunction on the previous9 targets.",
+    "discovery": "Forge event namespace through1.20.1, NeoForge after;26.1.2 test environment/function/instance registration and literal wildcard matching replace the old static TestFunction registry.",
+    "helper": "DamageSource changes1.19.4/1.20; immutable SignText construction/accessors preserved by version including known early caller non-reassignment;1.21 ResourceKey enchantments and spawn argument changes;26 assertion Components/tick casts, transfer-resource facade APIs and coordinate-origin adaptation are preserved.",
+    "harness": "RegistryAccess/world-open changes,1.20 sendSuccess Supplier, Forge/NeoForge event package,1.20.3 previous-screen argument,1.21 ClientTickEvent.Post/runner-builder/test API,26 onboarding+registry instances/Identifier/level/settings/chat/gamerules are genuine MC adapters."
+  },
+  "staging_validation": {
+    "independent_tree_inventory": 100,
+    "exact_raw_sha1_and_sha256_verified": 41,
+    "physical_stage_files_re_read": 5,
+    "custom_stage_expansion_normalized_witnesses": 100,
+    "production_renderer_invoked": false,
+    "cargo_invoked": false,
+    "java_compile_claim": false,
+    "game_runtime_claim": false
+  },
+  "reviewed_reconstructed_profiles": "All mixed feature masks beyond the100 frozen bodies are new authored combinations. They are subject to actual-core tests and future Java build acceptance; no equivalence claim attaches to missing runtime closures.",
+  "post_promotion_test_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_gametest_framework_slice_tests.rs",
+  "acceptance_remaining": [
+    "Register reviewed functional feature definitions without implicit packet/event/client-manager prerequisites",
+    "Promote exact staged bytes to core after review",
+    "Run real-core selection/renderer tests and mutation/common-edit proofs",
+    "Close SFMProperties/smoke/puppet and modern Mekanism compatibility callsites before claiming enabled Java builds"
+  ]
+}

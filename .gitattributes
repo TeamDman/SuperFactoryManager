@@ -4,6 +4,12 @@
 **/src/generated/**/.cache/cache text eol=lf
 **/src/generated/**/*.json text eol=lf
 docs/architecture/evidence/*.json text eol=lf
+# The native adapter compiles this exact reviewed recipe by its raw hash.
+docs/tasks/sfm-core-released-native-adapter-review.json -text
+
+# This legacy included engine retains mixed line endings. Treat CRLF as a
+# newline without relaxing checks for trailing spaces, blank EOF or tabs.
+platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 
 # This checked-in parser fixture deliberately exercises CRLF coordinates while
 # keeping the repository blob normalized for whitespace review.

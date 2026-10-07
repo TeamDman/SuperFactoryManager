@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "sfm:block/touch_display",
+      "x": 180
+    },
+    "facing=east": {
+      "model": "sfm:block/touch_display",
+      "x": 90,
+      "y": 90
+    },
+    "facing=north": {
+      "model": "sfm:block/touch_display",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "sfm:block/touch_display",
+      "x": 90,
+      "y": 180
+    },
+    "facing=up": {
+      "model": "sfm:block/touch_display"
+    },
+    "facing=west": {
+      "model": "sfm:block/touch_display",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

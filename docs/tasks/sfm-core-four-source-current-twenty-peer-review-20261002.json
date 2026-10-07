@@ -1,0 +1,54 @@
+{
+  "schema": "sfm:four_source_current_twenty_independent_review@1",
+  "date": "2026-10-02",
+  "status": "independent_retained_data_review_passed_not_java_runtime_or_release_acceptance",
+  "root_generation_receipt": "docs/tasks/sfm-core-four-source-current-twenty-dry-run-20261002.json",
+  "historical_root_receipt_pending_wording": "Superseded by this independent-review receipt; original observation preserved.",
+  "review": {
+    "capsule": "sfm-current-twenty-independent-review-20261002-v9",
+    "manifest": {
+      "bytes": 2547,
+      "sha256": "01a959c282b1c345621524f9f8bf902b5c59009fb5e9a5cf9866ea698b383a94"
+    },
+    "seal": {
+      "bytes": 1047,
+      "sha256": "aefd7aa4a09fd364b4bd603388ba9268a147c7c62608ee807857d654eb6208dc"
+    },
+    "review_document": {
+      "bytes": 4799,
+      "sha256": "0ed3390deb64a332becab4c885e31dd03b951c237e1f9e95dbb230f4c09fb137"
+    },
+    "native_result": {
+      "bytes": 21391,
+      "sha256": "713fb5b8ea4d3bb1317be8f8fbe24ead104d764f01e1b41c48a0a60fd01b077c"
+    },
+    "reviewer_session": 93555,
+    "reviewer_exit": 0,
+    "root_owned_session_replayed_or_polled": false
+  },
+  "counts": {
+    "retained_files": 81,
+    "raw_pins": 60,
+    "reports": 20,
+    "artifact_descriptors": 22882,
+    "distinct_authored_source_pins": 1521,
+    "existing_output_pins": 3420,
+    "planned_creates": 19462,
+    "planned_updates": 0,
+    "existing_release_roots": 3,
+    "absent_roots": 17
+  },
+  "core": {
+    "files": 1937,
+    "bytes": 8949630,
+    "sha256": "3f6838393924ee5f3946acd2af58c8fc97cfdde0334a4213a9f5902c2feead24"
+  },
+  "operational_cli_sha256": "49fe247894a6de53771cf59c2722d9990278110df678441389a539475510e614",
+  "root_followup": "Root read review, README, manifest, seal, execution receipt and full native result; native verification of six capsule content pins and all 81 evidence pins passed.",
+  "limits": [
+    "Recorded exit/EOF/reap consistency is not a fresh OS census or fault-injection result.",
+    "Absent output bytes were not independently rendered and BLAKE3 context identities were not recomputed.",
+    "Hash snapshots are not held input handles.",
+    "No production source admission, projection writes, compiler, Java, Minecraft, dependency changes, installation or full-goal completion."
+  ]
+}

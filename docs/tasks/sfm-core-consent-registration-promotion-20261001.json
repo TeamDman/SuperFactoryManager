@@ -1,0 +1,271 @@
+{
+  "schema": "sfm:core-consent-registration-promotion@1",
+  "date": "2026-10-01",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "status": "source promotion and focused tooling tests passed; fresh complete tooling gate active; Minecraft closure and runtime unproved",
+  "scope": {
+    "cohorts": [
+      "Factory3",
+      "Registry4",
+      "UI7",
+      "Choice2"
+    ],
+    "authored_java_files": 16,
+    "authored_java_bytes": 86824,
+    "new_source_rules": 16,
+    "refined_carrier_rules": 3,
+    "immutable_ledgers": 4,
+    "new_test_modules": 4,
+    "new_test_cases": 33,
+    "current_metadata_rules": 592,
+    "carrier_membership": "client_actions OR workspace_panels",
+    "carrier_java_bodies_changed": false,
+    "production_authorization_service_changed": false,
+    "feature_definitions_changed": false,
+    "projection_selections_changed": false,
+    "dependency_or_lock_changes": false
+  },
+  "source_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMClientScreenType.java",
+      "sha256": "0aaff1567c87db98f03ac5bb49970fdb2e42182b670ad7d751a20f448f4c33a9",
+      "bytes": 1275
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMClientScreenTypes.java",
+      "sha256": "6c964756347d0de30a4f9343e3d22268f7884610dc6ffa2cf8d4ed834a4d4ca2",
+      "bytes": 2034
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMClientProgramConsentsScreenType.java",
+      "sha256": "65f993e62376660c9866d9f3ebe0106a1d8659f1595ff390e389ef8e9bb47e00",
+      "bytes": 1070
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java",
+      "sha256": "9e58ba1b548b45c59fc773e4d692ab750e473300d896ce682732a40597ca70c8",
+      "bytes": 9525
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/OpenPanelAction.java",
+      "sha256": "9835e073925361bcb23aff0f1abd10dc7df8d747206c5b6cbca4d8c97523f7db",
+      "bytes": 11154
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenType.java",
+      "sha256": "8fabc4de5a233b1b2f967059f03b4295cea4191d0b099fefbed7233c0ace98b3",
+      "bytes": 2695
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenPanel.java",
+      "sha256": "6807cb20c5bf4355ceabdab047313a062e41531f9c03e00e5d67ef86c95d4cd0",
+      "bytes": 2156
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentsPanel.java",
+      "sha256": "4dc2efef16687e8423071a4ca3a5b754d8677c50a661fbbe868aaffa03b5994c",
+      "bytes": 21577
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentControlAction.java",
+      "sha256": "3554401a88a133e9ad90db772a283324c4adf7536a43d15fbee1367b730eba05",
+      "bytes": 2663
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentActions.java",
+      "sha256": "019ebc54546340232d58ee62e870762f14930485d1ffa455ca2ae97743430b1f",
+      "bytes": 1120
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelWidget.java",
+      "sha256": "310424615b7e81ed3779647fe045f11ec806a04e38a93a601b1eceec04a530f9",
+      "bytes": 1663
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelWidgetHost.java",
+      "sha256": "d54d25c11339b8adc8faf3f686ddd89d6e7935dc40da00e5a803588f59d3be00",
+      "bytes": 10639
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionButton.java",
+      "sha256": "0776bac2cf6f05a06d73e23f47a286cab92cc6285cbe1a62e9bba58fb091c29a",
+      "bytes": 5199
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+      "sha256": "036b2aee5628367e8e2fa45393041881aee9c4eddad040a90f137c356cf6c5fc",
+      "bytes": 2279
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+      "sha256": "01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217",
+      "bytes": 2666
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+      "sha256": "cbeed655fec64e5a557d3ee62a3154c4eb440664ac6a37d3efd206059f770743",
+      "bytes": 9109
+    }
+  ],
+  "input_checkpoint": {
+    "core_files": 1875,
+    "core_bytes": 8419075,
+    "core_sha256": "6b9582a1c1707010f575317c7d0f5964a7d01c64f02c4097a2fe0d7e9917295b",
+    "core_hash_method": "Ordinal sorted core-relative slash path + NUL + decimal byte length + NUL + lowercase SHA256 + LF, concatenated and SHA256 hashed as UTF-8.",
+    "project_inputs_bytes": 436118,
+    "project_inputs_sha256": "25391eaddcd5c2b075b002dbaf7d523cfbe5bd4ac6135257880f863a731de966",
+    "reverse_delta": {
+      "removed_new_rule_block_bytes": 5271,
+      "reversed_three_carrier_lines_bytes": 60,
+      "recovered_bytes": 430787,
+      "recovered_rules": 576,
+      "recovered_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3"
+    },
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "projection_catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+    "original_staged_raw_records_unchanged": 98
+  },
+  "immutable_ledgers": [
+    {
+      "path": "docs/tasks/sfm-core-consent-screen-factory-slice.json",
+      "sha256": "c1f38badb689623e8010e5b653a6225f895ad9e2e79e4c6f8d7956711e6cbe44"
+    },
+    {
+      "path": "docs/tasks/sfm-core-workspace-factory-registry-slice.json",
+      "sha256": "c2bf11ab6968dcfc07d69d045d9c8d1db0cee28b3a28d806bb64e299319a1e3e"
+    },
+    {
+      "path": "docs/tasks/sfm-core-consent-panel-closure-slice.json",
+      "sha256": "9671eda55874deedfbafa0fede6f822fdf691e9919284e4d0bc6c87c29d29a1a"
+    },
+    {
+      "path": "docs/tasks/sfm-core-consent-action-choice-providers-slice.json",
+      "sha256": "a4997fb12eb3727797a44ddc9bae9c3112ec34f64981bfa7696f4e0a7810c6d3"
+    }
+  ],
+  "test_integration": [
+    "Preserve 180 historical action-disabled omissions separately from 150 current omissions and 30 pure carrier selections.",
+    "Derive only the exact current Source/Context membership refinement in Choice2; keep original historical witnesses and all other provider comparisons strict.",
+    "Use the isolated nine-case UI7 v2 test module; preserve its sealed original ledger.",
+    "Apply repository nightly formatting; record live test pins independently from original proposal pins."
+  ],
+  "live_test_pins": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_consent_screen_factory_slice_tests.rs",
+      "bytes": 36228,
+      "sha256": "9fab6584a61317b3489ee416f781914d0ffd9730e1209c5b017d680eae4100e6"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_workspace_factory_registry_slice_tests.rs",
+      "bytes": 35209,
+      "sha256": "48822c91f9f7d1d40693d54221dd0ed21ee0e4f3df4708c1d5b5073c3dc841b1"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_consent_panel_closure_slice_tests.rs",
+      "bytes": 47364,
+      "sha256": "b5cbd0550daa8cc4ee9092d7ca72589a4cdf548d0c31695e1fae349b05c44d66"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_consent_action_choice_providers_slice_tests.rs",
+      "bytes": 42332,
+      "sha256": "fef18efdb0d6e488ee945b3eb0d928f30e3e218cf2c024a893e2ee784c3200b6"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_action_slice_tests.rs",
+      "bytes": 48055,
+      "sha256": "b2d73145cead9f94bb3367b072e22055d27f2f59c8e92f13678d5e02af0d7838"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 16704,
+      "sha256": "b8574040c62c3055f9e08a13c5528a76f02a28717384d6bc44df4f577bd65144"
+    }
+  ],
+  "focused_validation": {
+    "working_directory": "platform/cli/sfm-propagate-changes",
+    "command_shape": "rustup run nightly -- cargo test --offline --locked --all-features --lib <filter> -- --test-threads=1",
+    "previous_run": {
+      "process_session": 73460,
+      "exit_code": 101,
+      "passed": 31,
+      "failed": 2,
+      "ignored": 0,
+      "log": "platform/cli/sfm-propagate-changes/target/core-consent-registration-focused-20261001-v1.log",
+      "log_bytes": 7119,
+      "log_sha256": "254f88e55c28d3e49e73027ad66c109f71bcc520aa1c2e6b878cbcd3d0a9096f"
+    },
+    "two_test_only_repairs": [
+      "The pinned registrar contains 24 static SFMRegistryObject fields plus one generic helper REGISTERER.register call. Test both 24 declarations and 25 call sites.",
+      "paletteWasOpen is inside the genuine opening-capability guard; require palette && (stack || side), not palette alone. No Java guard changed."
+    ],
+    "current_run": {
+      "process_session": 74166,
+      "exit_code": 0,
+      "passed": 39,
+      "failed": 0,
+      "ignored": 0,
+      "library_listed": 2097,
+      "log": "platform/cli/sfm-propagate-changes/target/core-consent-registration-focused-20261001-v2.log",
+      "log_bytes": 6810,
+      "log_sha256": "13ccb51ebf5726052693536b225e02afb408f61d1f9965089dc779efa140c8d0"
+    },
+    "filters": [
+      {
+        "filter": "source_projection::core_workspace_factory_registry_slice_tests",
+        "passed": 8,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 27.35
+      },
+      {
+        "filter": "source_projection::core_action_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 90.09
+      },
+      {
+        "filter": "source_projection::core_consent",
+        "passed": 25,
+        "failed": 0,
+        "ignored": 0,
+        "seconds": 86.49
+      }
+    ],
+    "fresh_full_gate": {
+      "process_session": 80175,
+      "status": "active; no terminal pass claimed",
+      "log": "platform/cli/sfm-propagate-changes/target/core-consent-registration-full-gate-20261001-v1.log",
+      "observed_stages": [
+        "dependency policy passed",
+        "nightly formatting passed",
+        "production all-feature Clippy passed",
+        "all-feature build passed",
+        "bounded test run started"
+      ]
+    }
+  },
+  "independent_review": {
+    "actual_source_rules_ledger_pins": "passed",
+    "whole_metadata_reverse_delta": "passed",
+    "two_registry_test_only_repairs": "source-backed and independently confirmed",
+    "formatted_test_token_comparison": "passed; literal contents, import identities and disclosed assertion/refinement deltas preserved",
+    "whole_core_reverse_delta": "passed independently: removing 16 Java inputs and reversing only metadata reconstructs all 1859 original files, 8326920 bytes and original core SHA256"
+  },
+  "not_proven": [
+    "Fresh complete tooling-gate success",
+    "Full optional workspace factory and Java dependency closure",
+    "Client consent, native GLFW, clipboard, panel or Minecraft runtime effects",
+    "Complete unreleased-feature preservation, all twenty final builds or release compatibility",
+    "Final installed-tool freshness"
+  ],
+  "operational_boundary": {
+    "install_or_publish": false,
+    "merge_or_push": false,
+    "generated_output_sync": false,
+    "source_frozen_during_full_gate": true,
+    "goal": "active and incomplete"
+  }
+}

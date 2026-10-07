@@ -12,6 +12,11 @@ such as -Shard unit:cli, -Shard integration:java_analysis_scenarios, and
 -Shard fixture retain their behavior. Ignored tests keep Cargo's default
 behavior and are not run.
 
+-Workers 2 enables an event-driven pool for the explicitly reviewed read-only
+theme groups. All other groups retain exclusive execution. This standalone
+script defaults to one worker; check-all.ps1 defaults to two after the real
+three-group concurrency proof. Coverage and per-group test threads are unchanged.
+
 PowerShell 7 or later (pwsh.exe), rg.exe, git.exe, and cargo.exe must be
 available to this process and its children.
 If a sandbox hides rg.exe from child processes, run this script in a host
@@ -20,7 +25,8 @@ configuration.
 #>
 [CmdletBinding()]
 param(
-    [string]$Shard = 'all'
+    [string]$Shard = 'all',
+    [ValidateRange(1, 4)][int]$Workers = 1
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -68,6 +74,7 @@ $commonCargoArgs = @(
 )
 
 . (Join-Path $PSScriptRoot 'bounded-library-plan.ps1')
+. (Join-Path $PSScriptRoot 'bounded-process-pool.ps1')
 
 function Assert-IntegrationTargets {
     $metadataArgs = @(
@@ -100,6 +107,8 @@ function Assert-IntegrationTargets {
     if ($packages.Count -ne 1) {
         throw 'Cargo metadata must contain exactly one sfm-propagate-changes package.'
     }
+    $script:boundedPackageId = $packages[0].id
+    $script:boundedFeatureNames = @($packages[0].features.PSObject.Properties.Name | Sort-Object)
     $actualTargets = [System.Collections.Generic.HashSet[string]]::new(
         [System.StringComparer]::Ordinal
     )
@@ -188,6 +197,44 @@ function Invoke-CargoShard {
     }
 }
 
+function Get-BoundedTestExecutables {
+    # Build once, then execute Cargo's exact current all-feature artifacts.
+    # Running cargo per concurrent shard can otherwise introduce build locks.
+    $artifacts = @{}
+    $arguments = @('test', '--offline', '--locked', '--all-features',
+        '--manifest-path', $manifest, '--lib', '--tests', '--no-run', '--message-format=json')
+    & cargo @arguments 2>&1 | ForEach-Object {
+        $line = $_.ToString()
+        if ($line -match $diskErrorPattern) {
+            throw "Disk-space error compiling test artifacts: $line. Stop and wait for the user."
+        }
+        if (-not $line.StartsWith('{')) { Write-Host $line; return }
+        $message = $line | ConvertFrom-Json
+        if ($message.reason -ne 'compiler-artifact' -or
+            $message.package_id -cne $script:boundedPackageId -or
+            -not $message.profile.test -or $null -eq $message.executable) { return }
+        $actualFeatures = @($message.features | Sort-Object)
+        if (($actualFeatures -join ',') -cne ($script:boundedFeatureNames -join ',')) {
+            throw 'Test executable does not enable the exact all-feature package set.'
+        }
+        $key = if ($message.target.kind -contains 'lib') {
+            'lib'
+        } elseif ($message.target.kind -contains 'test' -and $integrationTargets -ccontains $message.target.name) {
+            "integration:$($message.target.name)"
+        } else { return }
+        if ($artifacts.ContainsKey($key)) { throw "Duplicate test artifact '$key'." }
+        if (-not (Test-Path -LiteralPath $message.executable -PathType Leaf)) {
+            throw "Cargo test executable is missing for '$key'."
+        }
+        $artifacts[$key] = $message.executable
+    }
+    if ($LASTEXITCODE -ne 0) { throw "Test artifact compilation failed (exit $LASTEXITCODE)." }
+    foreach ($key in @('lib') + @($integrationTargets | ForEach-Object { "integration:$_" })) {
+        if (-not $artifacts.ContainsKey($key)) { throw "Cargo omitted test artifact '$key'." }
+    }
+    return $artifacts
+}
+
 $rg = Get-Command rg.exe -CommandType Application -ErrorAction SilentlyContinue |
     Select-Object -First 1
 if (-not $rg) {
@@ -215,7 +262,7 @@ try {
     $env:GIT_CONFIG_KEY_0 = 'safe.directory'
     $env:GIT_CONFIG_VALUE_0 = $repositoryRoot
 
-    if ($Shard -eq 'all') {
+    if ($Shard -eq 'all' -or $Workers -gt 1) {
         Assert-IntegrationTargets
     }
     $needsLibraryPlan = $Shard -eq 'all' -or $Shard -eq 'unit:source_projection' -or
@@ -248,10 +295,48 @@ try {
     if ($jobs.Count -eq 0) {
         throw "Unknown shard '$Shard'. Use all, fixture, unit:<module>, unit:source_projection:<listed-child>, or integration:<target>."
     }
-    for ($index = 0; $index -lt $jobs.Count; $index++) {
-        $job = $jobs[$index]
-        Invoke-CargoShard -Name $job.Name -Arguments $job.Arguments `
-            -Index ($index + 1) -Total $jobs.Count
+    if ($Workers -eq 1) {
+        for ($index = 0; $index -lt $jobs.Count; $index++) {
+            $job = $jobs[$index]
+            Invoke-CargoShard -Name $job.Name -Arguments $job.Arguments `
+                -Index ($index + 1) -Total $jobs.Count
+        }
+    } else {
+        # Initial reviewed read-only group: fixture loads inspect catalog,
+        # source bytes and immutable Git blobs; mutation probes use local
+        # strings only. Everything else remains exclusive until reviewed.
+        $parallelNames = @(
+            'unit:source_projection:core_theme_keyboard_models_slice_tests',
+            'unit:source_projection:core_theme_preview_five_slice_tests',
+            'unit:source_projection:core_theme_preview_models_slice_tests'
+        )
+        $executables = Get-BoundedTestExecutables
+        $processJobs = @($jobs | ForEach-Object {
+            $key = if ($_.Name.StartsWith('integration:', [System.StringComparison]::Ordinal)) {
+                $_.Name
+            } else { 'lib' }
+            $separator = [array]::IndexOf([string[]]$_.Arguments, '--')
+            if ($separator -lt 0 -or $separator -ge $_.Arguments.Count - 1) {
+                throw "Missing libtest arguments for '$($_.Name)'."
+            }
+            $harnessArguments = @($_.Arguments[($separator + 1)..($_.Arguments.Count - 1)])
+            if ($key -eq 'lib') {
+                $library = [array]::IndexOf([string[]]$_.Arguments, '--lib')
+                if ($library -lt 0 -or $library + 1 -ge $separator) {
+                    throw "Missing library filter for '$($_.Name)'."
+                }
+                $harnessArguments = @($_.Arguments[$library + 1]) + $harnessArguments
+            }
+            [pscustomobject]@{
+                Name = $_.Name
+                Executable = $executables[$key]
+                WorkingDirectory = $projectRoot
+                Arguments = $harnessArguments
+                ParallelSafe = $parallelNames -ccontains $_.Name
+            }
+        })
+        $receipts = @(Invoke-BoundedProcessPool -Jobs $processJobs -Workers $Workers)
+        if ($receipts.Count -ne $jobs.Count) { throw 'Process pool omitted test shards.' }
     }
     Write-Host "PASS: $($jobs.Count) test shards completed."
 } finally {

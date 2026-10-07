@@ -1,0 +1,598 @@
+{
+  "schema": "sfm:core-manager-consent-providers-slice@1",
+  "status": "Authored ignored source stage and prepared unregistered tests; parent promotion, production rendering, Rust tests, Java compilation and runtime validation remain pending.",
+  "scope": {
+    "logical_files": 4,
+    "raw_variants": 4,
+    "historical_cells": 80,
+    "historical_present": 8,
+    "historical_absent": 72,
+    "raw_bytes": 13280,
+    "authored_bytes": 13388,
+    "stage_root": "platform/cli/sfm-propagate-changes/target/core-manager-consent-providers-stage-v1",
+    "prepared_test": "platform/cli/sfm-propagate-changes/target/core-manager-consent-providers-stage-v1/core_manager_consent_providers_slice_tests.rs"
+  },
+  "normalization": "none",
+  "contract_changes": false,
+  "definitions": {
+    "client_frame_language": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_manager",
+        "sfml_execution_side",
+        "client_program_consent"
+      ]
+    },
+    "client_program_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "packet_values",
+        "sfml_execution_side",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation"
+      ]
+    },
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "client_program_signing": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "disk_readonly_access": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "runtime_resource_cleanup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerLoadedRegistry.java",
+      "owner": "client_manager",
+      "raw_oid": "2b3aea64eada4ec895bbb42c85bd505a1d190fdf",
+      "raw_bytes": 1325,
+      "raw_sha256": "sha256:4747d24c589691198da6927de3807c947108a8eb07e3bbc4760d3b91a86e8186",
+      "authored_bytes": 1325,
+      "authored_sha256": "sha256:4747d24c589691198da6927de3807c947108a8eb07e3bbc4760d3b91a86e8186",
+      "cr_count": 0,
+      "lf_count": 35,
+      "final_lf": true,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerLoadedRegistry.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.19.2": "2b3aea64eada4ec895bbb42c85bd505a1d190fdf",
+        "dev/1.19.4": "2b3aea64eada4ec895bbb42c85bd505a1d190fdf",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "common_edit_anchor": "public final class ClientManagerLoadedRegistry {"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentService.java",
+      "owner": "client_program_consent",
+      "raw_oid": "391ecbfe3c703be2508c4a9ecc206c51daeca32d",
+      "raw_bytes": 9295,
+      "raw_sha256": "sha256:97e618975be5f86b89e704f5d7af7a3f5aa9254c3f151787082499612213a590",
+      "authored_bytes": 9295,
+      "authored_sha256": "sha256:97e618975be5f86b89e704f5d7af7a3f5aa9254c3f151787082499612213a590",
+      "cr_count": 0,
+      "lf_count": 176,
+      "final_lf": true,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentService.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_consent"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.19.2": "391ecbfe3c703be2508c4a9ecc206c51daeca32d",
+        "dev/1.19.4": "391ecbfe3c703be2508c4a9ecc206c51daeca32d",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "common_edit_anchor": "public final class ClientProgramConsentService {"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramSignerAuthority.java",
+      "owner": "client_program_consent",
+      "raw_oid": "7ee528bb706e6972cbe259a6b40716d4dc7cb71a",
+      "raw_bytes": 762,
+      "raw_sha256": "sha256:31efff48059f4e84a12c439257b3bc88300802f656108aab92ace79a9056f435",
+      "authored_bytes": 762,
+      "authored_sha256": "sha256:31efff48059f4e84a12c439257b3bc88300802f656108aab92ace79a9056f435",
+      "cr_count": 0,
+      "lf_count": 18,
+      "final_lf": true,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramSignerAuthority.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_consent"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.19.2": "7ee528bb706e6972cbe259a6b40716d4dc7cb71a",
+        "dev/1.19.4": "7ee528bb706e6972cbe259a6b40716d4dc7cb71a",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "common_edit_anchor": "public interface ClientProgramSignerAuthority {"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+      "owner": "client_program_consent",
+      "raw_oid": "b6f700da5dd6953092e134491606c9f952f35f04",
+      "raw_bytes": 1898,
+      "raw_sha256": "sha256:a36842374da9fcb46d5b59e95e67e8f1ad5918114ff5223a4691dd5562f2cbc2",
+      "authored_bytes": 2006,
+      "authored_sha256": "sha256:740abca80575004521a6d90715dc3681994d58756a13cd682a9581b22f573405",
+      "cr_count": 0,
+      "lf_count": 39,
+      "final_lf": true,
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_consent"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "witnesses": {
+        "dev/1.19.2": "b6f700da5dd6953092e134491606c9f952f35f04",
+        "dev/1.19.4": "b6f700da5dd6953092e134491606c9f952f35f04",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "common_edit_anchor": "public final class ClientProgramConsentRuntime {"
+    }
+  ],
+  "runtime_guard": {
+    "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+    "owner": "client_program_signing",
+    "original_region": "                System::currentTimeMillis, ClientProgramSignerTrustRuntime.service());\n",
+    "template_region": "{% if features.client_program_signing %}\n                System::currentTimeMillis, ClientProgramSignerTrustRuntime.service());\n{% else %}\n                System::currentTimeMillis);\n{% endif %}\n",
+    "original_bytes": 87,
+    "original_sha256": "sha256:e1c5bd4607cd946ddf5bc3fc197d7006a7b75e3e13a874ab458b661a83a24eb0",
+    "template_bytes": 195,
+    "template_sha256": "sha256:0e6a53dfba84a68f5d36c2660392b782db68aa8980917a3f9e59ecbb45d852d4",
+    "signer_off_bytes": 1855,
+    "signer_off_sha256": "sha256:33af335808af1c1f509121a7f245a3eb1c32dc82f28e762a1775a75d797acf32",
+    "signer_off_origin": "Counterfactual composition of the genuine two-argument ClientProgramConsentService constructor; not historical raw equality.",
+    "signer_on_origin": "Raw witness exact, including ClientProgramSignerTrustRuntime.service() lookup.",
+    "authority_none": "The genuine ClientProgramSignerAuthority.NONE returns false from permits and no-ops revocation; the two-argument service constructor delegates to it.",
+    "changes_outside_region": false
+  },
+  "profiles": {
+    "off": [],
+    "side": [
+      "sfml_execution_side"
+    ],
+    "consent": [
+      "client_program_consent",
+      "sfml_execution_side"
+    ],
+    "manager": [
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "sfml_execution_side"
+    ],
+    "frame": [
+      "client_frame_language",
+      "client_manager",
+      "client_program_consent",
+      "disk_readonly_access",
+      "sfml_execution_side"
+    ],
+    "actions": [
+      "client_actions",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ],
+    "signing": [
+      "client_actions",
+      "client_frame_language",
+      "client_manager",
+      "client_program_actions",
+      "client_program_consent",
+      "client_program_signing",
+      "disk_readonly_access",
+      "packet_computation",
+      "packet_values",
+      "runtime_resource_cleanup",
+      "sfml_execution_side"
+    ]
+  },
+  "independent_mask_evidence": {
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "profiles_per_target": 7,
+    "cells": 56,
+    "selected": 38,
+    "omitted": 18,
+    "dependency_validation": "Explicit current closed lists only; no auto-expansion and no program signing prerequisite added to basic consent/manager.",
+    "missing_direct_prerequisite_refusals": 30,
+    "unsupported_profile_refusals": 24
+  },
+  "api_source_contracts": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerLoadedRegistry.java",
+      "anchors": [
+        "WeakHashMap<Level, Set<ClientManagerBlockEntity>>",
+        "Collections.newSetFromMap(new IdentityHashMap<>())",
+        "public static synchronized void add",
+        "public static synchronized void remove",
+        "public static synchronized Set<ClientManagerBlockEntity> snapshot",
+        "Set.copyOf(entries)",
+        "public static synchronized void clear"
+      ],
+      "effects": "Only loaded manager membership; never requests chunk loading."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentService.java",
+      "anchors": [
+        "public ClientProgramConsentService(Path destination, LongSupplier clock)",
+        "this(destination, clock, ClientProgramSignerAuthority.NONE);",
+        "ClientProgramConsentStore.load(destination, clock)",
+        "if (!loaded.diagnostics().isEmpty()) loaded.store().setStoppedAll(true);",
+        "gate = new ClientProgramConsentGate(loaded.store(), signerAuthority::permits);",
+        "store().save(destination, Set.copyOf(durable));"
+      ],
+      "effects": "Existing bounded persistent exact consent service. Observe is passive/nonpersistent; explicit decisions/reopening/user recovery semantics retained."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramSignerAuthority.java",
+      "anchors": [
+        "boolean permits(ClientProgramIdentity identity, ResourceLocation capability);",
+        "void revokeAll() throws IOException;",
+        "void revokeAtLocation(ClientProgramIdentity identity) throws IOException;",
+        "public boolean permits(ClientProgramIdentity identity, ResourceLocation capability) { return false; }"
+      ],
+      "effects": "Existing default-deny interface. No signing admission, UI or transport added."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+      "anchors": [
+        "private static final class Holder",
+        "public static ClientProgramConsentService service()",
+        "public static ClientProgramConsentGate gate()",
+        "return service().observe(identity, source, canonicalBindings, versions);"
+      ],
+      "effects": "Existing lazy runtime wrapper and exact bounded evidence/version observation; signer-off removes only optional trust-runtime lookup."
+    }
+  ],
+  "core_provider_contracts": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramIdentity.java",
+      "selection": "client_program_consent",
+      "anchors": [
+        "public record ClientProgramIdentity(",
+        "fromStoredSourceAndBindings(",
+        "Set<ResourceLocation> requestedCapabilities",
+        "ClientProgramConsentGate.EXECUTE"
+      ],
+      "status": "Already core-owned, actual production selector/source signatures must be checked by prepared tests."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentGate.java",
+      "selection": "client_program_consent",
+      "anchors": [
+        "public final class ClientProgramConsentGate",
+        "ClientProgramConsentGate(ClientProgramConsentStore store,",
+        "BiPredicate<ClientProgramIdentity, ResourceLocation> signerAuthority",
+        "store.hasRecordedDecision(identity, capability)",
+        "signerAuthority.test(identity, capability)",
+        "reopenDenied"
+      ],
+      "status": "Already core-owned; no signer provider required by genuine false-authority path."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentStore.java",
+      "selection": "client_program_consent",
+      "anchors": [
+        "public static final int MAX_PROGRAMS = 128;",
+        "public static final int MAX_CAPABILITIES = 64;",
+        "public synchronized void setStoppedAll(boolean stopped)",
+        "public synchronized void observe(",
+        "public synchronized List<Snapshot> snapshots()",
+        "public synchronized void save(Path destination, Set<ClientProgramIdentity> durableIdentities)",
+        "public static LoadResult load(Path path, LongSupplier clock)"
+      ],
+      "status": "Already core-owned; filesystem persistence not executed by this tranche."
+    }
+  ],
+  "consumer_evidence": [
+    {
+      "source": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java",
+      "context": "dev/1.19.2",
+      "anchors": [
+        "ClientManagerLoadedRegistry.add(level, this);",
+        "ClientManagerLoadedRegistry.remove(level, this);"
+      ],
+      "status": "Future real BE source closure, not authored here."
+    },
+    {
+      "source": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+      "context": "dev/1.19.2",
+      "anchors": [
+        "ClientProgramConsentRuntime.gate();",
+        "ClientManagerLoadedRegistry.snapshot(world);",
+        "ClientManagerLoadedRegistry.clear(world);",
+        "ClientProgramConsentRuntime.observe(identity, source, bindings);"
+      ],
+      "status": "Future real frame scheduler source closure, not authored here."
+    },
+    {
+      "source": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramSignerTrustService.java",
+      "context": "dev/1.19.2",
+      "anchors": [
+        "implements ClientProgramSignerAuthority"
+      ],
+      "status": "Future signing authority source closure; absent from signer-off body without fabricating provider."
+    },
+    {
+      "source": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+      "context": "dev/1.19.2",
+      "anchors": [
+        "ClientProgramConsentRuntime::service",
+        "state.request(identity, capability)"
+      ],
+      "status": "Future action consumer; no basic client_actions prerequisite invented for this service."
+    },
+    {
+      "source": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentsPanel.java",
+      "context": "dev/1.19.2",
+      "anchors": [
+        "this(ClientProgramConsentRuntime.service(), ClientProgramSignerTrustRuntime.service());"
+      ],
+      "status": "Future user-facing panel source closure; service does not imply UI."
+    }
+  ],
+  "external_api_dependencies": [
+    "Pinned D2 net.minecraft.world.level.Level, net.minecraft.resources.ResourceLocation, net.minecraft.SharedConstants, org.jetbrains.annotations.Nullable and net.minecraftforge.fml.ModList/loading.FMLPaths remain real Java dependencies, not synthetic providers."
+  ],
+  "deferred": [
+    "ClientManagerBlockEntity and ClientManagerBlock are not staged: label-readonly API boundary, separate GUI owner and lifecycle remain independently reviewed gates.",
+    "ClientManagerFrameRuntime is not staged: touch/action/render/negotiated-session guards remain separate source contracts.",
+    "ClientProgramSignerTrustRuntime and ClientProgramSignerTrustService are not authored here; signer-on Java closure remains pending, signer-off genuine NONE path remains available.",
+    "No modal consent panel/action, loaded-manager scheduling, Minecraft class closure, Java compilation, storage I/O, signing or runtime execution was proven."
+  ],
+  "validation": {
+    "completed": [
+      "Read exact four frozen Git blobs, verified raw SHA256/byte/LF identities.",
+      "Re-read authored four staged Java files and verified deterministic physical byte/hash identities.",
+      "Fresh read-only git ls-tree against all20 frozen commits proved all80 cells:8present/72absent.",
+      "Independent small whole-line if expansion proved all4 signing-on and all4 signing-off source bodies; not the production renderer.",
+      "Independent expansion of seven explicit dependency-closed profiles on both D2 targets proved56 cells:38selected/18omitted; this is not production collector/context execution."
+    ],
+    "pending": [
+      "Parent source/template/metadata promotion.",
+      "Prepared actual production selector/renderer/collector tests registration and execution.",
+      "Java compile/runtime tests of enabled manager/consent graph."
+    ],
+    "prepared_tests": 8,
+    "tests_executed": 0,
+    "production_render_executed": false,
+    "java_compiled": false,
+    "runtime_executed": false
+  },
+  "publication": "Portable repo-relative paths and public frozen object identities only. Dependency declarations/locks remain unchanged; no cache acquisition, process/network/OS mutation or cleanup."
+}

@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+{% case minecraft_version %}
+{% when "1.19.4" %}
+  "category": "misc",
+{% else %}
+{% endcase %}
+  "key": {
+    "A": {
+      "tag": "forge:chests"
+    },
+    "B": {
+      "item": "sfm:cable"
+    },
+    "C": {
+      "item": "minecraft:comparator"
+    }
+  },
+  "pattern": [
+    "ABA",
+    "BCB",
+    "ABA"
+  ],
+  "result": {
+    "item": "sfm:client_manager"
+{% case minecraft_version %}
+{% when "1.19.4" %}
+  },
+  "show_notification": true
+{% else %}
+  }
+{% endcase %}
+}

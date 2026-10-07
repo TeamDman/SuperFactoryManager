@@ -1,0 +1,81 @@
+{
+  "schema": "sfm.core_release_parity_v5_primitive_observation@1",
+  "date": "2026-10-02",
+  "status": "closed_native_zero_six_no_class_input_cases_only",
+  "production_source_changed": false,
+  "actual_invocation": {
+    "checkpoint": "11f2c1",
+    "native_exit": 0,
+    "children": ["metadata", "library", "harness", "cases"],
+    "all_normal_zero_EOF_settled_and_owned_root_reaped": true,
+    "owned_tree_kill_requests": 0,
+    "caller_seal_sha256": "f5c7e6da89a757d620074364f89b70294b9b6dc6df4c6eedd35b54ae66414058",
+    "subject_seal_sha256": "0547c665818c8483846c0267ca1f1634ae609686f57bc1a1cd691866146d2acc",
+    "subject_Rust_files": 9,
+    "subject_Rust_bytes": 115949,
+    "compiler_bytes": 111104,
+    "compiler_sha256": "c2ad935c07608a59dd6106fc26bc9ad22118acc64d0351162ce720fab10d7a17",
+    "replay_allowed": false
+  },
+  "exact_observed_cases": [
+    "aggregate_input_cap_overflow",
+    "append_exact_cap_refusal_unchanged",
+    "configured_output_cap_cannot_expand",
+    "escape_expansion_preappend_refusal",
+    "json_escaping_actual_utf8_bytes",
+    "sha_known_vectors"
+  ],
+  "actual_raw_stdout": {
+    "bytes": 370,
+    "sha256": "598bd3289f97ac42191ce6f28181ba3be967eb8737b8c5d0f8f1d4b14a5973a7",
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 0
+  },
+  "complete_output_evidence": {
+    "members": 17,
+    "bytes": 13183278,
+    "ordinal_aggregate_sha256": "dfa5a1440f11ae32f074dd3a7a50ad08f2e30fb9c0d23ddadac9f82b4a0171f5",
+    "final_receipt_bytes": 8348,
+    "final_receipt_sha256": "14e104a6ecd19aad6fa6f4de42a60c9e378ca68e44b0789b9ffe24b893e3ef58",
+    "compiler_generated_PDB_in_complete_inventory": true,
+    "PDB_in_callers_three_artifact_array": false,
+    "external_claim_bytes": 100,
+    "external_claim_sha256": "6f30ba16edf4af054a215baef63c0da510847269b16be84c1ac07a6ab72b6147",
+    "root_evidence_checkpoint": "7efb95"
+  },
+  "independent_retained_evidence_audit": {
+    "status": "consistent_no_replay",
+    "manifest_bytes": 5566,
+    "manifest_sha256": "c7de367412825f2104eb13f62d4ea05dc321a2632129a15125c463cf8009ea6d",
+    "seal_bytes": 1753,
+    "seal_sha256": "d7e857cad34859e91b72e83e94de566929a695bbafab0cd32315e9d499e134a5",
+    "root_full_read_checkpoint": "e655c9",
+    "root_acceptance_checkpoint": "3a8f57",
+    "root_acceptance_native_exit": 0,
+    "past_live_process_reobservation": false
+  },
+  "unchanged_obligations": {
+    "class_refusals_unwaived": [83, 84],
+    "genuine_class_observations_unperformed": [16, 64, 136],
+    "quantity": [9, 16],
+    "never_substitute_quantity": 19,
+    "nested": [41, 36],
+    "distinct_Limit_concat": 14,
+    "blocked_V1_caller_not_run": true
+  },
+  "limits": {
+    "class_decoder_owned_input_full_export_observed": false,
+    "whole_corpus_determinism_budget_transaction_closure": false,
+    "archive_provider_member_JVM_purity_UI_or_release_proof": false,
+    "failure_modes_experimentally_tested": false,
+    "hard_OS_preemption_or_all_descendant_exit_proof": false,
+    "RSS_allocator_compiler_artifact_storage_cap": false,
+    "transitive_sysroot_DLL_linker_pinning": false,
+    "working_directory_independently_recorded_in_child_receipts": false,
+    "compiler_artifacts_are_not_Json_eight_MiB_cap_evidence": true,
+    "goal_complete": false
+  },
+  "next_gate": "Continue genuine-class ownership, decoder retention, complete bounded export and JVM/provider/release validation without waiving strict refusals. Preserve all sealed source, blocked callers and actual run evidence."
+}

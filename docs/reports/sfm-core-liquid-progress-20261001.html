@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="A dated, evidence-led progress report on SFM's shared Liquid source tree and twenty named Minecraft projections. Generation and Rust tests have verified checkpoints; full-matrix packaging, runtime and release parity remain open.">
+  <title>SFM · Source consolidation progress · 3 October 2026</title>
+  <style>
+    :root {
+      --ink: #edf3f5; --muted: #a6b5bf; --dim: #82949f;
+      --page: #0b1117; --surface: #111b24; --raised: #17232e;
+      --line: #2c3b47; --cyan: #78e1e8; --orange: #ffc18d;
+      --cyan-wash: #10272d; --orange-wash: #30251d;
+      --sans: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "Cascadia Code", "Consolas", "Liberation Mono", monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
+    body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.65; }
+    a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: .23em; }
+    a:hover { color: var(--ink); }
+    :focus-visible { outline: 3px solid var(--orange); outline-offset: 5px; }
+    .skip { position: absolute; top: -5rem; left: 1rem; padding: .6rem 1rem; background: var(--raised); z-index: 5; }
+    .skip:focus { top: 1rem; }
+    .shell { width: min(1180px, calc(100% - 72px)); margin-inline: auto; }
+    .masthead { padding: 27px 0 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+    .brand { display: flex; gap: .8rem; align-items: center; font-weight: 600; letter-spacing: .045em; }
+    .brand-mark { width: 31px; height: 31px; border: 1px solid var(--cyan); display: grid; place-items: center; color: var(--cyan); font: 14px var(--mono); }
+    .edition { font-size: 13px; color: var(--muted); letter-spacing: .045em; }
+    .eyebrow { font: 12px/1.6 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); margin: 0 0 17px; }
+    .hero { padding: 58px 0 39px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 55px; align-items: end; }
+    h1 { font-size: clamp(40px, 5.4vw, 68px); line-height: 1.06; font-weight: 500; letter-spacing: -.055em; margin: 0 0 25px; max-width: 760px; }
+    .hero p.lead { color: var(--muted); font-size: 20px; line-height: 1.55; max-width: 650px; margin: 0; }
+    .hero-status { padding-left: 26px; border-left: 2px solid var(--orange); }
+    .state { display: inline-flex; align-items: center; gap: .55rem; font: 12px var(--mono); letter-spacing: .04em; color: var(--orange); }
+    .state::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+    .hero-status h2 { font-size: 22px; line-height: 1.35; font-weight: 500; margin: 13px 0 12px; letter-spacing: -.02em; }
+    .hero-status p { color: var(--muted); margin: 0; font-size: 15px; }
+    .hero-status .next { margin-top: 16px; color: var(--ink); }
+    .scope-line { padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; display: flex; gap: 14px 30px; flex-wrap: wrap; }
+    .scope-line code { color: var(--ink); }
+    .section-nav { display: flex; gap: 14px 28px; flex-wrap: wrap; padding: 23px 0 0; font-size: 14px; }
+    .section-nav a { color: var(--muted); }
+    .section-nav a:hover { color: var(--cyan); }
+    section { padding: 57px 0 0; }
+    .section-heading { display: grid; grid-template-columns: 47px 1fr; align-items: baseline; gap: 12px; margin-bottom: 22px; }
+    .section-number { color: var(--dim); font: 13px var(--mono); }
+    h2 { font-size: 31px; line-height: 1.2; letter-spacing: -.03em; font-weight: 500; margin: 0; }
+    h3 { font-size: 20px; line-height: 1.35; font-weight: 500; letter-spacing: -.01em; margin: 0 0 12px; }
+    p { margin: 0 0 17px; }
+    .sublead { color: var(--muted); max-width: 870px; margin: 0 0 25px 59px; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .metric { padding: 24px 22px 24px 0; min-width: 0; }
+    .metric + .metric { padding-left: 22px; border-left: 1px solid var(--line); }
+    .metric dt { font-size: 13px; color: var(--muted); }
+    .metric dd { margin: 5px 0 6px; font-size: 43px; line-height: 1.2; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .metric small { display: block; font-size: 13px; line-height: 1.45; color: var(--muted); }
+    .caption { font-size: 13px; color: var(--muted); margin-top: 13px; }
+    .caption code { font-size: .95em; }
+    .track-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 30px 0; }
+    .track-card { padding: 24px; border: 1px solid var(--line); background: var(--surface); min-width: 0; }
+    .track-card h3 { margin-top: 13px; }
+    .track-card p { color: var(--muted); font-size: 14px; margin-bottom: 0; }
+    .track-card .state { color: var(--cyan); }
+    .track-card.open .state { color: var(--orange); }
+    .coverage { margin-top: 30px; padding: 25px; background: var(--surface); border-top: 1px solid var(--line); }
+    .coverage-bar { display: grid; grid-template-columns: 923fr 680fr; height: 14px; gap: 3px; margin: 20px 0 14px; }
+    .coverage-present { background: var(--cyan); }
+    .coverage-missing { background: var(--orange); }
+    .coverage-labels { display: flex; justify-content: space-between; gap: 15px; flex-wrap: wrap; font: 13px var(--mono); }
+    .coverage-labels span:first-child { color: var(--cyan); }
+    .coverage-labels span:last-child { color: var(--orange); }
+    .coverage .caption { margin-bottom: 0; }
+    .history > summary { color: var(--ink); font-size: 17px; padding: 4px 0 9px; }
+    .callout { border-left: 2px solid var(--cyan); padding: 5px 0 5px 19px; margin: 25px 0; }
+    .callout p:last-child { margin-bottom: 0; }
+    .callout.warning { border-left-color: var(--orange); }
+    .callout-label { color: var(--cyan); font: 12px var(--mono); margin-bottom: 8px; letter-spacing: .06em; }
+    .warning .callout-label { color: var(--orange); }
+    .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 25px; margin-top: 28px; }
+    .flow-step { position: relative; padding-top: 20px; border-top: 2px solid var(--line); }
+    .flow-step:not(:last-child)::after { content: "→"; position: absolute; right: -20px; top: -18px; color: var(--cyan); font: 22px var(--mono); }
+    .flow-step small { color: var(--dim); font: 11px var(--mono); letter-spacing: .08em; }
+    .flow-step h3 { font-size: 18px; margin-top: 10px; }
+    .flow-step > code { color: var(--cyan); font-size: 12px; line-height: 1.8; display: block; margin: 12px 0; }
+    .flow-step p { font-size: 14px; color: var(--muted); }
+    code { font-family: var(--mono); font-size: .85em; overflow-wrap: anywhere; }
+    .two-up { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 29px; }
+    .code-panel { background: var(--surface); padding: 23px 24px; border-top: 1px solid var(--line); min-width: 0; }
+    .code-title { font: 12px var(--mono); color: var(--muted); margin: 0 0 15px; }
+    pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.7 var(--mono); tab-size: 2; }
+    pre code { font-size: inherit; }
+    .liquid { color: var(--orange); }
+    .string { color: var(--cyan); }
+    .comment { color: var(--dim); }
+    .small { font-size: 14px; color: var(--muted); }
+    .demo { margin-top: 26px; padding: 22px 24px; background: var(--cyan-wash); }
+    .demo h3 { color: var(--cyan); }
+    .demo-controls { display: flex; flex-wrap: wrap; gap: 15px 26px; margin: 18px 0; align-items: center; }
+    .demo-controls label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+    select { background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; font: 16px var(--sans); padding: 9px 11px; min-height: 44px; max-width: 100%; }
+    input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--cyan); flex: none; }
+    .demo-result { padding-top: 12px; border-top: 1px solid #36505a; margin: 0; font: 13px/1.8 var(--mono); overflow-wrap: anywhere; }
+    .demo-result span { display: block; }
+    .test-result { display: grid; grid-template-columns: 1.1fr 1fr; gap: 30px; align-items: start; margin-top: 25px; }
+    .gate { background: var(--cyan-wash); padding: 27px; }
+    .gate .state { color: var(--cyan); }
+    .gate .count { display: block; font-size: 51px; line-height: 1.2; letter-spacing: -.04em; margin: 14px 0; font-variant-numeric: tabular-nums; }
+    .gate p { color: var(--muted); font-size: 14px; }
+    .gate dl { margin: 20px 0 0; }
+    .gate dl div { display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid #36505a; padding-top: 9px; margin-top: 9px; font-size: 14px; }
+    .gate dd { margin: 0; font-variant-numeric: tabular-nums; }
+    .ledger { margin: 0; }
+    .ledger > div { padding: 15px 0; border-top: 1px solid var(--line); }
+    .ledger dt { font-size: 16px; margin-bottom: 5px; }
+    .ledger dd { margin: 0; color: var(--muted); font-size: 14px; }
+    .tag { color: var(--cyan); font: 11px var(--mono); margin-right: 8px; white-space: nowrap; }
+    .tag.pending { color: var(--orange); }
+    .table-wrap { overflow-x: auto; max-width: 100%; border-top: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    caption { text-align: left; padding: 0 0 16px; color: var(--muted); font-size: 14px; }
+    th, td { padding: 13px 15px 13px 0; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-weight: 400; font-size: 12px; }
+    td:first-child { font-family: var(--mono); color: var(--ink); }
+    td.number { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    td .note { display: block; color: var(--muted); font: 12px/1.5 var(--sans); margin-top: 3px; }
+    .passed { color: var(--cyan); }
+    .pending { color: var(--orange); }
+    .matrix table { min-width: 700px; }
+    .boundary { padding: 26px; background: var(--orange-wash); margin-top: 27px; }
+    .boundary h3 { color: var(--orange); }
+    .boundary p { color: #d6c4b4; font-size: 15px; }
+    .boundary p:last-child { margin-bottom: 0; }
+    .timeline { counter-reset: stages; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin: 26px 0 0; padding: 0; list-style: none; }
+    .timeline li { counter-increment: stages; border-top: 1px solid var(--line); padding-top: 18px; }
+    .timeline li::before { content: "0" counter(stages); font: 12px var(--mono); color: var(--orange); }
+    .timeline h3 { font-size: 18px; margin: 12px 0 10px; }
+    .timeline p { font-size: 14px; color: var(--muted); }
+    .alignment { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 35px; padding: 0; list-style: none; margin-top: 26px; }
+    .alignment li { display: grid; grid-template-columns: 1rem 1fr; gap: 12px; border-top: 1px solid var(--line); padding: 17px 0; font-size: 15px; }
+    .alignment .symbol { color: var(--cyan); font-family: var(--mono); }
+    .alignment .symbol.open { color: var(--orange); }
+    .alignment small { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .evidence { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; list-style: none; padding: 0; margin-top: 25px; }
+    .evidence li { padding: 17px 0; border-top: 1px solid var(--line); font-size: 15px; }
+    .evidence .path { display: block; margin-top: 5px; color: var(--dim); font: 11px/1.65 var(--mono); overflow-wrap: anywhere; }
+    .evidence p { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+    details { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 15px; }
+    summary { color: var(--muted); font-size: 14px; cursor: pointer; }
+    details dl { margin: 15px 0 0; }
+    details dt { color: var(--muted); font-size: 12px; }
+    details dd { margin: 3px 0 14px; font: 12px/1.6 var(--mono); overflow-wrap: anywhere; }
+    footer { margin-top: 62px; border-top: 1px solid var(--line); padding: 24px 0 37px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--dim); }
+    [hidden] { display: none !important; }
+    @media (max-width: 850px) {
+      .hero { grid-template-columns: 1fr; gap: 27px; padding-top: 42px; }
+      .hero-status { max-width: 620px; }
+      .flow, .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
+      .flow-step:nth-child(2)::after { content: none; }
+      .two-up, .test-result { grid-template-columns: 1fr; }
+      .track-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 540px) {
+      .shell { width: calc(100% - 36px); }
+      body { font-size: 16px; }
+      .masthead { padding-top: 20px; }
+      .edition { width: 100%; font-size: 12px; }
+      h1 { font-size: 42px; }
+      .hero p.lead { font-size: 18px; }
+      .hero-status { padding-left: 17px; }
+      .section-heading { grid-template-columns: 27px 1fr; gap: 9px; }
+      h2 { font-size: 27px; }
+      .sublead { margin-left: 0; }
+      section { padding-top: 42px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { padding: 20px 10px 20px 0; }
+      .metric:nth-child(3) { padding-left: 0; border-left: none; }
+      .metric:nth-child(n+3) { border-top: 1px solid var(--line); }
+      .metric dd { font-size: 35px; }
+      .flow, .timeline, .alignment, .evidence { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after { content: none; }
+      .flow-step p { margin-bottom: 0; }
+      .code-panel, .demo, .gate, .boundary { padding: 20px 17px; }
+      .demo-controls { align-items: stretch; flex-direction: column; }
+      .demo-controls label { flex-wrap: wrap; }
+      pre { font-size: 12px; }
+      .section-nav { gap: 10px 20px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      :root { --ink: #101820; --muted: #364752; --dim: #4b5c66; --page: #fff; --surface: #f3f6f7; --raised: #fff; --line: #a8b4ba; --cyan: #005b62; --orange: #8e4200; --cyan-wash: #edf5f6; --orange-wash: #faf1e8; }
+      body { font-size: 10pt; background: white; }
+      .shell { width: 100%; }
+      .hero { padding-top: 25px; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+      h1 { font-size: 32pt; }
+      h2 { font-size: 20pt; }
+      section { padding-top: 25px; }
+      .section-nav, .skip, .demo-controls, .js-hint { display: none; }
+      .hero p.lead { font-size: 12pt; }
+      .flow, .timeline { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+      .two-up, .test-result, .alignment, .evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .matrix table { min-width: 0; font-size: 9pt; }
+      .table-wrap { overflow: visible; }
+      .boundary p { color: var(--muted); }
+      .code-panel, .gate, .boundary, .metric, tr, .evidence li, .alignment li { break-inside: avoid; }
+      .track-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .track-card, .coverage { break-inside: avoid; }
+      h2, h3, .section-heading { break-after: avoid; }
+      a { color: var(--cyan); }
+      footer { margin-top: 30px; }
+      @page { size: auto; margin: 16mm; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to the progress report</a>
+  <div class="shell">
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">S</span> SUPER FACTORY MANAGER</div>
+    <div class="edition">Engineering field report · <time datetime="2026-10-03">Updated 3 October 2026</time></div>
+    </header>
+    <main id="main">
+      <div class="hero">
+        <div>
+          <p class="eyebrow">Shared sources · Explicit choices · Verifiable outputs</p>
+          <h1>One source tree.<br>Twenty explicit projections.</h1>
+          <p class="lead">One shared Liquid authoring tree is replacing the version branches. The latest completed generation checkpoint covers all 10 Minecraft versions and both environments. Workspace and panel actions have now joined the shared core. Full feature preservation, gameplay and release compatibility still need proof.</p>
+        </div>
+        <aside class="hero-status" aria-label="Current acceptance status">
+          <span class="state">Source migration · Not release-ready</span>
+          <h2>A packaged JAR is not yet release parity.</h2>
+          <p>All 39 affected tests now pass across seven groups. Workspace source selection, panel registration, Echo, Toast and tooltip-action contracts are checked. The earlier failures remain recorded. The full Rust gate is running; preceding generation checks do not carry forward automatically.</p>
+          <p class="next">Next: finish the full Rust gate, then refresh all 20 generation contexts. Historical test-body preservation continues in parallel. Java, gameplay, release parity and final PATH installation remain open.</p>
+        </aside>
+      </div>
+      <div class="scope-line">
+        <span>Branch <code>feat/sfm-main-source-projection</code></span>
+        <span>Baseline <code>SFM 4.34.0</code></span>
+        <span>Updated <time datetime="2026-10-03T05:52:11Z">3 October 2026</time> · Static checkpoint, not live telemetry</span>
+      </div>
+      <nav class="section-nav" aria-label="Report sections">
+        <a href="#architecture">Architecture</a><a href="#evidence">Verified results</a><a href="#matrix">Version matrix</a><a href="#packaging">Packaging boundary</a><a href="#alignment">Requirements</a><a href="#next">Next steps</a>
+      </nav>
+
+      <section aria-labelledby="snapshot-heading">
+        <div class="callout" aria-label="Latest verification update">
+          <p class="callout-label">Latest verification · 39 tests passed · No failures</p>
+          <p>The complete affected run passes all seven groups. The registrar correction keeps its exact source identity, actual <code>template:false</code> metadata and strict history check. The private test helper now prepares source selection once per exact context while freshly reading and rendering each selected file. Every golden and omission assertion remains intact.</p>
+          <p class="small">All six Workspace cases pass in 46.64 seconds. The earlier failed group took 865.38 seconds; this is an observed improvement, not a controlled benchmark. The full Rust gate is now running. Production Java, feature defaults and dependency locks did not change. <a href="../tasks/sfm-core-workspace-repair-focused-validation-20261003.json">Complete focused-test receipt</a> · <a href="../tasks/sfm-core-workspace-registrar-marker-targeted-validation-20261003.json">Earlier targeted pass</a>.</p>
+        </div>
+        <div class="section-heading"><span class="section-number">01</span><h2 id="snapshot-heading">The current source checkpoint</h2></div>
+        <p class="sublead">Workspace added 24 shared Java templates. Testing exposed unsupported compound guards, then a fixture-marker mismatch. Both are corrected. All 39 affected Rust cases now pass. The full tooling gate is running; fresh generation, Java compilation and gameplay remain separate acceptance steps.</p>
+        <dl class="metrics">
+          <div class="metric"><dt>Named contexts</dt><dd>20</dd><small>10 Minecraft versions × release and development</small></div>
+          <div class="metric"><dt>Current authored files</dt><dd>1,989</dd><small>Java, assets, build inputs and other source sets</small></div>
+          <div class="metric"><dt>Declared feature owners</dt><dd>180</dd><small>Ownership contracts, not a complete feature inventory</small></div>
+          <div class="metric"><dt>Source membership rules</dt><dd>706</dd><small>891 explicit version and feature variants</small></div>
+        </dl>
+        <p class="caption">Current source snapshot: 9,291,503 bytes. Feature definitions, catalog selections, prerequisites and dependency identities are unchanged. The <a href="../tasks/sfm-core-joint-ui-current-twenty-dry-run-20261002.json">completed V11 generation receipt</a> records the preceding 1,965-file snapshot, not this Workspace successor. Limited public selections do not prove every feature works when enabled.</p>
+        <div class="track-grid" aria-label="Four separate work tracks">
+          <article class="track-card"><span class="state">Applied · Focused tests passed</span><h3>Real provider consolidation</h3><p>The earlier 22-provider wave and the joint UI slice now live in the core. Exact Liquid selection tests preserve independent owners and disabled-code omission. Adding source does not enable its feature.</p></article>
+          <article class="track-card"><span class="state">Applied · 37 focused passes</span><h3>Palette and editing surfaces</h3><p>Keyboard details, console, keycaps, key-sequence capture and two tooltip-action providers are promoted. History ownership and all five corrected hash assertions passed. Java compilation and actual UI behavior remain untested.</p></article>
+          <article class="track-card"><span class="state">39 affected cases passed · Full gate running</span><h3>Workspace and panel actions</h3><p>24 shared providers preserve panel focus, movement, sizing, closing and lifecycle behavior. Nested guards replace 30 unsupported expressions and retain both exact fallbacks. All six Workspace cases and the affected palette, Echo, Toast, tooltip and client-registration controls pass. Java and actual panel behavior remain unproved. <a href="../tasks/sfm-core-workspace-repair-focused-validation-20261003.json">Complete focused-test receipt</a>.</p></article>
+          <article class="track-card open"><span class="state">6 pure cases passed · Parity open</span><h3>Release-class analysis</h3><p>The nine-module owned-export proposal compiled. Six no-class-input tests passed for hashing, bounded JSON output, escaping and arithmetic. Genuine class decoding, complete export and release compatibility still need proof.</p></article>
+        </div>
+        <div class="coverage" aria-labelledby="coverage-heading">
+          <h3 id="coverage-heading">Source-path coverage, not goal completion</h3>
+          <p class="small">The preceding 1,959-file audit compared 1,603 historical main-Java paths with that authored tree. Its counts are not a fresh 1,989-file inventory.</p>
+          <div class="coverage-bar" aria-hidden="true"><span class="coverage-present"></span><span class="coverage-missing"></span></div>
+          <div class="coverage-labels"><span>923 present</span><span>680 still absent</span></div>
+          <p class="caption">Presence does not prove preserved content, complete features or working gameplay. The prior audit found 680 absent paths without a source-rule mapping. Its main-Java scope excludes tests, GameTests, datagen and resources. <a href="../tasks/sfm-core-liquid-consolidation-plan.md">Read the inventories and their limits in the living plan</a>.</p>
+        </div>
+        <div class="callout warning">
+          <p class="callout-label">Historical test preservation · Tree inventory complete</p>
+          <p>All 20 historical trees account for 1,007 non-main Java paths. The current core contains 241; the 766 missing paths are development-only. No release path is missing in this source-set inventory.</p>
+          <p class="small">Tree membership is not body preservation. Current bytes authenticate 117 historical bodies; the first bounded run adds 256 complete raw bodies. Now 373 of 1,348 bodies are pinned, covering 262 complete raw path histories; 975 bodies remain to acquire. Root and independent review authenticated every raw body and reconciled the retained evidence. The next 256-body request is sealed but has not run, so the totals remain unchanged. This is preservation evidence, not template or Java acceptance. <a href="../tasks/sfm-core-non-main-first256-body-preservation-20261002.json">Read the body-preservation evidence</a>.</p>
+        </div>
+        <details class="history">
+          <summary>Earlier completed source promotions and generation evidence</summary>
+        <div class="callout">
+          <p class="callout-label">Earlier implemented slice · four sources · 34 focused passes</p>
+          <p>Shared templates now preserve pointer modifiers, syntax-highlight limits, inbox addresses and operator authorization. Their independent feature owners remain intact; adding a source does not enable it by default.</p>
+          <p class="small">16 new cases and 18 existing controls passed. That recorded 188-group gate passed 2,170 library and 70 integration cases, with 14 intentional ignores. It is evidence for its own snapshot, not the latest batch. <a href="../tasks/sfm-core-four-source-promotion-focused-20261002.json">Focused promotion receipt</a> · <a href="../tasks/sfm-core-four-source-tooling-gate-20261002.json">Historical tooling gate</a>.</p>
+        </div>
+        <div class="callout">
+          <p class="callout-label">Previous 41-source implementation checkpoint · 2 October</p>
+          <p>41 Java templates preserve terminal presentation, input diagnostics and document-history editing. That checkpoint had 1,916 files and 633 rule keys; its full tooling gate and 20 generation contexts passed. Feature-on Java and gameplay remain unproved.</p>
+          <p class="small">The first focused run passed 7 cases and exposed a type-confusing test assertion. After the narrow correction, all 48 focused cases passed. The accepted full gate covered 182 groups. These results remain bound to their recorded source hashes.</p>
+        </div>
+        <div class="callout">
+          <p class="callout-label">Earlier promotion · eight sources · 30 focused passes</p>
+          <p>Three human-action leaves and five theme-preview leaves now live in the authored core. Their 20,875 raw Java bytes, eight template rules and one existing provider refinement are independently reviewed. The core is 1,924 files with 641 rule keys and 826 variants.</p>
+          <p class="small">New leaves cover clipboard copy, target focus, direct manager editing, item-preview completion, coverage, default names, registry and theme-target interfaces. All 30 focused cases passed: 13 new and 17 existing controls. Owners remain 180; dependencies, public selections and default activation are unchanged. All 20 defaults still omit these eight leaves. <a href="../tasks/sfm-core-human-theme8-promotion-20261002.json">Promotion and focused evidence</a> · <a href="../tasks/sfm-core-human-theme8-peer-review-20261002.json">Independent source review</a>.</p>
+          <p class="small">Its complete tooling gate finished with exit 0: 184 groups, 2,136 library passes, 14 intentional ignores and 70 integration passes. Binary and documentation harnesses contained zero tests. The default-feature CLI build passed; host checks found no surviving gate processes. <a href="../tasks/sfm-core-human-theme8-tooling-gate-20261002.json">Historical complete tooling evidence</a>.</p>
+          <p class="small">All 20 dry-runs for that snapshot exited 0 with no writes. Root and independent review checked 81 retained evidence files, 22,882 descriptors, 1,521 unique authored inputs and all 160 default omissions of the eight leaves. <a href="../tasks/sfm-core-human-theme8-current-twenty-dry-run-20261002.json">Historical 20-context generation evidence</a>.</p>
+        </div>
+        <div class="callout warning">
+          <p class="callout-label">Completed preceding slice · nine sources · 50 focused passes</p>
+          <p>Three keybinding-state sources and six theme-runtime sources are now promoted. They preserve user-state and list models, key-sequence capture, theme loading, storage and preview resolution across their supported versions.</p>
+          <p class="small">18 new cases and 32 existing controls passed, followed by the 186-group tooling gate and its separately recorded generation checkpoint. Both are historical. Neither proves Java or gameplay. <a href="../tasks/sfm-core-state-theme-nine-promotion-focused-20261002.json">Nine-source promotion</a> · <a href="../tasks/sfm-core-state-theme-nine-tooling-gate-20261002.json">Completed preceding gate</a>.</p>
+        </div>
+        </details>
+        <div class="callout">
+          <p class="callout-label">Built-in hashing · no external b3sumtool needed</p>
+          <p><code>sfm-propagate-changes hash file &lt;file&gt; --algorithm blake3</code> defaults to a 32-byte digest. Use <code>--algorithm sha256</code> for SHA-256 or <code>--length 20</code> for existing lockfile BLAKE3 identities.</p>
+          <p class="small">The read-only helper streams 16 KiB buffers, rejects non-regular and reparse paths, supports cancellation and refuses observable file changes. Its tests passed in the accepted CLI shard. Root also used the pinned CLI to hash the original 53,392-byte report: exit 0, matching SHA-256, no writes. This is not installed-PATH freshness or universal race freedom.</p>
+        </div>
+        <div class="callout warning">
+          <p class="callout-label">A limited public development selection</p>
+          <p>Development 1.19.2 enables only <code>client_actions</code>, <code>echo_action</code> and <code>touch_display_terminal_mount</code>. Development 1.19.4 enables only the mount flag. The other 8 development contexts enable no flags.</p>
+          <p class="small">Empty release selections are baseline candidates. Successful generation does not establish complete preservation of every unreleased feature.</p>
+        </div>
+      </section>
+
+      <section id="architecture" aria-labelledby="architecture-heading">
+        <div class="section-heading"><span class="section-number">02</span><h2 id="architecture-heading">The architecture matches the requested layout</h2></div>
+        <p class="sublead">Write shared sources once. Select Minecraft APIs and functional features explicitly. Produce ordinary, version-specific Java and Gradle projects.</p>
+        <div class="flow" role="group" aria-label="Generation flow: authored core and projection catalog feed the Rust renderer, which produces independent nested projection roots">
+          <div class="flow-step"><small>AUTHOR</small><h3>Shared Liquid core</h3><code>platform/minecraft/<br>core-liquid-template/src/</code><p>Every Java file is template input, with its normal <code>.java</code> name. Shared bodies contain real API and feature branches.</p></div>
+          <div class="flow-step"><small>SELECT</small><h3>Named projection catalog</h3><code>platform/minecraft/<br>projections.json</code><p>A nested key supplies the Minecraft version, descriptive environment and enabled feature names.</p></div>
+          <div class="flow-step"><small>VALIDATE AND RENDER</small><h3>Rust preprocessing</h3><code>Liquid + Facet<br>owned inputs + provenance</code><p>Reject unknown or unsupported flags, missing prerequisites and unsafe paths. Omit excluded files before reading and rendering.</p></div>
+          <div class="flow-step"><small>MANIFEST</small><h3>Independent project roots</h3><code>platform/minecraft/<br>projections/&lt;nested-key&gt;/</code><p>Readable Java, assets and standalone Gradle inputs. Each context has its own identity and conflict checks.</p></div>
+        </div>
+        <div class="two-up">
+          <div class="code-panel">
+            <p class="code-title">The public catalog · Actual entries, shortened</p>
+            <pre><code>{
+  <span class="string">"sfm-4.34.0/mc-1.19.2"</span>: {
+    "minecraft_version": <span class="string">"1.19.2"</span>,
+    "environment": <span class="string">"release"</span>,
+    "features": []
+  },
+  <span class="string">"sfm-dev/mc-1.19.2"</span>: {
+    "minecraft_version": <span class="string">"1.19.2"</span>,
+    "environment": <span class="string">"dev"</span>,
+    "features": ["client_actions", "echo_action",
+                 "touch_display_terminal_mount"]
+  }
+}</code></pre>
+          </div>
+          <div class="code-panel">
+            <p class="code-title">ItemResourceType.java · Real authored import branch</p>
+            <pre><code><span class="liquid">{% case minecraft_version %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}</span>
+import net.minecraftforge.items.IItemHandler;
+<span class="liquid">{% when "26.1.2" %}</span>
+import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+<span class="liquid">{% else %}</span>
+import net.neoforged.neoforge.items.IItemHandler;
+<span class="liquid">{% endcase %}</span>
+
+<span class="comment">// Other imports omitted from this excerpt.</span></code></pre>
+          </div>
+        </div>
+        <p class="caption">The excerpt preserves actual branch choices but omits other imports. The 1.20.1 item-handler package still uses <code>net.minecraftforge</code>; loader names do not replace source-backed API decisions.</p>
+        <div class="code-panel" style="margin-top:22px">
+          <p class="code-title">SFMBlocks.java · Real optional registration within a version branch</p>
+          <pre><code><span class="liquid">{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+{% if features.client_manager %}</span>
+public static final SFMRegistryObject&lt;Block, ClientManagerBlock&gt; CLIENT_MANAGER
+        = REGISTERER.register("client_manager", ClientManagerBlock::new);
+<span class="liquid">{% endif %}
+{% endcase %}</span></code></pre>
+        </div>
+        <div class="demo" aria-labelledby="demo-heading">
+          <h3 id="demo-heading">Explore an illustrative source choice</h3>
+          <p class="small">This local example explains the two excerpts. It does not invoke the CLI, validate the full prerequisite graph or change any projection.</p>
+          <div class="demo-controls" id="demo-controls" hidden>
+            <label for="demo-version">Minecraft API
+              <select id="demo-version"><option value="1.19.2">1.19.2</option><option value="1.19.4">1.19.4</option><option value="1.20.1">1.20.1</option><option value="1.21">1.21 (key 1.21.0)</option><option value="26.1.2">26.1.2</option></select>
+            </label>
+            <label><input id="demo-feature" type="checkbox"> Illustrate <code>client_manager</code></label>
+          </div>
+          <p class="demo-result" id="demo-result" aria-live="polite"><span id="demo-import">import net.minecraftforge.items.IItemHandler;</span><span id="demo-member">Client Manager registration omitted: its feature is off.</span></p>
+          <p class="caption">Environment and projection-key names do not choose historical code or imply enable-all. The actual <code>mc-1.21.0</code> context carries Minecraft version <code>1.21</code>.</p>
+          <noscript><p class="small">JavaScript is off. The static example shows the 1.19.2 API with the optional feature disabled.</p></noscript>
+        </div>
+        <div class="callout">
+          <p class="callout-label">Contributor contract</p>
+          <p>Release projections are intended to be checked in and buildable with ordinary Gradle. Development outputs stay separate and ignored. Sync refuses edited generated files; backpropagation remains explicit.</p>
+          <p class="small">Historical source snapshots are comparison evidence, not production source selectors. Readable output and safe contributor handling still need final matrix acceptance.</p>
+        </div>
+      </section>
+
+      <section id="evidence" aria-labelledby="evidence-heading">
+        <div class="section-heading"><span class="section-number">03</span><h2 id="evidence-heading">Verified tooling is not verified gameplay</h2></div>
+        <p class="sublead">The current graph passes all 39 affected Rust cases. The whole tooling gate is running, not yet accepted. The preceding 1,965-file graph's full gate and 20 generation checks remain historical. Fresh generation, Java and gameplay still need validation.</p>
+        <div class="callout warning">
+          <p class="callout-label">Preceding 195-group tooling check · Terminal exit 0</p>
+          <p>All 195 groups passed: 2,235 library cases and 70 integration cases, with 15 intentional ignores. Dependency policy, formatting, all-feature Clippy, the all-feature build and the final default-feature CLI build passed.</p>
+          <p class="small">The preceding run completed without restart. Its recorded 1,965 core files and original 98 staged records matched. Its subsequent 20-context V11 run also passed. <a href="../tasks/sfm-core-joint-ui-tooling-gate-20261002.json">Read that completed tooling receipt</a>. Workspace validation and final installed-PATH freshness remain separate.</p>
+        </div>
+        <div class="test-result">
+          <div class="gate">
+            <span class="state">Preceding 1,965-file tooling gate · Exit 0</span>
+            <span class="count">195 / 195</span>
+            <p>All ordered groups passed. Dependency policy, formatting, production all-feature Clippy and the all-feature build passed. The final default-feature operational CLI build passed too.</p>
+            <dl>
+              <div><dt>Library cases listed</dt><dd>2,250</dd></div>
+              <div><dt>Library cases passed</dt><dd>2,235</dd></div>
+              <div><dt>Intentional ignores</dt><dd>15</dd></div>
+              <div><dt>Integration cases passed</dt><dd>70</dd></div>
+            </dl>
+            <p class="caption">The passing count includes one fixture. Binary and documentation harnesses contained zero tests. This gate covers the 1,965-file graph. Passing tests are not fault-injection or descendant-lifetime proof. Java and gameplay remain outside this acceptance.</p>
+            <a href="../tasks/sfm-core-joint-ui-tooling-gate-20261002.json">Exact preceding tooling gate receipt</a>
+          </div>
+          <dl class="ledger">
+            <div><dt><span class="tag">ONE CASE PASSED</span>The scanner still rejects unsupported expressions</dt><dd>The existing AND-refusal regression passed with 2,259 other cases filtered out. This verifies the unchanged scanner boundary, not the full repair or suite. The separate repair run passed three new contract tests and five Workspace tests, with one fixture-marker failure. <a href="../tasks/sfm-core-workspace-conjunction-history-validation-20261003.json">Read the dated checkpoint</a>.</dd></div>
+            <div><dt><span class="tag">AUDITS PASSED</span>20 completed generation dry-runs</dt><dd>Every catalog key passed against the preceding 1,965-file core. Root and independent audit matched all 81 retained files, 22,882 descriptors and 1,521 actual authored source pins. All 3,420 existing output hashes match; 17 planned roots remain absent. Children exited normally and were reaped without recovery. No sync, Java or gameplay ran. Workspace needs its own fresh generation check. <a href="../tasks/sfm-core-joint-ui-current-twenty-dry-run-20261002.json">Read the completed generation receipt</a>.</dd></div>
+            <div><dt><span class="tag">AUDITS PASSED</span>256 historical source bodies recovered</dt><dd>One fixed offline cohort completed normally. Root and a separate independent review verified all 771 retained files and complete Git-framed body identities: 2,093,856 raw bytes, zero stderr and zero kill requests. That run did not change source, labels, feature selections or dependency identities. Both retained-data audits are accepted. This is raw-source preservation, not source admission or runtime acceptance.</dd></div>
+            <div><dt><span class="tag">HISTORICAL PASS</span>Prior 1,959-file generation</dt><dd>That V10 run also passed 20 contexts. Its 13,051,339-byte evidence and executable identity remain historical, not substituted for fresh V11 results. <a href="../tasks/sfm-core-provider-wave-current-twenty-dry-run-20261002-v1.json">Read the preceding generation receipt</a>.</dd></div>
+            <div><dt><span class="tag">HISTORICAL PASS</span>20 generation dry-runs</dt><dd>Every catalog key passed on the earlier 1,937-file, 654-rule snapshot using its rebuilt default CLI. Root checked 1,521 authored inputs across 22,882 descriptors: 3,420 existing outputs matched and 19,462 planned-created outputs remained absent. All 81 evidence files were retained. No files were written. These results do not validate the current 1,989-file graph. <a href="../tasks/sfm-core-four-source-current-twenty-dry-run-20261002.json">Historical generation evidence</a>.</dd></div>
+            <div><dt><span class="tag">HISTORICAL</span>Prior 1,916-file checkpoint</dt><dd>Its 182-group gate passed 2,123 library and 70 integration cases, followed by 20 generation dry-runs. Those original receipts remain tied to their recorded source hashes. <a href="../tasks/sfm-core-promotion41-tooling-gate-20261002.json">Prior tooling receipt</a>.</dd></div>
+            <div><dt><span class="tag">VERIFIED</span>39 focused consent-registration checks</dt><dd>16 shared Java sources, 16 new rules and 3 pure-carrier refinements are promoted. All 33 new cases and 6 older action controls passed. Their interrupted gate remains historical; the later 1,916-file replacement completed successfully. <a href="../tasks/sfm-core-consent-registration-promotion-20261001.json">Historical promotion evidence</a>.</dd></div>
+            <div><dt><span class="tag">VERIFIED WITH LIMITS</span>3 native compilation checkpoints</dt><dd>Release 1.19.2, 1.19.4 and 1.20 compiled main, GameTest and datagen at separately pinned snapshots. None validates the latest 1,989-file core. The 1.19.2 and 1.20 retries packaged their recorded inputs; gameplay remains untested.</dd></div>
+            <div><dt><span class="tag">SOURCE PROMOTED</span>Palette and capture-widget composition</dt><dd>Common templates preserve actual version APIs and independent feature ownership; focused rendering tests passed. Three inherited UI findings remain: hidden controls, an older-target visibility-dispatch gap and Escape-only empty key capture. These are source findings, not reproduced UI failures or fixes.</dd></div>
+            <div><dt><span class="tag">6 PURE CASES PASSED</span>Bounded analyser output</dt><dd>The V5 proposal compiled and passed six no-class-input checks. Root and a separate retained-data audit checked all four normal compiler/test child results. This does not execute genuine class decoding or prove complete export, memory limits or release compatibility. <a href="../tasks/sfm-core-release-parity-v5-primitives-20261002.json">Read the bounded primitive evidence</a>.</dd></div>
+            <div><dt><span class="tag">CORRECTION TESTED</span>Accessor hash-return contract</dt><dd>The actual hash helper returns <code>sha256:&lt;hex&gt;</code>. The narrow correction prefixes all five new assertion literals. Five historical controls were preserved and passed alongside 32 new cases. The earlier faulty proposal and review remain historical; no Java runtime result follows.</dd></div>
+            <div><dt><span class="tag pending">UNPROVED</span>Release and development completeness</dt><dd>Complete feature inventory, preservation of all unreleased behavior, the full compile/package/runtime matrix, final installation and contributor handoff remain open.</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="matrix" class="matrix" aria-labelledby="matrix-heading">
+        <div class="section-heading"><span class="section-number">04</span><h2 id="matrix-heading">Ten versions, twenty generation contexts</h2></div>
+        <p class="sublead">All 20 checks in the latest completed generation snapshot passed on the 1,965-file core. Workspace has since brought the core to 1,989 files; its fresh generation run is still required. Public feature selections remain limited. No row has accepted gameplay or full release parity.</p>
+        <div class="table-wrap">
+          <table>
+            <caption>Latest completed generation snapshot · 1,965 files · 2 October. Counts are selected project files, not classes or shipping JAR entries. Not acceptance of the 1,989-file successor.</caption>
+            <thead><tr><th scope="col">Target key and actual API</th><th scope="col">Release / dev artifacts</th><th scope="col">Generation</th><th scope="col">Native release checkpoint</th></tr></thead>
+            <tbody>
+              <tr><td>1.19.2</td><td class="number">1,140 / 1,154</td><td class="passed">Both passed</td><td>Compilation and packaging passed<span class="note">1,875-file source checkpoint; 83 instruction/bootstrap differences remain unaccepted. Runtime pending.</span></td></tr>
+              <tr><td>1.19.4</td><td class="number">1,140 / 1,142</td><td class="passed">Both passed</td><td>Earlier compilation passed<span class="note">1,827-file snapshot; freshness does not carry forward</span></td></tr>
+              <tr><td>1.20</td><td class="number">1,140 / 1,140</td><td class="passed">Both passed</td><td>Compilation and packaging passed<span class="note">Earlier v3 snapshot; 84 strict class refusals and runtime acceptance remain open</span></td></tr>
+              <tr><td>1.20.1</td><td class="number">1,142 / 1,142</td><td class="passed">Both passed</td><td class="pending">Current native proof pending</td></tr>
+              <tr><td>1.20.2</td><td class="number">1,142 / 1,142</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Separate child-isolation approval remains unanswered</span></td></tr>
+              <tr><td>1.20.3</td><td class="number">1,142 / 1,142</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Separate child-isolation approval remains unanswered</span></td></tr>
+              <tr><td>1.20.4</td><td class="number">1,142 / 1,142</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Separate child-isolation approval remains unanswered</span></td></tr>
+              <tr><td>1.21.0<span class="note">Actual Minecraft version: 1.21</span></td><td class="number">1,144 / 1,144</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Separate child-isolation approval remains unanswered</span></td></tr>
+              <tr><td>1.21.1</td><td class="number">1,145 / 1,145</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Separate child-isolation approval remains unanswered</span></td></tr>
+              <tr><td>26.1.2</td><td class="number">1,156 / 1,156</td><td class="passed">Both passed</td><td class="pending">Native execution disabled<span class="note">Original weak-byte and child-isolation gates remain explicit</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="caption">Release 1.19.2, 1.19.4 and 1.20 have existing matching file contents. All 20 reports request a provenance-manifest refresh; no sync occurred. The other 17 roots are planned creations and remain absent. This is not a finished build. Historical datagen-cache files remain excluded housekeeping.</p>
+        <div class="boundary">
+          <h3>The six newer native paths have an authority boundary</h3>
+          <p>The proposed Windows AppContainer work needs a separate answer before effects or native execution. Existing source consolidation and the earlier Forge-family proofs can continue independently.</p>
+          <p>The only separately authorized dependency exception is an exact, checksum-verified 15-tool supplement for already identified versions. Original locks remain unchanged. This does not authorize upgrades, broad downloads or bypassing child-network safeguards.</p>
+        </div>
+      </section>
+
+      <section id="packaging" aria-labelledby="packaging-heading">
+        <div class="section-heading"><span class="section-number">05</span><h2 id="packaging-heading">Packaging is repaired; class parity is open</h2></div>
+        <p class="sublead">The latest 1.20 retry finished with exit 0. Its 1,033 JAR entry names exactly match the official release, with no additions or omissions. Matching names are not matching executable content.</p>
+        <div class="two-up">
+          <div>
+            <h3>Argument admission</h3>
+            <p class="small">Component joins and slash-containing joins produced different strings. The actual run refused before the package SpecialSource child launched.</p>
+            <dl class="ledger">
+              <div><dt><span class="tag">REPRODUCED</span>Original guard refusal</dt><dd>Retained failure and a minimal lexical diagnostic isolate the path-spelling cause.</dd></div>
+              <div><dt><span class="tag">PASSED WITH LIMITS</span>5 isolated regressions</dt><dd>Unchanged production functions plus the proposed shared constructor accept the nearest corrected case and retain unsafe-path, separator, flag and arity refusals.</dd></div>
+              <div><dt><span class="tag">PASSED</span>2 new actual crate regressions</dt><dd>Both new regressions and 8 surrounding named-JAR checks passed. The source-callsite check was made formatting-independent; live argument equality remains strict. The separately retained v3 retry then completed the actual package route.</dd></div>
+            </dl>
+          </div>
+          <div>
+            <h3>Release manifest and resources</h3>
+            <p class="small">An actual comparator checked the retained, unremapped development JAR against the existing official 4.34.0 JAR. It reproduced the wrong manifest title and 3 extra grammar resources.</p>
+            <dl class="ledger">
+              <div><dt><span class="tag">REPAIRED</span>Wrong Implementation-Title</dt><dd>The initial intermediate used <code>sfm</code>. The latest candidate uses the released <code>sfm-1.20</code>. Historical build timestamps remain disclosed differences.</dd></div>
+              <div><dt><span class="tag">REPAIRED</span>3 extra <code>.g4</code> entries</dt><dd>The initial intermediate included grammar resources unconditionally. The latest packaged candidate has no extra or missing entry names.</dd></div>
+              <div><dt><span class="tag">PASSED</span>10 packaging regressions</dt><dd>The corrected fixture passed all 10 actual crate tests. The original source-ownership refusal remains covered by a new negative test; the production guard was not changed.</dd></div>
+            </dl>
+          </div>
+        </div>
+        <div class="callout warning">
+          <p class="callout-label">1.20 retains 84 strict class refusals</p>
+          <p>The finished candidate changes 630 of 817 class payloads. The strict helper accepted 187 exact classes and 546 with only the proved +1 line-table shift; it refused 84. Those refusals are retained, not normalized away.</p>
+          <p class="small">Source provenance accounts for all 718 manifested Java units and links all 817 classes to actual compilation inputs. That proves attribution, not equivalent behavior. The 4 changed JSON resources preserve parsed content under the documented normalization.</p>
+          <p class="small">One investigated class has different executable string-concatenation lowering. A bounded JDK-only reduction completed all 4 compile and metadata profiles: the same lowering occurs with or without the banner, under CRLF and LF. It does not identify the historical compiler or waive executable differences. Runtime and release acceptance remain separate.</p>
+        </div>
+        <div class="callout">
+          <p class="callout-label">2 October actual retained-class experiment</p>
+          <p>Both 1.19.2 JARs passed 16 finite Cursor formatting cases. The experiment made 64 actual calls using only their pinned Cursor and Caret classes. Nulls, shared and distinct references, negative values and integer extremes matched.</p>
+          <p class="small">The compiler and runtime exited normally. This is a narrow observation, not whole-class, JAR or gameplay parity. All 83 instruction/bootstrap differences remain unaccepted. <a href="../tasks/sfm-core-cursor-retained-observation-20261002.json">Read the exact experiment evidence</a>.</p>
+        </div>
+      </section>
+
+      <section id="alignment" aria-labelledby="alignment-heading">
+        <div class="section-heading"><span class="section-number">06</span><h2 id="alignment-heading">Alignment with the original requirements</h2></div>
+        <p class="sublead">A source migration must retain intent, not merely move directories. A checked item below means a bounded contract is verified, not that the whole goal is complete.</p>
+        <ul class="alignment">
+          <li><span class="symbol" aria-hidden="true">✓</span><div>Shared authored root and nested catalog keys<small>The requested layout and actual 20-context selection are implemented.</small></div></li>
+          <li><span class="symbol" aria-hidden="true">✓</span><div>Real Liquid version and feature decisions<small>Grouped Minecraft API cases and independently guarded registrations exist in shared sources.</small></div></li>
+          <li><span class="symbol" aria-hidden="true">✓</span><div>Every authored Java file is template input<small>No <code>.liquid</code> filename is required. Generated code remains ordinary Java.</small></div></li>
+          <li><span class="symbol" aria-hidden="true">✓</span><div>Fail-closed ownership and contributor handling<small>Bounded path, provenance and conflict tests passed. Arbitrary inverse templating is not promised.</small></div></li>
+          <li><span class="symbol open" aria-hidden="true">○</span><div>All 10 release and development build paths<small>The preceding checkpoint passed generation for all 20 contexts. Current generation, complete builds and runtime acceptance remain open.</small></div></li>
+          <li><span class="symbol open" aria-hidden="true">○</span><div>Released behavior and compatibility<small>The goal seeks equivalent behavior and close file/content parity, not an unsupported identical-JAR claim.</small></div></li>
+          <li><span class="symbol open" aria-hidden="true">○</span><div>Preservation of unreleased work<small>Packet, Touch Display, Client Manager, consent, terminal and tooling work remain migration scope. This report does not deliver them anew.</small></div></li>
+          <li><span class="symbol open" aria-hidden="true">○</span><div>Current install and contributor handoff<small>Final PATH/revision/hash checks, complete guides and reproducible manual test steps still need acceptance.</small></div></li>
+        </ul>
+        <p class="caption">Separate version-specific Gradle inputs remain core-owned. Release projections are intended for checked-in contributor use; independently named development outputs avoid intermediate-source commits.</p>
+        <div class="callout">
+          <p class="callout-label">Earlier feature intent remains in scope</p>
+          <p>Touch Display and Client Manager programs, consent and signing, packet transport, the in-world terminal and the tunnel-capability fix must survive this source migration behind explicit feature owners. Explorer, Codex SDK, JDK and container work remain retained directions, not newly completed outcomes. The active goal is source consolidation; it does not silently replace their separate functional plans.</p>
+        </div>
+      </section>
+
+      <section id="next" aria-labelledby="next-heading">
+        <div class="section-heading"><span class="section-number">07</span><h2 id="next-heading">The next acceptance sequence</h2></div>
+        <p class="sublead">Continue source consolidation. The Workspace repair and test-context preparation are applied; all 39 affected cases pass. Finish the running full gate, then perform new generation checks. Historical-source acquisition can proceed independently. Rust source contracts do not replace compilation, gameplay or release parity.</p>
+        <ol class="timeline">
+          <li><h3>Finish the full gate and refresh generation</h3><p>The guard repair, registrar correction and reviewed test-context preparation pass all 39 affected cases. The mandatory Rust gate is running. After it passes and rebuilds the default CLI, run all 20 no-write generation contexts against this exact core. Do not reuse the preceding receipts or install an unfinished build.</p></li>
+          <li><h3>Preserve real feature providers and tests</h3><p>The first 256-body evidence review is accepted. The next bounded request is sealed but has not run. Preserve the remaining 975 unknown historical non-main bodies in separately admitted cohorts. Refresh main-Java coverage and admit coherent templates only after ownership review. Test actual selection and compilation, then use file-driven puppets and GameTests. Keep disabled-feature omission; do not use stubs or widened prerequisites.</p></li>
+          <li><h3>Account for class differences</h3><p>Exercise the owned-output analyser against genuine classes and complete bounded exports. Keep 1.20's 84 strict refusals separate from 1.19.2's 83 instruction/bootstrap differences. Six primitive tests and matching package names do not establish behavioral parity.</p></li>
+          <li><h3>Complete the matrix and handoff</h3><p>Finish all 10 release and development build paths, runtime acceptance, unreleased-feature preservation and contributor checks. Verify installed tools after the last relevant edit. Keep the unanswered newer-native isolation boundary explicit.</p></li>
+        </ol>
+        <div class="callout warning">
+          <p class="callout-label">Authority and scope remain unchanged</p>
+          <p>No merge, push, tag, publication, default-branch change or version-branch retirement is claimed or authorized by this report. Stop on a disk-space error; do not clear caches to continue.</p>
+        </div>
+      </section>
+
+      <section id="sources" aria-labelledby="sources-heading">
+        <div class="section-heading"><span class="section-number">08</span><h2 id="sources-heading">Read the underlying evidence</h2></div>
+        <p class="sublead">Links are relative to this report's intended <code>docs/reports/</code> location. This report works offline; copied outside that layout, its evidence links need the accompanying repository.</p>
+        <ul class="evidence">
+          <li><a href="../tasks/sfm-core-workspace-repair-focused-validation-20261003.json">Latest complete affected validation</a><span class="path">docs/tasks/sfm-core-workspace-repair-focused-validation-20261003.json</span><p>Seven groups, 39 passes, no failures. All six Workspace cases pass in 46.64 seconds. Records the reviewed private context preparation and unchanged assertions. The mandatory whole-tool gate is running; generation, Java/runtime and final installation remain open.</p></li>
+          <li><a href="../tasks/sfm-core-workspace-registrar-marker-targeted-validation-20261003.json">Earlier registrar-marker targeted pass</a><span class="path">docs/tasks/sfm-core-workspace-registrar-marker-targeted-validation-20261003.json</span><p>The narrow test-only correction passed the previously failing case: one pass, no failures, 2,262 filtered out, 40.14 seconds. No Java, metadata, feature default or lockfile change. The later receipt above records the complete affected rerun; the full gate remains separate.</p></li>
+          <li><a href="../tasks/sfm-core-workspace-conjunction-history-validation-20261003.json">Dated Workspace repair checkpoint</a><span class="path">docs/tasks/sfm-core-workspace-conjunction-history-validation-20261003.json</span><p>At that checkpoint, three new contract cases and five Workspace cases passed; one fixture-marker assertion failed. Five later groups, the full gate and fresh generation had not started. The targeted fixture correction was pending then. The later receipts above record its correction and complete affected rerun; the failed evidence remains intact.</p></li>
+          <li><a href="../tasks/sfm-core-workspace-navigation-first-validation-20261002.json">Workspace admission and actual test failure</a><span class="path">docs/tasks/sfm-core-workspace-navigation-first-validation-20261002.json</span><p>1,989-file source snapshot; 69 applied operations and 33 exact final targets. First test group: 3 passed, 3 failed. The receipt identifies the four-template guard repair and unrun checks.</p></li>
+          <li><a href="../tasks/sfm-core-workspace-navigation-family-provenance-20261002.json">Workspace source history and ownership</a><span class="path">docs/tasks/sfm-core-workspace-navigation-family-provenance-20261002.json</span><p>24 Java templates from 25 authentic historical bodies. Source reconstruction does not establish selector, compiler or runtime success.</p></li>
+          <li><a href="../tasks/sfm-core-joint-ui-current-twenty-dry-run-20261002.json">Latest completed V11 generation checkpoint</a><span class="path">docs/tasks/sfm-core-joint-ui-current-twenty-dry-run-20261002.json</span><p>The preceding 1,965-file run completed all 20 contexts. Root and independent audit matched 22,882 descriptors, 1,521 source inputs and 3,420 existing outputs. All 20 provenance manifests need refresh; no project writes occurred.</p></li>
+          <li><a href="../tasks/sfm-core-joint-ui-tooling-gate-20261002.json">Preceding 195-group tooling gate</a><span class="path">docs/tasks/sfm-core-joint-ui-tooling-gate-20261002.json</span><p>Preceding 1,965-file graph. All 2,235 library and 70 integration cases passed, with 15 intentional ignores. That snapshot's default worktree CLI was rebuilt. Workspace and PATH freshness remain separate.</p></li>
+          <li><a href="../tasks/sfm-core-joint-ui-source-admission-20261002.json">Joint UI source promotion and focused tests</a><span class="path">docs/tasks/sfm-core-joint-ui-source-admission-20261002.json</span><p>Six provider templates and corrected history ownership. All 32 new cases and five historical controls passed. This is selector, renderer and collector proof, not Java or UI execution.</p></li>
+          <li><a href="../tasks/sfm-core-provider-wave-current-twenty-dry-run-20261002-v1.json">Historical 1,959-file generation audit</a><span class="path">docs/tasks/sfm-core-provider-wave-current-twenty-dry-run-20261002-v1.json</span><p>Preserved V10 evidence: 20 contexts and no writes, tied to the preceding source and executable identities.</p></li>
+          <li><a href="../tasks/sfm-core-non-main-twenty-tree-preservation-20261002.json">Historical non-main source inventory</a><span class="path">docs/tasks/sfm-core-non-main-twenty-tree-preservation-20261002.json</span><p>All 20 frozen trees, 1,007 Java paths and 7,643 path/context/body witnesses. Tree membership does not itself preserve or validate every body.</p></li>
+          <li><a href="../tasks/sfm-core-non-main-first256-body-preservation-20261002.json">First historical body-preservation cohort</a><span class="path">docs/tasks/sfm-core-non-main-first256-body-preservation-20261002.json</span><p>Actual fixed256 run, normal exit 0 and complete Git-identity checks. Root and independent actual-data audits are accepted: 373 known bodies and 262 complete raw path histories. No templates or Java/runtime behavior were admitted.</p></li>
+          <li><a href="../tasks/sfm-core-release-parity-v5-primitives-20261002.json">Six bounded analyser primitive tests</a><span class="path">docs/tasks/sfm-core-release-parity-v5-primitives-20261002.json</span><p>Actual metadata, library, harness and six-case executions; separate evidence audit accepted. No genuine class, JVM or release-parity result is claimed.</p></li>
+          <li><a href="../tasks/sfm-core-four-source-current-twenty-peer-review-20261002.json">Historical independent generation review</a><span class="path">docs/tasks/sfm-core-four-source-current-twenty-peer-review-20261002.json</span><p>Separate retained-data audit confirms all 81 files and all 20 results for the 1,937-file graph. Absent roots remain uncreated; successful records are not OS fault or Java/runtime proof.</p></li>
+          <li><a href="../tasks/sfm-core-four-source-tooling-gate-20261002.json">Historical 188-group tooling gate</a><span class="path">docs/tasks/sfm-core-four-source-tooling-gate-20261002.json</span><p>1,937-file graph; 2,170 library and 70 integration passes, 14 intentional ignores. Operational CLI rebuilt, not installed into PATH. The later 195-group receipt owns current tooling proof.</p></li>
+          <li><a href="../tasks/sfm-core-four-source-current-twenty-dry-run-20261002.json">Historical root-audited generation checkpoint</a><span class="path">docs/tasks/sfm-core-four-source-current-twenty-dry-run-20261002.json</span><p>20 normal exits, 81 retained files, 22,882 artifact descriptors and no writes. Independent review passed for that snapshot. Java, runtime and parity not performed.</p></li>
+          <li><a href="../tasks/sfm-core-liquid-consolidation-plan.md">Living consolidation plan</a><span class="path">docs/tasks/sfm-core-liquid-consolidation-plan.md</span><p>Authoritative scope, requirements, task states, matrix and operational acceptance. Historical observations remain dated.</p></li>
+          <li><a href="../tasks/sfm-core-human-theme8-current-twenty-dry-run-20261002.json">Earlier independently reviewed generation audit</a><span class="path">docs/tasks/sfm-core-human-theme8-current-twenty-dry-run-20261002.json</span><p>20 terminal results on the historical 1,924-file core, independently checked against 81 retained evidence files. Existing and planned-created roots remain distinct.</p></li>
+          <li><a href="../tasks/sfm-core-current-generation-audit-20261002-v4.json">Prior accepted 20-context generation audit</a><span class="path">docs/tasks/sfm-core-current-generation-audit-20261002-v4.json</span><p>20 terminal results on the 1,916-file core: 22,882 descriptors and 1,521 actual source-input pins. Not acceptance of later graphs, including the current 1,989-file core.</p></li>
+          <li><a href="../tasks/sfm-core-current-generation-audit-20261001-v3.json">Historical independently reviewed generation audit</a><span class="path">docs/tasks/sfm-core-current-generation-audit-20261001-v3.json</span><p>Keep its original 1,875-file snapshot and physical peer-review identity separate from the later historical v4 results.</p></li>
+          <li><a href="../tasks/sfm-core-human-theme8-tooling-gate-20261002.json">Earlier 184-group tooling gate</a><span class="path">docs/tasks/sfm-core-human-theme8-tooling-gate-20261002.json</span><p>Historical 1,924-file graph: 2,136 library passes, 14 intentional ignores and 70 integration passes. Its original evidence remains preserved; it does not own current tooling freshness.</p></li>
+          <li><a href="../tasks/sfm-core-promotion41-tooling-gate-20261002.json">Prior accepted complete tooling gate</a><span class="path">docs/tasks/sfm-core-promotion41-tooling-gate-20261002.json</span><p>182 passing groups and the final normal CLI build for the prior 1,916-file graph. Its evidence remains historical. Neither this nor the current tooling gate grants Minecraft runtime acceptance.</p></li>
+          <li><a href="../tasks/sfm-core-terminal-input-history41-promotion-20261002.json">41-source promotion and 48 focused passes</a><span class="path">docs/tasks/sfm-core-terminal-input-history41-promotion-20261002.json</span><p>Exact shared-source, rule and fixture evidence. The failed assertion and narrow correction remain recorded. Its later complete tooling gate passed; runtime acceptance remains open.</p></li>
+          <li><a href="../tasks/sfm-core-packaging-policy-tooling-gate-20261001.json">Packaging full tooling gate receipt</a><span class="path">docs/tasks/sfm-core-packaging-policy-tooling-gate-20261001.json</span><p>Terminal exit 0, 2,050 library and 70 integration passes; excludes the later consent-registration promotion.</p></li>
+          <li><a href="../tasks/sfm-core-consent-registration-promotion-20261001.json">Consent-registration promotion and focused verification</a><span class="path">docs/tasks/sfm-core-consent-registration-promotion-20261001.json</span><p>16 shared sources, exact rule refinements, 39 passes and its historical validation boundary.</p></li>
+          <li><a href="../tasks/sfm-core-release-1192-native-jar-diagnostic-20261002-v1.json">Finished 1.19.2 native package and diagnostic</a><span class="path">docs/tasks/sfm-core-release-1192-native-jar-diagnostic-20261002-v1.json</span><p>Main, GameTest and datagen compilation passed. The candidate has the same 1,053 entry names; 83 instruction/bootstrap differences remain unaccepted. No runtime ran.</p></li>
+          <li><a href="../tasks/sfm-core-release-native-jar-diagnostic-20261001-v3.json">Finished 1.20 package and comparator</a><span class="path">docs/tasks/sfm-core-release-native-jar-diagnostic-20261001-v3.json</span><p>Actual terminal package exit 0 and identical JAR entry names; class differences remain explicit.</p></li>
+          <li><a href="../tasks/sfm-core-release-class-difference-proof-20261001-v1.json">Strict 817-class comparison</a><span class="path">docs/tasks/sfm-core-release-class-difference-proof-20261001-v1.json</span><p>187 exact classes, 546 accepted line-table-only shifts and 84 retained refusals.</p></li>
+          <li><a href="../tasks/sfm-core-release-source-banner-review-20261001.json">Source and banner provenance review</a><span class="path">docs/tasks/sfm-core-release-source-banner-review-20261001.json</span><p>718 manifested Java units, actual 699 compilation inputs and source attribution limits.</p></li>
+          <li><a href="../tasks/sfm-core-concat-lowering-reduction-20261001.json">Four-profile compiler reduction</a><span class="path">docs/tasks/sfm-core-concat-lowering-reduction-20261001.json</span><p>Actual JDK-only compile and metadata results narrow the banner/newline hypothesis without waiving the release refusals.</p></li>
+          <li><a href="../tasks/sfm-core-native-history-continuation-20261001.json">Native compilation and continuation receipt</a><span class="path">docs/tasks/sfm-core-native-history-continuation-20261001.json</span><p>Real 1.20 javac success, terminal packaging failure and the isolated argument-spelling proof.</p></li>
+          <li><a href="../tasks/sfm-core-release-pre-reobf-diagnostic-20261001.json">Pre-reobfuscation comparator diagnostic</a><span class="path">docs/tasks/sfm-core-release-pre-reobf-diagnostic-20261001.json</span><p>Actual retained intermediate versus official 4.34.0 JAR, with manifest/resource/class limits.</p></li>
+          <li><a href="../architecture/sfm-touch-display-and-client-manager-plan.md">Earlier Touch Display and Client Manager plan</a><span class="path">docs/architecture/sfm-touch-display-and-client-manager-plan.md</span><p>Prior feature intent remains discoverable. Migration evidence does not replace its functional acceptance.</p></li>
+        </ul>
+        <details>
+          <summary>Snapshot identities and freshness limits</summary>
+          <dl>
+            <dt>Current repaired 1,989-file authored core · SHA-256</dt><dd>d1c480d6c3a903d448db334edd34e0eab79f1588c01399bfb044f88b50cd97f2</dd>
+            <dt>Original Workspace admission · SHA-256</dt><dd>033e7daf6c72bd0e7944b368543f6e22a137302bd0db1924dc5871cd22d99e85</dd>
+            <dt>Preceding 1,965-file authored core · SHA-256</dt><dd>7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163</dd>
+            <dt>Preceding 1,959-file authored core · SHA-256</dt><dd>04cb5226a6cdd06253f35854e72c1aed694372b0c6e99ee1a2cb8e74b8909c85</dd>
+            <dt>Earlier 1,937-file authored core · SHA-256</dt><dd>3f6838393924ee5f3946acd2af58c8fc97cfdde0334a4213a9f5902c2feead24</dd>
+            <dt>1 October audited core · SHA-256</dt><dd>6b9582a1c1707010f575317c7d0f5964a7d01c64f02c4097a2fe0d7e9917295b</dd>
+            <dt>Projection catalog · SHA-256</dt><dd>6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06</dd>
+            <dt>Feature definitions · SHA-256</dt><dd>38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83</dd>
+            <dt>Current 706-rule input metadata · SHA-256</dt><dd>8c23c6cfa2c49e812b2d698176dde7506007501dc78114f121b954dbd5b219fe</dd>
+            <dt>Preceding 682-rule input metadata · SHA-256</dt><dd>6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f</dd>
+            <dt>Preceding 195-group gate log · 41,577 bytes · SHA-256</dt><dd>fea073b132b36753ec94e873178206535bf4fbf61cd706ffca65a8ea6fe95629</dd>
+            <dt>Preceding gate default CLI · 93,378,560 bytes · SHA-256</dt><dd>b6f8045935a4b857cf641686c94ba1e877edbfe0002aaef39cc51d639dfc6720</dd>
+            <dt>Completed V11 evidence · 81 files · 13,061,138 bytes · SHA-256</dt><dd>77922f7b9ffe3b9adc8bdbe642e8f8047738dd2289a3945fc99ece28bf5ab95a</dd>
+            <dt>Earlier 188-group gate log · 39,879 bytes · SHA-256</dt><dd>86684d62d48f4d2078f884833e349a9d14eaced03e584ef167ac7e7b125ffb31</dd>
+            <dt>Earlier gate default CLI · 93,378,560 bytes · SHA-256</dt><dd>49fe247894a6de53771cf59c2722d9990278110df678441389a539475510e614</dd>
+            <dt>Prior accepted 1,916-file gate default CLI · SHA-256</dt><dd>783b737bb901891d0edd0579183d8112be787f0fb265dc48ffa1f37599f9b8bb</dd>
+            <dt>1 October generation-audit default CLI · SHA-256</dt><dd>61e2e5d51253755e1254a2851f764c04c3b43991c131f0f22692389f0004ff64</dd>
+            <dt>Packaging gate default CLI · SHA-256</dt><dd>318f9f146e6cb7ce90b572a7cf82da3de526e5a665c30d0deb8c322417c3ef2f</dd>
+          </dl>
+          <p class="small">The current authored graph has 1,989 files, 706 rules, 891 variants and 180 feature definitions. Its original Workspace group had 3 passes and 3 failures. The next repair attempt had 8 passes and one fixture-marker failure. Both defects are corrected; the latest affected run passes all 39 cases. The full Rust gate is running. The preceding 1,965-file graph's 195-group gate and 20 generation checks remain evidence only for that snapshot. Historical-body acquisition has authenticated 373 bodies, not the prepared next batch. Java, runtime, release parity and installed-PATH acceptance remain open.</p>
+        </details>
+      </section>
+    </main>
+    <footer><span>SFM source consolidation · Evidence-led technical progress</span><span>3 October checkpoint · Migration incomplete · Source checks, no fresh browser preview</span></footer>
+  </div>
+  <script>
+    (() => {
+      "use strict";
+      const controls = document.getElementById("demo-controls");
+      const version = document.getElementById("demo-version");
+      const feature = document.getElementById("demo-feature");
+      const importLine = document.getElementById("demo-import");
+      const memberLine = document.getElementById("demo-member");
+      if (!controls || !version || !feature || !importLine || !memberLine) return;
+      const forgeImports = new Set(["1.19.2", "1.19.4", "1.20", "1.20.1"]);
+      const clientManagerTargets = new Set(["1.19.2", "1.19.4"]);
+      function updateIllustration() {
+        const selectedVersion = version.value;
+        importLine.textContent = forgeImports.has(selectedVersion)
+          ? "import net.minecraftforge.items.IItemHandler;"
+          : "import net.neoforged.neoforge.items.IItemHandler;";
+        if (selectedVersion === "26.1.2") {
+          importLine.textContent += " + ResourceHandler<ItemResource> transfer API";
+        }
+        if (!feature.checked) {
+          memberLine.textContent = "Client Manager registration omitted: its feature is off.";
+        } else if (!clientManagerTargets.has(selectedVersion)) {
+          memberLine.textContent = "Unsupported client_manager target: a real CLI context would refuse this feature selection.";
+        } else {
+          memberLine.textContent = "Registration branch included in this illustration. Real selection also requires its declared prerequisites.";
+        }
+      }
+      version.addEventListener("change", updateIllustration);
+      feature.addEventListener("change", updateIllustration);
+      controls.hidden = false;
+      updateIllustration();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+{
+  "schema": "sfm:human-theme8-promotion-and-focused-evidence@1",
+  "recorded_date": "2026-10-02",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "status": "promoted_and_focused_pass_full_gate_running",
+  "scope": {
+    "new_java_sources": 8,
+    "raw_authored_java_bytes": 20875,
+    "new_source_rules": 8,
+    "existing_provider_refinements": 1,
+    "immutable_ledgers_added": 2,
+    "new_source_test_modules": 2,
+    "new_tests": 13,
+    "production_targets_touched": 15,
+    "ordered_apply_patches": 17
+  },
+  "base": {
+    "core_files": 1916,
+    "core_bytes": 8861692,
+    "core_sha256": "68c0078d9612b011fa0e594d6b1a75c7347ef266495c034305c268c7e72b7142",
+    "source_rules": 633,
+    "source_variants": 818
+  },
+  "current": {
+    "core_files": 1924,
+    "core_bytes": 8884982,
+    "core_sha256": "978e3a40be3e92b5cf159fb7a50fb7fb760f68d6c2e192433f7801bc22903414",
+    "source_rules": 641,
+    "source_variants": 826,
+    "registered_feature_owners": 180
+  },
+  "application": {
+    "terminal_exit": 0,
+    "marker": "HUMAN3_THEME5_PROMOTION_EXIT=0",
+    "all_pre_and_post_pins_verified": true,
+    "all_allowed_targets": true,
+    "original_98_staged_paths_preserved": true,
+    "index_comparison": "same raw Git object/mode records and name/status records; only terminal string newline normalized",
+    "formatted_modules": 3,
+    "definitions_catalog_locks_prerequisites_defaults_changed": false,
+    "full_gate_formatting": "The gate sorted existing Rust test-module declarations; the current module pin below binds that post-format file. Authored core bytes did not change."
+  },
+  "focused": {
+    "terminal_exit": 0,
+    "marker": "HUMAN3_THEME5_FOCUSED_EXIT=0",
+    "groups": [
+      {
+        "name": "unit:source_projection:core_human_action_leaves_slice_tests",
+        "passed": 7,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_human_action_leaves_slice_tests: test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 2143 filtered out; finished in 30.44s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_preview_five_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_preview_five_slice_tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2144 filtered out; finished in 37.70s"
+      },
+      {
+        "name": "unit:source_projection:core_action_helpers_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_action_helpers_slice_tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2144 filtered out; finished in 79.94s"
+      },
+      {
+        "name": "unit:source_projection:core_theme_preview_models_slice_tests",
+        "passed": 6,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_theme_preview_models_slice_tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 2144 filtered out; finished in 418.57s"
+      },
+      {
+        "name": "unit:source_projection:core_action_leaf_slice_tests",
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0,
+        "summary": "PASS unit:source_projection:core_action_leaf_slice_tests: test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 2145 filtered out; finished in 31.59s"
+      }
+    ],
+    "passed": 30,
+    "failed": 0,
+    "ignored": 0,
+    "new_passed": 13,
+    "existing_controls_passed": 17,
+    "retained_external_log": {
+      "role": "sfm-human-theme-focused-20261002-v1.log",
+      "bytes": 2105,
+      "sha256": "90c76126558bd91d69d2ae029db3284e0615f4cf438d3905241395fc47c21184"
+    }
+  },
+  "full_gate": {
+    "status": "running_no_terminal_acceptance",
+    "command": "check-all.ps1",
+    "log": "platform/cli/sfm-propagate-changes/target/core-human-theme8-full-gate-20261002-v1.log",
+    "source_freeze_active": true,
+    "fresh_generation_after_gate_required": true,
+    "installed_path_freshness_not_claimed": true
+  },
+  "capsule": {
+    "role": "sfm-human-action3-theme-preview5-promotion-stage-20261002-v1",
+    "manifest_bytes": 25821,
+    "manifest_sha256": "89ab2f81e19884b7a0fca9a9cca04e69c76e7eda1f13bc3b28cb6912dde72e29",
+    "maximum_payload_utf16": 15995,
+    "application_driver_bytes": 8013,
+    "application_driver_sha256": "b25616b88ade2498859d931f5291a1f89b3b8691e8d3698854ffdc39d87f2dd9",
+    "focused_driver_sha256": "10b5757e649d4f96b2a31326448aa804f4ad50ed06f34d4c911e5bfc464c77fe",
+    "driver_limit": "Trusted synchronous patch dispatcher lacks an internal deadline; outer host execution was observed to terminate normally in 4.52 seconds."
+  },
+  "current_input_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 453866,
+      "sha256": "d6016e7b3b70288535916182e393c0ab7aff28343cb3fdf4ed25cca827351e8a"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 30254,
+      "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+    },
+    {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2074,
+      "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/check-all.ps1",
+      "bytes": 2783,
+      "sha256": "ee6a5a6ff57a6067e1765919a8df94634bd81c6a32fb77b27184772d2dfbc818"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/test-bounded.ps1",
+      "bytes": 11834,
+      "sha256": "2122ad3565796327b9a80cdac85d7809157af32383d53f622c10fc5b55330608"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/bounded-library-plan.ps1",
+      "bytes": 8458,
+      "sha256": "52119829bfc58ffff7eb9937a4bda7e3505bb78a94dadb057fe7f8e9138a7dc7"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 17108,
+      "sha256": "799fdf1886d59337ddbb03aa9ae1c3c1d5276d406379bcd054da24dab70640f4"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_human_action_leaves_slice_tests.rs",
+      "bytes": 23290,
+      "sha256": "c0dd0bff1b43ecab64cbbf9123c8f9b2150910981ee055b2c5a9ba0834fd843e"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_theme_preview_five_slice_tests.rs",
+      "bytes": 17255,
+      "sha256": "db9989665f71aa2e6fc514fb547010d4cae73a021cb671944c13cb6608ac63e5"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_action_helpers_slice_tests.rs",
+      "bytes": 26816,
+      "sha256": "0064be3ee2112265e69a678dab7bde1c9a44c20979c8a4670fc2028805f12abc"
+    },
+    {
+      "path": "docs/tasks/sfm-core-human-theme8-peer-review-20261002.json",
+      "bytes": 14461,
+      "sha256": "b40752f318b3d193aebd251c46da465224a5a963981b6632332f0fc69b4dce0c"
+    }
+  ],
+  "limits": [
+    "Focused Rust source tests exercise selector/render/collector and retained raw contracts, not Java effects or GUI runtime.",
+    "All current catalog defaults still omit the eight newly promoted sources.",
+    "The accepted 182-group and twenty dry-run receipts cover the previous 1,916-file core, not this 1,924-file input graph.",
+    "ManagerScreen caller closure, mutable registry runtime, completion global bound and addressed theme-file operations remain unproven.",
+    "No dependency/default expansion, gameplay, native matrix, release parity, merge, push, installation or goal completion is claimed."
+  ]
+}

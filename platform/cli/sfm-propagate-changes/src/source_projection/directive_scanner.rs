@@ -63,7 +63,8 @@ enum Directive<'a> {
 
 /// Scan a primary `.java` file without interpreting Java strings or braces.
 ///
-/// Boolean `if`/`elsif` directives read registered feature/target names.
+/// Boolean `if`/`elsif` directives read registered feature/target names, with
+/// bounded `and`/`or` combinations for independently owned declarations.
 /// String `case` directives read typed projection metadata; `when` accepts
 /// quoted literal alternatives separated by commas or `or`.
 /// A line beginning `\{%` emits a literal line beginning `{%`.
@@ -190,10 +191,14 @@ fn push_directive(
 }
 
 fn record_condition(template: &mut ScannedTemplate, condition: &str, line: usize) {
-    template
-        .referenced_conditions
-        .entry(condition.to_owned())
-        .or_insert(line);
+    // Parsing already validated alternating names and `and`/`or` operators. Record
+    // every operand, including inactive and short-circuited alternatives.
+    for name in condition.split_whitespace().step_by(2) {
+        template
+            .referenced_conditions
+            .entry(name.to_owned())
+            .or_insert(line);
+    }
 }
 
 fn matching_block<'a>(
@@ -250,12 +255,20 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
         .trim();
     let parts: Vec<&str> = body.split_whitespace().collect();
     match parts.as_slice() {
-        ["if", condition] => {
-            validate_condition(condition, line_number)?;
+        ["if", conditions @ ..] => {
+            validate_condition_alternatives(conditions, line_number)?;
+            let condition = body
+                .strip_prefix("if")
+                .expect("matched if directive")
+                .trim();
             Ok(Directive::If(condition))
         }
-        ["elsif", condition] => {
-            validate_condition(condition, line_number)?;
+        ["elsif", conditions @ ..] => {
+            validate_condition_alternatives(conditions, line_number)?;
+            let condition = body
+                .strip_prefix("elsif")
+                .expect("matched elsif directive")
+                .trim();
             Ok(Directive::Elsif(condition))
         }
         ["else"] => Ok(Directive::Else),
@@ -318,6 +331,24 @@ fn parse_when_values(mut input: &str, line: usize) -> eyre::Result<Vec<&str>> {
     }
 }
 
+fn validate_condition_alternatives(parts: &[&str], line: usize) -> eyre::Result<()> {
+    eyre::ensure!(
+        !parts.is_empty() && parts.len() <= 63 && parts.len() % 2 == 1,
+        "line {line}: if/elsif requires one to 32 registered names separated by 'and' or 'or'"
+    );
+    for (index, part) in parts.iter().enumerate() {
+        if index % 2 == 0 {
+            validate_condition(part, line)?;
+        } else {
+            eyre::ensure!(
+                matches!(*part, "and" | "or"),
+                "line {line}: only 'and'/'or' condition operators are supported"
+            );
+        }
+    }
+    Ok(())
+}
+
 fn validate_condition(condition: &str, line_number: usize) -> eyre::Result<()> {
     let Some((root, name)) = condition.split_once('.') else {
         eyre::bail!("line {line_number}: condition must be features.<id> or targets.<id>");
@@ -336,6 +367,86 @@ fn validate_condition(condition: &str, line_number: usize) -> eyre::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bounded_boolean_alternatives_record_every_operand_at_its_source_line() {
+        let source = "{% if features.a or targets.old or features.b %}\nfirst();\n{% elsif features.b or features.c %}\nsecond();\n{% endif %}\n";
+        let ScannedSource::Template(template) = scan(source).unwrap() else {
+            panic!("alternatives should be projected");
+        };
+        assert_eq!(
+            template.referenced_conditions,
+            BTreeMap::from([
+                ("features.a".to_owned(), 1),
+                ("targets.old".to_owned(), 1),
+                ("features.b".to_owned(), 1),
+                ("features.c".to_owned(), 3)
+            ])
+        );
+        assert!(
+            template
+                .skeleton
+                .contains("{% if features.a or targets.old or features.b %}")
+        );
+    }
+
+    #[test]
+    fn bounded_conjunctions_record_every_operand_even_when_short_circuited() {
+        let source = "{% if features.a and targets.old and features.b %}\nfirst();\n{% elsif features.b and features.c %}\nsecond();\n{% endif %}\n";
+        let ScannedSource::Template(template) = scan(source).unwrap() else {
+            panic!("conjunctions should be projected");
+        };
+        assert_eq!(
+            template.referenced_conditions,
+            BTreeMap::from([
+                ("features.a".to_owned(), 1),
+                ("targets.old".to_owned(), 1),
+                ("features.b".to_owned(), 1),
+                ("features.c".to_owned(), 3),
+            ])
+        );
+        assert!(
+            template
+                .skeleton
+                .contains("{% if features.a and targets.old and features.b %}")
+        );
+        let allowed = vec!["features.a"; 32].join(" and ");
+        assert!(scan(&format!("{{% if {allowed} %}}\n{{% endif %}}\n")).is_ok());
+        let refused = vec!["features.a"; 33].join(" and ");
+        assert!(scan(&format!("{{% if {refused} %}}\n{{% endif %}}\n")).is_err());
+    }
+
+    #[test]
+    fn boolean_alternatives_reject_other_expressions_and_unbounded_input() {
+        for expression in [
+            "",
+            "or features.a",
+            "features.a or",
+            "features.a and and features.b",
+            "features.a and true",
+            "features.a || features.b",
+            "features.a or true",
+            "features.a or features.typo.more",
+            "(features.a) or features.b",
+            "features.a or or features.b",
+        ] {
+            for directive in ["if", "elsif"] {
+                let prefix = if directive == "elsif" {
+                    "{% if features.a %}\n"
+                } else {
+                    "before\n"
+                };
+                let error = scan(&format!("{prefix}{{% {directive} {expression} %}}\n"))
+                    .unwrap_err()
+                    .to_string();
+                assert!(error.contains("line 2:"), "{expression}: {error}");
+            }
+        }
+        let allowed = vec!["features.a"; 32].join(" or ");
+        assert!(scan(&format!("{{% if {allowed} %}}\n{{% endif %}}\n")).is_ok());
+        let refused = vec!["features.a"; 33].join(" or ");
+        assert!(scan(&format!("{{% if {refused} %}}\n{{% endif %}}\n")).is_err());
+    }
 
     #[test]
     fn directive_free_java_is_an_exact_identity_even_with_liquid_delimiters() {

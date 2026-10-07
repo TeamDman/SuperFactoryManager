@@ -1,0 +1,1556 @@
+{
+  "schema": "sfm:core-form-label-slice@1",
+  "status": "staged_source_inputs_and_unregistered_tests",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": {
+    "form_readonly_access": {
+      "support": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "label_readonly_access": {
+      "support": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "tooltip_mode_override": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "normalization": {
+    "policy": "none",
+    "approved_changes": [],
+    "raw_byte_exact": true
+  },
+  "files": [
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-form-label-stage-v1/FormItemRenderer.java",
+      "stage_bytes": 11759,
+      "stage_sha256": "sha256:419d9630b9cba91378130c493c78bb6d5cb1ffd157d8a438a41a03a055727af3",
+      "membership": "unconditional_shared_class",
+      "proposed_source_rule": null,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "present": true,
+          "git_blob": "1c93441058fdd2ba806ca3e1c9faede49f4399bc",
+          "raw_bytes": 3617,
+          "raw_sha256": "sha256:b728c7a1d1091a6d749d35180129ef9615ffba51ae153837ce5d764cd615da53",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "present": true,
+          "git_blob": "2cb1cbe85dcca5c5a54d4734deeea3ac90a8d779",
+          "raw_bytes": 3574,
+          "raw_sha256": "sha256:c6b14ae1bbbade2003bb605b508d766039531387a9e3ceb3546d5ae9e6080bab",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "present": true,
+          "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+          "raw_bytes": 3587,
+          "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "present": true,
+          "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+          "raw_bytes": 3587,
+          "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "present": true,
+          "git_blob": "33064b6af287e1b0619f4bc823bac1aa1a8db16a",
+          "raw_bytes": 3648,
+          "raw_sha256": "sha256:f3c8ae1afbd50cc358a6632cafae26b41ba4ca71676bdea8ad309897f8a9ffa1",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "present": true,
+          "git_blob": "33064b6af287e1b0619f4bc823bac1aa1a8db16a",
+          "raw_bytes": 3648,
+          "raw_sha256": "sha256:f3c8ae1afbd50cc358a6632cafae26b41ba4ca71676bdea8ad309897f8a9ffa1",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "present": true,
+          "git_blob": "048ee3fc6046f3d0a768bf7566973087eb15409b",
+          "raw_bytes": 3834,
+          "raw_sha256": "sha256:0aca3c9155cfb1fa193bfeb06f20a5380c54621b93f9b7a090c23102d070ad7d",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "present": true,
+          "git_blob": "e869859a3a0767bb3b4d43a096147d56aa7a0915",
+          "raw_bytes": 3630,
+          "raw_sha256": "sha256:6c5f24a68be7c669518b80a9c3bb7aaa46e5ff20c29977c907b06b33455283fb",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "present": true,
+          "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+          "raw_bytes": 3587,
+          "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "present": true,
+          "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+          "raw_bytes": 3587,
+          "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "present": true,
+          "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+          "raw_bytes": 3587,
+          "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "present": true,
+          "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+          "raw_bytes": 3591,
+          "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "present": true,
+          "git_blob": "33064b6af287e1b0619f4bc823bac1aa1a8db16a",
+          "raw_bytes": 3648,
+          "raw_sha256": "sha256:f3c8ae1afbd50cc358a6632cafae26b41ba4ca71676bdea8ad309897f8a9ffa1",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "present": true,
+          "git_blob": "33064b6af287e1b0619f4bc823bac1aa1a8db16a",
+          "raw_bytes": 3648,
+          "raw_sha256": "sha256:f3c8ae1afbd50cc358a6632cafae26b41ba4ca71676bdea8ad309897f8a9ffa1",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "present": true,
+          "git_blob": "048ee3fc6046f3d0a768bf7566973087eb15409b",
+          "raw_bytes": 3834,
+          "raw_sha256": "sha256:0aca3c9155cfb1fa193bfeb06f20a5380c54621b93f9b7a090c23102d070ad7d",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-form-label-stage-v1/FormItem.java",
+      "stage_bytes": 8975,
+      "stage_sha256": "sha256:6f672d64619cbf6194b77984d59f59836fd0419ae6a0d5f6e7a95752f5a5d2c8",
+      "membership": "unconditional_shared_class",
+      "proposed_source_rule": null,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "present": true,
+          "git_blob": "726522ec6d97f35857896b24e6537d06e15e5532",
+          "raw_bytes": 3001,
+          "raw_sha256": "sha256:87594911bfed0c5df74885f45b71e8d47a5b59855d7ecdb2e0cefca4a971f128",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "present": true,
+          "git_blob": "ceb034789cbc65ed8a3326044d4587a3c059507d",
+          "raw_bytes": 2906,
+          "raw_sha256": "sha256:a464d2545e178f52ea11c84e9db35e812a2c7adf7afad95b2ae23a47bfa6b7e9",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "present": true,
+          "git_blob": "ceb034789cbc65ed8a3326044d4587a3c059507d",
+          "raw_bytes": 2906,
+          "raw_sha256": "sha256:a464d2545e178f52ea11c84e9db35e812a2c7adf7afad95b2ae23a47bfa6b7e9",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "present": true,
+          "git_blob": "ceb034789cbc65ed8a3326044d4587a3c059507d",
+          "raw_bytes": 2906,
+          "raw_sha256": "sha256:a464d2545e178f52ea11c84e9db35e812a2c7adf7afad95b2ae23a47bfa6b7e9",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "present": true,
+          "git_blob": "6ffd1ad3364df071cba2b1353f5efc73863afc9f",
+          "raw_bytes": 2910,
+          "raw_sha256": "sha256:4bc2e143016763d96462bcf99256c3bccc358f1581309a2ef51e7b074e366f0d",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "present": true,
+          "git_blob": "d0d52039423502ee73363c846c2a1644ad60a009",
+          "raw_bytes": 2956,
+          "raw_sha256": "sha256:b6fcf713c3ab58db8f27f7b48e55f338c0cbc87c3962d7b5d4cc5d1110f657c7",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "present": true,
+          "git_blob": "d0d52039423502ee73363c846c2a1644ad60a009",
+          "raw_bytes": 2956,
+          "raw_sha256": "sha256:b6fcf713c3ab58db8f27f7b48e55f338c0cbc87c3962d7b5d4cc5d1110f657c7",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "present": true,
+          "git_blob": "bf103ae107602a0cc4c0dc83d8083248150671db",
+          "raw_bytes": 2525,
+          "raw_sha256": "sha256:500e7dd863a609cf39edfdc05752fec1fcbc83db0868361cc489bc1e82e9e4ac",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "present": true,
+          "git_blob": "bf103ae107602a0cc4c0dc83d8083248150671db",
+          "raw_bytes": 2525,
+          "raw_sha256": "sha256:500e7dd863a609cf39edfdc05752fec1fcbc83db0868361cc489bc1e82e9e4ac",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "present": true,
+          "git_blob": "87b9acf2d928702105c72fcff06991e61c342421",
+          "raw_bytes": 2954,
+          "raw_sha256": "sha256:4fa7943b82d33413e852824760dfaeaacd83aeab9d7bbdf1eac3750f93b0fe98",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "present": true,
+          "git_blob": "b8b17c17e99d1f9578d3a4048e8b5bc127dad7fb",
+          "raw_bytes": 2662,
+          "raw_sha256": "sha256:4eff29e2c9192e6641bf4d61160e6e6aac3f8b4c16a31606c5d3644670441741",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "present": true,
+          "git_blob": "03a1561340271b05fce70c57720949f35abb4337",
+          "raw_bytes": 2567,
+          "raw_sha256": "sha256:ad2f16c9ec3151ef4b410b4e0a3eafc52733cdad0bce389287650879c152925f",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "present": true,
+          "git_blob": "03a1561340271b05fce70c57720949f35abb4337",
+          "raw_bytes": 2567,
+          "raw_sha256": "sha256:ad2f16c9ec3151ef4b410b4e0a3eafc52733cdad0bce389287650879c152925f",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "present": true,
+          "git_blob": "03a1561340271b05fce70c57720949f35abb4337",
+          "raw_bytes": 2567,
+          "raw_sha256": "sha256:ad2f16c9ec3151ef4b410b4e0a3eafc52733cdad0bce389287650879c152925f",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "present": true,
+          "git_blob": "58004256fb65e25fd3700194fd1104250b0c5791",
+          "raw_bytes": 2571,
+          "raw_sha256": "sha256:2d79784793c652d0d61491bace6b47a2f6a1f5a83fd462cffc031a623e50a478",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "present": true,
+          "git_blob": "51e54d5ae857124a5401ca331dc525c1fa63af87",
+          "raw_bytes": 2617,
+          "raw_sha256": "sha256:25775b2d3b08dbe3223f30ed542e1f9e0d5266771169e9fbbdd47babe9ad7b01",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "present": true,
+          "git_blob": "51e54d5ae857124a5401ca331dc525c1fa63af87",
+          "raw_bytes": 2617,
+          "raw_sha256": "sha256:25775b2d3b08dbe3223f30ed542e1f9e0d5266771169e9fbbdd47babe9ad7b01",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "present": true,
+          "git_blob": "e38b2b54882f0abf97b76de5c3ccc4bf73fd062d",
+          "raw_bytes": 2258,
+          "raw_sha256": "sha256:4980d352fe6f27e1a241d3b68e8465390ddaa351eda894705ac78b967e8bbe56",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "present": true,
+          "git_blob": "e38b2b54882f0abf97b76de5c3ccc4bf73fd062d",
+          "raw_bytes": 2258,
+          "raw_sha256": "sha256:4980d352fe6f27e1a241d3b68e8465390ddaa351eda894705ac78b967e8bbe56",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "present": true,
+          "git_blob": "881a0290f72c2f477b81e055544d7d95a1a864b6",
+          "raw_bytes": 2687,
+          "raw_sha256": "sha256:efb34d488f09c9099485497b62983138bd733db841c8e988db7939e5183b072f",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-form-label-stage-v1/LabelGunItem.java",
+      "stage_bytes": 27130,
+      "stage_sha256": "sha256:99d8bda7a5c826eb557ce6465ce772ef0715db056b05e919a45725e35b70866b",
+      "membership": "unconditional_shared_class",
+      "proposed_source_rule": null,
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "present": true,
+          "git_blob": "f3dfec153bf729aa6e0c0c5a689aa87d9c7a1709",
+          "raw_bytes": 14949,
+          "raw_sha256": "sha256:8aff1546a0e9a4c0d3fd18c02cfc46f55c7dcf5c9e54a2a4904fa46a887ada47",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.19.4",
+          "present": true,
+          "git_blob": "f3dfec153bf729aa6e0c0c5a689aa87d9c7a1709",
+          "raw_bytes": 14949,
+          "raw_sha256": "sha256:8aff1546a0e9a4c0d3fd18c02cfc46f55c7dcf5c9e54a2a4904fa46a887ada47",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20",
+          "present": true,
+          "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+          "raw_bytes": 14950,
+          "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.1",
+          "present": true,
+          "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+          "raw_bytes": 14950,
+          "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.2",
+          "present": true,
+          "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+          "raw_bytes": 14950,
+          "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.3",
+          "present": true,
+          "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+          "raw_bytes": 14950,
+          "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.20.4",
+          "present": true,
+          "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+          "raw_bytes": 14950,
+          "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.0",
+          "present": true,
+          "git_blob": "2e8a697febd1cf0b29f691f47a34072205bddd06",
+          "raw_bytes": 15477,
+          "raw_sha256": "sha256:f280739ca8bf3801bd9ddbd019928d6c25b0018dc897acec9236659d90640eb5",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/1.21.1",
+          "present": true,
+          "git_blob": "2e8a697febd1cf0b29f691f47a34072205bddd06",
+          "raw_bytes": 15477,
+          "raw_sha256": "sha256:f280739ca8bf3801bd9ddbd019928d6c25b0018dc897acec9236659d90640eb5",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "dev/26.1.2",
+          "present": true,
+          "git_blob": "cf8775cadd538b5a611478b34e3e50e44978a8f2",
+          "raw_bytes": 15774,
+          "raw_sha256": "sha256:039ec1bd4239ed3b18b1b0ae2403e8a7179a8bcea6a11fabbc9479a959a3eb63",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.2",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.19.4",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.1",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.2",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.3",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.20.4",
+          "present": true,
+          "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+          "raw_bytes": 14480,
+          "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.0",
+          "present": true,
+          "git_blob": "5d2e2bdc6fb7b6ad7d18047e26fa3ba7c467c790",
+          "raw_bytes": 15263,
+          "raw_sha256": "sha256:ed047094004f366adf4c2e1adddb8b00c5b3f35585ff3e0be192ee3bdce3ada7",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/1.21.1",
+          "present": true,
+          "git_blob": "5d2e2bdc6fb7b6ad7d18047e26fa3ba7c467c790",
+          "raw_bytes": 15263,
+          "raw_sha256": "sha256:ed047094004f366adf4c2e1adddb8b00c5b3f35585ff3e0be192ee3bdce3ada7",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        },
+        {
+          "context": "release/26.1.2",
+          "present": true,
+          "git_blob": "c61616b110d78e5de9e86d1c3a745d1b63268da8",
+          "raw_bytes": 15560,
+          "raw_sha256": "sha256:342567cd1cfa4e880c3deb2ef09a50c81bec17ceb7d8436634358e98f71be2d7",
+          "crlf_count": 0,
+          "lone_cr_count": 0,
+          "final_lf": true,
+          "bom": false,
+          "lf_added": false,
+          "normalization": "none"
+        }
+      ]
+    }
+  ],
+  "raw_witnesses": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "1c93441058fdd2ba806ca3e1c9faede49f4399bc",
+      "raw_bytes": 3617,
+      "raw_sha256": "sha256:b728c7a1d1091a6d749d35180129ef9615ffba51ae153837ce5d764cd615da53",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.19.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "726522ec6d97f35857896b24e6537d06e15e5532",
+      "raw_bytes": 3001,
+      "raw_sha256": "sha256:87594911bfed0c5df74885f45b71e8d47a5b59855d7ecdb2e0cefca4a971f128",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.19.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "f3dfec153bf729aa6e0c0c5a689aa87d9c7a1709",
+      "raw_bytes": 14949,
+      "raw_sha256": "sha256:8aff1546a0e9a4c0d3fd18c02cfc46f55c7dcf5c9e54a2a4904fa46a887ada47",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "2cb1cbe85dcca5c5a54d4734deeea3ac90a8d779",
+      "raw_bytes": 3574,
+      "raw_sha256": "sha256:c6b14ae1bbbade2003bb605b508d766039531387a9e3ceb3546d5ae9e6080bab",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "ceb034789cbc65ed8a3326044d4587a3c059507d",
+      "raw_bytes": 2906,
+      "raw_sha256": "sha256:a464d2545e178f52ea11c84e9db35e812a2c7adf7afad95b2ae23a47bfa6b7e9",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.19.4",
+        "dev/1.20",
+        "dev/1.20.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "d730bb89fb6da8259f9086fccd993007a265b24c",
+      "raw_bytes": 3587,
+      "raw_sha256": "sha256:b70504f135c258ce6175e8da548fa9409da32689d61ba10d6bef0316cf02ac84",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "ceb794c1ef7fc43234079f1aeb9fb267732de424",
+      "raw_bytes": 14950,
+      "raw_sha256": "sha256:dd71af74df936912b691cf9bbafb8a327c7d27d080ecc70b9683ac6c18646e64",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "6fd1b206d4e9979b8b83bb4edd45d52364e7af1c",
+      "raw_bytes": 3591,
+      "raw_sha256": "sha256:28b5d369e2d9218fad25834417745baa19361965bd1b118cefc63093a7c32852",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.20.2",
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "6ffd1ad3364df071cba2b1353f5efc73863afc9f",
+      "raw_bytes": 2910,
+      "raw_sha256": "sha256:4bc2e143016763d96462bcf99256c3bccc358f1581309a2ef51e7b074e366f0d",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "d0d52039423502ee73363c846c2a1644ad60a009",
+      "raw_bytes": 2956,
+      "raw_sha256": "sha256:b6fcf713c3ab58db8f27f7b48e55f338c0cbc87c3962d7b5d4cc5d1110f657c7",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "33064b6af287e1b0619f4bc823bac1aa1a8db16a",
+      "raw_bytes": 3648,
+      "raw_sha256": "sha256:f3c8ae1afbd50cc358a6632cafae26b41ba4ca71676bdea8ad309897f8a9ffa1",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "bf103ae107602a0cc4c0dc83d8083248150671db",
+      "raw_bytes": 2525,
+      "raw_sha256": "sha256:500e7dd863a609cf39edfdc05752fec1fcbc83db0868361cc489bc1e82e9e4ac",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.21.0",
+        "dev/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "2e8a697febd1cf0b29f691f47a34072205bddd06",
+      "raw_bytes": 15477,
+      "raw_sha256": "sha256:f280739ca8bf3801bd9ddbd019928d6c25b0018dc897acec9236659d90640eb5",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/1.21.0",
+        "dev/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "048ee3fc6046f3d0a768bf7566973087eb15409b",
+      "raw_bytes": 3834,
+      "raw_sha256": "sha256:0aca3c9155cfb1fa193bfeb06f20a5380c54621b93f9b7a090c23102d070ad7d",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/26.1.2",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "87b9acf2d928702105c72fcff06991e61c342421",
+      "raw_bytes": 2954,
+      "raw_sha256": "sha256:4fa7943b82d33413e852824760dfaeaacd83aeab9d7bbdf1eac3750f93b0fe98",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "cf8775cadd538b5a611478b34e3e50e44978a8f2",
+      "raw_bytes": 15774,
+      "raw_sha256": "sha256:039ec1bd4239ed3b18b1b0ae2403e8a7179a8bcea6a11fabbc9479a959a3eb63",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "dev/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "git_blob": "e869859a3a0767bb3b4d43a096147d56aa7a0915",
+      "raw_bytes": 3630,
+      "raw_sha256": "sha256:6c5f24a68be7c669518b80a9c3bb7aaa46e5ff20c29977c907b06b33455283fb",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.19.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "b8b17c17e99d1f9578d3a4048e8b5bc127dad7fb",
+      "raw_bytes": 2662,
+      "raw_sha256": "sha256:4eff29e2c9192e6641bf4d61160e6e6aac3f8b4c16a31606c5d3644670441741",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.19.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "d400274ac168e8218dccc7c0dd166ba2fe55f507",
+      "raw_bytes": 14480,
+      "raw_sha256": "sha256:9f76946a7947e28de0d539d9aa72f9c976a75bec38611dd281cf7f2050a9e008",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1",
+        "release/1.20.2",
+        "release/1.20.3",
+        "release/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "03a1561340271b05fce70c57720949f35abb4337",
+      "raw_bytes": 2567,
+      "raw_sha256": "sha256:ad2f16c9ec3151ef4b410b4e0a3eafc52733cdad0bce389287650879c152925f",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "58004256fb65e25fd3700194fd1104250b0c5791",
+      "raw_bytes": 2571,
+      "raw_sha256": "sha256:2d79784793c652d0d61491bace6b47a2f6a1f5a83fd462cffc031a623e50a478",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "51e54d5ae857124a5401ca331dc525c1fa63af87",
+      "raw_bytes": 2617,
+      "raw_sha256": "sha256:25775b2d3b08dbe3223f30ed542e1f9e0d5266771169e9fbbdd47babe9ad7b01",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.20.3",
+        "release/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "e38b2b54882f0abf97b76de5c3ccc4bf73fd062d",
+      "raw_bytes": 2258,
+      "raw_sha256": "sha256:4980d352fe6f27e1a241d3b68e8465390ddaa351eda894705ac78b967e8bbe56",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "5d2e2bdc6fb7b6ad7d18047e26fa3ba7c467c790",
+      "raw_bytes": 15263,
+      "raw_sha256": "sha256:ed047094004f366adf4c2e1adddb8b00c5b3f35585ff3e0be192ee3bdce3ada7",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "git_blob": "881a0290f72c2f477b81e055544d7d95a1a864b6",
+      "raw_bytes": 2687,
+      "raw_sha256": "sha256:efb34d488f09c9099485497b62983138bd733db841c8e988db7939e5183b072f",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "git_blob": "c61616b110d78e5de9e86d1c3a745d1b63268da8",
+      "raw_bytes": 15560,
+      "raw_sha256": "sha256:342567cd1cfa4e880c3deb2ef09a50c81bec17ceb7d8436634358e98f71be2d7",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false,
+      "lf_added": false,
+      "contexts": [
+        "release/26.1.2"
+      ]
+    }
+  ],
+  "source_member_ownership": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "owner": "form_readonly_access",
+      "members": [
+        "getReferenceFromFormReadOnly exact public helper and documentation"
+      ],
+      "off": "Original mutating getBorrowedReferenceFromForm and copied-reference APIs remain unchanged. The new helper is omitted.",
+      "evidence": "Exact all10 production Git grep finds only the helper declaration, no current caller; it is a separately preserved public API, not an inferred ComputerCraft/packet/editor dependency."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "owner": "label_readonly_access",
+      "members": [
+        "getViewModeReadOnly public helper",
+        "legacy NBT getViewMode delegates through extracted private getViewModeFromOrdinal helper"
+      ],
+      "off": "Original getViewMode method and ordinal fallback remain byte-exact; no new helper or extraction remains.",
+      "callers": "SFMLabelGunHandle.getViewMode calls the helper on all10 development witnesses."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "owner": "tooltip_mode_override",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "mode service import instead of physical key mapping import",
+        "reference-render expansion predicate"
+      ],
+      "off": "Original physical configured-key poll and import remain byte-exact."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "owner": "tooltip_mode_override",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "hover expansion predicate"
+      ],
+      "off": "Original SFMItemUtils.isClientAndMoreInfoKeyPressed predicate remains byte-exact; no other labeling/UI behavior changes."
+    }
+  ],
+  "prerequisite_proposals": {
+    "new_feature": {
+      "name": "form_readonly_access",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "existing_feature": "label_readonly_access all10 requires=[] remains unchanged",
+    "consumer_edge": {
+      "feature": "computercraft",
+      "additional_requires": [
+        "label_readonly_access"
+      ],
+      "reason": "Exact all10 SFMLabelGunHandle.getViewMode calls LabelGunItem.getViewModeReadOnly.",
+      "no_extra_form_dependency": true
+    },
+    "label_holder_correction": "ComputerCraft SFMLabelPositionHolderHandle.ensureLoaded uses LabelPositionHolder.from(...).toOwned(), not fromReadOnly; no dependency on the latter is invented."
+  },
+  "consumer_evidence": [
+    {
+      "context": "dev/1.19.2",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:50:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.19.4",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:49:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.20",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:49:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.20.1",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:49:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.20.2",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:49:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.20.3",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:50:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.20.4",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:50:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:188:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.21.0",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:55:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:198:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/1.21.1",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:55:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:198:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    },
+    {
+      "context": "dev/26.1.2",
+      "callsites": [
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java:61:               ? new Object[]{LabelGunItem.getViewModeReadOnly(resolution.stack()).name().toLowerCase(Locale.ROOT)}",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/FormItem.java:61:    public static ItemStack getReferenceFromFormReadOnly(ItemStack stack) {",
+        "platform/minecraft/src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java:200:    public static LabelGunViewMode getViewModeReadOnly(ItemStack stack) {"
+      ]
+    }
+  ],
+  "genuine_api_cases": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "targets": [
+        "1.19.2"
+      ],
+      "behavior": "Creative tab Item.Properties registration remains on 1.19.2; later released targets use registration events."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2"
+      ],
+      "behavior": "Reference NBT uses stack.serializeNBT; 1.20.3/1.20.4 retain stack.save(new CompoundTag())."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "targets": [
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "behavior": "ItemStackBox component storage preserves copied input and copied-reference behavior; 26.1.2 uses DataComponentGetter overload and TooltipProvider Consumer API."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "targets": [
+        "1.19.2"
+      ],
+      "behavior": "ItemTransforms.TransformType; later pre-26 targets use ItemDisplayContext. Forge/NeoForge ModelEvent import follows released loader boundary."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "behavior": "Standalone ModelResourceLocation BASE_MODEL; older released targets use ResourceLocation."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "targets": [
+        "26.1.2"
+      ],
+      "behavior": "SpecialModelRenderer<Data>, SubmitNodeCollector, ItemModelResolver and Unbaked codec/baking path; no legacy renderer emulation or stale render API."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "targets": [
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "behavior": "ACTIVE_LABEL/LABEL_GUN_VIEW_MODE data components, StringRepresentable and stream codec are released target behavior."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "targets": [
+        "26.1.2"
+      ],
+      "behavior": "InteractionResult return, TooltipProvider Consumer/DataComponentGetter projection, isClientSide() and jspecify annotation remain released APIs."
+    },
+    {
+      "matrix_id": "1.21.0",
+      "minecraft_version": "1.21",
+      "note": "Template selector uses actual named-catalog context value, not matrix alias."
+    }
+  ],
+  "preserved_semantics": [
+    "All3 classes remain selected when every functional owner is off; feature guards affect only explicitly owned members.",
+    "Old mutating Form and LabelGun getters remain exactly as released when readonly owner is off.",
+    "NBT readonly helpers use getTag(), not getOrCreateTag(), and return empty/default values when absent.",
+    "Component-based readonly helpers delegate to already nonmutating released component APIs.",
+    "No tooltip owner is required to store/copy/read a form or configure/read label data.",
+    "LabelGun onItemUseFirst still sends the same custom label-use request/confirmation and debounce behavior; no new wire messages.",
+    "Form renderer retains reference pose scaling, foil buffer, fallback model and released argument choices; no render cleanup is bundled.",
+    "No source guard refers to environment, preset, projection key, full historic trees or broad GUI umbrella."
+  ],
+  "remaining_closure": [
+    "Baseline SFMKeyMappings remains a separate source gap until its own cohort is promoted.",
+    "LabelGunKeyMappingHandler, ClientLabelGunWarningHelper, SFMScreenChangeHelpers, FormItemExtensions, ItemStackBox and SFMDataComponents already have actual core inputs; their runtime registration and physical behavior are not proved by this slice.",
+    "SFMLabelGunHandle is the actual ComputerCraft consumer; its optional runtime/import family is not claimed compiled here.",
+    "ItemStackBox and SFMDataComponents preserve component-target adapters independently of optional functional owners.",
+    "Actual-core Rust tests require root promotion and feature registration; source proof is not Minecraft compilation, physical input or gameplay."
+  ],
+  "validation": {
+    "offline_membership": {
+      "status": "passed",
+      "cells": 60,
+      "present": 60,
+      "absent": 0,
+      "raw_variants": 26
+    },
+    "independent_expansion": {
+      "cells": 60,
+      "raw_exact": 60,
+      "normalization": "none",
+      "implementation": "Strict independent whole-line expander, not production Rust renderer"
+    },
+    "independent_owner_masks": {
+      "cells": 144,
+      "profiles": 48,
+      "status": "passed",
+      "implementation": "Independent whole-line expansion and raw member-oracle; production Rust selection/rendering pending."
+    },
+    "staged_bytes": "Independently read the three staged files and compared them byte-for-byte with the tested templates; no appended blank line.",
+    "rust_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_form_label_slice_tests.rs",
+    "rust_registration": "#[cfg(test)] mod core_form_label_slice_tests;",
+    "rust_status": "authored_unregistered_not_run",
+    "cargo_run": false,
+    "java_compilation": false,
+    "gameplay_proof": false,
+    "generated_roots_written": false
+  }
+}

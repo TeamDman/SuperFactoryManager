@@ -420,14 +420,18 @@
         "1.19.2",
         "1.19.4"
       ],
-      "requires": []
+      "requires": [
+        "sfml_execution_side"
+      ]
     },
     "image_resources": {
       "supported_targets": [
         "1.19.2",
         "1.19.4"
       ],
-      "requires": []
+      "requires": [
+        "packet_values"
+      ]
     },
     "packet_computation": {
       "supported_targets": [
@@ -504,7 +508,8 @@
         "1.19.4"
       ],
       "requires": [
-        "packet_values"
+        "packet_values",
+        "image_resources"
       ]
     }
   },

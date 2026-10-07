@@ -1,0 +1,202 @@
+{
+  "schema": "sfm:remaining-main-java-path-summary@1",
+  "date": "2026-10-02",
+  "status": "current_path_inventory_not_full_preservation_or_compile_acceptance",
+  "source_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "frozen_contexts": 20,
+  "frozen_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "frozen_context_ledger": {
+    "role": "Backend4 historical twenty-context commit ledger",
+    "sha256": "cea66a8ff2700cfb589518cd8d94bc78e21f19a9907bc280a93c42faffe98000",
+    "bytes": 45625
+  },
+  "current_project_inputs_sha256": "96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857",
+  "historical_main_java_paths": 1603,
+  "matching_authored_paths": 880,
+  "mapped_to_other_existing_authored_inputs": 0,
+  "remaining_without_a_matching_or_mapped_input": 723,
+  "grouping_rule": "Historical path components after src/main/java, taking at most five components. Exact paths and context occurrences are retained in the bounded local detailed inventory.",
+  "remaining_groups": [
+    {
+      "group": "ca/teamdman/sfm/client/screen",
+      "paths": 159
+    },
+    {
+      "group": "ca/teamdman/sfm/client/action",
+      "paths": 137
+    },
+    {
+      "group": "ca/teamdman/sfm/client/review",
+      "paths": 65
+    },
+    {
+      "group": "ca/teamdman/sfm/client/explorer",
+      "paths": 57
+    },
+    {
+      "group": "ca/teamdman/sfm/client/symbol",
+      "paths": 41
+    },
+    {
+      "group": "ca/teamdman/sfm/client/history",
+      "paths": 41
+    },
+    {
+      "group": "ca/teamdman/sfm/client/control",
+      "paths": 36
+    },
+    {
+      "group": "ca/teamdman/sfm/common/net",
+      "paths": 25
+    },
+    {
+      "group": "ca/teamdman/sfm/client/context",
+      "paths": 24
+    },
+    {
+      "group": "ca/teamdman/sfm/client/terminal",
+      "paths": 18
+    },
+    {
+      "group": "ca/teamdman/sfm/client/syntax",
+      "paths": 15
+    },
+    {
+      "group": "ca/teamdman/sfm/client/theme",
+      "paths": 15
+    },
+    {
+      "group": "ca/teamdman/sfm/client/semantic",
+      "paths": 14
+    },
+    {
+      "group": "ca/teamdman/sfm/client/keybinding",
+      "paths": 11
+    },
+    {
+      "group": "ca/teamdman/sfm/client/text_editor",
+      "paths": 11
+    },
+    {
+      "group": "ca/teamdman/sfm/client/net",
+      "paths": 10
+    },
+    {
+      "group": "ca/teamdman/sfm/client/search",
+      "paths": 8
+    },
+    {
+      "group": "ca/teamdman/sfm/client/overlay",
+      "paths": 6
+    },
+    {
+      "group": "ca/teamdman/sfm/client/raster",
+      "paths": 5
+    },
+    {
+      "group": "ca/teamdman/sfm/client/program",
+      "paths": 5
+    },
+    {
+      "group": "ca/teamdman/sfm/client/handler",
+      "paths": 4
+    },
+    {
+      "group": "ca/teamdman/sfm/client/command",
+      "paths": 3
+    },
+    {
+      "group": "ca/teamdman/sfm/client/input",
+      "paths": 2
+    },
+    {
+      "group": "ca/teamdman/sfm/client/developer",
+      "paths": 2
+    },
+    {
+      "group": "ca/teamdman/sfm/gametest/puppet",
+      "paths": 2
+    },
+    {
+      "group": "ca/teamdman/sfm/common/util",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/sfm/common/command",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/langs/LexerAdaptor.java",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/sfm/client/tooltip",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/sfm/client/inspection",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/sfm/common/authorization",
+      "paths": 1
+    },
+    {
+      "group": "ca/teamdman/sfml/ast/BroadcastStatement.java",
+      "paths": 1
+    }
+  ],
+  "current_authored_source_set_counts": {
+    "main_java": 880,
+    "test_java": 34,
+    "gametest_java": 192,
+    "datagen_java": 15
+  },
+  "independent_review": {
+    "detailed_inventory_bytes": 213274,
+    "detailed_inventory_sha256": "19918043e61d8263457ef9f54d2add77476a9bd0003890026065b1a4ce5ca34e",
+    "review_driver_sha256": "f68ce2dc614aaf803acf884f7cc16220591985f34d08b022b5e1bc4f76ceb2e2",
+    "execution": "Read-only exact git ls-tree for all twenty frozen commits and literal authored-input existence checks; terminal exit0",
+    "repeated_input_pins": "Historical ledger and current project-input metadata matched before and after the final run",
+    "preliminary_attempts": "Two G-only reviewer failures: a legitimate non-Java file in the main/java subtree, then an assumed minimum package depth. Neither produced an accepted inventory; final review filters only the exact .java extension and bounds grouping depth.",
+    "source_no_write": true,
+    "java_or_game_or_network_execution": false
+  },
+  "significance": "The complete consolidation goal still requires genuine authored templates and reviewed version/feature ownership for these paths or an explicit evidence-backed disposition. Current twenty-context generation and release compile evidence cannot certify preservation of all unreleased sources.",
+  "scope_notes": [
+    "This cohort has1603 distinct paths; the plan's starting-HEAD1605 count is a different historical reconnaissance snapshot and is not silently replaced.",
+    "A physical matching path does not prove content, all contexts, source-rule correctness, feature closure or compile/runtime acceptance.",
+    "The full1916-file core includes resources, build inputs, metadata and all source sets; it is not1916 distinct main-Java paths.",
+    "Only the explicit main-Java path union was reviewed here; remaining test/datagen/gametest/resource/build ownership needs its own complete audit.",
+    "No production source, definition, catalog, dependency, lockfile or output changed; the running full gate's source freeze remains active.",
+    "The complete ten-target/twenty-context goal remains active."
+  ],
+  "reproduction": {
+    "command_shape": "For each pinned context: git ls-tree -r --name-only <commit> -- platform/minecraft/src/main/java",
+    "union": "Strip platform/minecraft/ and retain exact .java paths using ordinal, case-sensitive distinct keys.",
+    "physical_checks": "Check each literal relative path under core-liquid-template; if absent, check the declared source_rules input variants for an existing authored file. No baseline override may supply missing production input.",
+    "output_boundary": "Use bounded local evidence output and preserve input pins; do not mutate generated projections."
+  },
+  "path_policy": "Repository-relative source paths, hashes and public commit IDs only; local drive, SDK/cache and private staging locators are omitted."
+}

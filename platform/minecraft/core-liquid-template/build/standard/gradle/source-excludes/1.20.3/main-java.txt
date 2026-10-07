@@ -1,4 +1,8 @@
 # Paths are relative to src/main/java.
+{% if features.computercraft %}
+# CC:Tweaked has no compatible 1.20.3 Forge release.
+ca/teamdman/sfm/common/compat/computercraft/**
+{% endif %}
 ca/teamdman/sfm/client/jei/**
 ca/teamdman/sfm/common/block/BatteryBlock.java
 ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java

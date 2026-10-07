@@ -1,0 +1,192 @@
+{
+  "schema": "sfm:core-native-and-history-continuation@1",
+  "date": "2026-10-01",
+  "goal_status": "active_incomplete",
+  "later_repair_continuation": {
+    "earlier_repair_fields_describe_the_pre_promotion_snapshot": true,
+    "current_evidence": "docs/tasks/sfm-core-packaging-policy-regressions-20261001.json",
+    "status": "applied_actual_focused_passes_complete_replacement_gate_running",
+    "new_regressions": 12,
+    "actual_focused_unique_passes": 43,
+    "accepted_final_jar": false,
+    "runtime_acceptance": false,
+    "native_v2_failure_retained": true
+  },
+  "frozen_core": {
+    "files": 1859,
+    "source_rules": 576,
+    "sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "metadata_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+    "rechecked_after_native_failure": true
+  },
+  "native_release_120": {
+    "projection": "sfm-4.34.0/mc-1.20",
+    "recipe": "sfm:released-native-inputs/4.34.0/1.20@1",
+    "raw_lock_sha256": "687924ae50658639c45b17b167c25e6186cd384dd00ef0120484b5dade67b01c",
+    "copied_default_cli_sha256": "d958a66521acb13dac124820e0dcd1997b7d7083f5bd31b64689da2b7d2e021a",
+    "sdk_identity": "sha256:156276d2e5afa3cbca981032b26335a2886b70de3668931c83b15fb31cdc228a",
+    "compiler_release": 17,
+    "tool_major": 17,
+    "dry_run": "passed_no_writes",
+    "sync": "passed_zero_changes",
+    "check": "passed_no_writes",
+    "compile": {
+      "schema": "sfm:named_native_compile@1",
+      "exit_code": 0,
+      "status": "completed",
+      "source_counts": {
+        "main": 528,
+        "gametest": 156,
+        "datagen": 15
+      },
+      "execution": "not_performed",
+      "receipt": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v2/compile.stdout.json",
+      "receipt_sha256": "14e011a287b11aefebc565fa831f245d95d28b1e5aced77c315a97379a4a2e73"
+    },
+    "jar": {
+      "exit_code": 1,
+      "status": "refused_before_package_specialsource_child",
+      "error": "named Jar refuses changed effect argv",
+      "location": "platform/cli/sfm-propagate-changes/src/jar_build/engine_named_jar.rs:503",
+      "stderr": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v2/jar.stderr.log",
+      "stderr_sha256": "3c047fccd0986078948e4722ce3fdd1531726e21fb66179c22e9244babe799ef",
+      "finished_output_absent": true,
+      "comparison": "not_performed",
+      "runtime": "not_performed"
+    },
+    "repair": {
+      "status": "ignored_unapplied_proposal",
+      "stage": "platform/cli/sfm-propagate-changes/target/core-named-jar-argument-spelling-stage-v1",
+      "proposal_sha256": "f259d857edbd60ba5c834abd71957707362ea97171f8470f8edea1301b9f9039",
+      "regions": 8,
+      "prepared_actual_guard_tests": 2,
+      "prepared_tests_executed": false,
+      "cause": "Component joins and slash-containing joins identify equal Windows paths but unequal exact argument strings. Guard, producer, held inputs and receipt must share the original producer spelling.",
+      "minimal_std_path_diagnostic": {
+        "compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+        "passed": 1,
+        "failed": 0,
+        "scope": "lexical diagnosis only, not production guard or packaging acceptance",
+        "source_sha256": "b2294c852dd6a9b82a891e93df64c7fcac87e537da77cc0dc68928e30180822f"
+      },
+      "isolated_production_function_regressions": {
+        "status": "passed_isolated_exact_production_function_reduction",
+        "source": "platform/cli/sfm-propagate-changes/target/core-named-jar-argument-spelling-stage-v1/production_guard_reduction.rs",
+        "source_bytes": 8216,
+        "source_sha256": "f26f036bdb0bff5aafaeeace5db1aa834f5555c8fc5bf26552ea670dbe87fff5",
+        "executable_sha256": "3f26ed791e0f85dcbcebbee6ccf042cbf122eada02cd595978b3a5670d992e35",
+        "compiler": "rustc 1.98.0-nightly (54333ff07 2026-05-22), already installed and used by repository",
+        "existing_locked_eyre_rlib_sha256": "f857bf17a1f756c909cd8c317fb50b1b688f5bf9b4abce4d0cc3cb257135c936",
+        "failed_initial_compiler_attempt": {
+          "exit_code": 1,
+          "error": "E0514 incompatible compiled eyre crate",
+          "compiler": "rustc 1.96.0 (ac68faa20 2026-05-25)",
+          "production_tests_not_run": true
+        },
+        "passing_retry": {
+          "exit_code": 0,
+          "passed": 5,
+          "failed": 0,
+          "ignored": 0
+        },
+        "original_functions": [
+          "require_specialsource_normal_absolute_path",
+          "require_named_jar_path",
+          "named_jar_arguments",
+          "require_named_jar_invocation"
+        ],
+        "function_copy_policy": "unchanged production syntax; EOL-only extraction comparison",
+        "sole_counterfactual": "unapplied shared component-path constructor from reviewed proposal",
+        "fixture": "exact paths from retained native-release-120-v2 failure; pure path values, not opened by tests",
+        "cases": [
+          "original exact guard refusal reproduced",
+          "nearest corrected case accepts unchanged original argv",
+          "separator aliases and changed flags/arity still refused",
+          "original component joins preserved for four supported target paths",
+          "relative/traversal/verbatim/separator/control-character paths still refused"
+        ],
+        "independent_read_only_review": "approved; no production-function substitution",
+        "scope_limits": [
+          "not execution of two unregistered full-crate regressions",
+          "not live production promotion",
+          "not package child launch or held-input/receipt integration",
+          "not Java/Minecraft/runtime/parity acceptance"
+        ],
+        "dependency_or_sdk_changes": false
+      },
+      "strict_argv_equality_preserved": true
+    }
+  },
+  "history4": {
+    "stage": "platform/cli/sfm-propagate-changes/target/core-document-history-providers-stage-v1",
+    "review_sha256": "de86e53b858e1803f7d232eed80eb4ef4e252d906f7bd69d2a4f64c28fcc1741",
+    "root_complete_read": [
+      "four full Java sources",
+      "eight prepared tests",
+      "ledger",
+      "source rules",
+      "review"
+    ],
+    "source_status": "reviewed_unpromoted",
+    "sources": 4,
+    "source_bytes": 106625,
+    "owners": [
+      "single_line_input",
+      "document_history"
+    ],
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "definitions_or_prerequisites_changed": false,
+    "prepromotion_java_check": {
+      "scope": "genuine four raw JDK-only providers; not a rendered projection or full history-feature runtime",
+      "failed_sandbox_attempt": {
+        "exit_code": 3,
+        "error": "Fatal Error: Cannot close compiler resources",
+        "partial_outputs_preserved": true,
+        "log": "platform/cli/sfm-propagate-changes/target/core-history-pure-javac-proof-20261001-v1/javac.log",
+        "log_sha256": "a9c528fe147e5a9875483d87b8608c743473149c0b5be2ff5624b2a18bea5db9"
+      },
+      "normal_windows_retry": {
+        "exit_code": 0,
+        "class_files": 59,
+        "class_bytes": 272030,
+        "output": "platform/cli/sfm-propagate-changes/target/core-history-pure-javac-proof-20261001-v2",
+        "compiler_sha256": "e84e764317af846582fb4bd168922ac5bf6fe8448264a05a71507d6dc311624f",
+        "sdk_release_sha256": "77b520735396e45ced0a1d0c776c7efcab9e42f94a4b44882f20932b74e4046b",
+        "arguments": [
+          "--release",
+          "17",
+          "-proc:none",
+          "-encoding",
+          "UTF-8",
+          "-classpath",
+          "<fresh-empty-classpath>",
+          "-sourcepath",
+          "<fresh-empty-sourcepath>",
+          "-d",
+          "<fresh-ignored-classes>",
+          "<four-pin-verified-stage-source-files>"
+        ],
+        "compiler_stdout_or_stderr": "none; Tee did not create a log for empty output",
+        "annotation_processing": "disabled",
+        "application_execution": "not_performed"
+      }
+    },
+    "promotion_gate": "Promote with genuine SingleLineInput/EditBox pair only after full gate terminal; run both actual source test modules before claiming projection acceptance."
+  },
+  "terminal_presentation_review": {
+    "stage_v1_status": "not_promotable",
+    "reason": "Whole repeated Java classes behind MC dispatch do not satisfy one shared authored core; change one common hunk once, not every copied package.",
+    "additional_defect": "Target 1.21.0 uses actual context minecraft_version 1.21. A when 1.21.0 PNG branch therefore selected the wrong original body.",
+    "historical_evidence_retained": true,
+    "corrected_stage": "v2 sealed shared-hunk proposal independently approved; 44 historical outputs and 504 profile cells match; root complete read, production registration and Java/runtime validation pending"
+  },
+  "remaining": [
+    "Full gate remains live and must reach terminal before source/metadata/registration mutation.",
+    "No finished current JAR, comparison or Minecraft runtime acceptance.",
+    "Preserve 98 earlier staged records and original dependency identities.",
+    "Final installed CLI freshness and full twenty-context acceptance remain open."
+  ]
+}

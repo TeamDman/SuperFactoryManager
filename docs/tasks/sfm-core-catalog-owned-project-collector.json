@@ -1,0 +1,860 @@
+{
+  "schema": "sfm:core_catalog_owned_project_collector@1",
+  "status": "authored_unregistered_collector_and_tests_not_compiled_or_native_built",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": {
+    "module": "platform/cli/sfm-propagate-changes/src/source_projection/catalog_owned_project.rs",
+    "registration": "Root-owned; this handoff does not register the module or replace existing native preflight.",
+    "source_boundary": "One authoritative current catalog, current core feature definitions, current project-inputs and selected core-owned bytes. No historical or generated-source fallback.",
+    "generated_boundary": "Existing named destination Git policy plus Check-only synchronization and exact catalog@2 provenance.",
+    "dependency_boundary": "Opaque selected lock bytes. This module does not reinterpret schema 2 as schema 4, choose a recipe/profile, refresh dependencies or return a native execution permit.",
+    "side_effects": "No projection synchronization Apply, cache creation, JDK resolution, acquisition, native planning, compilation or execution. Test-only isolated fixture publishing uses the existing Apply transaction.",
+    "non_claims": [
+      "No Cargo tests or compilation were run by this agent.",
+      "No native build or launch was performed.",
+      "No byte-identical JAR or gameplay parity is claimed.",
+      "A checked snapshot does not hold a filesystem lock; recheck immediately before each later external effect.",
+      "Strict source inventory is a pre-collection gate, not a replacement for future manifest-driven native collectors."
+    ]
+  },
+  "authored_files": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/catalog_owned_project.rs",
+      "bytes": 61442,
+      "sha256": "03ce887f6a2dcb893e67c72ee56688a36522af1e1c1d0df1e008a56128bf7cef"
+    }
+  ],
+  "read_only_audit_inputs": [
+    {
+      "path": "docs/tasks/sfm-core-released-native-adapter-review.json",
+      "bytes": 349516,
+      "sha256": "8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 313946,
+      "sha256": "b4811ad2c78d93a6634e80630f96a27a73be2de89eb5a96b79281761cb5bedda"
+    },
+    {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2056,
+      "sha256": "709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 8567,
+      "sha256": "92e8b326dc3e480b19293c9e24ff3ddf63e1cc1992bf0af59453cd780dbdca11"
+    }
+  ],
+  "api": {
+    "collect_catalog_project": "repo_root + invocation_dir + exact catalog key -> private CollectedCatalogProject; safe context/build metadata/immutable selected artifact bytes available for dependency validation before named Check",
+    "check_current": "Consumes collected state -> private CatalogOwnedProject after exact source snapshot, destination policy, strict source inventory, Check transaction, provenance and output rechecks",
+    "selected_input": "Exact output key -> borrowed CatalogOwnedInput; no filesystem fallback or mutable byte replacement",
+    "exact_authored_input": "Safe full repository-relative selected source_path -> unique selected output; rejects unselected equal-hash raw files, ambiguous output aliases, declared template:true inputs and non-exact copies",
+    "require_exact_copy": "Require explicit template:false from real CoreSelection metadata and source/output byte equality. Equal bytes alone do not prove the exact-copy role contract.",
+    "declared_template": "Borrowed view and per-file receipt retain the selected template flag; it is never inferred from content. Every Java output still uses its controlled renderer independently.",
+    "ownership_identity": "SHA-256 of typed portable sfm:catalog_owned_project@1 receipt",
+    "recheck": "Recollect the same named catalog owner, repeat checks and compare exact receipt and canonical repo/project roots",
+    "receipt_fields": [
+      "projection_key",
+      "environment",
+      "target_id",
+      "minecraft_version",
+      "java_major",
+      "loader",
+      "context_identity",
+      "portable_project_dir",
+      "catalog/feature/project-input/provenance hashes",
+      "authored/generated source inventory hashes",
+      "every selected source/output path, declared template flag, hash and byte count"
+    ],
+    "fixture": "cfg(test) tests::Fixture exposes new, key, repository, collect, publish and set_project_file_for(target, output, core-relative input, bytes, template); override preserves other target predicates"
+  },
+  "strict_generated_src_gate": {
+    "contract": "Complete physical src file set must exactly equal every selected artifact key under src/. All source sets and file extensions are checked; unowned Java/resources/ANTLR/arbitrary files are refused.",
+    "traversal": "Validate exact literal src spelling, every UTF-8 portable path, case aliases and checked file/directory paths. Reject source symlinks/junctions/reparse points even in otherwise unused directories before traversing them.",
+    "empty_directories": "Empty ordinary directories are not compiler inputs and are allowed; reparse directories are always refused.",
+    "entry_limit": 131072,
+    "selected_file_limit_bytes": 16777216,
+    "metadata_limit_bytes": 8388608,
+    "manifest_limit_bytes": 16777216,
+    "snapshot_total_limit_bytes": 536870912,
+    "source_timing": "Run before downstream recursive native source collection and before JDK/cache/acquisition. Check source inventory both before and after output/provenance checks."
+  },
+  "refusal_ordering_and_legacy_bytes": {
+    "v4_rewire": "Keep explicit rust-toolchain argument validation first. Collect authored bytes, call unchanged selected_profile before check_current, then map checked receipt into exactly the existing NativeProjectReceipt field set and derive the existing cache identity/ancestor checks.",
+    "schema2": "Existing V4 entry point must keep schema-2 refusal before named Check. A separately explicit frozen-recipe entry point can use the same checked ownership handle, never a fabricated schema-4 profile.",
+    "recipe_binding_audit": "All ten reviewed recipes have thirteen unique selected exact-copy role inputs in current empty-feature project metadata. The first three rows do not need output filenames in recipe metadata: resolve only through exact source_path-selected artifacts.",
+    "key_identity": "Arbitrary nested keys are authoritative catalog names, never parsed as MC or dependency profile. Stable target 1.21.0 has actual Minecraft 1.21.",
+    "generated_contributor_edits": "Missing, modified, unowned or conflicting outputs refuse without repair; no auto-sync or backpropagation bypass."
+  },
+  "actual_read_only_role_audit": {
+    "method": "Independently evaluated empty-feature target predicates in current project_files; every reviewed source path matched one template:false selected output and current raw SHA-256. This static role audit is not execution of the new collector.",
+    "target_count": 10,
+    "role_binding_count": 130,
+    "targets": [
+      {
+        "target_id": "1.19.2",
+        "minecraft_version": "1.19.2",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.19.2@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/dependencies/1.19.2/dependencies.gradle",
+            "output": "gradle/dependencies/1.19.2/dependencies.gradle",
+            "sha256": "ba512ab98fa1a210e84ca5d95c3f091d29ca7ee293bcd63985887d970ccb2a15"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.19.2/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.19.2/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.19.2/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "02f53c75edfe8c90cd97281e26bc53c6e6d2d563361a6279f2117061371a53a6"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.19.2/plugins.gradle",
+            "output": "gradle/plugins/1.19.2/plugins.gradle",
+            "sha256": "47ad43b1f11ae3b5d548c8753d8b3bad8fa59217a89b6428fc1a9460e722aa6e"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.19.2/plugin-classpath.txt",
+            "output": "gradle/plugins/1.19.2/plugin-classpath.txt",
+            "sha256": "c19b9df7e3e3520882e539de17c8675712ef09f05cc012285425ae9a311d7908"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.19.2/main-java.txt",
+            "output": "gradle/source-excludes/1.19.2/main-java.txt",
+            "sha256": "41900325a5b7ed8a4d1a40697090608167cf5ac7c3255908c70ad8ff74413af1"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.19.2/test-java.txt",
+            "output": "gradle/source-excludes/1.19.2/test-java.txt",
+            "sha256": "508f1ee47e8566c162994dfb062d5fa8114cddcd3462918e008468d3b94307ef"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.19.2/gametest-java.txt",
+            "output": "gradle/source-excludes/1.19.2/gametest-java.txt",
+            "sha256": "62ec7cd13895c22491fcde963ea649f87c15fff9fec375225876abff4600e5dc"
+          }
+        ]
+      },
+      {
+        "target_id": "1.19.4",
+        "minecraft_version": "1.19.4",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.19.4@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.19.4/dependencies.gradle",
+            "output": "gradle/dependencies/1.19.4/dependencies.gradle",
+            "sha256": "4616e22a8e710822eabb993fe8180a28534a991fa05ec5173ca425be4172a8bc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.19.4/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.19.4/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.19.4/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "8522a2dd2ff213c71846eac6bec55e19aeb68354764599059b2458ec3c4f22d8"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.19.4/plugins.gradle",
+            "output": "gradle/plugins/1.19.4/plugins.gradle",
+            "sha256": "47ad43b1f11ae3b5d548c8753d8b3bad8fa59217a89b6428fc1a9460e722aa6e"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.19.4/plugin-classpath.txt",
+            "output": "gradle/plugins/1.19.4/plugin-classpath.txt",
+            "sha256": "c19b9df7e3e3520882e539de17c8675712ef09f05cc012285425ae9a311d7908"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.19.4/main-java.txt",
+            "output": "gradle/source-excludes/1.19.4/main-java.txt",
+            "sha256": "321ba2a3863b8f27c18e466933dc59eb0531b9ad41160d95f56fa81b6657c081"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.19.4/test-java.txt",
+            "output": "gradle/source-excludes/1.19.4/test-java.txt",
+            "sha256": "508f1ee47e8566c162994dfb062d5fa8114cddcd3462918e008468d3b94307ef"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.19.4/gametest-java.txt",
+            "output": "gradle/source-excludes/1.19.4/gametest-java.txt",
+            "sha256": "d6d3874d9d90ca50eaf6bf7d14c062587c9eb46d5118cccd4979c5699dad3f14"
+          }
+        ]
+      },
+      {
+        "target_id": "1.20",
+        "minecraft_version": "1.20",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.20@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.20/dependencies.gradle",
+            "output": "gradle/dependencies/1.20/dependencies.gradle",
+            "sha256": "ff7a957de7aa97bfcb475937b87fe2f703b73451cf858e97c884a0d30752756f"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.20/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.20/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "1d208eafa475f46e40352dadef527af49871752f79e4b91dd72d8d31c2e8f273"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20/plugins.gradle",
+            "output": "gradle/plugins/1.20/plugins.gradle",
+            "sha256": "47ad43b1f11ae3b5d548c8753d8b3bad8fa59217a89b6428fc1a9460e722aa6e"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20/plugin-classpath.txt",
+            "output": "gradle/plugins/1.20/plugin-classpath.txt",
+            "sha256": "5c0c5b34d987e663cac441dc4e7fe2cd44f5a50de6ba5471e362d177aca9580e"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20/main-java.txt",
+            "output": "gradle/source-excludes/1.20/main-java.txt",
+            "sha256": "321ba2a3863b8f27c18e466933dc59eb0531b9ad41160d95f56fa81b6657c081"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20/test-java.txt",
+            "output": "gradle/source-excludes/1.20/test-java.txt",
+            "sha256": "508f1ee47e8566c162994dfb062d5fa8114cddcd3462918e008468d3b94307ef"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20/gametest-java.txt",
+            "output": "gradle/source-excludes/1.20/gametest-java.txt",
+            "sha256": "6706e990b58468cd070546c5b9ed2ccb3f3621ec7fcdc34751dc1a0d332d2d3c"
+          }
+        ]
+      },
+      {
+        "target_id": "1.20.1",
+        "minecraft_version": "1.20.1",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.1@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.20.1/dependencies.gradle",
+            "output": "gradle/dependencies/1.20.1/dependencies.gradle",
+            "sha256": "a58739a5cdfe172b8fc5988214e602c72749778a8ec3292f440515330e0debd2"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.20.1/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.20.1/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20.1/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "40b2ae66e277cb48217d64589b89000d9fe328c8d5739229b5cc9c90722aedb7"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.1/plugins.gradle",
+            "output": "gradle/plugins/1.20.1/plugins.gradle",
+            "sha256": "ee5970972aff9fb2e084edfe17da42a753743546db5213f86652396a4a921592"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.1/plugin-classpath.txt",
+            "output": "gradle/plugins/1.20.1/plugin-classpath.txt",
+            "sha256": "3ef07dd997113ad4ba4887d75415ab05a1b9a5be8e92e6f1ef3e82c68f7f7c9e"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.1/main-java.txt",
+            "output": "gradle/source-excludes/1.20.1/main-java.txt",
+            "sha256": "3ca48a26efe8dd26943da56cec11a519aee20ef666268dfa56ad05939194c97d"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.1/test-java.txt",
+            "output": "gradle/source-excludes/1.20.1/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20.1/gametest-java.txt",
+            "output": "gradle/source-excludes/1.20.1/gametest-java.txt",
+            "sha256": "7bdeea453266d11ab8689696c9405e73d53baa4fc9bb788c89b1d2881bccfd57"
+          }
+        ]
+      },
+      {
+        "target_id": "1.20.2",
+        "minecraft_version": "1.20.2",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.2@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.20.2/dependencies.gradle",
+            "output": "gradle/dependencies/1.20.2/dependencies.gradle",
+            "sha256": "4ce09638c5d35530ed030d8cb6087cda4741a2dd4e9963c101cab19a098d55ee"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.20.2/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.20.2/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20.2/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "459c51a03aad83ce872014c6579a35ff2fd93bfcce2bdeeadec881f5bbeed360"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.2/plugins.gradle",
+            "output": "gradle/plugins/1.20.2/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.2/plugin-classpath.txt",
+            "output": "gradle/plugins/1.20.2/plugin-classpath.txt",
+            "sha256": "5810ba170c57b155353c6740fa96e2f6db4e8b050dcc14e004df49d29a5be94d"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20.2/main-java.txt",
+            "output": "gradle/source-excludes/1.20.2/main-java.txt",
+            "sha256": "e39b435291af490b1e39fadcd226a99e7a32808a921826ea72d3b384e6f25579"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.2/test-java.txt",
+            "output": "gradle/source-excludes/1.20.2/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20.2/gametest-java.txt",
+            "output": "gradle/source-excludes/1.20.2/gametest-java.txt",
+            "sha256": "1849acde16b5ec29bcfc07989001bf7cdc514257061cba772be90a936415d915"
+          }
+        ]
+      },
+      {
+        "target_id": "1.20.3",
+        "minecraft_version": "1.20.3",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.3@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.20.3/dependencies.gradle",
+            "output": "gradle/dependencies/1.20.3/dependencies.gradle",
+            "sha256": "4ce09638c5d35530ed030d8cb6087cda4741a2dd4e9963c101cab19a098d55ee"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.20.3/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.20.3/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20.3/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "bd15e449edaac65434697ab44d6bcaa877ad466d3afeb90b45f6e8106e417e15"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.3/plugins.gradle",
+            "output": "gradle/plugins/1.20.3/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.3/plugin-classpath.txt",
+            "output": "gradle/plugins/1.20.3/plugin-classpath.txt",
+            "sha256": "5810ba170c57b155353c6740fa96e2f6db4e8b050dcc14e004df49d29a5be94d"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20.3/main-java.txt",
+            "output": "gradle/source-excludes/1.20.3/main-java.txt",
+            "sha256": "e39b435291af490b1e39fadcd226a99e7a32808a921826ea72d3b384e6f25579"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.3/test-java.txt",
+            "output": "gradle/source-excludes/1.20.3/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.20.3/gametest-java.txt",
+            "output": "gradle/source-excludes/1.20.3/gametest-java.txt",
+            "sha256": "1849acde16b5ec29bcfc07989001bf7cdc514257061cba772be90a936415d915"
+          }
+        ]
+      },
+      {
+        "target_id": "1.20.4",
+        "minecraft_version": "1.20.4",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.4@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.20.4/dependencies.gradle",
+            "output": "gradle/dependencies/1.20.4/dependencies.gradle",
+            "sha256": "262becb4a15c8681fa10dd421090a254fdce9fec9d8c2d85fd2649e9682b58da"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.20.4/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.20.4/java-toolchain.gradle",
+            "sha256": "3845c1eb6137449ab52e6f57fa6e05cfb22bcef6ba79bd74b711cf0bdee9bef4"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20.4/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "8ca598f64f2b832fef43792bcd087d4c4f1af14914572c5d35182ce466b7f71b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.4/plugins.gradle",
+            "output": "gradle/plugins/1.20.4/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.20.4/plugin-classpath.txt",
+            "output": "gradle/plugins/1.20.4/plugin-classpath.txt",
+            "sha256": "5810ba170c57b155353c6740fa96e2f6db4e8b050dcc14e004df49d29a5be94d"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.4/main-java.txt",
+            "output": "gradle/source-excludes/1.20.4/main-java.txt",
+            "sha256": "58667f2cda9fd471b72aae8ae5dcff55656849a8db8ba4945d303d601a67c20a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.20.4/test-java.txt",
+            "output": "gradle/source-excludes/1.20.4/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.20.4/gradle/source-excludes/1.20.4/gametest-java.txt",
+            "output": "gradle/source-excludes/1.20.4/gametest-java.txt",
+            "sha256": "1849acde16b5ec29bcfc07989001bf7cdc514257061cba772be90a936415d915"
+          }
+        ]
+      },
+      {
+        "target_id": "1.21.0",
+        "minecraft_version": "1.21",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.21.0@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.21/dependencies.gradle",
+            "output": "gradle/dependencies/1.21/dependencies.gradle",
+            "sha256": "2a4c8da5de1ac10a042dd9bf3e0270d7bf6aeaa9a9105286936312fe7a7f8fc2"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.21/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.21/java-toolchain.gradle",
+            "sha256": "72fb86a3f5acd45877d6c7c183a679d9ba8eb75318d5ea631199309c4e8acb77"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.21.0/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "bb3939d8c1a8242e2cc837398fee6993ed2e9341d6f6f586392692e00a4d1427"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.21/plugins.gradle",
+            "output": "gradle/plugins/1.21/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.21/plugin-classpath.txt",
+            "output": "gradle/plugins/1.21/plugin-classpath.txt",
+            "sha256": "11856d393a65ccce3e1ae131eb994e08b590b054ac71336ef181ca0f41470705"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.21/main-java.txt",
+            "output": "gradle/source-excludes/1.21/main-java.txt",
+            "sha256": "e1ceebbc2143b3ce7531b156bc09bef19e122f3424bbb00b3722661ea6303869"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.21/test-java.txt",
+            "output": "gradle/source-excludes/1.21/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.21.0/gradle/source-excludes/1.21/gametest-java.txt",
+            "output": "gradle/source-excludes/1.21/gametest-java.txt",
+            "sha256": "1849acde16b5ec29bcfc07989001bf7cdc514257061cba772be90a936415d915"
+          }
+        ]
+      },
+      {
+        "target_id": "1.21.1",
+        "minecraft_version": "1.21.1",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/1.21.1@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/1.21.1/dependencies.gradle",
+            "output": "gradle/dependencies/1.21.1/dependencies.gradle",
+            "sha256": "32b7770156300780f06ddb471b2176c5c9bb7b309128fe2321be6af34806c5f5"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/1.21.1/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/1.21.1/java-toolchain.gradle",
+            "sha256": "72fb86a3f5acd45877d6c7c183a679d9ba8eb75318d5ea631199309c4e8acb77"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/1.21.1/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "b6bca01e511acec52de8cfa4e33b5ac7210e74f5a243ce444d06ac761a9b3026"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.21.1/plugins.gradle",
+            "output": "gradle/plugins/1.21.1/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/1.21.1/plugin-classpath.txt",
+            "output": "gradle/plugins/1.21.1/plugin-classpath.txt",
+            "sha256": "eb589a87504e32198ef209f65a4073e49fd00a1d8f6c71cc14b5201e49116a4b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.21.1/main-java.txt",
+            "output": "gradle/source-excludes/1.21.1/main-java.txt",
+            "sha256": "21903d1bafa6ef7467e3fa24d43d86b3c5830d57267f7ef22a273afcf7411321"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/1.21.1/test-java.txt",
+            "output": "gradle/source-excludes/1.21.1/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/1.21.1/gametest-java.txt",
+            "output": "gradle/source-excludes/1.21.1/gametest-java.txt",
+            "sha256": "69da955ba551b7b114c5c4dbb93690a82d55137d831c7fa85ea03dfd746ab0aa"
+          }
+        ]
+      },
+      {
+        "target_id": "26.1.2",
+        "minecraft_version": "26.1.2",
+        "recipe_id": "sfm:released-native-inputs/4.34.0/26.1.2@1",
+        "exact_role_count": 13,
+        "role_bindings": [
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/dependencies/26.1.2/dependencies.gradle",
+            "output": "gradle/dependencies/26.1.2/dependencies.gradle",
+            "sha256": "33660b4bd8411aa631249098282c5cd388ed5653d6c98110ae735cfff7258d5a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/java-toolchain/26.1.2/java-toolchain.gradle",
+            "output": "gradle/java-toolchain/26.1.2/java-toolchain.gradle",
+            "sha256": "489ef737adda0dc09f41eaf0ef8b682cf8c27f45573dcb040e4d5133bcd7e0d2"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/versions/26.1.2/gradle.properties",
+            "output": "gradle.properties",
+            "sha256": "4881a420613baa66342e9f8c11564e709fe00fda78f463af3a8b9c4384bfb982"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/build.gradle",
+            "output": "build.gradle",
+            "sha256": "4626b12e807f3d529a8f3d309e2f19cb8dcdba62c9069f594f16e3c23131c10c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/versioned-dependencies.gradle",
+            "output": "gradle/versioned-dependencies.gradle",
+            "sha256": "a4d328e0d175fb50cb906308c1379ccd33c04435905e39dd86e07511071befdc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/jar-jar.gradle",
+            "output": "gradle/jar-jar.gradle",
+            "sha256": "60ff7b77b5c8276f3218e461dd88c4cdfeec2cf10ed369cd5c4f560c41c6492b"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes.gradle",
+            "output": "gradle/source-excludes.gradle",
+            "sha256": "06015014613771f782c3ce863d1346c79189490138eb776a470f0069ec172f44"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-sets.gradle",
+            "output": "gradle/source-sets.gradle",
+            "sha256": "7a6a9548ab6f22d9d0eff1c0ac1a1f62550c60847f8d5c6aeba3da1cca0f7ebc"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/26.1.2/plugins.gradle",
+            "output": "gradle/plugins/26.1.2/plugins.gradle",
+            "sha256": "b446a63c115f690a0fa1a33fd33b62d2c4fda76eda48b5d953baa3c86ef7f57a"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/plugins/26.1.2/plugin-classpath.txt",
+            "output": "gradle/plugins/26.1.2/plugin-classpath.txt",
+            "sha256": "45987936a6391303e74f1cfaeb08f8e33d8a16a561a1257d6b410a00a3fca07c"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/26.1.2/main-java.txt",
+            "output": "gradle/source-excludes/26.1.2/main-java.txt",
+            "sha256": "21475e558752bd40526f3053d47cf69d3b21846e20d57b21e8078a98498bbf43"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/shared/gradle/source-excludes/26.1.2/test-java.txt",
+            "output": "gradle/source-excludes/26.1.2/test-java.txt",
+            "sha256": "71d84593e72f7663042ba95d4ed309f0130755d20b6e23c6ef5cb997e3d75507"
+          },
+          {
+            "source_path": "platform/minecraft/core-liquid-template/build/standard/gradle/source-excludes/26.1.2/gametest-java.txt",
+            "output": "gradle/source-excludes/26.1.2/gametest-java.txt",
+            "sha256": "9c99958a854fca51f2e65027d892bccedfeb8dfe1870361abf1436cebad7ed16"
+          }
+        ]
+      }
+    ]
+  },
+  "tests_authored_not_run": {
+    "matrix": "All twenty arbitrary nested-key release/dev contexts across ten supported targets; exact schema-2 fixture lock bytes and target/version receipt mapping.",
+    "tests": [
+      "all20_catalog_contexts_check_exact_schema2_bytes_without_native_interpretation",
+      "existing_v4_preflight_keeps_released_schema2_refusal_before_named_check",
+      "selected_role_inputs_refuse_unselected_equal_hash_and_rendered_sources",
+      "unchanged_template_enabled_role_is_not_an_exact_copy_contract",
+      "selected_roles_refuse_ambiguous_authored_aliases_without_new_reads",
+      "every_generated_source_file_requires_manifest_ownership_before_scan",
+      "collection_and_checked_handle_refuse_changed_snapshots_without_writes",
+      "missing_sources_and_unowned_output_collision_refuse_without_repair",
+      "catalog_owner_and_destination_policy_do_not_follow_key_spelling",
+      "source_case_aliases_are_refused_before_case_insensitive_file_reads",
+      "opaque_lock_bytes_and_original_native_v4_receipt_are_not_rewritten",
+      "authored_membership_changes_and_bounded_reads_refuse_before_preparation",
+      "shared_fixture_role_override_preserves_other_target_selection",
+      "ownership_fingerprint_binds_context_metadata_provenance_and_source_inventory",
+      "generated_src_symlinks_are_refused_even_when_not_owned_inputs (Unix)",
+      "generated_src_junctions_are_refused_before_traversal (Windows)",
+      "all20_changed_outputs_refuse_recheck_and_do_not_touch_other_projection_roots"
+    ],
+    "host_count": "16 active tests per Windows/Unix host; 17 total test declarations including platform alternatives.",
+    "legacy_receipt_proof": "Construct unchanged NativeProjectReceipt fields from new checked ownership plus the same real V4 effective dependency/exclusion hashes, compare serialized receipt bytes and cache identity with the existing preflight.",
+    "mutable_fixture_only": "Fixtures use fresh isolated Git temp repositories and non-executable synthetic build/wrapper bodies; no real game/toolchain execution or source acquisition."
+  },
+  "gates_remaining": [
+    "Root register collector and peer frozen-recipe module, run focused tests and Clippy; static rustfmt parsing is not type checking.",
+    "Root apply/review the minimal existing V4 preflight rewire preserving refusal order and exact receipt/cache fields.",
+    "Bind the eventual native plan to both checked ownership and explicit dependency preparation; recheck before every external effect.",
+    "Replace physical native directory collectors with selected-manifest collectors after this refusal gate.",
+    "Native schema-2 role completeness, source-built artifact witnesses, weak artifact trust, exact JDK, remapping and native compilation acceptance remain separate gates."
+  ]
+}

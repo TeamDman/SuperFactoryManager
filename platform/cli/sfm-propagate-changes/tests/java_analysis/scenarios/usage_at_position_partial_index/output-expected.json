@@ -99,9 +99,9 @@
   "dependency_index": {
     "acquisition_commands": [],
     "completeness": "incomplete",
-    "expected_identity": "blake3:cb500c859159e507e51d132d4caad5a77d62f6e2f023dfc538ba6b85e0aed8c1",
-    "path": "$sfm-cache-local/symbol-index/v3/cb500c859159e507e51d132d4caad5a77d62f6e2f023dfc538ba6b85e0aed8c1",
-    "portable_path": "$sfm-cache/symbol-index/v3/cb500c859159e507e51d132d4caad5a77d62f6e2f023dfc538ba6b85e0aed8c1",
+    "expected_identity": "blake3:39247dc8ee9d2ef1a305221e8a358d4dd604f1f8adb3a504e09e61af3314d6a4",
+    "path": "$sfm-cache-local/symbol-index/v3/39247dc8ee9d2ef1a305221e8a358d4dd604f1f8adb3a504e09e61af3314d6a4",
+    "portable_path": "$sfm-cache/symbol-index/v3/39247dc8ee9d2ef1a305221e8a358d4dd604f1f8adb3a504e09e61af3314d6a4",
     "reason": "manifest and payload are valid but dependency coverage is partial",
     "refresh_command": "sfm-propagate-changes.exe symbol index refresh --branch 1.19.2",
     "status": "partial"

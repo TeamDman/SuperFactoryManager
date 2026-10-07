@@ -1,0 +1,22 @@
+[
+  {
+    "request_key": "original/net.neoforged:neoform:1.20.2-20231019.002635@zip",
+    "coordinate": "net.neoforged:neoform:1.20.2-20231019.002635@zip",
+    "exact_url": "https://maven.neoforged.net/releases/net/neoforged/neoform/1.20.2-20231019.002635/neoform-1.20.2-20231019.002635.zip",
+    "origin": "captured_schema4_pin",
+    "original_identity": "blake3:ba7abd19d442b85fc77a8b1d28396da8dccf1308",
+    "snapshot_relative_path": "inputs/artifacts/0001.zip",
+    "bytes": 1720346,
+    "full_sha256": "sha256:bfe2fc44a7b756a3307a714496e950abaf3306741ae7717dc4c78a3b527ae974"
+  },
+  {
+    "request_key": "original/net.neoforged:neoforge:20.2.86:userdev",
+    "coordinate": "net.neoforged:neoforge:20.2.86:userdev",
+    "exact_url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/20.2.86/neoforge-20.2.86-userdev.jar",
+    "origin": "captured_schema4_pin",
+    "original_identity": "blake3:6ed4051437648b1c7de4d44f6cd83d207e6db43a",
+    "snapshot_relative_path": "inputs/artifacts/0002.jar",
+    "bytes": 3588851,
+    "full_sha256": "sha256:d25c8a4b7ab0a7f8bf96ad8d97aa7373ad41a103472b4d766f261e358dd32fb4"
+  }
+]

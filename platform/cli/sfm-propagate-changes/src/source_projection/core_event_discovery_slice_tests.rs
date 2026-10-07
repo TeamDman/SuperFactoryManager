@@ -10,7 +10,6 @@
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::core_slice_test_support::CoreTestFixture;
 use super::core_slice_test_support::read_bounded;
 use super::core_slice_test_support::read_git_blobs;
@@ -32,6 +31,10 @@ const PATHS: [&str; 4] = [ANNOTATION, SUBSCRIBER, ANNOTATION_UTILS, MOD_COMPAT];
 const LEDGER_PATH: &str = "docs/tasks/sfm-core-event-discovery-slice.json";
 const FILTER: &str = "mod_event_filtering";
 const CC: &str = "computercraft";
+const DISK_READ: &str = "disk_readonly_access";
+const LABEL_READ: &str = "label_readonly_access";
+const CURRENT_CC_REQUIRES: [&str; 3] = [FILTER, DISK_READ, LABEL_READ];
+const CURRENT_CC_FEATURES: [&str; 4] = [FILTER, CC, DISK_READ, LABEL_READ];
 const MAX_LEDGER_BYTES: u64 = 1024 * 1024;
 
 // Raw Git object, independent SHA-256, exact bytes, CR count, LF count.
@@ -303,7 +306,15 @@ impl EventFixture {
                 .0
                 .get(feature)
                 .ok_or_else(|| eyre::eyre!("required slice owner {feature} is unregistered"))?;
-            let expected_requires: &[&str] = if feature == CC { &[FILTER] } else { &[] };
+            // Original ledger ownership is immutable migration evidence. Current
+            // CC also consumes the disk/label read-only APIs; validate that exact
+            // reviewed addition separately without rewriting historical evidence.
+            let historical_requires: &[&str] = if feature == CC { &[FILTER] } else { &[] };
+            let current_requires: &[&str] = if feature == CC {
+                &CURRENT_CC_REQUIRES
+            } else {
+                &[]
+            };
             ensure!(
                 owner
                     .supported_targets
@@ -322,14 +333,14 @@ impl EventFixture {
                         .iter()
                         .map(String::as_str)
                         .collect::<Vec<_>>()
-                        == expected_requires
+                        == historical_requires
                     && definition
                         .requires
                         .iter()
                         .map(String::as_str)
                         .collect::<Vec<_>>()
-                        == expected_requires,
-                "event-discovery target/prerequisite contract changed"
+                        == current_requires,
+                "event-discovery historical/current target/prerequisite contract changed"
             );
         }
         let oids = RAW_GOLDENS
@@ -423,7 +434,9 @@ impl EventFixture {
     }
 
     fn render_selected(&self, path: &str, context: &ProjectionContext) -> Result<Vec<u8>> {
-        let selected = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selected = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let input = selected
             .inputs
             .get(path)
@@ -446,7 +459,7 @@ impl EventFixture {
         let features: &[&str] = match (filtering, cc) {
             (false, false) => &[],
             (true, false) => &[FILTER],
-            (true, true) => &[FILTER, CC],
+            (true, true) => &CURRENT_CC_FEATURES,
             (false, true) => unreachable!(),
         };
         let context = self.core.context(target, features)?;
@@ -525,7 +538,7 @@ fn event_classes_reconstruct_all_twenty_historical_contexts_and_membership() -> 
         let on = environment == "dev";
         let mut context = fixture
             .core
-            .context(target, if on { &[FILTER, CC] } else { &[] })?;
+            .context(target, if on { &CURRENT_CC_FEATURES } else { &[] })?;
         context.environment = environment.to_owned();
         context.projection_key =
             format!("{}/mc-{target}", if on { "sfm-dev" } else { "sfm-4.34.0" });
@@ -561,14 +574,21 @@ fn computercraft_refuses_missing_filtering_prerequisite_on_every_target() -> Res
     let fixture = EventFixture::load()?;
     let mut refused = 0;
     for (target, _) in SUPPORTED_TARGETS {
-        let error = fixture
-            .core
-            .context(target, &[CC])
-            .expect_err("CC must not silently omit or auto-enable its prerequisite");
-        assert!(error.to_string().contains(FILTER));
-        refused += 1;
+        for required in CURRENT_CC_REQUIRES {
+            let explicit = CURRENT_CC_FEATURES
+                .iter()
+                .copied()
+                .filter(|name| *name != required)
+                .collect::<Vec<_>>();
+            let error = fixture
+                .core
+                .context(target, &explicit)
+                .expect_err("CC must not silently omit or auto-enable a prerequisite");
+            assert!(error.to_string().contains(required));
+            refused += 1;
+        }
     }
-    assert_eq!(refused, 10);
+    assert_eq!(refused, 30);
     for (path, feature) in [(ANNOTATION, FILTER), (MOD_COMPAT, CC)] {
         let mut context = fixture.core.context("1.19.2", &[])?;
         assert_eq!(context.features.remove(feature), Some(false));

@@ -58,7 +58,7 @@ const CORE_PREFIX: &str = "platform/minecraft/core-liquid-template/";
 // Explicit reviewed sets, not error-driven expansion or synthetic feature
 // registrations. CoreTestFixture::context validates every prerequisite against
 // the live core registry; a new required permission/feature fails these fixtures.
-const D2_WITNESS_FEATURES: [&str; 18] = [
+const D2_WITNESS_FEATURES: [&str; 19] = [
     "client_actions",
     "client_theme",
     "keyboard_profiles",
@@ -74,6 +74,7 @@ const D2_WITNESS_FEATURES: [&str; 18] = [
     "runtime_resource_cleanup",
     "packet_computation",
     "client_program_consent",
+    "disk_readonly_access",
     "client_manager",
     "client_program_actions",
     "sfml_execution_side",
@@ -103,11 +104,12 @@ const OTHER_FOUNDATION_FEATURES: [&str; 4] = [
     "keyboard_profiles",
     "command_palette",
 ];
-const PROGRAM_PREREQUISITES: [&str; 7] = [
+const PROGRAM_PREREQUISITES: [&str; 8] = [
     "packet_values",
     "runtime_resource_cleanup",
     "packet_computation",
     "client_program_consent",
+    "disk_readonly_access",
     "client_manager",
     "client_program_actions",
     "sfml_execution_side",
@@ -430,7 +432,9 @@ impl ActionFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(path) else {
             ensure!(
                 selection.omitted_paths.contains(path),
@@ -445,8 +449,16 @@ impl ActionFixture {
         // No Java bytes are read until the real source predicate includes it.
         let source = self.core.read_source(path)?;
         let (hash, count) = &self.templates[path];
+        // The typed-palette consumer now shares the choice-surface API. Bind
+        // that exact refinement separately; do not rewrite historical ledgers
+        // or render their reconstructed bytes as today's source.
+        let historical = if path == TREE {
+            reviewed_pre_typed_choice_source(&source)?
+        } else {
+            source.clone()
+        };
         ensure!(
-            source.len() == *count && sha256(&source) == *hash,
+            historical.len() == *count && sha256(&historical) == *hash,
             "authored action/carrier bytes changed from their reviewed ledger: {path}"
         );
         Ok(Some(
@@ -460,6 +472,52 @@ impl ActionFixture {
             .ok_or_else(|| eyre::eyre!("expected action input was omitted: {path}"))?;
         Ok(String::from_utf8(bytes)?)
     }
+}
+
+fn reviewed_pre_typed_choice_source(source: &[u8]) -> Result<Vec<u8>> {
+    ensure!(
+        source.len() == 50_433
+            && sha256(source)
+                == "sha256:7d8d545a38100f2082c7db8ec63a21959716cd345591ef5fc6a82c6e4aecd0fd",
+        "current shared typed-choice template identity changed"
+    );
+    let text = std::str::from_utf8(source)?;
+    let current = "{% if features.context_actions or features.typed_command_palette %}";
+    ensure!(
+        text.matches(current).count() == 10,
+        "shared typed-choice guard refinement count changed"
+    );
+    let historical = text.replace(current, "{% if features.context_actions %}");
+    ensure!(
+        historical.len() == 50_093
+            && sha256(historical.as_bytes())
+                == "sha256:f14bb26e1ac5330cdbe847c97c649c1c3a5c7021f15f273e13ab01e57d1c6cda",
+        "shared typed-choice inverse did not recover the immutable foundation"
+    );
+    Ok(historical.into_bytes())
+}
+
+#[test]
+fn shared_typed_choice_refinement_preserves_history_and_rejects_unrelated_edits() -> Result<()> {
+    let core = CoreTestFixture::load()?;
+    let source = core.read_source(TREE)?;
+    let historical = reviewed_pre_typed_choice_source(&source)?;
+    let context = core.context("1.19.2", &foundation_features(3).expect("typed palette"))?;
+    let current_output = render_java_source(std::str::from_utf8(&source)?, &context)?;
+    let historical_output = render_java_source(std::str::from_utf8(&historical)?, &context)?;
+    assert!(current_output.contains("isolatedPaletteSurface"));
+    assert!(!historical_output.contains("isolatedPaletteSurface"));
+    for mutation in [
+        String::from_utf8(source.clone())?.replacen(
+            "{% if features.context_actions or features.typed_command_palette %}",
+            "{% if features.context_actions %}",
+            1,
+        ),
+        format!("{}\n// unrelated mutation\n", std::str::from_utf8(&source)?),
+    ] {
+        assert!(reviewed_pre_typed_choice_source(mutation.as_bytes()).is_err());
+    }
+    Ok(())
 }
 
 fn ledger_source(core: &CoreTestFixture, path: &str) -> Result<String> {
@@ -838,22 +896,60 @@ fn nine_action_carrier_inputs_reconstruct_all_twenty_exact_contexts() -> Result<
 }
 
 #[test]
-fn action_disabled_omits_all_nine_even_with_workspace_enabled() -> Result<()> {
+fn action_disabled_preserves_historical_omission_and_current_pure_workspace_carriers() -> Result<()>
+{
     let fixture = ActionFixture::load()?;
-    let mut absent = 0;
+    let mut historical = fixture.core.metadata.clone();
+    for path in [SOURCE, CONTEXT, AVAILABILITY] {
+        let current = fixture
+            .core
+            .metadata
+            .source_rules
+            .get(path)
+            .ok_or_else(|| eyre::eyre!("current carrier rule absent: {path}"))?;
+        ensure!(
+            current.len() == 1
+                && current[0].input == path
+                && current[0].template
+                && current[0].when.any_features == ["client_actions", "workspace_panels"]
+                && current[0].when.all_features.is_empty()
+                && current[0].when.targets.is_empty()
+                && current[0].when.none_features.is_empty(),
+            "unauthorized carrier refinement"
+        );
+        let mut old = current[0].clone();
+        old.when.any_features.clear();
+        old.when.all_features = vec!["client_actions".to_owned()];
+        historical.source_rules.insert(path.to_owned(), vec![old]);
+    }
+    let mut historical_absent = 0;
+    let mut current_absent = 0;
+    let mut current_pure = 0;
     for target in TARGETS {
         for enabled in [&[][..], &["workspace_panels"][..]] {
             let context = fixture.core.context(target, enabled)?;
+            let old = select_core_inputs(&historical, &context, &fixture.inventory)?;
             for path in PATHS {
                 assert!(
-                    fixture.render(path, &context)?.is_none(),
-                    "{target} / {enabled:?} / {path}"
+                    old.omitted_paths.contains(path),
+                    "historical {target} {path}"
                 );
-                absent += 1;
+                historical_absent += 1;
+                let pure = !enabled.is_empty() && [SOURCE, CONTEXT, AVAILABILITY].contains(&path);
+                let body = fixture.render(path, &context)?;
+                assert_eq!(body.is_some(), pure, "current {target} {path}");
+                if pure {
+                    current_pure += 1;
+                } else {
+                    current_absent += 1;
+                }
             }
         }
     }
-    assert_eq!(absent, 180);
+    assert_eq!(
+        (historical_absent, current_absent, current_pure),
+        (180, 150, 30)
+    );
     Ok(())
 }
 
@@ -1049,7 +1145,9 @@ fn assert_foundation_members(tree: &str, compiler: &str, mask: u8) -> Result<()>
             ][..],
         ),
         (
-            8,
+            // Both consumers require this API; enabling typed palette alone
+            // must not force the independent contextual-action feature on.
+            2 | 8,
             &[
                 "isolatedPaletteSurface",
                 "paletteChoiceActions",

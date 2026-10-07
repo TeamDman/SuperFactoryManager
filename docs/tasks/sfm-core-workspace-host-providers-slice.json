@@ -1,0 +1,3054 @@
+{
+  "schema": "sfm:core_workspace_host_providers_slice@1",
+  "status": "staged_source_only_root_review_and_registration_pending",
+  "scope": "Eight real geometry, local state and immutable presentation providers. ReopenCatalog keeps its actual missing presentation adapter instead of a substitute.",
+  "normalization": "none_raw_exact",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "summary": {
+    "authored_inputs": 8,
+    "authored_raw_bytes": 38943,
+    "raw_variants": 8,
+    "membership_cells": 160,
+    "present": 16,
+    "absent": 144,
+    "independent_owner_masks_proposed": 256,
+    "no_normalization": true
+  },
+  "review_snapshot": {
+    "files": [
+      {
+        "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+        "bytes": 377759,
+        "sha256": "sha256:50986eb9efe6fa5c510bd89d94d96a3005ae19792a0f346aaa24ff5ce9b8364a"
+      },
+      {
+        "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+        "bytes": 29341,
+        "sha256": "sha256:9090aacc70ee4a0983a3c07382e48a0bf50c82bb4937996716d86579ab00b834"
+      },
+      {
+        "path": "platform/minecraft/projections.json",
+        "bytes": 2074,
+        "sha256": "sha256:6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+      },
+      {
+        "path": "docs/tasks/sfm-core-workspace-host-slice.json",
+        "bytes": 255693,
+        "sha256": "sha256:dd4def0a8b762b49cec2f5e9d3db9307afa8e1548930ac1210e22d35600bf882"
+      }
+    ],
+    "new_host_definitions_live": false,
+    "source_rule_changes_live": false
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelEntryAffordanceLayout.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelEntryAffordanceLayout.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelEntryAffordanceLayout.java",
+      "template_bytes": 3321,
+      "template_sha256": "sha256:b600a0b98ff7d07940cc44b1a6b407783ae4849ff05ff9b46e3b193aa173606f",
+      "raw_oids": [
+        "b482ad3d1494cfca53c5ddc507ae43407c2dab45"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_panel_entry_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_panel_entry_controls"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "b482ad3d1494cfca53c5ddc507ae43407c2dab45",
+          "raw_sha256": "sha256:b600a0b98ff7d07940cc44b1a6b407783ae4849ff05ff9b46e3b193aa173606f",
+          "raw_bytes": 3321,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "b482ad3d1494cfca53c5ddc507ae43407c2dab45",
+          "raw_sha256": "sha256:b600a0b98ff7d07940cc44b1a6b407783ae4849ff05ff9b46e3b193aa173606f",
+          "raw_bytes": 3321,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelReopenCatalog.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelReopenCatalog.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelReopenCatalog.java",
+      "template_bytes": 1819,
+      "template_sha256": "sha256:edaae47b340c33205d8053a79e4610634b98cb27e28d6db7aac6b616af65b906",
+      "raw_oids": [
+        "832b286f82f506657a51b99c49271785022bbe54"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_panel_reopening"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_panel_reopening"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "832b286f82f506657a51b99c49271785022bbe54",
+          "raw_sha256": "sha256:edaae47b340c33205d8053a79e4610634b98cb27e28d6db7aac6b616af65b906",
+          "raw_bytes": 1819,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "832b286f82f506657a51b99c49271785022bbe54",
+          "raw_sha256": "sha256:edaae47b340c33205d8053a79e4610634b98cb27e28d6db7aac6b616af65b906",
+          "raw_bytes": 1819,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseCapture.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseCapture.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseCapture.java",
+      "template_bytes": 1041,
+      "template_sha256": "sha256:24aa2fc66e9990d684858d56968dadffed422bc79be631f260c9b55b8616e9e6",
+      "raw_oids": [
+        "cc0cbfdaa441b95fe2d7d306f59a5eecc3c704aa"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_lifecycle",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_lifecycle",
+        "workspace_stack_controls"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "cc0cbfdaa441b95fe2d7d306f59a5eecc3c704aa",
+          "raw_sha256": "sha256:24aa2fc66e9990d684858d56968dadffed422bc79be631f260c9b55b8616e9e6",
+          "raw_bytes": 1041,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "cc0cbfdaa441b95fe2d7d306f59a5eecc3c704aa",
+          "raw_sha256": "sha256:24aa2fc66e9990d684858d56968dadffed422bc79be631f260c9b55b8616e9e6",
+          "raw_bytes": 1041,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseSummary.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseSummary.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePaneCloseSummary.java",
+      "template_bytes": 1207,
+      "template_sha256": "sha256:0f9e93a32203fc1e29ba0785a476b4c15bf4591d72919e0144c34651644de431",
+      "raw_oids": [
+        "2501319940c3f09efcb7340561efa89bca8ee842"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_lifecycle",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_lifecycle",
+        "workspace_stack_controls"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "2501319940c3f09efcb7340561efa89bca8ee842",
+          "raw_sha256": "sha256:0f9e93a32203fc1e29ba0785a476b4c15bf4591d72919e0144c34651644de431",
+          "raw_bytes": 1207,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "2501319940c3f09efcb7340561efa89bca8ee842",
+          "raw_sha256": "sha256:0f9e93a32203fc1e29ba0785a476b4c15bf4591d72919e0144c34651644de431",
+          "raw_bytes": 1207,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelMoveInteraction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelMoveInteraction.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelMoveInteraction.java",
+      "template_bytes": 4723,
+      "template_sha256": "sha256:f48290dd76e8b7cd098e6e1a521b9c773a0192242f4d92dd4151f31a74f41ab7",
+      "raw_oids": [
+        "138ec23b49036e199946609ad133f6281cd4413e"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_panel_move_gestures"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_panel_move_gestures"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "138ec23b49036e199946609ad133f6281cd4413e",
+          "raw_sha256": "sha256:f48290dd76e8b7cd098e6e1a521b9c773a0192242f4d92dd4151f31a74f41ab7",
+          "raw_bytes": 4723,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "138ec23b49036e199946609ad133f6281cd4413e",
+          "raw_sha256": "sha256:f48290dd76e8b7cd098e6e1a521b9c773a0192242f4d92dd4151f31a74f41ab7",
+          "raw_bytes": 4723,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastContent.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastContent.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastContent.java",
+      "template_bytes": 5494,
+      "template_sha256": "sha256:bb025f2f0246b30e10fd2996d78b41d83261b05aaafdc8255870b7a0b3d1e326",
+      "raw_oids": [
+        "b48739acc138bc7cd59fcdb23d1df645be9d1bf1"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_notifications"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_notifications"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "b48739acc138bc7cd59fcdb23d1df645be9d1bf1",
+          "raw_sha256": "sha256:bb025f2f0246b30e10fd2996d78b41d83261b05aaafdc8255870b7a0b3d1e326",
+          "raw_bytes": 5494,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "b48739acc138bc7cd59fcdb23d1df645be9d1bf1",
+          "raw_sha256": "sha256:bb025f2f0246b30e10fd2996d78b41d83261b05aaafdc8255870b7a0b3d1e326",
+          "raw_bytes": 5494,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastLayout.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastLayout.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastLayout.java",
+      "template_bytes": 2220,
+      "template_sha256": "sha256:8b72ad9d452bac61192a772ab3419ff9e744bded7b5234b180bf6da715d93e92",
+      "raw_oids": [
+        "f1d91717484e299bdcf612e90cdd9339eb15dc67"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_notifications"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_notifications"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "f1d91717484e299bdcf612e90cdd9339eb15dc67",
+          "raw_sha256": "sha256:8b72ad9d452bac61192a772ab3419ff9e744bded7b5234b180bf6da715d93e92",
+          "raw_bytes": 2220,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "f1d91717484e299bdcf612e90cdd9339eb15dc67",
+          "raw_sha256": "sha256:8b72ad9d452bac61192a772ab3419ff9e744bded7b5234b180bf6da715d93e92",
+          "raw_bytes": 2220,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastQueue.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastQueue.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/src/main/java/ca/teamdman/sfm/client/screen/workspace/toast/SFMWorkspaceToastQueue.java",
+      "template_bytes": 19118,
+      "template_sha256": "sha256:630bc95e6d6f2c1c1a8071acda53be3725d61f23f3106f527f56e4abdcc6090b",
+      "raw_oids": [
+        "1c4685c717f99598ea3c68f1a552604cd2fff7d5"
+      ],
+      "template": true,
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [],
+        "any_features": [
+          "workspace_notifications",
+          "workspace_toast_actions"
+        ],
+        "none_features": []
+      },
+      "member_owners": [
+        "workspace_notifications",
+        "workspace_toast_actions"
+      ],
+      "version_seams": [],
+      "functional_member_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "raw_oid": "1c4685c717f99598ea3c68f1a552604cd2fff7d5",
+          "raw_sha256": "sha256:630bc95e6d6f2c1c1a8071acda53be3725d61f23f3106f527f56e4abdcc6090b",
+          "raw_bytes": 19118,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "raw_oid": "1c4685c717f99598ea3c68f1a552604cd2fff7d5",
+          "raw_sha256": "sha256:630bc95e6d6f2c1c1a8071acda53be3725d61f23f3106f527f56e4abdcc6090b",
+          "raw_bytes": 19118,
+          "mode": "100644",
+          "explicit_features": [
+            "workspace_panels",
+            "workspace_panel_metadata",
+            "workspace_stack_controls",
+            "workspace_lifecycle",
+            "workspace_panel_reopening",
+            "workspace_panel_actions",
+            "client_actions",
+            "command_palette",
+            "client_theme",
+            "keyboard_profiles",
+            "workspace_panel_entry_controls",
+            "workspace_panel_move_gestures",
+            "pointer_modifier_ingress",
+            "workspace_notifications",
+            "font_formatted_text",
+            "workspace_toast_actions"
+          ],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "raw_oid": null,
+          "raw_sha256": null,
+          "raw_bytes": null,
+          "mode": null,
+          "explicit_features": [],
+          "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest"
+        }
+      ]
+    }
+  ],
+  "raw_blobs": {
+    "b482ad3d1494cfca53c5ddc507ae43407c2dab45": {
+      "oid": "b482ad3d1494cfca53c5ddc507ae43407c2dab45",
+      "raw_sha256": "sha256:b600a0b98ff7d07940cc44b1a6b407783ae4849ff05ff9b46e3b193aa173606f",
+      "raw_bytes": 3321,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 3321,
+      "normalized_sha256": "sha256:b600a0b98ff7d07940cc44b1a6b407783ae4849ff05ff9b46e3b193aa173606f"
+    },
+    "832b286f82f506657a51b99c49271785022bbe54": {
+      "oid": "832b286f82f506657a51b99c49271785022bbe54",
+      "raw_sha256": "sha256:edaae47b340c33205d8053a79e4610634b98cb27e28d6db7aac6b616af65b906",
+      "raw_bytes": 1819,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 1819,
+      "normalized_sha256": "sha256:edaae47b340c33205d8053a79e4610634b98cb27e28d6db7aac6b616af65b906"
+    },
+    "cc0cbfdaa441b95fe2d7d306f59a5eecc3c704aa": {
+      "oid": "cc0cbfdaa441b95fe2d7d306f59a5eecc3c704aa",
+      "raw_sha256": "sha256:24aa2fc66e9990d684858d56968dadffed422bc79be631f260c9b55b8616e9e6",
+      "raw_bytes": 1041,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 1041,
+      "normalized_sha256": "sha256:24aa2fc66e9990d684858d56968dadffed422bc79be631f260c9b55b8616e9e6"
+    },
+    "2501319940c3f09efcb7340561efa89bca8ee842": {
+      "oid": "2501319940c3f09efcb7340561efa89bca8ee842",
+      "raw_sha256": "sha256:0f9e93a32203fc1e29ba0785a476b4c15bf4591d72919e0144c34651644de431",
+      "raw_bytes": 1207,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 1207,
+      "normalized_sha256": "sha256:0f9e93a32203fc1e29ba0785a476b4c15bf4591d72919e0144c34651644de431"
+    },
+    "138ec23b49036e199946609ad133f6281cd4413e": {
+      "oid": "138ec23b49036e199946609ad133f6281cd4413e",
+      "raw_sha256": "sha256:f48290dd76e8b7cd098e6e1a521b9c773a0192242f4d92dd4151f31a74f41ab7",
+      "raw_bytes": 4723,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 4723,
+      "normalized_sha256": "sha256:f48290dd76e8b7cd098e6e1a521b9c773a0192242f4d92dd4151f31a74f41ab7"
+    },
+    "b48739acc138bc7cd59fcdb23d1df645be9d1bf1": {
+      "oid": "b48739acc138bc7cd59fcdb23d1df645be9d1bf1",
+      "raw_sha256": "sha256:bb025f2f0246b30e10fd2996d78b41d83261b05aaafdc8255870b7a0b3d1e326",
+      "raw_bytes": 5494,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 5494,
+      "normalized_sha256": "sha256:bb025f2f0246b30e10fd2996d78b41d83261b05aaafdc8255870b7a0b3d1e326"
+    },
+    "f1d91717484e299bdcf612e90cdd9339eb15dc67": {
+      "oid": "f1d91717484e299bdcf612e90cdd9339eb15dc67",
+      "raw_sha256": "sha256:8b72ad9d452bac61192a772ab3419ff9e744bded7b5234b180bf6da715d93e92",
+      "raw_bytes": 2220,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 2220,
+      "normalized_sha256": "sha256:8b72ad9d452bac61192a772ab3419ff9e744bded7b5234b180bf6da715d93e92"
+    },
+    "1c4685c717f99598ea3c68f1a552604cd2fff7d5": {
+      "oid": "1c4685c717f99598ea3c68f1a552604cd2fff7d5",
+      "raw_sha256": "sha256:630bc95e6d6f2c1c1a8071acda53be3725d61f23f3106f527f56e4abdcc6090b",
+      "raw_bytes": 19118,
+      "bom": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "normalization": "none_raw_exact",
+      "normalized_bytes": 19118,
+      "normalized_sha256": "sha256:630bc95e6d6f2c1c1a8071acda53be3725d61f23f3106f527f56e4abdcc6090b"
+    }
+  },
+  "existing_owner_definitions": {
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_panel_metadata": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_stack_controls": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "workspace_panel_metadata"
+      ]
+    },
+    "workspace_lifecycle": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_reopening": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_panel_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "client_theme",
+        "keyboard_profiles"
+      ]
+    },
+    "pointer_modifier_ingress": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "font_formatted_text": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_toast_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "client_theme": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "keyboard_profiles": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    }
+  },
+  "approved_not_live_host_definitions": {
+    "workspace_directional_opening": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_focus_tracking": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_panel_entry_controls": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_stack_controls",
+        "workspace_panel_actions",
+        "command_palette"
+      ]
+    },
+    "workspace_panel_move_gestures": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panel_entry_controls",
+        "pointer_modifier_ingress"
+      ]
+    },
+    "workspace_notifications": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "font_formatted_text"
+      ]
+    }
+  },
+  "reconstructed_full_features": [
+    "workspace_panels",
+    "workspace_panel_metadata",
+    "workspace_stack_controls",
+    "workspace_lifecycle",
+    "workspace_panel_reopening",
+    "workspace_panel_actions",
+    "client_actions",
+    "command_palette",
+    "client_theme",
+    "keyboard_profiles",
+    "workspace_panel_entry_controls",
+    "workspace_panel_move_gestures",
+    "pointer_modifier_ingress",
+    "workspace_notifications",
+    "font_formatted_text",
+    "workspace_toast_actions"
+  ],
+  "features_origin": "reviewed_current_explicit_reconstruction_not_historical_manifest",
+  "provider_or_proposals": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/explorer/SFMPath.java",
+      "source_bytes": 22104,
+      "source_sha256": "sha256:bc943185664f9c8acd7501660601896aa4e8944334d2e61ae12ca53e8521654b",
+      "live_prior_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMPath.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "preview_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMPath.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "final_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMPath.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation",
+              "workspace_notifications"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "source_body_change": false,
+      "original_and_preview_evidence_unchanged": true,
+      "reason": "Notification content only interprets bounded captured canonical path/style metadata. The pure canonical providers add no file, clipboard, process or world privileges."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/explorer/SFMCanonicalText.java",
+      "source_bytes": 7446,
+      "source_sha256": "sha256:fa77e2ad754a5bdb837028686d870c264edfa477d310d27ec91f13d369c82705",
+      "live_prior_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMCanonicalText.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "preview_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMCanonicalText.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "final_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMCanonicalText.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation",
+              "workspace_notifications"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "source_body_change": false,
+      "original_and_preview_evidence_unchanged": true,
+      "reason": "Notification content only interprets bounded captured canonical path/style metadata. The pure canonical providers add no file, clipboard, process or world privileges."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/explorer/SFMParseException.java",
+      "source_bytes": 530,
+      "source_sha256": "sha256:e1fb1f11a650308a3d8066716bdf88dd7ad5c95c6f6b59cdda0bf4da5c4127a4",
+      "live_prior_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMParseException.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "preview_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMParseException.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "final_proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/explorer/SFMParseException.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [],
+            "any_features": [
+              "editor_documents",
+              "file_explorer",
+              "registry_explorer",
+              "theme_preview_rules",
+              "release_review",
+              "java_symbols",
+              "explorer_search",
+              "explorer_compaction",
+              "explorer_navigation",
+              "workspace_notifications"
+            ],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "source_body_change": false,
+      "original_and_preview_evidence_unchanged": true,
+      "reason": "Notification content only interprets bounded captured canonical path/style metadata. The pure canonical providers add no file, clipboard, process or world privileges."
+    }
+  ],
+  "preview_test_refinement": {
+    "base_stage_path": "platform/cli/sfm-propagate-changes/target/core-theme-preview-models-stage-v1/core_theme_preview_models_slice_tests.rs",
+    "base_bytes": 31007,
+    "base_sha256": "sha256:249169f8a466d47e2987faff27efa9b99ae928b33e60b1c664fd12f42c1e250b",
+    "patch_stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/preview-provider-union-current-v2.patch",
+    "destination_after_root_promotion": "platform/cli/sfm-propagate-changes/src/source_projection/core_theme_preview_models_slice_tests.rs",
+    "change": "Add separate CURRENT_PROVIDER_OWNERS10 only to actual-live rule validation; original PROVIDER_OWNERS9, v1 proposed evidence, feature definitions and historical witness flags remain unchanged",
+    "base_ledger_path": "docs/tasks/sfm-core-theme-preview-models-slice.json",
+    "base_ledger_sha256": "sha256:66da92bfca798703b92dfc73a4221f208f3e44ddee1c17b8c8c1c7ebb3fb8936",
+    "applied": false
+  },
+  "source_reference_closure": [
+    {
+      "source": "SFMPanelEntryAffordanceLayout",
+      "owner": "workspace_panel_entry_controls",
+      "providers": [
+        "SFMScreenPanelBounds",
+        "SFMWorkspaceStackId",
+        "SFMWorkspaceLayout.PanelEntry",
+        "SFMWorkspacePanelId",
+        "SFMScreenPanel"
+      ],
+      "status": "core_owned_under_actual_host_prerequisite_closure",
+      "notes": "Geometry and exact identities only; no active key polling or action registry invocation"
+    },
+    {
+      "source": "SFMWorkspacePaneCloseCapture/Summary",
+      "owner": "workspace_lifecycle AND workspace_stack_controls",
+      "providers": [
+        "SFMWorkspaceStackId",
+        "SFMWorkspacePanelId",
+        "SFMScreenPanel"
+      ],
+      "status": "core_owned_under_actual_stack_prerequisite_closure",
+      "notes": "Captured object identity and exact counts only; no consent, save, world, signature or privilege action is granted"
+    },
+    {
+      "source": "SFMWorkspacePanelMoveInteraction",
+      "owner": "workspace_panel_move_gestures",
+      "providers": [
+        "SFMScreenPanelBounds",
+        "SFMWorkspacePanelId",
+        "SFMScreenPanel"
+      ],
+      "status": "core_owned_under_actual_host_prerequisite_closure",
+      "notes": "Pure explicit input state controller with supplied Host callbacks; GLFW middle-button constant only, not hardware access"
+    },
+    {
+      "source": "SFMWorkspaceToastQueue",
+      "owner": "workspace_notifications OR workspace_toast_actions",
+      "providers": [],
+      "status": "self_contained_local_state",
+      "notes": "Caller-supplied LongSupplier clock and owned interaction callbacks; no Minecraft render, action registry, clipboard, filesystem or process dependency"
+    },
+    {
+      "source": "SFMWorkspaceToastLayout",
+      "owner": "workspace_notifications",
+      "providers": [
+        "SFMWorkspaceToastQueue.ToastId"
+      ],
+      "status": "same_cohort_exact_dependency",
+      "notes": "Logical placement only; half-open hit rectangles and newest-fit order retained"
+    },
+    {
+      "source": "SFMWorkspaceToastContent",
+      "owner": "workspace_notifications",
+      "providers": [
+        "SFMWorkspaceToastQueue.MAX_TEXT_CODE_POINTS",
+        "SFMPath",
+        "SFMCanonicalText",
+        "SFMParseException",
+        "Minecraft Component/Style API"
+      ],
+      "status": "same_cohort_plus_existing_core_owned_pure_path_provider_proposal",
+      "notes": "Copy-link events are captured data; no clipboard is invoked. All untrusted non-copy click/hover/insertion actions are stripped"
+    },
+    {
+      "source": "SFMPanelReopenCatalog",
+      "owner": "workspace_panel_reopening",
+      "providers": [
+        "SFMScreenPanel",
+        "SFMPanelReopenRecipe",
+        "SFMExplorerPresentationRecipe"
+      ],
+      "status": "genuine_presentation_provider_missing_explicitly",
+      "notes": "Real IdentityHashMap, recipe lookup and fresh unattached-panel checks remain. No generated UI/recipe stub; full recipe.reopen callback is kept"
+    }
+  ],
+  "external_consumer_gates": [
+    {
+      "class": "SFMWorkspaceToastContent",
+      "consumer": "SFMPathOpenAction",
+      "member": "pathMessage",
+      "owner": "not_yet_reviewed_mixed_path_open_action_member",
+      "status": "not_added_to_proposed_union",
+      "notes": "This mixes file, symbol, review and counterfactual navigation. Do not assign it to file_explorer by package proximity"
+    },
+    {
+      "class": "SFMWorkspaceToastContent",
+      "consumer": "SFMRevealHereAction/SFMRevealInExplorerAction",
+      "member": "pathMessage",
+      "owner": "not_yet_reviewed_explorer_reveal_action_member",
+      "status": "not_added_to_proposed_union"
+    },
+    {
+      "class": "SFMWorkspaceToastContent",
+      "consumer": "SFMReleaseReviewAction/SFMReleaseReviewCreateRuntime",
+      "member": "pathMessage",
+      "owner": "review_runtime_action_member_closure_pending",
+      "status": "not_added_to_proposed_union"
+    },
+    {
+      "class": "SFMWorkspacePaneCloseCapture/Summary",
+      "consumer": "SFMClosePaneAction/SFMWorkspacePaneCloseSessionService",
+      "member": "captured close data",
+      "owner": "actual_close_action_registration_and_lifecycle_closure_pending",
+      "status": "bounded_host_membership_only"
+    },
+    {
+      "class": "SFMPanelEntryAffordanceLayout",
+      "consumer": "SFMPanelEntryInteractionSessionService",
+      "member": "HitRegion",
+      "owner": "workspace_panel_entry_controls",
+      "status": "source_service_not_owned_by_this_cohort"
+    }
+  ],
+  "genuine_remaining_gaps": [
+    "SFMExplorerPresentationRecipe is absent from current core and calls the genuine SFMExplorerPanel and SFMExplorerCompaction; its UI/provider ownership is not invented here.",
+    "SFMScreenMultiplexer remains a separately staged host, not a substitute or a Java-compiled provider in this proof.",
+    "Toast action and panel entry/close service classes remain outside this cohort. Captured data does not grant their privileges.",
+    "Content.pathMessage has real mixed action consumers whose independently selectable source ownership must be reviewed before expanding its source rule.",
+    "Full theme, explorer, consent and world authority boundaries remain separate. No countersign, save, disk, clipboard or process effect is introduced by these sources."
+  ],
+  "validation": {
+    "executed": [
+      "Offline pinned20 Git tree recheck,160 exact membership cells",
+      "Bounded raw blob identity check (Git SHA-1 and SHA-256),8 exact LF/final-LF/no-BOM blobs",
+      "Raw stage bytes authored without rewriting source tokens"
+    ],
+    "tests_path": "platform/cli/sfm-propagate-changes/target/core-workspace-host-providers-stage-v1/core_workspace_host_providers_slice_tests.rs",
+    "test_state": "authored_unregistered_not_run",
+    "not_executed": [
+      "Cargo",
+      "Java/Gradle/native compilation",
+      "Game/runtime tests",
+      "Production renderer for the staged cohort",
+      "Projection sync",
+      "Dependency acquisition or cache mutation"
+    ],
+    "acceptance_limit": "Source-only golden/selection work. Existing pure provider closure is bounded; ReopenCatalog's actual UI adapter and complete host/action runtime closure are not claimed."
+  },
+  "operations": {
+    "live_core_changed": false,
+    "live_metadata_changed": false,
+    "live_registered_rust_changed": false,
+    "public_features_changed": false,
+    "dependencies_frozen": true,
+    "lockfiles_changed": false,
+    "cache_acquisition": false,
+    "process_control": false,
+    "cleanup": false
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema": "sfm:theme_runtime_six_directive_root_review@1",
+  "date": "2026-10-02",
+  "status": "v1_candidate_refused_before_production_promotion",
+  "scope": "source_inspection_not_executed_renderer_or_test_acceptance",
+  "production_source_changes": 0,
+  "prepared_capsule": {
+    "identity": "sfm-theme-runtime-six-stage-20261002-v1",
+    "manifest_bytes": 33986,
+    "manifest_sha256": "de08cae2c0f840c3984fd2a590fa11d070fd88ce88f2786c72a1b52b93cf340f",
+    "preserved_unchanged": true,
+    "registered_tests": 0,
+    "executed_tests": 0
+  },
+  "actual_production_scanner": {
+    "path": "platform/cli/sfm-propagate-changes/src/source_projection/directive_scanner.rs",
+    "bytes": 22247,
+    "sha256": "d61dc050ce6ded8c75f17922fe0f6fa2bc3f55799a8434a127e24030772845c4",
+    "reviewed_functions": ["parse_directive", "parse_when_values", "validate_condition_alternatives", "validate_condition"],
+    "if_elsif_contract": "one_to_32_features_or_targets_registered_names_joined_by_or",
+    "supported_version_contract": "case_minecraft_version_with_quoted_when_literals"
+  },
+  "finding": {
+    "unsupported_version_equality_if_guards": 34,
+    "files": [
+      {"name": "SFMClientThemeLoader.java", "guards": 14, "lines": [3, 8, 32, 102, 110, 144, 154, 175, 183, 240, 247, 290, 293, 300]},
+      {"name": "SFMClientThemeService.java", "guards": 15, "lines": [4, 18, 80, 93, 103, 122, 128, 144, 153, 169, 190, 203, 213, 227, 235]},
+      {"name": "SFMClientThemeTomlWriter.java", "guards": 5, "lines": [4, 33, 49, 61, 76]}
+    ],
+    "predicates": [
+      {"versions": ["1.19.2", "1.19.4"], "occurrences": 31},
+      {"versions": ["1.21", "1.21.0", "1.21.1", "26.1.2"], "occurrences": 3}
+    ],
+    "independent_peer_identified": true,
+    "root_rechecked_actual_scanner_and_all_34_source_occurrences": true,
+    "why_text_reconstruction_is_insufficient": "A bespoke inspector accepting general Liquid expressions cannot prove compatibility with SFM's deliberately narrower production scanner."
+  },
+  "required_correction": {
+    "destination": "a_separate_immutable_v2_candidate",
+    "rewrite": "replace_only_34_version_if_openers_and_their_matched_endifs_with_case_when_endcase",
+    "preserve": ["every_Java_body", "nested_feature_guards", "existing_valid_cases", "all_raw_Git_witnesses", "original_v1_capsule"],
+    "no_new_definitions_prerequisites_defaults_or_dependencies": true,
+    "tests": "Retain genuine fixture, selector, renderer and collector cases; explicitly cover production directive scanning. Execute only after independent review and the current full gate."
+  },
+  "current_production_base": {
+    "core_files": 1924,
+    "source_rule_paths": 641,
+    "source_rule_variants": 826,
+    "registered_feature_definitions": 180,
+    "full_gate": "running_not_accepted",
+    "source_freeze": "remains_in_force"
+  },
+  "limits": [
+    "This refusal concerns unpromoted templates, not a reproduced bug in the shipped mod.",
+    "No Rust test, production render, Java compile, theme file operation or game effect ran for this finding.",
+    "The corrected candidate, combined State3 integration, twenty-context proof and full feature-on acceptance remain open."
+  ]
+}

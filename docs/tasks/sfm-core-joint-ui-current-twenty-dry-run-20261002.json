@@ -1,0 +1,82 @@
+{
+  "schema": "sfm:core_joint_ui_current_twenty_dry_run@1",
+  "date": "2026-10-02",
+  "status": "closed_native_zero_current_generation_and_retained_audits_accepted",
+  "branch": "feat/sfm-main-source-projection",
+  "command_shape": "sfm-propagate-changes --output-format json --log-filter info source project dry-run --repo-root <repo-root> --projection <catalog-key>",
+  "actual_invocation": {
+    "closed_session": 78671,
+    "native_exit": 0,
+    "terminal_checkpoint": "25a15f",
+    "ordered_contexts": 20,
+    "elapsed_ms": 194282,
+    "driver_bytes": 22807,
+    "driver_sha256": "c736f07071d61a904f074073b3acfccbd9036485c6124ca77d8f388432116fa1",
+    "source_seal_sha256": "4ec3acca39c083fdc9eca813e79b651a49e6b7227891108552d229935330d920",
+    "all_normal_zero_EOF_owned_root_reaped": true,
+    "owned_kill_requests": 0,
+    "replay_allowed": false
+  },
+  "actual_retained_evidence": {
+    "members": 81,
+    "bytes": 13061138,
+    "ordinal_aggregate_sha256": "77922f7b9ffe3b9adc8bdbe642e8f8047738dd2289a3945fc99ece28bf5ab95a",
+    "run_receipt_bytes": 15052,
+    "run_receipt_sha256": "8d41fcd5308dd07ce6e1e0989177593fc3c388a8eee3ae4042fdc764698f0054",
+    "artifact_descriptors": 22882,
+    "distinct_authored_inputs_all_matched": 1521,
+    "existing_output_bytes_and_hashes_matched": 3420,
+    "planned_output_descriptors": 19462,
+    "existing_release_roots": ["1.19.2", "1.19.4", "1.20"],
+    "absent_roots": 17,
+    "omitted_output_mentions": 11118,
+    "stdout_bytes": 13013291,
+    "stderr_bytes": 0,
+    "all_duplicate_terminal_traces_equal_actual_stderr": true,
+    "manifest_refresh_required_reports": 20,
+    "writes_performed": false
+  },
+  "root_audit": {
+    "native_exit": 0,
+    "retained_data_checkpoint": "dffd5b",
+    "complete_peer_read": "0930d6",
+    "fresh_peer_source_lock_index_acceptance": "0f847f"
+  },
+  "independent_retained_data_audit": {
+    "native_checkpoints": ["05249b", "10ab47"],
+    "native_exit": 0,
+    "manifest_bytes": 3977,
+    "manifest_sha256": "5cd0a69752c1746aaf425165e26a36c9cbbb8692b7a50077a41222e2fc7efda8",
+    "seal_bytes": 1782,
+    "seal_sha256": "38eed8b2fa482c9eb1d6787e776e426cdcb9532876d59e11ca819090afc72162",
+    "no_subject_replay": true
+  },
+  "protected_source": {
+    "root": "platform/minecraft/core-liquid-template",
+    "files": 1965,
+    "bytes": 9191718,
+    "sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163",
+    "metadata_rules": 682,
+    "metadata_variants": 867,
+    "metadata_sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f",
+    "definitions": 180,
+    "catalog_contexts": 20,
+    "current_contract_and_lock_pins_matched": 42,
+    "default_worktree_CLI_bytes": 93378560,
+    "default_worktree_CLI_sha256": "b6f8045935a4b857cf641686c94ba1e877edbfe0002aaef39cc51d639dfc6720",
+    "original_staged_rows": 98,
+    "original_staged_rows_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1",
+    "tooling_gate_receipt": "docs/tasks/sfm-core-joint-ui-tooling-gate-20261002.json"
+  },
+  "limits": {
+    "public_catalog_feature_selections_remain_limited": true,
+    "absent_output_descriptors_independently_rendered": false,
+    "provenance_manifests_refreshed_or_project_sync_accepted": false,
+    "Java_compilation_GameTest_UI_gameplay_or_release_parity": "not_performed",
+    "hard_preemption_RSS_descendant_census_or_fault_injection": "not_proved",
+    "six_newer_native_execution_boundaries": "unchanged_disabled",
+    "installed_PATH_freshness": "not_performed",
+    "goal_complete": false
+  },
+  "next": "Only separately reviewed source/rule/test groups may follow this accepted checkpoint. Preserve historical V10 and closed gate evidence; no replay, widened feature selections or unreviewed source admission."
+}

@@ -1,0 +1,1294 @@
+{
+  "schema": "sfm:core_workspace_navigation_family@1",
+  "status": "source_preparation_not_applied_or_tested",
+  "date": "2026-10-02",
+  "historical_raw_policy": "none; exact UTF-8 LF bodies and terminal LF retained; full admitted feature profiles must reconstruct original raw SHA-256/byte identities",
+  "scope": {
+    "source_paths": 24,
+    "authentic_bodies": 25,
+    "raw_bytes": 85621,
+    "targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "core_base": {
+      "paths": 1965,
+      "bytes": 9191718,
+      "sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163"
+    },
+    "base_rule_count": 682,
+    "base_variant_count": 867,
+    "migration_complete": false,
+    "after_source_slice": {
+      "paths": 1989,
+      "rules": 706,
+      "variants": 891,
+      "qualification": "arithmetic proposal, not measured or applied"
+    }
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/ClosePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/ClosePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "89076a2623eb174622f77151ef69da83f7002f50",
+          "raw_bytes": 1331,
+          "raw_sha256": "sha256:4aa08df511d384bfc5aaf67aa50b3877cd7659f25f4adfae727baaee0694da39",
+          "git_framed_sha1": "89076a2623eb174622f77151ef69da83f7002f50",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ClosePanelAction.java",
+              "raw_blob": "89076a2623eb174622f77151ef69da83f7002f50"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ClosePanelAction.java",
+              "raw_blob": "89076a2623eb174622f77151ef69da83f7002f50"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/CloseScreenAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/CloseScreenAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "client_screen_actions",
+          "workspace_panels"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "40c1c81e70119e521a2464c18a03e32712005877",
+          "raw_bytes": 930,
+          "raw_sha256": "sha256:bc9ab16a5806ac88a170c42cd3a0126b35ad2f39c75c600f45353254836899c2",
+          "git_framed_sha1": "40c1c81e70119e521a2464c18a03e32712005877",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/CloseScreenAction.java",
+              "raw_blob": "40c1c81e70119e521a2464c18a03e32712005877"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/CloseScreenAction.java",
+              "raw_blob": "40c1c81e70119e521a2464c18a03e32712005877"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/DuplicatePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/DuplicatePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_panel_reopening"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "eb132ac638b0569dc3e6b4220d8ce1a5093c233d",
+          "raw_bytes": 2077,
+          "raw_sha256": "sha256:cb728d4cac90c5246b9ae098908b974596ea5888fa2369338181f28e242b888b",
+          "git_framed_sha1": "eb132ac638b0569dc3e6b4220d8ce1a5093c233d",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/DuplicatePanelAction.java",
+              "raw_blob": "eb132ac638b0569dc3e6b4220d8ce1a5093c233d"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/DuplicatePanelAction.java",
+              "raw_blob": "eb132ac638b0569dc3e6b4220d8ce1a5093c233d"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/FocusPanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/FocusPanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "a4ec5313103bb80b4aa354de27854e242bbd13bf",
+          "raw_bytes": 2416,
+          "raw_sha256": "sha256:02784c45a2ae81972bd811073cf2e855a0de04f7793f8dbe8092df0729442084",
+          "git_framed_sha1": "a4ec5313103bb80b4aa354de27854e242bbd13bf",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/FocusPanelAction.java",
+              "raw_blob": "a4ec5313103bb80b4aa354de27854e242bbd13bf"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/FocusPanelAction.java",
+              "raw_blob": "a4ec5313103bb80b4aa354de27854e242bbd13bf"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/MovePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/MovePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "8fb3c1b941226fd42d85dae5dd77e2b68dc6bd46",
+          "raw_bytes": 1353,
+          "raw_sha256": "sha256:3eb60636430f5b4346c9edda9c6900beeb8279da930efde09bfbfa77f9389284",
+          "git_framed_sha1": "8fb3c1b941226fd42d85dae5dd77e2b68dc6bd46",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/MovePanelAction.java",
+              "raw_blob": "8fb3c1b941226fd42d85dae5dd77e2b68dc6bd46"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/MovePanelAction.java",
+              "raw_blob": "8fb3c1b941226fd42d85dae5dd77e2b68dc6bd46"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/OpenDeveloperPanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/OpenDeveloperPanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "developer_tools"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "182cdc4a825b35fd1eaef944d4674b71764e0d79",
+          "raw_bytes": 3218,
+          "raw_sha256": "sha256:8f7193e17de5f9970032f31943041e97a3f34f17f64c8ad28f73254fa2cc58e2",
+          "git_framed_sha1": "182cdc4a825b35fd1eaef944d4674b71764e0d79",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenDeveloperPanelAction.java",
+              "raw_blob": "182cdc4a825b35fd1eaef944d4674b71764e0d79"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenDeveloperPanelAction.java",
+              "raw_blob": "182cdc4a825b35fd1eaef944d4674b71764e0d79"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/OpenMinecraftScreenAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/OpenMinecraftScreenAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "client_screen_actions"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "8bf95cca662818d9764b3c640abddd23fbe1714b",
+          "raw_bytes": 4013,
+          "raw_sha256": "sha256:960aa192e76d1bfef12c8332fcad5c28bad32fc133a7c7ea92265dc95ae2bf99",
+          "git_framed_sha1": "8bf95cca662818d9764b3c640abddd23fbe1714b",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenMinecraftScreenAction.java",
+              "raw_blob": "8bf95cca662818d9764b3c640abddd23fbe1714b"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenMinecraftScreenAction.java",
+              "raw_blob": "8bf95cca662818d9764b3c640abddd23fbe1714b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/OpenPanelDiagnosticsAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/OpenPanelDiagnosticsAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "typed_command_palette"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "b65b2f16cd9e274ce344bfe76bf747bec32ef2a7",
+          "raw_bytes": 1359,
+          "raw_sha256": "sha256:2310ed0f8947ddc6c9548a5c4f1f2de7e79b9393baa90e61e017e4cb4a3016fe",
+          "git_framed_sha1": "b65b2f16cd9e274ce344bfe76bf747bec32ef2a7",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenPanelDiagnosticsAction.java",
+              "raw_blob": "b65b2f16cd9e274ce344bfe76bf747bec32ef2a7"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenPanelDiagnosticsAction.java",
+              "raw_blob": "b65b2f16cd9e274ce344bfe76bf747bec32ef2a7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+      "membership": {
+        "targets": [
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "all_features": [
+          "workspace_legacy_open_action"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d",
+          "raw_bytes": 4138,
+          "raw_sha256": "sha256:e84f6e81ce948d57382bde46bbde6979c03ebee4db64bf795fb23fc768daeb96",
+          "git_framed_sha1": "62668196b38d6492f3bcdf910889e0f4506bc68d",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.20",
+              "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.20.1",
+              "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.20.2",
+              "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.20.3",
+              "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.20.4",
+              "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.21.0",
+              "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            },
+            {
+              "context": "dev/1.21.1",
+              "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "62668196b38d6492f3bcdf910889e0f4506bc68d"
+            }
+          ]
+        },
+        {
+          "raw_blob": "bbe914218db44be4ea6d6f92aa4532cd38914837",
+          "raw_bytes": 4145,
+          "raw_sha256": "sha256:64ac7cc85a238c3bf80c992beb32f213e6923f0f35c41f7d15747549fb89df03",
+          "git_framed_sha1": "bbe914218db44be4ea6d6f92aa4532cd38914837",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/26.1.2",
+              "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/OpenScreenToSideAction.java",
+              "raw_blob": "bbe914218db44be4ea6d6f92aa4532cd38914837"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/PanelActionSupport.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/PanelActionSupport.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions"
+        ],
+        "any_features": [
+          "workspace_panel_actions",
+          "client_screen_actions",
+          "workspace_lifecycle"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "59a855c343db0883266f835fbf5cffc42582d593",
+          "raw_bytes": 5578,
+          "raw_sha256": "sha256:252a17eef3bf1ae620c052783a04603e3abab63b1a488e99df93e8b304a27c71",
+          "git_framed_sha1": "59a855c343db0883266f835fbf5cffc42582d593",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/PanelActionSupport.java",
+              "raw_blob": "59a855c343db0883266f835fbf5cffc42582d593"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/PanelActionSupport.java",
+              "raw_blob": "59a855c343db0883266f835fbf5cffc42582d593"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/PanelScaleAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/PanelScaleAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_panel_metadata",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "37484a7c4ac4ece865c1630ae44778997f84648e",
+          "raw_bytes": 5636,
+          "raw_sha256": "sha256:4617e51e80dcb992e3783164d1841e35ea1fc6be5b2f78532c522d8284fa7706",
+          "git_framed_sha1": "37484a7c4ac4ece865c1630ae44778997f84648e",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/PanelScaleAction.java",
+              "raw_blob": "37484a7c4ac4ece865c1630ae44778997f84648e"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/PanelScaleAction.java",
+              "raw_blob": "37484a7c4ac4ece865c1630ae44778997f84648e"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/ResizeDividersAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/ResizeDividersAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_dividers"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "0bf482c0d0bc19346219a75c53922718000083b4",
+          "raw_bytes": 4032,
+          "raw_sha256": "sha256:a2c57c468ff721c30c57345c0d1a200ae3680afab3581862b560d7c22fb1ab4c",
+          "git_framed_sha1": "0bf482c0d0bc19346219a75c53922718000083b4",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ResizeDividersAction.java",
+              "raw_blob": "0bf482c0d0bc19346219a75c53922718000083b4"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ResizeDividersAction.java",
+              "raw_blob": "0bf482c0d0bc19346219a75c53922718000083b4"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/ResizePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/ResizePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_directional_resize"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "23ed8454fc1d07b37052e8e5b260da0bc0fa0173",
+          "raw_bytes": 2059,
+          "raw_sha256": "sha256:316c8cb76e5329c2dc6e0f6e3b43baaa5a805a2c4bba77a95e86515676b24955",
+          "git_framed_sha1": "23ed8454fc1d07b37052e8e5b260da0bc0fa0173",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ResizePanelAction.java",
+              "raw_blob": "23ed8454fc1d07b37052e8e5b260da0bc0fa0173"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ResizePanelAction.java",
+              "raw_blob": "23ed8454fc1d07b37052e8e5b260da0bc0fa0173"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/RotatePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/RotatePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "345e4c12440a04a461f896c3f8c59367c42c2419",
+          "raw_bytes": 1525,
+          "raw_sha256": "sha256:e4422c2ca268b41175bbc328538f0f684d3b848a0047661a87734aeedd21d4fd",
+          "git_framed_sha1": "345e4c12440a04a461f896c3f8c59367c42c2419",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/RotatePanelAction.java",
+              "raw_blob": "345e4c12440a04a461f896c3f8c59367c42c2419"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/RotatePanelAction.java",
+              "raw_blob": "345e4c12440a04a461f896c3f8c59367c42c2419"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_lifecycle",
+          "workspace_panel_actions",
+          "workspace_stack_controls",
+          "typed_command_palette"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "1d48e8589da63530d5422cd9cde3433239fa349f",
+          "raw_bytes": 7208,
+          "raw_sha256": "sha256:0621fa645746a2e752f7416f87e1ef99e4a888a010b0f879d8f0c4ab13dec3f8",
+          "git_framed_sha1": "1d48e8589da63530d5422cd9cde3433239fa349f",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+              "raw_blob": "1d48e8589da63530d5422cd9cde3433239fa349f"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+              "raw_blob": "1d48e8589da63530d5422cd9cde3433239fa349f"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMGuiScaleAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMGuiScaleAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "client_screen_actions"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "523677e3f134a4c756ed9485cfcb478dd0225fcb",
+          "raw_bytes": 4768,
+          "raw_sha256": "sha256:9c690949346b9ae200bd89ebe785f3b23bfe0a2bf591159233159a38eb373c9c",
+          "git_framed_sha1": "523677e3f134a4c756ed9485cfcb478dd0225fcb",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMGuiScaleAction.java",
+              "raw_blob": "523677e3f134a4c756ed9485cfcb478dd0225fcb"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMGuiScaleAction.java",
+              "raw_blob": "523677e3f134a4c756ed9485cfcb478dd0225fcb"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_stack_controls"
+        ],
+        "any_features": [
+          "workspace_lifecycle",
+          "workspace_panel_entry_controls"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "acd201616ac2efbeaab805f0f55e44efde0454d1",
+          "raw_bytes": 4313,
+          "raw_sha256": "sha256:2022bb1832577413a5f8f861fa17ad0817717961f059bbda795826ac11371cb8",
+          "git_framed_sha1": "acd201616ac2efbeaab805f0f55e44efde0454d1",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryAction.java",
+              "raw_blob": "acd201616ac2efbeaab805f0f55e44efde0454d1"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryAction.java",
+              "raw_blob": "acd201616ac2efbeaab805f0f55e44efde0454d1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryInteractionSessionService.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryInteractionSessionService.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_panel_actions",
+          "workspace_stack_controls"
+        ],
+        "any_features": [
+          "workspace_lifecycle",
+          "workspace_panel_entry_controls"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "72c9128cc8e74bf24481ac17c542b3874e5da9fd",
+          "raw_bytes": 5336,
+          "raw_sha256": "sha256:fda6d11461b7a73110b3eccf898c7c23f087dd063c4734cb5af403094e6b5f24",
+          "git_framed_sha1": "72c9128cc8e74bf24481ac17c542b3874e5da9fd",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryInteractionSessionService.java",
+              "raw_blob": "72c9128cc8e74bf24481ac17c542b3874e5da9fd"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryInteractionSessionService.java",
+              "raw_blob": "72c9128cc8e74bf24481ac17c542b3874e5da9fd"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryMoveToAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryMoveToAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions",
+          "workspace_stack_controls"
+        ],
+        "any_features": [
+          "workspace_lifecycle",
+          "workspace_panel_entry_controls"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "8f8ba5c271e7aaf77330cfb93bbc62701a8f96ac",
+          "raw_bytes": 3758,
+          "raw_sha256": "sha256:17a3574fe8ac622613b32594f592461e32c00593a7734c97d9e6e13aeebd6989",
+          "git_framed_sha1": "8f8ba5c271e7aaf77330cfb93bbc62701a8f96ac",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryMoveToAction.java",
+              "raw_blob": "8f8ba5c271e7aaf77330cfb93bbc62701a8f96ac"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMPanelEntryMoveToAction.java",
+              "raw_blob": "8f8ba5c271e7aaf77330cfb93bbc62701a8f96ac"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMScreenDiagnosticsAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMScreenDiagnosticsAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "screen_diagnostics",
+          "workspace_panel_actions",
+          "editor_overlay_push"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "67f57e0d9726771a6ab0a181b2b106f8588670bc",
+          "raw_bytes": 6578,
+          "raw_sha256": "sha256:ae26780d20e83dff88707de8cfd586a0aae685ae6e5e99f928c3be97968cb611",
+          "git_framed_sha1": "67f57e0d9726771a6ab0a181b2b106f8588670bc",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMScreenDiagnosticsAction.java",
+              "raw_blob": "67f57e0d9726771a6ab0a181b2b106f8588670bc"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMScreenDiagnosticsAction.java",
+              "raw_blob": "67f57e0d9726771a6ab0a181b2b106f8588670bc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [],
+        "any_features": [
+          "workspace_lifecycle",
+          "workspace_panel_entry_controls"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "59fd8296d48907de48b97e5427b3eb186857f04a",
+          "raw_bytes": 2253,
+          "raw_sha256": "sha256:e392bb436b153374c32efc7c3aa0ddd6cb75956194b9cbdf09f332dd96451062",
+          "git_framed_sha1": "59fd8296d48907de48b97e5427b3eb186857f04a",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+              "raw_blob": "59fd8296d48907de48b97e5427b3eb186857f04a"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+              "raw_blob": "59fd8296d48907de48b97e5427b3eb186857f04a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActions.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActions.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions"
+        ],
+        "any_features": [
+          "workspace_lifecycle",
+          "workspace_panel_entry_controls"
+        ],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "f08151514544b79433bb6c9ea8256037d94fdc05",
+          "raw_bytes": 2921,
+          "raw_sha256": "sha256:1be426dff701c250c91083fea7d74146529de1b409bd41dac2e91775a7aa41fe",
+          "git_framed_sha1": "f08151514544b79433bb6c9ea8256037d94fdc05",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActions.java",
+              "raw_blob": "f08151514544b79433bb6c9ea8256037d94fdc05"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActions.java",
+              "raw_blob": "f08151514544b79433bb6c9ea8256037d94fdc05"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspacePaneCloseSessionService.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMWorkspacePaneCloseSessionService.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "workspace_lifecycle",
+          "workspace_stack_controls"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "059d9ebd609f7a1be68be157c6ea1fc6978afcbc",
+          "raw_bytes": 3189,
+          "raw_sha256": "sha256:9e51410ddd51d29e71bee7106340c9b7f6cc8340846025ee231fd9c21c5d233d",
+          "git_framed_sha1": "059d9ebd609f7a1be68be157c6ea1fc6978afcbc",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspacePaneCloseSessionService.java",
+              "raw_blob": "059d9ebd609f7a1be68be157c6ea1fc6978afcbc"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspacePaneCloseSessionService.java",
+              "raw_blob": "059d9ebd609f7a1be68be157c6ea1fc6978afcbc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/ToggleMaximizePanelAction.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/ToggleMaximizePanelAction.java",
+      "membership": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_actions",
+          "workspace_panel_actions"
+        ],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "raw_blob": "9bc69feb373bb8a9750b7d452a6e2e6b2c45c6b3",
+          "raw_bytes": 1487,
+          "raw_sha256": "sha256:6a7a965ad5e3e1afcb3e0390c5313ae8207a01d90d5cc107ff2a8cc3e8f85c26",
+          "git_framed_sha1": "9bc69feb373bb8a9750b7d452a6e2e6b2c45c6b3",
+          "source_normalization": "none",
+          "witnesses": [
+            {
+              "context": "dev/1.19.2",
+              "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ToggleMaximizePanelAction.java",
+              "raw_blob": "9bc69feb373bb8a9750b7d452a6e2e6b2c45c6b3"
+            },
+            {
+              "context": "dev/1.19.4",
+              "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+              "mode": "100644",
+              "path": "src/main/java/ca/teamdman/sfm/client/action/ToggleMaximizePanelAction.java",
+              "raw_blob": "9bc69feb373bb8a9750b7d452a6e2e6b2c45c6b3"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "independent_owner_definitions": [
+    {
+      "name": "workspace_panel_actions",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    {
+      "name": "workspace_lifecycle",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    {
+      "name": "workspace_panel_entry_controls",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_stack_controls",
+        "workspace_panel_actions",
+        "command_palette"
+      ]
+    },
+    {
+      "name": "workspace_panel_move_gestures",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panel_entry_controls",
+        "pointer_modifier_ingress"
+      ]
+    },
+    {
+      "name": "workspace_directional_resize",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    {
+      "name": "workspace_dividers",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    {
+      "name": "screen_diagnostics",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    {
+      "name": "client_screen_actions",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    {
+      "name": "workspace_legacy_open_action",
+      "supported_targets": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    }
+  ],
+  "changes": {
+    "new_java_inputs": 24,
+    "new_rules": 24,
+    "registrar_field_host_refinements": 25,
+    "entry_registration_guard_refinements": 2,
+    "new_test_modules": 2,
+    "new_tests": 6,
+    "feature_definition_changes": 0,
+    "catalog_default_changes": 0,
+    "dependency_lock_changes": 0,
+    "current_contract_adaptations": 2,
+    "shared_test_only_inverse_helpers": 1,
+    "additional_current_contract_regression_tests": 4
+  },
+  "open_closure_limits": [
+    "The concrete SFMCommandPaletteScreen, SFMScreenDiagnosticsContributor, SFMTextEditorPanelRecipe and SFMClientOverlayRuntime source providers are not supplied by this slice; no stub replaces them.",
+    "Exact original bodies under full profiles do not prove Java type/API or loader closure, gameplay, consent, permission, or performance.",
+    "Panel entry-control registration is corrected to lifecycle OR entry_controls without making entry_controls require lifecycle; lifecycle-only pane close choices remain guarded.",
+    "This is main-family preservation progress; remaining main paths and non-main source sets are still in the full goal.",
+    "The Tooltip successor preserves the original current-registration identity through an exact inverse contract; two planned new tests have not been run.",
+    "The composed metadata/module use actual joint1965 bases. Apply only bounded narrow hunks after separate admission; no full-view application or overwrite.",
+    "The original client-registration TEMPLATES, ledger, raw witnesses, 19 GOLDENS, owner UNION and GUARDS stay byte-exact. Its current-template validator alone uses the same strict inverse adapter; historical expected masks are not relabeled."
+  ],
+  "evidence": {
+    "already_acquired_cohort": {
+      "schema": "sfm:frozen_action_family_source_cohort@1",
+      "bytes": 590397,
+      "sha256": "1fa03b55b404fb635b3bc9267d56bf081a267007efcc225dc8aa5d88d9e286b1"
+    },
+    "fresh_missing_inventory": {
+      "bytes": 86177,
+      "sha256": "e7059b3baac1da104263a93f92cf30d2bbe83c0bfef98dd67a0298ec9f560d09"
+    },
+    "native_literal_reconstruction": "25 exact raw string matches in preparation; audit-only evaluator, not production selector/renderer execution",
+    "actual_production_tests": false
+  },
+  "composition": {
+    "predecessor_role": "sfm-workspace-navigation-family-source-stage-20261002-v1",
+    "predecessor_manifest": {
+      "bytes": 29823,
+      "sha256": "56b7ade14653f16a4f1803e998216ff605acd82ca82d033039939944d0ab4fc3"
+    },
+    "predecessor_seal": {
+      "bytes": 1406,
+      "sha256": "00c8c89c8852774f2dd403483e9946719f4e9f414b5d777046903e2bd31c58f9"
+    },
+    "original_base": {
+      "paths": 1959,
+      "bytes": 9130171,
+      "sha256": "04cb5226a6cdd06253f35854e72c1aed694372b0c6e99ee1a2cb8e74b8909c85"
+    },
+    "joint_source_receipt": {
+      "path": "docs/tasks/sfm-core-joint-ui-source-admission-20261002.json",
+      "bytes": 3542,
+      "sha256": "73efb1afdc34ebf0b0f05f14e3ecfed127d9f8f4dfc0654e134a9ca685c7ba6a"
+    },
+    "metadata_base": {
+      "bytes": 472389,
+      "sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f"
+    },
+    "formatted_module_base": {
+      "bytes": 17735,
+      "sha256": "4a1691e4bc8cdd554f01bc8ee6c8d544b6ecc25559eaa91f9985bba051d37325"
+    },
+    "tooltip_current_contract": {
+      "pre_workspace": {
+        "bytes": 11404,
+        "sha256": "54cf007cb986311b9a831aaee9ad91612202b36cf23a1b8ac9a7a5824976bdfb"
+      },
+      "current": {
+        "bytes": 11490,
+        "sha256": "80686295d7ea7bb87bed0d2dd9a4d2c60e33a7ce6731a222b97233091ef7c6e1"
+      },
+      "reviewed_guard_inverses": 2,
+      "historical_RAW_PREPARED_and_ledger": "unchanged",
+      "selection_contract": "preserve selected real-input versus explicitly omitted distinction; renderer is not invoked for omitted registrar",
+      "new_tests": 4,
+      "actual_tests_run": 0,
+      "callers": [
+        "core_tooltip_mode_action_slice_tests.rs",
+        "core_client_registration_slice_tests.rs"
+      ],
+      "shared_adapter": "core_client_registration_current_contract.rs"
+    },
+    "actual_composition_application": false,
+    "actual_composition_tests": 0
+  }
+}

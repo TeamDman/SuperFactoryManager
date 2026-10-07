@@ -1,0 +1,4894 @@
+{
+  "schema": "sfm-core-terminal-presentation-providers-slice-v2",
+  "status": "ignored-only source proposal; no promotion or execution",
+  "normalization": "none: exact UTF-8 LF raw Git bodies, no BOM, final LF",
+  "contract_changes": false,
+  "feature_definition_changes": false,
+  "prerequisite_changes": false,
+  "starting_metadata_sha256": "sha256:dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+  "starting_feature_definitions_sha256": "sha256:38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+  "current_feature_definition_count": 180,
+  "proposed_portable_promotion_path": "docs/tasks/sfm-core-terminal-presentation-providers-slice.json",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "definitions": {
+    "workspace_keyboard_context": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "keyboard_profiles"
+      ]
+    },
+    "workspace_widget_hosts": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_measurement": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_lookup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "terminal_focus_gestures": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_local": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_keyboard_input": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "terminal_vox_runtime": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_properties": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "terminal_clipboard": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "terminal_paste_confirmation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "terminal_server_lifecycle": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    "terminal_legacy_open_actions": {
+      "supported_targets": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels",
+        "terminal_remote"
+      ]
+    },
+    "terminal_presentation_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels",
+        "terminal_remote"
+      ]
+    },
+    "terminal_repl_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "terminal_tuning_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels",
+        "terminal_remote"
+      ]
+    },
+    "font_formatted_text": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_remote": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_vox": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_frame_metadata": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "terminal_host_escape": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "terminal_focus_gestures"
+      ]
+    },
+    "screen_fractional_highlights": {
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": []
+    }
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+      "name": "SFMTerminalRemoteService",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 9001,
+      "authored_sha256": "sha256:5656ba33c63c80c1590fd6116241f293a5114d7f0a6bc63f4cb6e95a4305ee0e",
+      "cr_count": 0,
+      "lf_count": 257,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "a82f08f7cc438ab6dd93c2dd13e0e9115471cd68",
+          "bytes": 7504,
+          "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+        },
+        {
+          "oid": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "a82f08f7cc438ab6dd93c2dd13e0e9115471cd68",
+        "dev/1.19.4": "a82f08f7cc438ab6dd93c2dd13e0e9115471cd68",
+        "dev/1.20": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.20.1": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.20.2": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.20.3": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.20.4": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.21.0": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/1.21.1": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "dev/26.1.2": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+      "name": "SFMTerminalClient",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 740,
+      "authored_sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160",
+      "cr_count": 0,
+      "lf_count": 24,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.19.4": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.20": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.20.1": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.20.2": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.20.3": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.20.4": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.21.0": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/1.21.1": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "dev/26.1.2": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+      "name": "SFMTerminalPanel",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "workspace_panels",
+              "workspace_widget_hosts",
+              "client_actions"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ],
+            "none_features": []
+          }
+        },
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "workspace_panels"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 138071,
+      "authored_sha256": "sha256:40d6f54d972dcc8bc11aa8ed8f30bb5cc9a3970f47a27f079f9947ebb9e9a0a8",
+      "cr_count": 0,
+      "lf_count": 3280,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "71fe595b87be649875e9be770edb1442b83a31df",
+          "bytes": 91705,
+          "sha256": "sha256:0e934bc5d4aa2e894be5068aa5cf08eba8988ed2b2aa908921b44e2469fdf85f"
+        },
+        {
+          "oid": "495d72a7df045ff81a8e289b962519e680a067bb",
+          "bytes": 92330,
+          "sha256": "sha256:65fc5d920e34e4b9c45d5cf74f6c3079fe14cf9e8a67abc09ad372c3755000bc"
+        },
+        {
+          "oid": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "oid": "68f99477868fe871fcb584a1c14da286563318c6",
+          "bytes": 19661,
+          "sha256": "sha256:f0e8120a93577609aed57a1f104210c48b64e23c843a789958aa167e475569be"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "71fe595b87be649875e9be770edb1442b83a31df",
+        "dev/1.19.4": "495d72a7df045ff81a8e289b962519e680a067bb",
+        "dev/1.20": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.20.1": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.20.2": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.20.3": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.20.4": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.21.0": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/1.21.1": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+        "dev/26.1.2": "68f99477868fe871fcb584a1c14da286563318c6",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+      "name": "SFMTerminalPropertiesPanel",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "workspace_panels",
+              "workspace_widget_hosts",
+              "client_actions",
+              "terminal_properties"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 25590,
+      "authored_sha256": "sha256:3607d496bffd83b4b1be74108c67d8acd30e3955cec027475291d81b1d8a237e",
+      "cr_count": 0,
+      "lf_count": 532,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "7c06817708bc9c503d8c192f7c9c8ebc76535536",
+          "bytes": 24899,
+          "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "7c06817708bc9c503d8c192f7c9c8ebc76535536",
+        "dev/1.19.4": "7c06817708bc9c503d8c192f7c9c8ebc76535536",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+      "name": "SFMTerminalPngRenderer",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 20425,
+      "authored_sha256": "sha256:e38345f961b31144f26bf8a66581795578eafd2806137d097d37d4eafdb9c2d6",
+      "cr_count": 0,
+      "lf_count": 481,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "edf56cf5fc000a67edd13b11c47b53859bf10a8c",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "oid": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "oid": "e9b71e612116f882d077564bf0baf6ad8a35bdf2",
+          "bytes": 4234,
+          "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+        },
+        {
+          "oid": "83e0b4c7a7bb0482d7de16e322d2cc277b7b7fdc",
+          "bytes": 4083,
+          "sha256": "sha256:130c50eba0be165480aeada5a14c23ff30a584659cf80d7eb87b91012edcdd77"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "edf56cf5fc000a67edd13b11c47b53859bf10a8c",
+        "dev/1.19.4": "edf56cf5fc000a67edd13b11c47b53859bf10a8c",
+        "dev/1.20": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+        "dev/1.20.1": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+        "dev/1.20.2": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+        "dev/1.20.3": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+        "dev/1.20.4": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+        "dev/1.21.0": "e9b71e612116f882d077564bf0baf6ad8a35bdf2",
+        "dev/1.21.1": "e9b71e612116f882d077564bf0baf6ad8a35bdf2",
+        "dev/26.1.2": "83e0b4c7a7bb0482d7de16e322d2cc277b7b7fdc",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+      "name": "SFMTerminalRgbaRenderer",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "terminal_frame_metadata"
+            ],
+            "any_features": [
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "authored_bytes": 5577,
+      "authored_sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7",
+      "cr_count": 0,
+      "lf_count": 136,
+      "final_lf": true,
+      "raw_variants": [
+        {
+          "oid": "4b2453b7ece1706a509b9374feda76c221fed2ae",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ],
+      "witnesses": {
+        "dev/1.19.2": "4b2453b7ece1706a509b9374feda76c221fed2ae",
+        "dev/1.19.4": "4b2453b7ece1706a509b9374feda76c221fed2ae",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      }
+    }
+  ],
+  "pure_provider_refinements": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalService.java",
+      "name": "SFMTerminalService",
+      "authored_bytes": 515,
+      "authored_sha256": "sha256:c2b4e11be5ccb7a46e1dd9d819d4324dd0461763fa7c1ccfd1a4c1c5606e6a9c",
+      "cr_count": 0,
+      "lf_count": 17,
+      "final_lf": true,
+      "original_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalService.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalService.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "java_body_unchanged": true,
+      "witnesses": {
+        "dev/1.19.2": "47052c952a040b4d50a584fa93ca448736eb6445",
+        "dev/1.19.4": "47052c952a040b4d50a584fa93ca448736eb6445",
+        "dev/1.20": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.20.1": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.20.2": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.20.3": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.20.4": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.21.0": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/1.21.1": "935533693c01e03fdd9b5b273b659f500db10713",
+        "dev/26.1.2": "935533693c01e03fdd9b5b273b659f500db10713",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "raw_variants": [
+        {
+          "oid": "47052c952a040b4d50a584fa93ca448736eb6445",
+          "bytes": 338,
+          "sha256": "sha256:aad57cff7c746953fd9a537f8e94bb0050a5690bce63ed9a4529500a056667e6"
+        },
+        {
+          "oid": "935533693c01e03fdd9b5b273b659f500db10713",
+          "bytes": 344,
+          "sha256": "sha256:b22817f909620c0b11755833b2930b9e5c73f0cd9a8f930eacf418c130a70b6c"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalScrollback.java",
+      "name": "SFMTerminalScrollback",
+      "authored_bytes": 5599,
+      "authored_sha256": "sha256:7ea64b0c1d3e6406a6fb6daab8e1b441e55e18e8828f1a0060aa4f3c6f38a84a",
+      "cr_count": 0,
+      "lf_count": 170,
+      "final_lf": true,
+      "original_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalScrollback.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalScrollback.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ],
+            "none_features": []
+          }
+        }
+      ],
+      "java_body_unchanged": true,
+      "witnesses": {
+        "dev/1.19.2": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.19.4": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.20": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.20.1": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.20.2": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.20.3": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.20.4": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.21.0": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/1.21.1": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "dev/26.1.2": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "raw_variants": [
+        {
+          "oid": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+          "bytes": 5599,
+          "sha256": "sha256:7ea64b0c1d3e6406a6fb6daab8e1b441e55e18e8828f1a0060aa4f3c6f38a84a"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalLine.java",
+      "name": "SFMTerminalLine",
+      "authored_bytes": 505,
+      "authored_sha256": "sha256:c64ef66f07eb705bec614978a5a10846243220be4296dc19d291dee82170aecb",
+      "cr_count": 0,
+      "lf_count": 17,
+      "final_lf": true,
+      "original_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalLine.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ]
+          }
+        }
+      ],
+      "proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalLine.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ]
+          }
+        }
+      ],
+      "java_body_unchanged": true,
+      "witnesses": {
+        "dev/1.19.2": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.19.4": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.20": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.20.1": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.20.2": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.20.3": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.20.4": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.21.0": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/1.21.1": "dd20303165846720d0b72f61a420716f1adefe39",
+        "dev/26.1.2": "dd20303165846720d0b72f61a420716f1adefe39",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "raw_variants": [
+        {
+          "oid": "dd20303165846720d0b72f61a420716f1adefe39",
+          "bytes": 505,
+          "sha256": "sha256:c64ef66f07eb705bec614978a5a10846243220be4296dc19d291dee82170aecb"
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalResponse.java",
+      "name": "SFMTerminalResponse",
+      "authored_bytes": 1989,
+      "authored_sha256": "sha256:61245350da59b9b7782e2697ed384639ba448307d519e771053ccd91a400c81a",
+      "cr_count": 0,
+      "lf_count": 51,
+      "final_lf": true,
+      "original_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalResponse.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime"
+            ]
+          }
+        }
+      ],
+      "proposed_rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalResponse.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "any_features": [
+              "terminal_local",
+              "terminal_remote",
+              "terminal_vox_runtime",
+              "terminal_properties"
+            ]
+          }
+        }
+      ],
+      "java_body_unchanged": true,
+      "witnesses": {
+        "dev/1.19.2": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.19.4": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.20": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.20.1": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.20.2": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.20.3": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.20.4": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.21.0": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/1.21.1": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "dev/26.1.2": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "raw_variants": [
+        {
+          "oid": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+          "bytes": 1989,
+          "sha256": "sha256:61245350da59b9b7782e2697ed384639ba448307d519e771053ccd91a400c81a"
+        }
+      ]
+    }
+  ],
+  "raw_objects": [
+    {
+      "oid": "a82f08f7cc438ab6dd93c2dd13e0e9115471cd68",
+      "bytes": 7504,
+      "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+    },
+    {
+      "oid": "de606bf796665a9c290e0b0fcfddd8fe9c961250",
+      "bytes": 754,
+      "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+    },
+    {
+      "oid": "ce9e6bf3e5465a2d6c448070e20c4dacfd6fe9ff",
+      "bytes": 740,
+      "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+    },
+    {
+      "oid": "71fe595b87be649875e9be770edb1442b83a31df",
+      "bytes": 91705,
+      "sha256": "sha256:0e934bc5d4aa2e894be5068aa5cf08eba8988ed2b2aa908921b44e2469fdf85f"
+    },
+    {
+      "oid": "495d72a7df045ff81a8e289b962519e680a067bb",
+      "bytes": 92330,
+      "sha256": "sha256:65fc5d920e34e4b9c45d5cf74f6c3079fe14cf9e8a67abc09ad372c3755000bc"
+    },
+    {
+      "oid": "0dfeec7d19258b930fc9de0b8b7ba7608a7b4ecd",
+      "bytes": 19625,
+      "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+    },
+    {
+      "oid": "68f99477868fe871fcb584a1c14da286563318c6",
+      "bytes": 19661,
+      "sha256": "sha256:f0e8120a93577609aed57a1f104210c48b64e23c843a789958aa167e475569be"
+    },
+    {
+      "oid": "7c06817708bc9c503d8c192f7c9c8ebc76535536",
+      "bytes": 24899,
+      "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+    },
+    {
+      "oid": "edf56cf5fc000a67edd13b11c47b53859bf10a8c",
+      "bytes": 12903,
+      "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+    },
+    {
+      "oid": "c138dc11cfbd1b500f01e7c560649704d886cbc8",
+      "bytes": 4157,
+      "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+    },
+    {
+      "oid": "e9b71e612116f882d077564bf0baf6ad8a35bdf2",
+      "bytes": 4234,
+      "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+    },
+    {
+      "oid": "83e0b4c7a7bb0482d7de16e322d2cc277b7b7fdc",
+      "bytes": 4083,
+      "sha256": "sha256:130c50eba0be165480aeada5a14c23ff30a584659cf80d7eb87b91012edcdd77"
+    },
+    {
+      "oid": "4b2453b7ece1706a509b9374feda76c221fed2ae",
+      "bytes": 5577,
+      "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+    },
+    {
+      "oid": "47052c952a040b4d50a584fa93ca448736eb6445",
+      "bytes": 338,
+      "sha256": "sha256:aad57cff7c746953fd9a537f8e94bb0050a5690bce63ed9a4529500a056667e6"
+    },
+    {
+      "oid": "935533693c01e03fdd9b5b273b659f500db10713",
+      "bytes": 344,
+      "sha256": "sha256:b22817f909620c0b11755833b2930b9e5c73f0cd9a8f930eacf418c130a70b6c"
+    },
+    {
+      "oid": "e0caa13fb14e1ad1250db6197d881a7cb5f8377e",
+      "bytes": 5599,
+      "sha256": "sha256:7ea64b0c1d3e6406a6fb6daab8e1b441e55e18e8828f1a0060aa4f3c6f38a84a"
+    },
+    {
+      "oid": "dd20303165846720d0b72f61a420716f1adefe39",
+      "bytes": 505,
+      "sha256": "sha256:c64ef66f07eb705bec614978a5a10846243220be4296dc19d291dee82170aecb"
+    },
+    {
+      "oid": "d7c55c4d75a95b2739c04b5ec928a68ca64c8df5",
+      "bytes": 1989,
+      "sha256": "sha256:61245350da59b9b7782e2697ed384639ba448307d519e771053ccd91a400c81a"
+    }
+  ],
+  "scope": {
+    "new_java_sources": 6,
+    "new_source_rule_rows": 7,
+    "pure_existing_or_refinements": 4,
+    "new_historical_cells": 120,
+    "new_present": 44,
+    "new_absent": 76,
+    "all_including_four_pure_cells": 200,
+    "all_present": 84,
+    "all_absent": 116,
+    "unique_raw_variants": 18,
+    "raw_bytes": 296947,
+    "authored_new_java_bytes": 199404,
+    "regions": 391,
+    "local_version_case_regions": 113
+  },
+  "profile_goldens": [
+    {
+      "target": "1.19.2",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_only",
+      "features": [
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "properties_only",
+      "features": [
+        "workspace_panels",
+        "terminal_properties"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 23723,
+          "sha256": "sha256:10b03a7ade98bbcba45342d01f6732de69a41396833aff1691a42d1e8384e484"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 25464,
+          "sha256": "sha256:ac9677b40c2e4781f5649308354d4fa741a5aaf0cd618aef7f17fd72edfaf0f2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_focus",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 27348,
+          "sha256": "sha256:9d91ebd6922fc06664075ae37931c12fe9a307d125558349fe4f02c0f0929e62"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_host_escape",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input",
+        "terminal_focus_gestures",
+        "terminal_host_escape"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 27464,
+          "sha256": "sha256:145e9a2e2b5cb353f1e96186434692845ce457a166589ace5f1188532a3c3144"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "local_repl",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_repl_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 24413,
+          "sha256": "sha256:9fd41ad32a2e792640542615e4bd0e98e4cb5bf62c184ee761db6b1756dee991"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 37407,
+          "sha256": "sha256:909af94f84c158ccf6c44ffaa46acb147d99ec5deefdedc44ab073b6786021f0"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_keyboard_input"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6983,
+          "sha256": "sha256:1bbe8b75254408cc48b9bd3da2c4532fdfd45c9a68a8753820eecc0bee70d74e"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 43393,
+          "sha256": "sha256:e538083e8a183ae1376ad2f9b7b30488e1f9058c60a39409be83374fec58769c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_clipboard",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_clipboard"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6555,
+          "sha256": "sha256:1222f1b6f70273a5ad0a0817ac97a321178b6cad06fa0caf20531cb2dbd1d231"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 41947,
+          "sha256": "sha256:b25e86dbef1769b83b68da337a8c64e3d2d23347d1492092a34f7fe1a57bd414"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_confirmation",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_clipboard",
+        "terminal_paste_confirmation"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6749,
+          "sha256": "sha256:b5fe62d1704288e31c31c923bc5767674435ee7fad61d5fe08ac94abe77237f3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 43950,
+          "sha256": "sha256:7d4c2ff7d3aa08aab69ca4ec54ab5e45906dadf9294565bb98c6f8f017fe5b35"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_metadata",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_frame_metadata"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 44701,
+          "sha256": "sha256:33fba31a303c87f0890e78c92e4943420f8045cb4e13ad72cf5551fa31b342d9"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_full_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_frame_metadata",
+        "terminal_keyboard_input",
+        "terminal_clipboard",
+        "terminal_paste_confirmation",
+        "terminal_focus_gestures",
+        "terminal_host_escape",
+        "workspace_panel_measurement"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 7504,
+          "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 62888,
+          "sha256": "sha256:364470e3d0568405ebca90e7fa56ead4961b1539b37356f750ca8dec83e41e84"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_presentation",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_presentation_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 53754,
+          "sha256": "sha256:4fc995a4900c5f788500fc29c488f9da46e10776662423a2cbdcef481246a980"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_tuning",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_tuning_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 39664,
+          "sha256": "sha256:407d223213f5e591746b46087ce0836952a24acb12a4420c74bff11ec104b60a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "remote_lifecycle",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_server_lifecycle"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 44662,
+          "sha256": "sha256:742f89ad5d1522d0e5f150a754884650315165ea189eafccbc4747ec86ccccc2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "properties_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 26809,
+          "sha256": "sha256:dfb68683eb60f5224fad54007b582a4271237d851967fd5cc3392045282c9da6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 14225,
+          "sha256": "sha256:2dc7708d3bcda7535522b4aea612976d7c1cca8ab4fe501e36a2109520e23cd2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "properties_lookup",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties",
+        "workspace_panel_lookup"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 26809,
+          "sha256": "sha256:dfb68683eb60f5224fad54007b582a4271237d851967fd5cc3392045282c9da6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 14407,
+          "sha256": "sha256:69643ce8af16af904a8012d6f7444e23e6314074fb0e123a27c6d79d285e8b6e"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "properties_controls",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties",
+        "workspace_panel_lookup",
+        "terminal_remote",
+        "terminal_tuning_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 42055,
+          "sha256": "sha256:d40cb09e958c039d8f9857a7550379691d12e303f77455239dce5f1371dcfa0b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 24899,
+          "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_properties",
+        "terminal_tuning_actions",
+        "terminal_presentation_actions",
+        "terminal_frame_metadata",
+        "terminal_keyboard_input",
+        "terminal_clipboard",
+        "terminal_paste_confirmation",
+        "terminal_focus_gestures",
+        "terminal_host_escape",
+        "terminal_server_lifecycle",
+        "terminal_repl_actions",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup",
+        "screen_fractional_highlights"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 7504,
+          "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 91705,
+          "sha256": "sha256:0e934bc5d4aa2e894be5068aa5cf08eba8988ed2b2aa908921b44e2469fdf85f"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 24899,
+          "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_only",
+      "features": [
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "properties_only",
+      "features": [
+        "workspace_panels",
+        "terminal_properties"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 23901,
+          "sha256": "sha256:eec59275e5fdd118af0bf6cbf77d8132d7978af22355af890de05e2d35f4c616"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 25642,
+          "sha256": "sha256:de794bcb4fa408b67386305856691ecb8ac601f2ea41eab16d9c2c38c18c7256"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_focus",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 27526,
+          "sha256": "sha256:6fb38869fd5212439bc9959912c734c571ac4259a12d4178c8abe7864917d462"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_host_escape",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_keyboard_input",
+        "terminal_focus_gestures",
+        "terminal_host_escape"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 27642,
+          "sha256": "sha256:591048d45d0d6079e03d715068bddd9441a521445001b14a45211bd2e948dea3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "local_repl",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_repl_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 24591,
+          "sha256": "sha256:1fac1daeb85063c84a09802a0efe99cd9a26659845fc030a73ebc516e7076ea2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 37585,
+          "sha256": "sha256:7eca80cfdc17d7edcc51025ecd259e699eb7aa4008a5d1378ae32b2f50c75b82"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_keyboard_input"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6983,
+          "sha256": "sha256:1bbe8b75254408cc48b9bd3da2c4532fdfd45c9a68a8753820eecc0bee70d74e"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 43571,
+          "sha256": "sha256:dd837edf5d50dbc5f96d12fd89c61566208386bbd8657b999e20c2b40c3f11db"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_clipboard",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_clipboard"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6555,
+          "sha256": "sha256:1222f1b6f70273a5ad0a0817ac97a321178b6cad06fa0caf20531cb2dbd1d231"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 42125,
+          "sha256": "sha256:5aef682c5406e92a784254598bc5fe2e0b569fc7edfdba3b527a9a25e11c0c5b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_confirmation",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_clipboard",
+        "terminal_paste_confirmation"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6749,
+          "sha256": "sha256:b5fe62d1704288e31c31c923bc5767674435ee7fad61d5fe08ac94abe77237f3"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 44128,
+          "sha256": "sha256:b9780e890649e09c4de0f921d0ef98a6e4aa6f856e4c451cf375f7a5180d47f6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_metadata",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_frame_metadata"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 44879,
+          "sha256": "sha256:5bf21205b7752e1a4971e70373854af4a2c1442a992516d1875b15bf173fac53"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_full_input",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_frame_metadata",
+        "terminal_keyboard_input",
+        "terminal_clipboard",
+        "terminal_paste_confirmation",
+        "terminal_focus_gestures",
+        "terminal_host_escape",
+        "workspace_panel_measurement"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 7504,
+          "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 63099,
+          "sha256": "sha256:84ab7148aebb7fbbf7e16b1e246305160e593ce150a471c9e9dec030378a2faf"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_presentation",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_presentation_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 53932,
+          "sha256": "sha256:dcd98c6042a0bb1814acd48e360c5bac368ef667b442313f5b5bb2b60908434d"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_tuning",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_tuning_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 39842,
+          "sha256": "sha256:b642b91f56fd0f164d3c04deb451523d1bb380a4bc169ba0d6854569922b240f"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "remote_lifecycle",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_remote",
+        "terminal_server_lifecycle"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 44840,
+          "sha256": "sha256:bcaec152456853339165c74680df76bb473898902c6c0c29df3a8324d44e7a15"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "properties_ui",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 26987,
+          "sha256": "sha256:e9b004804068a64cbf154001d75a76cd7e422d87e6ce1761d7dce0ccd14461d6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 14225,
+          "sha256": "sha256:2dc7708d3bcda7535522b4aea612976d7c1cca8ab4fe501e36a2109520e23cd2"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "properties_lookup",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties",
+        "workspace_panel_lookup"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 26987,
+          "sha256": "sha256:e9b004804068a64cbf154001d75a76cd7e422d87e6ce1761d7dce0ccd14461d6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 14407,
+          "sha256": "sha256:69643ce8af16af904a8012d6f7444e23e6314074fb0e123a27c6d79d285e8b6e"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "properties_controls",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_properties",
+        "workspace_panel_lookup",
+        "terminal_remote",
+        "terminal_tuning_actions"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 6228,
+          "sha256": "sha256:2e95ecb3010774f346155d5c02e39db5ae772fb85dcda8cbe0c842af40044696"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 42233,
+          "sha256": "sha256:6dfb9381c5ff5981df57810287a5957f017a9ccbecb5d6128749498a690fbb3b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 24899,
+          "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12570,
+          "sha256": "sha256:f7dfd7a0bff094166658dc0fc125a01a9ab916669f0c97c12d8c40b6cfd34f6c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "client_actions",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_properties",
+        "terminal_tuning_actions",
+        "terminal_presentation_actions",
+        "terminal_frame_metadata",
+        "terminal_keyboard_input",
+        "terminal_clipboard",
+        "terminal_paste_confirmation",
+        "terminal_focus_gestures",
+        "terminal_host_escape",
+        "terminal_server_lifecycle",
+        "terminal_repl_actions",
+        "workspace_panel_measurement",
+        "workspace_panel_lookup"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 7504,
+          "sha256": "sha256:a050f0447c32d0a2ad0aa17307b23789a00c9f9d9de4ce0d0bac7ae281eeff2c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 92330,
+          "sha256": "sha256:65fc5d920e34e4b9c45d5cf74f6c3079fe14cf9e8a67abc09ad372c3755000bc"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": 24899,
+          "sha256": "sha256:c83875a82b5b56623d7fc6030a527c2bf5b5c7e6a139ad339d346d454be5b517"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 12903,
+          "sha256": "sha256:7e8cb2052c7489c4332aa572a7a8ae331b55455fd52ad75efc0aaf22f750364b"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": 5577,
+          "sha256": "sha256:cdcba0dd7b8ed168bbaf5fb455865f293f956f71442f96b4556dfaec4f4110f7"
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4157,
+          "sha256": "sha256:eda24ad160fb2f5a8119fc71d71d849305c98659a11cfaf51ca58d57f8f53896"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4234,
+          "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4234,
+          "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10104,
+          "sha256": "sha256:8eaecbca2baf2740ddb225c48e243d94441d2c4a2a412c975cfcd41a16f8e1a6"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17355,
+          "sha256": "sha256:1ab653b9f8c33d8d485b509902aa5735498f660b4dc80df85d523d92e51fcf14"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4234,
+          "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19625,
+          "sha256": "sha256:5c1c3e5b14c92effeaf0dbf93dc3daef940242957fcdc5922b4c12b3d887611a"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4234,
+          "sha256": "sha256:1c28ad00d5812bd36d2b14fa58ae2f4dca6cd511fc7c7cc9618eb40a2a44eb7c"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "profile": "off",
+      "features": [],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "profile": "local_only",
+      "features": [
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "profile": "local_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_local"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 10131,
+          "sha256": "sha256:4cceaf4367183d7f3451cb924c30d32cb1605b5bd9085f3e6f89371e765309bf"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "profile": "remote_ui",
+      "features": [
+        "workspace_panels",
+        "terminal_remote"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 17382,
+          "sha256": "sha256:5c7a94a8b1c453ffc6fabd90f00c4fbe85bb6a12a36c41fd7436c24f4edc9488"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4083,
+          "sha256": "sha256:130c50eba0be165480aeada5a14c23ff30a584659cf80d7eb87b91012edcdd77"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "profile": "full",
+      "features": [
+        "workspace_panels",
+        "terminal_local",
+        "terminal_remote",
+        "terminal_vox_runtime",
+        "terminal_focus_gestures"
+      ],
+      "cells": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+          "bytes": 754,
+          "sha256": "sha256:b8ef28983d207f967ba64f7df19b9ffdcf2be778da1f381961e3de05ee783830"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalClient.java",
+          "bytes": 740,
+          "sha256": "sha256:55ca9eb976cd0450c59162b703fabbbf1d8217baeb9060197c9ef4469d47f160"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+          "bytes": 19661,
+          "sha256": "sha256:f0e8120a93577609aed57a1f104210c48b64e23c843a789958aa167e475569be"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java",
+          "bytes": null,
+          "sha256": null
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngRenderer.java",
+          "bytes": 4083,
+          "sha256": "sha256:130c50eba0be165480aeada5a14c23ff30a584659cf80d7eb87b91012edcdd77"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaRenderer.java",
+          "bytes": null,
+          "sha256": null
+        }
+      ]
+    }
+  ],
+  "profile_goldens_summary": {
+    "profiles": 84,
+    "new_source_cells": 504,
+    "selected": 228,
+    "omitted": 276,
+    "D2_profiles_per_target": 22,
+    "older_profiles_per_target": 5,
+    "oracle": "Independent static whole-line evaluator using actual target-to-minecraft_version catalog aliases. Confirmed all 44 raw all-on outputs first; prepared tests use actual production renderer/selection/collector. No production execution."
+  },
+  "source_seams": [
+    {
+      "provider": "Panel D2",
+      "predicate": "UI-local all(workspace_panels,workspace_widget_hosts,client_actions) AND any(terminal_local,terminal_remote,terminal_vox_runtime,terminal_properties)",
+      "evidence": "Local-only body refers only to Client, Service nested Session, Scrollback, Line and genuine shared widget/action peers; no RemoteService/PNG/RGBA/metadata/clipboard/factory source dependency."
+    },
+    {
+      "provider": "Panel older8",
+      "predicate": "workspace_panels AND any(terminal_local,terminal_remote,terminal_vox_runtime)",
+      "evidence": "Original older APIs/body preserved, only independent focus and remote-owned members factored; no D2 unsupported flag invented."
+    },
+    {
+      "provider": "Pure Service/Scrollback/Line/Response",
+      "predicate": "Original any(local,remote,vox_runtime) preserved, append only terminal_properties",
+      "evidence": "Panel's genuine properties-local path and Client constructor/session/scrollback rendering use all four pure types. No backend implementation, flag, prerequisite or source-body edit."
+    },
+    {
+      "provider": "RemoteService D2",
+      "predicate": "terminal_keyboard_input controls sendKey/sendText/both sendMouse; terminal_clipboard controls selection/copy/pasteWithGuard; nested clipboard + paste_confirmation controls pasteWithoutGuard",
+      "evidence": "All existing default refusals and original API bodies retained; input completion overload cannot refer to omitted base method."
+    },
+    {
+      "provider": "PNG D2",
+      "predicate": "terminal_frame_metadata controls stream identities and stream-aware frame order",
+      "evidence": "Metadata-off is exact older witnessed duplicate-sequence-only behavior, permitting any different sequence. Retains real bounded PNG/resource path; not stale-generation runtime proof."
+    },
+    {
+      "provider": "RGBA",
+      "predicate": "D2 AND terminal_frame_metadata AND any(remote,vox_runtime)",
+      "evidence": "Raw body exact. Metadata-off has no RGBA provider/call or fabricated width/height. Non-PNG frames remain unpresented."
+    },
+    {
+      "provider": "Panel optional members",
+      "predicate": "Independent metadata/clipboard/input/focus/host_escape/lifecycle/presentation/tuning/repl/measurement/property members",
+      "evidence": "Nested guards, supported OR grammar only. Clipboard without input still copy/paste without forwarding absent sendMouse. Confirmation-off keeps pasteWithGuard immediate callback but never retains/releases PendingPaste. Lifecycle-off returns original UNAVAILABLE and has no factory/starter/thread source route."
+    },
+    {
+      "provider": "PropertiesPanel",
+      "predicate": "UI-local all(workspace_panels,workspace_widget_hosts,client_actions,terminal_properties); lookup and tuning_controls independent",
+      "evidence": "Lookup-off uses existing Optional.empty owner lookup; tuning-off diagnostics remain but no control dispatch. Metadata-off acceptedFrame empty via genuine Panel snapshot, preserving raw all-on."
+    },
+    {
+      "provider": "1192 selection highlights",
+      "predicate": "remote-or-vox AND clipboard AND metadata; fractional helper if screen_fractional_highlights, else exact 1194 witnessed unit-rectangle transform",
+      "evidence": "No prerequisite/support broadening. 1194 and older genuine APIs preserved."
+    }
+  ],
+  "pending_promotion_prerequisites": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-terminal-model-providers-stage-v1",
+      "role": "Immutable Terminal26 genuine typed carriers and service/scrollback sources/rules; v1 ledger/raw/Java unchanged."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-terminal-model-providers-stage-v2",
+      "role": "Prepared historical test refinement only. Validate exact current Service/Scrollback OR first, reverse only cloned fixture selectors for old assertions. Never count historical fixture as current properties proof."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-consent-panel-closure-stage-v1",
+      "role": "Genuine SFMPanelWidget/Host/ActionButton/ActionExecution peers; no duplicate Java here.",
+      "source_rules_sha256": "sha256:e521024127ea3dcb98597508ee1c956783dade848d5ad8ec5367fa54c8d49475",
+      "review_sha256": "sha256:fbd3307175aff4c39d90261013a9b889a3e84e17db8add28fd3be9d479b26325"
+    }
+  ],
+  "current_provider_graph": {
+    "local_D2_terminal_types": [
+      "SFMTerminalPanel",
+      "SFMTerminalClient",
+      "SFMTerminalService",
+      "SFMTerminalScrollback",
+      "SFMTerminalLine"
+    ],
+    "properties_pure_union_types": [
+      "SFMTerminalService",
+      "SFMTerminalScrollback",
+      "SFMTerminalLine",
+      "SFMTerminalResponse"
+    ],
+    "genuine_current_optional_types": [
+      "SFMTerminalFrame",
+      "SFMTerminalFrameMetadata",
+      "SFMTerminalRasterLimits",
+      "SFMTerminalTransportId",
+      "SFMTerminalImageLayout",
+      "SFMTerminalSelectionLayout",
+      "SFMTerminalSelection",
+      "SFMTerminalInputDisposition",
+      "SFMTerminalCopyResult",
+      "SFMTerminalPasteResult",
+      "SFMTerminalFocusSequence"
+    ],
+    "UI_peer_owners": "Widget/Host/Button all(workspace_panels,workspace_widget_hosts) D2; Execution all(client_actions,workspace_panels) D2. keyboardUsageSituationId unconditional in widget. executeAction convenience optional command_palette; Panel uses genuine string execute.",
+    "font_contract": "Actual current SFMFontUtils Component/String draw overloads unconditional; optional formatted-text overload not called by this cohort.",
+    "selection_not_full_types": "Presence/rule graph proves selected source availability only, not javac/link/receiver/backend/runtime closure."
+  },
+  "source_only_limits": [
+    "Missing genuine SFMTerminalServiceFactory, SFMJavaLocalTerminalService, SFMVoxTerminalService, SFMVoxTerminalPresentationAdapter, and optional SFMTerminalPasteConfirmationScreen remain separate real providers; no fake backend, generic false provider, callback, receiver, or dimension substitution supplied.",
+    "Caller-supplied local Service/Session and D2 shared UI peers are genuine API seams; no local command runtime, scene registration, action registry/wiring, endpoint admission, GL/context thread, native image resource, clipboard permission or backend/process/network activation is accepted.",
+    "All-on raw identity proves preservation, not target compilation or runtime compatibility. Counterfactual source/hash checks do not type-check Java or execute focus/input/clipboard/rendering.",
+    "Metadata-off PNG follows older sequence-only order: stream/generation resets and different/lower sequence acceptance need later behavior tests. RGBA unavailable is deliberate, not a fabricated fallback.",
+    "Confirmation-off does not release guarded retained multiline text. Real backend expiry/content identity, screen human decision, thread marshaling and actor consent require later runtime proof.",
+    "No new definition, support, prerequisite, preset/default, packet-private/inbox/multiplayer flag, permission or OS/network execution authority. AppContainer remains unapproved."
+  ],
+  "required_later_regressions": [
+    "Compile exact selected local-only/properties-only/remote optional masks on each real MC API; verify 1192 integer/fractional highlights, 1194 widget APIs, GuiGraphics/Extractor/Identifier/native texture later variants.",
+    "Exercise local Session/scrollback rendering and genuine workspace widget/action install, focus Tab/escape third-press behavior and host escape without unintended remote input.",
+    "Exercise clipboard with keyboard input off, copy completion without forwarded mouse, pasteWithGuard immediate callback, no multiline release when confirmation off, stale/expired/content-mismatch confirmation when on.",
+    "Exercise PNG duplicate/lower-sequence/stream transitions and GL resource disposal/accounting; RGBA bounds/dirty frames only with genuine metadata; no metadata-off dimensions invented.",
+    "Exercise measurement/lookup absent diagnostics, tuning/presentation/lifecycle control ownership, backend refusal and action/receiver wiring independently of source presence."
+  ],
+  "prepared_tests": {
+    "module": "core_terminal_presentation_providers_slice_tests.rs",
+    "count": 8,
+    "registered": false,
+    "executed": false,
+    "formatted": false,
+    "contract": "Actual checked core rules/sources/180 definitions/catalog; immutable original Git objects offline witnesses only; real renderer/selection/collector called when root later runs tests. Fresh temp fixtures keep real standalone project files and have no stubs.",
+    "common_edit": "One unique package hunk is changed once with replacen(...,1). All 44 selected new outputs receive the edit.",
+    "sha256": "sha256:a24358249eae7dd0a1fa3ddf1f1445a3a0b242b3f2baead6683a59100141cb70",
+    "bytes": 52756
+  },
+  "static_checks": {
+    "all_44_historical_new_java_bodies_exact": true,
+    "all_18_raw_sha256_crosschecked": true,
+    "all_7_branch_forward_reverse_regions_exact": true,
+    "all_84_profile_rows_independent_oracle": true,
+    "no_physical_liquid_AND": true,
+    "current_properties_test_not_historical_fixture": true,
+    "production_renderer_executed": false,
+    "java_or_native_executed": false,
+    "actual_catalog_minecraft_version_alias_used": true,
+    "one_shared_package_and_top_class_per_source": true,
+    "common_edit_changes_one_unique_hunk_once": true
+  },
+  "target_minecraft_versions": {
+    "1.19.2": "1.19.2",
+    "1.19.4": "1.19.4",
+    "1.20": "1.20",
+    "1.20.1": "1.20.1",
+    "1.20.2": "1.20.2",
+    "1.20.3": "1.20.3",
+    "1.20.4": "1.20.4",
+    "1.21.0": "1.21",
+    "1.21.1": "1.21.1",
+    "26.1.2": "26.1.2"
+  },
+  "refused_v1_evidence": {
+    "stage": "platform/cli/sfm-propagate-changes/target/core-terminal-presentation-providers-stage-v1",
+    "immutable": true,
+    "promotable": false,
+    "reasons": [
+      "Repeated whole MC class/package bodies violate shared authored-core consolidation.",
+      "V1 when 1.21.0 used a matrix target ID instead of actual minecraft_version 1.21; the target-key static oracle concealed that source dispatch failure."
+    ],
+    "retracted_claim": "V1 static all-on/profile equality did not use actual catalog aliases. It does not establish actual 1.21.0 rendering. Original raw Git memberships/pins and named expected profile hashes remain witnesses; v2 recomputes against actual aliases.",
+    "remaining_unexecuted": true
+  },
+  "physical_shared_core": {
+    "package_hunks_per_source": 1,
+    "top_class_or_interface_hunks_per_source": 1,
+    "construction": "Shared imports, scaffolding, Java text and balanced feature blocks occur once where original ordering permits. Local version cases hold only genuinely differing imports, declarations or implementation fragments. No repeated full class/package body or dynamic source routing.",
+    "Panel": {
+      "local_version_cases": 75,
+      "common_text_nodes": 1317,
+      "merged_feature_nodes": 62
+    },
+    "PNG": {
+      "local_version_cases": 31
+    },
+    "RemoteService": {
+      "local_version_cases": 7
+    },
+    "exact_member_witnesses": "All original391 ordered member edits and their raw reversals remain pinned in immutable v1 exact-source-regions.json; physical consolidation changes no selected Java bytes. V2 portable physical forward/reverse delta separately pins three changed authored files."
+  }
+}

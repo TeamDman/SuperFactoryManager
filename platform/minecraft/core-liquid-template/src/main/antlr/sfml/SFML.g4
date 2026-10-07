@@ -265,6 +265,12 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
+{% if features.packet_computation and features.packet_transport_private and features.client_inbox and features.sfml_execution_side and features.sfml_worded_intervals and features.client_frame_language and features.client_frame_render and features.client_program_actions %}
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
+           | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
+           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET
+           | FRAME | FOR | MOD | RENDER | IMAGE | JSON) ;
+{% else %}
 {% if features.packet_computation %}
 identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
 {% elsif features.sfml_execution_side %}
@@ -364,6 +370,7 @@ identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM |
            ) ;
 {% elsif features.client_frame_language %}
            ) ;
+{% endif %}
 {% endif %}
 
 // GENERAL

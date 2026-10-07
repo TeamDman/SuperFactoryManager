@@ -11,6 +11,7 @@
     "frozen_context_count": 20,
     "production_historical_source_lookup": false,
     "environment_preset_projection_key_guards": false,
+    "current_full_feature_keyword_layout": "raw_git_bytes; earlier keyword reflow retained as historical evidence only",
     "scope_note": "This is a bounded SFML grammar and Program AST slice, not completion of language, parser, runtime or full feature closure."
   },
   "authored_inputs": {
@@ -19,8 +20,8 @@
       "sha256": "sha256:086f8cc029be421f5eed29c4cd54edb566c444ccf9836f2e48ef0429d675382d"
     },
     "src/main/antlr/sfml/SFML.g4": {
-      "bytes": 17421,
-      "sha256": "sha256:0e7c39d874ff81968804dfbc84e4beb59cafe86d26c3a1d48dda30426ff0f5df"
+      "bytes": 18073,
+      "sha256": "sha256:652707199b5916b2f29cc47eae7515d8b771d77c907225c7723f63c810508619"
     }
   },
   "functional_owners": {

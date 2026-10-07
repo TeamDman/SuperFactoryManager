@@ -1,0 +1,684 @@
+{
+  "schema": "sfm:core_named_forge_compile_proposal@1",
+  "status": "staged_unregistered_root_review_required",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "source_state": "Live uncommitted registered native adapter hashes below are authoritative. HEAD alone does not describe these inputs.",
+  "scope": {
+    "existing_target": "1.19.2",
+    "proposed_additions": [
+      "1.19.4",
+      "1.20",
+      "1.20.1"
+    ],
+    "operation": "Compile of owned main, gametest and datagen source sets only",
+    "excluded": [
+      "JAR packaging",
+      "JUnit compilation or execution",
+      "Minecraft launch",
+      "puppets",
+      "SourceOutputs",
+      "NeoForm execution",
+      "dependency refresh",
+      "source-build cache misses"
+    ],
+    "lock_policy": "Preserve selected schema-2 raw bytes, ordered rows, artifact pins and selected exact-copy role bindings. Do not use preserved schema-4 inputs.",
+    "loader_1_20_1": "ForgeGradleNeoForgeGroup, not ForgeGradleForge or NeoGradleUserdev",
+    "compiler_release": 17,
+    "tool_jvm_minimum": 17,
+    "legacy_policy": "Resolver::new, branch selection, legacy tool fallback choices and complete legacy BuildPlan JSON remain unchanged."
+  },
+  "live_base_files": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_named_compile.rs",
+      "bytes": 28115,
+      "sha256": "351176a48cbe25f56638527ae99cdd4c06f883fd222252c2b85832a8196d84d7",
+      "cr_bytes": 0
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+      "bytes": 66972,
+      "sha256": "21d3c9d143d76a58ceb6ea44e4bd4a2f43e62f3162978579877b536c20bc1e4d",
+      "cr_bytes": 1222
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_tests.rs",
+      "bytes": 145458,
+      "sha256": "293bc0f82ac8eb2ebd125ab68123be6ce670279448e22b4f333fee373ae6b067",
+      "cr_bytes": 0
+    }
+  ],
+  "stage_root": "platform/cli/sfm-propagate-changes/target/core-named-forge-compile-stage-v1",
+  "stage_files": [
+    {
+      "path": "engine_named_compile.rs",
+      "bytes": 53179,
+      "sha256": "cb6aa6478b779f24764984db5f267dfd413b0df4cff53023562d7c981bc3bc7d",
+      "purpose": "Complete review copy with named-only recipe selection and five new proposed tests"
+    },
+    {
+      "path": "engine_plan.rs",
+      "bytes": 65967,
+      "sha256": "d2e822ef37687dfc0a8a85e526004042b75cb27e4922e255017ca9aa6cb4e0aa",
+      "purpose": "Review copy with four scoped integration changes; LF stage output is not authority to normalize unchanged live mixed-EOL bytes"
+    },
+    {
+      "path": "engine_tests.append.rs",
+      "bytes": 1602,
+      "sha256": "983c9fc8af2bb7710a9669844f644a90c0bce195e9f32c3e161546c73caf3168",
+      "purpose": "One proposed complete legacy BuildPlan wire regression, to append inside existing engine_tests module"
+    },
+    {
+      "path": "production.patch",
+      "bytes": 11722,
+      "sha256": "d19dbc43a073dd6535c6ce8cd732d79415e7b1e97327e21fe6c5eb011ebf46a9",
+      "purpose": "Scoped production hunks only, excludes new tests; prefer these hunks over replacing the mixed-EOL live planner"
+    }
+  ],
+  "changes": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_named_compile.rs",
+      "functions": [
+        "validate_first_named_compile",
+        "named_forge_compile_recipe",
+        "named_forge_compile_recipe_for_project",
+        "named_forge_loader_kind",
+        "named_forge_mcp_tool_recipes",
+        "named_forge_mcp_tool_coordinates",
+        "add_named_forge_mcp_tool_coordinates"
+      ],
+      "contract": "Match exact target, actual MC version, recipe ID, loader kind/base coordinate and compiler/tool levels. Check every original loader/MCP/tool coordinate in the immutable prepared request catalog before planner effects. Declared MCP function coordinates must equal the target's reviewed original coordinate; even another locked/cached artifact cannot authorize substitution."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+      "functions": [
+        "create_plan_for_project",
+        "core_coordinates"
+      ],
+      "contract": "Select the named Forge-family loader kind from the prepared exact recipe. Pass the optional checked project only into named MCP selection. Legacy None calls retain add_mcp_tool_coordinates unchanged. Consumer IDs, order, purposes and other core-coordinate selection are retained."
+    }
+  ],
+  "reviewed_recipe_inputs": [
+    {
+      "target": "1.19.2",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.19.2@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-2.json",
+        "sha256": "4e25ec4540fb6feecba27836c90ec7eab6a0109bc21f193ef358c64f558567ae",
+        "bytes": 80281,
+        "schema_version": 2,
+        "minecraft_version": "1.19.2",
+        "dependency_count": 49,
+        "artifact_count": 108,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "platform": {
+        "kind": "forge_gradle_forge",
+        "base_coordinate": "net.minecraftforge:forge:1.19.2-43.4.0",
+        "gradle_configuration": "minecraft",
+        "component_artifacts": [
+          {
+            "artifact_index": 64,
+            "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:sources",
+            "hash": "blake3:94207d0ea7cdd4275fc1964c8a4093601b68a150"
+          },
+          {
+            "artifact_index": 65,
+            "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:universal",
+            "hash": "blake3:c003336f142db87f88e07a94e461056b7e3757dc"
+          },
+          {
+            "artifact_index": 66,
+            "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:userdev",
+            "hash": "blake3:ec28e8a8511ee220aa722739c172dea1a945c761"
+          }
+        ],
+        "java_major": 17,
+        "jdk_pin": null,
+        "mapping_properties": {
+          "mapping_channel": "parchment",
+          "mapping_version": "2022.11.27-1.19.2"
+        }
+      },
+      "tool_pins": [
+        [
+          51,
+          "net.md-5:SpecialSource:1.11.0:shaded",
+          "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          52,
+          "net.minecraftforge:DiffPatch:2.0.12:all",
+          "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          53,
+          "net.minecraftforge:ForgeAutoRenamingTool:0.1.22:all",
+          "blake3:b1b537cb1bbda3f902e2c5a2b08160eeb6d93fed",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          58,
+          "net.minecraftforge:accesstransformers:8.0.4:fatjar",
+          "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          67,
+          "net.minecraftforge:forgeflower:1.5.605.9",
+          "blake3:261756ba911f177ebac7bcadec2b3cf69db2a4a7",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          69,
+          "net.minecraftforge:installertools:1.2.0:fatjar",
+          "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          70,
+          "net.minecraftforge:installertools:1.3.0:fatjar",
+          "blake3:61fab6176058f644729b0594204fdc03e0d733f1",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          74,
+          "net.minecraftforge:mergetool:1.1.5:fatjar",
+          "blake3:5b4de461d9c8e0e7c9964645cd3d50b6e7ffa7bb",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ]
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.19.4@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.19.4/schema-2.json",
+        "sha256": "ab0ad620449f524ffeaaee7db21ca4f967e34a728a1a90c51823d5eb9d0c6616",
+        "bytes": 42571,
+        "schema_version": 2,
+        "minecraft_version": "1.19.4",
+        "dependency_count": 4,
+        "artifact_count": 71,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "platform": {
+        "kind": "forge_gradle_forge",
+        "base_coordinate": "net.minecraftforge:forge:1.19.4-45.0.9",
+        "gradle_configuration": "minecraft",
+        "component_artifacts": [
+          {
+            "artifact_index": 27,
+            "coordinate": "net.minecraftforge:forge:1.19.4-45.0.9:sources",
+            "hash": "blake3:d0ccf1d78a99a02739647144e7b4354cddeae7bc"
+          },
+          {
+            "artifact_index": 28,
+            "coordinate": "net.minecraftforge:forge:1.19.4-45.0.9:universal",
+            "hash": "blake3:6bf3f6ca0c57332ff6b56923edaf71fd5d8ee4e9"
+          },
+          {
+            "artifact_index": 29,
+            "coordinate": "net.minecraftforge:forge:1.19.4-45.0.9:userdev",
+            "hash": "blake3:38dbd9c49b2c85a68f99e53e84d5ae727fa05aa0"
+          }
+        ],
+        "java_major": 17,
+        "jdk_pin": null,
+        "mapping_properties": {
+          "mapping_channel": "parchment",
+          "mapping_version": "1.19.3-2023.03.12-1.19.4"
+        }
+      },
+      "tool_pins": [
+        [
+          14,
+          "net.md-5:SpecialSource:1.11.0:shaded",
+          "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          15,
+          "net.minecraftforge:DiffPatch:2.0.12:all",
+          "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          16,
+          "net.minecraftforge:ForgeAutoRenamingTool:0.1.22:all",
+          "blake3:b1b537cb1bbda3f902e2c5a2b08160eeb6d93fed",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          21,
+          "net.minecraftforge:accesstransformers:8.0.4:fatjar",
+          "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          30,
+          "net.minecraftforge:forgeflower:2.0.627.2",
+          "blake3:7500545c0b0e15e6775104888a8214ccc0f942f0",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          32,
+          "net.minecraftforge:installertools:1.2.0:fatjar",
+          "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          33,
+          "net.minecraftforge:installertools:1.3.0:fatjar",
+          "blake3:61fab6176058f644729b0594204fdc03e0d733f1",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          37,
+          "net.minecraftforge:mergetool:1.1.5:fatjar",
+          "blake3:5b4de461d9c8e0e7c9964645cd3d50b6e7ffa7bb",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ]
+      ]
+    },
+    {
+      "target": "1.20",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.20@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.20/schema-2.json",
+        "sha256": "687924ae50658639c45b17b167c25e6186cd384dd00ef0120484b5dade67b01c",
+        "bytes": 43036,
+        "schema_version": 2,
+        "minecraft_version": "1.20",
+        "dependency_count": 4,
+        "artifact_count": 72,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "platform": {
+        "kind": "forge_gradle_forge",
+        "base_coordinate": "net.minecraftforge:forge:1.20-46.0.10",
+        "gradle_configuration": "minecraft",
+        "component_artifacts": [
+          {
+            "artifact_index": 27,
+            "coordinate": "net.minecraftforge:forge:1.20-46.0.10:sources",
+            "hash": "blake3:fc18475268136d5f9d276a99574bd5d88ec6cf1d"
+          },
+          {
+            "artifact_index": 28,
+            "coordinate": "net.minecraftforge:forge:1.20-46.0.10:universal",
+            "hash": "blake3:faeb3364176b5481469942c0af4bffafbea55473"
+          },
+          {
+            "artifact_index": 29,
+            "coordinate": "net.minecraftforge:forge:1.20-46.0.10:userdev",
+            "hash": "blake3:9b97fbd8d0dec6bb31f7e376f36d036a914f6bd9"
+          }
+        ],
+        "java_major": 17,
+        "jdk_pin": null,
+        "mapping_properties": {
+          "mapping_channel": "parchment",
+          "mapping_version": "2023.09.03-1.20.1"
+        }
+      },
+      "tool_pins": [
+        [
+          14,
+          "net.md-5:SpecialSource:1.11.0:shaded",
+          "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          15,
+          "net.minecraftforge:DiffPatch:2.0.12:all",
+          "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          16,
+          "net.minecraftforge:ForgeAutoRenamingTool:1.0.1:all",
+          "blake3:d74321bf38cbebc09fe4013b4ba326201418d907",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          21,
+          "net.minecraftforge:accesstransformers:8.0.4:fatjar",
+          "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          30,
+          "net.minecraftforge:forgeflower:2.0.629.0",
+          "blake3:707672a6f639f006038e7c952df529b5e87f1e64",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          32,
+          "net.minecraftforge:installertools:1.2.0:fatjar",
+          "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          33,
+          "net.minecraftforge:installertools:1.3.2:fatjar",
+          "blake3:8b0e6afdedf0c6aa696da2b93ff9914cbfca8eaf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          37,
+          "net.minecraftforge:mergetool:1.1.5:api",
+          "blake3:1fa0441489798d8886d500b4217cac231f33c433",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          38,
+          "net.minecraftforge:mergetool:1.1.7:fatjar",
+          "blake3:6ff210a87a8f8766e53999196a69a3500275192b",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ]
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.1@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.1/schema-2.json",
+        "sha256": "7bf92855b47d5a407f03e80cc34234aedcd7312708b8a06818c840cc0dc82c8a",
+        "bytes": 50991,
+        "schema_version": 2,
+        "minecraft_version": "1.20.1",
+        "dependency_count": 11,
+        "artifact_count": 81,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "platform": {
+        "kind": "forge_gradle_neoforge_group",
+        "base_coordinate": "net.neoforged:forge:1.20.1-47.1.65",
+        "gradle_configuration": "minecraft",
+        "component_artifacts": [
+          {
+            "artifact_index": 47,
+            "coordinate": "net.neoforged:forge:1.20.1-47.1.65:sources",
+            "hash": "blake3:4a7889719cbcbf201f9c5d0d9914c717453175cf"
+          },
+          {
+            "artifact_index": 48,
+            "coordinate": "net.neoforged:forge:1.20.1-47.1.65:universal",
+            "hash": "blake3:246cd004b4b72f6806624ef7d7ddbc5f07042c7b"
+          },
+          {
+            "artifact_index": 49,
+            "coordinate": "net.neoforged:forge:1.20.1-47.1.65:userdev",
+            "hash": "blake3:b4a49e58708337098fd27f560eae8e1693d3c34f"
+          }
+        ],
+        "java_major": 17,
+        "jdk_pin": null,
+        "mapping_properties": {
+          "mapping_channel": "parchment",
+          "mapping_version": "2023.09.03-1.20.1"
+        }
+      },
+      "tool_pins": [
+        [
+          21,
+          "net.md-5:SpecialSource:1.11.0:shaded",
+          "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          22,
+          "net.minecraftforge:DiffPatch:2.0.12:all",
+          "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          23,
+          "net.minecraftforge:ForgeAutoRenamingTool:1.0.2:all",
+          "blake3:0a7ecd2d9ce1552c897550a8c9e4b25f445a5a35",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          28,
+          "net.minecraftforge:accesstransformers:8.0.4:fatjar",
+          "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          32,
+          "net.minecraftforge:forgeflower:2.0.629.0",
+          "blake3:707672a6f639f006038e7c952df529b5e87f1e64",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          34,
+          "net.minecraftforge:installertools:1.2.0:fatjar",
+          "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          35,
+          "net.minecraftforge:installertools:1.3.2:fatjar",
+          "blake3:8b0e6afdedf0c6aa696da2b93ff9914cbfca8eaf",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          36,
+          "net.minecraftforge:mergetool:1.1.5:api",
+          "blake3:1fa0441489798d8886d500b4217cac231f33c433",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ],
+        [
+          37,
+          "net.minecraftforge:mergetool:1.1.7:fatjar",
+          "blake3:6ff210a87a8f8766e53999196a69a3500275192b",
+          "remote-maven",
+          [
+            "preserved_pin_pipeline_consumer_role_not_yet_expanded"
+          ]
+        ]
+      ]
+    }
+  ],
+  "evidence": {
+    "actual_checks": [
+      "Read-only exact frozen inventory confirms 32 selected tool coordinates have one original pin each across the four recipes.",
+      "rustfmt --edition 2024 and --check passed for the staged named module and test append fragment.",
+      "Registered live hashes remained unchanged after staging."
+    ],
+    "proposed_tests": [
+      "exact_four_recipe_eight_context_consumer_matrix_preserves_pins_and_loader",
+      "declared_mcp_functions_confirm_exact_recipe_without_changing_order",
+      "changed_function_refuses_even_when_another_original_pin_has_cached_bytes",
+      "absent_pin_or_cross_recipe_mcp_refuses_without_fallback",
+      "unsupported_recipes_and_changed_boundaries_refuse_before_any_cache_or_sdk",
+      "named_forge_cohort_preserves_complete_legacy_plan_wire_after_recipe_selection"
+    ],
+    "cache_test_limit": "The cache test uses an isolated sentinel file, not a claim that real tool JAR bytes were verified. It proves refusal happens before consuming or modifying any cached artifact. Exact real artifact identity remains the prepared Resolver boundary.",
+    "complete_legacy_wire": {
+      "existing_test": "named_compile_preserves_complete_legacy_build_plan_wire",
+      "bytes": 4279,
+      "sha256": "14106f776a5ca86f609d735fea05e3d2c4236136957d711ad9cf93c95a0a1f33"
+    },
+    "Cargo": "not_run",
+    "native_compile": "not_run",
+    "Minecraft": "not_launched",
+    "dependency_or_lock_mutation": "none",
+    "production_type_and_integration_proof": "Pending root promotion and coordinated focused/full gate. rustfmt is syntax/format evidence only."
+  },
+  "root_promotion_gate": [
+    "Recheck all live base hashes; review scoped hunks and separately append both proposed regression groups.",
+    "Retain exact legacy wire golden and old branch tests.",
+    "Run focused consumer/refusal/wire tests, then the required whole-tool gate.",
+    "Run each original Forge recipe with owned source checks, explicit verified SDK and unchanged raw locks; record actual native compilation separately.",
+    "Do not unlock packaging, JUnit, runtime or NeoForm gates as part of this slice."
+  ],
+  "remaining_target_boundaries": [
+    {
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4"
+      ],
+      "compiler_release": 17,
+      "tool_jvm_minimum": 21,
+      "loader_versions": [
+        "20.2.86",
+        "20.3.8-beta",
+        "20.4.231"
+      ],
+      "antlr": "4.13.1",
+      "gates": [
+        "Map explicit neogradle_userdev recipe to native loader kind.",
+        "Consume the exact frozen global runtime closure rather than per-root POM discovery.",
+        "Seal NFRT 2.0.19 artifact manifest and authenticated Minecraft descendants; current warning-on-miss and added repositories permit external downloads."
+      ]
+    },
+    {
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "actual_minecraft_versions": [
+        "1.21",
+        "1.21.1"
+      ],
+      "compiler_release": 21,
+      "tool_jvm_minimum": 21,
+      "loader_versions": [
+        "21.0.143",
+        "21.1.206"
+      ],
+      "gates": [
+        "All preceding NeoForm gates.",
+        "Retain actual MC 1.21 alias in roles, properties, cache and source-exclusion paths.",
+        "Separate JUnit Platform 1.8.1 and loader test Platform 1.10.2; do not union unordered test classpaths."
+      ]
+    },
+    {
+      "targets": [
+        "26.1.2"
+      ],
+      "compiler_release": 25,
+      "tool_jvm_minimum": 25,
+      "loader_version": "26.1.2.72",
+      "gates": [
+        "All preceding NeoForm gates.",
+        "Preserve optional missing mappings in the authenticated metadata-to-plan adapter; current named plan requires both mapping download fields.",
+        "Retain exact original Mekanism source-built pins. Verified existing bytes can satisfy the weak pin, but cache misses still require reviewed source-build closure.",
+        "Preserve original ANTLR bundle range and JarJar metadata at the later packaging gate."
+      ]
+    }
+  ],
+  "separate_operation_gates": {
+    "packaging": "execute_build still rejects named Jar. Existing packager requires owned/context-bound output policy, rechecks, refmap/remapping/JarJar/resource/archive and behavior comparisons. Do not remove the gate merely because Compile passes.",
+    "junit": "execute_junit_tests still requires a legacy branch and constructs an unlocked Resolver. All ten original locks contain ConsoleLauncher 1.8.1, but a separately reviewed frozen ordered test closure is necessary before named JUnit.",
+    "runtime": "execute_run and puppet reports require a real branch today. Named support needs exact projection identity reporting plus authenticated asset index/objects/native classifiers, EULA and guarded run/world paths; never fabricate a BranchName.",
+    "plan": "Task 3.2 and complete ten-target build/run/test/parity acceptance remain incomplete."
+  }
+}

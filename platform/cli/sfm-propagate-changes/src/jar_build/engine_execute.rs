@@ -20,9 +20,60 @@ struct NodeOutputState {
     sha1: Option<ContentHash>,
 }
 
+fn java_tool_argfile_argument(argfile: &Path) -> eyre::Result<std::ffi::OsString> {
+    #[cfg(windows)]
+    use std::os::windows::ffi::OsStrExt as _;
+
+    eyre::ensure!(
+        argfile.is_absolute(),
+        "Java tool transport path must be absolute"
+    );
+    #[cfg(windows)]
+    eyre::ensure!(
+        argfile.as_os_str().encode_wide().count() < 260
+            && !matches!(
+                argfile.components().next(),
+                Some(std::path::Component::Prefix(prefix))
+                    if matches!(prefix.kind(), std::path::Prefix::Verbatim(_)
+                        | std::path::Prefix::VerbatimDisk(_)
+                        | std::path::Prefix::VerbatimUNC(_, _))
+            ),
+        "Java tool transport path must use a normal Windows spelling below 260 UTF-16 units"
+    );
+    let mut argument = std::ffi::OsString::from("@");
+    argument.push(argfile);
+    Ok(argument)
+}
+
+fn java_tool_argfile_transport(contents: &[u8]) -> eyre::Result<tempfile::NamedTempFile> {
+    let mut transport = tempfile::Builder::new()
+        .prefix("sfm-java-args-")
+        .suffix(".args")
+        .tempfile()
+        .wrap_err("cannot create owned Java argument-file transport")?;
+    java_tool_argfile_argument(transport.path())?;
+    transport.as_file_mut().write_all(contents)?;
+    transport.as_file_mut().flush()?;
+    Ok(transport)
+}
+
+fn java_tool_launch_cwd<'a>(
+    diagnostic_dir: &'a Path,
+    scratch: Option<&'a RetainedSpecialSourceScratch>,
+) -> eyre::Result<&'a Path> {
+    if let Some(scratch) = scratch {
+        scratch.recheck_empty()?;
+        Ok(&scratch.path)
+    } else {
+        Ok(diagnostic_dir)
+    }
+}
+
 impl<'a> ExecutionContext<'a> {
     fn new(plan: &'a BuildPlan, cancellation_token: CancellationToken) -> eyre::Result<Self> {
         cancellation_token.bail_if_cancelled()?;
+        plan.recheck_named_inputs()?;
+        plan.recheck_named_sdk()?;
         let forbidden_input_roots = [
             plan.minecraft_dir.join("build").join("fg_cache"),
             plan.minecraft_dir.join("build").join("classpath"),
@@ -39,6 +90,7 @@ impl<'a> ExecutionContext<'a> {
             forbidden_input_roots,
             cancellation_token,
             minecraft_libraries_cache: Mutex::new(None),
+            held_neoform_compile_jar: None,
         })
     }
 
@@ -194,6 +246,26 @@ impl<'a> ExecutionContext<'a> {
         args: &[String],
         work_dir: &Path,
     ) -> eyre::Result<()> {
+        self.run_java_tool_with_classpath_and_scratch(
+            tool_id,
+            jvm_args,
+            extra_classpath,
+            args,
+            work_dir,
+            None,
+        )
+    }
+
+    #[tracing::instrument(level = "info", skip_all, fields(tool_id))]
+    fn run_java_tool_with_classpath_and_scratch(
+        &self,
+        tool_id: &str,
+        jvm_args: &[&str],
+        extra_classpath: &[PathBuf],
+        args: &[String],
+        work_dir: &Path,
+        launch_scratch: Option<&RetainedSpecialSourceScratch>,
+    ) -> eyre::Result<()> {
         let tool = self.artifact(ArtifactId::from(tool_id))?;
         self.assert_allowed_input(&tool.cache_path)?;
         for path in extra_classpath {
@@ -214,15 +286,17 @@ impl<'a> ExecutionContext<'a> {
             .collect::<Vec<_>>();
         java_args.extend(["-cp".to_string(), classpath_arg.clone(), main_class.clone()]);
         java_args.extend(args.iter().cloned());
-        fs::write(
-            &java_argfile,
-            java_args
-                .into_iter()
-                .map(escape_argfile_arg)
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
-        .wrap_err_with(|| format!("Failed to write {}", java_argfile.display()))?;
+        let argfile_contents = java_args
+            .into_iter()
+            .map(escape_argfile_arg)
+            .collect::<Vec<_>>()
+            .join("\n");
+        fs::write(&java_argfile, &argfile_contents)
+            .wrap_err_with(|| format!("Failed to write {}", java_argfile.display()))?;
+        // Retain the original file for inspection. Windows' Java launcher uses
+        // a short-path reader even when Java/NIO accepts long output paths.
+        // Keep this exact-byte transport owner alive until its child finishes.
+        let launch_argfile = java_tool_argfile_transport(argfile_contents.as_bytes())?;
         let started = Instant::now();
         let log_path = work_dir.join("console.log");
         tracing::info!(
@@ -231,9 +305,15 @@ impl<'a> ExecutionContext<'a> {
             log_path.display()
         );
         let mut command = Command::new(&self.plan.java.executable);
-        command
-            .arg(format!("@{}", java_argfile.display()))
-            .current_dir(work_dir);
+        command.arg(java_tool_argfile_argument(launch_argfile.path())?);
+        let source_check_started = Instant::now();
+        self.plan.recheck_named_inputs()?;
+        let source_validation_ms = source_check_started.elapsed().as_millis();
+        let sdk_check_started = Instant::now();
+        self.plan.recheck_named_sdk()?;
+        let sdk_validation_ms = sdk_check_started.elapsed().as_millis();
+        command.current_dir(java_tool_launch_cwd(work_dir, launch_scratch)?);
+        let child_started = Instant::now();
         let output = run_command_capture_output(&self.cancellation_token, &mut command, tool_id)
             .wrap_err_with(|| {
                 format!(
@@ -241,6 +321,7 @@ impl<'a> ExecutionContext<'a> {
                     self.plan.java.executable.display()
                 )
             })?;
+        let child_execution_ms = child_started.elapsed().as_millis();
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stdout", &output.stdout);
         trace_subprocess_bytes(self.plan, "java-tool", tool_id, "stderr", &output.stderr);
 
@@ -266,6 +347,9 @@ impl<'a> ExecutionContext<'a> {
                 tool_id,
                 status = %output.status,
                 duration_ms,
+                source_validation_ms,
+                sdk_validation_ms,
+                child_execution_ms,
                 log_path = %log_path.display(),
                 "java_tool_failed"
             );
@@ -278,6 +362,9 @@ impl<'a> ExecutionContext<'a> {
         tracing::info!(
             tool_id,
             duration_ms,
+            source_validation_ms,
+            sdk_validation_ms,
+            child_execution_ms,
             log_path = %log_path.display(),
             "java_tool_completed"
         );
@@ -338,28 +425,24 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         .join("server-bundle.jar");
     let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
 
-    download_to_path(
-        &context.cancellation_token,
+    download_compile_child(
+        context,
         &client,
-        &context.plan.minecraft.client_jar_url,
+        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientJar,
         &client_jar,
     )?;
     context.bail_if_cancelled()?;
-    download_to_path(
-        &context.cancellation_token,
+    download_compile_child(
+        context,
         &client,
-        &context.plan.minecraft.server_jar_url,
+        authenticated_minecraft_inputs::MinecraftCompileDownload::ServerJar,
         &server_bundle,
     )?;
     context.bail_if_cancelled()?;
-    download_to_path(
-        &context.cancellation_token,
+    download_compile_child(
+        context,
         &client,
-        required_minecraft_mapping_url(
-            context,
-            context.plan.minecraft.client_mappings_url.as_deref(),
-            "client",
-        )?,
+        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientMappings,
         &client_mappings,
     )?;
     context.bail_if_cancelled()?;
@@ -626,25 +709,17 @@ fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
 
     let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
     let server_mappings = context.plan.minecraft_version_cache_dir.join("server.txt");
-    download_to_path(
-        &context.cancellation_token,
+    download_compile_child(
+        context,
         &client,
-        required_minecraft_mapping_url(
-            context,
-            context.plan.minecraft.client_mappings_url.as_deref(),
-            "client",
-        )?,
+        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientMappings,
         &client_mappings,
     )?;
     context.bail_if_cancelled()?;
-    download_to_path(
-        &context.cancellation_token,
+    download_compile_child(
+        context,
         &client,
-        required_minecraft_mapping_url(
-            context,
-            context.plan.minecraft.server_mappings_url.as_deref(),
-            "server",
-        )?,
+        authenticated_minecraft_inputs::MinecraftCompileDownload::ServerMappings,
         &server_mappings,
     )?;
     context.bail_if_cancelled()?;
@@ -947,6 +1022,9 @@ fn required_minecraft_mapping_url<'a>(
 }
 
 fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
+    if let Some(held) = context.held_neoform_compile_jar {
+        return held.to_path_buf();
+    }
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         neoform_dev_compile_jar(context)
     } else {
@@ -1031,16 +1109,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
     }
     let resolver = {
         let _span = tracing::debug_span!("dependency_deobf_create_resolver").entered();
-        Resolver::new(
-            context.plan.maven_cache_dir.clone(),
-            context.plan.repositories.clone(),
-            context.plan.refresh,
-            context.plan.allow_local_artifact_cache,
-            context.plan.artifact_sources.clone(),
-            context.plan.lockfile.clone(),
-            context.plan.lockfile.clone(),
-            context.cancellation_token.clone(),
-        )?
+        context.plan.resolver(&context.cancellation_token)?
     };
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let _span = tracing::debug_span!("dependency_deobf_copy_neogradle_jars").entered();
@@ -1256,19 +1325,12 @@ fn execute_dependency_deobf_dependency(
                         output = %specialsource_output.display(),
                     )
                     .entered();
-                    context.run_java_tool_with_classpath(
-                        "tool-specialsource",
-                        &[],
-                        &[],
-                        &[
-                            "--in-jar".to_string(),
-                            artifact.cache_path.display().to_string(),
-                            "--out-jar".to_string(),
-                            specialsource_output.display().to_string(),
-                            "--srg-in".to_string(),
-                            mapping_path.display().to_string(),
-                            "--live".to_string(),
-                        ],
+                    context.run_dependency_specialsource(
+                        &artifact,
+                        &specialsource_output,
+                        mapping_path,
+                        mapping_hash,
+                        &coordinate,
                         &output
                             .join("remap-work")
                             .join(safe_path_segment(&coordinate.file_name())),
@@ -1718,16 +1780,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
 
     let resolver = {
         let _span = tracing::debug_span!("project_compile_create_resolver").entered();
-        Resolver::new(
-            context.plan.maven_cache_dir.clone(),
-            context.plan.repositories.clone(),
-            context.plan.refresh,
-            context.plan.allow_local_artifact_cache,
-            context.plan.artifact_sources.clone(),
-            context.plan.lockfile.clone(),
-            context.plan.lockfile.clone(),
-            context.cancellation_token.clone(),
-        )?
+        context.plan.resolver(&context.cancellation_token)?
     };
     context.bail_if_cancelled()?;
     {
@@ -1801,8 +1854,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     let mut main_fingerprint_paths = classpath.clone();
     main_fingerprint_paths.extend(sources.iter().cloned());
     main_fingerprint_paths.push(argfile.clone());
-    let main_source_excludes = source_exclude_file_path(context, "main");
-    if main_source_excludes.is_file() {
+    if let Some(main_source_excludes) = source_exclusion_fingerprint_path(context, "main")? {
         main_fingerprint_paths.push(main_source_excludes);
     }
     context.bail_if_cancelled()?;
@@ -1879,6 +1931,8 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                 argfile = %argfile.display()
             )
             .entered();
+            context.plan.recheck_named_inputs()?;
+            context.plan.recheck_named_sdk()?;
             run_command_capture_output(&context.cancellation_token, &mut command, "javac-main")
                 .wrap_err("Failed to run javac")?
         };
@@ -2204,8 +2258,7 @@ fn compile_optional_java_source_set(
     );
     let mut fingerprint_paths = sources.clone();
     fingerprint_paths.push(argfile.clone());
-    let source_excludes = source_exclude_file_path(context, source_set);
-    if source_excludes.is_file() {
+    if let Some(source_excludes) = source_exclusion_fingerprint_path(context, source_set)? {
         fingerprint_paths.push(source_excludes);
     }
     context.bail_if_cancelled()?;
@@ -2271,6 +2324,8 @@ fn compile_optional_java_source_set(
             argfile = %argfile.display()
         )
         .entered();
+        context.plan.recheck_named_inputs()?;
+        context.plan.recheck_named_sdk()?;
         run_command_capture_output(&context.cancellation_token, &mut command, &source)
             .wrap_err_with(|| format!("Failed to run javac for {source_set}"))?
     };
@@ -2402,6 +2457,7 @@ fn stage_optional_resource_source_set(
     )
 )]
 fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let named_admission = context.prepare_named_package_admission()?;
     if context.plan.rust_output_jar == context.plan.gradle_output_jar {
         eyre::bail!(
             "Refusing to write Rust jar over Gradle jar: {}",
@@ -2413,15 +2469,14 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     let classes_dir = project_root.join("classes");
     let javac_resources_dir = project_root.join("resources");
     let staged_resources_dir = project_root.join("staged-resources");
-    let development_jar = project_root.join("dev.jar");
-    let mixin_reobf_mapping = project_root.join("compileJava-mappings.tsrg");
-    let reobf_mapping = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings")
-        .join("official_to_srg.tsrg");
+    let ProjectPackageInputPaths {
+        development_jar,
+        reobf_mapping,
+        mixin_reobf_mapping,
+    } = project_package_input_paths(
+        &context.plan.cache_dir,
+        context.plan.minecraft_version.as_str(),
+    );
     tracing::info!(
         development_jar = %development_jar.display(),
         staged_resources_dir = %staged_resources_dir.display(),
@@ -2469,13 +2524,15 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         "package-and-reobfuscate-jar: start output={}",
         context.plan.rust_output_jar.display()
     );
-    if cache_state_matches_outputs(
-        context,
-        &package_state_path,
-        &package_fingerprint,
-        &[],
-        &[&context.plan.rust_output_jar],
-    )? {
+    if named_package_cache_reuse_allowed(context.plan.named_project().is_some())
+        && cache_state_matches_outputs(
+            context,
+            &package_state_path,
+            &package_fingerprint,
+            &[],
+            &[&context.plan.rust_output_jar],
+        )?
+    {
         tracing::info!(
             "package-and-reobfuscate-jar: reused cached Rust jar in {} ms",
             started.elapsed().as_millis()
@@ -2493,6 +2550,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         return Ok(());
     }
 
+    context.recheck_named_package_admission(named_admission.as_ref())?;
     write_project_development_jar(
         context,
         &classes_dir,
@@ -2503,7 +2561,9 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     if let Some(parent) = context.plan.rust_output_jar.parent() {
         fs::create_dir_all(parent)?;
     }
-    if context.plan.rust_output_jar.exists() {
+    if named_package_previous_output_removal_allowed(context.plan.named_project().is_some())
+        && context.plan.rust_output_jar.exists()
+    {
         fs::remove_file(&context.plan.rust_output_jar).wrap_err_with(|| {
             format!(
                 "Failed to remove previous Rust jar {}",
@@ -2512,13 +2572,18 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         })?;
     }
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        fs::copy(&development_jar, &context.plan.rust_output_jar).wrap_err_with(|| {
-            format!(
-                "Failed to copy {} to {}",
-                development_jar.display(),
-                context.plan.rust_output_jar.display()
-            )
-        })?;
+        if context.plan.named_project().is_some() {
+            context.recheck_named_package_admission(named_admission.as_ref())?;
+            copy_named_neoform_package(&development_jar, &context.plan.rust_output_jar)?;
+        } else {
+            fs::copy(&development_jar, &context.plan.rust_output_jar).wrap_err_with(|| {
+                format!(
+                    "Failed to copy {} to {}",
+                    development_jar.display(),
+                    context.plan.rust_output_jar.display()
+                )
+            })?;
+        }
         context.write_node_state(
             "package-and-reobfuscate-jar",
             &["compiled classes", "expanded resources"],
@@ -2550,21 +2615,10 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         );
     }
 
-    let resolver = Resolver::new(
-        context.plan.maven_cache_dir.clone(),
-        context.plan.repositories.clone(),
-        context.plan.refresh,
-        context.plan.allow_local_artifact_cache,
-        context.plan.artifact_sources.clone(),
-        context.plan.lockfile.clone(),
-        context.plan.lockfile.clone(),
-        context.cancellation_token.clone(),
-    )?;
-    let antlr_classpath = resolve_antlr_classpath(context, &resolver)?;
-    let reobf_classpath = resolve_project_compile_classpath(context, &resolver, &antlr_classpath)?;
-    context.run_java_tool_with_classpath(
-        "tool-specialsource",
-        &[],
+    let resolver = context.plan.resolver(&context.cancellation_token)?;
+    context.recheck_named_package_admission(named_admission.as_ref())?;
+    let reobf_classpath = context.package_reobfuscation_classpath(&resolver)?;
+    context.run_project_package_specialsource(
         &reobf_classpath,
         &[
             "--in-jar".to_string(),
@@ -2615,7 +2669,8 @@ fn package_fingerprint_extras(context: &ExecutionContext<'_>) -> Vec<String> {
         context
             .plan
             .worktree_path
-            .file_name()
+            .as_deref()
+            .and_then(Path::file_name)
             .and_then(|name| name.to_str())
             .unwrap_or("sfm")
             .to_string(),
@@ -2657,6 +2712,7 @@ fn stage_project_resources(
     )
     .entered();
     context.bail_if_cancelled()?;
+    let release_policy = checked_catalog_release_packaging_policy(context.plan)?;
     {
         let _span = tracing::debug_span!("stage_project_resources_reset_output").entered();
         reset_cache_directory(&context.plan.cache_dir, staging_dir)?;
@@ -2686,7 +2742,9 @@ fn stage_project_resources(
         .entered();
         stage_resource_root(context, &root, staging_dir, &mut written)?;
     }
-    stage_antlr_grammar_resources(context, staging_dir, &mut written)?;
+    if stage_synthesized_antlr_grammar_resources(release_policy) {
+        stage_antlr_grammar_resources(context, staging_dir, &mut written)?;
+    }
     Ok(())
 }
 
@@ -2804,6 +2862,7 @@ fn write_project_development_jar(
     resources_dir: &Path,
     output: &Path,
 ) -> eyre::Result<()> {
+    let manifest = build_project_manifest(context)?;
     context.assert_allowed_input(classes_dir)?;
     context.assert_allowed_input(resources_dir)?;
     let mut entries = BTreeMap::new();
@@ -2823,7 +2882,7 @@ fn write_project_development_jar(
         .start_file("META-INF/MANIFEST.MF", options)
         .wrap_err_with(|| format!("Failed to write manifest to {}", output.display()))?;
     writer
-        .write_all(build_project_manifest(context).as_bytes())
+        .write_all(manifest.as_bytes())
         .wrap_err_with(|| format!("Failed to write manifest to {}", output.display()))?;
 
     for (name, bytes) in entries {
@@ -2955,16 +3014,11 @@ pub(super) fn should_package_project_entry(name: &str) -> bool {
     )
 }
 
-fn build_project_manifest(context: &ExecutionContext<'_>) -> String {
+fn build_project_manifest(context: &ExecutionContext<'_>) -> eyre::Result<String> {
     let properties = &context.plan.properties;
     let mod_id = properties.get("mod_id").map_or("sfm", String::as_str);
     let mod_authors = properties.get("mod_authors").map_or("", String::as_str);
-    let project_name = context
-        .plan
-        .worktree_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .map_or_else(|| "sfm".to_string(), |version| format!("sfm-{version}"));
+    let project_name = project_manifest_implementation_title(context)?;
     let mod_version = properties.get("mod_version").map_or("", String::as_str);
     let timestamp = Local::now().format("%Y-%m-%dT%H:%M:%S%z").to_string();
     let mut manifest = String::new();
@@ -2985,7 +3039,7 @@ fn build_project_manifest(context: &ExecutionContext<'_>) -> String {
         append_manifest_attribute(&mut manifest, "MixinConfigs", "sfm.mixins.json");
     }
     manifest.push_str("\r\n");
-    manifest
+    Ok(manifest)
 }
 
 fn append_manifest_attribute(manifest: &mut String, key: &str, value: &str) {
@@ -3041,8 +3095,10 @@ fn decode_gradle_property_value(value: &str) -> String {
 }
 
 fn reset_cache_directory(cache_dir: &Path, path: &Path) -> eyre::Result<()> {
-    let canonical_cache = canonicalize_lenient(cache_dir)?;
-    let canonical_path = canonicalize_lenient(path)?;
+    // Do not simplify just one Windows path: long children retain a verbatim
+    // prefix even when their short cache root can use the legacy spelling.
+    let canonical_cache = canonicalize_cache_reset_path(cache_dir)?;
+    let canonical_path = canonicalize_cache_reset_path(path)?;
     if !canonical_path.starts_with(&canonical_cache) {
         eyre::bail!("Refusing to reset non-cache directory {}", path.display());
     }
@@ -3052,6 +3108,21 @@ fn reset_cache_directory(cache_dir: &Path, path: &Path) -> eyre::Result<()> {
     }
     fs::create_dir_all(path).wrap_err_with(|| format!("Failed to create {}", path.display()))?;
     Ok(())
+}
+
+fn canonicalize_cache_reset_path(path: &Path) -> eyre::Result<PathBuf> {
+    if path.exists() {
+        return fs::canonicalize(path)
+            .wrap_err_with(|| format!("Failed to canonicalize cache path {}", path.display()));
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("Cache path has no parent: {}", path.display()))?;
+    let canonical_parent = canonicalize_cache_reset_path(parent)?;
+    let file_name = path
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("Cache path has no file name: {}", path.display()))?;
+    Ok(canonical_parent.join(file_name))
 }
 
 fn cache_state_matches(
@@ -3077,6 +3148,7 @@ fn cache_state_matches_outputs(
     required_output_files: &[&Path],
 ) -> eyre::Result<bool> {
     context.bail_if_cancelled()?;
+    context.plan.recheck_named_sdk()?;
     if context.plan.refresh {
         return Ok(false);
     }
@@ -3264,4 +3336,3 @@ fn zip_name_to_path(root: &Path, name: &str) -> PathBuf {
         .filter(|part| !part.is_empty())
         .fold(root.to_path_buf(), |path, part| path.join(part))
 }
-

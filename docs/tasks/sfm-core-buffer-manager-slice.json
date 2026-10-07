@@ -1,0 +1,1666 @@
+{
+  "schema": "sfm:core-buffer-manager-slice@1",
+  "status": "staged_source_inputs_and_unregistered_tests",
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": {
+    "redstone_buffer_storage": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [],
+      "scope": "Buffer comparator methods, stored-redstone getter/load/change methods and redstone NBT; existing released Redstone enum/mapping is not new."
+    },
+    "image_resources": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values"
+      ],
+      "scope": "Image enum/name mapping and direct Buffer contents.markChanged callback used by ImageResourceType. Image mutation infrastructure does not require image persistence."
+    },
+    "buffer_image_persistence": {
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "image_resources"
+      ],
+      "scope": "Durable bounded image_snapshot plus image_interaction_state/codec NBT, in-place load replacement and image handler access. No dependency on redstone, touchscreen, client manager, transport or GUI is inferred."
+    },
+    "computercraft": {
+      "support": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "scope": "Only ManagerBlockEntity.getStateReadOnly, called by SFMManagerHandle.getState and using DiskItem.getProgramStringReadOnly. Preserve exact original helper on all ten targets."
+    }
+  },
+  "normalization": {
+    "policy": "sfm:java_lf_final_newline@1",
+    "approved_git_blobs": [
+      "6488127cbd4675aecc593e61328e26cd8ae3c672",
+      "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+      "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+      "7ecb7437455d11f06c712f5002d6715e0df53b0b",
+      "2c77aac01c654b8d31bf79ffe01149289e179915",
+      "392187b6a062550b700ea32bb2a2581090593a57",
+      "7e4aad5800feed911b39bef7a82f24c69d69364d",
+      "0395aa843cc7aa6783fe4e5b47002299a8e65a84",
+      "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+      "6b9235f372ed128747318f1cec33543a9ca8f8d9"
+    ],
+    "crlf_to_lf_only": true,
+    "append_final_lf": false,
+    "other_whitespace_changes": false
+  },
+  "files": [
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-buffer-manager-stage-v1/BufferBlock.java",
+      "stage_sha256": "sha256:89b55d4c76f79d86c81453c080f2752c19f5e23605db8a6cf5db574118880254",
+      "stage_bytes": 6702,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "redstone_buffer_storage",
+        "image_resources"
+      ],
+      "source_rule_suggestion": "default shared Java input; no conditional file membership/historical source override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "6488127cbd4675aecc593e61328e26cd8ae3c672",
+          "raw_sha256": "sha256:c3671860e532b0c0fed52fb4c53211f3d58f501b59229638b20ae018c8d855bc",
+          "raw_bytes": 5929,
+          "expected_sha256": "sha256:2807925f1216bf8927f36486d58d1755764031cdf8d202dae63474f6782457e4",
+          "expected_bytes": 5770,
+          "crlf_count": 159,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "6488127cbd4675aecc593e61328e26cd8ae3c672",
+          "raw_sha256": "sha256:c3671860e532b0c0fed52fb4c53211f3d58f501b59229638b20ae018c8d855bc",
+          "raw_bytes": 5929,
+          "expected_sha256": "sha256:2807925f1216bf8927f36486d58d1755764031cdf8d202dae63474f6782457e4",
+          "expected_bytes": 5770,
+          "crlf_count": 159,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+          "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+          "raw_bytes": 4797,
+          "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+          "expected_bytes": 4659,
+          "crlf_count": 138,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+          "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+          "raw_bytes": 5070,
+          "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+          "expected_bytes": 4925,
+          "crlf_count": 145,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-buffer-manager-stage-v1/BufferBlockEntity.java",
+      "stage_sha256": "sha256:85aba6d6b4ee3a4e89748b01fd6c62950a19ffeaa23d05170f067c3349dfcf55",
+      "stage_bytes": 9368,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "redstone_buffer_storage",
+        "image_resources",
+        "buffer_image_persistence"
+      ],
+      "source_rule_suggestion": "default shared Java input; no conditional file membership/historical source override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "7ecb7437455d11f06c712f5002d6715e0df53b0b",
+          "raw_sha256": "sha256:dc87e4d8dd7e2a7d35290afe88a00e98d035a05855c095fbce9f411e43809ecd",
+          "raw_bytes": 7008,
+          "expected_sha256": "sha256:cd5dcce50211d16a3ee9f9bc6ba75eeb705c21b5c553a8151516e87fb7240b75",
+          "expected_bytes": 6925,
+          "crlf_count": 83,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "7ecb7437455d11f06c712f5002d6715e0df53b0b",
+          "raw_sha256": "sha256:dc87e4d8dd7e2a7d35290afe88a00e98d035a05855c095fbce9f411e43809ecd",
+          "raw_bytes": 7008,
+          "expected_sha256": "sha256:cd5dcce50211d16a3ee9f9bc6ba75eeb705c21b5c553a8151516e87fb7240b75",
+          "expected_bytes": 6925,
+          "crlf_count": 83,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+          "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+          "raw_bytes": 3772,
+          "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+          "expected_bytes": 3676,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "392187b6a062550b700ea32bb2a2581090593a57",
+          "raw_sha256": "sha256:da7a504352ff5a06105c269569d65f8c06c0d4a1b0564f474262a90725bc310b",
+          "raw_bytes": 3780,
+          "expected_sha256": "sha256:4ca12507ec945faaec93050f61deedd9deb791081021eb1fde65196d1489d6bb",
+          "expected_bytes": 3684,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "392187b6a062550b700ea32bb2a2581090593a57",
+          "raw_sha256": "sha256:da7a504352ff5a06105c269569d65f8c06c0d4a1b0564f474262a90725bc310b",
+          "raw_bytes": 3780,
+          "expected_sha256": "sha256:4ca12507ec945faaec93050f61deedd9deb791081021eb1fde65196d1489d6bb",
+          "expected_bytes": 3684,
+          "crlf_count": 96,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+          "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+          "raw_bytes": 1831,
+          "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+          "expected_bytes": 1784,
+          "crlf_count": 47,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-buffer-manager-stage-v1/BufferBlockEntityContents.java",
+      "stage_sha256": "sha256:9aa704b0f6d3437f1a720d981f9bce0efc300ed6032920dfe714982e01d489b9",
+      "stage_bytes": 6570,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "redstone_buffer_storage",
+        "image_resources",
+        "buffer_image_persistence"
+      ],
+      "source_rule_suggestion": "default shared Java input; no conditional file membership/historical source override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "0395aa843cc7aa6783fe4e5b47002299a8e65a84",
+          "raw_sha256": "sha256:cc30c4d7ecc174fe71c860f05696242a5575f3473162b27b8660a4854ceeb208",
+          "raw_bytes": 5823,
+          "expected_sha256": "sha256:557119f8f8d3635902c16f622ef87e153c72a47ec4642bc3de32a0b0a51337cd",
+          "expected_bytes": 5682,
+          "crlf_count": 141,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "0395aa843cc7aa6783fe4e5b47002299a8e65a84",
+          "raw_sha256": "sha256:cc30c4d7ecc174fe71c860f05696242a5575f3473162b27b8660a4854ceeb208",
+          "raw_bytes": 5823,
+          "expected_sha256": "sha256:557119f8f8d3635902c16f622ef87e153c72a47ec4642bc3de32a0b0a51337cd",
+          "expected_bytes": 5682,
+          "crlf_count": 141,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+          "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+          "raw_bytes": 4277,
+          "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+          "expected_bytes": 4168,
+          "crlf_count": 109,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+          "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+          "raw_bytes": 4279,
+          "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+          "expected_bytes": 4171,
+          "crlf_count": 108,
+          "lf_added": false,
+          "normalization": "sfm:java_lf_final_newline@1",
+          "present": true
+        }
+      ]
+    },
+    {
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-buffer-manager-stage-v1/ManagerBlockEntity.java",
+      "stage_sha256": "sha256:6496f23d64dcdb3825ecbb7ed3cbec1041958ca53947ed058b5954caffa03b93",
+      "stage_bytes": 26108,
+      "membership": "unconditional_shared_class",
+      "member_owners": [
+        "computercraft"
+      ],
+      "source_rule_suggestion": "default shared Java input; no conditional file membership/historical source override",
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+          "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "raw_bytes": 21006,
+          "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "expected_bytes": 21006,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+          "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "raw_bytes": 21006,
+          "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "expected_bytes": 21006,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20",
+          "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+          "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "raw_bytes": 21006,
+          "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "expected_bytes": 21006,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+          "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "raw_bytes": 21006,
+          "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "expected_bytes": 21006,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+          "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "raw_bytes": 21006,
+          "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+          "expected_bytes": 21006,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "git_blob": "2c0b1a9066cc2d60ad4b11b3a22a97dcf4977de8",
+          "raw_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+          "raw_bytes": 21172,
+          "expected_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+          "expected_bytes": 21172,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "git_blob": "2c0b1a9066cc2d60ad4b11b3a22a97dcf4977de8",
+          "raw_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+          "raw_bytes": 21172,
+          "expected_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+          "expected_bytes": 21172,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "git_blob": "477569b21e535d8e870ab04f71e5366fa1a97434",
+          "raw_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+          "raw_bytes": 21663,
+          "expected_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+          "expected_bytes": 21663,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "git_blob": "477569b21e535d8e870ab04f71e5366fa1a97434",
+          "raw_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+          "raw_bytes": 21663,
+          "expected_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+          "expected_bytes": 21663,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "git_blob": "5686f6cf23c4bb0d1eb377a13645baf0c40004a6",
+          "raw_sha256": "sha256:d3087ba09ca969ed92f33b7513d0c7b4cf3d9b7d4251eae6b95f89d5b4e873fa",
+          "raw_bytes": 21954,
+          "expected_sha256": "sha256:d3087ba09ca969ed92f33b7513d0c7b4cf3d9b7d4251eae6b95f89d5b4e873fa",
+          "expected_bytes": 21954,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.2",
+          "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+          "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "raw_bytes": 20621,
+          "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "expected_bytes": 20621,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.19.4",
+          "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+          "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "raw_bytes": 20621,
+          "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "expected_bytes": 20621,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20",
+          "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+          "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "raw_bytes": 20621,
+          "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "expected_bytes": 20621,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.1",
+          "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+          "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "raw_bytes": 20621,
+          "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "expected_bytes": 20621,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.2",
+          "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+          "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "raw_bytes": 20621,
+          "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+          "expected_bytes": 20621,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.3",
+          "git_blob": "071e5aab4fdeba690c3f4731658b06fe85e2cf3b",
+          "raw_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+          "raw_bytes": 20787,
+          "expected_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+          "expected_bytes": 20787,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.20.4",
+          "git_blob": "071e5aab4fdeba690c3f4731658b06fe85e2cf3b",
+          "raw_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+          "raw_bytes": 20787,
+          "expected_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+          "expected_bytes": 20787,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.0",
+          "git_blob": "6e51690bb8ccb5fe94034eda746d2a8a95b35f8f",
+          "raw_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+          "raw_bytes": 21278,
+          "expected_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+          "expected_bytes": 21278,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/1.21.1",
+          "git_blob": "6e51690bb8ccb5fe94034eda746d2a8a95b35f8f",
+          "raw_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+          "raw_bytes": 21278,
+          "expected_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+          "expected_bytes": 21278,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        },
+        {
+          "context": "release/26.1.2",
+          "git_blob": "a3f617cab1fe83dcc919855e6f3afa40c0ba240e",
+          "raw_sha256": "sha256:7cd1bedbac952581b072c68b3373b27dd3001fd9c114661ac3b5b029740171af",
+          "raw_bytes": 21569,
+          "expected_sha256": "sha256:7cd1bedbac952581b072c68b3373b27dd3001fd9c114661ac3b5b029740171af",
+          "expected_bytes": 21569,
+          "crlf_count": 0,
+          "lf_added": false,
+          "normalization": "none",
+          "present": true
+        }
+      ]
+    }
+  ],
+  "raw_witnesses": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "git_blob": "6488127cbd4675aecc593e61328e26cd8ae3c672",
+      "raw_sha256": "sha256:c3671860e532b0c0fed52fb4c53211f3d58f501b59229638b20ae018c8d855bc",
+      "raw_bytes": 5929,
+      "expected_sha256": "sha256:2807925f1216bf8927f36486d58d1755764031cdf8d202dae63474f6782457e4",
+      "expected_bytes": 5770,
+      "crlf_count": 159,
+      "lone_cr_count": 0,
+      "lf_count": 170,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "git_blob": "caf51c2acea22cfb8a0850e92c8af5804236aff6",
+      "raw_sha256": "sha256:f956b1bdf1b0661c4d900080ae3fedd61521060f5600915220149eb35ea7a73b",
+      "raw_bytes": 4797,
+      "expected_sha256": "sha256:32370ea1cbb81d4397caef8c8e92ee9d4b584e58b4ed73f731fd203e18147d64",
+      "expected_bytes": 4659,
+      "crlf_count": 138,
+      "lone_cr_count": 0,
+      "lf_count": 138,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "dev/1.20.2",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1",
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "git_blob": "7624ecbb0dbb14c474f158fea60f68e3e37369e8",
+      "raw_sha256": "sha256:b990aa7adafec05d32259d57a3e7a09421946015c2363f6d45a6249271a837a3",
+      "raw_bytes": 5070,
+      "expected_sha256": "sha256:ff261340736b398dda9614e64477c54103a0e697e268ea7c1ce1da0805ce0ec4",
+      "expected_bytes": 4925,
+      "crlf_count": 145,
+      "lone_cr_count": 0,
+      "lf_count": 145,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "dev/26.1.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "git_blob": "7ecb7437455d11f06c712f5002d6715e0df53b0b",
+      "raw_sha256": "sha256:dc87e4d8dd7e2a7d35290afe88a00e98d035a05855c095fbce9f411e43809ecd",
+      "raw_bytes": 7008,
+      "expected_sha256": "sha256:cd5dcce50211d16a3ee9f9bc6ba75eeb705c21b5c553a8151516e87fb7240b75",
+      "expected_bytes": 6925,
+      "crlf_count": 83,
+      "lone_cr_count": 0,
+      "lf_count": 164,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "git_blob": "2c77aac01c654b8d31bf79ffe01149289e179915",
+      "raw_sha256": "sha256:c716fa1baba38ce5d3e6de33684b16107ca8f22a559f7119cb563bf52afd111a",
+      "raw_bytes": 3772,
+      "expected_sha256": "sha256:e7cd27e9314a6bfea14de9893018b74b1c1e9130c507a60abfb46a7236d293d9",
+      "expected_bytes": 3676,
+      "crlf_count": 96,
+      "lone_cr_count": 0,
+      "lf_count": 96,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "git_blob": "392187b6a062550b700ea32bb2a2581090593a57",
+      "raw_sha256": "sha256:da7a504352ff5a06105c269569d65f8c06c0d4a1b0564f474262a90725bc310b",
+      "raw_bytes": 3780,
+      "expected_sha256": "sha256:4ca12507ec945faaec93050f61deedd9deb791081021eb1fde65196d1489d6bb",
+      "expected_bytes": 3684,
+      "crlf_count": 96,
+      "lone_cr_count": 0,
+      "lf_count": 96,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.2",
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "git_blob": "7e4aad5800feed911b39bef7a82f24c69d69364d",
+      "raw_sha256": "sha256:0ee6891a2bf9c3207bc4e39ee8c31967d5968b5604adc892684a60edeae92c19",
+      "raw_bytes": 1831,
+      "expected_sha256": "sha256:46ed2c6ca6d8037055e1dc8a4ccf11a1d4ab3d165d0e27d0e8cf938ff5f97cb9",
+      "expected_bytes": 1784,
+      "crlf_count": 47,
+      "lone_cr_count": 0,
+      "lf_count": 47,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "dev/26.1.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "git_blob": "0395aa843cc7aa6783fe4e5b47002299a8e65a84",
+      "raw_sha256": "sha256:cc30c4d7ecc174fe71c860f05696242a5575f3473162b27b8660a4854ceeb208",
+      "raw_bytes": 5823,
+      "expected_sha256": "sha256:557119f8f8d3635902c16f622ef87e153c72a47ec4642bc3de32a0b0a51337cd",
+      "expected_bytes": 5682,
+      "crlf_count": 141,
+      "lone_cr_count": 0,
+      "lf_count": 148,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "git_blob": "c4873c394c11ee2a9a6ad334acd5f2db6d28f558",
+      "raw_sha256": "sha256:6d48e6be9252051a434b2a5c17ce246993abb315478edd763802d1d23c1a33b0",
+      "raw_bytes": 4277,
+      "expected_sha256": "sha256:bd2284f148ee8b987a48b6b5bfb70602f7a6be3908b03b23e11fc48973b80bba",
+      "expected_bytes": 4168,
+      "crlf_count": 109,
+      "lone_cr_count": 0,
+      "lf_count": 109,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20",
+        "dev/1.20.1",
+        "dev/1.20.2",
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1",
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "git_blob": "6b9235f372ed128747318f1cec33543a9ca8f8d9",
+      "raw_sha256": "sha256:bd7d24a39927d8dbe5b5a6d13549ec4d849af545a4f966ee28dd312e14ac0bc6",
+      "raw_bytes": 4279,
+      "expected_sha256": "sha256:12d689795f9f7f6dce87e9febf25a660a3c73fa023b1a3158d53640eb25419e6",
+      "expected_bytes": 4171,
+      "crlf_count": 108,
+      "lone_cr_count": 0,
+      "lf_count": 108,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4",
+        "dev/1.21.0",
+        "dev/1.21.1",
+        "dev/26.1.2",
+        "release/1.20.3",
+        "release/1.20.4",
+        "release/1.21.0",
+        "release/1.21.1",
+        "release/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "91749620bef74c961544e5587438d1bda2ad715b",
+      "raw_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+      "raw_bytes": 21006,
+      "expected_sha256": "sha256:bc8ab6663073140e18f9002388acaf75841e67460b6b6139dcfa63c5a7c6c7d2",
+      "expected_bytes": 21006,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 637,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.19.2",
+        "dev/1.19.4",
+        "dev/1.20",
+        "dev/1.20.1",
+        "dev/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "2c0b1a9066cc2d60ad4b11b3a22a97dcf4977de8",
+      "raw_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+      "raw_bytes": 21172,
+      "expected_sha256": "sha256:480fdd8a2aa12ec07fc4f8dfc6fdb2e07f54599f5493baae481f6e1a229d2d26",
+      "expected_bytes": 21172,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 641,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.20.3",
+        "dev/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "477569b21e535d8e870ab04f71e5366fa1a97434",
+      "raw_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+      "raw_bytes": 21663,
+      "expected_sha256": "sha256:93d1dffabea1fa25d65f6f6ccfe6004f150c5d71e40a94486a6da2f4f104303f",
+      "expected_bytes": 21663,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 664,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/1.21.0",
+        "dev/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "5686f6cf23c4bb0d1eb377a13645baf0c40004a6",
+      "raw_sha256": "sha256:d3087ba09ca969ed92f33b7513d0c7b4cf3d9b7d4251eae6b95f89d5b4e873fa",
+      "raw_bytes": 21954,
+      "expected_sha256": "sha256:d3087ba09ca969ed92f33b7513d0c7b4cf3d9b7d4251eae6b95f89d5b4e873fa",
+      "expected_bytes": 21954,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 669,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "dev/26.1.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "e0f695ad3477212f93ebc0ea6fd54a3cef758026",
+      "raw_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+      "raw_bytes": 20621,
+      "expected_sha256": "sha256:2a447a92b5e8da63581c83b1223b3169e2dd43b290a54edc0ca3acdc5d5c314c",
+      "expected_bytes": 20621,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 625,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "release/1.19.2",
+        "release/1.19.4",
+        "release/1.20",
+        "release/1.20.1",
+        "release/1.20.2"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "071e5aab4fdeba690c3f4731658b06fe85e2cf3b",
+      "raw_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+      "raw_bytes": 20787,
+      "expected_sha256": "sha256:9e0600fbd374eb6136b45246e41c0c0bc2223055bd8a66d6ab0ff5a7c3305ccf",
+      "expected_bytes": 20787,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 629,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "release/1.20.3",
+        "release/1.20.4"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "6e51690bb8ccb5fe94034eda746d2a8a95b35f8f",
+      "raw_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+      "raw_bytes": 21278,
+      "expected_sha256": "sha256:24f3245bca41c45f6095b620dea8fee50a24c0329c2952f20284d995ae85b844",
+      "expected_bytes": 21278,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 652,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "release/1.21.0",
+        "release/1.21.1"
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "git_blob": "a3f617cab1fe83dcc919855e6f3afa40c0ba240e",
+      "raw_sha256": "sha256:7cd1bedbac952581b072c68b3373b27dd3001fd9c114661ac3b5b029740171af",
+      "raw_bytes": 21569,
+      "expected_sha256": "sha256:7cd1bedbac952581b072c68b3373b27dd3001fd9c114661ac3b5b029740171af",
+      "expected_bytes": 21569,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "lf_count": 657,
+      "lf_added": false,
+      "final_lf": true,
+      "bom": false,
+      "contexts": [
+        "release/26.1.2"
+      ]
+    }
+  ],
+  "metadata_proposal": {
+    "feature_definition_addition": {
+      "buffer_image_persistence": {
+        "supported_targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "requires": [
+          "image_resources"
+        ]
+      }
+    },
+    "source_rules": "none required; all four logical Java classes are always present as common core inputs"
+  },
+  "ownership_evidence": [
+    {
+      "owner": "redstone_buffer_storage",
+      "path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "members": [
+        "hasAnalogOutputSignal",
+        "getAnalogOutputSignal",
+        "onRemove"
+      ],
+      "consumers": "Comparator output reads BufferBlockEntityContents.getStoredRedstone; explicit off branch has no comparator methods."
+    },
+    {
+      "owner": "image_resources",
+      "path": "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "members": [
+        "ContainedResource.Image",
+        "case Image -> image",
+        "from resourceType name image"
+      ],
+      "consumers": "SFMResourceTypes.IMAGE and buffer image presentation; these do not require durable image NBT."
+    },
+    {
+      "owner": "redstone_buffer_storage OR image_resources",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "members": [
+        "onChanged",
+        "callback constructor"
+      ],
+      "consumers": "RedstoneResourceType.createHandlerForBufferBlock calls contents.onRedstoneChanged; ImageResourceType image insertion/extraction calls contents.markChanged. The BE callback constructor uses the same real-consumer union."
+    },
+    {
+      "owner": "redstone_buffer_storage",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "members": [
+        "getStoredRedstone",
+        "loadRedstone",
+        "onRedstoneChanged"
+      ],
+      "consumers": "Stored redstone resource handler, comparator output and NBT. Existing cached handler is restored in place."
+    },
+    {
+      "owner": "image_resources",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "members": [
+        "markChanged"
+      ],
+      "consumers": "Direct insertion and extraction callbacks in ImageResourceType; not conditional on image persistence."
+    },
+    {
+      "owner": "redstone_buffer_storage OR buffer_image_persistence",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "members": [
+        "load",
+        "saveAdditional",
+        "CompoundTag"
+      ],
+      "consumers": "Shared NBT scaffolding contains separately guarded redstone and image operations. Full witness clears old image, loads redstone, then image; retain authoritative resource-exclusion precedence."
+    },
+    {
+      "owner": "buffer_image_persistence",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "members": [
+        "IMAGE_TAG",
+        "IMAGE_STATE_TAG",
+        "IMAGE_STATE_CODEC_TAG",
+        "loadImage",
+        "imageHandler",
+        "image load/save branches"
+      ],
+      "consumers": "SFMImageSnapshotCodec, SFMValueJsonCodec, SFMImageStack and IImageHandler persist a complete bounded snapshot/state atomically."
+    },
+    {
+      "owner": "computercraft",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "members": [
+        "getStateReadOnly"
+      ],
+      "consumers": "Only reviewed direct callsite: SFMManagerHandle.getState; helper reads DiskItem.getProgramStringReadOnly without creating disk NBT."
+    }
+  ],
+  "minecraft_api_cases": [
+    {
+      "targets": [
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "description": "BufferBlock's released MapCodec override/NotImplementedException is retained, not repaired or synthesized."
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2"
+      ],
+      "description": "Buffer BE owns LazyOptional getCapability/invalidateCaps forwarding;1.20.2 uses early NeoForge capability namespace, older targets Forge."
+    },
+    {
+      "targets": [
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "description": "Released Buffer BE no longer overrides LazyOptional capability forwarding. Contents has a historical comment/blank-line variant; preserve it as released target-specific text, not a functional feature or claimed API change."
+    },
+    {
+      "targets": [
+        "1.20.3",
+        "1.20.4"
+      ],
+      "description": "Manager invWrapper IItemHandler/InvWrapper introduced by released NeoForge capability API."
+    },
+    {
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "description": "Manager container NBT uses HolderLookup registries, data-component DiskItem.clearData, and getItems/setItems. Actual catalog Minecraft version1.21 retained for target1.21.0."
+    },
+    {
+      "targets": [
+        "26.1.2"
+      ],
+      "description": "Manager ResourceHandler/VanillaContainerWrapper/onTransfer transaction API, ValueInput/ValueOutput load/save, getRandom and ItemStack.EMPTY disk contract retained."
+    }
+  ],
+  "preservation": [
+    "All class membership is unconditional; features own exact members, not snapshots or full classes.",
+    "No environment/preset/projection_key selectors.",
+    "Exactly ten CRLF-to-LF transforms, no final LF addition, other whitespace or token rewrite.",
+    "All eight Manager raw blobs remain byte-exact LF.",
+    "Preserve the witnessed26getStateReadOnly null check even though26getDisk returns EMPTY; a semantic correction is separate work.",
+    "Preserve redstone/image resource exclusion and image/state restore order; do not invalidate cached handlers merely to restore NBT."
+  ],
+  "validation": {
+    "independent_directive_expansion": {
+      "status": "passed",
+      "witness_cells": 80,
+      "raw_byte_exact": 20,
+      "approved_crlf_normalized": 60,
+      "implementation": "Independent strict whole-line interpreter; not a production Rust renderer invocation."
+    },
+    "independent_owner_masks": {
+      "status": "passed",
+      "requested_d2_profiles": 32,
+      "distinct_dependency_closed_d2_profiles": 24,
+      "d2_source_cells": 128,
+      "additional_all_target_computercraft_source_cells": 32,
+      "implementation": "Strict independent directive expansion compared with normalized raw-member removal/insertion oracles; not a production Rust renderer invocation."
+    },
+    "rust_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_buffer_manager_slice_tests.rs",
+    "rust_registration": "#[cfg(test)] mod core_buffer_manager_slice_tests;",
+    "rust_status": "authored_unregistered_not_run",
+    "cargo_run": false,
+    "java_compilation": false,
+    "gameplay_proof": false,
+    "generated_roots_written": false
+  },
+  "remaining_closure": [
+    "Root must promote inputs and register proposed buffer_image_persistence only after review.",
+    "Source-only feature contexts use exact current prerequisites; complete-project network admission is a separate gate.",
+    "Block/entity registration, DiskItem/read-only helper, ImageResourceType and redstone runtime ownership remain independently reviewed dependencies."
+  ]
+}

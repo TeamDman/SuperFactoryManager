@@ -1,0 +1,53 @@
+{
+  "schema": "sfm:workspace_registrar_marker_targeted_validation@1",
+  "date": "2026-10-03",
+  "status": "fixture_correction_applied_targeted_regression_passed",
+  "prior_closed_failure": "sfm-core-workspace-conjunction-history-validation-20261003.json",
+  "root_cause": "The selected input is the same reviewed canonical registrar. Its template marker is false; the Workspace helper incorrectly required true. Production collection renders every Java input regardless of that marker.",
+  "correction": {
+    "target": "platform/cli/sfm-propagate-changes/src/source_projection/core_workspace_navigation_family_tests.rs",
+    "before_bytes": 20468,
+    "before_sha256": "61d8989e564a1e42bcb1d479ba2773c5e4bec66de029e79cf133b45310f0373f",
+    "after_bytes": 20877,
+    "after_sha256": "9d9fd138a95fa645089ca4e1d6d5ab332110f4a4aea163c1047187b6aa8264c2",
+    "application_receipt": "86972a",
+    "application_native_exit": 0,
+    "independent_source_review": "785c1c_native_exit_0_no_actionable_blocker",
+    "rules": "Exact source identity remains required. The false marker is permitted only for the registrar; all other helper inputs require true. Actual current registrar bytes pass the existing strict inverse contract and remain the rendering input.",
+    "production_or_metadata_changes": false
+  },
+  "actual_test": {
+    "name": "source_projection::core_workspace_navigation_family_tests::workspace_family_entry_controls_without_lifecycle_keep_real_leases_and_registration",
+    "mode": "locked_offline_all_features_library_exact_serial",
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 2262,
+    "case_seconds": 40.14,
+    "native_exit": 0,
+    "retired_session": 82807,
+    "terminal_receipt": "590bb9",
+    "log_bytes": 653,
+    "log_sha256": "65b32e9027a98fd9f1f66c62f1e2f1d018b253f717119a4c2022428fb3880052"
+  },
+  "unchanged_core": {
+    "files": 1989,
+    "bytes": 9291503,
+    "ordinal_member_sha256": "d1c480d6c3a903d448db334edd34e0eab79f1588c01399bfb044f88b50cd97f2",
+    "rules": 706,
+    "variants": 891,
+    "feature_definitions": 180,
+    "projection_keys": 20
+  },
+  "preserved": {
+    "historical_goldens_and_prior_failure_evidence": true,
+    "feature_defaults_prerequisites_and_dependency_locks": "unchanged",
+    "physical_index_sha256": "a2a602682a9bb6c5cfcbb79bfd28b964e5f932a11522558222f2d65990914728",
+    "staging_operations": 0
+  },
+  "pending": ["fresh_complete_focused_gate", "full_tooling_gate", "fresh_twenty_context_generation", "Java_runtime_release_parity_and_remaining_consolidation"],
+  "limits": "One targeted Rust regression is not the whole focused suite, Java compilation, Minecraft execution, release parity or complete ten-version acceptance.",
+  "goal_status": "active",
+  "whole_goal_complete": false,
+  "disk_space_error_encountered": false
+}

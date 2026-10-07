@@ -1,0 +1,166 @@
+{
+  "schema": "sfm:core-released-tests-slice@1",
+  "status": "two_ignored_staged_templates_and_unregistered_post_promotion_tests",
+  "scope": "RecipesGameTest_and_RegexCacheTests_only",
+  "production_import_policy": "One authored shared class body with small target/member choices. Frozen Git blobs are exact migration and test witnesses only; no production historical lookup or environment dispatch.",
+  "membership_audit": "docs/tasks/sfm-core-released-test-membership-audit.json",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "source_context_commits": {
+    "dev/1.19.2":"f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4":"2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20":"6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1":"faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2":"a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3":"704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4":"11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0":"43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1":"7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2":"31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4":"23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20":"3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1":"bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2":"cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3":"1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4":"a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0":"6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1":"f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2":"fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "normalization": {
+    "policy":"sfm:java_crlf_to_lf@1",
+    "explicit_parent_approval":true,
+    "unique_raw_blobs":8,
+    "removed_cr_total_unique_blobs":909,
+    "crlf_to_lf_only":true,
+    "existing_final_lf_preserved":true,
+    "append_final_lf":false,
+    "trim_or_token_edits":false,
+    "reject_lone_cr":true,
+    "note":"Primary-dev Regex is already a Liquid-authored source. Its raw and normalized authored bytes remain evidence; only its separately identified original regex=true expansion is compiled-Java golden data."
+  },
+  "inputs": [
+    {
+      "path":"src/gametest/java/ca/teamdman/sfm/gametest/tests/general/RecipesGameTest.java",
+      "stage_path":"platform/cli/sfm-propagate-changes/target/core-released-tests-stage-v1/RecipesGameTest.java",
+      "core_path":"platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/RecipesGameTest.java",
+      "source_sha256":"sha256:dd9e35493ac036e16a644c79d3d7d9b787d8f8d365e1154889694a8fe8b49428",
+      "source_bytes":6498,
+      "source_lf_lines":175,
+      "membership":"shared_all_ten_targets_all_feature_masks",
+      "feature_members":["packet_values"],
+      "version_adapters":[
+        {"minecraft_versions":["1.19.2"],"api":"Direct CraftingRecipe list and parameterless getResultItem."},
+        {"minecraft_versions":["1.19.4","1.20","1.20.1"],"api":"Direct CraftingRecipe list and getResultItem(registryAccess)."},
+        {"minecraft_versions":["1.20.2","1.20.3","1.20.4","1.21","1.21.1"],"api":"RecipeHolder list/value plus getResultItem(registryAccess). Stable target1.21.0 supplies actual Minecraft1.21."},
+        {"minecraft_versions":["26.1.2"],"api":"Identifier, Collection, recipeAccess/recipeMap/byType, assemble(CraftingInput.EMPTY), original special/Imbue skip and identifier() key accessor."}
+      ],
+      "feature_note":"packet_values on D2 only adds the exact existing PACKET recipe exemption. It does not require packet computation, touch display, transport, image or client-manager flags. PACKET registration closure remains a separate integrated compile acceptance gate.",
+      "witnesses": {
+        "release/1.19.2":"fd3082c9ca548f2ac8b6a6ae4463dfbd8d905a04",
+        "dev/1.19.2":"898f0768abedda34dcfa17a03f810d33cc936562",
+        "release/1.19.4":"52d78c1f5916a464bff69453db4ff67a531d49c4",
+        "dev/1.19.4":"d717d597d060635780c07beabc0b239fabfed6ca",
+        "release/1.20":"52d78c1f5916a464bff69453db4ff67a531d49c4",
+        "dev/1.20":"52d78c1f5916a464bff69453db4ff67a531d49c4",
+        "release/1.20.1":"52d78c1f5916a464bff69453db4ff67a531d49c4",
+        "dev/1.20.1":"52d78c1f5916a464bff69453db4ff67a531d49c4",
+        "release/1.20.2":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "dev/1.20.2":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "release/1.20.3":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "dev/1.20.3":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "release/1.20.4":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "dev/1.20.4":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "release/1.21.0":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "dev/1.21.0":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "release/1.21.1":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "dev/1.21.1":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0",
+        "release/26.1.2":"5ad16e402cfdef0758890e17dc3e49ff4c268f9b",
+        "dev/26.1.2":"5ad16e402cfdef0758890e17dc3e49ff4c268f9b"
+      }
+    },
+    {
+      "path":"src/test/java/ca/teamdman/sfm/test/RegexCacheTests.java",
+      "stage_path":"platform/cli/sfm-propagate-changes/target/core-released-tests-stage-v1/RegexCacheTests.java",
+      "core_path":"platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/test/RegexCacheTests.java",
+      "source_sha256":"sha256:d9ddc7abbe4f89d7b164ec390726fe2545b23dd6bad09f30710dd391fe32716a",
+      "source_bytes":5340,
+      "source_lf_lines":169,
+      "membership":"shared_all_ten_targets_all_feature_masks",
+      "feature_members":["regex_overlap_fix"],
+      "feature_note":"The original wildcard-prefix/suffix non-overlap test is emitted only with regex_overlap_fix AND Minecraft1.19.2. Production regex fix support on26.1.2 remains unchanged; this slice does not invent a26 JUnit extension. Existing performance assertions and timing/iteration behavior are preserved, not repaired.",
+      "witnesses": {
+        "release/1.19.2":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.19.2":"4b42504b7393c3454394acfe8d5ff26c8f591066",
+        "release/1.19.4":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.19.4":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.20":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.20":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.20.1":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.20.1":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.20.2":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.20.2":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.20.3":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.20.3":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.20.4":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.20.4":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.21.0":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.21.0":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/1.21.1":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/1.21.1":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "release/26.1.2":"041d410f73fa4bfc69293957eea0d1ba484f135c",
+        "dev/26.1.2":"041d410f73fa4bfc69293957eea0d1ba484f135c"
+      }
+    }
+  ],
+  "raw_variants": [
+    {"blob":"fd3082c9ca548f2ac8b6a6ae4463dfbd8d905a04","raw_sha256":"sha256:cbe8a4b04b15ae54f1963079322f196bb66698780ee5826fa93f49284e9e48c0","raw_bytes":3835,"normalized_sha256":"sha256:af3d42589b64ff1a66f1a944c01183cd7cf3220d70cf6d10ee81b881e661f653","normalized_bytes":3736,"removed_cr":99},
+    {"blob":"52d78c1f5916a464bff69453db4ff67a531d49c4","raw_sha256":"sha256:d2a016f58ce20ed9c9f4ea97677f2c5d46e2d5684eb897da10544cba8a95bf7f","raw_bytes":3869,"normalized_sha256":"sha256:88671cafc70e96a8af09d2d7ead840cc7800dcfc6790730a7a3150799e3da0f0","normalized_bytes":3770,"removed_cr":99},
+    {"blob":"89e1e78d7b2623e71a4af1dbfe9eac74f1901bc0","raw_sha256":"sha256:a7f9c771f66a880e80495b5568a245a657e87dd08513d5c289249448015aad7b","raw_bytes":4018,"normalized_sha256":"sha256:fb5eca99ea4e961148e7bbe1dd8ca00a0ce15eb81abaa815306eb2855fa39548","normalized_bytes":3917,"removed_cr":101},
+    {"blob":"5ad16e402cfdef0758890e17dc3e49ff4c268f9b","raw_sha256":"sha256:058f6521024db42f0b49adaa568a08fe3d6372508dfea862abceb9352a448f4c","raw_bytes":4045,"normalized_sha256":"sha256:e6ee16fc4a08834e564080897977ddae3161575b0447316af5cf2d36cfbd8d61","normalized_bytes":3945,"removed_cr":100},
+    {"blob":"898f0768abedda34dcfa17a03f810d33cc936562","raw_sha256":"sha256:bce6d8ad94d2b8518814635e0fab105a48bfcd3e100060aba2b8eb5dbe0738b5","raw_bytes":3963,"normalized_sha256":"sha256:09124e49b1313e9d869b099da2de680ba73f648e40e9a9764feae1210c55fae6","normalized_bytes":3865,"removed_cr":98},
+    {"blob":"d717d597d060635780c07beabc0b239fabfed6ca","raw_sha256":"sha256:797be1e49bb0dba3c76d476d13535068bbde10a36d4308798ad622cc1c111c2f","raw_bytes":3997,"normalized_sha256":"sha256:aed7d19a3a17a1bd68acd7da324dd5afb18f81dd79e4a5108a807d79ba615bb4","normalized_bytes":3899,"removed_cr":98},
+    {"blob":"041d410f73fa4bfc69293957eea0d1ba484f135c","raw_sha256":"sha256:05f6ee856587a228401385a1a1f94b1df970e0255a38780ae115befea2b62eee","raw_bytes":4822,"normalized_sha256":"sha256:f9eb2f911804a9ae627973816de3f82f705f258bf638a82540709c2aa39f5622","normalized_bytes":4674,"removed_cr":148},
+    {"blob":"4b42504b7393c3454394acfe8d5ff26c8f591066","raw_sha256":"sha256:7bee201ca4ff45e08c1872553fdace745152f6759536539132019f128a1a485c","raw_bytes":5443,"normalized_sha256":"sha256:23b3eee8a92ddfec6772259623a464b7709b925c0f4377813296291c4ea5d419","normalized_bytes":5277,"removed_cr":166}
+  ],
+  "compiled_primary_regex_witness": {
+    "authored_blob":"4b42504b7393c3454394acfe8d5ff26c8f591066",
+    "original_witnessed_feature_mask":["regex_overlap_fix"],
+    "original_directives":"Exactly one whole-line if features.regex_overlap_fix and one endif. Separately expanded to preserve the original source's intended Java result, not reclassified as raw Java.",
+    "expected_sha256":"sha256:993b39de2885897a7caa8e39b2735fe6b958725bf722e863f076bd072a2f53b9",
+    "expected_bytes":5229
+  },
+  "registered_owners_unchanged": [
+    {"id":"packet_values","supported_targets":["1.19.2","1.19.4"],"requires":[]},
+    {"id":"regex_overlap_fix","supported_targets":["1.19.2","26.1.2"],"requires":[]}
+  ],
+  "metadata_proposal": {
+    "apply_now":false,
+    "default_shared_sources":[
+      "src/gametest/java/ca/teamdman/sfm/gametest/tests/general/RecipesGameTest.java",
+      "src/test/java/ca/teamdman/sfm/test/RegexCacheTests.java"
+    ],
+    "new_feature_definitions":[],
+    "catalog_feature_changes":[],
+    "source_rule_policy":"Use normal shared source discovery, or one same-path unconditional rule if made explicit. No historical alternate input, target exclusion, environment gate or feature-level whole-file gate is permitted."
+  },
+  "test_plan": {
+    "module":"platform/cli/sfm-propagate-changes/src/source_projection/core_released_tests_slice_tests.rs",
+    "registered":false,
+    "run_performed":false,
+    "actual_core_after_promotion_only":true,
+    "coverage":[
+      "All40 file/context cells reconstruct the exact approved normalized witnesses; existing authored primary regex witness is separately expanded with production renderer and pinned compiled hash.",
+      "Independent packet_values off/on on D2 and all4 packet/regex masks on1.19.2; no hidden unrelated prerequisites.",
+      "regex true/false on26.1.2 leaves the JUnit test baseline unchanged; unsupported owner targets and missing selector names refuse.",
+      "Real target1.21.0 uses Minecraft1.21 holder APIs;26 Identifier/recipe APIs and original Imbue skip are retained.",
+      "One isolated shared edit propagates to all10 targets through the production selector and renderer without mutating repository inputs.",
+      "Raw-byte, line-ending, witness-map, membership and template mutations fail closed."
+    ]
+  },
+  "acceptance_limits": [
+    "These ignored staged files are not yet production core inputs.",
+    "No Rust compilation, Java compilation, GameTest, JAR parity or native build was run for this slice.",
+    "The remaining Mekanism no-op, text editor, intellisense and broad SFML test classes still require their own reviewed owners/adapters; they are not silently omitted from the goal."
+  ]
+}

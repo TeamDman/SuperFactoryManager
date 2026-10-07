@@ -1,3 +1,7 @@
+param(
+    [ValidateRange(1, 4)][int]$TestWorkers = 2
+)
+
 # Cargo feature variants share the target/debug CLI path. During a full gate,
 # and after a failed/interrupted gate or run-profiler.ps1, that path may contain
 # the memory-profiled product. Use install.ps1 or a fresh default-feature build
@@ -48,7 +52,7 @@ Write-Host -ForegroundColor Yellow "Running bounded library and integration test
 # process per module (per immediate child for source_projection), integration
 # target and dedicated fixture.
 try {
-    & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1')
+    & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1') -Workers $TestWorkers
 } catch {
     Write-Error $_
     exit 1

@@ -102,7 +102,7 @@ public final class SFMClientActionCommandTree {
 {% endcase %}
     private final List<String> paletteActionPrefixes;
 {% endif %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
 {% case minecraft_version %}
 {% when "26.1.2" %}
     private final Map<String, Identifier> paletteChoiceActions;
@@ -125,7 +125,7 @@ public final class SFMClientActionCommandTree {
 {% endcase %}
     ) {
 {% if features.typed_command_palette %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
 {% if features.command_history %}
         this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX), Map.of(), Map.of(),
                 SFMCommandHistoryService::suggestionsNewestFirst);
@@ -147,7 +147,7 @@ public final class SFMClientActionCommandTree {
     }
 
 {% if features.typed_command_palette %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
     private SFMClientActionCommandTree(
             CommandDispatcher<SFMClientActionSource> dispatcher,
 {% case minecraft_version %}
@@ -221,7 +221,7 @@ public final class SFMClientActionCommandTree {
 {% else %}
             Map<ResourceLocation, SFMClientAction<?>> actions,
 {% endcase %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
             List<String> paletteActionPrefixes,
 {% case minecraft_version %}
 {% when "26.1.2" %}
@@ -247,7 +247,7 @@ public final class SFMClientActionCommandTree {
         this.dispatcher = dispatcher;
         this.actions = Map.copyOf(actions);
         this.paletteActionPrefixes = List.copyOf(paletteActionPrefixes);
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
         this.paletteChoiceActions = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceActions));
         this.paletteChoiceDisplayTexts = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceDisplayTexts));
 {% endif %}
@@ -266,7 +266,7 @@ public final class SFMClientActionCommandTree {
     }
 
 {% endif %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
     /**
      * Creates an isolated palette command surface without adding ephemeral
      * nodes to the process-wide client-action dispatcher.
@@ -471,7 +471,7 @@ public final class SFMClientActionCommandTree {
                 }
             }
         }
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
         StringRange choiceRange = paletteChoiceRange(command);
         if (choiceRange != null) {
             String query = command.substring(choiceRange.getStart(), choiceRange.getEnd())
@@ -1007,7 +1007,7 @@ public final class SFMClientActionCommandTree {
 
 {% endif %}
 {% endif %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
     private StringRange paletteChoiceRange(String command) {
         if (paletteChoiceActions.isEmpty()) return null;
         for (String prefix : paletteActionPrefixes) {
@@ -1067,7 +1067,7 @@ public final class SFMClientActionCommandTree {
 
 {% endif %}
 {% endif %}
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
     private static float choiceScore(String query, String choice, ActionSearchMetadata action) {
         float score = actionScore(query, action);
         return Math.min(score, SFMFuzzyScorer.score(query, choice));
@@ -1131,7 +1131,7 @@ public final class SFMClientActionCommandTree {
     private record RankedLiteral(Suggestion suggestion, float score, String literal) {
     }
 
-{% if features.context_actions %}
+{% if features.context_actions or features.typed_command_palette %}
     private record RankedChoice(Suggestion suggestion, float score, String command) {
     }
 

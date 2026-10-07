@@ -1,0 +1,2774 @@
+{
+  "schema": "sfm:core-workspace-layout-slice@1",
+  "status": "One shared Liquid model template authored and independently reconstructed; root promotion, registered production tests, Java closure and runtime proof remain pending.",
+  "scope": {
+    "production_files": 1,
+    "context_cells": 20,
+    "present_cells": 10,
+    "absent_cells": 10,
+    "raw_variants": 2,
+    "stage_bytes": 100485,
+    "new_source_flags": 5,
+    "supported_independent_masks": 48,
+    "dependencies_changed": 0,
+    "java_compilation": false,
+    "live_runtime": false,
+    "complete_java_closure": false
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "constraints": [
+    "One genuinely shared member/line template, never a whole-version body dispatch or historical-source routing.",
+    "The earlier five leaf ledger/tests/stage files are immutable and not rewritten by this tranche.",
+    "Only new ignored stage, this portable evidence and one new unregistered actual production proof test are authored. No core/catalog/shared metadata/registered module/Cargo/dependency/build changes.",
+    "No whitespace normalization, invented missing-provider stubs, native cursors, Multiplexer host or action implementation."
+  ],
+  "normalization": {
+    "policy": "none",
+    "raw_byte_exact": true,
+    "authorized_transformations": []
+  },
+  "file": {
+    "name": "SFMWorkspaceLayout",
+    "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceLayout.java",
+    "stage_path": "platform/cli/sfm-propagate-changes/target/core-workspace-layout-models-stage-v1/SFMWorkspaceLayout.java",
+    "stage_bytes": 100485,
+    "stage_sha256": "sha256:e19b55e319b08104a3a5b3c68ff5dd80fa45f13fa30f9cd96733502cdf6a86d0",
+    "class_support": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "source_rule": {
+      "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceLayout.java",
+      "template": true,
+      "when": {
+        "targets": [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21.0",
+          "1.21.1",
+          "26.1.2"
+        ],
+        "all_features": [
+          "workspace_panels"
+        ],
+        "any_features": []
+      }
+    },
+    "witnesses": [
+      {
+        "context": "dev/1.19.2",
+        "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "present": true,
+        "git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+        "raw_bytes": 89056,
+        "raw_sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284"
+      },
+      {
+        "context": "dev/1.19.4",
+        "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+        "present": true,
+        "git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+        "raw_bytes": 89056,
+        "raw_sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284"
+      },
+      {
+        "context": "dev/1.20",
+        "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.20.1",
+        "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.20.2",
+        "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.20.3",
+        "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.20.4",
+        "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.21.0",
+        "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/1.21.1",
+        "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "dev/26.1.2",
+        "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+        "present": true,
+        "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+        "raw_bytes": 23509,
+        "raw_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+      },
+      {
+        "context": "release/1.19.2",
+        "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.19.4",
+        "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.20",
+        "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.20.1",
+        "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.20.2",
+        "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.20.3",
+        "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.20.4",
+        "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.21.0",
+        "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/1.21.1",
+        "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      },
+      {
+        "context": "release/26.1.2",
+        "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+        "present": false,
+        "git_blob": null,
+        "raw_bytes": 0,
+        "raw_sha256": null
+      }
+    ]
+  },
+  "raw_variants": [
+    {
+      "git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef",
+      "bytes": 23509,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+      "sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284",
+      "bytes": 89056,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    }
+  ],
+  "prerequisite_definitions": {
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_dividers": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_metadata": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_stack_controls": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "workspace_panel_metadata"
+      ]
+    },
+    "workspace_directional_resize": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_layout_focus_fix": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_layout_rounding_fix": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    }
+  },
+  "new_definitions": {
+    "workspace_panel_metadata": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_stack_controls": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "workspace_panel_metadata"
+      ]
+    },
+    "workspace_directional_resize": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_layout_focus_fix": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_layout_rounding_fix": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    }
+  },
+  "full_source_profiles": [
+    {
+      "target": "1.19.2",
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "raw_git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+      "rendered_bytes": 89056,
+      "rendered_sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284"
+    },
+    {
+      "target": "1.19.4",
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "raw_git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+      "rendered_bytes": 89056,
+      "rendered_sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284"
+    },
+    {
+      "target": "1.20",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.20.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.20.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.20.3",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.20.4",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.21.0",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "1.21.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    },
+    {
+      "target": "26.1.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "raw_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+      "rendered_bytes": 23509,
+      "rendered_sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef"
+    }
+  ],
+  "independent_source_profiles": [
+    {
+      "mask": 0,
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 23509,
+      "sha256": "sha256:daf2fc3c32d50828ea19e320f55be411d24ce81837cd97feb10b56d5aad2dcef",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 1,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata"
+      ],
+      "bytes": 29899,
+      "sha256": "sha256:7947e3089cc548d2badfd69628922a147e3cb0e9cae393b38524ed452563d4be",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 3,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls"
+      ],
+      "bytes": 47462,
+      "sha256": "sha256:5509ba2f7c1b197aec4e8642f5c7fac57055404dccb3bccdc13159b72bf6cdfb",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 4,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize"
+      ],
+      "bytes": 36739,
+      "sha256": "sha256:bfb510c5d24e33244897b9d27c549d8d2ffc84573f89c5f3573f43ec47032cc7",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 5,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize"
+      ],
+      "bytes": 41855,
+      "sha256": "sha256:492d00afc1f6191ffd8f6c8b95e7abb9c9aa4864828abe937af2d81915dfa98d",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 7,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize"
+      ],
+      "bytes": 59289,
+      "sha256": "sha256:0a995b08fd78ca10c62f27181412f96adbb138921940f0a19915081be0bf7cfc",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 8,
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers"
+      ],
+      "bytes": 62093,
+      "sha256": "sha256:edd244e58a578f3092459fa5d9f6b046bff371806de7a07ed9bfe8a69e025b8d",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 9,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_dividers"
+      ],
+      "bytes": 67166,
+      "sha256": "sha256:d510b8e5c8754aa0f064a0be0d42c475f228ac911a32b7d45a5a569b41ad88c8",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 11,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_dividers"
+      ],
+      "bytes": 82559,
+      "sha256": "sha256:f9231d0339797737789b1b300d8c3dd3fd9c8c81e7efe90b47d880b472ce6e60",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 12,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_dividers"
+      ],
+      "bytes": 68184,
+      "sha256": "sha256:08d7e257d6074f21c35a90e9367a94969446cb8e5a46b3548303101ca39e963f",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 13,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_dividers"
+      ],
+      "bytes": 73257,
+      "sha256": "sha256:cf5be08a69b08be2398de01363749ad44a0a574e3e4aa3da479a94144a48b0a8",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 15,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_dividers"
+      ],
+      "bytes": 88650,
+      "sha256": "sha256:b64ae132f40066631e34cbace895db708cfc8318b1cc15463e8fe150bac28622",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 16,
+      "enabled": [
+        "workspace_panels",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 24742,
+      "sha256": "sha256:aead717e54a0abe54125c51c716ef6b7010e5584fd489bdc7d64bf098477a143",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 17,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 30292,
+      "sha256": "sha256:dd4e021d0ce83d52b47e291c13b5145c40e3e86ad8e4a5fa7cab8ddc4c46376b",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 19,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 47855,
+      "sha256": "sha256:86d8998dbfb4be597107cd12544ee560594e9e1ed2b566e877fbc5fce7b06d7d",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 20,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 37132,
+      "sha256": "sha256:89b8e2a9025b75c079d9644d7c326ab3fbeb394e8df22a1dd5198a0549a5203c",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 21,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 42248,
+      "sha256": "sha256:a4f2a6b716071a32af973262a40f8e13773ca1179457fc14d309dc74bb188de8",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 23,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 59682,
+      "sha256": "sha256:13d1a8d69d7c691594697d75c6129047bb870f240452217cd8147e33262014b6",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 24,
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 62486,
+      "sha256": "sha256:c7710d449928c93e2f9e78181272c540c6742857799500c7368bb6090a86df92",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 25,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 67559,
+      "sha256": "sha256:ef9399d186310b519cbc4450897efb12d48aa2bc782cf80db9794918d19409df",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 27,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 82952,
+      "sha256": "sha256:0871fca9fec1db55412f8e7632836761e1bfb30129fe175f3fa589a99ea95d4c",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 28,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 68577,
+      "sha256": "sha256:544e3463ae20ddb81ed8aa55187c62aa2224e173d672953ff65382fe9b49508f",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 29,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 73650,
+      "sha256": "sha256:03ffc63b4de93a4422a99fdd38d1d9e85edfe63fdf8fbc416e56494329b56bea",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 31,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix"
+      ],
+      "bytes": 89043,
+      "sha256": "sha256:69d857b264a4345ef09cc103bbf2b67f8bf9d22a00253a7d9f22f8e6e960c809",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 32,
+      "enabled": [
+        "workspace_panels",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 23522,
+      "sha256": "sha256:53f05b47424840f8fda863f5d2e7e4eb3bd545b1fbcbce3952c8e5e77f015245",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 33,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 29912,
+      "sha256": "sha256:b90f47fc81317279a940bac050f7c9302fcdf337488199a96a3d5a22ccd3f5ec",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 35,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 47475,
+      "sha256": "sha256:2dae552a5fbc0f96f16838d6af8c7c6410028753a15e123c55904fbbfa87383a",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 36,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 36752,
+      "sha256": "sha256:7b72da365eb05ddcc63e470d0e17d4f9fbe653b07c91bf06d87a44942579ec03",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 37,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 41868,
+      "sha256": "sha256:8720a8dcbe2fa77d6aa9662b5b735c5885b6c74f41791c6137193021365cbb35",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 39,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 59302,
+      "sha256": "sha256:fe7adb1feb6b601fd1da304934e4e20fd770a63a353870a078db1159654f9edd",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 40,
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 62106,
+      "sha256": "sha256:1af85f510c4e84cffe3f155fcf37dbc098468b3a8334531c217c11b49402d08b",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 41,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 67179,
+      "sha256": "sha256:3f80cd3026d76097014dfda004b23bb0c15ce68f67d287e3d7ffbbebe195f63b",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 43,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 82572,
+      "sha256": "sha256:0630412ada4dd6b632c5ede55fd9b7c532b5397b870c83d7b756497bb072adc3",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 44,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 68197,
+      "sha256": "sha256:7073d4a47ea307e096bce8e9cb09ab72af0850f6f58623fddd79eda581a3a7b4",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 45,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 73270,
+      "sha256": "sha256:81845b7afdf550d31cf90e99814efba0561bbe08ed5ef98907ba8574e7b93ac4",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 47,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 88663,
+      "sha256": "sha256:0baba10eb9e3b1bb1c6651d47544306be6d795b3f54c670543ee8b1ddd592572",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 48,
+      "enabled": [
+        "workspace_panels",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 24755,
+      "sha256": "sha256:bb01654848f64cd8a7dfce16ac0ac7e5c56410c59594c21b893d7764ecc4f257",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 49,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 30305,
+      "sha256": "sha256:a258b5554484f78b5e8a156fc658e136dc5d50e4b61f7020cb86c542ce865c98",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 51,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 47868,
+      "sha256": "sha256:8837c216aea4b5de7ddfbce48f641a612b480f32fc012a2af340e6fbbb382c41",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 52,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 37145,
+      "sha256": "sha256:3aa633067d1b1e58e09f3788eaa0c3c9a35ea80c4e30cc0e93064d26622a38c4",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 53,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 42261,
+      "sha256": "sha256:04ddf29d31e999948d95cc88cf05f69b57d4d48906d046efdc3140ec42d96454",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 55,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 59695,
+      "sha256": "sha256:6e1db6b9e47dbc6b6626256f0d714bc8c508b51f4877c361bb1bffbe2e271313",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 56,
+      "enabled": [
+        "workspace_panels",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 62499,
+      "sha256": "sha256:1e011c8c6457044ac0dc258ef5cc568b940f757dab0ce488305215a55b15d905",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 57,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 67572,
+      "sha256": "sha256:8c1ffa62262f8e06e88d442e4b02fb4de55a71dea7d2f075032252c203280839",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 59,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 82965,
+      "sha256": "sha256:2ebdcd87eae84707c9751e3be43db10b461edde09ee76771e975fe2abfac0b05",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 60,
+      "enabled": [
+        "workspace_panels",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 68590,
+      "sha256": "sha256:c47f2f96ac4ae677bcadf469e29fcff26bf256342ba84892113449e3dfbe55fa",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 61,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 73663,
+      "sha256": "sha256:d56d4f85d8aa2a095dddefb13d9a5dc99e3746f0294374a3500dd421e3f132e7",
+      "unresolved_known_method_names": []
+    },
+    {
+      "mask": 63,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_metadata",
+        "workspace_stack_controls",
+        "workspace_directional_resize",
+        "workspace_dividers",
+        "workspace_layout_focus_fix",
+        "workspace_layout_rounding_fix"
+      ],
+      "bytes": 89056,
+      "sha256": "sha256:29289bf06e5deb3863ea6274db80f344ac35684692c59ca7d12fa4f3ea7e3284",
+      "unresolved_known_method_names": []
+    }
+  ],
+  "functional_owners": {
+    "workspace_panel_metadata": "Stored gui-scale/provenance, metadata-bearing PanelNode/PanelEntry, compatible constructors, metadata-aware materialization and projections. Does not enable explorers or hosts.",
+    "workspace_stack_controls": "Mutating push/move/traverse/rotate/entry control, while legacy static StackSpec and stack(...) remain always available. The reviewed controls require metadata and panel core; they do not depend on command registration.",
+    "workspace_directional_resize": "Named five-percent directional resizing and exact track allocation helpers. Shares pure minimum/clamp/normalization implementation with dividers without requiring divider IDs or pointer interaction.",
+    "workspace_dividers": "Real divider identity/hit/linked capture/cancel/revision model. Layout membership still requires panels; the standalone pure divider owner remains prerequisite-free for carriers.",
+    "workspace_layout_focus_fix": "Visible-index focus choice after removal and null-safe normalize/allocate/isVisible when empty. Original unsafe/off body remains exact.",
+    "workspace_layout_rounding_fix": "Math.nextUp before floor in existing allocation, independent of resize or metadata. Original floor expression remains exact when disabled."
+  },
+  "shared_member_contracts": [
+    {
+      "member": "DIRECTIONAL_RESIZE_STEP_FRACTION",
+      "kind": "field",
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "mutationRevision",
+      "kind": "field",
+      "expression": "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "persistentPanelMetadata",
+      "kind": "field",
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "dividerLinks",
+      "kind": "field",
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "SFMWorkspaceLayout",
+      "arity": 3,
+      "expression": "independent exact per-region guards"
+    },
+    {
+      "member": "group",
+      "arity": 1,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "recompose",
+      "arity": 1,
+      "expression": "independent exact per-region guards"
+    },
+    {
+      "member": "mutationRevision",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "focus",
+      "arity": 1,
+      "expression": "independent exact per-region guards"
+    },
+    {
+      "member": "insert",
+      "arity": 3,
+      "expression": "features.workspace_panel_metadata",
+      "off_additions": [
+        "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_directional_resize or features.workspace_dividers",
+        "features.workspace_dividers"
+      ]
+    },
+    {
+      "member": "insert",
+      "kind": "method",
+      "arity": 4,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "pushToFocusedStack",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "pushToStack",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "move",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "moveToStack",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "traverse",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "rotateVisibleContent",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "rotateVisibleScale",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "setFocusedGuiScale",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "setGuiScale",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "configurePanel",
+      "arity": 3,
+      "expression": "independent exact per-region guards"
+    },
+    {
+      "member": "canResize",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "resize",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "computeResize",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "remove",
+      "arity": 1,
+      "expression": "independent exact per-region guards"
+    },
+    {
+      "member": "allPanels",
+      "arity": 0,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "entry",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "metadata",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "updateMetadata",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "visiblePanels",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_dividers or features.workspace_directional_resize or features.workspace_layout_focus_fix"
+    },
+    {
+      "member": "focusedSlotEntries",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "slotEntries",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "rotateFocusedSlot",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "stackId",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls or features.workspace_dividers"
+    },
+    {
+      "member": "dividers",
+      "kind": "method",
+      "arity": 4,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "hitTestDividers",
+      "kind": "method",
+      "arity": 6,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "linkDividers",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "unlinkDividers",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "dividerLinks",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "captureDividerResize",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "updateDividerResize",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "sharedClampedDelta",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "finishDividerResize",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "cancelDividerResize",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "abandonDividerResize",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "resizeDividers",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "validateDividerGeometryArguments",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "linksByDivider",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "structuralDividerIds",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "pruneDividerLinks",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "collectStructuralDividerIds",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "collectDividers",
+      "kind": "method",
+      "arity": 9,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "dividerId",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "anchorPanelId",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "panelIds",
+      "kind": "method",
+      "arity": 1,
+      "expression": "features.workspace_stack_controls or features.workspace_dividers"
+    },
+    {
+      "member": "collectPanelIds",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls or features.workspace_dividers"
+    },
+    {
+      "member": "stackId",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls or features.workspace_dividers"
+    },
+    {
+      "member": "expandAndClip",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "dividerHitComparator",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "applyDividerDelta",
+      "kind": "method",
+      "arity": 7,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "applyLinearDividerDelta",
+      "kind": "method",
+      "arity": 7,
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "sessionResult",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "DividerResizeSession",
+      "kind": "type",
+      "expression": "features.workspace_dividers"
+    },
+    {
+      "member": "insert",
+      "arity": 4,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "wrapAdjacent",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "normalize",
+      "arity": 1,
+      "expression": "features.workspace_layout_focus_fix"
+    },
+    {
+      "member": "allocate",
+      "arity": 4,
+      "expression": "features.workspace_layout_focus_fix"
+    },
+    {
+      "member": "allocateTracks",
+      "arity": 2,
+      "expression": "features.workspace_layout_rounding_fix"
+    },
+    {
+      "member": "resize",
+      "kind": "method",
+      "arity": 6,
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "axisLength",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "trackBounds",
+      "kind": "method",
+      "arity": 5,
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "minimumExtent",
+      "kind": "method",
+      "arity": 4,
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "normalizedTracksForLengths",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "collectPanels",
+      "arity": 2,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "collectVisiblePanels",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_dividers or features.workspace_directional_resize or features.workspace_layout_focus_fix"
+    },
+    {
+      "member": "contains",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls or features.workspace_dividers or features.workspace_directional_resize"
+    },
+    {
+      "member": "pushIntoNearestStack",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "collectFocusedSlot",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "updateMetadata",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "replacePayload",
+      "kind": "method",
+      "arity": 4,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "rebuildPersistentIndexes",
+      "kind": "method",
+      "arity": 0,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "rotateSlot",
+      "kind": "method",
+      "arity": 3,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "directionalNeighbor",
+      "kind": "method",
+      "arity": 2,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "intervalDistance",
+      "kind": "method",
+      "arity": 4,
+      "expression": "features.workspace_stack_controls"
+    },
+    {
+      "member": "PanelEntry",
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "materialize",
+      "arity": 4,
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "isVisible",
+      "arity": 2,
+      "expression": "features.workspace_layout_focus_fix"
+    },
+    {
+      "member": "PanelNode",
+      "expression": "features.workspace_panel_metadata"
+    },
+    {
+      "member": "Track",
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "Resize",
+      "kind": "type",
+      "expression": "features.workspace_directional_resize"
+    },
+    {
+      "member": "DividerApplication",
+      "kind": "type",
+      "expression": "features.workspace_directional_resize or features.workspace_dividers"
+    },
+    {
+      "member": "Rotation",
+      "kind": "type",
+      "expression": "features.workspace_stack_controls"
+    }
+  ],
+  "reviewed_shared_helpers": [
+    {
+      "members": [
+        "panelIds",
+        "collectPanelIds"
+      ],
+      "owner_expression": "features.workspace_stack_controls or features.workspace_dividers",
+      "reason": "The real private stackId method calls panelIds even when the pointer/divider feature is off; never gate these helpers solely by dividers."
+    },
+    {
+      "members": [
+        "applyLinearDividerDelta",
+        "DividerApplication",
+        "axisLength",
+        "trackBounds",
+        "minimumExtent",
+        "normalizedTracksForLengths"
+      ],
+      "owner_expression": "features.workspace_directional_resize or features.workspace_dividers",
+      "reason": "Both source paths use the genuine shared min/clamp/share primitive; the directional-only model does not need SFMWorkspaceDivider IDs."
+    },
+    {
+      "members": [
+        "mutationRevision"
+      ],
+      "owner_expression": "features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_directional_resize or features.workspace_dividers",
+      "reason": "Optional control/state changes share one revision field/getter. Every pruning call is independently divider-owned."
+    },
+    {
+      "members": [
+        "Track"
+      ],
+      "owner_expression": "features.workspace_directional_resize or features.workspace_dividers",
+      "reason": "Integer resizing can make a flexible track's share zero. Legacy positive-only check/message is preserved exactly with both owners off."
+    }
+  ],
+  "frozen_region_review": {
+    "schema": "sfm:workspace_layout_regions@1",
+    "migration_only": true,
+    "legacy_git_blob": "66f0416021e11b95d5635518d5cf58e025aec90a",
+    "d2_git_blob": "69c1c61ff9a78fe9bb956e3c13630b2ce6d0e8dc",
+    "legacy_lines": 531,
+    "d2_lines": 2014,
+    "shared_lines": 496,
+    "changed_regions": 48,
+    "tie_policy": "Advance new side when LCS lengths tie; this is a migration review only, never production routing.",
+    "fingerprint_encoding": "SHA256 of UTF-8 JSON.stringify({legacy:[start,end,legacy_sha256],d2:[start,end,d2_sha256]}); exact raw hunk SHA256 counts include LF after each source line.",
+    "regions": [
+      {
+        "region": 1,
+        "legacy_lines": [
+          5,
+          4
+        ],
+        "d2_lines": [
+          5,
+          5
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:bd3bf4485c37af33683033b02696ba34985771f14ddf39a02314d90d00be7a2d",
+        "fingerprint_sha256": "sha256:631e33601f84bda063f80247bdd3463500a836126b0933b10a7b2195113012aa",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "import java.util.Comparator;"
+        ]
+      },
+      {
+        "region": 2,
+        "legacy_lines": [
+          7,
+          6
+        ],
+        "d2_lines": [
+          8,
+          8
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:6698234ffe81093273cf743b88a4a21377dadde3e99cb340f172c654f41cf494",
+        "fingerprint_sha256": "sha256:6f488ba3078f75bed5b77f2a9c5dc2185efa33d9509f14cff7ed9d3eea4f3025",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "import java.util.LinkedHashSet;"
+        ]
+      },
+      {
+        "region": 3,
+        "legacy_lines": [
+          10,
+          9
+        ],
+        "d2_lines": [
+          12,
+          14
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 3,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:f33a9c68c2d2604ff775f7fb0a288543e13e0f969a459aba189eb5e6890c28a0",
+        "fingerprint_sha256": "sha256:d5fd856a1fe271c4be2d0acbcb36f12bfeecff612cee69b2ca8fe4e87b5405fc",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "import java.util.Optional;",
+          "import java.util.Set;",
+          "import org.jetbrains.annotations.Nullable;"
+        ]
+      },
+      {
+        "region": 4,
+        "legacy_lines": [
+          17,
+          16
+        ],
+        "d2_lines": [
+          22,
+          23
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:9b8493d0af4d13a02da6b1c4f30a0621cd257f9f2246da047efbbcb9bf7c2dd3",
+        "fingerprint_sha256": "sha256:c6f5b9c3d1e06c4ecc3d12bfb0d9e39160540eb4b0de71a19860704bfc822080",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    /** Microsoft Terminal-compatible deterministic resize increment. */",
+          "    public static final double DIRECTIONAL_RESIZE_STEP_FRACTION = 0.05;"
+        ]
+      },
+      {
+        "region": 5,
+        "legacy_lines": [
+          21,
+          20
+        ],
+        "d2_lines": [
+          28,
+          28
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:eb433c95a63c04ef51641df08a40f055c5f685797663ea7b49bf01470b0017dd",
+        "fingerprint_sha256": "sha256:7b3f9dfb262e8714740d33828adc81889083a0cf2be9b112737093af46263c81",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    private long mutationRevision;"
+        ]
+      },
+      {
+        "region": 6,
+        "legacy_lines": [
+          22,
+          21
+        ],
+        "d2_lines": [
+          30,
+          31
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:f72ad52d4e9c2b0c32760806b908c930ce8368913504490d88a0e7dc5716ba8f",
+        "fingerprint_sha256": "sha256:3580fa8b1d8bc3cf9dac4fe7f4da68624bebcf2357ca5d2c5546a0eba46fa7e0",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> persistentPanelMetadata;",
+          "    private final Map<SFMWorkspaceDividerLinkId, List<SFMWorkspaceDividerId>> dividerLinks;"
+        ]
+      },
+      {
+        "region": 7,
+        "legacy_lines": [
+          27,
+          26
+        ],
+        "d2_lines": [
+          37,
+          37
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:d728bf1e3445287a66f12454a1b4a8dc2b2fa9155249e271c69ca316677bfe50",
+        "fingerprint_sha256": "sha256:3871a39069479963fb6cfd66e7e53fbc407cea1fb7f66811e05e9cdfe6705588",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        this.mutationRevision = 0;"
+        ]
+      },
+      {
+        "region": 8,
+        "legacy_lines": [
+          28,
+          27
+        ],
+        "d2_lines": [
+          39,
+          40
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:bcd94e8ddddba600cfc8fd316d4adb5984bca2cda284473af1e42d575c3a70ee",
+        "fingerprint_sha256": "sha256:ec382d5570e09c4fe08857643af5a1f245bded26de345ca34e692ec040b4c86f",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        this.persistentPanelMetadata = new IdentityHashMap<>();",
+          "        this.dividerLinks = new LinkedHashMap<>();"
+        ]
+      },
+      {
+        "region": 9,
+        "legacy_lines": [
+          30,
+          30
+        ],
+        "d2_lines": [
+          43,
+          46
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 4,
+        "legacy_sha256": "sha256:72aeddf437cb6ed908e93fd8d0abfe7428ff57f1df09cd7d5de6f4f14128fd1c",
+        "d2_sha256": "sha256:d5bf291fede5d364baf9d1bc1b95c2a850c5b66120e11a93ac2c06b4d86d2d78",
+        "fingerprint_sha256": "sha256:0cadfc627c4ac2a5d76e777c328d43d2e574f41b5b3453c88b527c1b05577ba0",
+        "legacy_anchor": [
+          "        entries.forEach(entry -> persistentPanelIds.put(entry.panel(), entry.id()));"
+        ],
+        "d2_anchor": [
+          "        entries.forEach(entry -> {",
+          "            persistentPanelIds.put(entry.panel(), entry.id());",
+          "            persistentPanelMetadata.put(entry.panel(), entry.metadata());",
+          "        });"
+        ]
+      },
+      {
+        "region": 10,
+        "legacy_lines": [
+          60,
+          60
+        ],
+        "d2_lines": [
+          76,
+          77
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:93a2ef416ce1dbf7cd878a8f59ca85cb5a88bf7c3616be7a766c8fcd1f84cd7c",
+        "d2_sha256": "sha256:52843afc2fc3e76f5e1f03a6be1cf1988afc4a5013a4615958f22597c3bdb450",
+        "fingerprint_sha256": "sha256:276b57b67c25f95bd971fe80d9011c5d57ee3929165c51fb8064d73c5ee55079",
+        "legacy_anchor": [
+          "        Node root = materialize(spec, ids, nextId);"
+        ],
+        "d2_anchor": [
+          "        IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> metadata = new IdentityHashMap<>();",
+          "        Node root = materialize(spec, ids, metadata, nextId);"
+        ]
+      },
+      {
+        "region": 11,
+        "legacy_lines": [
+          66,
+          65
+        ],
+        "d2_lines": [
+          83,
+          83
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:fba9b724ea9d3ab2a0b53889467f97498d7207369ddb624ab9b75d424c14e624",
+        "fingerprint_sha256": "sha256:9167689f40c726be1f98584acde88c65b2be9c3710641aded975382cad86b930",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        layout.persistentPanelMetadata.putAll(metadata);"
+        ]
+      },
+      {
+        "region": 12,
+        "legacy_lines": [
+          77,
+          77
+        ],
+        "d2_lines": [
+          95,
+          95
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:6acc448bfd1f1c4fde8ded42bac34353003764a54e0b05850cd76cf2d4a09915",
+        "d2_sha256": "sha256:486dfa4fde9d810716530f643d38cd476a0fcd5108d001b28fc07d54ae93edd5",
+        "fingerprint_sha256": "sha256:d26991dee4fc0944d8e75444edddd4cbd24093f9fee9dcd9ef512c0a0d804c1d",
+        "legacy_anchor": [
+          "        Node candidate = materialize(spec, persistentPanelIds, candidateNextId);"
+        ],
+        "d2_anchor": [
+          "        Node candidate = materialize(spec, persistentPanelIds, persistentPanelMetadata, candidateNextId);"
+        ]
+      },
+      {
+        "region": 13,
+        "legacy_lines": [
+          86,
+          85
+        ],
+        "d2_lines": [
+          104,
+          105
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:a86736375c93e8afd4d0da71a83322685f60fd5013ba29089e61e2862634f0fd",
+        "fingerprint_sha256": "sha256:e837b51eb52bac4e179b2dfeca52007c55e80c447ae666b638a3a02eba48a3f7",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        mutationRevision++;",
+          "        pruneDividerLinks();"
+        ]
+      },
+      {
+        "region": 14,
+        "legacy_lines": [
+          88,
+          87
+        ],
+        "d2_lines": [
+          108,
+          112
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 5,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:bd53316ac69cefbb632e63ff9c5bf5f753a412c48ae217e602ac13bc6e2ae6a0",
+        "fingerprint_sha256": "sha256:39ea7b2743d003dbd9618f6cb6b0767bf9eba3c664b8355ae5ec1d5cd40e1523",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    /** Changes for which an in-flight absolute resize capture must be discarded. */",
+          "    public long mutationRevision() {",
+          "        return mutationRevision;",
+          "    }"
+        ]
+      },
+      {
+        "region": 15,
+        "legacy_lines": [
+          95,
+          94
+        ],
+        "d2_lines": [
+          120,
+          120
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:bb1a34b00061ed097089949a2181e5c59f70dc8709bdf8be4bf09abca32d629b",
+        "fingerprint_sha256": "sha256:63576cd4d34058ccda5ba241f0e4bd434841535afab9e30de3432c790de9af93",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        if (!root.equals(activated.node())) mutationRevision++;"
+        ]
+      },
+      {
+        "region": 16,
+        "legacy_lines": [
+          105,
+          104
+        ],
+        "d2_lines": [
+          131,
+          139
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 9,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:9d7693d8ff76896679e8d46226fb8b9ea41c025e6c9b37f1f9d4fb16925576dc",
+        "fingerprint_sha256": "sha256:f3e069162b85f5416204c699c364dc35c454c39f398f977c8a586fd7bcd204d8",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        return insert(source, side, panel, SFMWorkspacePanelMetadata.ordinary());",
+          "    }",
+          "    public SFMWorkspacePanelId insert(",
+          "            SFMWorkspacePanelId source,"
+        ]
+      },
+      {
+        "region": 17,
+        "legacy_lines": [
+          108,
+          107
+        ],
+        "d2_lines": [
+          143,
+          143
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:a3d2365dcacc7c19f64ef767ffe0a25624d590ed5dce6cb3a9aeecd3e103f41f",
+        "fingerprint_sha256": "sha256:84f3044f5ea5398caab45adcfe42c901be3717281c96272ecb1b214c9734585e",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        Objects.requireNonNull(metadata);"
+        ]
+      },
+      {
+        "region": 18,
+        "legacy_lines": [
+          112,
+          112
+        ],
+        "d2_lines": [
+          148,
+          178
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 31,
+        "legacy_sha256": "sha256:7872388b218cbe7ce05bfaa3b4c42d3f222dbcbc75d4b9fb9a4cda1206094c0f",
+        "d2_sha256": "sha256:528c614a3b77c43f106db1ba89152735ca126ed82566aff8df6cc30da01a7666",
+        "fingerprint_sha256": "sha256:d9e4ae7b1009a51d07dde98b2566fc6caed70498e04b7f42f690ad422eadb05d",
+        "legacy_anchor": [
+          "        root = normalize(insert(root, source, side, new PanelNode(inserted, panel)));"
+        ],
+        "d2_anchor": [
+          "        persistentPanelMetadata.put(panel, metadata);",
+          "        root = normalize(insert(root, source, side, new PanelNode(inserted, panel, metadata)));",
+          "        focusedPanel = inserted;",
+          "        mutationRevision++;"
+        ]
+      },
+      {
+        "region": 19,
+        "legacy_lines": [
+          114,
+          113
+        ],
+        "d2_lines": [
+          180,
+          181
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:a86736375c93e8afd4d0da71a83322685f60fd5013ba29089e61e2862634f0fd",
+        "fingerprint_sha256": "sha256:b4b2c5803b3746687806d5abcf5bf6abde226fb9b161c144d5d24065bb997e2e",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        mutationRevision++;",
+          "        pruneDividerLinks();"
+        ]
+      },
+      {
+        "region": 20,
+        "legacy_lines": [
+          117,
+          116
+        ],
+        "d2_lines": [
+          185,
+          306
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 122,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:084f3ff0ed7a8fffa5c35a414047aa20050a11ef9d13d779ebaa0a47e11fea48",
+        "fingerprint_sha256": "sha256:7dd68390daa81adf08d2c78bd4ea70b1ea5348cc97bf77754c6d39bb18817f64",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    /** Moves the visible entry into the adjacent slot without cloning its identity or content. */",
+          "    public boolean move(SFMWorkspacePanelId panelId, SFMWorkspaceSide side) {",
+          "        Objects.requireNonNull(panelId);",
+          "        Objects.requireNonNull(side);"
+        ]
+      },
+      {
+        "region": 21,
+        "legacy_lines": [
+          125,
+          124
+        ],
+        "d2_lines": [
+          315,
+          315
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:5923b1f05f62f78e9a599f1efc3009e8a4e7ee12a8ec29af453db88e17a19cca",
+        "fingerprint_sha256": "sha256:9efde40cb7657a6de94e2416779cdc5e781b807decc162e9a019840e6a603f2b",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        if (configured.changed()) mutationRevision++;"
+        ]
+      },
+      {
+        "region": 22,
+        "legacy_lines": [
+          128,
+          127
+        ],
+        "d2_lines": [
+          319,
+          378
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 60,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:137daf93a305532bb65962bcda13f14349da8b2303cac199ca2ca8547a4a291d",
+        "fingerprint_sha256": "sha256:1184bde091b1181c2d697bf50a7afdcf25c3db36c55a2e0ad0f52e6fd45b1b4f",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    /** Returns whether the corresponding resize would change the layout without mutating it. */",
+          "    public boolean canResize(",
+          "            SFMWorkspacePanelId panelId,",
+          "            SFMWorkspaceSide side,"
+        ]
+      },
+      {
+        "region": 23,
+        "legacy_lines": [
+          131,
+          130
+        ],
+        "d2_lines": [
+          382,
+          382
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:9ea6b710d6c8f4a641a3015df3097a9c1c24cd2f387337392c786c5abb7c9948",
+        "fingerprint_sha256": "sha256:9f3ee0f51cf84aad7789991934ee2e9b4596830fddba940cf4557985c1327041",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        List<PanelEntry> visibleBefore = visiblePanels();"
+        ]
+      },
+      {
+        "region": 24,
+        "legacy_lines": [
+          132,
+          131
+        ],
+        "d2_lines": [
+          384,
+          384
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:6be34e902d66b7aa81b569f4d721c90f6bbe2de29b05610776db4a5e3b532eb4",
+        "fingerprint_sha256": "sha256:ce82d9d340568f6b38c0fcd2fc75cf2ad1159c0b6c1c02f8f222f866cd5485ae",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        int removedVisibleIndex = indexOf(visibleBefore, panelId);"
+        ]
+      },
+      {
+        "region": 25,
+        "legacy_lines": [
+          136,
+          135
+        ],
+        "d2_lines": [
+          389,
+          389
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:c25cfc024626423ad59359ac9378e0815d6fdf8228188688069025aa82b2166e",
+        "fingerprint_sha256": "sha256:78c46922e711d0214a21748defe93f4f888a02f4c03231ea07463f4c071cda3d",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        persistentPanelMetadata.remove(removedPanel);"
+        ]
+      },
+      {
+        "region": 26,
+        "legacy_lines": [
+          140,
+          140
+        ],
+        "d2_lines": [
+          394,
+          396
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 3,
+        "legacy_sha256": "sha256:1d18907ce0f5702f9921d7642755231c3dcefef214405127a1054fcddff07e7f",
+        "d2_sha256": "sha256:7a65ad876d6a456a6d3f58ea64ef844fade0924f0db2b3d7db481e4d1eb1641a",
+        "fingerprint_sha256": "sha256:d33c2e52f59fc9dc44d880ef254312c52e0daad8941dc21a1a881af2b4cc9962",
+        "legacy_anchor": [
+          "            focusedPanel = after.get(Math.min(removedIndex, after.size() - 1)).id();"
+        ],
+        "d2_anchor": [
+          "            List<PanelEntry> visibleAfter = visiblePanels();",
+          "            int targetIndex = removedVisibleIndex < 0 ? 0 : removedVisibleIndex;",
+          "            focusedPanel = visibleAfter.get(Math.min(targetIndex, visibleAfter.size() - 1)).id();"
+        ]
+      },
+      {
+        "region": 27,
+        "legacy_lines": [
+          142,
+          141
+        ],
+        "d2_lines": [
+          398,
+          399
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:a86736375c93e8afd4d0da71a83322685f60fd5013ba29089e61e2862634f0fd",
+        "fingerprint_sha256": "sha256:673d30f1acbcb0c4a40aa73bbbf22b039b68be99ec5f06f602b5d0508be98a52",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        mutationRevision++;",
+          "        pruneDividerLinks();"
+        ]
+      },
+      {
+        "region": 28,
+        "legacy_lines": [
+          154,
+          154
+        ],
+        "d2_lines": [
+          412,
+          415
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 4,
+        "legacy_sha256": "sha256:729d02b6047d842ab36fd35bcad467f0a1b1fd2f174eb0b4a06db244dab27fc5",
+        "d2_sha256": "sha256:7944a0100778b9a2763a2abd0e1fc1cd868cee567a76bd5a3500c536e81d9f2a",
+        "fingerprint_sha256": "sha256:c4bc6b9a459a485c78dbe40adeb31517e01d347f52195d532fd031b1e1fef190",
+        "legacy_anchor": [
+          "                .map(entry -> new PanelEntry(entry.getValue(), entry.getKey()))"
+        ],
+        "d2_anchor": [
+          "                .map(entry -> new PanelEntry(",
+          "                        entry.getValue(),",
+          "                        entry.getKey(),",
+          "                        persistentPanelMetadata.getOrDefault(entry.getKey(), SFMWorkspacePanelMetadata.ordinary())))"
+        ]
+      },
+      {
+        "region": 29,
+        "legacy_lines": [
+          164,
+          163
+        ],
+        "d2_lines": [
+          425,
+          473
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 49,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:1b180145f78a5ff1cb927569b81451ae84c64d77187d495114d42609a795243e",
+        "fingerprint_sha256": "sha256:00d828dab0b40ef757cd6b35f69e3f5203659fe661978c61f73bb00f7bb0bbd9",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    public @Nullable PanelEntry entry(SFMWorkspacePanelId panelId) {",
+          "        PanelNode found = find(panelId);",
+          "        return found == null ? null : new PanelEntry(found.id(), found.panel(), found.metadata());",
+          "    }"
+        ]
+      },
+      {
+        "region": 30,
+        "legacy_lines": [
+          174,
+          173
+        ],
+        "d2_lines": [
+          484,
+          1214
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 731,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:b6dd53da17e9e1015289fddc16f3c5daf0f417fb9993c9ff39ae3c58dbac4f87",
+        "fingerprint_sha256": "sha256:d7c6dc8dce3b62f2b8b162c3deab25e9daf9f929bc805de074615c7df0c702ab",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    /** Stable slot identity; every entry in a stack resolves to the same value. */",
+          "    public Optional<SFMWorkspaceStackId> stackId(SFMWorkspacePanelId panelId) {",
+          "        Objects.requireNonNull(panelId);",
+          "        return Optional.ofNullable(stackId(root, panelId));"
+        ]
+      },
+      {
+        "region": 31,
+        "legacy_lines": [
+          191,
+          203
+        ],
+        "d2_lines": [
+          1232,
+          1245
+        ],
+        "legacy_line_count": 13,
+        "d2_line_count": 14,
+        "legacy_sha256": "sha256:cea0e680dc24c0fdc0c09cc1f8368dff5414db00c043a18bcb11edc9b403521c",
+        "d2_sha256": "sha256:3abe23faf163024033e7f2501610fdecb879a26f31dfeec860235527543ccb7d",
+        "fingerprint_sha256": "sha256:4a610848a25fcea4875058286ca508f773e38db13a4c381935ee4e556f64130f",
+        "legacy_anchor": [
+          "        if (node instanceof PanelNode panel) {",
+          "            if (!panel.id().equals(source)) return panel;"
+        ],
+        "d2_anchor": [
+          "        if (node == null || !contains(node, source)) return node;",
+          "        if (node instanceof PanelNode panel) return wrapAdjacent(panel, side, inserted);",
+          "        if (node instanceof StackNode) return wrapAdjacent(node, side, inserted);",
+          "        LinearNode linear = (LinearNode) node;"
+        ]
+      },
+      {
+        "region": 32,
+        "legacy_lines": [
+          205,
+          205
+        ],
+        "d2_lines": [
+          1247,
+          1248
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:67d9183fe6157d2a170c5e60191d4491ff9079a0056caca7593c2470e608a4f0",
+        "d2_sha256": "sha256:31735144c7c8b215f17a62632a46b9b9c40e28c0e8476b9eab40036f717df6a2",
+        "fingerprint_sha256": "sha256:c40beeed8268ae10ba41ede026ef0eeedfd668006c1e8d534de8243bd4c680b7",
+        "legacy_anchor": [
+          "            return new StackNode(children, stack.active());"
+        ],
+        "d2_anchor": [
+          "            children.set(index, child.withNode(insert(child.node(), source, side, inserted)));",
+          "            return new LinearNode(linear.axis(), children);"
+        ]
+      },
+      {
+        "region": 33,
+        "legacy_lines": [
+          207,
+          212
+        ],
+        "d2_lines": [
+          1250,
+          1259
+        ],
+        "legacy_line_count": 6,
+        "d2_line_count": 10,
+        "legacy_sha256": "sha256:6db74f0b401772c174f74a4d8324e2767447f5031e6d29eaff662d2c2b2016f1",
+        "d2_sha256": "sha256:dc26650c3764cdf3386da72a7d784cd2a0bd28c77b95a3112402aab6c599ac8f",
+        "fingerprint_sha256": "sha256:96fdf9338e61ad7bc2544ff6a06443d0b6ccb2ec59d42bf1ea402f76e644dc0f",
+        "legacy_anchor": [
+          "        LinearNode linear = (LinearNode) node;",
+          "        List<Track> children = new ArrayList<>(linear.children().size());"
+        ],
+        "d2_anchor": [
+          "        return node;",
+          "    }",
+          "    private static Node wrapAdjacent(Node existing, SFMWorkspaceSide side, PanelNode inserted) {",
+          "        Track oldTrack = new Track(existing, 1.0, DEFAULT_MINIMUM_PIXELS);"
+        ]
+      },
+      {
+        "region": 34,
+        "legacy_lines": [
+          273,
+          272
+        ],
+        "d2_lines": [
+          1320,
+          1320
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:2d28f15001b933b877a77b6265b67288ce74e709a26d38fba8fee14eab8bceb6",
+        "fingerprint_sha256": "sha256:c2b8953dcad717d9749c5ba983a85dfcce344afda9c79544071f71de004a41c9",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        if (node == null) return null;"
+        ]
+      },
+      {
+        "region": 35,
+        "legacy_lines": [
+          304,
+          303
+        ],
+        "d2_lines": [
+          1352,
+          1352
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:7fcb0cb8bc966160a429facea8147b9ead1a08be2425833843b14823b539d035",
+        "fingerprint_sha256": "sha256:de9515cbc7c20ac6803d0d4e504716f6e50bc01e900fc82fec05009f0769a45d",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        if (node == null) return;"
+        ]
+      },
+      {
+        "region": 36,
+        "legacy_lines": [
+          346,
+          346
+        ],
+        "d2_lines": [
+          1395,
+          1395
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:c953ecc87364384259567abb2d0d5c44119a04e2de5ff5a7ccbfa56f3a51321f",
+        "d2_sha256": "sha256:ee6cabc1b7edf71b2403236d4145b44a27d4a381243a083e47686256fcf64916",
+        "fingerprint_sha256": "sha256:f976657be7403302db06cedf5b3d3c2a1afd33d2a6ed413852269351ea9bdce0",
+        "legacy_anchor": [
+          "                    : (int) Math.floor(remaining * tracks.get(i).share() / shares);"
+        ],
+        "d2_anchor": [
+          "                    : (int) Math.floor(Math.nextUp(remaining * tracks.get(i).share() / shares));"
+        ]
+      },
+      {
+        "region": 37,
+        "legacy_lines": [
+          353,
+          352
+        ],
+        "d2_lines": [
+          1402,
+          1567
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 166,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:0f9f563ec97b26d2f60c3f359bafd2aef3be0e33242e61da45c8f34457e96b0e",
+        "fingerprint_sha256": "sha256:8497909c6d9093d499849c33c8983b0e6e24f883397a150b932070d56e3f63aa",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    private static Resize resize(",
+          "            Node node,",
+          "            SFMWorkspacePanelId panelId,",
+          "            SFMWorkspaceSide side,"
+        ]
+      },
+      {
+        "region": 38,
+        "legacy_lines": [
+          404,
+          404
+        ],
+        "d2_lines": [
+          1619,
+          1619
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:2f500ba021bc8e96b70d6b3ec043c736d2e0352f7d017f38620d8c5ea0b8fde4",
+        "d2_sha256": "sha256:db43588eed2a64b67a8bb63078e718553d54170b1c91dcd23c4b53bd33ca1f33",
+        "fingerprint_sha256": "sha256:ead5622ca7d5a15c01bca18dbf9524f8b5d3fca67a8cf919e03faa3e9f96dcfd",
+        "legacy_anchor": [
+          "            answer.add(new PanelEntry(panel.id(), panel.panel()));"
+        ],
+        "d2_anchor": [
+          "            answer.add(new PanelEntry(panel.id(), panel.panel(), panel.metadata()));"
+        ]
+      },
+      {
+        "region": 39,
+        "legacy_lines": [
+          414,
+          413
+        ],
+        "d2_lines": [
+          1629,
+          1800
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 172,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:176eff2c268683ce69cb04944c8fc4f8d7d62f3de7c968e1afee1d847551e106",
+        "fingerprint_sha256": "sha256:976fc05c43cde0554699af816cb50736fabf6c66bcdc0d9190904c5e6b493861",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    private static void collectVisiblePanels(Node node, List<PanelEntry> answer) {",
+          "        if (node == null) return;",
+          "        if (node instanceof PanelNode panel) {",
+          "            answer.add(new PanelEntry(panel.id(), panel.panel(), panel.metadata()));"
+        ]
+      },
+      {
+        "region": 40,
+        "legacy_lines": [
+          419,
+          419
+        ],
+        "d2_lines": [
+          1806,
+          1869
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 64,
+        "legacy_sha256": "sha256:d394b43e2995935f96c7c8b55259c66b587008e909d64f925662166d123658fa",
+        "d2_sha256": "sha256:a5757c3dfec2e70c36026e3e69af9728ce9d921a346221969c2ff92592042161",
+        "fingerprint_sha256": "sha256:e713abe1368088d9b27703e6d1697643f480d632f776a33d164d91db8e33731a",
+        "legacy_anchor": [
+          "    public record PanelEntry(SFMWorkspacePanelId id, SFMScreenPanel panel) {"
+        ],
+        "d2_anchor": [
+          "    private @Nullable SFMWorkspacePanelId directionalNeighbor(",
+          "            SFMWorkspacePanelId source,",
+          "            SFMWorkspaceSide side",
+          "    ) {"
+        ]
+      },
+      {
+        "region": 41,
+        "legacy_lines": [
+          425,
+          424
+        ],
+        "d2_lines": [
+          1875,
+          1875
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:56b9a016599027943c952e4cf437755cbb290d9de8b7388fba5061ab0e7f329b",
+        "fingerprint_sha256": "sha256:a73db70b01fbfd6e7f82007c88aad68ce8da85caa0e32faa7acb56d80706e138",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "            IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> metadata,"
+        ]
+      },
+      {
+        "region": 42,
+        "legacy_lines": [
+          429,
+          429
+        ],
+        "d2_lines": [
+          1880,
+          1882
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 3,
+        "legacy_sha256": "sha256:a520d9112f2fe0227502592480f827a80f4b083c84cfa1ee80795365d0b36b52",
+        "d2_sha256": "sha256:d98b38622bb55652659c5d691fb90239bc1e7c0dc124cd2038f8b24f7ce596dd",
+        "fingerprint_sha256": "sha256:e7142f46dcd492cde1d3d4aa2a246c0d96047213527497cbdf84e760daa6bea0",
+        "legacy_anchor": [
+          "            return new PanelNode(id, panel.panel());"
+        ],
+        "d2_anchor": [
+          "            SFMWorkspacePanelMetadata entryMetadata = metadata.computeIfAbsent(",
+          "                    panel.panel(), ignored -> SFMWorkspacePanelMetadata.ordinary());",
+          "            return new PanelNode(id, panel.panel(), entryMetadata);"
+        ]
+      },
+      {
+        "region": 43,
+        "legacy_lines": [
+          432,
+          432
+        ],
+        "d2_lines": [
+          1885,
+          1886
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:997b21d808a5549ddc88d258b31721bb87744bf9874aca99c47008e7db610d0f",
+        "d2_sha256": "sha256:5e71ef9977dd0f70cbbbe6543251eabfee2518c9ab6ce0967f1dd17e0cfcffa1",
+        "fingerprint_sha256": "sha256:4c89eecf251661017a2286ead66da3ea3fe875f1eaff51035d75d2f9818eef14",
+        "legacy_anchor": [
+          "            return new StackNode(stack.children().stream().map(child -> materialize(child, ids, nextId)).toList(), stack.active());"
+        ],
+        "d2_anchor": [
+          "            return new StackNode(stack.children().stream()",
+          "                    .map(child -> materialize(child, ids, metadata, nextId)).toList(), stack.active());"
+        ]
+      },
+      {
+        "region": 44,
+        "legacy_lines": [
+          436,
+          436
+        ],
+        "d2_lines": [
+          1890,
+          1890
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:5d9ce3670ca98891e9b95bb38520332573143559cdd312d37fc4662d2ca9ae9d",
+        "d2_sha256": "sha256:97a8699bd3d0c90838778b0dc8309637f8ab4fbb2a4d7ea72b6970fde28fc408",
+        "fingerprint_sha256": "sha256:0d81ba18bb22a2ffce7f9a27c04f061d8efa5ae0cbf0b1faa95f28c2898b3ed5",
+        "legacy_anchor": [
+          "                .map(child -> new Track(materialize(child, ids, nextId), 1.0, DEFAULT_MINIMUM_PIXELS)).toList());"
+        ],
+        "d2_anchor": [
+          "                .map(child -> new Track(materialize(child, ids, metadata, nextId), 1.0, DEFAULT_MINIMUM_PIXELS)).toList());"
+        ]
+      },
+      {
+        "region": 45,
+        "legacy_lines": [
+          457,
+          456
+        ],
+        "d2_lines": [
+          1911,
+          1911
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 1,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:23a65964341bf451ea0502fd8027592aca4baf6926846fc86779c151ed0cdd13",
+        "fingerprint_sha256": "sha256:d3e44e4c95cb52b43d29b3cf0fb67d54d3dfd4f7173181e6933ddd6583410d86",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "        if (node == null) return false;"
+        ]
+      },
+      {
+        "region": 46,
+        "legacy_lines": [
+          494,
+          494
+        ],
+        "d2_lines": [
+          1949,
+          1962
+        ],
+        "legacy_line_count": 1,
+        "d2_line_count": 14,
+        "legacy_sha256": "sha256:19485b0289483bb820d4c294f92dd48a653a6b79981c67cd2c22493b88f1964b",
+        "d2_sha256": "sha256:ec8f1c6ec8a2f33e0717cb929ffc7016a0a0b575fcab082053f0ee21d57add49",
+        "fingerprint_sha256": "sha256:8e2e16d45e872e3b18d3fdb831a902d57f56957d93ff29b7c7266e9d0686ee47",
+        "legacy_anchor": [
+          "    private record PanelNode(SFMWorkspacePanelId id, SFMScreenPanel panel) implements Node {"
+        ],
+        "d2_anchor": [
+          "    private record PanelNode(",
+          "            SFMWorkspacePanelId id,",
+          "            SFMScreenPanel panel,",
+          "            SFMWorkspacePanelMetadata metadata"
+        ]
+      },
+      {
+        "region": 47,
+        "legacy_lines": [
+          515,
+          516
+        ],
+        "d2_lines": [
+          1983,
+          1984
+        ],
+        "legacy_line_count": 2,
+        "d2_line_count": 2,
+        "legacy_sha256": "sha256:3a3c24dfcab359a616785c31c304c0dea6bfb9d675e6346a0b9317c7fcd44162",
+        "d2_sha256": "sha256:216b46c35044131ce64572c6b87648bd07e47d8941277014feeedd0e815c88c7",
+        "fingerprint_sha256": "sha256:2b21b97f8aae9902bd1dc999b9123178dabe5e023a9a3576b1b30b3b303179d7",
+        "legacy_anchor": [
+          "            if (!(share > 0.0) || !Double.isFinite(share)) {",
+          "                throw new IllegalArgumentException(\"Track share must be finite and positive\");"
+        ],
+        "d2_anchor": [
+          "            if (share < 0.0 || !Double.isFinite(share)) {",
+          "                throw new IllegalArgumentException(\"Track share must be finite and non-negative\");"
+        ]
+      },
+      {
+        "region": 48,
+        "legacy_lines": [
+          529,
+          528
+        ],
+        "d2_lines": [
+          1997,
+          2011
+        ],
+        "legacy_line_count": 0,
+        "d2_line_count": 15,
+        "legacy_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "d2_sha256": "sha256:240e42dd175788b3e6fa1a4a30110dd98add13bc427d4a99b4b1a27f4a9527fd",
+        "fingerprint_sha256": "sha256:0396e84ec1eef344f4ac3600908d3d113401b927530fdef031c462ab89f27b29",
+        "legacy_anchor": [],
+        "d2_anchor": [
+          "    private record Resize(Node node, boolean matched, boolean changed) {",
+          "        private static Resize unmatched(Node node) {",
+          "            return new Resize(node, false, false);",
+          "        }"
+        ]
+      }
+    ]
+  },
+  "reference_audit": {
+    "kind": "Source/import/member-name closure reconnaissance, not Java typechecking/compilation or effects.",
+    "independent_supported_masks": 48,
+    "known_method_name_scan_unresolved": 0,
+    "method_scan_limit": "Small comment/literal-aware lexical name audit, not a Java parser: it does not prove overload typing, generics, inherited calls or runtime correctness.",
+    "actual_model_dependencies": [
+      "SFMScreenPanelBounds",
+      "SFMWorkspacePanelId",
+      "SFMWorkspaceAxis",
+      "SFMWorkspaceSide",
+      "SFMWorkspaceStackId",
+      "SFMWorkspaceDivider",
+      "SFMWorkspaceDividerCursor",
+      "SFMWorkspaceDividerHit",
+      "SFMWorkspaceDividerId",
+      "SFMWorkspaceDividerLinkId",
+      "SFMWorkspaceDividerResizeResult",
+      "SFMWorkspaceResizeDividersIntent",
+      "SFMWorkspacePanelMetadata"
+    ],
+    "real_missing_provider": {
+      "type": "SFMScreenPanel",
+      "status": "Absent actual core at authoring. It is a genuine interface over render/input and optional panel API members; separate owned template required. No stub included."
+    },
+    "missing_runtime_hosts": [
+      "SFMScreenMultiplexer",
+      "SFMWorkspaceGlfwCursorHost",
+      "SFMWorkspacePanelHost",
+      "SFMWorkspacePanelIntentDispatcher",
+      "ResizeDividersAction"
+    ],
+    "annotation": "org.jetbrains:annotations:24.0.1 remains locked on all ten actual targets, as recorded in the immutable five-leaf ledger. No dependency/JAR verification, acquisition or javac occurs.",
+    "genuine_minecraft_api_differences": "None between the two Layout bodies. All differences are explicit functional owner guards, not a Minecraft-version surrogate.",
+    "native_effects": "None in this class. It mutates only its injected pure model; hosts remain separate."
+  },
+  "acceptance": {
+    "performed": [
+      "Offline exact raw source/membership audit over frozen20 contexts.",
+      "Whole-file Add and actual staged disk readback:100485B pinned SHA256.",
+      "Independent whole-line conditional expansion reconstructs legacy23509B and full89056B raw bodies exactly; this is not production Liquid proof.",
+      "48 supported independent profiles recorded with exact byte counts/SHA256 and no unresolved known internal method names; production tests pending."
+    ],
+    "independent_sha_implementation_validation": "Transient ASCII SHA256 routine was checked against all15 independently read PowerShell SHA256 raw blobs and the actual disk stage hash before profile/region hashes; no dependency added.",
+    "pending": [
+      "Root definitions/source rule promotion and public-off graph validation.",
+      "Register and execute actual production selector/renderer/collector tests.",
+      "Real SFMScreenPanel interface and host/action ownership closure.",
+      "Java, native and end-to-end workspace/terminal tests."
+    ]
+  },
+  "test_registration": {
+    "module": "core_workspace_layout_slice_tests",
+    "line": "#[cfg(test)] mod core_workspace_layout_slice_tests;",
+    "registered": false,
+    "cargo_run": false
+  }
+}

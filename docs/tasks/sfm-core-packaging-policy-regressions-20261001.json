@@ -1,0 +1,463 @@
+{
+  "schema": "sfm:core-packaging-policy-regressions@1",
+  "date": "2026-10-01",
+  "goal_status": "active_incomplete",
+  "decision": "Two bounded packaging corrections applied; actual focused verification passed. Complete replacement tooling gate running; accepted native JAR and runtime remain absent.",
+  "production_scope": {
+    "reviewed_regions": 15,
+    "files": 6,
+    "argument_regions": 8,
+    "release_packaging_regions": 7,
+    "new_regression_cases": 12,
+    "actual_focused_unique_passed": 43,
+    "new_native_targets_enabled": 0
+  },
+  "frozen_core": {
+    "core_files": 1859,
+    "core_sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "metadata": [
+      {
+        "path": "platform/minecraft/projections.json",
+        "bytes": 2074,
+        "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+      },
+      {
+        "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+        "bytes": 30254,
+        "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+      },
+      {
+        "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+        "bytes": 430787,
+        "sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3"
+      }
+    ]
+  },
+  "original_staged_index": {
+    "records": 98,
+    "unchanged": true,
+    "no_staging_or_commits_performed": true
+  },
+  "policy": {
+    "argv": "Producer, path admission, held-input checks, exact guard and receipt share original component-join spelling. Supplied argv remains unnormalized and exact equality unchanged.",
+    "release_packaging": "Only four exact already-admitted CatalogRelease recipes and lock/runtime tuples use checked published titles and skip the extra raw grammar copy. Owned normal resources, legacy and named development behavior remain unchanged."
+  },
+  "failure_history": [
+    {
+      "kind": "packaging_fixture_ownership",
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-catalog-release-packaging-focused-20261001-v1.log",
+        "bytes": 4459,
+        "sha256": "561539a787a0a7ec0037f6fcd9f2b1ce17a8266e6077def708e9b6a02192e2b0",
+        "summary": [
+          "test result: FAILED. 2 passed; 7 failed; 0 ignored; 0 measured; 2054 filtered out; finished in 2.90s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_direct_development_jar_writes_exact_title_and_resource_payloads",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_direct_stage_omits_only_extra_raw_grammar_and_keeps_owned_roots",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_four_exact_titles_use_checked_metadata_not_key_names",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_legacy_preserves_title_fallback_and_grammar_staging",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_named_development_retains_default_title_and_grammar",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_receipt_and_property_mismatches_refuse",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_refuses_before_stage_reset_or_development_jar_creation",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_stale_real_owned_input_refuses_before_output_reset",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_ten_legacy_manifest_titles_and_loader_attributes_remain_original",
+            "result": "ok"
+          }
+        ]
+      },
+      "exit_code": 101,
+      "cause": "Seven fixture setups incorrectly registered a source resource as a project role; the existing production ownership guard correctly refused.",
+      "repair": "Place the source resource under the fixture's authored core/src root for normal collection. Keep the guard unchanged and add a negative regression for the original refusal."
+    },
+    {
+      "kind": "argument_test_source_formatting",
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-named-jar-focused-20261001-peer-v1.log",
+        "bytes": 2164,
+        "sha256": "5b75cbca00ccfb0a5524863f36965bae3c5ffda0cefcc2b2db55724e49153d5f",
+        "summary": [
+          "test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 2054 filtered out; finished in 12.61s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_cache_tree_budgets_generated_names_and_conflicting_pins",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_exact_identity_mismatches_refuse_without_preparation",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_exact_two_mapping_live_arguments_and_path_refusals",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_four_raw_recipes_eight_owned_contexts",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_held_inputs_refuse_bytes_and_same_byte_path_replacement",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_legacy_wire_and_owner_output_conventions_remain_exact",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_producer_admission_guard_and_receipt_share_original_package_paths",
+            "result": "FAILED"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_receipt_observes_spawn_refusal_without_process_execution",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_two_only_targets_and_no_existence_only_package_cache",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_windows_equivalent_mapping_paths_do_not_authorize_changed_argv",
+            "result": "ok"
+          }
+        ]
+      },
+      "exit_code": 101,
+      "cause": "All four constructor callsites remained, but rustfmt wrapped two assignments across lines. A same-line source assertion counted two.",
+      "repair": "Whitespace-insensitive supplemental source check keeps expected count four. Typed path/argv assertions, strict live guard and historical source evidence unchanged."
+    }
+  ],
+  "passing_filters": [
+    {
+      "filter": "catalog_release_packaging_",
+      "exit_code": 0,
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-catalog-release-packaging-focused-20261001-v2.log",
+        "bytes": 1630,
+        "sha256": "95d87ed02f0f6f94653dd07a650ea87423ffe53240699cf2ab83599bf60adb48",
+        "summary": [
+          "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 2054 filtered out; finished in 25.74s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_direct_development_jar_writes_exact_title_and_resource_payloads",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_direct_stage_omits_only_extra_raw_grammar_and_keeps_owned_roots",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_fixture_rejects_source_resource_as_project_role",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_four_exact_titles_use_checked_metadata_not_key_names",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_legacy_preserves_title_fallback_and_grammar_staging",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_named_development_retains_default_title_and_grammar",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_receipt_and_property_mismatches_refuse",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_refuses_before_stage_reset_or_development_jar_creation",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_stale_real_owned_input_refuses_before_output_reset",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::catalog_release_packaging_ten_legacy_manifest_titles_and_loader_attributes_remain_original",
+            "result": "ok"
+          }
+        ]
+      }
+    },
+    {
+      "filter": "named_jar_",
+      "exit_code": 0,
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-named-jar-focused-20261001-peer-v2.log",
+        "bytes": 1634,
+        "sha256": "258bb150b0be09f928c64c5d8afab1a728dbf8d7d77ade6227da2d460fdd102e",
+        "summary": [
+          "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 2054 filtered out; finished in 12.92s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_cache_tree_budgets_generated_names_and_conflicting_pins",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_exact_identity_mismatches_refuse_without_preparation",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_exact_two_mapping_live_arguments_and_path_refusals",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_four_raw_recipes_eight_owned_contexts",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_held_inputs_refuse_bytes_and_same_byte_path_replacement",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_legacy_wire_and_owner_output_conventions_remain_exact",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_producer_admission_guard_and_receipt_share_original_package_paths",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_receipt_observes_spawn_refusal_without_process_execution",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_two_only_targets_and_no_existence_only_package_cache",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_forge_jar_tests::named_jar_windows_equivalent_mapping_paths_do_not_authorize_changed_argv",
+            "result": "ok"
+          }
+        ]
+      }
+    },
+    {
+      "filter": "named_compile_",
+      "exit_code": 0,
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-named-compile-focused-20261001-peer-v1.log",
+        "bytes": 1253,
+        "sha256": "88034229952a89bb87abc1f297740fc81bf04e3934db4d480acd8a86846ce24e",
+        "summary": [
+          "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 2056 filtered out; finished in 0.05s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_authenticated_file_reads_are_bounded",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_corrupt_existing_parent_and_child_refuse_without_repair",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_grammar_selection_requires_baseline_and_complete_optional_pair",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_sdk_rechecks_refuse_each_changed_execution_input_without_rekey",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_valid_existing_bytes_are_used_without_contacting_url",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_wire_has_no_fabricated_branch_or_worktree",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::named_compile_wire_tests::named_compile_wire_preserves_legacy_identity_bytes_and_order",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::named_compile_preserves_complete_legacy_build_plan_wire",
+            "result": "ok"
+          }
+        ]
+      }
+    },
+    {
+      "filter": "loader_jarjar_",
+      "exit_code": 0,
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-loader-jarjar-focused-20261001-peer-v1.log",
+        "bytes": 589,
+        "sha256": "788cc5e51f75fb361d162485e31067fafdd0a9ecca5ea3dac3ff5d1b9aabbdf6",
+        "summary": [
+          "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 2061 filtered out; finished in 0.02s"
+        ],
+        "cases": [
+          {
+            "name": "jar_build::engine::tests::loader_jarjar_metadata_is_deterministic_for_forge_and_neogradle",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::loader_jarjar_omits_metadata_without_bundle_dependencies",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::loader_jarjar_rejects_duplicate_paths_and_policy_mismatch",
+            "result": "ok"
+          }
+        ]
+      }
+    },
+    {
+      "filter": "release_jar_",
+      "exit_code": 0,
+      "log": {
+        "path": "platform/cli/sfm-propagate-changes/target/core-release-jar-focused-20261001-peer-v1.log",
+        "bytes": 1592,
+        "sha256": "d0200bf97b25d91aab8638cafb24e083ef31a2e16c920e3186a3b1854b13b7a6",
+        "summary": [
+          "test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 2052 filtered out; finished in 0.02s"
+        ],
+        "cases": [
+          {
+            "name": "cli::github::github_cli::tests::parses_mc_version_from_release_jar_name",
+            "result": "ok"
+          },
+          {
+            "name": "cli::github::github_cli::tests::rejects_non_sfm_release_jar_name",
+            "result": "ok"
+          },
+          {
+            "name": "jar_build::engine::tests::release_jar_excludes_dev_only_client_smoke_harness",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::absent_disabled_include_entries_pass_even_if_test_and_template_names_exist",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::checked_in_release_manifest_derives_echo_and_touch_rules",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::disabled_resource_and_multi_release_class_are_rejected",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::disabled_template_only_feature_has_no_jar_absence_target",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::enabled_feature_does_not_forbid_its_entries",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::malformed_zip_and_unsupported_selection_fail_closed",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::target_scoped_feature_does_not_forbid_its_entries",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::top_level_and_nested_disabled_classes_are_rejected",
+            "result": "ok"
+          },
+          {
+            "name": "source_projection::release_jar_absence::tests::unsupported_or_uncovered_runtime_include_is_not_silent_success",
+            "result": "ok"
+          }
+        ]
+      }
+    }
+  ],
+  "source_files": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine.rs",
+      "bytes": 74317,
+      "sha256": "8f66e19b48541899f032ef1fb364483ef10fbcaeac681ae24f294246d06c6be2"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+      "bytes": 112950,
+      "sha256": "0ff081f5353cac5e0f9c53f376cf865729a2d1db0ee3cbef7169e1511d91566b"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_tests.rs",
+      "bytes": 174100,
+      "sha256": "2426721e5174f6d29dd94a3b7623666717a12ccc8dd124a8cecc108b22b47ccf"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_named_jar.rs",
+      "bytes": 47351,
+      "sha256": "0eacaee15d8a7fc32c5bce25e1d5a55fdd614755d05e302fe5a712c512eee199"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_named_jar_tests.rs",
+      "bytes": 25262,
+      "sha256": "ecd91a17e1206483df0578a7e4b7affbb0e719697063c166f4e72dfbe9b914db"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_catalog_release_packaging.rs",
+      "bytes": 3810,
+      "sha256": "f7414a17adc18bf30a52c93959768bc4f640a328da745f1f37439778c6a21244"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    }
+  ],
+  "replacement_full_gate": {
+    "session_id": 72999,
+    "status": "running",
+    "log": "platform/cli/sfm-propagate-changes/target/core-packaging-policy-full-gate-20261001-v1.log",
+    "dependency_policy": "passed",
+    "formatting": "passed",
+    "production_all_features_clippy": "passed",
+    "all_features_build": "passed",
+    "listed_library_cases": 2064,
+    "planned_groups": 173,
+    "terminal_result": "not_yet_observed",
+    "final_default_cli": "pending"
+  },
+  "limits": [
+    "Focused tests do not launch package SpecialSource, run Minecraft or accept final release parity.",
+    "Earlier full gate covers its original 2052-case snapshot, not these later changes.",
+    "Original native 1.20 v2 failure and intermediate JAR remain retained.",
+    "Six newer native paths remain disabled behind the separate execution-isolation approval boundary.",
+    "No dependencies, locks, SDKs, projections, core metadata or public feature selections changed.",
+    "No merge, push, tag, publication, default-branch change, cleanup or final install performed."
+  ],
+  "next": [
+    "Observe terminal full gate and its final default-feature CLI build.",
+    "Run fresh exact native 1.20 JAR proof with unchanged recipe, lock and reviewed SDK.",
+    "Compare the finished JAR, then perform separately admitted runtime checks.",
+    "Continue fully reviewed provider closure and the remaining preservation/build matrix."
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "schema": "sfm:fixed_wave_process_capture_mechanics@1",
+  "date": "2026-10-02",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "independent_source_review": {
+    "role": "stdin-file-correction-v2-independent-review",
+    "review_bytes": 10083,
+    "review_sha256": "0969d6ddd2b9348dced3096362865438a1845d1dcf04cf54b4f591e15f7c3f9a",
+    "root_full_read_and_two_artifact_pins": true
+  },
+  "actual_application": {
+    "chunk": "4bbb9d",
+    "exit": 0,
+    "targets": 2,
+    "hunks": 21,
+    "pre_format_results_equal_independent_replay": true
+  },
+  "corrected_focused_run": {
+    "session": 16303,
+    "closed_exit": 0,
+    "passed": 10,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 2184,
+    "pure_cases": 8,
+    "real_file_staging_cases": 1,
+    "real_process_composite_cases": 1,
+    "composite_attempts": 8,
+    "includes_explicitly_pinned_fixture": true
+  },
+  "fixture": {
+    "bytes": 176128,
+    "sha256": "87df918c42aa41adba62a7582b81d2c7928b357122084ab14e4a0d673b724d60",
+    "source_bytes": 1638,
+    "source_sha256": "dc915678e0f6a2720b0ffd47b89a377ef460a3def08f9f14d8582e913e888125"
+  },
+  "post_format_sources": [
+    {
+      "path": "src/source_projection/core_wave_process_capture.rs",
+      "bytes": 31139,
+      "sha256": "7f108cbd1ef0590a8237f323621d9d5829c679ddb2216e341baa9fb1f7829c7a"
+    },
+    {
+      "path": "src/source_projection/core_wave_process_mechanics_tests.rs",
+      "bytes": 4871,
+      "sha256": "f2a4d36f56f6b4b1407bb29f3207bc278f65b1a0a37e76fe9aacea695eaaab85"
+    },
+    {
+      "path": "src/source_projection/core_slice_test_support.rs",
+      "bytes": 10691,
+      "sha256": "babc984a03783de3a8558f88f24dbcf38b00e5a5c5ed43c5d83aac24ad83db42"
+    }
+  ],
+  "preservation": {
+    "original_staged_raw_records": 98,
+    "original_staged_name_records": 98,
+    "both_original_digest_checks_passed": true,
+    "cargo_manifest_and_lock_pins_unchanged": true,
+    "git_diff_check_exit": 0,
+    "java_feature_admissions": 0,
+    "default_or_prerequisite_changes": 0
+  },
+  "current_full_gate": {
+    "session": 60544,
+    "status": "running",
+    "log": "platform/cli/sfm-propagate-changes/target/fixed-wave-capture-checkall-20261002-v1.log",
+    "command": "pwsh -NoProfile -File ./check-all.ps1",
+    "final_cli_and_full_test_acceptance_pending": true
+  },
+  "limits": [
+    "Eight pure tests plus real file and root-child mechanics do not establish hard synchronous OS deadlines, descendant containment or injected filesystem/kill/reap failure behavior.",
+    "The exact staged request is inherited read-write; it is not an adversarially immutable capability.",
+    "Synchronous create/write/flush/rewind precedes spawn and is outside the child work timeout.",
+    "The original failed run and two source proposals are preserved; no closed acquisition was replayed.",
+    "The 13-provider wave and five keyboard templates remain unadmitted; no Java, game, release-parity or final installer acceptance follows."
+  ],
+  "disk_space_error_observed": false,
+  "full_goal_remains_active": true,
+  "next": "Resume the same owned full gate60544, not a duplicate, and audit its closed log/default CLI before further production promotion.",
+  "status": "focused_mechanics_passed_full_current_gate_running"
+}

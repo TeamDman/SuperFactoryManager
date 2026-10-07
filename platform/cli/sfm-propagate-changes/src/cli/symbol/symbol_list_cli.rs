@@ -226,6 +226,7 @@ mod tests {
             JavaAnalysisScenarioFixture {
                 jdk_source_tree: temporary.path().join("unavailable-jdk"),
                 cache_home: CacheHome(cache_root),
+                decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
             },
             || {
                 let definition = SymbolShowDefinitionArgs {
@@ -298,6 +299,7 @@ mod tests {
             JavaAnalysisScenarioFixture {
                 jdk_source_tree: temporary.path().join("unavailable-jdk"),
                 cache_home: CacheHome(cache_root),
+                decompiler_runtime_identity: "sfm:scenario_decompiler_runtime@1".to_owned(),
             },
             || {
                 let definition = |member: &str| {

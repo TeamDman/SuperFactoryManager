@@ -48,13 +48,22 @@ const TYPED_FEATURES: [&str; 5] = [
     "command_palette",
     "typed_command_palette",
 ];
-const ALL_OWNER_FEATURES: [&str; 7] = [
+// The portable migration ledger records the original owner-only witness.
+// Current source validation additionally requires the approved side prerequisite.
+const FROZEN_CONSENT_OWNER_FEATURES: [&str; 2] = ["client_actions", "client_program_consent"];
+const VALID_CONSENT_OWNER_FEATURES: [&str; 3] = [
+    "client_actions",
+    "client_program_consent",
+    "sfml_execution_side",
+];
+const ALL_OWNER_FEATURES: [&str; 8] = [
     "client_actions",
     "client_theme",
     "keyboard_profiles",
     "command_palette",
     "typed_command_palette",
     "client_program_consent",
+    "sfml_execution_side",
     "workspace_panels",
 ];
 const LEDGER: &str = "docs/tasks/sfm-core-action-helpers-slice.json";
@@ -241,7 +250,15 @@ impl HelperFixture {
                     same_names(&witness.explicit_registered_features, expected_features),
                     "helper witness owner reconstruction changed"
                 );
-                core.context(target, expected_features)?;
+                // Keep the original ledger identity separate from today's
+                // explicitly dependency-closed context. This is one reviewed
+                // test-only edge, not prerequisite expansion in CoreTestFixture.
+                let validation_features = if present && input.path == TOKEN {
+                    &VALID_CONSENT_OWNER_FEATURES[..]
+                } else {
+                    expected_features
+                };
+                core.context(target, validation_features)?;
                 ensure!(
                     witness.present == present
                         && witness.raw_blob.as_deref() == present.then_some(golden.oid)
@@ -285,7 +302,9 @@ impl HelperFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(path) else {
             ensure!(
                 selection.omitted_paths.contains(path),
@@ -357,6 +376,8 @@ type OwnerContract = (
     &'static [&'static str],
 );
 
+// The fourth field is the frozen ledger's original minimal owner witness,
+// not a promise that it remains a valid current dependency-closed context.
 fn owner_contract(path: &str) -> Result<OwnerContract> {
     match path {
         SUMMARY | FOCUS => Ok((
@@ -375,7 +396,7 @@ fn owner_contract(path: &str) -> Result<OwnerContract> {
             "client_actions_and_client_program_consent_or_keyboard_profiles",
             &["client_actions"],
             &["client_program_consent", "keyboard_profiles"],
-            &["client_actions", "client_program_consent"],
+            &FROZEN_CONSENT_OWNER_FEATURES,
         )),
         ELEMENT | AUDIT => Ok((
             "workspace_panels",
@@ -401,15 +422,60 @@ fn validate_membership(core: &CoreTestFixture, input: &InputEvidence) -> Result<
         .source_rules
         .get(&input.path)
         .ok_or_else(|| eyre::eyre!("helper lacks explicit membership"))?;
+    // Keep the exact original ledger above separate from today's consumers.
+    // Focus and history actions use these unchanged helpers without enabling
+    // an unrelated palette, keyboard profile or consent subsystem.
+    let (current_all, current_any) = match input.path.as_str() {
+        ELEMENT | AUDIT => (&[][..], &["workspace_panels", "manager_editor_actions"][..]),
+        FOCUS => (
+            &[][..],
+            &["typed_command_palette", "focus_target_actions"][..],
+        ),
+        TOKEN => (
+            &["client_actions"][..],
+            &[
+                "client_program_consent",
+                "spatial_coverage",
+                "keyboard_profiles",
+                "trajectory_panels",
+                "workspace_counterfactuals",
+                "review_sessions",
+                "route_comparison",
+                "file_explorer",
+                "registry_explorer",
+                "explorer_search",
+                "explorer_compaction",
+                "explorer_navigation",
+                "theme_preview_rules",
+            ][..],
+        ),
+        _ => (all, any),
+    };
     ensure!(
-        rules.len() == 1
+        rules.len() == (if input.path == SUMMARY { 2 } else { 1 })
             && rules[0].input == input.path
             && same_names(&rules[0].when.targets, &TARGETS[..2])
-            && same_names(&rules[0].when.all_features, all)
-            && same_names(&rules[0].when.any_features, any)
+            && same_names(&rules[0].when.all_features, current_all)
+            && same_names(&rules[0].when.any_features, current_any)
             && rules[0].when.none_features.is_empty(),
-        "helper production predicate changed"
+        "helper production predicate changed: {}",
+        input.path
     );
+    if input.path == SUMMARY {
+        let review = &rules[1];
+        ensure!(
+            review.input == input.path
+                && review.template
+                && same_names(&review.when.targets, &TARGETS[..2])
+                && same_names(
+                    &review.when.all_features,
+                    &["client_actions", "release_review"]
+                )
+                && review.when.any_features.is_empty()
+                && same_names(&review.when.none_features, &["typed_command_palette"]),
+            "summary review-only predicate changed"
+        );
+    }
     Ok(())
 }
 
@@ -439,7 +505,7 @@ fn helpers_reconstruct_twenty_exact_raw_historical_memberships() -> Result<()> {
 }
 
 #[test]
-fn current_catalog_omits_all_helpers_before_java_input_reads() -> Result<()> {
+fn helpers_twenty_historical_feature_off_controls_omit_before_java_reads() -> Result<()> {
     let mut fixture = HelperFixture::load()?;
     let catalog = CoreCatalog::load(&fixture.core.repository, &fixture.core.repository)?;
     assert_eq!(catalog.catalog.0.len(), 20);
@@ -449,7 +515,10 @@ fn current_catalog_omits_all_helpers_before_java_input_reads() -> Result<()> {
         .join("deliberately_missing_action_helper_boundary");
     let mut omitted = 0;
     for key in catalog.catalog.0.keys() {
-        fixture.assert_members(&catalog.context(key)?, &[])?;
+        fixture.assert_members(
+            &fixture.core.historical_feature_off_catalog_context(key)?,
+            &[],
+        )?;
         omitted += 6;
     }
     assert_eq!(omitted, 120);
@@ -484,6 +553,7 @@ fn helpers_have_independent_consumer_owners_with_valid_real_prerequisites() -> R
                 }
                 if consent {
                     enabled.push("client_program_consent");
+                    enabled.push("sfml_execution_side");
                 }
                 let mut members = Vec::new();
                 if tier >= 4 {
@@ -517,6 +587,108 @@ fn helpers_have_independent_consumer_owners_with_valid_real_prerequisites() -> R
 }
 
 #[test]
+fn current_manager_editor_consumer_selects_exact_helpers_without_workspace_authority() -> Result<()>
+{
+    let fixture = HelperFixture::load()?;
+    let button = "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMActionButton.java";
+    for target in TARGETS {
+        assert!(
+            fixture
+                .core
+                .context(target, &["manager_editor_actions"])
+                .is_err()
+        );
+        for enabled in [
+            &[][..],
+            &["client_actions"][..],
+            &["client_actions", "manager_editor_actions"][..],
+            &[
+                "client_actions",
+                "manager_editor_actions",
+                "workspace_panels",
+            ][..],
+        ] {
+            let context = fixture.core.context(target, enabled)?;
+            let manager = enabled.contains(&"manager_editor_actions");
+            let members = if manager && is_d2(target) {
+                &[ELEMENT, AUDIT][..]
+            } else {
+                &[][..]
+            };
+            fixture.assert_members(&context, members)?;
+            let selection =
+                select_core_inputs(&fixture.core.metadata, &context, &fixture.inventory)?;
+            assert_eq!(
+                selection.inputs.contains_key(button),
+                manager && is_d2(target)
+            );
+            if manager && is_d2(target) {
+                let source = fixture.core.read_source(button)?;
+                let output = render_java_source(std::str::from_utf8(&source)?, &context)?;
+                assert!(output.contains("import ca.teamdman.sfm.client.action.SFMActionElement;"));
+                assert!(
+                    output.contains("import ca.teamdman.sfm.client.action.SFMActionElementAudit;")
+                );
+            }
+            for unrelated in [
+                "command_palette",
+                "typed_command_palette",
+                "keyboard_profiles",
+                "client_program_consent",
+            ] {
+                assert!(!context.features[unrelated]);
+            }
+            assert_eq!(
+                context.features["workspace_panels"],
+                enabled.contains(&"workspace_panels")
+            );
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn current_history_consumers_select_only_the_exact_token_helper() -> Result<()> {
+    let fixture = HelperFixture::load()?;
+    for target in &TARGETS[..2] {
+        for owner in [
+            "trajectory_panels",
+            "workspace_counterfactuals",
+            "review_sessions",
+            "route_comparison",
+        ] {
+            fixture.assert_members(&fixture.core.context(target, &[owner])?, &[])?;
+            let context = fixture.core.context(target, &["client_actions", owner])?;
+            fixture.assert_members(&context, &[TOKEN])?;
+            for unrelated in [
+                "command_palette",
+                "typed_command_palette",
+                "keyboard_profiles",
+                "client_program_consent",
+                "workspace_panels",
+            ] {
+                assert!(!context.features[unrelated]);
+            }
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn current_focus_action_selects_only_the_exact_focus_interface() -> Result<()> {
+    let fixture = HelperFixture::load()?;
+    for target in &TARGETS[..2] {
+        let context = fixture
+            .core
+            .context(target, &["client_actions", "focus_target_actions"])?;
+        fixture.assert_members(&context, &[FOCUS])?;
+        assert!(!context.features["command_palette"]);
+        assert!(!context.features["typed_command_palette"]);
+    }
+    Ok(())
+}
+
+#[test]
 fn older_targets_and_invalid_dependencies_do_not_expand_helper_support() -> Result<()> {
     let fixture = HelperFixture::load()?;
     for target in &TARGETS[2..] {
@@ -539,13 +711,14 @@ fn older_targets_and_invalid_dependencies_do_not_expand_helper_support() -> Resu
         assert!(
             fixture
                 .core
-                .context(target, &["client_actions", "client_program_consent"],)
+                .context(target, &VALID_CONSENT_OWNER_FEATURES)
                 .is_err()
         );
     }
     for target in &TARGETS[..2] {
         for invalid in [
             vec!["keyboard_profiles"],
+            FROZEN_CONSENT_OWNER_FEATURES.to_vec(),
             vec!["typed_command_palette"],
             vec!["client_actions", "typed_command_palette"],
             vec!["client_actions", "command_palette", "typed_command_palette"],
@@ -560,7 +733,9 @@ fn older_targets_and_invalid_dependencies_do_not_expand_helper_support() -> Resu
         }
         // A valid consent decision subsystem alone is not an action parser grant.
         fixture.assert_members(
-            &fixture.core.context(target, &["client_program_consent"])?,
+            &fixture
+                .core
+                .context(target, &["client_program_consent", "sfml_execution_side"])?,
             &[],
         )?;
     }

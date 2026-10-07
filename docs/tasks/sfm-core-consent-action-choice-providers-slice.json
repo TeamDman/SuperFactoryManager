@@ -1,0 +1,1575 @@
+{
+  "schema": "sfm:core-consent-action-choice-providers-slice@1",
+  "status": "ignored-only source-preservation proposal; root promotion and actual tests pending",
+  "normalization": "none",
+  "contract_changes": false,
+  "scope": {
+    "production_inputs": 2,
+    "historical_cells": 40,
+    "present_cells": 4,
+    "absent_cells": 36,
+    "raw_objects": 2,
+    "raw_bytes": 11370,
+    "authored_bytes": 11775,
+    "independent_profiles": 24,
+    "independent_cells": 48,
+    "selected_profile_cells": 22,
+    "omitted_profile_cells": 26,
+    "prepared_tests": 8
+  },
+  "starting_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "definitions": {
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_frame_language": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_manager",
+        "sfml_execution_side",
+        "client_program_consent"
+      ]
+    },
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_program_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "packet_values",
+        "sfml_execution_side",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation"
+      ]
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "client_theme": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "client_theme",
+        "keyboard_profiles"
+      ]
+    },
+    "disk_readonly_access": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "keyboard_profiles": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "runtime_resource_cleanup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "structured_action_results": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    "workspace_panel_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_toast_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+      "bytes": 2666,
+      "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217",
+      "cr_count": 0,
+      "final_lf": true,
+      "witnesses": {
+        "dev/1.21.1": null,
+        "release/1.19.4": null,
+        "dev/26.1.2": null,
+        "release/1.20.4": null,
+        "dev/1.19.4": "e89c6aad185781023e075b76083a4021a848c2c7",
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/1.19.2": "e89c6aad185781023e075b76083a4021a848c2c7",
+        "release/1.20.2": null,
+        "dev/1.21.0": null,
+        "release/1.20.1": null,
+        "dev/1.20.4": null,
+        "dev/1.20": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.20.1": null,
+        "release/1.20.3": null,
+        "release/1.21.0": null,
+        "release/1.19.2": null
+      },
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [],
+          "any_features": [
+            "command_palette",
+            "workspace_panel_actions",
+            "workspace_toast_actions"
+          ],
+          "none_features": []
+        }
+      },
+      "common_edit_anchor": "public record SFMActionChoice(ResourceLocation actionId, String command, String displayText, boolean continuation) {"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+      "bytes": 9109,
+      "sha256": "sha256:cbeed655fec64e5a557d3ee62a3154c4eb440664ac6a37d3efd206059f770743",
+      "cr_count": 0,
+      "final_lf": true,
+      "witnesses": {
+        "dev/1.21.1": null,
+        "release/1.19.4": null,
+        "dev/26.1.2": null,
+        "release/1.20.4": null,
+        "dev/1.19.4": "9ccb7a1a1f7b205bb1eae2d44b9c7624ffefbc35",
+        "release/1.20": null,
+        "dev/1.20.3": null,
+        "dev/1.19.2": "9ccb7a1a1f7b205bb1eae2d44b9c7624ffefbc35",
+        "release/1.20.2": null,
+        "dev/1.21.0": null,
+        "release/1.20.1": null,
+        "dev/1.20.4": null,
+        "dev/1.20": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.20.2": null,
+        "dev/1.20.1": null,
+        "release/1.20.3": null,
+        "release/1.21.0": null,
+        "release/1.19.2": null
+      },
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_actions"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      },
+      "common_edit_anchor": "public final class SFMClientProgramConsentAction implements SFMClientAction<SFMClientActionContext> {"
+    }
+  ],
+  "raw_objects": [
+    {
+      "bytes": 8704,
+      "bom": false,
+      "lf_count": 122,
+      "cr_count": 0,
+      "final_lf": true,
+      "sha256": "sha256:8a3371ed58ce3ec00c9aa8574e6b7cfa72318044bac4077fb88be1476556d144",
+      "oid": "9ccb7a1a1f7b205bb1eae2d44b9c7624ffefbc35"
+    },
+    {
+      "bytes": 2666,
+      "bom": false,
+      "lf_count": 63,
+      "cr_count": 0,
+      "final_lf": true,
+      "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217",
+      "oid": "e89c6aad185781023e075b76083a4021a848c2c7"
+    }
+  ],
+  "full_features": [
+    "client_actions",
+    "client_frame_language",
+    "client_manager",
+    "client_program_actions",
+    "client_program_consent",
+    "client_theme",
+    "command_palette",
+    "disk_readonly_access",
+    "keyboard_profiles",
+    "packet_computation",
+    "packet_values",
+    "runtime_resource_cleanup",
+    "sfml_execution_side",
+    "structured_action_results",
+    "workspace_panel_actions",
+    "workspace_panels",
+    "workspace_toast_actions"
+  ],
+  "counterfactuals": [
+    {
+      "key": "1.19.2/choice-0",
+      "target": "1.19.2",
+      "enabled_features": [],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-1",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-2",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panel_actions",
+        "workspace_panels"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-3",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panel_actions",
+        "workspace_panels"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-4",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-5",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-6",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panel_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/choice-7",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panel_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.2/consent-0",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 7610,
+          "sha256": "sha256:0740282a8582e052c79b55f2d0fdc5fca623c12cddcdb9df57ea7a6b4eddf46d"
+        }
+      }
+    },
+    {
+      "key": "1.19.2/consent-1",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 8464,
+          "sha256": "sha256:151b3f43bd564ecccd19ccd5b9fb161ce51830b3512d9e48a48f6b420864cf98"
+        }
+      }
+    },
+    {
+      "key": "1.19.2/consent-2",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "structured_action_results"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 7645,
+          "sha256": "sha256:6b54925a9af0e69e639d77808228a70c3a9a7883860de0a58ffc344556dd6118"
+        }
+      }
+    },
+    {
+      "key": "1.19.2/consent-3",
+      "target": "1.19.2",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "structured_action_results"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 8704,
+          "sha256": "sha256:8a3371ed58ce3ec00c9aa8574e6b7cfa72318044bac4077fb88be1476556d144"
+        }
+      }
+    },
+    {
+      "key": "1.19.4/choice-0",
+      "target": "1.19.4",
+      "enabled_features": [],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-1",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-2",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panel_actions",
+        "workspace_panels"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-3",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panel_actions",
+        "workspace_panels"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-4",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-5",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-6",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "workspace_panel_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/choice-7",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_theme",
+        "command_palette",
+        "keyboard_profiles",
+        "workspace_panel_actions",
+        "workspace_panels",
+        "workspace_toast_actions"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": {
+          "bytes": 2666,
+          "sha256": "sha256:01f71c772489180f86b7f60e78e7f5c8d0b0a428fb98a8077cf62b0799b53217"
+        },
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": null
+      }
+    },
+    {
+      "key": "1.19.4/consent-0",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 7610,
+          "sha256": "sha256:0740282a8582e052c79b55f2d0fdc5fca623c12cddcdb9df57ea7a6b4eddf46d"
+        }
+      }
+    },
+    {
+      "key": "1.19.4/consent-1",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 8464,
+          "sha256": "sha256:151b3f43bd564ecccd19ccd5b9fb161ce51830b3512d9e48a48f6b420864cf98"
+        }
+      }
+    },
+    {
+      "key": "1.19.4/consent-2",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "structured_action_results"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 7645,
+          "sha256": "sha256:6b54925a9af0e69e639d77808228a70c3a9a7883860de0a58ffc344556dd6118"
+        }
+      }
+    },
+    {
+      "key": "1.19.4/consent-3",
+      "target": "1.19.4",
+      "enabled_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "structured_action_results"
+      ],
+      "paths": {
+        "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": null,
+        "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": {
+          "bytes": 8704,
+          "sha256": "sha256:8a3371ed58ce3ec00c9aa8574e6b7cfa72318044bac4077fb88be1476556d144"
+        }
+      }
+    }
+  ],
+  "regions": [
+    {
+      "owner": "client_frame_language",
+      "before": "import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;\n",
+      "after": "{% if features.client_frame_language %}\nimport ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;\n{% endif %}\n",
+      "before_bytes": 68,
+      "before_sha256": "sha256:6953df2c27952496a6ee0824ef4b5e3eef65869c5a9fd3e27b2b3e59a6338309",
+      "after_bytes": 120,
+      "after_sha256": "sha256:c1eb03b33c1574e823eead051bba140543da85c4121047a5f41c64fa4831b125"
+    },
+    {
+      "owner": "structured_action_results",
+      "before": "import com.google.gson.JsonParser;\n",
+      "after": "{% if features.structured_action_results %}\nimport com.google.gson.JsonParser;\n{% endif %}\n",
+      "before_bytes": 35,
+      "before_sha256": "sha256:8434cf5837e8e4b41efb8049e3f3b0dcfc30b450ee5b147d4fe042c268a40ccb",
+      "after_bytes": 91,
+      "after_sha256": "sha256:51783c93b4d1e43aec3bc8ac65ded52dc6fc2de152d0ecd47555218b1d51de34"
+    },
+    {
+      "owner": "client_frame_language",
+      "before": "import net.minecraft.core.BlockPos;\n",
+      "after": "{% if features.client_frame_language %}\nimport net.minecraft.core.BlockPos;\n{% endif %}\n",
+      "before_bytes": 36,
+      "before_sha256": "sha256:afc824b1842c967e7b4951dffdcc764fa141515feb340c5270476d260c61c213",
+      "after_bytes": 88,
+      "after_sha256": "sha256:8bad8a25410ce3ef991121ba77f4c059f035cb50600a14c35f99dfce54db6d25"
+    },
+    {
+      "owner": "client_frame_language",
+      "before": "        BlockPos pos = new BlockPos(IntegerArgumentType.getInteger(context, \"x\"), IntegerArgumentType.getInteger(context, \"y\"),\n",
+      "after": "{% if features.client_frame_language %}\n        BlockPos pos = new BlockPos(IntegerArgumentType.getInteger(context, \"x\"), IntegerArgumentType.getInteger(context, \"y\"),\n",
+      "before_bytes": 128,
+      "before_sha256": "sha256:492cfb2bed039d31e089c758c80f3f1d744ac6c57894f51340054e2ef71cbbca",
+      "after_bytes": 168,
+      "after_sha256": "sha256:44ac2011f0b1c36687c78c6dd4495a837728c660b373c8f84def3ae68dd14b5c"
+    },
+    {
+      "owner": "structured_action_results",
+      "before": "        context.getSource().publishStructuredResult(SFMClientActionStructuredResult.of(\"sfm.client-program.consent/1\",\n                JsonParser.parseString(SFMValueSchema.canonicalActionJson(output))));\n",
+      "after": "{% if features.structured_action_results %}\n        context.getSource().publishStructuredResult(SFMClientActionStructuredResult.of(\"sfm.client-program.consent/1\",\n                JsonParser.parseString(SFMValueSchema.canonicalActionJson(output))));\n{% endif %}\n",
+      "before_bytes": 205,
+      "before_sha256": "sha256:9bbc6e57fdaba999e68ff25bdd9df8b881af3ce731f689c1be82d9bde8e468f0",
+      "after_bytes": 261,
+      "after_sha256": "sha256:a6428cea84430ea8dd03a6075c9fd1deb65edbbdc3011b8246f136381d867193"
+    },
+    {
+      "owner": "client_frame_language",
+      "before": "        return 1;\n    }\n\n    public static List<String> policyBlockers",
+      "after": "        return 1;\n{% else %}\n        context.getSource().sendFeedback(Component.literal(\"Client Manager frame runtime is unavailable\"));\n        return 0;\n{% endif %}\n    }\n\n    public static List<String> policyBlockers",
+      "before_bytes": 70,
+      "before_sha256": "sha256:359250faacfda523f3127ad292ff5a1fb60d5e975f8aabc247302518a2bd0e1a",
+      "after_bytes": 219,
+      "after_sha256": "sha256:0b6f5e4b7f2160de56cf2da735c187fff5befd50cd538ae1cb36e91aedb3dc3b"
+    }
+  ],
+  "current_provider_source_receipts": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMCanonicalTokenArgument.java",
+      "bytes": 2008,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMCanonicalTokenArgument.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_actions"
+            ],
+            "any_features": [
+              "client_program_consent",
+              "keyboard_profiles"
+            ]
+          }
+        }
+      ],
+      "sha256": "sha256:eee7f8cfaa3a587c94031f9b991ec76716fab866aa300e48bbd98df33ebfe39a"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+      "bytes": 3020,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+          "when": {
+            "all_features": [
+              "client_actions"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:9cf77b5d0dff007ce7400e09919b5dc1d98369a2e77bfdd4b7777c6d832dc420"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+      "bytes": 2894,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+          "when": {
+            "all_features": [
+              "client_actions"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:2713d367601d6441a697e2c25650a7e187a4157f7785e0c35e407a0650e97a68"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptor.java",
+      "bytes": 4903,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionDescriptor.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_actions"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:f12856bbfdc1f316233f9ff5e72a9361d4bf89bba3aae5414b9adfdc8ab8b8aa"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticContext.java",
+      "bytes": 783,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticContext.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_actions"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:e01803f3974296f43272079993d7f77be795d654229e70af88c7ffac9182ceb5"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticHandler.java",
+      "bytes": 346,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionProgrammaticHandler.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_actions"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:2c8f6e2c3ea53846e91b27d1d4b05647c5ec25fc0f79b92112d76d48abcc2dd3"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+      "bytes": 1857,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+          "when": {
+            "all_features": [
+              "client_actions"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:bb3a637c1ed303d5f16d2f4ddf177950076a3cfdfd89eb037e0ec6bb08e0e037"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java",
+      "bytes": 2492,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "structured_action_results"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:d6deefc66052c4138aa6889c0fd0b4366d36711808928cf19debb3011e4d64b7"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+      "bytes": 7438,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "workspace_toast_path_actions",
+              "workspace_notifications"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:fed2244ac389d9121b3c2d0a7514f3719acc59a8c867493cf12909bc66b7d07a"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+      "bytes": 27717,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_frame_language"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:528094eb87f7b4f78678c26929e8e84b54d7a4c0fe1c919b73d0bc82abb4e184"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentGate.java",
+      "bytes": 5627,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentGate.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_program_consent"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:8d0d619601b0e7fbdba204927af635afbe347631a3671a156588cf565fb411af"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+      "bytes": 2006,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_consent"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:740abca80575004521a6d90715dc3681994d58756a13cd682a9581b22f573405"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentService.java",
+      "bytes": 9295,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentService.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_program_consent"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:97e618975be5f86b89e704f5d7af7a3f5aa9254c3f151787082499612213a590"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramIdentity.java",
+      "bytes": 4288,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramIdentity.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_program_consent"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:5a98ab3ed814af1664864a95f4bc65a2e20789afe2d9a9d28b78559e773ec462"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramWorldIdentity.java",
+      "bytes": 1010,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramWorldIdentity.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "any_features": [
+              "client_program_consent"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:bf911ed28ddb5ab17e0913188c40029ecb17b41afbbfc787331982d29e6f1219"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+      "bytes": 161594,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "workspace_panels"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ],
+      "sha256": "sha256:258b0a9e5fef738d839c3ae5cb79d864e222b49b238b6921ab441bc91ef7d800"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java",
+      "bytes": 16044,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_manager"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:d5e8419a0d8f1ffb70a76317f92f37afcdb80a9ceb2d98423373f0277f5e974d"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java",
+      "bytes": 3029,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValue.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:7d76b274268d5bb037423524e388245469d95db6bb8d0cbd7cc0f6e0e0196d84"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java",
+      "bytes": 12879,
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/value/SFMValueSchema.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "packet_values"
+            ]
+          },
+          "template": true
+        }
+      ],
+      "sha256": "sha256:d094a301cf0639a6ff2bbe27ca4e136b074e221fa44f4ebde3f9c0ad00c0e0a8"
+    }
+  ],
+  "required_peer_promotions": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentActions.java",
+      "bytes": 1120,
+      "sha256": "sha256:019ebc54546340232d58ee62e870762f14930485d1ffa455ca2ae97743430b1f",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentActions.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_actions",
+              "client_program_consent"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+      "bytes": 2279,
+      "sha256": "sha256:036b2aee5628367e8e2fa45393041881aee9c4eddad040a90f137c356cf6c5fc",
+      "rules": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+          "template": true,
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4"
+            ],
+            "all_features": [
+              "client_actions",
+              "workspace_panels"
+            ],
+            "any_features": [],
+            "none_features": []
+          }
+        }
+      ]
+    }
+  ],
+  "proposed_source_rules": {
+    "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [],
+          "any_features": [
+            "command_palette",
+            "workspace_panel_actions",
+            "workspace_toast_actions"
+          ],
+          "none_features": []
+        }
+      }
+    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java": [
+      {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_program_actions"
+          ],
+          "any_features": [],
+          "none_features": []
+        }
+      }
+    ]
+  },
+  "consumer_contracts": [
+    {
+      "input": "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+      "owner_predicate": "D2 AND ANY(command_palette, workspace_panel_actions, workspace_toast_actions)",
+      "evidence": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+          "owners": [
+            "workspace_panel_actions",
+            "workspace_toast_actions"
+          ],
+          "anchor": "import ca.teamdman.sfm.client.screen.SFMActionChoice;",
+          "guard": "exact current OR; diagnosticChoices uses panel_actions, workspaceToastChoices uses notifications AND toast_actions; no command_palette prerequisite"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+          "owners": [
+            "command_palette"
+          ],
+          "anchor": "SFMActionChoice.invoke(actionId, \"\").command()",
+          "guard": "palette-only convenience; plain execute(String) is independently present"
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+          "owners": [
+            "workspace_toast_path_actions"
+          ],
+          "anchor": "public static List<SFMActionChoice> choices(",
+          "guard": "actual workspace_toast_path_actions requires workspace_toast_actions; class also requires notifications in current sparse rule; neither new prerequisite nor wider target support introduced"
+        }
+      ],
+      "future_expansion": "49 direct historical caller classes exist per D2 tree, excluding the model definition. Three current/promoted-or-staged consumers are covered here; the remaining46 historical caller types remain exact future consumer/OR review, not claimed Java closure.",
+      "historical_references": [
+        {
+          "paths": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMDocumentHistoryRedoAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMDocumentSelectionCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerCollectionCopySummaryAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerRowCopyDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerRowCopySummaryAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewInspectionAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRulePromptAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleToolsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidateCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidateSetCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentChoiceAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentRemoveAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewOperationFeedback.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewSurfaceDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewChangesLayoutSetAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewEvidenceExportAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewFreshnessAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewLensSetAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewMigrationAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewRemainingWorkAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewStorageAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewWorkQueueControls.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMTextEditorPointerAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMTrajectoryMachineAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMContextActionRegistry.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMJavaSymbolContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMReleaseReviewContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMTextEditorSearchContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewExplorerRuntime.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoiceCatalog.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMChoiceSession.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMChoiceSessionService.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMCommandPaletteScreen.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMKeyBindingScreen.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerContextActionRegistry.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerNavigationChoices.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/review/explorer/SFMReviewExplorerPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMTextEditorPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+            "src/main/java/ca/teamdman/sfm/client/symbol/SFMDefinitionChoiceSessionService.java",
+            "src/main/java/ca/teamdman/sfm/client/symbol/SFMJumpToDefinitionController.java"
+          ],
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860"
+        },
+        {
+          "paths": [
+            "src/main/java/ca/teamdman/sfm/client/action/SFMClosePaneAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMDocumentHistoryRedoAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMDocumentSelectionCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerCollectionCopySummaryAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerRowCopyDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerRowCopySummaryAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewInspectionAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRulePromptAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMItemstackPreviewRuleToolsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidateCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMPaletteCandidateSetCopyAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentChoiceAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewCommentRemoveAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewOperationFeedback.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReleaseReviewSurfaceDetailsAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewChangesLayoutSetAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewEvidenceExportAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewFreshnessAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewLensSetAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewMigrationAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewRemainingWorkAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewStorageAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMReviewWorkQueueControls.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMTextEditorPointerAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMToastPathAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMTrajectoryMachineAction.java",
+            "src/main/java/ca/teamdman/sfm/client/action/SFMWorkspaceLifecycleActionIds.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMContextActionRegistry.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMJavaSymbolContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMReleaseReviewContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/context/SFMTextEditorSearchContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewExplorerRuntime.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoice.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMActionChoiceCatalog.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMChoiceSession.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMChoiceSessionService.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMCommandPaletteScreen.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/SFMKeyBindingScreen.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerContextActionProvider.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerContextActionRegistry.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerNavigationChoices.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/review/explorer/SFMReviewExplorerPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMTextEditorPanel.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelActionExecution.java",
+            "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+            "src/main/java/ca/teamdman/sfm/client/symbol/SFMDefinitionChoiceSessionService.java",
+            "src/main/java/ca/teamdman/sfm/client/symbol/SFMJumpToDefinitionController.java"
+          ],
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053"
+        }
+      ]
+    },
+    {
+      "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentAction.java",
+      "owner_predicate": "D2 AND client_program_actions",
+      "evidence": [
+        {
+          "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramConsentActions.java",
+          "anchor": "new SFMClientProgramConsentAction(false)",
+          "guard": "program_actions only; status/request factories are separate from human control UI conjunction"
+        }
+      ],
+      "boundaries": "INPUT validation precedes resource parsing, capability declaration admission, service lookup and optional request; query does not approve/revoke/open UI. Descriptor, handler caller presence and policy semantics stay byte-identical. Frame identity and structured publication are member-level optional branches."
+    }
+  ],
+  "counterfactual_authority": [
+    {
+      "owner": "client_frame_language",
+      "on": "Original BlockPos/loaded manager/identityFor lookup, missing_manager result, original query, text feedback and return1; runtime identity compiler is genuinely selected only by frame_language.",
+      "off": "New explicitly authored human command refusal sends 'Client Manager frame runtime is unavailable' and return0. No fabricated identity, missing_manager misdiagnosis, query, structured success or new descriptor status. Programmatic identity-supplied query/descriptor/handler remains original."
+    },
+    {
+      "owner": "structured_action_results",
+      "on": "Original JsonParser import and exact publishStructuredResult method call remain, conditional within frame-on human execution.",
+      "off": "No JsonParser or structured-result publication call/type reference; frame-on human invocation retains original canonical text feedback and return1. No schema change."
+    }
+  ],
+  "preserved_authority": [
+    "Pure ActionChoice validates exact declared action command prefix and display text; continuation remains a data marker, not an invocation.",
+    "ConsentAction programmatic handler rejects missing caller; caller capability membership precedes service/request; no approval history or modal.",
+    "REQUEST remains local-effect descriptor and STATUS local-read; both execute permission and local-result-only acknowledgement unchanged.",
+    "Private integrated-world policy is unchanged; no multiplayer negotiation, network, signing, key or storage side effect was run.",
+    "Historical Git blobs are test goldens only; production outputs use real shared core sources."
+  ],
+  "remaining_real_providers": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMClientProgramConsentsScreenType.java",
+      "boundary": "Separate genuine panel factory/registrations still needed and must share exact UI-local conjunction; no surrogate included."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMCommandPaletteScreen.java",
+      "boundary": "Actual palette host/choice-session/editor providers remain independent closure; pure ActionChoice does not make UI available."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+      "boundary": "Actual core provider exists but its broad UI/theme/widget/service Java/runtime graph is not proven by source reconstruction."
+    }
+  ],
+  "validation": {
+    "performed": "Fresh offline Git40cells/raw2 framedSHA1/fullSHA256/EOL and authored source reread; independent strict whole-line expansion4raw all-on outputs and24legal profiles48source cells (22selected/26omitted). No production renderer/test/Java execution.",
+    "prepared_actual_core_tests": "Eight unregistered tests for real CoreTestFixture/select/render/collect, fixedCORE_ROOT, automaticJava even template:false, omission-before-read, provider/member boundaries/common edits and exact raw mutation refusals.",
+    "java_compile": "not performed",
+    "runtime_effects": "not performed",
+    "live_inputs": "unchanged",
+    "declarations_prerequisites_and_presets": "unchanged",
+    "dependency_locks": "unchanged"
+  },
+  "path_reference_policy": {
+    "stage": "platform/cli/sfm-propagate-changes/target/core-consent-action-choice-providers-stage-v1",
+    "promoted_ledger": "docs/tasks/sfm-core-consent-action-choice-providers-slice.json",
+    "repository_relative_only": true,
+    "machine_specific_paths_persisted": false
+  }
+}

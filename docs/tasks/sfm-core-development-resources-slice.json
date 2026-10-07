@@ -1,0 +1,2692 @@
+{
+  "schema": "sfm:core_development_resource_slice@1",
+  "source_scope": "Approved29 non-cache static/text paths found in audit-v2 public mostly-off development selected-output omissions; not complete physical source coverage.",
+  "audit_source": "docs/tasks/sfm-core-membership-content-audit-v2.json",
+  "historical_ownership": {
+    "ledger": "docs/tasks/sfm-core-resource-feature-ownership.json",
+    "sha256": "sha256:6694b2286def05e19dea7dc7904424d8909bf4ef002958592fa5ed21159137e9",
+    "status": "Preserved unchanged; raw witnesses reused only as independently verified migration evidence. Its coarse client_manager/touch_display/image/packet resource ownership is refined by the exact current rules in this ledger.",
+    "corrections": [
+      "Custom CM/touch PNGs and animation metadata are owned by existing D1 custom-texture flags, not the whole block feature.",
+      "Models remain selected by their block feature and choose only the custom texture triplet using the independent skin flag.",
+      "The packet example needs both packet computation and private transport; sfm:text/read is not a client registry action.",
+      "Packet item model/icon are packet_values, not packet_computation; buffer_image model is image_resources, not persistence."
+    ]
+  },
+  "scope": {
+    "files": 29,
+    "text_files": 22,
+    "binary_files": 7,
+    "conditional_text_templates": 4,
+    "raw_variants": 29,
+    "normalized_text_variants": 18,
+    "raw_exact_text_variants": 4,
+    "raw_exact_png_variants": 7,
+    "contexts": 20,
+    "cells": 580,
+    "present_cells": 52,
+    "absent_cells": 528,
+    "datagen_cache_exclusions": 8
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "explicit_owner_roots": {
+    "dev/1.19.2": [
+      "client_manager",
+      "touch_display",
+      "image_resources",
+      "packet_values",
+      "redstone_buffer_storage",
+      "packet_computation",
+      "packet_transport_private",
+      "computercraft",
+      "client_manager_custom_textures",
+      "touch_display_custom_textures"
+    ],
+    "dev/1.19.4": [
+      "client_manager",
+      "touch_display",
+      "image_resources",
+      "packet_values",
+      "redstone_buffer_storage",
+      "packet_computation",
+      "packet_transport_private",
+      "computercraft"
+    ],
+    "dev/1.20": [
+      "computercraft"
+    ],
+    "dev/1.20.1": [
+      "computercraft"
+    ],
+    "dev/1.20.2": [
+      "computercraft"
+    ],
+    "dev/1.20.3": [
+      "computercraft"
+    ],
+    "dev/1.20.4": [
+      "computercraft"
+    ],
+    "dev/1.21.0": [
+      "computercraft"
+    ],
+    "dev/1.21.1": [
+      "computercraft"
+    ],
+    "dev/26.1.2": [
+      "computercraft"
+    ],
+    "release/1.19.2": [],
+    "release/1.19.4": [],
+    "release/1.20": [],
+    "release/1.20.1": [],
+    "release/1.20.2": [],
+    "release/1.20.3": [],
+    "release/1.20.4": [],
+    "release/1.21.0": [],
+    "release/1.21.1": [],
+    "release/26.1.2": []
+  },
+  "owner_contracts": {
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_manager_custom_textures": {
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [
+        "client_manager"
+      ]
+    },
+    "computercraft": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ]
+    },
+    "image_resources": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values"
+      ]
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "packet_transport_private": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_computation"
+      ]
+    },
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "redstone_buffer_storage": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "touch_display": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ]
+    },
+    "touch_display_custom_textures": {
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [
+        "touch_display"
+      ]
+    }
+  },
+  "resources": [
+    {
+      "witnesses": {
+        "dev/1.19.2": "68c8833fbea60fa036c598b223db14637513f8f5",
+        "dev/1.19.4": "68c8833fbea60fa036c598b223db14637513f8f5",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/blockstates/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/blockstates/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/blockstates/client_manager.json",
+      "template_sha256": "sha256:ad962ecbe9ce89eb05a4420480d25ac87a4183f917a45a20b53a74b8010929a8",
+      "template_bytes": 82,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/blockstates/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "60014325f3622263483be4ddc5409c4c8d817498",
+        "dev/1.19.4": "60014325f3622263483be4ddc5409c4c8d817498",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/blockstates/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/blockstates/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/blockstates/touch_display.json",
+      "template_sha256": "sha256:35480349bddf5d849cd3320e1916f8d883573b09f622f7ca59882091ee83237a",
+      "template_bytes": 560,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/blockstates/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "5a875fab4079d5acd0aea65f98e109ec4d39c70e",
+        "dev/1.19.4": "5a875fab4079d5acd0aea65f98e109ec4d39c70e",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/block/buffer_image.json",
+      "old_owner": "image_resources",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/block/buffer_image.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/block/buffer_image.json",
+      "template_sha256": "sha256:94e36ae8e2a28e860c2dccdffedd4e22828be0ddff5672b8b5040462cbfc2837",
+      "template_bytes": 102,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/block/buffer_image.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "image_resources"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "92d303286fd7e9ee0ba2ab9df33a621767f8b255",
+        "dev/1.19.4": "dc91b78a974e382515fd5008a87c9a5ad2579e18",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/block/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/block/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/block/client_manager.json",
+      "template_sha256": "sha256:b01ff26882a3efecd893afe69a1d30776b1f49538be40c17ab42343dabdaf9d1",
+      "template_bytes": 566,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/block/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "010b899520dc8005712ecf734fb55f274b1dd524",
+        "dev/1.19.4": "ec2fb9a6d3ea7649863b40ed81be4fbd99ae963f",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/block/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/block/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/block/touch_display.json",
+      "template_sha256": "sha256:9e8c11d772551268e90fae0d0dd6828cb397f88a5d0cd8d71946b14e4b9d2989",
+      "template_bytes": 557,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/block/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "689210c2a420258d7eceb485383404c5c2433682",
+        "dev/1.19.4": "689210c2a420258d7eceb485383404c5c2433682",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/item/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/item/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/item/client_manager.json",
+      "template_sha256": "sha256:74c804ffb3b2b6b41ad8da81b55a22ac574a2079349c8c45bc101153d854e6ba",
+      "template_bytes": 43,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/item/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "f00333a912f340fe8548af173841f9c465680472",
+        "dev/1.19.4": "f00333a912f340fe8548af173841f9c465680472",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/item/packet.json",
+      "old_owner": "packet_values",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/item/packet.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/item/packet.json",
+      "template_sha256": "sha256:8ccd03fbda421381287b6fe82f595db16eb72d67e2f57a920fe3f5733e311f85",
+      "template_bytes": 96,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/item/packet.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_values"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "1f43ac0e1c702004f624c60058a31ffd7a5f1013",
+        "dev/1.19.4": "1f43ac0e1c702004f624c60058a31ffd7a5f1013",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/assets/sfm/models/item/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/models/item/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/assets/sfm/models/item/touch_display.json",
+      "template_sha256": "sha256:c70e920392fc18d7ba8e21873c1f3fa6a1ad04c0e32d11dcad709bcfa629a4e3",
+      "template_bytes": 42,
+      "metadata_rule": {
+        "input": "src/generated/resources/assets/sfm/models/item/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": null,
+        "dev/1.19.4": "72cb282b68adfb4e78692b5c988581e98107b109",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+      "template_sha256": "sha256:67f11141d77e994279588903db82ee17cb1739d618ddb66143afe64bbc12c993",
+      "template_bytes": 836,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": null,
+        "dev/1.19.4": "e60a5f749272d384d5b1cba9112c5b7a76e99251",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+      "template_sha256": "sha256:2b478a9c5da16a45af8f507a8b70f0d44b2557825ab2d328793db3758f2ec4a1",
+      "template_bytes": 574,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "72cb282b68adfb4e78692b5c988581e98107b109",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+      "template_sha256": "sha256:67f11141d77e994279588903db82ee17cb1739d618ddb66143afe64bbc12c993",
+      "template_bytes": 836,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "e60a5f749272d384d5b1cba9112c5b7a76e99251",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+      "template_sha256": "sha256:2b478a9c5da16a45af8f507a8b70f0d44b2557825ab2d328793db3758f2ec4a1",
+      "template_bytes": 574,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "46b3f6290eef57dd3a52865ef44a953b836b24e2",
+        "dev/1.19.4": "46b3f6290eef57dd3a52865ef44a953b836b24e2",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+      "template_sha256": "sha256:64d9bc1e86d7c3236d74dd8a4a40c50bf1ccb839ca83f8d6ae452655a478f751",
+      "template_bytes": 335,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "d90a84469e29b3f71e89fc19ef429d9ebe68495f",
+        "dev/1.19.4": "d90a84469e29b3f71e89fc19ef429d9ebe68495f",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+      "template_sha256": "sha256:643e106e4543b4fc435b52cb43db3acba54ddee306689946bf69e18198f546f3",
+      "template_bytes": 334,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "23f849dbd57e9e377db66798488f5e938dbdd7de",
+        "dev/1.19.4": "1f75b1b6593b1c7bf170a6a2ad65171c0d7fa8be",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/recipes/client_manager.json",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/recipes/client_manager.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/recipes/client_manager.json",
+      "template_sha256": "sha256:35c3ade2feb0beee1e6295d1bb1e5f8415f942caccedbbd74fca939866fe815b",
+      "template_bytes": 509,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/recipes/client_manager.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "client_manager"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "957e9984d0fd82667fd77da2107504bfbc835160",
+        "dev/1.19.4": "6e67a7e62ed7a7e7be342139f7dbedbfbb33630b",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/generated/resources/data/sfm/recipes/touch_display.json",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/generated/resources/data/sfm/recipes/touch_display.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/generated/resources/data/sfm/recipes/touch_display.json",
+      "template_sha256": "sha256:58957e69fdbdf5536d5865ec10c6809521df3e2a7c5482a5b7d9116f54a909d8",
+      "template_bytes": 559,
+      "metadata_rule": {
+        "input": "src/generated/resources/data/sfm/recipes/touch_display.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "touch_display"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": true
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "0db3449aab4d0b7931d63ffe9e5ae29054be3899",
+        "dev/1.19.4": "0db3449aab4d0b7931d63ffe9e5ae29054be3899",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+      "old_owner": "redstone_buffer_storage",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+      "template_sha256": "sha256:de396aa09b90b07b7d1a79a024b047b28f6bd890a7582d97670b54392a197fd7",
+      "template_bytes": 1100,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "redstone_buffer_storage"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "9ca4fa28fdb6587c963225a3102e39a6918dcf96",
+        "dev/1.19.4": "9ca4fa28fdb6587c963225a3102e39a6918dcf96",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+      "old_owner": "packet_computation",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+      "template_sha256": "sha256:7b615611c36fe0f26d3c3a3bd5f2ec2435f503453ea2aa53bce99790914fa094",
+      "template_bytes": 1197,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_computation",
+            "packet_transport_private"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "b5a2fcab9d87f3ef0629d3e6c6642c89be44d765",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+      "template_sha256": "sha256:c3f6b69add1db6df8de6222711932f1acaab2be6b7d9b0d6d60a812761987b34",
+      "template_bytes": 373,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "client_manager_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "19cf22aec4fd0a18864c63601c973662124a235c",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+      "template_sha256": "sha256:78868db8f79d14b9755627036e73c4f232b2397460e90218a37ec954ec1c9639",
+      "template_bytes": 664,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "client_manager_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "8e55e43bafee8fe8235066910b91e2dc2f90e1f9",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+      "template_sha256": "sha256:af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3",
+      "template_bytes": 44,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "client_manager_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "c9c9e4258f2ab514599e4dda4844777798da9921",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+      "old_owner": "client_manager",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+      "template_sha256": "sha256:9e9c2a5359a75875cd919b5d7641982560acacb3e41a4ae1ceedef706703b2c5",
+      "template_bytes": 389,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "client_manager_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "1da2871f2216624997804d6ef6716e33d89ade65",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+      "template_sha256": "sha256:faed8a03f870cf0cf17613634196d17a7041f4cd43e4fe0f63e6fd1711acab5c",
+      "template_bytes": 728,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "touch_display_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "6a95e0f0f48f7d6562475fa1d4f6b07ad718268c",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+      "template_sha256": "sha256:93d82fb047a6a7934540554a5ea4708c2ede322b533f7197852bf6934d5d03a3",
+      "template_bytes": 840,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "touch_display_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "8ed14d9a40a7574fec94e0cbcb903448ab28afaa",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+      "template_sha256": "sha256:34ca892627d2c886c373ba2b4f4188fca9b7841348b6bb9524d90e9ff7408db3",
+      "template_bytes": 868,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "touch_display_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "8e55e43bafee8fe8235066910b91e2dc2f90e1f9",
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+      "old_owner": "touch_display",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+      "template_sha256": "sha256:af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3",
+      "template_bytes": 44,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "touch_display_custom_textures"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Corrected exact source/resource consumer predicate; historical coarse ownership remains unchanged."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "c77b2bf50e7d8373453c70373e9b317e5790c974",
+        "dev/1.19.4": "c77b2bf50e7d8373453c70373e9b317e5790c974",
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/assets/sfm/textures/item/packet.png",
+      "old_owner": "packet_values",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/textures/item/packet.png",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/assets/sfm/textures/item/packet.png",
+      "template_sha256": "sha256:3e9ccdf71a6e3a70613c94191fc9b06cbb467df695f51aca62941c6a41a8122f",
+      "template_bytes": 588,
+      "metadata_rule": {
+        "input": "src/main/resources/assets/sfm/textures/item/packet.png",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "packet_values"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": null,
+        "dev/1.19.4": null,
+        "dev/1.20": null,
+        "dev/1.20.1": null,
+        "dev/1.20.2": null,
+        "dev/1.20.3": null,
+        "dev/1.20.4": null,
+        "dev/1.21.0": null,
+        "dev/1.21.1": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/26.1.2": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+      "old_owner": "computercraft",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+      "template_sha256": "sha256:180bbe5a84a46e89213dbed769581a610cf868162e253e3fd69d6dd52f01c403",
+      "template_bytes": 28,
+      "metadata_rule": {
+        "input": "src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+        "when": {
+          "targets": [
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "computercraft"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    },
+    {
+      "witnesses": {
+        "dev/1.19.2": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.19.4": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.20": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.20.1": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.20.2": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.20.3": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.20.4": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.21.0": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "dev/1.21.1": null,
+        "dev/26.1.2": null,
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null
+      },
+      "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+      "old_owner": "computercraft",
+      "intended_core_path": "platform/minecraft/core-liquid-template/src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+      "template_sha256": "sha256:180bbe5a84a46e89213dbed769581a610cf868162e253e3fd69d6dd52f01c403",
+      "template_bytes": 28,
+      "metadata_rule": {
+        "input": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0"
+          ],
+          "all_features": [
+            "computercraft"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      "owner_refinement": "Exact existing functional owner."
+    }
+  ],
+  "raw_blobs": {
+    "010b899520dc8005712ecf734fb55f274b1dd524": {
+      "raw_sha256": "sha256:20f74b3bd9c89f924935d594afd76c02dfc7c2a4c29af5819fa67111f17b4951",
+      "raw_bytes": 228,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:8d9a62cace79d010070db8c3fa2bf9f089708667435dabaad841298f0088ce20",
+      "normalized_bytes": 229,
+      "png": null
+    },
+    "0db3449aab4d0b7931d63ffe9e5ae29054be3899": {
+      "raw_sha256": "sha256:de396aa09b90b07b7d1a79a024b047b28f6bd890a7582d97670b54392a197fd7",
+      "raw_bytes": 1100,
+      "binary": false,
+      "raw_final_lf": true,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:de396aa09b90b07b7d1a79a024b047b28f6bd890a7582d97670b54392a197fd7",
+      "normalized_bytes": 1100,
+      "png": null
+    },
+    "19cf22aec4fd0a18864c63601c973662124a235c": {
+      "raw_sha256": "sha256:78868db8f79d14b9755627036e73c4f232b2397460e90218a37ec954ec1c9639",
+      "raw_bytes": 664,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:78868db8f79d14b9755627036e73c4f232b2397460e90218a37ec954ec1c9639",
+      "normalized_bytes": 664,
+      "png": {
+        "width": 16,
+        "height": 64,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 1024,
+          "translucent": 0
+        }
+      }
+    },
+    "1da2871f2216624997804d6ef6716e33d89ade65": {
+      "raw_sha256": "sha256:faed8a03f870cf0cf17613634196d17a7041f4cd43e4fe0f63e6fd1711acab5c",
+      "raw_bytes": 728,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:faed8a03f870cf0cf17613634196d17a7041f4cd43e4fe0f63e6fd1711acab5c",
+      "normalized_bytes": 728,
+      "png": {
+        "width": 16,
+        "height": 16,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 256,
+          "translucent": 0
+        }
+      }
+    },
+    "1f43ac0e1c702004f624c60058a31ffd7a5f1013": {
+      "raw_sha256": "sha256:4d552740ca00482d1451c6fcbcab7c4e0612a80ec6cc17384fb29306ac50335c",
+      "raw_bytes": 41,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:c70e920392fc18d7ba8e21873c1f3fa6a1ad04c0e32d11dcad709bcfa629a4e3",
+      "normalized_bytes": 42,
+      "png": null
+    },
+    "1f75b1b6593b1c7bf170a6a2ad65171c0d7fa8be": {
+      "raw_sha256": "sha256:3766815b6f9e59e954fd0aa17db50df0302da76e35f892bd55783e56fe289023",
+      "raw_bytes": 356,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:91d88b0f1145c1963cde4fa450094ffc9dbd77ecaa654fed4fb6ae2563a9523e",
+      "normalized_bytes": 357,
+      "png": null
+    },
+    "23f849dbd57e9e377db66798488f5e938dbdd7de": {
+      "raw_sha256": "sha256:2f1b1194a68c4c4bd3b00d37d4a514e49f7ba3487094ae4b151c4be28d45f34b",
+      "raw_bytes": 305,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:c70f696afebc44767ab4e15d94892fffec4941f8ced56940b6252cb72632b569",
+      "normalized_bytes": 306,
+      "png": null
+    },
+    "46b3f6290eef57dd3a52865ef44a953b836b24e2": {
+      "raw_sha256": "sha256:d4861e18d32a64f73065f1121d658f3e6aa81094727f8d3d7c0062c50347a102",
+      "raw_bytes": 334,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:64d9bc1e86d7c3236d74dd8a4a40c50bf1ccb839ca83f8d6ae452655a478f751",
+      "normalized_bytes": 335,
+      "png": null
+    },
+    "5a875fab4079d5acd0aea65f98e109ec4d39c70e": {
+      "raw_sha256": "sha256:89bdc8b278d063640f8ad37820c44569f331c75693a18e6846a31ff8f9412208",
+      "raw_bytes": 101,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:94e36ae8e2a28e860c2dccdffedd4e22828be0ddff5672b8b5040462cbfc2837",
+      "normalized_bytes": 102,
+      "png": null
+    },
+    "60014325f3622263483be4ddc5409c4c8d817498": {
+      "raw_sha256": "sha256:a52204d3b44c24b3fee4d9712e2a66e2bd21db3d72a3540406d5a9ef63de9b4f",
+      "raw_bytes": 559,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:35480349bddf5d849cd3320e1916f8d883573b09f622f7ca59882091ee83237a",
+      "normalized_bytes": 560,
+      "png": null
+    },
+    "689210c2a420258d7eceb485383404c5c2433682": {
+      "raw_sha256": "sha256:597bc6eb3b8c4e0186f523f8cad53d1706e1119f76a1c3a439251d191de50db4",
+      "raw_bytes": 42,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:74c804ffb3b2b6b41ad8da81b55a22ac574a2079349c8c45bc101153d854e6ba",
+      "normalized_bytes": 43,
+      "png": null
+    },
+    "68c8833fbea60fa036c598b223db14637513f8f5": {
+      "raw_sha256": "sha256:916e67fa8333ea901394b980c1d93e7693de610c811cb4170ee930099501cd72",
+      "raw_bytes": 81,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:ad962ecbe9ce89eb05a4420480d25ac87a4183f917a45a20b53a74b8010929a8",
+      "normalized_bytes": 82,
+      "png": null
+    },
+    "6a95e0f0f48f7d6562475fa1d4f6b07ad718268c": {
+      "raw_sha256": "sha256:93d82fb047a6a7934540554a5ea4708c2ede322b533f7197852bf6934d5d03a3",
+      "raw_bytes": 840,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:93d82fb047a6a7934540554a5ea4708c2ede322b533f7197852bf6934d5d03a3",
+      "normalized_bytes": 840,
+      "png": {
+        "width": 16,
+        "height": 16,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 256,
+          "translucent": 0
+        }
+      }
+    },
+    "6e67a7e62ed7a7e7be342139f7dbedbfbb33630b": {
+      "raw_sha256": "sha256:656c6a66b99de81dc2f8f83fd0e3125ba26a6d4084e22929814dfec6edfca36c",
+      "raw_bytes": 406,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:ba0003ed053405865dd035dfc2f7ac7a1a50f5992ae043e9e60e6a95556ffbe5",
+      "normalized_bytes": 407,
+      "png": null
+    },
+    "72cb282b68adfb4e78692b5c988581e98107b109": {
+      "raw_sha256": "sha256:6c8560573ba4247902543ce209d4d7002b3468f7240e8af2df6b617be6b7a158",
+      "raw_bytes": 835,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:67f11141d77e994279588903db82ee17cb1739d618ddb66143afe64bbc12c993",
+      "normalized_bytes": 836,
+      "png": null
+    },
+    "8e55e43bafee8fe8235066910b91e2dc2f90e1f9": {
+      "raw_sha256": "sha256:af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3",
+      "raw_bytes": 44,
+      "binary": false,
+      "raw_final_lf": true,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3",
+      "normalized_bytes": 44,
+      "png": null
+    },
+    "8ed14d9a40a7574fec94e0cbcb903448ab28afaa": {
+      "raw_sha256": "sha256:34ca892627d2c886c373ba2b4f4188fca9b7841348b6bb9524d90e9ff7408db3",
+      "raw_bytes": 868,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:34ca892627d2c886c373ba2b4f4188fca9b7841348b6bb9524d90e9ff7408db3",
+      "normalized_bytes": 868,
+      "png": {
+        "width": 16,
+        "height": 64,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 1024,
+          "translucent": 0
+        }
+      }
+    },
+    "92d303286fd7e9ee0ba2ab9df33a621767f8b255": {
+      "raw_sha256": "sha256:70fec5092c4e862ac8bb106dc941abd12569f2249db3593edc8853105ab0c099",
+      "raw_bytes": 230,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:579a58731a010e5f5b387acc64767131eef66235ec6883dc955a1610ec2973e5",
+      "normalized_bytes": 231,
+      "png": null
+    },
+    "957e9984d0fd82667fd77da2107504bfbc835160": {
+      "raw_sha256": "sha256:16b282914b04c8d444941974414b7e1e51fe18707c6430528604300e5328ec80",
+      "raw_bytes": 355,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:4852f714dcdb004892f3487e688092c07b77f0dd3741f62e9f91ac4642a820a5",
+      "normalized_bytes": 356,
+      "png": null
+    },
+    "9ca4fa28fdb6587c963225a3102e39a6918dcf96": {
+      "raw_sha256": "sha256:7b615611c36fe0f26d3c3a3bd5f2ec2435f503453ea2aa53bce99790914fa094",
+      "raw_bytes": 1197,
+      "binary": false,
+      "raw_final_lf": true,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:7b615611c36fe0f26d3c3a3bd5f2ec2435f503453ea2aa53bce99790914fa094",
+      "normalized_bytes": 1197,
+      "png": null
+    },
+    "b5a2fcab9d87f3ef0629d3e6c6642c89be44d765": {
+      "raw_sha256": "sha256:c3f6b69add1db6df8de6222711932f1acaab2be6b7d9b0d6d60a812761987b34",
+      "raw_bytes": 373,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:c3f6b69add1db6df8de6222711932f1acaab2be6b7d9b0d6d60a812761987b34",
+      "normalized_bytes": 373,
+      "png": {
+        "width": 16,
+        "height": 16,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 256,
+          "translucent": 0
+        }
+      }
+    },
+    "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf": {
+      "raw_sha256": "sha256:180bbe5a84a46e89213dbed769581a610cf868162e253e3fd69d6dd52f01c403",
+      "raw_bytes": 28,
+      "binary": false,
+      "raw_final_lf": true,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:180bbe5a84a46e89213dbed769581a610cf868162e253e3fd69d6dd52f01c403",
+      "normalized_bytes": 28,
+      "png": null
+    },
+    "c77b2bf50e7d8373453c70373e9b317e5790c974": {
+      "raw_sha256": "sha256:3e9ccdf71a6e3a70613c94191fc9b06cbb467df695f51aca62941c6a41a8122f",
+      "raw_bytes": 588,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:3e9ccdf71a6e3a70613c94191fc9b06cbb467df695f51aca62941c6a41a8122f",
+      "normalized_bytes": 588,
+      "png": {
+        "width": 16,
+        "height": 16,
+        "alpha_max": 254,
+        "alpha_min": 0,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 132,
+          "opaque": 0,
+          "translucent": 124
+        }
+      }
+    },
+    "c9c9e4258f2ab514599e4dda4844777798da9921": {
+      "raw_sha256": "sha256:9e9c2a5359a75875cd919b5d7641982560acacb3e41a4ae1ceedef706703b2c5",
+      "raw_bytes": 389,
+      "binary": true,
+      "raw_final_lf": null,
+      "crlf_count": null,
+      "lone_cr_count": null,
+      "bom": null,
+      "normalization": "raw_exact",
+      "append_lf": false,
+      "normalized_sha256": "sha256:9e9c2a5359a75875cd919b5d7641982560acacb3e41a4ae1ceedef706703b2c5",
+      "normalized_bytes": 389,
+      "png": {
+        "width": 16,
+        "height": 16,
+        "alpha_max": 255,
+        "alpha_min": 255,
+        "bit_depth": 8,
+        "color_type": 6,
+        "alpha_counts": {
+          "transparent": 0,
+          "opaque": 256,
+          "translucent": 0
+        }
+      }
+    },
+    "d90a84469e29b3f71e89fc19ef429d9ebe68495f": {
+      "raw_sha256": "sha256:16ede9cb0dcaf2471004c08665e3d2379f6751b4b5426e84fda54ccffec91f8a",
+      "raw_bytes": 333,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:643e106e4543b4fc435b52cb43db3acba54ddee306689946bf69e18198f546f3",
+      "normalized_bytes": 334,
+      "png": null
+    },
+    "dc91b78a974e382515fd5008a87c9a5ad2579e18": {
+      "raw_sha256": "sha256:211b98fdf33cd62076b9c891833c5f7faaaae67355c2e10f2891b052e4484470",
+      "raw_bytes": 213,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:eed7ab68440981640e2bdc5fd22a5d41ae69cf4cb3031a8d6544620b625c06c3",
+      "normalized_bytes": 214,
+      "png": null
+    },
+    "e60a5f749272d384d5b1cba9112c5b7a76e99251": {
+      "raw_sha256": "sha256:54ccd5bfdb23c4ef87d93546f0278aa17cce991a2bbd885b48c22a3b2fff8208",
+      "raw_bytes": 573,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:2b478a9c5da16a45af8f507a8b70f0d44b2557825ab2d328793db3758f2ec4a1",
+      "normalized_bytes": 574,
+      "png": null
+    },
+    "ec2fb9a6d3ea7649863b40ed81be4fbd99ae963f": {
+      "raw_sha256": "sha256:7e1f2a342fdfa226b0c7ab85bd505370f3a2a1be880a160493c2409fb0c510c6",
+      "raw_bytes": 209,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:97121176da5e2c629a61e3b3086937bdc5c51896877f113390d41b30eec44e00",
+      "normalized_bytes": 210,
+      "png": null
+    },
+    "f00333a912f340fe8548af173841f9c465680472": {
+      "raw_sha256": "sha256:71582ff6d92bf3070e942ffddc94733197cc36d644f0d7e539b2109c66e61934",
+      "raw_bytes": 95,
+      "binary": false,
+      "raw_final_lf": false,
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "bom": true,
+      "normalization": "sfm:text_append_terminal_lf@1",
+      "append_lf": true,
+      "normalized_sha256": "sha256:8ccd03fbda421381287b6fe82f595db16eb72d67e2f57a920fe3f5733e311f85",
+      "normalized_bytes": 96,
+      "png": null
+    }
+  },
+  "excluded_cache_paths": [
+    "src/generated/resources/.cache/1ebf6baef22de7ee4a2d47a696e71032207e75e9",
+    "src/generated/resources/.cache/59eb3dbb5f86130e09b3c62d89b9525ee01cf52d",
+    "src/generated/resources/.cache/67cce32b1c3cbbcb1f646605f4914e3f196986c2",
+    "src/generated/resources/.cache/726a4eaaa226cb50028c5f3f85d691417b67903b",
+    "src/generated/resources/.cache/9fb1092f32d4fcbf9e061ffd718d4ec689c6c95e",
+    "src/generated/resources/.cache/bf0ffec7956ce36aba0a993095f41e47d655813b",
+    "src/generated/resources/.cache/c622617f6fabf890a00b9275cd5f643584a8a2c8",
+    "src/generated/resources/.cache/e178a5522f40c551aab415c9b173854697679d35"
+  ],
+  "broader_physical_inventory_remaining": {
+    "status": "Explicitly outside this29-input slice. Root's later all-frozen-dev physical audit found127generated/resources and19main/resources absent in core, including8expected datagen housekeeping paths. They require a separate owner/cohort inventory; this slice is not all-feature or complete physical resource parity.",
+    "physical_source_missing_total": 1847,
+    "generated_resource_paths": 127,
+    "main_resource_paths": 19
+  },
+  "source_consumers": [
+    {
+      "owner": "client_manager",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+        "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java"
+      ],
+      "meaning": "Registry and datagen identity client_manager. Data resources follow actual block ownership, not the client_manager_gui owner.",
+      "runtime_closure": "ClientManager runtime, consent, network and UI closure remain separately tested; no enabled compile claim."
+    },
+    {
+      "owner": "touch_display",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+        "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMRecipesDatagen.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMLootTablesDatagen.java"
+      ],
+      "meaning": "Registry and datagen identity touch_display. Static skins do not enable seamless rendering or furnace-like placement.",
+      "runtime_closure": "Touch display renderer/block entity and image resource runtime proof remain separate."
+    },
+    {
+      "owner": "client_manager_custom_textures",
+      "paths": [
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java"
+      ],
+      "meaning": "Exact existing datagen registerClientManager texture triplet. D1 custom skin enabled reconstructs D1 raw; disabled uses reviewed fallback manager_bot/cyan_concrete/manager_top. The off-D1 fallback is a reconstructed combination, not a D1 historical witness.",
+      "runtime_closure": "Static data owner only; no GUI/timing capability expansion."
+    },
+    {
+      "owner": "touch_display_custom_textures",
+      "paths": [
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java"
+      ],
+      "meaning": "Exact existing datagen registerTouchDisplay texture triplet. D1 custom enabled reconstructs D1 raw; disabled uses reviewed manager_bot/manager_side/buffer_unknown fallback. Independent of touch_display_seamless_surface and touch_display_furnace_placement.",
+      "runtime_closure": "Static data owner only; does not change active rendered image inset or block placement."
+    },
+    {
+      "owner": "image_resources",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMBlockStatesAndModelsDatagen.java"
+      ],
+      "meaning": "ContainedResource.Image selects image and generated buffer_image cube_all references the existing neutral buffer_unknown texture.",
+      "runtime_closure": "No buffer_image_persistence prerequisite or image-specific PNG is invented."
+    },
+    {
+      "owner": "packet_values",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+        "src/datagen/java/ca/teamdman/sfm/datagen/SFMItemModelsDatagen.java"
+      ],
+      "meaning": "PACKET item registration and basicItem model. The icon does not require computation, broadcast, GUI or consent.",
+      "runtime_closure": "Packet item and value runtime behavior tested separately."
+    },
+    {
+      "owner": "redstone_buffer_storage",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+        "src/main/java/ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java"
+      ],
+      "meaning": "The counter example transfers stored redstone between donor/counter/sink using legacy IO syntax; no INVOKE, packet expressions or redstone_live_read is required.",
+      "runtime_closure": "Core selector proof cannot establish Java execution or throughput; example requires labelled connected buffers and a seed."
+    },
+    {
+      "owner": "packet_computation+packet_transport_private",
+      "paths": [
+        "src/main/antlr/sfml/SFML.g4",
+        "src/main/java/ca/teamdman/sfml/ast/TextReadValueExpression.java",
+        "src/main/java/ca/teamdman/sfml/ast/SFMTextResourceAdapters.java",
+        "src/main/java/ca/teamdman/sfml/ast/ProgramInputSelection.java",
+        "src/main/java/ca/teamdman/sfml/ast/BroadcastStatement.java"
+      ],
+      "meaning": "Typed declarations/fields, INPUT WITH CAPABILITY sfm:text, STRING OF INVOKE sfm:text/read and CREATE INPUT belong to packet_computation. Bare BROADCAST TO me belongs to packet_transport_private. The inbox variable is an ordinary label, not client_inbox. TextReadValueExpression calls SFMTextResourceAdapters over copied items, not the client action registry.",
+      "runtime_closure": "TextReadValueExpression, SFMTextResourceAdapters and BroadcastStatement are still absent from current authored core; closed source membership is not enabled build closure. Private integrated-player restrictions remain; example comments require author-specific player/mailbox configuration."
+    },
+    {
+      "owner": "computercraft",
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftTurtleUpgrades.java",
+        "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelerTurtleUpgrade.java"
+      ],
+      "meaning": "Serializer registers sfm:labeler. CC data path is plural through stable1.21.0 and singular for1.21.1/26.1.2; identical JSON bytes are authored once per genuine destination path.",
+      "runtime_closure": "Optional ComputerCraft Java/service/dependency closure is separate; data owner does not enable it by environment."
+    }
+  ],
+  "genuine_version_seams": [
+    "Recipe JSON in1.19.4 gains category=misc and show_notification=true; shared body retained with line-scoped minecraft_version cases.",
+    "Advancement recipes live under sfm/ in1.19.2 and misc/ in1.19.4; destination membership is explicit, not environment/preset keyed.",
+    "CC turtle upgrade JSON destination is plural through1.21.0, singular in1.21.1 and26.1.2. Both exact authored files contain the same28 raw bytes.",
+    "Custom CM/touch texture selection is a functional D1 skin choice, not a version API branch."
+  ],
+  "byte_policy": {
+    "append_terminal_lf": {
+      "approval": "Root best-judgment source normalization approval for exactly18 listed frozen JSON identities. Add exactlyONE LF where absent; no trimming/token/other whitespace/BOM/CR changes.",
+      "oids": [
+        "010b899520dc8005712ecf734fb55f274b1dd524",
+        "1f43ac0e1c702004f624c60058a31ffd7a5f1013",
+        "1f75b1b6593b1c7bf170a6a2ad65171c0d7fa8be",
+        "23f849dbd57e9e377db66798488f5e938dbdd7de",
+        "46b3f6290eef57dd3a52865ef44a953b836b24e2",
+        "5a875fab4079d5acd0aea65f98e109ec4d39c70e",
+        "60014325f3622263483be4ddc5409c4c8d817498",
+        "689210c2a420258d7eceb485383404c5c2433682",
+        "68c8833fbea60fa036c598b223db14637513f8f5",
+        "6e67a7e62ed7a7e7be342139f7dbedbfbb33630b",
+        "72cb282b68adfb4e78692b5c988581e98107b109",
+        "92d303286fd7e9ee0ba2ab9df33a621767f8b255",
+        "957e9984d0fd82667fd77da2107504bfbc835160",
+        "d90a84469e29b3f71e89fc19ef429d9ebe68495f",
+        "dc91b78a974e382515fd5008a87c9a5ad2579e18",
+        "e60a5f749272d384d5b1cba9112c5b7a76e99251",
+        "ec2fb9a6d3ea7649863b40ed81be4fbd99ae963f",
+        "f00333a912f340fe8548af173841f9c465680472"
+      ]
+    },
+    "other_text": "Other four unique text blobs retain raw LF bytes exactly.",
+    "binary": "Seven PNGs are exact-byte copies from already-present, raw-hash-verified primary assets; no rendering, image generation, resizing, color conversion or re-encoding.",
+    "png_decode": "System.Drawing.Bitmap read-only pixel decode verified width/height and all alpha counts against the exact raw pins. No decoded image was saved.",
+    "limits": "Source rendering accepts these approved final-LF differences only. No JAR byte identity, datagen output reproduction, Gradle/native compile, Java execution, game test or gameplay acceptance is claimed."
+  },
+  "evidence": {
+    "tree_check": {
+      "method": "Offline git ls-tree for each of20 exact commits restricted to29 exact src paths; independently checked100644/blob ID or absence against frozen witness map.",
+      "rows": [
+        {
+          "present": 26,
+          "absent": 3,
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "context": "dev/1.19.2"
+        },
+        {
+          "present": 18,
+          "absent": 11,
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "context": "dev/1.19.4"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "context": "dev/1.20"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "context": "dev/1.20.1"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "context": "dev/1.20.2"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "context": "dev/1.20.3"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "context": "dev/1.20.4"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "context": "dev/1.21.0"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "context": "dev/1.21.1"
+        },
+        {
+          "present": 1,
+          "absent": 28,
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "context": "dev/26.1.2"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "context": "release/1.19.2"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "context": "release/1.19.4"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "context": "release/1.20"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "context": "release/1.20.1"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "context": "release/1.20.2"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "context": "release/1.20.3"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "context": "release/1.20.4"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "context": "release/1.21.0"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "context": "release/1.21.1"
+        },
+        {
+          "present": 0,
+          "absent": 29,
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "context": "release/26.1.2"
+        }
+      ]
+    },
+    "raw_blob_check": "Offline git cat-file blob, recomputed Git SHA1(blob header+bytes), SHA256 and length against original ledger; checked UTF8/CRLF/BOM/EOF for all text and decoded PNG pixels without re-encoding.",
+    "reconstructions": [
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/blockstates/client_manager.json",
+        "oid": "68c8833fbea60fa036c598b223db14637513f8f5",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/blockstates/touch_display.json",
+        "oid": "60014325f3622263483be4ddc5409c4c8d817498",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/block/buffer_image.json",
+        "oid": "5a875fab4079d5acd0aea65f98e109ec4d39c70e",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/block/client_manager.json",
+        "oid": "92d303286fd7e9ee0ba2ab9df33a621767f8b255",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/block/touch_display.json",
+        "oid": "010b899520dc8005712ecf734fb55f274b1dd524",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/item/client_manager.json",
+        "oid": "689210c2a420258d7eceb485383404c5c2433682",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/item/packet.json",
+        "oid": "f00333a912f340fe8548af173841f9c465680472",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/assets/sfm/models/item/touch_display.json",
+        "oid": "1f43ac0e1c702004f624c60058a31ffd7a5f1013",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+        "oid": "72cb282b68adfb4e78692b5c988581e98107b109",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+        "oid": "e60a5f749272d384d5b1cba9112c5b7a76e99251",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+        "oid": "46b3f6290eef57dd3a52865ef44a953b836b24e2",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+        "oid": "d90a84469e29b3f71e89fc19ef429d9ebe68495f",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/recipes/client_manager.json",
+        "oid": "23f849dbd57e9e377db66798488f5e938dbdd7de",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/generated/resources/data/sfm/recipes/touch_display.json",
+        "oid": "957e9984d0fd82667fd77da2107504bfbc835160",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+        "oid": "0db3449aab4d0b7931d63ffe9e5ae29054be3899",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+        "oid": "9ca4fa28fdb6587c963225a3102e39a6918dcf96",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+        "oid": "b5a2fcab9d87f3ef0629d3e6c6642c89be44d765",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+        "oid": "19cf22aec4fd0a18864c63601c973662124a235c",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+        "oid": "8e55e43bafee8fe8235066910b91e2dc2f90e1f9",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+        "oid": "c9c9e4258f2ab514599e4dda4844777798da9921",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+        "oid": "1da2871f2216624997804d6ef6716e33d89ade65",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+        "oid": "6a95e0f0f48f7d6562475fa1d4f6b07ad718268c",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+        "oid": "8ed14d9a40a7574fec94e0cbcb903448ab28afaa",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+        "oid": "8e55e43bafee8fe8235066910b91e2dc2f90e1f9",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/assets/sfm/textures/item/packet.png",
+        "oid": "c77b2bf50e7d8373453c70373e9b317e5790c974",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.2",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/blockstates/client_manager.json",
+        "oid": "68c8833fbea60fa036c598b223db14637513f8f5",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/blockstates/touch_display.json",
+        "oid": "60014325f3622263483be4ddc5409c4c8d817498",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/block/buffer_image.json",
+        "oid": "5a875fab4079d5acd0aea65f98e109ec4d39c70e",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/block/client_manager.json",
+        "oid": "dc91b78a974e382515fd5008a87c9a5ad2579e18",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/block/touch_display.json",
+        "oid": "ec2fb9a6d3ea7649863b40ed81be4fbd99ae963f",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/item/client_manager.json",
+        "oid": "689210c2a420258d7eceb485383404c5c2433682",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/item/packet.json",
+        "oid": "f00333a912f340fe8548af173841f9c465680472",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/assets/sfm/models/item/touch_display.json",
+        "oid": "1f43ac0e1c702004f624c60058a31ffd7a5f1013",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+        "oid": "72cb282b68adfb4e78692b5c988581e98107b109",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+        "oid": "e60a5f749272d384d5b1cba9112c5b7a76e99251",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+        "oid": "46b3f6290eef57dd3a52865ef44a953b836b24e2",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+        "oid": "d90a84469e29b3f71e89fc19ef429d9ebe68495f",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/recipes/client_manager.json",
+        "oid": "1f75b1b6593b1c7bf170a6a2ad65171c0d7fa8be",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/generated/resources/data/sfm/recipes/touch_display.json",
+        "oid": "6e67a7e62ed7a7e7be342139f7dbedbfbb33630b",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+        "oid": "0db3449aab4d0b7931d63ffe9e5ae29054be3899",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+        "oid": "9ca4fa28fdb6587c963225a3102e39a6918dcf96",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/main/resources/assets/sfm/textures/item/packet.png",
+        "oid": "c77b2bf50e7d8373453c70373e9b317e5790c974",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.19.4",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.20",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.20.1",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.20.2",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.20.3",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.20.4",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.21.0",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/1.21.1",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      },
+      {
+        "context": "dev/26.1.2",
+        "path": "src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+        "oid": "bfe4922854cdb9d5dc12e054d9f0ef08c4a070bf",
+        "equal": true,
+        "proof": "independent_literal_authoring_expansion_not_production_renderer"
+      }
+    ],
+    "authoring_expansion": "The52 present cells were independently expanded with a bounded literal branch checker and compared to approved normalized witnesses; this is NOT production renderer acceptance.",
+    "test_status": "New actual-core collector tests are unregistered and not executed by this agent. Root must promote29 files, register exact metadata rules, register tests, then run them.",
+    "writes": "Only ignored29-file stage, this portable ledger, and new unregistered tests; no live core/metadata/catalog/locks/dependencies or projection writes."
+  },
+  "test_contract": [
+    "After promotion: real discover/select/collect pipeline against isolated copies of the29 actual core inputs plus eight explicitly synthetic standalone-project files; actual Java/runtime/dependency claims excluded.",
+    "580 frozen cells and all29 exact raw/normalized blob contracts, independent frozen tree checks.",
+    "Independent block/skin combinations, packet item versus computation/private broadcast, redstone/image/CC membership and data path cases; unsupported/missing prerequisites refuse.",
+    "Typed JSON/.mcmeta parses, texture/recipe/registry IDs, expected opaque skin PNG IHDR and exact raw PNG pins; historical alpha decode recorded separately.",
+    "Delete/poison inactive input and prove omitted-before-read behavior; append/trim/token mutations refuse exact golden normalization; shared recipe edit propagates without historical fallback."
+  ],
+  "operational": {
+    "cargo": false,
+    "gradle": false,
+    "java": false,
+    "native_compile": false,
+    "game_launch": false,
+    "downloads": false,
+    "new_dependencies": false,
+    "lock_changes": false,
+    "public_flag_changes": false
+  }
+}

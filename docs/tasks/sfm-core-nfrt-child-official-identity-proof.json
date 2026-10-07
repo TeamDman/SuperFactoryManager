@@ -1,0 +1,430 @@
+{
+  "schema": "sfm:nfrt_child_official_identity_proof@1",
+  "status": "exact_fifteen_checksum_sidecars_verified_after_explicit_human_authority",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "authority": {
+    "scope": "The human authorized exactly the 15 child tool identities proposed in the reviewed six-target NFRT source-route inventory. This record applies that permission only after matching official SHA-256 sidecars. No version upgrade, POM discovery or unrelated tool is authorized.",
+    "inventory_path": "docs/tasks/sfm-core-named-nfrt-compile-review.json",
+    "inventory_sha256": "8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d",
+    "inventory_original_status_preserved": true
+  },
+  "parent_proof": {
+    "path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json",
+    "sha256": "45ddda335ea4624b9a873ddf1ceb53f7265f2d8bbb48bb2bd97d0e903fdab785",
+    "role": "Original frozen parent pin authentication. It does not supply previously missing child identities."
+  },
+  "verification": {
+    "unique_artifacts": 15,
+    "target_coordinate_occurrences": 35,
+    "http_200_sidecars": 15,
+    "matching_cache_checksums": 15,
+    "redirects": 0,
+    "jar_downloads": 0,
+    "pom_requests": 0,
+    "version_metadata_requests": 0,
+    "files_written_by_verification": 0,
+    "cache_changes": 0,
+    "original_lock_changes": 0,
+    "transport": "Exact HTTPS publisher checksum sidecars. Redirects/cookies/default credentials disabled; 20-second request timeout; each response limited to 2048 bytes and parsed only as 64 hexadecimal characters.",
+    "trust_limit": "Publisher-served checksums over TLS, not cryptographic signatures. The cached artifact's full-file SHA-256 equals the publisher checksum; no weak metadata or mere cache presence is used as identity."
+  },
+  "official_publishers": [
+    {
+      "host": "maven.neoforged.net",
+      "publisher": "NeoForged",
+      "authority": "https://maven.neoforged.net/",
+      "artifact_projects": [
+        "https://github.com/neoforged/JavaSourceTransformer",
+        "https://projects.neoforged.net/neoforged/mergetool",
+        "https://github.com/neoforged/VineflowerPlugins"
+      ]
+    },
+    {
+      "host": "repo.maven.apache.org",
+      "publisher": "Maven Central / Vineflower",
+      "authority": "https://vineflower.org/usage-code/"
+    },
+    {
+      "host": "maven.minecraftforge.net",
+      "publisher": "MinecraftForge",
+      "authority": "https://files.minecraftforge.net/net/minecraftforge/installertools/"
+    },
+    {
+      "host": "maven.covers1624.net",
+      "publisher": "DiffPatch publisher",
+      "authority": "https://github.com/TheCBProject/DiffPatch"
+    }
+  ],
+  "artifacts": [
+    {
+      "coordinate": "net.neoforged.jst:jst-cli-bundle:2.0.8",
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "observed_cache": {
+        "bytes": 57946324,
+        "sha256": "89f6567e00d1c2cd5c2d347762a28e502ec6fa110df4e3ada8abd63b12f9a69c"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/jst/jst-cli-bundle/2.0.8/jst-cli-bundle-2.0.8.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/jst/jst-cli-bundle/2.0.8/jst-cli-bundle-2.0.8.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "89f6567e00d1c2cd5c2d347762a28e502ec6fa110df4e3ada8abd63b12f9a69c",
+        "checksum_body_sha256": "c8133df5a74ba81fae91733923a988f43d0ff6bca46f15e6d0cb7dcd1b0db0f7",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:10.7814982Z"
+      }
+    },
+    {
+      "coordinate": "io.codechicken:DiffPatch:2.0.0.36:all",
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "observed_cache": {
+        "bytes": 22580704,
+        "sha256": "30d1ff26c112bf3a488e1e5a32a345f75ff0ef985c3315b2d987d607e7038580"
+      },
+      "official_artifact_url": "https://maven.covers1624.net/io/codechicken/DiffPatch/2.0.0.36/DiffPatch-2.0.0.36-all.jar",
+      "official_checksum": {
+        "coordinate": "io.codechicken:DiffPatch:2.0.0.36:all",
+        "url": "https://maven.covers1624.net/io/codechicken/DiffPatch/2.0.0.36/DiffPatch-2.0.0.36-all.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "30d1ff26c112bf3a488e1e5a32a345f75ff0ef985c3315b2d987d607e7038580",
+        "checksum_body_sha256": "ad465f26e77016dcf5ed810d071f0a78ae3192acdfd1c0ea41edcb975448ee83",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0485051Z"
+      }
+    },
+    {
+      "coordinate": "org.vineflower:vineflower:1.9.3",
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4"
+      ],
+      "observed_cache": {
+        "bytes": 1001253,
+        "sha256": "2e563300af223b04772195709539fba69237e61eba14090ee3a44e2992c41cdb"
+      },
+      "official_artifact_url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar",
+      "official_checksum": {
+        "coordinate": "org.vineflower:vineflower:1.9.3",
+        "url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "2e563300af223b04772195709539fba69237e61eba14090ee3a44e2992c41cdb",
+        "checksum_body_sha256": "3ce2261deee3ea56e671d43b02e4182847065a08394033c9944ef9f4eefd5854",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0488210Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.0:fatjar",
+      "targets": [
+        "1.20.2"
+      ],
+      "observed_cache": {
+        "bytes": 467899,
+        "sha256": "d02c919d9d15db3e4ef5ba5322896f5349c4da525d7f45f5ffbe1b9854f64dcb"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:mergetool:2.0.0:fatjar",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "d02c919d9d15db3e4ef5ba5322896f5349c4da525d7f45f5ffbe1b9854f64dcb",
+        "checksum_body_sha256": "b112aa634dc648db67740f2212b42803aa0e66c367cae8209505cb1181665dd2",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0490374Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:AutoRenamingTool:1.0.7:all",
+      "targets": [
+        "1.20.2"
+      ],
+      "observed_cache": {
+        "bytes": 740831,
+        "sha256": "ae0b4bdc0ad0a64347df48422ba7de40dd8ffb468a34cfd3ffeee5f86ec8f7c2"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:AutoRenamingTool:1.0.7:all",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "ae0b4bdc0ad0a64347df48422ba7de40dd8ffb468a34cfd3ffeee5f86ec8f7c2",
+        "checksum_body_sha256": "d9fbee8e468644e9b894393fd4db35584ba078d2e318a7828ba621988690cfc7",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0493020Z"
+      }
+    },
+    {
+      "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
+      "targets": [
+        "1.20.2",
+        "1.20.3",
+        "1.20.4"
+      ],
+      "observed_cache": {
+        "bytes": 5716684,
+        "sha256": "b9caa6293aa4b291efca656e256dc278285278952ed6eb79bf8804b866622765"
+      },
+      "official_artifact_url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.minecraftforge:installertools:1.3.2:fatjar",
+        "url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "b9caa6293aa4b291efca656e256dc278285278952ed6eb79bf8804b866622765",
+        "checksum_body_sha256": "cc39911c3090958cef4250de786cc455ce19e9e89fa8a91f49a5b428dc8df219",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0495189Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.2:fatjar",
+      "targets": [
+        "1.20.3",
+        "1.20.4"
+      ],
+      "observed_cache": {
+        "bytes": 467900,
+        "sha256": "b5768cfe7d8a70d854f2e53901396514d5087fa77ed63d2737af56d7bf833134"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.2/mergetool-2.0.2-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:mergetool:2.0.2:fatjar",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.2/mergetool-2.0.2-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "b5768cfe7d8a70d854f2e53901396514d5087fa77ed63d2737af56d7bf833134",
+        "checksum_body_sha256": "03fa6b0063682edb4a8964faf4bfe7f843a1c31c9a325581f2a73e2f35c00474",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0497146Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:AutoRenamingTool:1.0.11:all",
+      "targets": [
+        "1.20.3",
+        "1.20.4"
+      ],
+      "observed_cache": {
+        "bytes": 740830,
+        "sha256": "f53912794da01ef0d3854ef1f3db20de3b246ffb93bd798fbce7c3182346fbb7"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.11/AutoRenamingTool-1.0.11-all.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:AutoRenamingTool:1.0.11:all",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.11/AutoRenamingTool-1.0.11-all.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "f53912794da01ef0d3854ef1f3db20de3b246ffb93bd798fbce7c3182346fbb7",
+        "checksum_body_sha256": "831a7d5df63ebe339fcfb3fa37fc8bf3683a97ccff8eda169eb329373e0259df",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0499086Z"
+      }
+    },
+    {
+      "coordinate": "org.vineflower:vineflower:1.10.1",
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "observed_cache": {
+        "bytes": 1778509,
+        "sha256": "b9b208e50793b64657a6b6292067526613f549de7405f9243624b02f4276e409"
+      },
+      "official_artifact_url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.10.1/vineflower-1.10.1.jar",
+      "official_checksum": {
+        "coordinate": "org.vineflower:vineflower:1.10.1",
+        "url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.10.1/vineflower-1.10.1.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "b9b208e50793b64657a6b6292067526613f549de7405f9243624b02f4276e409",
+        "checksum_body_sha256": "4267a6b24318ed7d22cfc708be9706c247782f503f5c69f76c4dc15bb11d921f",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0502014Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.3:fatjar",
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "observed_cache": {
+        "bytes": 467899,
+        "sha256": "3dbd19d9489348e838b1bedcf7ffd6d9810dac40543f3c34d3bcf6e39e674922"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.3/mergetool-2.0.3-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:mergetool:2.0.3:fatjar",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.3/mergetool-2.0.3-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "3dbd19d9489348e838b1bedcf7ffd6d9810dac40543f3c34d3bcf6e39e674922",
+        "checksum_body_sha256": "7e78ffad8a71ce32ef5afd8e63798bb4541da185325402ead03e268d8063a5de",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0504035Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:AutoRenamingTool:2.0.3:all",
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "observed_cache": {
+        "bytes": 746919,
+        "sha256": "43fcb978664ba04fc0b3b1b1a14eccabb4bc87b7a415e0eb8bdd1c2f12324321"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/2.0.3/AutoRenamingTool-2.0.3-all.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:AutoRenamingTool:2.0.3:all",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/2.0.3/AutoRenamingTool-2.0.3-all.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "43fcb978664ba04fc0b3b1b1a14eccabb4bc87b7a415e0eb8bdd1c2f12324321",
+        "checksum_body_sha256": "5b33c9ba45675eaf1a21b641b0a8c9395c01c866112bf0f0189395b30877a624",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0506248Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+      "targets": [
+        "1.21.0",
+        "1.21.1"
+      ],
+      "observed_cache": {
+        "bytes": 5742231,
+        "sha256": "9fe7c6df17299f661b9cd07fc1c4e85493b63efae6bb9da0255a97d9d0a87c60"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/2.1.2/installertools-2.1.2-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/2.1.2/installertools-2.1.2-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "9fe7c6df17299f661b9cd07fc1c4e85493b63efae6bb9da0255a97d9d0a87c60",
+        "checksum_body_sha256": "44db4e6c3d6867c0f3826b1535714c0dc2b4b3ea657f6b7fe6fd461afb7a2966",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0508255Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged.installertools:installertools:4.0.16:fatjar",
+      "targets": [
+        "26.1.2"
+      ],
+      "observed_cache": {
+        "bytes": 814037,
+        "sha256": "f8e5d76e3a388a106cf8a77cb34c604cb03517806b9f5f20e8e2201b9ec671e4"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/4.0.16/installertools-4.0.16-fatjar.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged.installertools:installertools:4.0.16:fatjar",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/4.0.16/installertools-4.0.16-fatjar.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "f8e5d76e3a388a106cf8a77cb34c604cb03517806b9f5f20e8e2201b9ec671e4",
+        "checksum_body_sha256": "735f6f21692890da12d235529af0ec6bea84a3be417f25d963e775c41b37651b",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0510337Z"
+      }
+    },
+    {
+      "coordinate": "org.vineflower:vineflower:1.11.2",
+      "targets": [
+        "26.1.2"
+      ],
+      "observed_cache": {
+        "bytes": 1856529,
+        "sha256": "e1e2415e7f78b34960402c4beddfc88e033d7842a23ecd132a8ec2eadd54f6bf"
+      },
+      "official_artifact_url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.11.2/vineflower-1.11.2.jar",
+      "official_checksum": {
+        "coordinate": "org.vineflower:vineflower:1.11.2",
+        "url": "https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.11.2/vineflower-1.11.2.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "e1e2415e7f78b34960402c4beddfc88e033d7842a23ecd132a8ec2eadd54f6bf",
+        "checksum_body_sha256": "86d16aa9273cca6f99473c455117378995549ab0e6e09d337ed6838291074819",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0512417Z"
+      }
+    },
+    {
+      "coordinate": "net.neoforged:vineflower-plugins:0.1.5",
+      "targets": [
+        "26.1.2"
+      ],
+      "observed_cache": {
+        "bytes": 9426,
+        "sha256": "ebd5712d8cf801bbecaa9e48eca9013ef408b33993a29e4b89dc877098eccc60"
+      },
+      "official_artifact_url": "https://maven.neoforged.net/releases/net/neoforged/vineflower-plugins/0.1.5/vineflower-plugins-0.1.5.jar",
+      "official_checksum": {
+        "coordinate": "net.neoforged:vineflower-plugins:0.1.5",
+        "url": "https://maven.neoforged.net/releases/net/neoforged/vineflower-plugins/0.1.5/vineflower-plugins-0.1.5.jar.sha256",
+        "http_status": 200,
+        "checksum_sha256": "ebd5712d8cf801bbecaa9e48eca9013ef408b33993a29e4b89dc877098eccc60",
+        "checksum_body_sha256": "ddb64e83b095bb02bb54104bc1956dd41bf644878883874d5f7eb35b6032b514",
+        "matches": true,
+        "redirect_location": "",
+        "observed_at": "2026-10-01T04:47:11.0514501Z"
+      }
+    }
+  ],
+  "excluded_dormant_tools": [
+    {
+      "coordinate": "net.minecraftforge:mergetool:1.1.7:fatjar",
+      "origin": "NFRT tools.properties MCF_SIDE_ANNOTATION_STRIPPER",
+      "reason": "Only the older Forge <=1.20.1 source adapter; not part of these six selected source routes."
+    },
+    {
+      "coordinate": "net.neoforged.installertools:installertools:4.0.12:fatjar",
+      "origin": "NFRT tools.properties INSTALLER_TOOLS",
+      "reason": "ApplyDevTransformsAction for binary/no-recompile outputs; the selected results use source transformation/recompile."
+    },
+    {
+      "coordinate": "net.neoforged:AutoRenamingTool:2.0.17:all",
+      "origin": "NFRT tools.properties AUTO_RENAMING_TOOL",
+      "reason": "Legacy SRG remap branch, not selected joined source results for these six configs."
+    },
+    {
+      "coordinates": [
+        "net.minecraftforge:binarypatcher:1.1.1:fatjar",
+        "net.neoforged.installertools:binarypatcher:2.1.2:fatjar",
+        "net.neoforged.installertools:binarypatcher:4.0.12:fatjar"
+      ],
+      "origin": "userdev config.json binpatcher",
+      "reason": "Binary/no-recompile branches are constructed but not selected by the two source-result IDs. Future binary output requires a separate reachable-child review."
+    }
+  ],
+  "unchanged_boundaries": [
+    "All six original schema-2 lock bytes and their 13 selected released role inputs remain unchanged.",
+    "No live dependency file, source template, feature flag, registration, native launcher or build cache was modified.",
+    "The supplement must remain separately identified and target/recipe/raw-lock bound; it cannot be silently inserted into the original artifact rows.",
+    "Parent bytes and entries must be reverified at consumption; exact approved child bytes must be verified before any use.",
+    "The external NFRT Java downloader, child-process network behavior, launcher probing, intermediate cache integrity, source ownership recheck and tool-JVM identity remain integration gates.",
+    "This evidence is not a six-target compile, packaging, JUnit or runtime pass."
+  ],
+  "reproducible_read_only_checksum_command": "$ErrorActionPreference = 'Stop'\n$requestsForNfrt = @(\n@{ coordinate='net.neoforged.jst:jst-cli-bundle:2.0.8'; url='https://maven.neoforged.net/releases/net/neoforged/jst/jst-cli-bundle/2.0.8/jst-cli-bundle-2.0.8.jar.sha256'; expected='89f6567e00d1c2cd5c2d347762a28e502ec6fa110df4e3ada8abd63b12f9a69c' },\n@{ coordinate='io.codechicken:DiffPatch:2.0.0.36:all'; url='https://maven.covers1624.net/io/codechicken/DiffPatch/2.0.0.36/DiffPatch-2.0.0.36-all.jar.sha256'; expected='30d1ff26c112bf3a488e1e5a32a345f75ff0ef985c3315b2d987d607e7038580' },\n@{ coordinate='org.vineflower:vineflower:1.9.3'; url='https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.9.3/vineflower-1.9.3.jar.sha256'; expected='2e563300af223b04772195709539fba69237e61eba14090ee3a44e2992c41cdb' },\n@{ coordinate='net.neoforged:mergetool:2.0.0:fatjar'; url='https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.0/mergetool-2.0.0-fatjar.jar.sha256'; expected='d02c919d9d15db3e4ef5ba5322896f5349c4da525d7f45f5ffbe1b9854f64dcb' },\n@{ coordinate='net.neoforged:AutoRenamingTool:1.0.7:all'; url='https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.7/AutoRenamingTool-1.0.7-all.jar.sha256'; expected='ae0b4bdc0ad0a64347df48422ba7de40dd8ffb468a34cfd3ffeee5f86ec8f7c2' },\n@{ coordinate='net.minecraftforge:installertools:1.3.2:fatjar'; url='https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.2/installertools-1.3.2-fatjar.jar.sha256'; expected='b9caa6293aa4b291efca656e256dc278285278952ed6eb79bf8804b866622765' },\n@{ coordinate='net.neoforged:mergetool:2.0.2:fatjar'; url='https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.2/mergetool-2.0.2-fatjar.jar.sha256'; expected='b5768cfe7d8a70d854f2e53901396514d5087fa77ed63d2737af56d7bf833134' },\n@{ coordinate='net.neoforged:AutoRenamingTool:1.0.11:all'; url='https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/1.0.11/AutoRenamingTool-1.0.11-all.jar.sha256'; expected='f53912794da01ef0d3854ef1f3db20de3b246ffb93bd798fbce7c3182346fbb7' },\n@{ coordinate='org.vineflower:vineflower:1.10.1'; url='https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.10.1/vineflower-1.10.1.jar.sha256'; expected='b9b208e50793b64657a6b6292067526613f549de7405f9243624b02f4276e409' },\n@{ coordinate='net.neoforged:mergetool:2.0.3:fatjar'; url='https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.3/mergetool-2.0.3-fatjar.jar.sha256'; expected='3dbd19d9489348e838b1bedcf7ffd6d9810dac40543f3c34d3bcf6e39e674922' },\n@{ coordinate='net.neoforged:AutoRenamingTool:2.0.3:all'; url='https://maven.neoforged.net/releases/net/neoforged/AutoRenamingTool/2.0.3/AutoRenamingTool-2.0.3-all.jar.sha256'; expected='43fcb978664ba04fc0b3b1b1a14eccabb4bc87b7a415e0eb8bdd1c2f12324321' },\n@{ coordinate='net.neoforged.installertools:installertools:2.1.2:fatjar'; url='https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/2.1.2/installertools-2.1.2-fatjar.jar.sha256'; expected='9fe7c6df17299f661b9cd07fc1c4e85493b63efae6bb9da0255a97d9d0a87c60' },\n@{ coordinate='net.neoforged.installertools:installertools:4.0.16:fatjar'; url='https://maven.neoforged.net/releases/net/neoforged/installertools/installertools/4.0.16/installertools-4.0.16-fatjar.jar.sha256'; expected='f8e5d76e3a388a106cf8a77cb34c604cb03517806b9f5f20e8e2201b9ec671e4' },\n@{ coordinate='org.vineflower:vineflower:1.11.2'; url='https://repo.maven.apache.org/maven2/org/vineflower/vineflower/1.11.2/vineflower-1.11.2.jar.sha256'; expected='e1e2415e7f78b34960402c4beddfc88e033d7842a23ecd132a8ec2eadd54f6bf' },\n@{ coordinate='net.neoforged:vineflower-plugins:0.1.5'; url='https://maven.neoforged.net/releases/net/neoforged/vineflower-plugins/0.1.5/vineflower-plugins-0.1.5.jar.sha256'; expected='ebd5712d8cf801bbecaa9e48eca9013ef408b33993a29e4b89dc877098eccc60' }\n)\n$handlerForNfrt = [System.Net.Http.HttpClientHandler]::new()\n$handlerForNfrt.AllowAutoRedirect = $false\n$handlerForNfrt.UseCookies = $false\n$handlerForNfrt.UseDefaultCredentials = $false\n$clientForNfrt = [System.Net.Http.HttpClient]::new($handlerForNfrt)\n$clientForNfrt.Timeout = [TimeSpan]::FromSeconds(20)\n$clientForNfrt.DefaultRequestHeaders.UserAgent.ParseAdd('SFM-read-only-identity-review/1')\ntry {\n    $pendingForNfrt = foreach ($requestForNfrt in $requestsForNfrt) {\n        @{ request=$requestForNfrt; task=$clientForNfrt.GetAsync($requestForNfrt.url,[System.Net.Http.HttpCompletionOption]::ResponseHeadersRead) }\n    }\n    $resultsForNfrt = foreach ($pendingRowForNfrt in $pendingForNfrt) {\n        try {\n            $responseForNfrt = $pendingRowForNfrt.task.GetAwaiter().GetResult()\n            try {\n                $statusForNfrt=[int]$responseForNfrt.StatusCode\n                $valueForNfrt=$null\n                $bodyShaForNfrt=$null\n                if ($statusForNfrt -eq 200) {\n                    $streamForNfrt=$responseForNfrt.Content.ReadAsStreamAsync().GetAwaiter().GetResult()\n                    try {\n                        $bufferForNfrt=[byte[]]::new(2049)\n                        $countForNfrt=0\n                        while ($countForNfrt -lt $bufferForNfrt.Length) {\n                            $readForNfrt=$streamForNfrt.Read($bufferForNfrt,$countForNfrt,$bufferForNfrt.Length-$countForNfrt)\n                            if ($readForNfrt -eq 0) { break }\n                            $countForNfrt += $readForNfrt\n                        }\n                        if ($countForNfrt -gt 2048) { throw 'Checksum response exceeds2048B' }\n                        $bodyForNfrt=$bufferForNfrt[0..($countForNfrt-1)]\n                        $bodyShaForNfrt=[Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([byte[]]$bodyForNfrt)).ToLowerInvariant()\n                        $textForNfrt=[System.Text.Encoding]::UTF8.GetString([byte[]]$bodyForNfrt).Trim()\n                        if ($textForNfrt -match '^[a-fA-F0-9]{64}$') { $valueForNfrt=$textForNfrt.ToLowerInvariant() }\n                    } finally { $streamForNfrt.Dispose() }\n                }\n                [pscustomobject]@{ coordinate=$pendingRowForNfrt.request.coordinate; url=$pendingRowForNfrt.request.url; http_status=$statusForNfrt; checksum_sha256=$valueForNfrt; checksum_body_sha256=$bodyShaForNfrt; matches=($valueForNfrt -eq $pendingRowForNfrt.request.expected); redirect_location=[string]$responseForNfrt.Headers.Location; observed_at=[DateTime]::UtcNow.ToString('o') }\n            } finally { $responseForNfrt.Dispose() }\n        } catch {\n            [pscustomobject]@{coordinate=$pendingRowForNfrt.request.coordinate; url=$pendingRowForNfrt.request.url; http_status=$null; error_type=$_.Exception.GetType().FullName; error=$_.Exception.Message; matches=$false}\n        }\n    }\n    $resultsForNfrt | ConvertTo-Json -Depth 6 -Compress\n} finally { $clientForNfrt.Dispose(); $handlerForNfrt.Dispose() }"
+}

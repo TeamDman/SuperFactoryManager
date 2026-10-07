@@ -260,9 +260,8 @@ pub fn validate_projection_key(key: &str) -> eyre::Result<()> {
     ensure!(
         !key.is_empty()
             && key.is_ascii()
-            && !key
-                .chars()
-                .any(|character| character.is_control() || "\\<>:\"|?*".contains(character))
+            && !key.bytes().any(|byte| byte.is_ascii_control()
+                || matches!(byte, b'\\' | b'<' | b'>' | b':' | b'"' | b'|' | b'?' | b'*'))
             && key.split('/').all(|component| {
                 !component.is_empty()
                     && component != "."
@@ -283,13 +282,13 @@ fn is_windows_device_name(component: &str) -> bool {
         .next()
         .unwrap_or_default()
         .trim_end_matches(' ');
-    let upper = stem.to_ascii_uppercase();
-    matches!(
-        upper.as_str(),
-        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$" | "CLOCK$"
-    ) || (upper.len() == 4
-        && (upper.starts_with("COM") || upper.starts_with("LPT"))
-        && matches!(upper.as_bytes()[3], b'1'..=b'9'))
+    ["CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$", "CLOCK$"]
+        .iter()
+        .any(|device| stem.eq_ignore_ascii_case(device))
+        || (stem.len() == 4
+            && (stem.as_bytes()[..3].eq_ignore_ascii_case(b"COM")
+                || stem.as_bytes()[..3].eq_ignore_ascii_case(b"LPT"))
+            && matches!(stem.as_bytes()[3], b'1'..=b'9'))
 }
 
 fn key_prefixes(key: &str) -> Vec<&str> {
@@ -586,6 +585,61 @@ mod tests {
             validate_projection_key(valid).unwrap();
         }
         assert!(validate_projection_key(&"a".repeat(256)).is_err());
+    }
+
+    #[test]
+    fn allocation_free_device_check_matches_original_case_and_suffix_rules() {
+        for base in [
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "CONIN$",
+            "CONOUT$",
+            "CLOCK$",
+            "COM1",
+            "COM9",
+            "COM0",
+            "COM10",
+            "LPT1",
+            "LPT9",
+            "LPT0",
+            "console",
+            "auxiliary",
+            "a",
+            "",
+        ] {
+            for mask in 0..(1_usize << base.len()) {
+                let spelling = base
+                    .bytes()
+                    .enumerate()
+                    .map(|(index, byte)| {
+                        if mask & (1 << index) == 0 {
+                            byte.to_ascii_lowercase()
+                        } else {
+                            byte.to_ascii_uppercase()
+                        }
+                    })
+                    .map(char::from)
+                    .collect::<String>();
+                for suffix in ["", ".txt", " .txt", "  .java", "x", "0", "$", "/other"] {
+                    let candidate = format!("{spelling}{suffix}");
+                    let upper = candidate
+                        .split('.')
+                        .next()
+                        .unwrap_or_default()
+                        .trim_end_matches(' ')
+                        .to_ascii_uppercase();
+                    let old = matches!(
+                        upper.as_str(),
+                        "CON" | "PRN" | "AUX" | "NUL" | "CONIN$" | "CONOUT$" | "CLOCK$"
+                    ) || (upper.len() == 4
+                        && (upper.starts_with("COM") || upper.starts_with("LPT"))
+                        && matches!(upper.as_bytes()[3], b'1'..=b'9'));
+                    assert_eq!(is_windows_device_name(&candidate), old, "{candidate}");
+                }
+            }
+        }
     }
 
     #[test]

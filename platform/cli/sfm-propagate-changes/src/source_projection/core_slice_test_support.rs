@@ -9,17 +9,23 @@ use super::candidate_lock::checked_directory;
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
+use super::core_features::CoreFeatureDefinition;
 use super::core_features::CoreFeatureDefinitions;
 use super::core_inputs::CORE_METADATA_PATH;
 use super::core_inputs::CORE_ROOT;
 use super::core_inputs::CoreProjectInputs;
+use super::core_inputs::CoreSelection;
 use super::core_inputs::MAX_CORE_METADATA_BYTES;
+use super::core_inputs::select_core_inputs;
+use super::provenance::sha256;
 use super::release_baseline::frozen_git_command;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use sha1::Digest;
 use sha1::Sha1;
+use std::cell::Ref;
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -35,12 +41,29 @@ const MAX_SOURCE_BYTES: u64 = 1024 * 1024;
 const MAX_BLOB_TOTAL_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_BLOB_COUNT: usize = 128;
 
+// Fixed-wave reader admission; existing shared parser and other callers are unchanged.
+#[path = "core_wave_process_capture.rs"]
+mod wave_process_capture;
+
+#[cfg(windows)]
+pub(super) use wave_process_capture::read_wave_git_blobs;
+#[cfg(windows)]
+pub(super) use wave_process_capture::read_wave_git_tree;
+
 pub(super) struct CoreTestFixture {
     pub repository: PathBuf,
     pub core: PathBuf,
     pub metadata: CoreProjectInputs,
     pub features: CoreFeatureDefinitions,
     catalog: CoreCatalog,
+    selection_cache: RefCell<Option<TestSelectionSnapshot>>,
+}
+
+struct TestSelectionSnapshot {
+    context_json: String,
+    metadata: CoreProjectInputs,
+    inventory: BTreeSet<String>,
+    selection: CoreSelection,
 }
 
 impl CoreTestFixture {
@@ -65,7 +88,44 @@ impl CoreTestFixture {
             metadata,
             features,
             catalog,
+            selection_cache: RefCell::new(None),
         })
+    }
+
+    /// Reuse only the last successful selection within this test fixture.
+    /// Compare complete values, not timestamps or addresses. Source bytes are
+    /// deliberately not cached: callers still read and verify every selected
+    /// source, and direct mutation tests retain the fresh selector.
+    pub(super) fn selection_for_assertion(
+        &self,
+        context: &ProjectionContext,
+        inventory: &BTreeSet<String>,
+    ) -> Result<Ref<'_, CoreSelection>> {
+        let context_json = facet_json::to_string(context)?;
+        let hit = self
+            .selection_cache
+            .try_borrow()?
+            .as_ref()
+            .is_some_and(|snapshot| {
+                snapshot.context_json == context_json
+                    && snapshot.metadata == self.metadata
+                    && snapshot.inventory == *inventory
+            });
+        if !hit {
+            let selection = select_core_inputs(&self.metadata, context, inventory)?;
+            *self.selection_cache.try_borrow_mut()? = Some(TestSelectionSnapshot {
+                context_json,
+                metadata: self.metadata.clone(),
+                inventory: inventory.clone(),
+                selection,
+            });
+        }
+        Ok(Ref::map(self.selection_cache.try_borrow()?, |snapshot| {
+            &snapshot
+                .as_ref()
+                .expect("successful fixture selection")
+                .selection
+        }))
     }
 
     /// Start with the real catalog's target mapping, then validate an explicit
@@ -89,6 +149,20 @@ impl CoreTestFixture {
         Ok(context)
     }
 
+    /// Explicit named feature-off controls for immutable historical source and
+    /// omission checks. Current catalog feature selections remain untouched.
+    pub(super) fn historical_feature_off_catalog_context(
+        &self,
+        key: &str,
+    ) -> Result<ProjectionContext> {
+        let mut historical = self.catalog.catalog.entry(key)?.clone();
+        historical.features.clear();
+        self.features.validate_entry(&historical)?;
+        let mut context = self.catalog.context(key)?;
+        context.features = historical.feature_flags(&self.catalog.registered_features)?;
+        Ok(context)
+    }
+
     pub(super) fn read_source(&self, relative: &str) -> Result<Vec<u8>> {
         ensure!(
             relative.starts_with("src/") && relative.ends_with(".java"),
@@ -96,6 +170,30 @@ impl CoreTestFixture {
         );
         read_bounded(&checked_file(&self.core, relative)?, MAX_SOURCE_BYTES)
     }
+}
+
+/// The immutable original 180-owner registry is historical evidence only.
+/// Current contexts and per-owner contracts continue using the actual catalog.
+pub(super) fn historical_feature_registry() -> Result<(&'static [u8], CoreFeatureDefinitions)> {
+    let bytes = include_bytes!(
+        "../../tests/fixtures/source_projection/feature-definitions-original180.json"
+    );
+    Ok((bytes, validate_historical_feature_registry(bytes)?))
+}
+
+fn validate_historical_feature_registry(bytes: &[u8]) -> Result<CoreFeatureDefinitions> {
+    ensure!(
+        bytes.len() == 30254
+            && sha256(bytes)
+                == "sha256:38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+        "immutable original180 registry witness changed"
+    );
+    let definitions = CoreFeatureDefinitions::from_json(std::str::from_utf8(bytes)?)?;
+    ensure!(
+        definitions.0.len() == 180,
+        "historical registry owner count changed"
+    );
+    Ok(definitions)
 }
 
 /// Callers resolve the file against their checked repository/core boundary.
@@ -217,6 +315,166 @@ fn read_blob_batch(
         blobs.insert(oid.clone(), bytes);
     }
     Ok(blobs)
+}
+
+#[test]
+fn fixture_selection_reuses_only_complete_equal_inputs() -> Result<()> {
+    let fixture = CoreTestFixture::load()?;
+    let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
+    let off = fixture.context("1.19.2", &[])?;
+    let fresh = select_core_inputs(&fixture.metadata, &off, &inventory)?;
+    {
+        let first = fixture.selection_for_assertion(&off, &inventory)?;
+        let repeated = fixture.selection_for_assertion(&off, &inventory)?;
+        assert!(std::ptr::eq(&*first, &*repeated));
+        assert_eq!(&*repeated, &fresh);
+    }
+    let on = fixture.context("1.19.2", &["client_theme"])?;
+    assert_eq!(
+        &*fixture.selection_for_assertion(&on, &inventory)?,
+        &select_core_inputs(&fixture.metadata, &on, &inventory)?
+    );
+    let mut added = inventory.clone();
+    added.insert("src/main/resources/selection-cache-probe.txt".into());
+    assert_eq!(
+        &*fixture.selection_for_assertion(&on, &added)?,
+        &select_core_inputs(&fixture.metadata, &on, &added)?
+    );
+    assert_eq!(&*fixture.selection_for_assertion(&off, &inventory)?, &fresh);
+    Ok(())
+}
+
+#[test]
+fn fixture_selection_never_hides_changed_metadata_or_invalid_inputs() -> Result<()> {
+    let mut fixture = CoreTestFixture::load()?;
+    let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
+    let context = fixture.context("1.19.2", &[])?;
+    drop(fixture.selection_for_assertion(&context, &inventory)?);
+    let original_schema = fixture.metadata.schema_version;
+    fixture.metadata.schema_version = u32::MAX;
+    assert!(
+        fixture
+            .selection_for_assertion(&context, &inventory)
+            .is_err()
+    );
+    assert!(
+        fixture
+            .selection_for_assertion(&context, &inventory)
+            .is_err()
+    );
+    fixture.metadata.schema_version = original_schema;
+    let mut bad_inventory = inventory.clone();
+    bad_inventory.insert("src/CON.java".into());
+    assert!(
+        fixture
+            .selection_for_assertion(&context, &bad_inventory)
+            .is_err()
+    );
+    let mut missing_feature = context.clone();
+    missing_feature.features.remove("client_theme");
+    assert!(
+        fixture
+            .selection_for_assertion(&missing_feature, &inventory)
+            .is_err()
+    );
+    assert_eq!(
+        &*fixture.selection_for_assertion(&context, &inventory)?,
+        &select_core_inputs(&fixture.metadata, &context, &inventory)?
+    );
+    Ok(())
+}
+
+#[test]
+fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls() -> Result<()> {
+    let fixture = CoreTestFixture::load()?;
+    assert_eq!(fixture.catalog.catalog.0.len(), 20);
+    let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
+    for (key, entry) in &fixture.catalog.catalog.0 {
+        let current = fixture.catalog.context(key)?;
+        let historical = fixture.historical_feature_off_catalog_context(key)?;
+        let enabled = current
+            .features
+            .iter()
+            .filter(|(_, enabled)| **enabled)
+            .map(|(name, _)| name.clone())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            enabled,
+            entry.features.iter().cloned().collect::<BTreeSet<_>>(),
+            "{key}"
+        );
+        assert!(
+            historical.features.values().all(|enabled| !enabled),
+            "{key}"
+        );
+        assert_eq!(
+            historical.minecraft_version, current.minecraft_version,
+            "{key}"
+        );
+        assert_eq!(historical.environment, current.environment, "{key}");
+        assert_eq!(historical.preset, current.preset, "{key}");
+        assert_eq!(historical.projection_key, current.projection_key, "{key}");
+        assert_eq!(historical.targets, current.targets, "{key}");
+        // Both views use the production selector. Neither view changes the catalog
+        // or substitutes an empty inventory to conceal selected inputs.
+        super::core_inputs::select_core_inputs(&fixture.metadata, &current, &inventory)?;
+        super::core_inputs::select_core_inputs(&fixture.metadata, &historical, &inventory)?;
+    }
+    let current = fixture.catalog.context("sfm-dev/mc-1.19.2")?;
+    let historical = fixture.historical_feature_off_catalog_context("sfm-dev/mc-1.19.2")?;
+    assert!(current.features["document_history"]);
+    assert!(!historical.features["document_history"]);
+    assert!(fixture.catalog.context("sfm-dev/mc-1.19.2")?.features["document_history"]);
+    Ok(())
+}
+
+#[test]
+fn unrelated_current_owners_do_not_change_historical_registry_receipt() -> Result<()> {
+    let fixture = CoreTestFixture::load()?;
+    let (before, historical) = historical_feature_registry()?;
+    for name in ["font_render_surface_audit", "locked_dependency_projection"] {
+        assert!(!historical.0.contains_key(name));
+        let context = fixture.context("1.19.2", &[name])?;
+        assert!(context.features[name]);
+    }
+    // A valid unrelated future owner changes only this private current view.
+    // The retained historical receipt is neither derived from nor stripped out
+    // of a live registry, and current catalog defaults remain unchanged.
+    let mut current = CoreFeatureDefinitions(fixture.features.0.clone());
+    current.0.insert(
+        "historical_receipt_unrelated_owner".into(),
+        CoreFeatureDefinition {
+            supported_targets: vec!["1.19.2".into()],
+            requires: vec![],
+        },
+    );
+    current.validate()?;
+    let mut entry = fixture.catalog.catalog.entry("sfm-dev/mc-1.19.2")?.clone();
+    entry.features = vec!["historical_receipt_unrelated_owner".into()];
+    current.validate_entry(&entry)?;
+    let (after, unchanged) = historical_feature_registry()?;
+    assert_eq!(before, after);
+    assert_eq!(historical.registered_names(), unchanged.registered_names());
+    assert!(
+        !unchanged
+            .0
+            .contains_key("historical_receipt_unrelated_owner")
+    );
+    Ok(())
+}
+
+#[test]
+fn historical_registry_receipt_rejects_any_byte_drift() -> Result<()> {
+    let (bytes, _) = historical_feature_registry()?;
+    let mut damaged = bytes.to_vec();
+    damaged[0] ^= 1;
+    assert!(validate_historical_feature_registry(&damaged).is_err());
+    let mut extra_blank_line = bytes.to_vec();
+    extra_blank_line.push(b'\n');
+    assert!(validate_historical_feature_registry(&extra_blank_line).is_err());
+    let crlf = std::str::from_utf8(bytes)?.replace('\n', "\r\n");
+    assert!(validate_historical_feature_registry(crlf.as_bytes()).is_err());
+    Ok(())
 }
 
 #[test]

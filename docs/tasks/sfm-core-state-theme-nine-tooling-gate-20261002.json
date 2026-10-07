@@ -1,0 +1,126 @@
+{
+  "schema": "sfm:state-theme-nine-full-tooling-gate@1",
+  "date": "2026-10-02",
+  "status": "actual_full_tooling_gate_pass_current1933_generation_pending",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "command": "check-all.ps1",
+  "execution": {
+    "terminal_exit": 0,
+    "terminal_marker": "STATE_THEME_NINE_CHECK_ALL_EXIT=0",
+    "owned_terminal_session": 95718,
+    "terminal_session_closed": true,
+    "marker_scope": "Root observed outer terminal completion; the marker is not part of the Tee log."
+  },
+  "phases": {
+    "direct_dependency_policy": "passed",
+    "formatting": "passed",
+    "production_all_feature_clippy": "passed",
+    "production_all_feature_build": "passed",
+    "bounded_library_and_integration_tests": "passed",
+    "binary_harnesses": 2,
+    "binary_tests": 0,
+    "doc_harnesses": 1,
+    "doc_tests": 0,
+    "final_default_feature_operational_cli_build": "passed"
+  },
+  "actual_tests": {
+    "listed_library_tests": 2168,
+    "ordered_unique_groups": 186,
+    "library_passed": 2154,
+    "library_failed": 0,
+    "library_ignored": 14,
+    "integration_targets": 4,
+    "integration_passed": 70,
+    "integration_failed": 0,
+    "integration_ignored": 0,
+    "intentional_ignore_groups": [
+      {
+        "group": "unit:curseforge",
+        "ignored": 1
+      },
+      {
+        "group": "unit:jar_build",
+        "ignored": 3
+      },
+      {
+        "group": "unit:java_analysis",
+        "ignored": 3
+      },
+      {
+        "group": "unit:jdk_artifact_cache",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_git",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_projection:development_baseline",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_projection:development_fixtures",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_projection:development_gradle",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_projection:project_layout",
+        "ignored": 1
+      },
+      {
+        "group": "unit:source_projection:released_native_inputs",
+        "ignored": 1
+      }
+    ]
+  },
+  "current_core": {
+    "files": 1933,
+    "bytes": 8940502,
+    "sha256": "695a9e7b358b5d0ee5361ec0b8aedbf03358132c194af5ce4779ef3bde9466d8",
+    "source_rule_paths": 650,
+    "source_rule_variants": 835,
+    "registered_owner_definitions": 180,
+    "digest_framing": "ordinal slash-relative path + NUL + invariant byte count + NUL + lowercase SHA256 + LF, UTF8 without BOM"
+  },
+  "retained_log": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-state-theme-nine-check-all-20261002-v1.log",
+    "bytes": 39401,
+    "sha256": "29b4ff9184106d447115285aba0371da10439a87b0a9bef5dfdea5ae2d03479a",
+    "complete_group_summaries": 186
+  },
+  "final_default_cli": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "5d7b56f88a2e41976a64fdfbebfc309806e00e119f404dbfe04ed972e06bb64d",
+    "installed_PATH_freshness_claimed": false
+  },
+  "focused_receipt": {
+    "path": "docs/tasks/sfm-core-state-theme-nine-promotion-focused-20261002.json",
+    "bytes": 10422,
+    "sha256": "34ca16d215ef879f6834d8ad80fef1452cb273ce7d9e525c244de0863a680bab",
+    "current_promoted_targets_rehashed": 15,
+    "frozen_contract_inputs_rehashed": 5,
+    "prior_focused_passes": 50
+  },
+  "staging": {
+    "original_staged_raw_records": 98,
+    "original_staged_names": 98,
+    "raw_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1",
+    "names_sha256": "5ba82be5e48169a45816f87f92138ab2213b87bdddce776a6b1bf26c43905fed",
+    "fingerprint_framing": "Git default-abbrev raw or name-only rows joined with LF and one terminal LF, UTF8 without BOM",
+    "unchanged": true
+  },
+  "limits": [
+    "Rust tests prove the named tooling and source-selection boundaries, not Java or Minecraft gameplay.",
+    "Fourteen deliberate ignored tests remain; no claim that every library test executed.",
+    "The exact terminal session closed with exit 0; no independent operating-system descendant census or fault-injection proof is claimed.",
+    "Fresh actual twenty-context generation must bind this rebuilt executable and current1933 graph. The older accepted1924 generation is historical.",
+    "Definitions, prerequisites, defaults, catalog and dependency identities were not widened.",
+    "Pointer and three-leaf proposals remain unpromoted. Full feature preservation, release compatibility, ten-version build/runtime acceptance and final installation remain open."
+  ],
+  "next": "Prepare and review a separate immutable current20 driver binding this exact default CLI, then run and audit all twenty no-write projection commands before the next source mutation."
+}

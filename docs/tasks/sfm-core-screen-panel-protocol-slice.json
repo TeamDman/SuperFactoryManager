@@ -1,0 +1,1229 @@
+{
+  "schema": "sfm:core-screen-panel-protocol-slice@1",
+  "status": "Three ignored sources are staged with exact raw witnesses. Root promotion, registered real-render tests and Java/runtime validation remain pending.",
+  "scope": {
+    "production_files": 3,
+    "context_cells": 60,
+    "present_cells": 14,
+    "absent_cells": 46,
+    "raw_variants": 5,
+    "stage_bytes": 5749,
+    "new_source_flags": 3,
+    "independent_masks": 16,
+    "dependencies_changed": 0,
+    "java_compilation": false,
+    "live_runtime": false,
+    "complete_java_closure": false
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "normalization": {
+    "policy": "none",
+    "raw_byte_exact": true,
+    "authorized_transformations": []
+  },
+  "constraints": [
+    "One shared SFMScreenPanel body uses only real renderer API cases and independent feature-owned optional members.",
+    "SFMPanelCloseState and SFMPanelTooltip are exact raw LF value companions, not host implementations.",
+    "Only new ignored stages, this portable ledger and one unregistered test module are authored. Existing core inputs, shared metadata, public presets and delivered tranches stay unchanged.",
+    "Do not substitute environment, preset, projection key or frozen trees for canonical production source selection.",
+    "No native/process/service effects, dependency acquisition, build, installed-tool change or cache cleanup."
+  ],
+  "files": [
+    {
+      "name": "SFMScreenPanel",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenPanel.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-screen-panel-protocol-stage-v1/SFMScreenPanel.java",
+      "stage_bytes": 4493,
+      "stage_sha256": "sha256:7534488e1e0667681a9e4567d068827536587d55fe31cef942d0a141d75f7046",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenPanel.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "workspace_panels"
+          ],
+          "any_features": []
+        }
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "7ae346a175a5df202ad2bd064de8330b51f299fa",
+          "raw_bytes": 3534,
+          "raw_sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835"
+        },
+        {
+          "context": "dev/1.19.4",
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "7ae346a175a5df202ad2bd064de8330b51f299fa",
+          "raw_bytes": 3534,
+          "raw_sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835"
+        },
+        {
+          "context": "dev/1.20",
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.20.1",
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.20.2",
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.20.3",
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.20.4",
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.21.0",
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/1.21.1",
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+          "raw_bytes": 2055,
+          "raw_sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737"
+        },
+        {
+          "context": "dev/26.1.2",
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "git_blob": "304709869d9c274edff48202fc744c4a4f2919c8",
+          "raw_bytes": 2073,
+          "raw_sha256": "sha256:423bc66f56131cde733d4baf40e30caf8988fa8c203f6820adfbbd6acfcf49e7"
+        },
+        {
+          "context": "release/1.19.2",
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.4",
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20",
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.1",
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.2",
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.3",
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.4",
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.0",
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.1",
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/26.1.2",
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        }
+      ]
+    },
+    {
+      "name": "SFMPanelCloseState",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelCloseState.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-screen-panel-protocol-stage-v1/SFMPanelCloseState.java",
+      "stage_bytes": 421,
+      "stage_sha256": "sha256:26153eea1244db8c1652c6cf97c5c859fe640b2836eb600d560cb0f81b41dc5c",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelCloseState.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "workspace_lifecycle"
+          ],
+          "any_features": []
+        }
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "38e62ddfbdec59ed5c45a3568777ef346d66f033",
+          "raw_bytes": 421,
+          "raw_sha256": "sha256:26153eea1244db8c1652c6cf97c5c859fe640b2836eb600d560cb0f81b41dc5c"
+        },
+        {
+          "context": "dev/1.19.4",
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "38e62ddfbdec59ed5c45a3568777ef346d66f033",
+          "raw_bytes": 421,
+          "raw_sha256": "sha256:26153eea1244db8c1652c6cf97c5c859fe640b2836eb600d560cb0f81b41dc5c"
+        },
+        {
+          "context": "dev/1.20",
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.2",
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.4",
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20",
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.1",
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.2",
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.3",
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.4",
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.0",
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.1",
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/26.1.2",
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        }
+      ]
+    },
+    {
+      "name": "SFMPanelTooltip",
+      "intended_core_path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelTooltip.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-screen-panel-protocol-stage-v1/SFMPanelTooltip.java",
+      "stage_bytes": 835,
+      "stage_sha256": "sha256:0b59f7d83313fc6d094b3cbf9c2ba0df54704d37965e35658234a436ae942c76",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelTooltip.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "workspace_panel_tooltips"
+          ],
+          "any_features": []
+        }
+      },
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "git_blob": "eba372d5b7948194fc8b1aab23e60ef5246f2fe4",
+          "raw_bytes": 835,
+          "raw_sha256": "sha256:0b59f7d83313fc6d094b3cbf9c2ba0df54704d37965e35658234a436ae942c76"
+        },
+        {
+          "context": "dev/1.19.4",
+          "commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "git_blob": "eba372d5b7948194fc8b1aab23e60ef5246f2fe4",
+          "raw_bytes": 835,
+          "raw_sha256": "sha256:0b59f7d83313fc6d094b3cbf9c2ba0df54704d37965e35658234a436ae942c76"
+        },
+        {
+          "context": "dev/1.20",
+          "commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.1",
+          "commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.2",
+          "commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.3",
+          "commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.20.4",
+          "commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.21.0",
+          "commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/1.21.1",
+          "commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "dev/26.1.2",
+          "commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.2",
+          "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.19.4",
+          "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20",
+          "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.1",
+          "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.2",
+          "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.3",
+          "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.20.4",
+          "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.0",
+          "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/1.21.1",
+          "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        },
+        {
+          "context": "release/26.1.2",
+          "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": false,
+          "git_blob": null,
+          "raw_bytes": 0,
+          "raw_sha256": null
+        }
+      ]
+    }
+  ],
+  "raw_variants": [
+    {
+      "git_blob": "7ae346a175a5df202ad2bd064de8330b51f299fa",
+      "bytes": 3534,
+      "sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200",
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "304709869d9c274edff48202fc744c4a4f2919c8",
+      "bytes": 2073,
+      "sha256": "sha256:423bc66f56131cde733d4baf40e30caf8988fa8c203f6820adfbbd6acfcf49e7",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "38e62ddfbdec59ed5c45a3568777ef346d66f033",
+      "bytes": 421,
+      "sha256": "sha256:26153eea1244db8c1652c6cf97c5c859fe640b2836eb600d560cb0f81b41dc5c",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    },
+    {
+      "git_blob": "eba372d5b7948194fc8b1aab23e60ef5246f2fe4",
+      "bytes": 835,
+      "sha256": "sha256:0b59f7d83313fc6d094b3cbf9c2ba0df54704d37965e35658234a436ae942c76",
+      "crlf_count": 0,
+      "lone_cr_count": 0,
+      "final_lf": true,
+      "bom": false
+    }
+  ],
+  "prerequisite_definitions": {
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "keyboard_profiles": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    "workspace_lifecycle": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_keyboard_context": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "keyboard_profiles"
+      ]
+    },
+    "workspace_widget_hosts": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_tooltips": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "full_source_profiles": [
+    {
+      "target": "1.19.2",
+      "minecraft_version": "1.19.2",
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 3534,
+      "sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835",
+      "git_blob": "7ae346a175a5df202ad2bd064de8330b51f299fa"
+    },
+    {
+      "target": "1.19.4",
+      "minecraft_version": "1.19.4",
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 3534,
+      "sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835",
+      "git_blob": "7ae346a175a5df202ad2bd064de8330b51f299fa"
+    },
+    {
+      "target": "1.20",
+      "minecraft_version": "1.20",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.20.1",
+      "minecraft_version": "1.20.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.21.0",
+      "minecraft_version": "1.21",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2055,
+      "sha256": "sha256:23c294dc1e96522f079c028e26db61c5a06b2739194a78b68cdfd086a49b6737",
+      "git_blob": "1b8839528bab23ea9bdcdf78055a960364d24200"
+    },
+    {
+      "target": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 2073,
+      "sha256": "sha256:423bc66f56131cde733d4baf40e30caf8988fa8c203f6820adfbbd6acfcf49e7",
+      "git_blob": "304709869d9c274edff48202fc744c4a4f2919c8"
+    }
+  ],
+  "independent_source_profiles": [
+    {
+      "mask": 0,
+      "enabled": [
+        "workspace_panels"
+      ],
+      "bytes": 1992,
+      "sha256": "sha256:e1def54e1e88762040043472ea559ae67ea7624402412284885575e208be998e"
+    },
+    {
+      "mask": 1,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context"
+      ],
+      "bytes": 2308,
+      "sha256": "sha256:99052383e9fc73a39e878fd1dbb3987159ba8c66fbbb1e7cfcc824df1e008307"
+    },
+    {
+      "mask": 2,
+      "enabled": [
+        "workspace_panels",
+        "workspace_widget_hosts"
+      ],
+      "bytes": 2717,
+      "sha256": "sha256:9a1252cbf61b1b9ade1cac3bcc01694e008ba56d73c4ce2bf79185e141bd0086"
+    },
+    {
+      "mask": 3,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts"
+      ],
+      "bytes": 3033,
+      "sha256": "sha256:37db44a5fe5c289d4038c35cc31105b9266b2b97a12f6be84d65eea4bebb1c2e"
+    },
+    {
+      "mask": 4,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_tooltips"
+      ],
+      "bytes": 2344,
+      "sha256": "sha256:209873905e497f0f3434ed7ff39260e48092ca0c9cabd9b1f58ebaaba6cb6e74"
+    },
+    {
+      "mask": 5,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_panel_tooltips"
+      ],
+      "bytes": 2660,
+      "sha256": "sha256:ebd623bd38e2e6d607789ff5afe73f001b9adba86b49594005dd08a76a3d6891"
+    },
+    {
+      "mask": 6,
+      "enabled": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips"
+      ],
+      "bytes": 3041,
+      "sha256": "sha256:aa5efb4a4b066cdc5d6b458413ca91f3cc27da297f66147a7c40ebf901709096"
+    },
+    {
+      "mask": 7,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips"
+      ],
+      "bytes": 3357,
+      "sha256": "sha256:e0748bcf5ceb227b5495c005e21d74cf1431f36e5ea3746fcbf7415b8a08798c"
+    },
+    {
+      "mask": 8,
+      "enabled": [
+        "workspace_panels",
+        "workspace_lifecycle"
+      ],
+      "bytes": 2169,
+      "sha256": "sha256:3a7a386210abc58a0bcc98c8093b8105675bc597016d8813e1d77839fbbf864b"
+    },
+    {
+      "mask": 9,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_lifecycle"
+      ],
+      "bytes": 2485,
+      "sha256": "sha256:fc7d05e2ddf852d8bfed402720cce1c37eeed1ae21f312ce147ab23ab2184df9"
+    },
+    {
+      "mask": 10,
+      "enabled": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "workspace_lifecycle"
+      ],
+      "bytes": 2894,
+      "sha256": "sha256:971b0e4ddae9790a478b071c13f1bf0549e29ae98bb9aa5e18d49e153df8bf80"
+    },
+    {
+      "mask": 11,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts",
+        "workspace_lifecycle"
+      ],
+      "bytes": 3210,
+      "sha256": "sha256:0381497d24042277d85a8251d1285105cbfabd3d397bb7fb31fd91a6aa2ff2d6"
+    },
+    {
+      "mask": 12,
+      "enabled": [
+        "workspace_panels",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 2521,
+      "sha256": "sha256:4996f984a5341db5c768705b02646d62d25d8bf272fa4ccd85cc70572f3d0915"
+    },
+    {
+      "mask": 13,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 2837,
+      "sha256": "sha256:0e36c88930ef64c60a153212b23d51b02030ae24af7caaf8a7b7f75bf9454afc"
+    },
+    {
+      "mask": 14,
+      "enabled": [
+        "workspace_panels",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 3218,
+      "sha256": "sha256:8a1c560b8851e3a85549f401e2197d82543ecfe92cd1dc98be3df309bf8e2280"
+    },
+    {
+      "mask": 15,
+      "enabled": [
+        "workspace_panels",
+        "client_actions",
+        "keyboard_profiles",
+        "workspace_keyboard_context",
+        "workspace_widget_hosts",
+        "workspace_panel_tooltips",
+        "workspace_lifecycle"
+      ],
+      "bytes": 3534,
+      "sha256": "sha256:4bf28e7fc7c84e08f667ed47c7458d85266795766626ec87123ffe1589d09835"
+    }
+  ],
+  "member_owners": [
+    {
+      "owner": "workspace_keyboard_context",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "keyboardUsageSituationId"
+      ],
+      "imports": [
+        "SFMKeyboardUsageSituations",
+        "ResourceLocation"
+      ],
+      "off_behavior": "No contextual keyboard declaration or registry/resource imports. Existing narration and raw input defaults remain.",
+      "prerequisites": [
+        "keyboard_profiles"
+      ],
+      "consumer": {
+        "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+        "anchor": "panel.keyboardUsageSituationId()",
+        "line": 1818
+      },
+      "closure_pending": [
+        "client/registry/SFMKeyboardUsageSituations.java",
+        "SFMScreenMultiplexer contextual routing"
+      ]
+    },
+    {
+      "owner": "workspace_lifecycle",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "closeState"
+      ],
+      "companion": "SFMPanelCloseState",
+      "off_behavior": "No close-posture API; legacy closed callback remains unchanged.",
+      "prerequisites": [],
+      "consumer": {
+        "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+        "anchor": "SFMPanelCloseState state = entry.panel().closeState();",
+        "line": 573
+      },
+      "closure_pending": [
+        "SFMScreenMultiplexer close preflight and deferred-save lifecycle"
+      ]
+    },
+    {
+      "owner": "workspace_widget_hosts",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "widgetHost",
+        "widgetHostOwnsInput"
+      ],
+      "imports": [
+        "Optional"
+      ],
+      "off_behavior": "No child host API; key and pointer default callbacks remain exactly as before.",
+      "prerequisites": [],
+      "consumer": {
+        "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+        "anchor": "!focused.widgetHostOwnsInput()",
+        "line": 1373
+      },
+      "closure_pending": [
+        "SFMPanelWidgetHost",
+        "SFMPanelWidget",
+        "real ordered narration/focus/input host consumers"
+      ]
+    },
+    {
+      "owner": "workspace_panel_tooltips",
+      "support": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "members": [
+        "tooltipAt"
+      ],
+      "imports": [
+        "Optional"
+      ],
+      "companion": "SFMPanelTooltip",
+      "off_behavior": "No deferred tooltip API; core render/input surface unchanged.",
+      "prerequisites": [],
+      "consumer": {
+        "commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+        "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+        "anchor": "entry.panel().tooltipAt(mouseX, mouseY)",
+        "line": 1996
+      },
+      "closure_pending": [
+        "SFMScreenMultiplexer final tooltip painting order",
+        "TextEditor and Explorer tooltip producers"
+      ]
+    }
+  ],
+  "shared_import_rule": {
+    "java_util_Optional": "workspace_widget_hosts OR workspace_panel_tooltips",
+    "keyboard_registry_resource_location": "workspace_keyboard_context",
+    "no_widget_host_for_keyboard_only": true
+  },
+  "mc_api_cases": [
+    {
+      "minecraft_versions": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "import": "com.mojang.blaze3d.vertex.PoseStack",
+      "parameter": "PoseStack poseStack",
+      "annotation": false
+    },
+    {
+      "minecraft_versions": [
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21",
+        "1.21.1"
+      ],
+      "import": "net.minecraft.client.gui.GuiGraphics",
+      "parameter": "GuiGraphics graphics",
+      "annotation": true
+    },
+    {
+      "minecraft_versions": [
+        "26.1.2"
+      ],
+      "import": "net.minecraft.client.gui.GuiGraphicsExtractor",
+      "parameter": "GuiGraphicsExtractor graphics",
+      "annotation": true
+    }
+  ],
+  "actual_context_alias": {
+    "target": "1.21.0",
+    "minecraft_version": "1.21"
+  },
+  "closure_audit": [
+    {
+      "reference": "SFMScreenPanelBounds",
+      "status": "Prior primitives tranche supplies this exact value carrier; root promotion is separate."
+    },
+    {
+      "reference": "SFMWorkspacePanelContext",
+      "status": "Actual baseline required class is not authored here. All10 dev has this API; later8 uses submit/unhosted while D2 adds measure/panel."
+    },
+    {
+      "reference": "SFMWorkspacePanelHost",
+      "status": "Actual baseline host interface remains a separate source gap. Do not create an unavailable fake replacement."
+    },
+    {
+      "reference": "SFMPanelCloseState",
+      "status": "This tranche supplies the exact pure D2 close-posture carrier under workspace_lifecycle."
+    },
+    {
+      "reference": "SFMPanelTooltip",
+      "status": "This tranche supplies the exact D2 immutable Component-list value under workspace_panel_tooltips."
+    },
+    {
+      "reference": "SFMPanelWidgetHost",
+      "status": "Deliberately not staged: real GLFW, focus, narration and SFMActionElement behavior require a separately reviewed host cohort."
+    },
+    {
+      "reference": "SFMKeyboardUsageSituations",
+      "status": "Deliberately not staged: exact registry/common action/profile closure remains pending."
+    },
+    {
+      "reference": "SFMScreenMultiplexer",
+      "status": "Hosted interface documentation and actual consumers point to the real implementation; not supplied as a stub."
+    }
+  ],
+  "validation": {
+    "completed": [
+      "Read all20 exact frozen source memberships through local git ls-tree.",
+      "Read all5 bounded raw Git blobs and independently pin original SHA256, byte counts and LF/EOF shape.",
+      "Add whole stages through apply_patch and reread actual disk bytes; all3 matched intended sources.",
+      "Independent whole-line directive expansion reproduced all10 exact interface raw bodies and all16 D2 protocol masks.",
+      "Independent ASCII SHA256 checked actual disk identities before recording mask hashes."
+    ],
+    "independent_expansion_is_not_production_renderer": true,
+    "pending": [
+      "Register the approved owners and sparse rules after root review.",
+      "Promote exact staged inputs and register the bounded test module.",
+      "Run actual CoreTestFixture/select_core_inputs/render_java_source/collect_core_artifacts proofs against goldens and all16 masks on both D2 contexts.",
+      "Compile real dependency closure; do not infer it from flag or text-presence tests.",
+      "Test actual hosted narration, tooltip order, focus routing, keyboard contexts and safe close behavior in game."
+    ],
+    "no_cargo_java_graph_tools_or_downloads_run": true,
+    "temporary_sha_check_note": "An initial transient comparison omitted the sha256: prefix and failed. The corrected prefixed check passed actual disk identities; no stage or golden bytes changed."
+  }
+}

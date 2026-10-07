@@ -1,0 +1,113 @@
+{
+  "schema": "sfm:core-button-builder-slice@1",
+  "status": "reviewed_ignored_template_and_unregistered_tests_not_real_renderer_or_java_acceptance",
+  "path": "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMButtonBuilder.java",
+  "authored": {
+    "sha256": "sha256:88ec33c620f2a04b9b025553db35599dfa9548f1ffc9ddf923a7bf795fc1171c",
+    "bytes": 6890,
+    "common_lines": 86,
+    "conditional_fragments": 8
+  },
+  "membership": "shared_all_ten_targets_all_feature_masks",
+  "owner": {
+    "id": "canvas_text_editor",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "requires": [],
+    "changed_members_only_on": [
+      "1.19.2",
+      "1.19.4"
+    ]
+  },
+  "normalization": {
+    "policy": "only_replace_CRLF_with_LF_for_four_explicit_raw_witnesses",
+    "approved_by": "root_review_of_strict_UTF8_raw_Git_objects",
+    "final_lf": "preserved_no_append",
+    "lone_cr": "forbidden",
+    "bom": "forbidden",
+    "tokens_or_whitespace_other_than_CRLF": "unchanged"
+  },
+  "variants": [
+    {
+      "oid": "e864f659c1235bb9c3aa15d69ec08b2992deaf33",
+      "bytes": 2910,
+      "sha256": "sha256:c6a0c80db42a16dc19b423b5484a3a20f3c06f71ea38c0f29cef68e67b7d67c0",
+      "crlf": 104,
+      "finalLF": true,
+      "normalized_bytes": 2806,
+      "normalized_sha256": "sha256:cfdba520af2cef3d2f0e9305768b6d920cc1ca575bc6e5099b4af7b3548ca147",
+      "contexts": [
+        "release/1.19.2"
+      ]
+    },
+    {
+      "oid": "2b2e18b456e87ea6a5c4dcc285c09f7875e5fb3f",
+      "bytes": 2797,
+      "sha256": "sha256:d351245de2e5a9ae3cd4729c61bad665ac9b0f69f54412f7f9889a6cc12298b8",
+      "crlf": 100,
+      "finalLF": true,
+      "normalized_bytes": 2697,
+      "normalized_sha256": "sha256:0382ce230cc1ada554856daaf52a7f8cad18d8426e6b3d4eaa3d48b9ccc3da51",
+      "contexts": [
+        "release/1.19.4",
+        "release/1.20",
+        "dev/1.20",
+        "release/1.20.1",
+        "dev/1.20.1",
+        "release/1.20.2",
+        "dev/1.20.2",
+        "release/1.20.3",
+        "dev/1.20.3",
+        "release/1.20.4",
+        "dev/1.20.4",
+        "release/1.21.0",
+        "dev/1.21.0",
+        "release/1.21.1",
+        "dev/1.21.1",
+        "release/26.1.2",
+        "dev/26.1.2"
+      ]
+    },
+    {
+      "oid": "e47ecd06b41ca7c36ac2c3da38684eb4ab8a9261",
+      "bytes": 3183,
+      "sha256": "sha256:f3846593b6d9f00c6fbf8fb2ad05c989cb1efe2772eb965c7c8a22fb82f5f990",
+      "crlf": 97,
+      "finalLF": true,
+      "normalized_bytes": 3086,
+      "normalized_sha256": "sha256:f556e33d7a951d3a84d379e658201fd1bfbabffce044cf3cac91607b1d477a1b",
+      "contexts": [
+        "dev/1.19.2"
+      ]
+    },
+    {
+      "oid": "782dea246bf08cad11cd5e2909b83084e5b7be82",
+      "bytes": 3688,
+      "sha256": "sha256:64161abeb1d49144d36fe6183025613f74e02e88585e68d3a007709f55bf2466",
+      "crlf": 75,
+      "finalLF": true,
+      "normalized_bytes": 3613,
+      "normalized_sha256": "sha256:324ece78c0e538c606ceb42fa02ec6376b320f4c87825a75d575b41cc5ef0fd0",
+      "contexts": [
+        "dev/1.19.4"
+      ]
+    }
+  ],
+  "scope": "Dynamic tooltip suppliers belong to the existing canvas editor owner; fixed tooltip and version-specific callback/Tooltip APIs remain baseline. The class remains shared. No new owner or broad UI feature is introduced.",
+  "evidence_limits": [
+    "Raw Git OIDs, SHA256 identities and exact CRLF counts were independently verified read-only.",
+    "Eight source fragments were authored around 86 common lines; no full target tree or historical source override.",
+    "Actual renderer tests are unregistered until promotion; no Cargo or Java compilation claimed.",
+    "Full-template/frozen-source markers are deliberate review goldens, not automatic hash adoption."
+  ]
+}

@@ -1,0 +1,1309 @@
+{
+  "schema": "sfm:core-computercraft-handles-slice@1",
+  "status": "ignored_source_stage_pending_root_review_promotion_membership_and_tests",
+  "scope": "ten_computercraft_item_label_manager_handle_providers",
+  "starting_head": "aa080df6e4e42ff78d565431a06e1d087a639064",
+  "authored_root": "platform/minecraft/core-liquid-template",
+  "feature_owner": "computercraft",
+  "owner_prerequisites": [
+    "mod_event_filtering",
+    "disk_readonly_access",
+    "label_readonly_access"
+  ],
+  "context_commits": {
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f"
+  },
+  "files": {
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftResults.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftResults.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftResults.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMComputerCraftResults.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+          "sha256": "sha256:bb48fa152cf8d79daa0db9ce7c19cd952c5e3a48003fd347fbe1171914f654ce",
+          "bytes": 529,
+          "carriage_returns": 0,
+          "line_feeds": 27,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 529,
+      "template_sha256": "sha256:bb48fa152cf8d79daa0db9ce7c19cd952c5e3a48003fd347fbe1171914f654ce",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.19.4": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.20": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.20.1": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.20.2": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.20.3": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.20.4": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.21.0": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/1.21.1": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+        "dev/26.1.2": "7d98ba50e9fd0736c2ca7e36f147982053972328"
+      },
+      "current_canonical_blob": "7d98ba50e9fd0736c2ca7e36f147982053972328",
+      "current_canonical_sha256": "sha256:bb48fa152cf8d79daa0db9ce7c19cd952c5e3a48003fd347fbe1171914f654ce",
+      "current_canonical_bytes": 529,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMItemHandleTarget.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMItemHandleTarget.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMItemHandleTarget.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMItemHandleTarget.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+          "sha256": "sha256:776fe93aad9ec63730ca2b3c9ee75efd5d37f18372db4c1f69e65e3f6dc15edb",
+          "bytes": 5065,
+          "carriage_returns": 0,
+          "line_feeds": 152,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3"
+          ]
+        },
+        {
+          "oid": "4eb89e35dcafb9f21ba073b2a40371e1a198da4d",
+          "sha256": "sha256:c5b6c779dd390c36f5478afd95943b6727a5466644bfa3b5b02860f0d8e488be",
+          "bytes": 5073,
+          "carriage_returns": 0,
+          "line_feeds": 152,
+          "final_lf": true,
+          "targets": [
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 5334,
+      "template_sha256": "sha256:5b13987adbe3027b6f07ca786280b3430eb178635b24cd1c95655db30fbe31ee",
+      "template_member_guards": [],
+      "mc_adapters": [
+        "IItemHandler and IItemHandlerModifiable import namespace; exact original six Forge / four NeoForge groups"
+      ],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.19.4": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.20": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.20.1": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.20.2": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.20.3": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+        "dev/1.20.4": "4eb89e35dcafb9f21ba073b2a40371e1a198da4d",
+        "dev/1.21.0": "4eb89e35dcafb9f21ba073b2a40371e1a198da4d",
+        "dev/1.21.1": "4eb89e35dcafb9f21ba073b2a40371e1a198da4d",
+        "dev/26.1.2": "4eb89e35dcafb9f21ba073b2a40371e1a198da4d"
+      },
+      "current_canonical_blob": "a75f97f6ade01980889756c6f73c7fbbab5a96ee",
+      "current_canonical_sha256": "sha256:776fe93aad9ec63730ca2b3c9ee75efd5d37f18372db4c1f69e65e3f6dc15edb",
+      "current_canonical_bytes": 5065,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMBlockPosSetHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMBlockPosSetHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMBlockPosSetHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMBlockPosSetHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+          "sha256": "sha256:36f4ea9b5afa311ad813d98eb3ced9f26211af6c3d5966cdcc411c6fd6e077c3",
+          "bytes": 2428,
+          "carriage_returns": 0,
+          "line_feeds": 88,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 2428,
+      "template_sha256": "sha256:36f4ea9b5afa311ad813d98eb3ced9f26211af6c3d5966cdcc411c6fd6e077c3",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.19.4": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.20": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.20.1": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.20.2": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.20.3": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.20.4": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.21.0": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/1.21.1": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+        "dev/26.1.2": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c"
+      },
+      "current_canonical_blob": "26f2acc9a9335334fb7f5ffb7129630f98f4c13c",
+      "current_canonical_sha256": "sha256:36f4ea9b5afa311ad813d98eb3ced9f26211af6c3d5966cdcc411c6fd6e077c3",
+      "current_canonical_bytes": 2428,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMDiskHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMDiskHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMDiskHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMDiskHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "483bda2bf10204bf3f43824c926a54410743bac7",
+          "sha256": "sha256:96c0a12f4f16244a5db81437bf060c95c669b0292db31b2bbb1b82e85908c553",
+          "bytes": 2019,
+          "carriage_returns": 0,
+          "line_feeds": 59,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 2019,
+      "template_sha256": "sha256:96c0a12f4f16244a5db81437bf060c95c669b0292db31b2bbb1b82e85908c553",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.19.4": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.20": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.20.1": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.20.2": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.20.3": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.20.4": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.21.0": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/1.21.1": "483bda2bf10204bf3f43824c926a54410743bac7",
+        "dev/26.1.2": "483bda2bf10204bf3f43824c926a54410743bac7"
+      },
+      "current_canonical_blob": "483bda2bf10204bf3f43824c926a54410743bac7",
+      "current_canonical_sha256": "sha256:96c0a12f4f16244a5db81437bf060c95c669b0292db31b2bbb1b82e85908c553",
+      "current_canonical_bytes": 2019,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMInventoryMethods.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMInventoryMethods.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMInventoryMethods.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMInventoryMethods.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "5e5b15c934b3df937afaea517b46d278566e1f99",
+          "sha256": "sha256:d069c8e3262c28a514a909788ceb9ee01679d23053db117beb813ada441a7649",
+          "bytes": 1640,
+          "carriage_returns": 0,
+          "line_feeds": 54,
+          "final_lf": true,
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+          "sha256": "sha256:8047b61cb2153c96e411005c4977785e1dfb325f61f825c754c3f2e7b177ddd2",
+          "bytes": 1551,
+          "carriage_returns": 0,
+          "line_feeds": 53,
+          "final_lf": true,
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3"
+          ]
+        },
+        {
+          "oid": "6a2265442a85498e78107e92bf83423457b359ff",
+          "sha256": "sha256:76af817eafe72692478dd47d1ffe363a989fa29040881e62d42fbeef4ead05bf",
+          "bytes": 1555,
+          "carriage_returns": 0,
+          "line_feeds": 53,
+          "final_lf": true,
+          "targets": [
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 2210,
+      "template_sha256": "sha256:9caa991e7c3e49e929db8d54cd104aa86064a5ad20ea27f7bf6e2c9819f584d9",
+      "template_member_guards": [],
+      "mc_adapters": [
+        "GenericSource.id ResourceLocation on1.19.2; String on all later witnessed versions",
+        "IItemHandler original Forge namespace through1.20.3; NeoForge namespace from1.20.4"
+      ],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "5e5b15c934b3df937afaea517b46d278566e1f99",
+        "dev/1.19.4": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+        "dev/1.20": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+        "dev/1.20.1": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+        "dev/1.20.2": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+        "dev/1.20.3": "fe3f97e3b5dfac96bc71731c215c94106226a6e6",
+        "dev/1.20.4": "6a2265442a85498e78107e92bf83423457b359ff",
+        "dev/1.21.0": "6a2265442a85498e78107e92bf83423457b359ff",
+        "dev/1.21.1": "6a2265442a85498e78107e92bf83423457b359ff",
+        "dev/26.1.2": "6a2265442a85498e78107e92bf83423457b359ff"
+      },
+      "current_canonical_blob": "5e5b15c934b3df937afaea517b46d278566e1f99",
+      "current_canonical_sha256": "sha256:d069c8e3262c28a514a909788ceb9ee01679d23053db117beb813ada441a7649",
+      "current_canonical_bytes": 1640,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelPositionHolderHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelPositionHolderHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelPositionHolderHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMLabelPositionHolderHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+          "sha256": "sha256:819e1731d1db636287122700580224d4e1c4522c24a4102bd18a156aff05f582",
+          "bytes": 7905,
+          "carriage_returns": 0,
+          "line_feeds": 267,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 7905,
+      "template_sha256": "sha256:819e1731d1db636287122700580224d4e1c4522c24a4102bd18a156aff05f582",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.19.4": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.20": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.20.1": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.20.2": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.20.3": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.20.4": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.21.0": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/1.21.1": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+        "dev/26.1.2": "f38bd62286c4ed58a144ba6580d456a30d08dd25"
+      },
+      "current_canonical_blob": "f38bd62286c4ed58a144ba6580d456a30d08dd25",
+      "current_canonical_sha256": "sha256:819e1731d1db636287122700580224d4e1c4522c24a4102bd18a156aff05f582",
+      "current_canonical_bytes": 7905,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMLabelGunHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "92e27c072521c3b21aed436dccd0362bc20d8304",
+          "sha256": "sha256:b9cf6dedc324bcd8f0fdcdd830156e0cdc446d5a3c59ed49916e28cb2bb17488",
+          "bytes": 3631,
+          "carriage_returns": 0,
+          "line_feeds": 99,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 3631,
+      "template_sha256": "sha256:b9cf6dedc324bcd8f0fdcdd830156e0cdc446d5a3c59ed49916e28cb2bb17488",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.19.4": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.20": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.20.1": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.20.2": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.20.3": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.20.4": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.21.0": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/1.21.1": "92e27c072521c3b21aed436dccd0362bc20d8304",
+        "dev/26.1.2": "92e27c072521c3b21aed436dccd0362bc20d8304"
+      },
+      "current_canonical_blob": "92e27c072521c3b21aed436dccd0362bc20d8304",
+      "current_canonical_sha256": "sha256:b9cf6dedc324bcd8f0fdcdd830156e0cdc446d5a3c59ed49916e28cb2bb17488",
+      "current_canonical_bytes": 3631,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelDiscoveryHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelDiscoveryHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelDiscoveryHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMLabelDiscoveryHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+          "sha256": "sha256:00e1ff112df5ef678685978a7bcd6abe111e234a82f0a8e715773ada96469d9a",
+          "bytes": 1399,
+          "carriage_returns": 0,
+          "line_feeds": 49,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 1399,
+      "template_sha256": "sha256:00e1ff112df5ef678685978a7bcd6abe111e234a82f0a8e715773ada96469d9a",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.19.4": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.20": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.20.1": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.20.2": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.20.3": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.20.4": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.21.0": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/1.21.1": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+        "dev/26.1.2": "c1fb943b33e2687fa5b6673abcc6f555dafa3642"
+      },
+      "current_canonical_blob": "c1fb943b33e2687fa5b6673abcc6f555dafa3642",
+      "current_canonical_sha256": "sha256:00e1ff112df5ef678685978a7bcd6abe111e234a82f0a8e715773ada96469d9a",
+      "current_canonical_bytes": 1399,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerCollectionHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerCollectionHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerCollectionHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMManagerCollectionHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+          "sha256": "sha256:a057faf90fc26007784a123468940b6256f74c54e1cb0f0d97163e48e7b219dd",
+          "bytes": 1298,
+          "carriage_returns": 0,
+          "line_feeds": 46,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 1298,
+      "template_sha256": "sha256:a057faf90fc26007784a123468940b6256f74c54e1cb0f0d97163e48e7b219dd",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.19.4": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.20": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.20.1": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.20.2": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.20.3": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.20.4": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.21.0": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/1.21.1": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+        "dev/26.1.2": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2"
+      },
+      "current_canonical_blob": "dd27abbb09d2e7866d1c9ab20bf8fcae3e3c3bb2",
+      "current_canonical_sha256": "sha256:a057faf90fc26007784a123468940b6256f74c54e1cb0f0d97163e48e7b219dd",
+      "current_canonical_bytes": 1298,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    },
+    "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerHandle.java": {
+      "original_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerHandle.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerHandle.java",
+      "staged_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/SFMManagerHandle.java",
+      "feature_owner": "computercraft",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "required_features": [
+        "computercraft"
+      ],
+      "feature_prerequisites": [
+        "mod_event_filtering",
+        "disk_readonly_access",
+        "label_readonly_access"
+      ],
+      "normalization": "none",
+      "source_groups": [
+        {
+          "oid": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+          "sha256": "sha256:a4bc4544b166251634cecaed20add0c44e5db8a6efaee1718665fe3f6c374f9f",
+          "bytes": 4138,
+          "carriage_returns": 0,
+          "line_feeds": 119,
+          "final_lf": true,
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        }
+      ],
+      "template_bytes": 4138,
+      "template_sha256": "sha256:a4bc4544b166251634cecaed20add0c44e5db8a6efaee1718665fe3f6c374f9f",
+      "template_member_guards": [],
+      "mc_adapters": [],
+      "witnesses": {
+        "release/1.19.2": null,
+        "release/1.19.4": null,
+        "release/1.20": null,
+        "release/1.20.1": null,
+        "release/1.20.2": null,
+        "release/1.20.3": null,
+        "release/1.20.4": null,
+        "release/1.21.0": null,
+        "release/1.21.1": null,
+        "release/26.1.2": null,
+        "dev/1.19.2": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.19.4": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.20": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.20.1": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.20.2": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.20.3": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.20.4": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.21.0": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/1.21.1": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+        "dev/26.1.2": "e74015eed60e6e66c482edf9fc18749d108c2f1b"
+      },
+      "current_canonical_blob": "e74015eed60e6e66c482edf9fc18749d108c2f1b",
+      "current_canonical_sha256": "sha256:a4bc4544b166251634cecaed20add0c44e5db8a6efaee1718665fe3f6c374f9f",
+      "current_canonical_bytes": 4138,
+      "authored_method": "One shared source body, with grouped MC cases only for genuine witnessed imports/signature deltas; no historical file dispatch."
+    }
+  },
+  "metadata_proposal": {
+    "source_rules": {
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftResults.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMComputerCraftResults.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMItemHandleTarget.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMItemHandleTarget.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMBlockPosSetHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMBlockPosSetHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMDiskHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMDiskHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMInventoryMethods.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMInventoryMethods.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelPositionHolderHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelPositionHolderHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelGunHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelDiscoveryHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMLabelDiscoveryHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerCollectionHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerCollectionHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ],
+      "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerHandle.java": [
+        {
+          "input": "src/main/java/ca/teamdman/sfm/common/compat/computercraft/SFMManagerHandle.java",
+          "when": {
+            "targets": [
+              "1.19.2",
+              "1.19.4",
+              "1.20",
+              "1.20.1",
+              "1.20.2",
+              "1.20.3",
+              "1.20.4",
+              "1.21.0",
+              "1.21.1",
+              "26.1.2"
+            ],
+            "all_features": [
+              "computercraft"
+            ],
+            "any_features": [],
+            "none_features": []
+          },
+          "template": true
+        }
+      ]
+    },
+    "feature_definition_changes": [],
+    "prerequisite_changes": [],
+    "build_exclusion_changes": []
+  },
+  "read_only_evidence": {
+    "git_tree_cells": 200,
+    "present_dev_cells": 100,
+    "absent_release_cells": 100,
+    "unique_raw_blobs": 13,
+    "carriage_returns_removed": 0,
+    "normalization": false,
+    "static_prediction_cells": 100,
+    "static_prediction_note": "A small independent case-line oracle reproduced100 historical dev outputs. It is not the production Liquid renderer or compiler.",
+    "actual_production_tests_executed": false,
+    "java_compile_executed": false,
+    "runtime_executed": false,
+    "source_build_cache_or_dependency_mutation": false
+  },
+  "baseline_off_rule": "Membership depends on computercraft only. Release and dev labels, projection key and preset do not select source bodies.",
+  "dependencies": {
+    "existing_core_providers": [
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/item/DiskItem.java",
+        "members": [
+          "getProgramStringReadOnly",
+          "setProgram",
+          "compileAndUpdateErrorsAndWarnings"
+        ],
+        "notes": "Readonly getter available through required disk_readonly_access; exact original stack/compiler updates remain."
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+        "members": [
+          "getActiveLabel",
+          "setActiveLabel",
+          "clearActiveLabel",
+          "getViewModeReadOnly",
+          "setViewMode"
+        ],
+        "notes": "Readonly view member available through required label_readonly_access."
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/label/LabelPositionHolder.java",
+        "members": [
+          "from",
+          "toOwned",
+          "save",
+          "labels",
+          "getPositions",
+          "addAll",
+          "remove"
+        ]
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/label/LabelGunPlanTargets.java",
+        "members": [
+          "positions",
+          "warnBecauseNoCableNeighbour"
+        ]
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/util/BlockPosSet.java",
+        "members": [
+          "blockPosIterator",
+          "contains",
+          "of",
+          "forEach"
+        ]
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfml/ast/Program.java",
+        "members": []
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/block_network/CableNetworkManager.java",
+        "members": [
+          "getNetworkFromCablePosition"
+        ],
+        "notes": "Already guarded by computercraft."
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/block_network/CableNetwork.java",
+        "members": [
+          "getManagers"
+        ],
+        "notes": "Already guarded by computercraft."
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+        "members": [
+          "getStateReadOnly",
+          "getDisk",
+          "ensureRebuildWarnings",
+          "rebuildProgramAndUpdateDisk",
+          "getProgram",
+          "setChanged"
+        ],
+        "notes": "Readonly state guarded by computercraft; original rebuild path remains."
+      }
+    ],
+    "external_apis": [
+      "CC:Tweaked LuaFunction and GenericSource",
+      "Minecraft BlockPos, ItemStack, Level",
+      "original Forge or NeoForge IItemHandler/IItemHandlerModifiable namespaces",
+      "original javax.annotation.Nonnull and org.jetbrains.annotations.Nullable"
+    ],
+    "no_required_current_provider_edits": true,
+    "remaining_integration_sources": [
+      "ComputerCraftIntegration.java",
+      "SFMNetworkPeripheral.java",
+      "SFMNetworkPeripheralProvider.java",
+      "SFMComputerCraftTurtleUpgrades.java",
+      "SFMLabelerTurtleUpgrade.java",
+      "SFMTurtleLabelerPeripheral.java"
+    ],
+    "remaining_limits": [
+      "This is not entirely effect-free. Disk, label-gun and manager handle methods preserve original delegated main-thread item/program updates.",
+      "No Lua/runtime registration, source-set compile support or world effects were tested.",
+      "Source preservation support across all ten witnesses does not erase dependency-specific build exclusions."
+    ]
+  },
+  "preserved_review_only_build_exclusions": [
+    {
+      "input": "build/features/review-only/gradle/source-excludes/1.20.2/main-java.txt",
+      "bytes": 582,
+      "sha256": "sha256:e2a36f173bb0f279bf21e8ed73c7bf9a320c79791241b814d96fa81cd8bfda13"
+    },
+    {
+      "input": "build/features/review-only/gradle/source-excludes/1.20.3/main-java.txt",
+      "bytes": 582,
+      "sha256": "sha256:e78dc4164e36b0cc19b06514b9ec26c1442a8c9c402689149ec21a7973c8c7d6"
+    },
+    {
+      "input": "build/features/review-only/1.21.0/gradle/source-excludes/1.21/main-java.txt",
+      "bytes": 459,
+      "sha256": "sha256:b4aef9922d6835fc1084561b8b035e54f997ce6b6f5b35ee3651054ff5b43138"
+    },
+    {
+      "input": "build/features/review-only/gradle/source-excludes/26.1.2/main-java.txt",
+      "bytes": 604,
+      "sha256": "sha256:fea2a238cb0cd020336cc22fe5ae4d4768906a81c2366a2f644a212ee027a3e0"
+    }
+  ],
+  "prepared_test_module": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/core_computercraft_handles_slice_tests.rs",
+  "reproducible_read_only_commands": [
+    "git ls-tree -r <exact context commit> -- platform/minecraft/src/main/java/ca/teamdman/sfm/common/compat/computercraft/",
+    "git cat-file blob <exact reviewed blob OID>",
+    "git hash-object <current canonical Java path>"
+  ],
+  "prepared_validation_note": "Root must register sparse source membership, promote these exact source files and register the ignored test module before running actual-core tests. No generated project or production catalog is changed by this stage.",
+  "skills_influence": [
+    "Path-review and publishing guidance retain repository-relative paths and omit machine caches.",
+    "GOV.UK style keeps source acceptance separate from compilation and runtime acceptance."
+  ],
+  "tests": {
+    "stage_path": "platform/cli/sfm-propagate-changes/target/core-computercraft-handles-stage-v1/core_computercraft_handles_slice_tests.rs",
+    "intended_registered_path": "platform/cli/sfm-propagate-changes/src/source_projection/core_computercraft_handles_slice_tests.rs",
+    "bytes": 30054,
+    "sha256": "sha256:68ac8df4d75c05fb618bce5dfd591e4f601c7c9d5a840fa235219bb434c8d131",
+    "test_count": 8,
+    "executed": false,
+    "formatted": false,
+    "acceptance": "Actual authored-core source selection, Liquid rendering, fixed raw Git witnesses, source contract markers and isolated source authoring only; no Java/Lua/world acceptance.",
+    "coverage": [
+      "Actual fixed ls-tree200cells:100dev-present,100release-absent.",
+      "Actual selector+production renderer exact100dev outputs and100off omissions against13 raw identity groups.",
+      "Owner-off8 prerequisite subsets and owner-on full set across all10targets:900source cells; projection labels/environment do not choose source bodies.",
+      "Each of3 missing prerequisites refused on every target; unknown owner removed from explicit context refused.",
+      "Narrow Forge/NeoForge imports and GenericSource ResourceLocation/String signature follow actual MC contexts; real1.21 alias is checked.",
+      "Existing actual owned provider member anchors render with the same minimal closed owner flags.",
+      "Four witnessed review-only dependency exclusions remain byte-identical; no dependency/source-exclusion override.",
+      "One common result-provider edit reaches all ten targets only in isolated fixed CORE_ROOT; live source hashes remain unchanged.",
+      "All13original raw bodies reject EOL/EOF/token rewrites."
+    ],
+    "registration_pending": true
+  },
+  "input_snapshots": {
+    "project_inputs": {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 377759,
+      "sha256": "sha256:50986eb9efe6fa5c510bd89d94d96a3005ae19792a0f346aaa24ff5ce9b8364a"
+    },
+    "feature_definitions": {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 29341,
+      "sha256": "sha256:9090aacc70ee4a0983a3c07382e48a0bf50c82bb4937996716d86579ab00b834"
+    },
+    "projection_catalog": {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2074,
+      "sha256": "sha256:6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    },
+    "note": "Read-only pre-authoring snapshot. Root owns unrelated live integration; this receipt does not prohibit separately reviewed owner additions."
+  }
+}

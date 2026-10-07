@@ -1,0 +1,147 @@
+{
+  "schema": "sfm:concat-lowering-reduction-evidence@1",
+  "date": "2026-10-01",
+  "branch": "feat/sfm-main-source-projection",
+  "status": "all four isolated compiler and metadata profiles completed; original release refusals remain unwaived",
+  "evidence_root": "platform/cli/sfm-propagate-changes/target/core-concat-lowering-reduction-stage-v2/runs/actual-v2",
+  "invocation": {
+    "driver": "platform/cli/sfm-propagate-changes/target/core-concat-lowering-reduction-stage-v2/Invoke-ConcatLoweringReduction.ps1",
+    "driver_bytes": 27684,
+    "driver_sha256": "35031d9d4f2ddf51dcc35cf810dc8fcc4cd2bdc065ad6dd782baa47e35592b27",
+    "expected_driver_sha256_argument": "35031d9d4f2ddf51dcc35cf810dc8fcc4cd2bdc065ad6dd782baa47e35592b27",
+    "sdk_home": "transient caller-supplied existing reviewed SDK; no stored machine default",
+    "run_name": "actual-v2",
+    "terminal_exit_code": 0,
+    "powershell_version": "7.6.6",
+    "parse_errors": 0
+  },
+  "retained_summary": {
+    "bytes": 13354,
+    "sha256": "52581a0093cadda49864d79fd350d4f9225c1bbfcabd713c215a6ab7b7570ef2"
+  },
+  "verified_retained_output_pins": 36,
+  "process_results": {
+    "javac_children": 4,
+    "javap_metadata_children": 4,
+    "all_started_exited_zero": true,
+    "capture_prefixes": false,
+    "observed_output_bytes": 63796,
+    "shell": false,
+    "fixture_application_executed": false
+  },
+  "profiles": [
+    {
+      "id": "bare-crlf",
+      "source": {
+        "bytes": 594,
+        "sha256": "f410c2f62f4da1c316ee79d70fcf810fe2c7d3fee8760a37542e88715a8cd919"
+      },
+      "argfile": {
+        "bytes": 462,
+        "sha256": "0fa1aa070bd07cb223cb5e896e83eae0984596c415ab728f551f012042e2c2bb"
+      },
+      "class_output": {
+        "bytes": 2396,
+        "sha256": "1ffde6bdfa2eb02f07fcfba6023ad0168fc789c8cf740c60b7e8c6a0fe6f366c"
+      },
+      "javac_pid": 35196,
+      "javap_pid": 23168,
+      "stdout_sha256": "cc06cbc7d18146a5b23ade6e030ec921b5b631e1943c849f15f8a1a25248202c",
+      "stdout_bytes": 15949,
+      "metadata_without_header_or_line_numbers_sha256": "a1116b145e59ea8a6784b6c9f8e9d25197306bbbc1decccf6259982446839268",
+      "observed_string_valueof_object_instruction_calls": 3
+    },
+    {
+      "id": "banner-crlf",
+      "source": {
+        "bytes": 682,
+        "sha256": "13a236e1076177d3db8e35d50e2e6cd8ccac287ef04e69bb6bc1796184e14aa5"
+      },
+      "argfile": {
+        "bytes": 466,
+        "sha256": "6ec62bcd93fa64012a8aebd87be283106b6994355eaff8d3e556ef374682871c"
+      },
+      "class_output": {
+        "bytes": 2396,
+        "sha256": "bd34c691ecadf7b7d669632ecfac0967ca58dce646968f09e9a2fcdd5bcf9708"
+      },
+      "javac_pid": 49800,
+      "javap_pid": 10552,
+      "stdout_sha256": "54e1a39805170cdcef986b8898946fd6e659b3fb2865d8031ea9cd50a1b0552a",
+      "stdout_bytes": 15951,
+      "metadata_without_header_or_line_numbers_sha256": "a1116b145e59ea8a6784b6c9f8e9d25197306bbbc1decccf6259982446839268",
+      "observed_string_valueof_object_instruction_calls": 3
+    },
+    {
+      "id": "bare-lf",
+      "source": {
+        "bytes": 573,
+        "sha256": "828a0ce58e402cdd037732017d2b1610a8db1a720aab819d70fef648458f4b8f"
+      },
+      "argfile": {
+        "bytes": 458,
+        "sha256": "311f2f61a7bf6dbb6a7b08fc732c289132cdb581392a2fd5571d27b6c808c4ac"
+      },
+      "class_output": {
+        "bytes": 2396,
+        "sha256": "1ffde6bdfa2eb02f07fcfba6023ad0168fc789c8cf740c60b7e8c6a0fe6f366c"
+      },
+      "javac_pid": 30092,
+      "javap_pid": 14396,
+      "stdout_sha256": "468bb6041b6c7168fef5dd33d0ec6d75bb24e75ef9e111853426a5b83a211532",
+      "stdout_bytes": 15947,
+      "metadata_without_header_or_line_numbers_sha256": "a1116b145e59ea8a6784b6c9f8e9d25197306bbbc1decccf6259982446839268",
+      "observed_string_valueof_object_instruction_calls": 3
+    },
+    {
+      "id": "banner-lf",
+      "source": {
+        "bytes": 660,
+        "sha256": "9e029e41dd94f431c7ab15363e30d447fe62b1917b891d3727fa4d56b2c940d0"
+      },
+      "argfile": {
+        "bytes": 462,
+        "sha256": "99420638de0bf7231fe02d7af2730114291c95372cf046b3a902f3358c585b00"
+      },
+      "class_output": {
+        "bytes": 2396,
+        "sha256": "bd34c691ecadf7b7d669632ecfac0967ca58dce646968f09e9a2fcdd5bcf9708"
+      },
+      "javac_pid": 30032,
+      "javap_pid": 23928,
+      "stdout_sha256": "3c4f055b27a0e05f32c7d0854b8fb3100a7ca4aa8dd8fe171b94645731f9cb99",
+      "stdout_bytes": 15949,
+      "metadata_without_header_or_line_numbers_sha256": "a1116b145e59ea8a6784b6c9f8e9d25197306bbbc1decccf6259982446839268",
+      "observed_string_valueof_object_instruction_calls": 3
+    }
+  ],
+  "observations": [
+    "The CRLF and LF bare profiles produce raw-identical 2396-byte classes; the two banner profiles likewise produce raw-identical classes.",
+    "Each profile's actual javap metadata has two String.valueOf(Object) instructions in toString and one in the enum exception concatenation.",
+    "After removing only the four javap header lines, normalizing its output line endings and masking displayed line-number values, all four metadata texts have the same SHA256.",
+    "This current-compiler lowering appears without the generated banner or LF normalization in this authored JDK-only reduction."
+  ],
+  "interpretation_limits": [
+    "Not the original 528-source, dependency classpath, annotation processor, Mixin or reobfuscation environment.",
+    "Date and Thread.State substitute for historical non-JDK types; this is a reduction, not raw original source.",
+    "Metadata text comparison is not a new strict binary-equivalence helper acceptance.",
+    "Does not identify the historical release compiler, establish behavioral equivalence or account for every executable difference.",
+    "The 84 original strict class refusals remain retained and unwaived; no Minecraft application ran.",
+    "Cancellation recovery is source-reviewed but no cancellation, timeout or output-budget fault was injected."
+  ],
+  "unchanged_authority": {
+    "dependencies_and_original_locks": true,
+    "production_sources": true,
+    "original_strict_helper": true,
+    "old_v1_stage": true,
+    "generated_minecraft_runtime_inputs": true,
+    "goal": "active and incomplete"
+  },
+  "review_boundary": {
+    "root_full_driver_profiles_readme_review_read": true,
+    "independent_source_review": "passed; exact four-region reversal restores v1",
+    "physical_output_rehash": "root verified all 36 recorded per-profile output pins and exact eight child results",
+    "independent_actual_output_review": "passed: all 38 retained files, 97723 bytes, all eight exact child receipts and all four complete metadata streams independently rechecked",
+    "independent_binary_difference": "bare/banner classes differ at exactly 11 bytes, each +1, corresponding to the 11 displayed line-table shifts; not a new strict helper acceptance"
+  }
+}

@@ -7,6 +7,7 @@
 
 use super::candidate_lock::checked_directory;
 use super::candidate_lock::checked_file;
+use super::candidate_lock::is_reparse;
 use super::context::ProjectionContext;
 use super::core_network_layout::NETWORK_REGISTRATION_PATH;
 use super::core_network_layout::validate_network_context;
@@ -16,6 +17,7 @@ use super::inputs::render_java_artifact;
 use super::project_layout::validate_target_project;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use super::projection_catalog::validate_projection_key;
+use super::provenance::sha256;
 use super::render_java_source;
 use super::sync::MANIFEST_FILE;
 use super::sync::ProjectedArtifact;
@@ -23,8 +25,12 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use rayon::prelude::*;
+use sha2::Digest as _;
+use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::collections::HashSet;
 use std::fs;
 use std::io::Read as _;
 use std::path::Path;
@@ -140,6 +146,10 @@ impl CoreProjectInputs {
     ///
     /// Rejects unsupported versions, loaders or JDK lines, invalid predicates,
     /// nonportable paths, case aliases, and file/directory output collisions.
+    #[cfg_attr(
+        feature = "tracy",
+        tracing::instrument(level = "info", skip_all, name = "oracle_validate_metadata")
+    )]
     pub fn validate(&self, registered_features: &BTreeSet<String>) -> Result<()> {
         ensure!(
             self.schema_version == 1,
@@ -193,6 +203,7 @@ impl CoreProjectInputs {
 ///
 /// Rejects a wrong core layout, reparse/symlink paths, nonregular source entries,
 /// nonportable names, case aliases, or file/directory collisions.
+#[tracing::instrument(level = "info", skip_all, name = "oracle_discover_inputs")]
 pub fn discover_core_source_files(core_root: &Path) -> Result<BTreeSet<String>> {
     let root = checked_core_root(core_root)?;
     let source_root = checked_directory(&root.join("src"))?;
@@ -205,17 +216,26 @@ pub fn discover_core_source_files(core_root: &Path) -> Result<BTreeSet<String>> 
         if entry.path() == source_root {
             continue;
         }
+        // WalkDir visits parents before children without following links. Check
+        // each node once rather than rechecking its whole ancestry per leaf.
+        // Windows enumeration already carries the entry's no-follow metadata;
+        // reuse that fresh invocation data, not a second path lookup. Other
+        // platforms still query symlink_metadata through WalkDir. Acquisition
+        // independently validates the selected path and opens fresh file bytes.
+        let metadata = entry.metadata()?;
         ensure!(
-            !entry.file_type().is_symlink(),
-            "core source traverses a symlink"
+            !is_reparse(&metadata),
+            "core source traverses a reparse point"
         );
         let relative = portable_path(entry.path().strip_prefix(&root)?)?;
-        if entry.file_type().is_dir() {
+        if metadata.is_dir() {
             validate_output_path(&relative)?;
-            checked_directory(entry.path())?;
         } else {
+            ensure!(
+                metadata.is_file(),
+                "core source entry is not a regular file"
+            );
             validate_output_path(&relative)?;
-            checked_file(&root, &relative)?;
             paths.insert(relative);
         }
     }
@@ -236,7 +256,71 @@ pub fn select_core_inputs(
     source_inventory: &BTreeSet<String>,
 ) -> Result<CoreSelection> {
     let registered = context.features.keys().cloned().collect();
-    metadata.validate(&registered)?;
+    metadata
+        .validated_selector(&registered)?
+        .select(context, source_inventory)
+}
+
+/// A borrowed proof of structural validation for an exact feature registry.
+/// Neither metadata nor registry can mutate while this selector is in use.
+pub(super) struct ValidatedCoreInputs<'a> {
+    metadata: &'a CoreProjectInputs,
+    registered: &'a BTreeSet<String>,
+}
+
+impl CoreProjectInputs {
+    pub(super) fn validated_selector<'a>(
+        &'a self,
+        registered: &'a BTreeSet<String>,
+    ) -> Result<ValidatedCoreInputs<'a>> {
+        self.validate(registered)?;
+        Ok(ValidatedCoreInputs {
+            metadata: self,
+            registered,
+        })
+    }
+}
+
+impl ValidatedCoreInputs<'_> {
+    pub(super) fn select(
+        &self,
+        context: &ProjectionContext,
+        source_inventory: &BTreeSet<String>,
+    ) -> Result<CoreSelection> {
+        ensure!(
+            context.features.keys().eq(self.registered.iter()),
+            "validated selector feature registry changed"
+        );
+        select_validated_core_inputs(self.metadata, context, source_inventory, None)
+    }
+
+    /// Share only successful path-set checks within this invocation. Context,
+    /// predicates and selected membership are still recomputed each time.
+    pub(super) fn select_with_snapshot(
+        &self,
+        context: &ProjectionContext,
+        source_inventory: &BTreeSet<String>,
+        snapshot: &mut CoreInputSnapshot,
+    ) -> Result<CoreSelection> {
+        ensure!(
+            context.features.keys().eq(self.registered.iter()),
+            "validated selector feature registry changed"
+        );
+        select_validated_core_inputs(
+            self.metadata,
+            context,
+            source_inventory,
+            Some(&mut snapshot.path_checks),
+        )
+    }
+}
+
+fn select_validated_core_inputs(
+    metadata: &CoreProjectInputs,
+    context: &ProjectionContext,
+    source_inventory: &BTreeSet<String>,
+    mut path_checks: Option<&mut PathCollisionChecks>,
+) -> Result<CoreSelection> {
     let target_id = target_id(context)?;
     let build_target = metadata
         .targets
@@ -262,15 +346,15 @@ pub fn select_core_inputs(
         }
     }
     for (output, variants) in metadata.source_rules.iter().chain(&metadata.project_files) {
-        let matches = variants
+        let mut matches = variants
             .iter()
-            .filter(|variant| variant.when.matches(target_id, &context.features))
-            .collect::<Vec<_>>();
+            .filter(|variant| variant.when.matches(target_id, &context.features));
+        let chosen = matches.next();
         ensure!(
-            matches.len() <= 1,
+            matches.next().is_none(),
             "core output `{output}` has more than one matching input variant"
         );
-        if let Some(variant) = matches.first() {
+        if let Some(variant) = chosen {
             ensure!(
                 selected
                     .insert(
@@ -287,10 +371,15 @@ pub fn select_core_inputs(
             omitted_paths.insert(output.clone());
         }
     }
-    validate_path_collisions(selected.keys().map(String::as_str), "selected core output")?;
-    validate_path_collisions(
+    validate_path_collisions_reusing(
+        selected.keys().map(String::as_str),
+        "selected core output",
+        path_checks.as_deref_mut(),
+    )?;
+    validate_path_collisions_reusing(
         selected.values().map(|input| input.input.as_str()),
         "selected core input",
+        path_checks,
     )?;
     Ok(CoreSelection {
         target_id: target_id.to_owned(),
@@ -317,6 +406,188 @@ pub fn collect_core_artifacts(
     selection: &CoreSelection,
     context: &ProjectionContext,
 ) -> Result<BTreeMap<String, ProjectedArtifact>> {
+    collect_core_artifacts_impl(core_root, selection, context, None)
+}
+
+/// Bytes safely acquired during this invocation, never reused across commands.
+/// The root binding prevents accidental reuse for a different authored tree.
+#[derive(Default)]
+pub(super) struct CoreInputSnapshot {
+    root: Option<PathBuf>,
+    files: BTreeMap<String, SnapshotInput>,
+    total_bytes: u64,
+    path_checks: PathCollisionChecks,
+    #[cfg(windows)]
+    directories: super::core_input_leases::DirectoryLeases,
+}
+
+struct SnapshotInput {
+    bytes: Vec<u8>,
+    identity: String,
+}
+
+impl CoreInputSnapshot {
+    #[tracing::instrument(level = "info", skip_all, name = "oracle_preload_selected_inputs")]
+    pub(super) fn preload(&mut self, root: &Path, selection: &CoreSelection) -> Result<()> {
+        self.bind_root(root)?;
+        let mut seen = BTreeSet::new();
+        // Keep the first output's order when several outputs share one input.
+        // Failures and budget accounting remain deterministic, not race ordered.
+        let missing = selection
+            .inputs
+            .values()
+            .map(|selected| selected.input.as_str())
+            .filter(|input| !self.files.contains_key(*input) && seen.insert(*input))
+            .collect::<Vec<_>>();
+        // At most sixty-four bounded file buffers are in flight (1 GiB), never
+        // an unbounded allocation of all inputs before checking the budget.
+        // The real warm-command trace identified batch barriers in this phase;
+        // a wider bounded window keeps workers busy without relaxing reads.
+        for batch in missing.chunks(64) {
+            #[cfg(windows)]
+            let reads = {
+                let prepared = batch
+                    .iter()
+                    .map(|relative| {
+                        self.directories
+                            .prepare(root, relative)
+                            .wrap_err_with(|| format!("cannot prepare core input `{relative}`"))
+                    })
+                    .collect::<Vec<_>>();
+                prepared
+                    .into_par_iter()
+                    .zip(batch.par_iter())
+                    .map(|(path, relative)| {
+                        path.and_then(|path| read_open_core_input(&path, relative))
+                    })
+                    .collect::<Vec<_>>()
+            };
+            #[cfg(not(windows))]
+            let reads = batch
+                .par_iter()
+                .map(|relative| read_selected_input(root, relative))
+                .collect::<Vec<_>>();
+            for (relative, bytes) in batch.iter().zip(reads) {
+                self.insert(relative, bytes?)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn bind_root(&mut self, root: &Path) -> Result<()> {
+        if let Some(bound) = &self.root {
+            ensure!(bound == root, "core input snapshot belongs to another root");
+        } else {
+            self.root = Some(root.to_owned());
+        }
+        Ok(())
+    }
+
+    fn insert(&mut self, relative: &str, bytes: Vec<u8>) -> Result<()> {
+        self.total_bytes = add_to_budget(self.total_bytes, bytes.len() as u64)?;
+        let identity = sha256(&bytes);
+        self.files
+            .insert(relative.to_owned(), SnapshotInput { bytes, identity });
+        Ok(())
+    }
+
+    pub(super) fn read(&mut self, root: &Path, relative: &str) -> Result<Vec<u8>> {
+        Ok(self.read_with_identity(root, relative)?.0.to_vec())
+    }
+
+    pub(super) fn read_with_identity(
+        &mut self,
+        root: &Path,
+        relative: &str,
+    ) -> Result<(&[u8], &str)> {
+        self.bind_root(root)?;
+        if !self.files.contains_key(relative) {
+            #[cfg(windows)]
+            let bytes = {
+                let path = self
+                    .directories
+                    .prepare(root, relative)
+                    .wrap_err_with(|| format!("cannot prepare core input `{relative}`"))?;
+                read_open_core_input(&path, relative)?
+            };
+            #[cfg(not(windows))]
+            let bytes = read_selected_input(root, relative)?;
+            self.insert(relative, bytes)?;
+        }
+        let input = self
+            .files
+            .get(relative)
+            .ok_or_else(|| eyre::eyre!("snapshot input disappeared"))?;
+        Ok((&input.bytes, &input.identity))
+    }
+}
+
+pub(super) fn collect_core_artifacts_with_snapshot(
+    core_root: &Path,
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+    snapshot: &mut CoreInputSnapshot,
+) -> Result<BTreeMap<String, ProjectedArtifact>> {
+    collect_core_artifacts_impl(core_root, selection, context, Some(snapshot))
+}
+
+fn collect_core_artifacts_impl(
+    core_root: &Path,
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+    mut snapshot: Option<&mut CoreInputSnapshot>,
+) -> Result<BTreeMap<String, ProjectedArtifact>> {
+    validate_collection_selection(selection, context)?;
+    let root = checked_core_root(core_root)?;
+    let mut artifacts = BTreeMap::new();
+    let mut total_bytes = 0;
+    for (output, selected) in &selection.inputs {
+        validate_output_path(output)?;
+        validate_input_path(&selected.input)?;
+        let bytes = {
+            #[cfg(feature = "tracy")]
+            let _span = tracing::info_span!("oracle_acquire_core_input").entered();
+            match snapshot.as_deref_mut() {
+                Some(snapshot) => snapshot.read(&root, &selected.input)?,
+                None => read_selected_input(&root, &selected.input)?,
+            }
+        };
+        total_bytes = add_to_budget(total_bytes, bytes.len() as u64)?;
+        let artifact = render_core_input(output, selected, bytes, context)?;
+        total_bytes = add_to_budget(total_bytes, artifact.output_bytes.len() as u64)?;
+        ensure!(
+            artifacts.insert(output.clone(), artifact).is_none(),
+            "duplicate core artifact `{output}`"
+        );
+    }
+    validate_collected_project(&artifacts, selection, context)?;
+    Ok(artifacts)
+}
+
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(level = "info", skip_all, name = "oracle_validate_selection")
+)]
+pub(super) fn validate_collection_selection(
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+) -> Result<()> {
+    validate_collection_selection_impl(selection, context, None)
+}
+
+pub(super) fn validate_collection_selection_with_snapshot(
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+    snapshot: &mut CoreInputSnapshot,
+) -> Result<()> {
+    validate_collection_selection_impl(selection, context, Some(&mut snapshot.path_checks))
+}
+
+fn validate_collection_selection_impl(
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+    mut path_checks: Option<&mut PathCollisionChecks>,
+) -> Result<()> {
     ensure!(
         selection.minecraft_version == context.minecraft_version
             && selection.feature_flags == context.features
@@ -326,62 +597,75 @@ pub fn collect_core_artifacts(
     if selection.inputs.contains_key(NETWORK_REGISTRATION_PATH) {
         validate_network_context(&selection.target_id, context)?;
     }
-    let root = checked_core_root(core_root)?;
-    validate_path_collisions(
+    validate_path_collisions_reusing(
         selection.inputs.keys().map(String::as_str),
         "selected core output",
+        path_checks.as_deref_mut(),
     )?;
-    validate_path_collisions(
+    validate_path_collisions_reusing(
         selection.inputs.values().map(|input| input.input.as_str()),
         "selected core input",
+        path_checks,
     )?;
-    let mut artifacts = BTreeMap::new();
-    let mut total_bytes = 0;
-    for (output, selected) in &selection.inputs {
-        validate_output_path(output)?;
-        validate_input_path(&selected.input)?;
-        let bytes = read_selected_input(&root, &selected.input)?;
-        total_bytes = add_to_budget(total_bytes, bytes.len() as u64)?;
-        let java = is_java(output);
-        let mut artifact = ProjectedArtifact {
-            source_path: format!("{CORE_ROOT}/{}", selected.input),
-            output_bytes: bytes.clone(),
-            source_bytes: bytes,
-            overlay: None,
-        };
-        if java || selected.template {
-            let source = std::str::from_utf8(&artifact.source_bytes)
-                .wrap_err_with(|| format!("core template `{}` is not UTF-8", selected.input))?;
-            validate_core_template_selectors(source, output)?;
-            if java {
-                render_java_artifact(output, &mut artifact, context)?;
-            } else {
-                let (bom, body) = if let Some(body) = source.strip_prefix('\u{feff}') {
-                    ("\u{feff}", body)
-                } else {
-                    ("", source)
-                };
-                let rendered = render_java_source(body, context)
-                    .wrap_err_with(|| format!("cannot render core text `{}`", selected.input))?;
-                artifact.output_bytes = Vec::with_capacity(bom.len() + rendered.len());
-                artifact.output_bytes.extend_from_slice(bom.as_bytes());
-                artifact.output_bytes.extend_from_slice(rendered.as_bytes());
-            }
-        }
-        total_bytes = add_to_budget(total_bytes, artifact.output_bytes.len() as u64)?;
-        ensure!(
-            artifacts.insert(output.clone(), artifact).is_none(),
-            "duplicate core artifact `{output}`"
-        );
-    }
+    Ok(())
+}
+
+pub(super) fn validate_collected_project(
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+    selection: &CoreSelection,
+    context: &ProjectionContext,
+) -> Result<()> {
     for required in REQUIRED_PROJECT_FILES {
         ensure!(
             artifacts.contains_key(*required),
             "core projection is missing standalone Gradle input `{required}`"
         );
     }
-    validate_target_project(&artifacts, &selection.target_id, &context.minecraft_version)?;
-    Ok(artifacts)
+    validate_target_project(artifacts, &selection.target_id, &context.minecraft_version)
+}
+
+/// The shared single-input renderer. Incremental comparisons must use this
+/// implementation rather than a second Liquid/banner/selector pipeline.
+/// Callers still own complete selection, project and aggregate-budget checks.
+pub(super) fn render_core_input(
+    output: &str,
+    selected: &SelectedCoreInput,
+    bytes: Vec<u8>,
+    context: &ProjectionContext,
+) -> Result<ProjectedArtifact> {
+    validate_output_path(output)?;
+    validate_input_path(&selected.input)?;
+    ensure!(
+        bytes.len() as u64 <= MAX_CORE_FILE_BYTES,
+        "core input exceeds byte limit"
+    );
+    let java = is_java(output);
+    let mut artifact = ProjectedArtifact {
+        source_path: format!("{CORE_ROOT}/{}", selected.input),
+        output_bytes: bytes.clone(),
+        source_bytes: bytes,
+        overlay: None,
+    };
+    if java || selected.template {
+        #[cfg(feature = "tracy")]
+        let _span = tracing::info_span!("oracle_render_core_template").entered();
+        let source = std::str::from_utf8(&artifact.source_bytes)
+            .wrap_err_with(|| format!("core template `{}` is not UTF-8", selected.input))?;
+        validate_core_template_selectors(source, output)?;
+        if java {
+            render_java_artifact(output, &mut artifact, context)?;
+        } else {
+            let (bom, body) = source
+                .strip_prefix('\u{feff}')
+                .map_or(("", source), |body| ("\u{feff}", body));
+            let rendered = render_java_source(body, context)
+                .wrap_err_with(|| format!("cannot render core text `{}`", selected.input))?;
+            artifact.output_bytes = Vec::with_capacity(bom.len() + rendered.len());
+            artifact.output_bytes.extend_from_slice(bom.as_bytes());
+            artifact.output_bytes.extend_from_slice(rendered.as_bytes());
+        }
+    }
+    Ok(artifact)
 }
 
 /// Resolve and render a complete standalone project from a checked core tree.
@@ -525,7 +809,7 @@ fn validate_target_flags(context: &ProjectionContext, target: &str, loader: &str
     Ok(())
 }
 
-fn checked_core_root(root: &Path) -> Result<PathBuf> {
+pub(super) fn checked_core_root(root: &Path) -> Result<PathBuf> {
     ensure!(
         root.ends_with(Path::new(CORE_ROOT)),
         "core source root must use the fixed platform/minecraft/core-liquid-template layout"
@@ -536,13 +820,12 @@ fn checked_core_root(root: &Path) -> Result<PathBuf> {
 fn validate_input_path(path: &str) -> Result<()> {
     validate_projection_key(path)?;
     ensure!(
-        !path.split('/').any(|part| matches!(
-            part.to_ascii_lowercase().as_str(),
-            ".git" | ".gradle" | ".idea"
-        )) && !path
-            .split('/')
-            .next()
-            .is_some_and(|part| matches!(part.to_ascii_lowercase().as_str(), "run" | "target")),
+        !path.split('/').any(|part| [".git", ".gradle", ".idea"]
+            .iter()
+            .any(|name| part.eq_ignore_ascii_case(name)))
+            && !path.split('/').next().is_some_and(
+                |part| part.eq_ignore_ascii_case("run") || part.eq_ignore_ascii_case("target")
+            ),
         "core input `{path}` names runtime, Git or IDE state"
     );
     Ok(())
@@ -551,16 +834,19 @@ fn validate_input_path(path: &str) -> Result<()> {
 fn validate_output_path(path: &str) -> Result<()> {
     validate_projection_key(path)?;
     ensure!(
-        !path.split('/').any(|part| matches!(
-            part.to_ascii_lowercase().as_str(),
-            ".git" | ".gradle" | ".idea"
-        )) && !path.split('/').next().is_some_and(|part| matches!(
-            part.to_ascii_lowercase().as_str(),
-            "build" | "run" | "target"
-        )) && !path
-            .split('/')
-            .next()
-            .is_some_and(|part| part.eq_ignore_ascii_case(MANIFEST_FILE)),
+        !path.split('/').any(|part| [".git", ".gradle", ".idea"]
+            .iter()
+            .any(|name| part.eq_ignore_ascii_case(name)))
+            && !path
+                .split('/')
+                .next()
+                .is_some_and(|part| ["build", "run", "target"]
+                    .iter()
+                    .any(|name| part.eq_ignore_ascii_case(name)))
+            && !path
+                .split('/')
+                .next()
+                .is_some_and(|part| part.eq_ignore_ascii_case(MANIFEST_FILE)),
         "core output `{path}` names generated state or projection provenance"
     );
     Ok(())
@@ -581,39 +867,98 @@ fn portable_path(path: &Path) -> Result<String> {
     Ok(path)
 }
 
+/// Bounded positive verdicts, never persisted and never based on timestamps.
+/// The hash covers every exact path byte and its order with length framing.
+/// Failed checks are never remembered, preserving deterministic diagnostics.
+#[derive(Default)]
+struct PathCollisionChecks {
+    accepted: HashSet<[u8; 32]>,
+}
+
+fn path_set_identity<'a>(paths: impl Iterator<Item = &'a str>, domain: &[u8]) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(domain);
+    for path in paths {
+        digest.update((path.len() as u64).to_le_bytes());
+        digest.update(path.as_bytes());
+    }
+    digest.finalize().into()
+}
+
+fn validate_path_collisions_reusing<'a>(
+    paths: impl Iterator<Item = &'a str> + Clone,
+    role: &str,
+    checks: Option<&mut PathCollisionChecks>,
+) -> Result<()> {
+    let Some(checks) = checks else {
+        return validate_path_collisions(paths, role);
+    };
+    let key = path_set_identity(paths.clone(), b"sfm:invocation_path_collision_check@1\0");
+    if checks.accepted.contains(&key) {
+        return Ok(());
+    }
+    validate_path_collisions(paths, role)?;
+    if checks.accepted.len() < 64 {
+        checks.accepted.insert(key);
+    }
+    Ok(())
+}
+
 fn validate_path_collisions<'a>(
     paths: impl IntoIterator<Item = &'a str>,
     role: &str,
 ) -> Result<()> {
-    let mut files = BTreeMap::new();
-    let mut prefixes = BTreeMap::new();
+    let mut files = Vec::new();
     for path in paths {
         validate_projection_key(path)?;
         let folded = path.to_ascii_lowercase();
-        if let Some(other) = files.insert(folded, path) {
+        files.push((folded, path));
+    }
+    files.sort_by(|a, b| a.0.cmp(&b.0));
+    for pair in files.windows(2) {
+        let (folded, path) = &pair[1];
+        let (before, other) = &pair[0];
+        if folded == before {
             ensure!(
                 other == path,
                 "{role} paths `{other}` and `{path}` collide by case"
             );
         }
-        for index in path
-            .match_indices('/')
-            .map(|(index, _)| index)
-            .chain(std::iter::once(path.len()))
-        {
-            let prefix = &path[..index];
-            if let Some(other) = prefixes.insert(prefix.to_ascii_lowercase(), prefix) {
+    }
+    files.dedup_by(|a, b| a.0 == b.0);
+    // A folded directory-prefix group is contiguous in this sorted vector.
+    // Adjacent members therefore prove consistent component spelling without
+    // allocating a folded String for every repeated ancestor of every file.
+    let mut previous: Option<(&str, &str)> = None;
+    for (folded, path) in &files {
+        if let Some((before, original)) = previous {
+            let shared = folded
+                .bytes()
+                .zip(before.bytes())
+                .take_while(|(a, b)| a == b)
+                .count();
+            for (index, _) in folded
+                .match_indices('/')
+                .take_while(|(index, _)| *index < shared)
+            {
+                let prefix = &path[..index];
+                let other = &original[..index];
                 ensure!(
                     other == prefix,
                     "{role} path components `{other}` and `{prefix}` collide by case"
                 );
             }
         }
+        previous = Some((folded, path));
     }
+    let file_names = files
+        .iter()
+        .map(|(folded, _)| folded.as_str())
+        .collect::<HashSet<_>>();
     for (folded, path) in &files {
         for (index, _) in folded.match_indices('/') {
             ensure!(
-                !files.contains_key(&folded[..index]),
+                !file_names.contains(&folded[..index]),
                 "{role} file `{path}` conflicts with an ancestor file"
             );
         }
@@ -621,18 +966,53 @@ fn validate_path_collisions<'a>(
     Ok(())
 }
 
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(level = "info", skip_all, name = "oracle_read_selected_input")
+)]
 fn read_selected_input(root: &Path, relative: &str) -> Result<Vec<u8>> {
-    let path = checked_file(root, relative)?;
-    let file = fs::File::open(path)
-        .wrap_err_with(|| format!("cannot open selected core input `{relative}`"))?;
-    ensure!(
-        file.metadata()?.len() <= MAX_CORE_FILE_BYTES,
-        "core input `{relative}` exceeds the {MAX_CORE_FILE_BYTES}-byte limit"
-    );
+    let path = {
+        #[cfg(feature = "tracy")]
+        let _span = tracing::info_span!("oracle_validate_selected_path").entered();
+        checked_file(root, relative)?
+    };
+    read_open_core_input(&path, relative)
+}
+
+fn read_open_core_input(path: &Path, relative: &str) -> Result<Vec<u8>> {
+    let file = {
+        #[cfg(feature = "tracy")]
+        let _span = tracing::info_span!("oracle_open_selected_file").entered();
+        let mut options = fs::OpenOptions::new();
+        options.read(true);
+        #[cfg(windows)]
+        let () = {
+            use std::os::windows::fs::OpenOptionsExt as _;
+            use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+            options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
+        };
+        let file = options
+            .open(path)
+            .wrap_err_with(|| format!("cannot open selected core input `{relative}`"))?;
+        let metadata = file.metadata()?;
+        ensure!(
+            metadata.is_file() && !is_reparse(&metadata),
+            "selected core input is a reparse point or non-file at `{relative}`"
+        );
+        ensure!(
+            metadata.len() <= MAX_CORE_FILE_BYTES,
+            "core input `{relative}` exceeds the {MAX_CORE_FILE_BYTES}-byte limit"
+        );
+        file
+    };
     let mut bytes = Vec::new();
-    file.take(MAX_CORE_FILE_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .wrap_err_with(|| format!("cannot read selected core input `{relative}`"))?;
+    let () = {
+        #[cfg(feature = "tracy")]
+        let _span = tracing::info_span!("oracle_read_selected_bytes").entered();
+        file.take(MAX_CORE_FILE_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .wrap_err_with(|| format!("cannot read selected core input `{relative}`"))?;
+    };
     ensure!(
         bytes.len() as u64 <= MAX_CORE_FILE_BYTES,
         "core input `{relative}` exceeds the {MAX_CORE_FILE_BYTES}-byte limit"
@@ -640,7 +1020,7 @@ fn read_selected_input(root: &Path, relative: &str) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn add_to_budget(current: u64, additional: u64) -> Result<u64> {
+pub(super) fn add_to_budget(current: u64, additional: u64) -> Result<u64> {
     let next = current
         .checked_add(additional)
         .ok_or_else(|| eyre::eyre!("core projection byte budget overflow"))?;
@@ -730,14 +1110,14 @@ fn reject_duplicate_object_keys(input: &str) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
 
     fn registry() -> BTreeSet<String> {
         BTreeSet::from(["alpha".to_owned(), "beta".to_owned()])
     }
 
-    fn context(version: &str, alpha: bool) -> ProjectionContext {
+    pub(in crate::source_projection) fn context(version: &str, alpha: bool) -> ProjectionContext {
         let target = SUPPORTED_TARGETS
             .iter()
             .find(|(_, minecraft)| *minecraft == version)
@@ -789,14 +1169,14 @@ mod tests {
         }
     }
 
-    struct Fixture {
+    pub(in crate::source_projection) struct Fixture {
         _temp: tempfile::TempDir,
-        core: PathBuf,
-        metadata: CoreProjectInputs,
+        pub(in crate::source_projection) core: PathBuf,
+        pub(in crate::source_projection) metadata: CoreProjectInputs,
     }
 
     impl Fixture {
-        fn new() -> Self {
+        pub(in crate::source_projection) fn new() -> Self {
             let temp = tempfile::tempdir().unwrap();
             let core = temp.path().join(CORE_ROOT);
             fs::create_dir_all(core.join("src/main/java")).unwrap();
@@ -826,13 +1206,13 @@ mod tests {
             fixture
         }
 
-        fn write(&self, input: &str, bytes: &[u8]) {
+        pub(in crate::source_projection) fn write(&self, input: &str, bytes: &[u8]) {
             let path = self.core.join(input);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, bytes).unwrap();
         }
 
-        fn prepare(
+        pub(in crate::source_projection) fn prepare(
             &self,
             context: &ProjectionContext,
         ) -> Result<BTreeMap<String, ProjectedArtifact>> {
@@ -890,6 +1270,213 @@ mod tests {
         fixture.write(NETWORK_REGISTRATION_PATH, b"class SFMPackets {}\n");
         let artifacts = fixture.prepare(&context("1.19.2", false)).unwrap();
         assert!(artifacts.contains_key(NETWORK_REGISTRATION_PATH));
+    }
+
+    #[test]
+    fn invocation_snapshot_preserves_renderer_results_across_contexts() {
+        let mut fixture = Fixture::new();
+        fixture.write("build/common/gradle.properties", b"{% case minecraft_version %}\n{% when \"1.19.2\" %}\nminecraft_version=1.19.2\n{% else %}\nminecraft_version=1.19.4\n{% endcase %}\nmod_version=4.34.0\n");
+        fixture
+            .metadata
+            .project_files
+            .get_mut("gradle.properties")
+            .unwrap()[0]
+            .template = true;
+        fixture.write("build/common/settings.gradle", b"{% case minecraft_version %}\n{% when \"1.19.2\" %}\nrootProject.name = 'sfm-1.19.2'\n{% else %}\nrootProject.name = 'sfm-1.19.4'\n{% endcase %}\n");
+        fixture
+            .metadata
+            .project_files
+            .get_mut("settings.gradle")
+            .unwrap()[0]
+            .template = true;
+        let inventory = discover_core_source_files(&fixture.core).unwrap();
+        let mut snapshot = CoreInputSnapshot::default();
+        for target in ["1.19.2", "1.19.4"] {
+            for enabled in [false, true] {
+                let context = context(target, enabled);
+                let selection =
+                    select_core_inputs(&fixture.metadata, &context, &inventory).unwrap();
+                let fresh = collect_core_artifacts(&fixture.core, &selection, &context).unwrap();
+                let reused = collect_core_artifacts_with_snapshot(
+                    &fixture.core,
+                    &selection,
+                    &context,
+                    &mut snapshot,
+                )
+                .unwrap();
+                assert_eq!(fresh.len(), reused.len());
+                for (path, expected) in fresh {
+                    assert_eq!(expected.source_bytes, reused[&path].source_bytes);
+                    assert_eq!(expected.output_bytes, reused[&path].output_bytes);
+                    assert_eq!(expected.source_path, reused[&path].source_path);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn snapshot_is_root_bound_and_a_new_invocation_observes_content_changes() {
+        let fixture = Fixture::new();
+        let mut snapshot = CoreInputSnapshot::default();
+        let path = "src/main/java/Shared.java";
+        let original = snapshot.read(&fixture.core, path).unwrap();
+        assert_eq!(
+            snapshot.read_with_identity(&fixture.core, path).unwrap().1,
+            sha256(&original)
+        );
+        fixture.write(path, b"class Changed {}\n");
+        assert_eq!(snapshot.read(&fixture.core, path).unwrap(), original);
+        assert_eq!(
+            snapshot.read_with_identity(&fixture.core, path).unwrap().1,
+            sha256(&original)
+        );
+        assert_eq!(
+            CoreInputSnapshot::default()
+                .read_with_identity(&fixture.core, path)
+                .unwrap()
+                .1,
+            sha256(b"class Changed {}\n")
+        );
+        assert_eq!(
+            CoreInputSnapshot::default()
+                .read(&fixture.core, path)
+                .unwrap(),
+            b"class Changed {}\n"
+        );
+        let other = Fixture::new();
+        assert!(snapshot.read(&other.core, path).is_err());
+        assert!(
+            CoreInputSnapshot::default()
+                .read(&fixture.core, "../escape")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn bounded_parallel_snapshot_preserves_bytes_identity_root_budget_and_error_order() {
+        let fixture = Fixture::new();
+        let context = context("1.19.2", false);
+        let inventory = discover_core_source_files(&fixture.core).unwrap();
+        let mut selection = select_core_inputs(&fixture.metadata, &context, &inventory).unwrap();
+        let mut snapshot = CoreInputSnapshot::default();
+        snapshot.preload(&fixture.core, &selection).unwrap();
+        // Cross several bounded windows while the first invocation's directory
+        // leases remain held. Creating and deleting ordinary children stays valid.
+        for index in 0..33 {
+            let path = format!("src/main/java/Batch{index:02}.java");
+            fs::write(
+                fixture.core.join(&path),
+                format!("class Batch{index} {{}}\n"),
+            )
+            .unwrap();
+            selection.inputs.insert(
+                path.clone(),
+                SelectedCoreInput {
+                    input: path,
+                    template: true,
+                },
+            );
+        }
+        snapshot.preload(&fixture.core, &selection).unwrap();
+        for input in selection.inputs.values() {
+            let expected = read_selected_input(&fixture.core, &input.input).unwrap();
+            let (bytes, identity) = snapshot
+                .read_with_identity(&fixture.core, &input.input)
+                .unwrap();
+            assert_eq!(bytes, expected);
+            assert_eq!(identity, sha256(&expected));
+        }
+        let other = Fixture::new();
+        assert!(snapshot.preload(&other.core, &selection).is_err());
+        selection
+            .inputs
+            .retain(|path, _| path == "src/main/java/Shared.java");
+        let mut bounded = CoreInputSnapshot {
+            total_bytes: MAX_CORE_PROJECTION_BYTES - 1,
+            ..CoreInputSnapshot::default()
+        };
+        assert!(bounded.preload(&fixture.core, &selection).is_err());
+        assert!(bounded.files.is_empty());
+        selection.inputs = BTreeMap::from([
+            (
+                "src/01Missing.java".into(),
+                SelectedCoreInput {
+                    input: "fragments/z-first-missing.java".into(),
+                    template: true,
+                },
+            ),
+            (
+                "src/02Missing.java".into(),
+                SelectedCoreInput {
+                    input: "fragments/a-second-missing.java".into(),
+                    template: true,
+                },
+            ),
+        ]);
+        let error = CoreInputSnapshot::default()
+            .preload(&fixture.core, &selection)
+            .err()
+            .unwrap();
+        assert!(format!("{error:#}").contains("z-first-missing"));
+    }
+
+    #[test]
+    fn borrowed_validated_selector_matches_fresh_selection_and_rejects_registry_changes() {
+        let fixture = Fixture::new();
+        let registered = context("1.19.2", false).features.keys().cloned().collect();
+        let selector = fixture.metadata.validated_selector(&registered).unwrap();
+        let mut snapshot = CoreInputSnapshot::default();
+        let mut inventory = discover_core_source_files(&fixture.core).unwrap();
+        for target in ["1.19.2", "1.19.4"] {
+            for enabled in [false, true] {
+                let context = context(target, enabled);
+                assert_eq!(
+                    selector.select(&context, &inventory).unwrap(),
+                    select_core_inputs(&fixture.metadata, &context, &inventory).unwrap()
+                );
+                assert_eq!(
+                    selector
+                        .select_with_snapshot(&context, &inventory, &mut snapshot)
+                        .unwrap(),
+                    selector.select(&context, &inventory).unwrap()
+                );
+            }
+        }
+        inventory.insert("src/main/java/Added.java".into());
+        let mut context = context("1.19.2", false);
+        assert_eq!(
+            selector.select(&context, &inventory).unwrap(),
+            select_core_inputs(&fixture.metadata, &context, &inventory).unwrap()
+        );
+        assert_eq!(
+            selector
+                .select_with_snapshot(&context, &inventory, &mut snapshot)
+                .unwrap(),
+            selector.select(&context, &inventory).unwrap()
+        );
+        for bad in [
+            "src/.git/config",
+            "gradle.properties",
+            "src/CON.java",
+            "src\\bad.java",
+        ] {
+            let mut changed = inventory.clone();
+            changed.insert(bad.to_owned());
+            assert!(
+                selector
+                    .select_with_snapshot(&context, &changed, &mut snapshot)
+                    .is_err()
+            );
+        }
+        context
+            .features
+            .insert("unexpected_registry_change".into(), true);
+        assert!(selector.select(&context, &inventory).is_err());
+        assert!(
+            selector
+                .select_with_snapshot(&context, &inventory, &mut snapshot)
+                .is_err()
+        );
     }
 
     #[test]
@@ -1114,6 +1701,149 @@ mod tests {
                 .insert("src/main/java/One.java".to_owned(), vec![input]);
             assert!(declared.validate(&registry()).is_err(), "accepted {bad}");
         }
+    }
+
+    #[test]
+    fn ordered_collision_scan_matches_independent_prefix_model() {
+        fn reference(paths: &[&str]) -> bool {
+            let mut files = BTreeMap::new();
+            let mut prefixes = BTreeMap::new();
+            for path in paths {
+                if validate_projection_key(path).is_err() {
+                    return false;
+                }
+                if let Some(other) = files.insert(path.to_ascii_lowercase(), *path)
+                    && other != *path
+                {
+                    return false;
+                }
+                for index in path
+                    .match_indices('/')
+                    .map(|(index, _)| index)
+                    .chain(std::iter::once(path.len()))
+                {
+                    let prefix = &path[..index];
+                    if let Some(other) = prefixes.insert(prefix.to_ascii_lowercase(), prefix)
+                        && other != prefix
+                    {
+                        return false;
+                    }
+                }
+            }
+            for folded in files.keys() {
+                for (index, _) in folded.match_indices('/') {
+                    if files.contains_key(&folded[..index]) {
+                        return false;
+                    }
+                }
+            }
+            true
+        }
+        let corpus = [
+            "src/a.java",
+            "SRC/b.java",
+            "src/dir/A.java",
+            "src/Dir/B.java",
+            "src/dir/a.java",
+            "src/dir/A",
+            "src/dir/A/B.java",
+            "src/dir/A.txt",
+            "src/dir/A-/C.java",
+            "src/dir/a!/C.java",
+            "src/file",
+            "src/file.txt",
+            "src/file/Child.java",
+            "../bad",
+            "src\\bad",
+            "src/日本語/A.java",
+        ];
+        for first in corpus {
+            for second in corpus {
+                for third in corpus {
+                    let paths = [first, second, third];
+                    assert_eq!(
+                        validate_path_collisions(paths, "fixture").is_ok(),
+                        reference(&paths),
+                        "{paths:?}"
+                    );
+                }
+            }
+        }
+        let paths = ["src/dir/a", "src/Dir/b", "src/dir/a/Child.java"];
+        let expected = validate_path_collisions(paths, "fixture")
+            .unwrap_err()
+            .to_string();
+        for _ in 0..20 {
+            assert_eq!(
+                validate_path_collisions(paths, "fixture")
+                    .unwrap_err()
+                    .to_string(),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn invocation_collision_reuse_is_exact_bounded_and_matches_uncached_checks() {
+        let corpus = [
+            "src/a.java",
+            "SRC/b.java",
+            "src/dir/A.java",
+            "src/Dir/B.java",
+            "src/dir/a.java",
+            "src/dir/A",
+            "src/dir/A/B.java",
+            "src/file",
+            "src/file.txt",
+            "src/file/Child.java",
+            "../bad",
+            "src\\bad",
+            "src/日本語/A.java",
+            "src/ab",
+            "src/a",
+            "src/bc",
+        ];
+        let mut checks = PathCollisionChecks::default();
+        for first in corpus {
+            for second in corpus {
+                for third in corpus {
+                    let paths = [first, second, third];
+                    let expected = validate_path_collisions(paths, "fixture")
+                        .map_err(|error| error.to_string());
+                    for _ in 0..2 {
+                        let actual = validate_path_collisions_reusing(
+                            paths.into_iter(),
+                            "fixture",
+                            Some(&mut checks),
+                        )
+                        .map_err(|error| error.to_string());
+                        assert_eq!(actual, expected, "{paths:?}");
+                        assert!(checks.accepted.len() <= 64);
+                    }
+                }
+            }
+        }
+        assert_eq!(checks.accepted.len(), 64);
+        let mut checks = PathCollisionChecks::default();
+        assert!(
+            validate_path_collisions_reusing(
+                ["src/A", "src/A"].into_iter(),
+                "input",
+                Some(&mut checks),
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_path_collisions_reusing(
+                ["src/A", "src/a"].into_iter(),
+                "output",
+                Some(&mut checks),
+            )
+            .unwrap_err()
+            .to_string()
+            .starts_with("output paths")
+        );
+        assert_eq!(checks.accepted.len(), 1, "failed checks must not be cached");
     }
 
     #[test]

@@ -840,7 +840,7 @@ pub(crate) fn checked_file(root: &Path, relative: &str) -> Result<PathBuf> {
     Ok(path)
 }
 
-fn is_reparse(metadata: &fs::Metadata) -> bool {
+pub(crate) fn is_reparse(metadata: &fs::Metadata) -> bool {
     if metadata.file_type().is_symlink() {
         return true;
     }

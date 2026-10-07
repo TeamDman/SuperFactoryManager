@@ -744,6 +744,8 @@ fn reject_duplicate_keys(input: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::super::context::ProjectionContext;
+    use super::super::oracle_compare::ComparisonPolicy;
+    use super::super::oracle_compare::compare_project_bytes;
     use super::super::render_java_source;
     use super::*;
 
@@ -827,6 +829,18 @@ mod tests {
             assert!(output.contains(&format!("rootProject.name = 'sfm-{target}'")));
             assert!(!output.contains("{%"));
             assert!(!output.contains("Unsupported core settings target"));
+            let comparison = compare_project_bytes(
+                "settings.gradle",
+                target,
+                raw,
+                output.as_bytes(),
+                &ComparisonPolicy {
+                    allow_settings_project_identity_override: true,
+                    ..Default::default()
+                },
+            );
+            assert!(!comparison.exact_equal && comparison.normalized_equal);
+            assert_eq!(comparison.transformations.len(), 1);
         }
     }
 

@@ -1,0 +1,247 @@
+{
+  "schema": "sfm:core-release-native-jar-diagnostic@1",
+  "status": "Terminal native packaging pass; finished-artifact comparator differences remain unresolved; no runtime or release-parity acceptance",
+  "observed_date": "2026-10-01",
+  "branch": "feat/sfm-main-source-projection",
+  "committed_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "scope": {
+    "projection_key": "sfm-4.34.0/mc-1.20",
+    "minecraft_version": "1.20",
+    "environment": "release",
+    "recipe": "sfm:released-native-inputs/4.34.0/1.20@1",
+    "compiler_release": 17,
+    "tool_jvm_major": 17
+  },
+  "frozen_inputs": {
+    "catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "project_inputs_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+    "authored_core_files": 1859,
+    "source_rules": 576,
+    "authored_core_inventory_sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "source_lock_bytes": 43036,
+    "source_lock_sha256": "687924ae50658639c45b17b167c25e6186cd384dd00ef0120484b5dade67b01c",
+    "actual_sdk_identity": "sha256:156276d2e5afa3cbca981032b26335a2886b70de3668931c83b15fb31cdc228a",
+    "original_staged_records": 98,
+    "original_staged_records_unchanged": true,
+    "dependency_lockfiles_changed": false,
+    "new_sdk_installed": false,
+    "new_native_target_admission": false
+  },
+  "operational_executable": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-packaging-operational-snapshot-20261001-v1/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "61e2e5d51253755e1254a2851f764c04c3b43991c131f0f22692389f0004ff64",
+    "build_command": "cargo build --offline --locked --bin sfm-propagate-changes",
+    "build_exit": 0,
+    "source_revision": "33fcbf81e",
+    "built_at": "2026-10-01 20:48:08-04:00",
+    "copy_verified_against_fresh_build": true,
+    "final_installed_tool_freshness": "not_performed"
+  },
+  "generation_preflight": {
+    "dry_run": {
+      "exit": 0,
+      "created": 0,
+      "updated": 0,
+      "unchanged": 1140,
+      "manifest_changed": false,
+      "writes_performed": false,
+      "path": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v3/dry-run.stdout.json",
+      "bytes": 641000,
+      "sha256": "931e9991453ca1f2f9820cb866882c825bef7d9d499b0c2f6a75f5b0b7cd1349"
+    },
+    "check": {
+      "exit": 0,
+      "created": 0,
+      "updated": 0,
+      "unchanged": 1140,
+      "manifest_changed": false,
+      "writes_performed": false,
+      "path": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v3/check.stdout.json",
+      "bytes": 640998,
+      "sha256": "58b2e180e2e4f96614b94ce904bf5472b11e88a19d525bb119e2588d5ab62723"
+    },
+    "sync": "not_run_already_current"
+  },
+  "native_invocation": {
+    "command": "<verified-operational-cli> --output-format json --log-filter info --log-file <fresh-ignored-proof>/jar.progress.jsonl source project jar --repo-root <repo-root> --projection sfm-4.34.0/mc-1.20 --released-recipe sfm:released-native-inputs/4.34.0/1.20@1 --java-home <unchanged-reviewed-sdk> --explain-rebuild",
+    "process_id": 40136,
+    "terminal_exit": 0,
+    "process_state": "exited",
+    "main_sources": 528,
+    "gametest_sources": 156,
+    "datagen_sources": 15,
+    "main_compilation": "executed_this_invocation",
+    "gametest_compilation": "verified_compile_cache_reused",
+    "datagen_compilation": "verified_compile_cache_reused",
+    "compilation_report": "completed_or_valid_compile_cache",
+    "jar_packaging": "completed_this_invocation_no_unreceipted_jar_cache_reuse",
+    "compile_node_elapsed_ms": 235088,
+    "package_node_elapsed_ms": 425968,
+    "package_inner_elapsed_ms": 284189,
+    "build_elapsed_ms": 675708,
+    "raw_receipt": {
+      "path": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v3/jar.stdout.json",
+      "bytes": 635394,
+      "sha256": "7f88dcbc4f3afbbfdafb61d1504a5624c48ddb55a956546f7cffa0291ac91761"
+    },
+    "stderr": {
+      "path": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v3/jar.stderr.log",
+      "bytes": 10609,
+      "sha256": "adb57143edd7e45e4d40a3bf9805e5e6000302a09c93e4e110c0f29decbc5931"
+    },
+    "progress": {
+      "path": "platform/cli/sfm-propagate-changes/target/named-release-120-native-proof-20261001-v3/jar.progress.jsonl",
+      "bytes": 34265,
+      "sha256": "e288b694b7d00aad9916f806916007d5f590708c0671c7846903ada030678e16"
+    }
+  },
+  "finished_artifacts": {
+    "reference": {
+      "role": "retained_official_4.34.0_1.20_jar",
+      "file_name": "Super Factory Manager (SFM)-MC1.20-4.34.0.jar",
+      "release_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+      "bytes": 1577376,
+      "sha256": "9943c04e04f7afc433e3f9ccea223ab15f42ba0930c4cebe31b2008ad3b35ecd",
+      "location": "machine-local retained reference; bind by exact digest, not a committed absolute path"
+    },
+    "candidate": {
+      "path": "platform/minecraft/projections/sfm-4.34.0/mc-1.20/build/libs/Super Factory Manager (SFM)-MC1.20-4.34.0-rust.jar",
+      "bytes": 1579492,
+      "sha256": "4f2075afa6eb2b30948c9a7c6f13adda25475f597e9b56b00ac6b8c0ce59857e",
+      "reported_output_content_hash": "blake3:86c7747e15cb435227f18dcaf42975f4593d8fec"
+    }
+  },
+  "comparator": {
+    "command": "<verified-operational-cli> --log-filter info --log-file <fresh-ignored-report>/progress.jsonl jar compare --branch 1.20 --gradle-jar <digest-bound-retained-official-jar> --rust-jar <digest-bound-finished-candidate> --report-json <fresh-ignored-report>/report.json [--strict-manifest]",
+    "default": {
+      "exit": 1,
+      "path": "platform/cli/sfm-propagate-changes/target/core-release-120-final-jar-comparator-20261001-v3/default.report.json",
+      "bytes": 147337,
+      "sha256": "98b879dab76786792de362867354b4db32fca0c8115a07062e80700ddc790047",
+      "manifest_changed": false,
+      "ignored_implementation_timestamp": true
+    },
+    "strict_manifest": {
+      "exit": 1,
+      "path": "platform/cli/sfm-propagate-changes/target/core-release-120-final-jar-comparator-20261001-v3/strict.report.json",
+      "bytes": 147336,
+      "sha256": "a35fb893762402500e4ad0431e483249379cfaf99af592e4f58a24ec4312cb69",
+      "manifest_changed": true,
+      "ignored_implementation_timestamp": false
+    },
+    "both_results": {
+      "matches": false,
+      "reference_entries": 1033,
+      "candidate_entries": 1033,
+      "compared_entries": 1033,
+      "missing_entries": 0,
+      "extra_entries": 0,
+      "changed_entries": 634,
+      "changed_classes": 630,
+      "changed_json_resources": 4,
+      "manifest_handled_separately_from_changed_entries": true
+    },
+    "changed_json_paths": [
+      "assets/sfm/blockstates/buffer.json",
+      "assets/sfm/lang/en_us.json",
+      "data/minecraft/tags/blocks/mineable/pickaxe.json",
+      "sfm.mixins.json"
+    ],
+    "comparator_limits": [
+      "Comparison is entry-payload hashing, not behavioral or class-semantic equivalence.",
+      "Typed maps alone do not authenticate the absence of physical ZIP duplicate names or aliases.",
+      "Class differences are unresolved; no blanket compiler/debug-line waiver is applied.",
+      "The default manifest result ignores Implementation-Timestamp and reports changed=false. The strict manifest result retains that field and reports changed=true. Both normalize manifest line endings.",
+      "Exit 1 records reported differences, not a failed native compilation."
+    ]
+  },
+  "follow_up": [
+    "Independent bounded physical ZIP and parsed-resource inspection.",
+    "Strict per-class difference reduction, bound separately to actual generated-source banner provenance.",
+    "Complete the remaining fresh tooling gate before a new source promotion.",
+    "Review exact hash-bound runtime admission; no Minecraft launch occurs in this receipt."
+  ],
+  "historical_evidence_preserved": [
+    "docs/tasks/sfm-core-native-history-continuation-20261001.json",
+    "docs/tasks/sfm-core-release-pre-reobf-diagnostic-20261001.json",
+    "docs/tasks/sfm-core-packaging-policy-regressions-20261001.json"
+  ],
+  "acceptance": {
+    "native_compile_and_finished_packaging": "passed",
+    "jar_entry_name_membership": "matches_in_actual_comparator",
+    "class_semantics": "not_performed",
+    "runtime": "not_performed",
+    "release_compatibility": "not_accepted",
+    "all_twenty_build_matrix": "incomplete",
+    "full_unreleased_feature_preservation": "incomplete",
+    "fresh_complete_tooling_gate": "still_running",
+    "goal": "active_incomplete"
+  },
+  "independent_physical_inspection": {
+    "independent_reviewer": "core_projection_catalog",
+    "scope": "read_only_bounded_zip_payload_and_resource_inspection",
+    "reference_entries": 1033,
+    "candidate_entries": 1033,
+    "directory_entries": 0,
+    "raw_grammar_entries": 0,
+    "duplicate_names": 0,
+    "case_separator_aliases": 0,
+    "unsafe_traversal_or_absolute_names": 0,
+    "identical_payloads": 398,
+    "changed_classes": 630,
+    "changed_json": 4,
+    "changed_raw_manifest": 1,
+    "reference_uncompressed_bytes": 3543691,
+    "candidate_uncompressed_bytes": 3546404,
+    "bounds": {
+      "archive_bytes": 33554432,
+      "entries": 10000,
+      "per_entry_bytes": 8388608,
+      "aggregate_uncompressed_bytes": 67108864,
+      "stream_buffer_bytes": 65536
+    },
+    "input_identity_stable_before_after": true,
+    "held_read_only_streams": true,
+    "manifest": {
+      "bytes_each": 289,
+      "implementation_title": "sfm-1.20",
+      "other_fields_equal": true,
+      "reference_timestamp": "2026-07-04T12:05:02-0400",
+      "candidate_timestamp": "2026-10-01T21:11:13-0400",
+      "default_comparator_changed": false,
+      "strict_comparator_changed": true
+    },
+    "resource_changes": [
+      {
+        "path": "assets/sfm/blockstates/buffer.json",
+        "reference_bytes": 464,
+        "candidate_bytes": 465,
+        "change": "append one final LF"
+      },
+      {
+        "path": "assets/sfm/lang/en_us.json",
+        "reference_bytes": 21850,
+        "candidate_bytes": 21851,
+        "change": "append one final LF"
+      },
+      {
+        "path": "data/minecraft/tags/blocks/mineable/pickaxe.json",
+        "reference_bytes": 440,
+        "candidate_bytes": 441,
+        "change": "append one final LF"
+      },
+      {
+        "path": "sfm.mixins.json",
+        "reference_bytes": 304,
+        "candidate_bytes": 290,
+        "change": "CRLF to LF; append one final LF"
+      }
+    ],
+    "parsed_json_values_equal": true,
+    "json_comparison": "Duplicate keys rejected; array order/scalar types preserved; object names and string values compared case-sensitively",
+    "no_extraction_or_execution": true,
+    "classes": "not_classified_no_behavioral_parity_inference"
+  }
+}

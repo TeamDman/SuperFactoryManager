@@ -2,12 +2,12 @@
 struct BuildPlan {
     schema_version: u32,
     mode: String,
-    #[facet(proxy = JsonBranchName)]
-    branch_name: BranchName,
+    #[facet(proxy = JsonOptionalBranchName, skip_unless_truthy)]
+    branch_name: Option<BranchName>,
     #[facet(proxy = JsonMinecraftVersion)]
     minecraft_version: MinecraftVersion,
-    #[facet(proxy = JsonPath)]
-    worktree_path: PathBuf,
+    #[facet(proxy = JsonOptionalPath, skip_unless_truthy)]
+    worktree_path: Option<PathBuf>,
     #[facet(proxy = JsonPath)]
     minecraft_dir: PathBuf,
     #[facet(proxy = JsonPath)]
@@ -51,6 +51,11 @@ struct BuildPlan {
     graph: Vec<GraphNode>,
     artifact_portability: ArtifactPortabilityAudit,
     warnings: Vec<String>,
+    #[facet(skip_unless_truthy)]
+    catalog_project:
+        Option<crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt>,
+    #[facet(skip_serializing, opaque)]
+    identity: BuildProjectIdentity,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -288,13 +293,16 @@ impl ArtifactSource {
 
 #[derive(Debug, Facet)]
 struct MinecraftPlan {
-    version_manifest: ArtifactPlan,
+    #[facet(skip_unless_truthy)]
+    version_manifest: Option<ArtifactPlan>,
     version_json: ArtifactPlan,
     client_jar_url: String,
     server_jar_url: String,
     client_mappings_url: Option<String>,
     server_mappings_url: Option<String>,
     libraries_count: usize,
+    #[facet(skip_serializing, opaque)]
+    authenticated_inputs: Option<authenticated_minecraft_inputs::AuthenticatedMinecraftInputs>,
 }
 
 #[derive(Debug, Facet)]
@@ -333,8 +341,7 @@ struct McpConfigPlan {
 struct DependencyPlan {
     configuration: String,
     bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
-    artifact_treatment:
-        crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
+    artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
     data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
     notation: String,
     resolved_notation: String,
@@ -374,16 +381,24 @@ struct JavaPlan {
     selection: String,
     pin_url: Option<String>,
     pin_sha512: Option<String>,
+    #[facet(skip_serializing)]
+    execution_identity: Option<String>,
 }
 
 impl JavaPlan {
     /// Include the authenticated SDK bytes in Java-dependent cache keys. A
     /// different JBRSDK archive can report the same `java -version` string.
     fn cache_identity(&self) -> String {
+        if let Some(identity) = &self.execution_identity {
+            return identity.clone();
+        }
         match self.pin_sha512.as_deref() {
             Some(digest) => format!("{}\nlockfile-jbrsdk-sha512={digest}", self.version_output),
             None if self.selection == "explicit-java-home" => {
-                format!("{}\nexplicit-java-home={:?}", self.version_output, self.home)
+                format!(
+                    "{}\nexplicit-java-home={:?}",
+                    self.version_output, self.home
+                )
             }
             None => self.version_output.clone(),
         }
@@ -485,6 +500,18 @@ struct MinecraftVersionJson {
     libraries: Vec<MinecraftLibrary>,
     #[facet(rename = "assetIndex", default)]
     asset_index: Option<MinecraftAssetIndex>,
+}
+
+/// Test witness for the existing compiler parser's ordinary-library ordering.
+#[cfg(test)]
+pub(super) fn original_minecraft_library_paths(text: &str) -> eyre::Result<Vec<String>> {
+    let metadata: MinecraftVersionJson = facet_json::from_str(text)?;
+    Ok(metadata
+        .libraries
+        .into_iter()
+        .filter_map(|entry| entry.downloads.and_then(|value| value.artifact))
+        .map(|artifact| artifact.path)
+        .collect())
 }
 
 #[derive(Debug, Facet)]

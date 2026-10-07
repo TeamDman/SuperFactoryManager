@@ -1,0 +1,1546 @@
+{
+  "schema": "sfm:core-frame-runtime-slice@1",
+  "status": "authored-source-only-awaiting-parent-promotion-and-real-production-renderer-tests",
+  "scope": {
+    "java_files": 1,
+    "logical_path": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+    "stage_root": "platform/cli/sfm-propagate-changes/target/core-frame-runtime-stage-v1",
+    "live_core_modified": false,
+    "production_rule_modified": false
+  },
+  "normalization": "none",
+  "contract_changes": false,
+  "definitions": {
+    "client_frame_language": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_manager",
+        "sfml_execution_side",
+        "client_program_consent"
+      ]
+    },
+    "client_frame_render": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "touch_display",
+        "image_resources"
+      ]
+    },
+    "client_program_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "packet_values",
+        "sfml_execution_side",
+        "client_manager",
+        "client_program_consent",
+        "packet_computation"
+      ]
+    },
+    "client_manager": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side",
+        "client_program_consent",
+        "disk_readonly_access"
+      ]
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "multiplayer_packets": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_inbox",
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    },
+    "client_inbox": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_transport_private"
+      ]
+    },
+    "packet_transport_private": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_computation"
+      ]
+    },
+    "packet_computation": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ]
+    },
+    "packet_values": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "runtime_resource_cleanup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "touch_display": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "image_resources"
+      ]
+    },
+    "image_resources": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values"
+      ]
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "disk_readonly_access": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_program_signing": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_frame_language",
+        "client_program_actions"
+      ]
+    }
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "file": {
+    "path": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+    "owner": "client_frame_language",
+    "raw_oid": "3b29d2749cf33b06e8a10bc3ba3f497173841cdf",
+    "raw_bytes": 23913,
+    "raw_sha256": "sha256:bf88b401ff3eacc0c2dad9504b55912a02da0f374ae34955578f4d002d1f7634",
+    "lf_count": 465,
+    "cr_count": 0,
+    "final_lf": true,
+    "authored_bytes": 27717,
+    "authored_sha256": "sha256:528094eb87f7b4f78678c26929e8e84b54d7a4c0fe1c919b73d0bc82abb4e184",
+    "source_rule": {
+      "input": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerFrameRuntime.java",
+      "when": {
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ],
+        "all_features": [
+          "client_frame_language"
+        ]
+      },
+      "template": true
+    },
+    "witnesses": {
+      "dev/1.19.2": "3b29d2749cf33b06e8a10bc3ba3f497173841cdf",
+      "dev/1.19.4": "3b29d2749cf33b06e8a10bc3ba3f497173841cdf",
+      "dev/1.20": null,
+      "dev/1.20.1": null,
+      "dev/1.20.2": null,
+      "dev/1.20.3": null,
+      "dev/1.20.4": null,
+      "dev/1.21.0": null,
+      "dev/1.21.1": null,
+      "dev/26.1.2": null,
+      "release/1.19.2": null,
+      "release/1.19.4": null,
+      "release/1.20": null,
+      "release/1.20.1": null,
+      "release/1.20.2": null,
+      "release/1.20.3": null,
+      "release/1.20.4": null,
+      "release/1.21.0": null,
+      "release/1.21.1": null,
+      "release/26.1.2": null
+    },
+    "common_edit_anchor": "    public static final int MAX_FRAME_TRIGGERS = 32;"
+  },
+  "regions": [
+    {
+      "id": "action_imports",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "import ca.teamdman.sfm.client.action.SFMClientActionAuthorizationService;\nimport ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;\nimport ca.teamdman.sfm.client.registry.SFMClientActions;\n",
+      "template_region": "{% if features.client_program_actions %}\nimport ca.teamdman.sfm.client.action.SFMClientActionAuthorizationService;\nimport ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;\nimport ca.teamdman.sfm.client.registry.SFMClientActions;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 202,
+      "template_bytes": 255,
+      "original_sha256": "sha256:fdacf178409a597a8be498a2b99b186a51ccae8f5cde4f267365ac2f1d0bf30d",
+      "template_sha256": "sha256:d2c794b4e2120b369ce0417698bcb9fa6ea7084dfa2cac26350ba39412b39a05"
+    },
+    {
+      "id": "negotiated_world_import",
+      "owners": [
+        "multiplayer_packets"
+      ],
+      "original_region": "import ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime;\n",
+      "template_region": "{% if features.multiplayer_packets %}\nimport ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 63,
+      "template_bytes": 113,
+      "original_sha256": "sha256:09ad163347be36b31c3afe82217debd246a68ac16de250a49409023847e55f07",
+      "template_sha256": "sha256:01fe482a9df9ae6ec73e380775726ae82ee9cc147b296074665044056fb26e2b"
+    },
+    {
+      "id": "value_import",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "import ca.teamdman.sfm.common.value.SFMValue;\n",
+      "template_region": "{% if features.client_program_actions %}\nimport ca.teamdman.sfm.common.value.SFMValue;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 46,
+      "template_bytes": 99,
+      "original_sha256": "sha256:3585ff8fc0b84a658725749ab8adb0a42babdfbea9d737d493f1cde61facccf0",
+      "template_sha256": "sha256:2eb6853c2482fc91829f8ba96d6dc221c46fb6632ddd2b6722364158bc731377"
+    },
+    {
+      "id": "display_block_import",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import ca.teamdman.sfm.common.block.TouchDisplayBlock;\n",
+      "template_region": "{% if features.touch_display %}\nimport ca.teamdman.sfm.common.block.TouchDisplayBlock;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 55,
+      "template_bytes": 99,
+      "original_sha256": "sha256:393855565acb619f2c188f855ef592ae653d7170917c1b5d028b198c6779251a",
+      "template_sha256": "sha256:a95885f207dc6bef0c35ecc13423e0286185f4a9af551c7d283789413084f07d"
+    },
+    {
+      "id": "display_entity_import",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;\n",
+      "template_region": "{% if features.touch_display %}\nimport ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 67,
+      "template_bytes": 111,
+      "original_sha256": "sha256:ff42da576c85c1c1124170eb15238094fc11c4ab2f27579f9b420d1445dbe8f3",
+      "template_sha256": "sha256:5c8f5ca89a3383bad4ec89fe531cbe7daca08d90be2caf488a96e181fa036dac"
+    },
+    {
+      "id": "render_ast_imports",
+      "owners": [
+        "client_frame_render"
+      ],
+      "original_region": "import ca.teamdman.sfml.ast.IfStatement;\nimport ca.teamdman.sfml.ast.RenderImageStatement;\n",
+      "template_region": "{% if features.client_frame_render %}\nimport ca.teamdman.sfml.ast.IfStatement;\nimport ca.teamdman.sfml.ast.RenderImageStatement;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 91,
+      "template_bytes": 141,
+      "original_sha256": "sha256:320b22b42ffba2fc33a3dd4fad421caa052803dcb41fceac2ca9eb031bddcc86",
+      "template_sha256": "sha256:483226efff1196bf2e51547c07077034ded35888778e0fa3d9d5f041c2237ef8"
+    },
+    {
+      "id": "display_geometry_imports",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\n",
+      "template_region": "{% if features.touch_display %}\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 73,
+      "template_bytes": 117,
+      "original_sha256": "sha256:80061aafb8acaa290e0d7d730d62742947bc4ba19b3eaa8be11b8bf2ca2a9b3d",
+      "template_sha256": "sha256:ae8873e05a0f19064c175da3d0f57663de2cfcfa08d3a11e3b9ac2befb7608b9"
+    },
+    {
+      "id": "display_vector_import",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import net.minecraft.world.phys.Vec3;\n",
+      "template_region": "{% if features.touch_display %}\nimport net.minecraft.world.phys.Vec3;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 38,
+      "template_bytes": 82,
+      "original_sha256": "sha256:239267187e1fe36bb26c9dd9ec7d93a42808fa6ca16ca71a04d42864605d6091",
+      "template_sha256": "sha256:c39241ca0b439b09af0091f080c6b69b8ee30c205ff645899f6dee77e5c9dd4e"
+    },
+    {
+      "id": "display_candidates_import",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import java.util.ArrayList;\n",
+      "template_region": "{% if features.touch_display %}\nimport java.util.ArrayList;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 28,
+      "template_bytes": 72,
+      "original_sha256": "sha256:3ee72b7907ffc1f3f24042264c3340224637ec063f66ae53eba0e4fe31b11c15",
+      "template_sha256": "sha256:ab19af939071afd7a8fa5841e41f640efd540992687694cff5bcc3b02acc368c"
+    },
+    {
+      "id": "display_state_imports",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "import java.util.Map;\nimport java.util.HashMap;\nimport java.util.HashSet;\n",
+      "template_region": "{% if features.touch_display %}\nimport java.util.Map;\nimport java.util.HashMap;\nimport java.util.HashSet;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 74,
+      "template_bytes": 118,
+      "original_sha256": "sha256:7c8ef888e7acbdba626e95eb2d1b7c51a20dc4d7b5e4879a0222c1bafa3850ed",
+      "template_sha256": "sha256:e914f9a879ed0486666ab0a6d352a3cbd2a1f22707984319a21cd9f6ab55e4b4"
+    },
+    {
+      "id": "action_dispatcher",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "    private static final SFMClientProgramActionDispatcher ACTIONS = new SFMClientProgramActionDispatcher(\n            SFMClientActions::programmaticBinding, SFMClientActionAuthorizationService.shared());\n",
+      "template_region": "{% if features.client_program_actions %}\n    private static final SFMClientProgramActionDispatcher ACTIONS = new SFMClientProgramActionDispatcher(\n            SFMClientActions::programmaticBinding, SFMClientActionAuthorizationService.shared());\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 204,
+      "template_bytes": 257,
+      "original_sha256": "sha256:390b82e2c1a20363ab097129c134544b320edb8c39d778a2c4c341bc79a14f5b",
+      "template_sha256": "sha256:262f1775ccd0b06fe7ddaba83d3c95d69290f6752e7f3e10e6341de8f679293c"
+    },
+    {
+      "id": "display_state_and_budget",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    private static final WeakHashMap<TouchDisplayBlockEntity, FrameState> FRAMES = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, Map<ExecutionKey, FrameState>> EXECUTIONS = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, Long> DISPLAY_EPOCHS = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, String> DIAGNOSTICS = new WeakHashMap<>();\n    private static final ClientFrameWorkBudget WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);\n    private static final ClientFrameWorkBudget PROGRAM_WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);\n",
+      "template_region": "{% if features.touch_display %}\n    private static final WeakHashMap<TouchDisplayBlockEntity, FrameState> FRAMES = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, Map<ExecutionKey, FrameState>> EXECUTIONS = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, Long> DISPLAY_EPOCHS = new WeakHashMap<>();\n    private static final WeakHashMap<TouchDisplayBlockEntity, String> DIAGNOSTICS = new WeakHashMap<>();\n    private static final ClientFrameWorkBudget WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);\n    private static final ClientFrameWorkBudget PROGRAM_WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 696,
+      "template_bytes": 740,
+      "original_sha256": "sha256:81ac0d4e0fcfcbf504f20f4edfc78cb162e0fefe042d7959516ca8b16077d800",
+      "template_sha256": "sha256:6e91417261fc0b2b2cd10c0d90fa2983a65bbccbd1f719dc26d6b5804f4b4e76"
+    },
+    {
+      "id": "display_diagnostic",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    public static Optional<String> diagnosticFor(TouchDisplayBlockEntity display) {\n        return Optional.ofNullable(DIAGNOSTICS.get(display));\n    }\n\n",
+      "template_region": "{% if features.touch_display %}\n    public static Optional<String> diagnosticFor(TouchDisplayBlockEntity display) {\n        return Optional.ofNullable(DIAGNOSTICS.get(display));\n    }\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 153,
+      "template_bytes": 197,
+      "original_sha256": "sha256:3ebfca377112e0ce342d7fa160f4104cdf1fe0aff8472ef96a2adf18cf4ab0c5",
+      "template_sha256": "sha256:b2c786235388992ef4233ffe607a515d918530914c0f9b594dfdb2a5e9a48528"
+    },
+    {
+      "id": "frame_evaluation_api",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "                ClientFrameEvaluator.Evaluation evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex,\n                        (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),\n                                ClientManagerFrameRuntime::policyBlockers,\n                                (identity, scope) -> writer.manifest().permits(action, scope),\n                                ClientManagerFrameRuntime::runtimeAvailable),\n                        writer.renderAllowed() && writers.size() == 1);\n                state.values = evaluated.values();\n",
+      "template_region": "{% if features.client_program_actions %}\n                ClientFrameEvaluator.Evaluation evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex,\n                        (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),\n                                ClientManagerFrameRuntime::policyBlockers,\n                                (identity, scope) -> writer.manifest().permits(action, scope),\n                                ClientManagerFrameRuntime::runtimeAvailable),\n                        writer.renderAllowed() && writers.size() == 1);\n                state.values = evaluated.values();\n{% else %}\n                Optional<ResourceLocation> evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex);\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 600,
+      "template_bytes": 786,
+      "original_sha256": "sha256:4751c09b3ef134dee493a6d91cd2e033ae1a8e6cca01e8f691be5db57237a816",
+      "template_sha256": "sha256:81ddd31a8e9775554d3b8648d4505f2331ee398f39abbcd316ef328870935a04"
+    },
+    {
+      "id": "actions_off_authorized_image_commit",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "                if (evaluated.image().isPresent() && !Objects.equals(evaluated.image().get(), state.texture)) {\n                    state.texture = evaluated.image().get();\n                    state.changedFrames++;\n                }\n",
+      "template_region": "{% if features.client_program_actions %}\n                if (evaluated.image().isPresent() && !Objects.equals(evaluated.image().get(), state.texture)) {\n                    state.texture = evaluated.image().get();\n                    state.changedFrames++;\n                }\n{% else %}\n                if (writer.renderAllowed() && writers.size() == 1\n                    && evaluated.isPresent() && !Objects.equals(evaluated.get(), state.texture)) {\n                    state.texture = evaluated.get();\n                    state.changedFrames++;\n                }\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 234,
+      "template_bytes": 577,
+      "original_sha256": "sha256:0b3d8d59e7c67eb7d352b3415f3994ebd570d31e30043e988e871c7ef33a8bb3",
+      "template_sha256": "sha256:4a34aee9f8718f0509345144f5ed62eccafb7cbb9676a0bdf6750d3a26c29729"
+    },
+    {
+      "id": "value_reset",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "                state.values = Map.of();\n",
+      "template_region": "{% if features.client_program_actions %}\n                state.values = Map.of();\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 41,
+      "template_bytes": 94,
+      "original_sha256": "sha256:4606f7628cf1509081db649b8ac9ea323ccc3ed3ba340dacec66569d7fbd40f4",
+      "template_sha256": "sha256:7625da96f85da2dadbae90152a8ff8831ea419433e2dd28f73c11c6570800742"
+    },
+    {
+      "id": "candidate_manifest_argument",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "                programs.add(new Writer(frame, compiled.identity(), compiled.manifest(), triggerIndex,\n",
+      "template_region": "{% if features.client_program_actions %}\n                programs.add(new Writer(frame, compiled.identity(), compiled.manifest(), triggerIndex,\n{% else %}\n                programs.add(new Writer(frame, compiled.identity(), triggerIndex,\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 103,
+      "template_bytes": 249,
+      "original_sha256": "sha256:f7715d7a979eb781ef360ccf16cc942c4ef84798f92c8e2cbb855b9782626e51",
+      "template_sha256": "sha256:3b4ac893923796752a1298f4caae082f9e3439e1a49a58155f3bf0df236663bf"
+    },
+    {
+      "id": "display_scheduler_and_candidates",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    /** Called only from the selected display's block-entity renderer. */\n    public static Optional<ResourceLocation> textureFor(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        return textureForSelectedFrame(display, renderEpoch, renderEligible(minecraft, display));\n    }\n\n    /**\n     * Scheduler seam with eligibility supplied by the caller. Production calls\n     * it from the BER; ambient tests can exercise execution without moving the\n     * player's camera. Such tests do not prove actual visibility or pixels.\n     */\n    public static Optional<ResourceLocation> textureForSelectedFrame(\n            TouchDisplayBlockEntity display, long epoch, boolean eligible\n    ) {\n        Minecraft minecraft = Minecraft.getInstance();\n        Level world = minecraft.level;\n        if (!minecraft.isSameThread() || world == null || display.getLevel() != world || display.isRemoved()) {\n            return Optional.empty();\n        }\n        observeWorld(world);\n        DIAGNOSTICS.remove(display);\n        if (!runtimeAvailable()) {\n            DIAGNOSTICS.put(display, \"Client Manager requires a private world or negotiated remote session\");\n            FRAMES.remove(display);\n            EXECUTIONS.remove(display);\n            return Optional.empty();\n        }\n        if (!eligible) {\n            // Visibility is a scheduling pause, not a loss of program authority\n            // or a fresh animation. Retain values/frame counters and stream leases.\n            return Optional.empty();\n        }\n\n        FrameState cached = FRAMES.get(display);\n        // This is shared across all displays and uses the actual render event,\n        // never an epoch supplied by the ambient scheduler test seam.\n        if (!Objects.equals(DISPLAY_EPOCHS.get(display), epoch) && !WORK_BUDGET.tryAcquire(renderEpoch)) {\n            DIAGNOSTICS.put(display, \"Client Manager display work budget exhausted for this frame\");\n            return retainedTexture(display, cached);\n        }\n        DISPLAY_EPOCHS.put(display, epoch);\n\n        List<Writer> programs = candidates(display);\n        List<Writer> writers = programs.stream().filter(Writer::renderAllowed).toList();\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.computeIfAbsent(display, ignored -> new HashMap<>());\n        Set<ExecutionKey> active = new HashSet<>();\n        for (Writer writer : programs) {\n            ExecutionKey key = new ExecutionKey(writer.identity(), writer.triggerIndex());\n            active.add(key);\n            FrameState state = states.computeIfAbsent(key, ignored -> new FrameState(writer.identity()));\n            if (state.lastEpoch == epoch) continue;\n            if (!PROGRAM_WORK_BUDGET.tryAcquire(renderEpoch)) {\n                DIAGNOSTICS.put(display, \"Client Manager program work budget exhausted for this frame\");\n                continue;\n            }\n            state.lastEpoch = epoch;\n            try {\n{% if features.client_program_actions %}\n                ClientFrameEvaluator.Evaluation evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex,\n                        (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),\n                                ClientManagerFrameRuntime::policyBlockers,\n                                (identity, scope) -> writer.manifest().permits(action, scope),\n                                ClientManagerFrameRuntime::runtimeAvailable),\n                        writer.renderAllowed() && writers.size() == 1);\n                state.values = evaluated.values();\n{% else %}\n                Optional<ResourceLocation> evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex);\n{% endif %}\n                state.frameIndex++;\n                state.evaluations++;\n{% if features.client_program_actions %}\n                if (evaluated.image().isPresent() && !Objects.equals(evaluated.image().get(), state.texture)) {\n                    state.texture = evaluated.image().get();\n                    state.changedFrames++;\n                }\n{% else %}\n                if (writer.renderAllowed() && writers.size() == 1\n                    && evaluated.isPresent() && !Objects.equals(evaluated.get(), state.texture)) {\n                    state.texture = evaluated.get();\n                    state.changedFrames++;\n                }\n{% endif %}\n            } catch (RuntimeException failure) {\n{% if features.client_program_actions %}\n                state.values = Map.of();\n{% endif %}\n                DIAGNOSTICS.put(display, \"Client Manager frame evaluation failed\");\n            }\n        }\n        states.keySet().retainAll(active);\n        if (writers.size() != 1) {\n            if (writers.size() > 1) DIAGNOSTICS.put(display, \"Multiple approved Client Manager triggers target this display\");\n            FRAMES.remove(display);\n            return Optional.empty();\n        }\n        Writer writer = writers.get(0);\n        FrameState state = states.get(new ExecutionKey(writer.identity(), writer.triggerIndex()));\n        FRAMES.put(display, state);\n        return retainedTexture(display, state);\n    }\n\n    private static List<Writer> candidates(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        Level world = minecraft.level;\n        if (world == null || display.getLevel() != world || display.isRemoved() || !runtimeAvailable()) return List.of();\n        List<Writer> programs = new ArrayList<>();\n        Set<ClientManagerBlockEntity> managers = ClientManagerLoadedRegistry.snapshot(world);\n        if (managers.size() > MAX_MANAGERS_PER_FRAME) {\n            DIAGNOSTICS.put(display, \"Loaded Client Manager count exceeds the per-frame budget\");\n            FRAMES.remove(display);\n            return List.of();\n        }\n        for (ClientManagerBlockEntity manager : managers) {\n            if (manager.isRemoved() || manager.getLevel() != world\n                || !world.hasChunkAt(manager.getBlockPos())\n                || world.getBlockEntity(manager.getBlockPos()) != manager\n                || manager.getBlockPos().distSqr(display.getBlockPos())\n                   > MAX_MANAGER_TO_DISPLAY_DISTANCE_SQUARED) continue;\n\n            Compiled compiled = compiled(manager);\n            if (compiled.program() == null || compiled.identity() == null) continue;\n            int triggerIndex = -1;\n            for (var trigger : compiled.program().triggers()) {\n                triggerIndex++;\n                FrameTrigger frame = (FrameTrigger) trigger;\n                if (!ClientManagerTargetBindings.contains(frame, compiled.labels(), display.getBlockPos())) continue;\n\n                ClientProgramConsentGate.Evaluation execution = consent().execution(compiled.identity(),\n                        ClientManagerFrameRuntime::policyBlockers);\n                boolean renderRequested = requestsRender(frame.block());\n                ClientProgramConsentGate.Evaluation rendering = renderRequested\n                        ? consent().evaluate(compiled.identity(), ClientProgramConsentGate.RENDER,\n                                ClientManagerFrameRuntime::policyBlockers) : null;\n                if (!execution.allowed() || rendering != null && !rendering.allowed()) {\n                    if (execution.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT\n                        || rendering != null && rendering.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT) {\n                        showOneConsentNotice(minecraft);\n                    }\n                    if (!execution.allowed()) continue;\n                }\n{% if features.client_program_actions %}\n                programs.add(new Writer(frame, compiled.identity(), compiled.manifest(), triggerIndex,\n{% else %}\n                programs.add(new Writer(frame, compiled.identity(), triggerIndex,\n{% endif %}\n                        rendering != null && rendering.allowed()));\n            }\n        }\n\n        return programs;\n    }\n\n",
+      "template_region": "{% if features.touch_display %}\n    /** Called only from the selected display's block-entity renderer. */\n    public static Optional<ResourceLocation> textureFor(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        return textureForSelectedFrame(display, renderEpoch, renderEligible(minecraft, display));\n    }\n\n    /**\n     * Scheduler seam with eligibility supplied by the caller. Production calls\n     * it from the BER; ambient tests can exercise execution without moving the\n     * player's camera. Such tests do not prove actual visibility or pixels.\n     */\n    public static Optional<ResourceLocation> textureForSelectedFrame(\n            TouchDisplayBlockEntity display, long epoch, boolean eligible\n    ) {\n        Minecraft minecraft = Minecraft.getInstance();\n        Level world = minecraft.level;\n        if (!minecraft.isSameThread() || world == null || display.getLevel() != world || display.isRemoved()) {\n            return Optional.empty();\n        }\n        observeWorld(world);\n        DIAGNOSTICS.remove(display);\n        if (!runtimeAvailable()) {\n            DIAGNOSTICS.put(display, \"Client Manager requires a private world or negotiated remote session\");\n            FRAMES.remove(display);\n            EXECUTIONS.remove(display);\n            return Optional.empty();\n        }\n        if (!eligible) {\n            // Visibility is a scheduling pause, not a loss of program authority\n            // or a fresh animation. Retain values/frame counters and stream leases.\n            return Optional.empty();\n        }\n\n        FrameState cached = FRAMES.get(display);\n        // This is shared across all displays and uses the actual render event,\n        // never an epoch supplied by the ambient scheduler test seam.\n        if (!Objects.equals(DISPLAY_EPOCHS.get(display), epoch) && !WORK_BUDGET.tryAcquire(renderEpoch)) {\n            DIAGNOSTICS.put(display, \"Client Manager display work budget exhausted for this frame\");\n            return retainedTexture(display, cached);\n        }\n        DISPLAY_EPOCHS.put(display, epoch);\n\n        List<Writer> programs = candidates(display);\n        List<Writer> writers = programs.stream().filter(Writer::renderAllowed).toList();\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.computeIfAbsent(display, ignored -> new HashMap<>());\n        Set<ExecutionKey> active = new HashSet<>();\n        for (Writer writer : programs) {\n            ExecutionKey key = new ExecutionKey(writer.identity(), writer.triggerIndex());\n            active.add(key);\n            FrameState state = states.computeIfAbsent(key, ignored -> new FrameState(writer.identity()));\n            if (state.lastEpoch == epoch) continue;\n            if (!PROGRAM_WORK_BUDGET.tryAcquire(renderEpoch)) {\n                DIAGNOSTICS.put(display, \"Client Manager program work budget exhausted for this frame\");\n                continue;\n            }\n            state.lastEpoch = epoch;\n            try {\n{% if features.client_program_actions %}\n                ClientFrameEvaluator.Evaluation evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex,\n                        (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),\n                                ClientManagerFrameRuntime::policyBlockers,\n                                (identity, scope) -> writer.manifest().permits(action, scope),\n                                ClientManagerFrameRuntime::runtimeAvailable),\n                        writer.renderAllowed() && writers.size() == 1);\n                state.values = evaluated.values();\n{% else %}\n                Optional<ResourceLocation> evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex);\n{% endif %}\n                state.frameIndex++;\n                state.evaluations++;\n{% if features.client_program_actions %}\n                if (evaluated.image().isPresent() && !Objects.equals(evaluated.image().get(), state.texture)) {\n                    state.texture = evaluated.image().get();\n                    state.changedFrames++;\n                }\n{% else %}\n                if (writer.renderAllowed() && writers.size() == 1\n                    && evaluated.isPresent() && !Objects.equals(evaluated.get(), state.texture)) {\n                    state.texture = evaluated.get();\n                    state.changedFrames++;\n                }\n{% endif %}\n            } catch (RuntimeException failure) {\n{% if features.client_program_actions %}\n                state.values = Map.of();\n{% endif %}\n                DIAGNOSTICS.put(display, \"Client Manager frame evaluation failed\");\n            }\n        }\n        states.keySet().retainAll(active);\n        if (writers.size() != 1) {\n            if (writers.size() > 1) DIAGNOSTICS.put(display, \"Multiple approved Client Manager triggers target this display\");\n            FRAMES.remove(display);\n            return Optional.empty();\n        }\n        Writer writer = writers.get(0);\n        FrameState state = states.get(new ExecutionKey(writer.identity(), writer.triggerIndex()));\n        FRAMES.put(display, state);\n        return retainedTexture(display, state);\n    }\n\n    private static List<Writer> candidates(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        Level world = minecraft.level;\n        if (world == null || display.getLevel() != world || display.isRemoved() || !runtimeAvailable()) return List.of();\n        List<Writer> programs = new ArrayList<>();\n        Set<ClientManagerBlockEntity> managers = ClientManagerLoadedRegistry.snapshot(world);\n        if (managers.size() > MAX_MANAGERS_PER_FRAME) {\n            DIAGNOSTICS.put(display, \"Loaded Client Manager count exceeds the per-frame budget\");\n            FRAMES.remove(display);\n            return List.of();\n        }\n        for (ClientManagerBlockEntity manager : managers) {\n            if (manager.isRemoved() || manager.getLevel() != world\n                || !world.hasChunkAt(manager.getBlockPos())\n                || world.getBlockEntity(manager.getBlockPos()) != manager\n                || manager.getBlockPos().distSqr(display.getBlockPos())\n                   > MAX_MANAGER_TO_DISPLAY_DISTANCE_SQUARED) continue;\n\n            Compiled compiled = compiled(manager);\n            if (compiled.program() == null || compiled.identity() == null) continue;\n            int triggerIndex = -1;\n            for (var trigger : compiled.program().triggers()) {\n                triggerIndex++;\n                FrameTrigger frame = (FrameTrigger) trigger;\n                if (!ClientManagerTargetBindings.contains(frame, compiled.labels(), display.getBlockPos())) continue;\n\n                ClientProgramConsentGate.Evaluation execution = consent().execution(compiled.identity(),\n                        ClientManagerFrameRuntime::policyBlockers);\n                boolean renderRequested = requestsRender(frame.block());\n                ClientProgramConsentGate.Evaluation rendering = renderRequested\n                        ? consent().evaluate(compiled.identity(), ClientProgramConsentGate.RENDER,\n                                ClientManagerFrameRuntime::policyBlockers) : null;\n                if (!execution.allowed() || rendering != null && !rendering.allowed()) {\n                    if (execution.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT\n                        || rendering != null && rendering.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT) {\n                        showOneConsentNotice(minecraft);\n                    }\n                    if (!execution.allowed()) continue;\n                }\n{% if features.client_program_actions %}\n                programs.add(new Writer(frame, compiled.identity(), compiled.manifest(), triggerIndex,\n{% else %}\n                programs.add(new Writer(frame, compiled.identity(), triggerIndex,\n{% endif %}\n                        rendering != null && rendering.allowed()));\n            }\n        }\n\n        return programs;\n    }\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 8051,
+      "template_bytes": 8095,
+      "original_sha256": "sha256:d86be8dfaf61a6bb195205bf4500449096be49cb307c13d6a8f2504680bda9d6",
+      "template_sha256": "sha256:7cf941d3c83b4726dde94e6a5949755ebbc2b79aa9fadadfba467fc8c747b59d"
+    },
+    {
+      "id": "render_detection",
+      "owners": [
+        "client_frame_render"
+      ],
+      "original_region": "        return block.statements().stream().anyMatch(statement -> statement instanceof RenderImageStatement\n                || statement instanceof IfStatement branch\n                   && (requestsRender(branch.trueBlock()) || requestsRender(branch.falseBlock())));\n",
+      "template_region": "{% if features.client_frame_render %}\n        return block.statements().stream().anyMatch(statement -> statement instanceof RenderImageStatement\n                || statement instanceof IfStatement branch\n                   && (requestsRender(branch.trueBlock()) || requestsRender(branch.falseBlock())));\n{% else %}\n        return false;\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 266,
+      "template_bytes": 349,
+      "original_sha256": "sha256:915f65a6c14df63f39970a5aac8db6ac4bff4bca0e80df0576d13f722d218e3f",
+      "template_sha256": "sha256:bd9267b0419cab6d50dae331b53645f0eb9794f78f5ba3e250ed473a8dc07225"
+    },
+    {
+      "id": "value_observation",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "    /** Bounded ephemeral result observation for ambient integration tests and diagnostics. */\n    public static Optional<SFMValue> valueFor(TouchDisplayBlockEntity display, ClientProgramIdentity identity, String name) {\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.get(display);\n        if (states == null || liveIdentityFor(identity).isEmpty()) return Optional.empty();\n        return states.entrySet().stream().filter(entry -> entry.getKey().identity().equals(identity))\n                .map(entry -> entry.getValue().values.get(ClientProgramActionManifest.key(name)))\n                .filter(Objects::nonNull).findFirst();\n    }\n\n",
+      "template_region": "{% if features.client_program_actions %}\n    /** Bounded ephemeral result observation for ambient integration tests and diagnostics. */\n    public static Optional<SFMValue> valueFor(TouchDisplayBlockEntity display, ClientProgramIdentity identity, String name) {\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.get(display);\n        if (states == null || liveIdentityFor(identity).isEmpty()) return Optional.empty();\n        return states.entrySet().stream().filter(entry -> entry.getKey().identity().equals(identity))\n                .map(entry -> entry.getValue().values.get(ClientProgramActionManifest.key(name)))\n                .filter(Objects::nonNull).findFirst();\n    }\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 647,
+      "template_bytes": 700,
+      "original_sha256": "sha256:27bea9878a7d68acca0481497c7966da8ce7365afc04a150e5534c558afe9d12",
+      "template_sha256": "sha256:6407f18fff997548b3d04d0712cc65afb89044e83534d5fead54f359d38a3400"
+    },
+    {
+      "id": "presentation_and_frame_observation",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    /** The sole live approved presentation writer; independent of transient render eligibility. */\n    public static Optional<ClientProgramIdentity> presentationIdentity(TouchDisplayBlockEntity display) {\n        if (!Minecraft.getInstance().isSameThread()) return Optional.empty();\n        List<Writer> writers = candidates(display).stream().filter(Writer::renderAllowed).toList();\n        return writers.size() == 1 ? liveIdentityFor(writers.get(0).identity()) : Optional.empty();\n    }\n\n{% if features.client_program_actions %}\n    /** Bounded ephemeral result observation for ambient integration tests and diagnostics. */\n    public static Optional<SFMValue> valueFor(TouchDisplayBlockEntity display, ClientProgramIdentity identity, String name) {\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.get(display);\n        if (states == null || liveIdentityFor(identity).isEmpty()) return Optional.empty();\n        return states.entrySet().stream().filter(entry -> entry.getKey().identity().equals(identity))\n                .map(entry -> entry.getValue().values.get(ClientProgramActionManifest.key(name)))\n                .filter(Objects::nonNull).findFirst();\n    }\n\n{% endif %}\n    public static FrameObservation observation(TouchDisplayBlockEntity display) {\n        FrameState state = FRAMES.get(display);\n        return state == null\n                ? new FrameObservation(0, 0, 0, null, null)\n                : new FrameObservation(state.frameIndex, state.evaluations, state.changedFrames,\n                        state.identity.bindingSha256(), state.texture);\n    }\n\n    private static Optional<ResourceLocation> retainedTexture(TouchDisplayBlockEntity display, @Nullable FrameState state) {\n        if (state == null) return Optional.empty();\n        if (liveIdentityFor(state.identity).isEmpty()\n            || presentationIdentity(display).filter(state.identity::equals).isEmpty()) {\n            FRAMES.remove(display);\n            return Optional.empty();\n        }\n        return Optional.ofNullable(state.texture);\n    }\n\n    public record FrameObservation(\n            long nextFrameIndex,\n            long evaluations,\n            long changedFrames,\n            @Nullable String bindingSha256,\n            @Nullable ResourceLocation texture\n    ) {}\n\n",
+      "template_region": "{% if features.touch_display %}\n    /** The sole live approved presentation writer; independent of transient render eligibility. */\n    public static Optional<ClientProgramIdentity> presentationIdentity(TouchDisplayBlockEntity display) {\n        if (!Minecraft.getInstance().isSameThread()) return Optional.empty();\n        List<Writer> writers = candidates(display).stream().filter(Writer::renderAllowed).toList();\n        return writers.size() == 1 ? liveIdentityFor(writers.get(0).identity()) : Optional.empty();\n    }\n\n{% if features.client_program_actions %}\n    /** Bounded ephemeral result observation for ambient integration tests and diagnostics. */\n    public static Optional<SFMValue> valueFor(TouchDisplayBlockEntity display, ClientProgramIdentity identity, String name) {\n        Map<ExecutionKey, FrameState> states = EXECUTIONS.get(display);\n        if (states == null || liveIdentityFor(identity).isEmpty()) return Optional.empty();\n        return states.entrySet().stream().filter(entry -> entry.getKey().identity().equals(identity))\n                .map(entry -> entry.getValue().values.get(ClientProgramActionManifest.key(name)))\n                .filter(Objects::nonNull).findFirst();\n    }\n\n{% endif %}\n    public static FrameObservation observation(TouchDisplayBlockEntity display) {\n        FrameState state = FRAMES.get(display);\n        return state == null\n                ? new FrameObservation(0, 0, 0, null, null)\n                : new FrameObservation(state.frameIndex, state.evaluations, state.changedFrames,\n                        state.identity.bindingSha256(), state.texture);\n    }\n\n    private static Optional<ResourceLocation> retainedTexture(TouchDisplayBlockEntity display, @Nullable FrameState state) {\n        if (state == null) return Optional.empty();\n        if (liveIdentityFor(state.identity).isEmpty()\n            || presentationIdentity(display).filter(state.identity::equals).isEmpty()) {\n            FRAMES.remove(display);\n            return Optional.empty();\n        }\n        return Optional.ofNullable(state.texture);\n    }\n\n    public record FrameObservation(\n            long nextFrameIndex,\n            long evaluations,\n            long changedFrames,\n            @Nullable String bindingSha256,\n            @Nullable ResourceLocation texture\n    ) {}\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 2279,
+      "template_bytes": 2323,
+      "original_sha256": "sha256:1f0703e3bde249872fcd4561e5bfc8fa986e40740f35e01a3e5cf0fe92efeb24",
+      "template_sha256": "sha256:65dd465e60915054b163651ce59fc83d626899f00993f746238eb3cab8d9c895"
+    },
+    {
+      "id": "world_observation_scheduler",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    private static void observeWorld(Level world) {\n        if (activeWorld == world) return;\n        clearWorld();\n        activeWorld = world;\n    }\n\n",
+      "template_region": "{% if features.touch_display %}\n    private static void observeWorld(Level world) {\n        if (activeWorld == world) return;\n        clearWorld();\n        activeWorld = world;\n    }\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 152,
+      "template_bytes": 196,
+      "original_sha256": "sha256:30c3d477ad01c256ba28680d1001aaa016aa8f2552bad9d786bed971f7749bf0",
+      "template_sha256": "sha256:338e4ee6051f0c2dc9bf0f42214ee826ced70050d5d3588ac01912037789c8e9"
+    },
+    {
+      "id": "display_cache_reset",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "        FRAMES.clear();\n        EXECUTIONS.clear();\n        DISPLAY_EPOCHS.clear();\n        DIAGNOSTICS.clear();\n        WORK_BUDGET.clear();\n        PROGRAM_WORK_BUDGET.clear();\n",
+      "template_region": "{% if features.touch_display %}\n        FRAMES.clear();\n        EXECUTIONS.clear();\n        DISPLAY_EPOCHS.clear();\n        DIAGNOSTICS.clear();\n        WORK_BUDGET.clear();\n        PROGRAM_WORK_BUDGET.clear();\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 179,
+      "template_bytes": 223,
+      "original_sha256": "sha256:a284c2077d3516da7d58096ef20a657430b3b77d66cd60632b39f6d3eacf1eb9",
+      "template_sha256": "sha256:0f0fe0511c75a4b4be02322c6e135204519babe469b9ad10c666e1003f854d6a"
+    },
+    {
+      "id": "compile_unavailable_manifest_argument",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            return new Compiled(manager.clientSnapshotRevision(), null, null, null, LabelPositionHolder.empty(),\n",
+      "template_region": "{% if features.client_program_actions %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, null, LabelPositionHolder.empty(),\n{% else %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, LabelPositionHolder.empty(),\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 113,
+      "template_bytes": 284,
+      "original_sha256": "sha256:9ea1f67c59194fb61a0785bbf15bbeb268f69d85b6fb72c2e9b91e90e9a92927",
+      "template_sha256": "sha256:3f877bcb8bf0da5001005ae71da3b4aa9cb7858276487001c6241df273f1107c"
+    },
+    {
+      "id": "compile_unsynced_manifest_argument",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels, \"No synced program/world identity\");\n",
+      "template_region": "{% if features.client_program_actions %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels, \"No synced program/world identity\");\n{% else %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, labels, \"No synced program/world identity\");\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 129,
+      "template_bytes": 316,
+      "original_sha256": "sha256:43ed48060073809862cb949b3348ecc149ccfcf07c79d556d00d8a43636233b2",
+      "template_sha256": "sha256:3328e4459c2810f4db73775e062a7556295173a32ceb6c477e038d378bf01c4a"
+    },
+    {
+      "id": "compile_failure_manifest_arguments",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,\n",
+      "template_region": "{% if features.client_program_actions %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,\n{% else %}\n            return new Compiled(manager.clientSnapshotRevision(), null, null, labels,\n{% endif %}\n",
+      "occurrences": 4,
+      "original_bytes": 92,
+      "template_bytes": 242,
+      "original_sha256": "sha256:6dc26817e880da1921a6eec3cc136719330cd7e1848ae972af24c9620ff5c9f7",
+      "template_sha256": "sha256:365987937877a66a2bea66be12ec1c1ed1dd32e6a17ad6438030a11c542d189a"
+    },
+    {
+      "id": "compile_manifest",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            ClientProgramActionManifest manifest = ClientProgramActionManifest.compile(program, SFMClientActions::programmaticBinding);\n",
+      "template_region": "{% if features.client_program_actions %}\n            ClientProgramActionManifest manifest = ClientProgramActionManifest.compile(program, SFMClientActions::programmaticBinding);\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 136,
+      "template_bytes": 189,
+      "original_sha256": "sha256:4f5c33d55686b197950a87bd4f8b3886165e0ed4f8c5fee4608d87f18f459ce6",
+      "template_sha256": "sha256:c582598df90325c2da7a45d35fa6a9020062b2b5b1ac28762fd29f66cdc8eba0"
+    },
+    {
+      "id": "identity_capability_manifest",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "                    manifest.capabilities()\n",
+      "template_region": "{% if features.client_program_actions %}\n                    manifest.capabilities()\n{% else %}\n                    program.triggers().stream().anyMatch(trigger -> requestsRender(((FrameTrigger) trigger).block()))\n                            ? Set.of(ClientProgramConsentGate.EXECUTE, ClientProgramConsentGate.RENDER)\n                            : Set.of(ClientProgramConsentGate.EXECUTE)\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 44,
+      "template_bytes": 401,
+      "original_sha256": "sha256:46100d9017680c6ed23903a4787920b95b89573d9ff37bfd8b15d86f138b95ac",
+      "template_sha256": "sha256:1a763b7043ebe038ce7f3540aa08c0de983d5fe4f03097ea5c15c78ea78c8b66"
+    },
+    {
+      "id": "compile_success_manifest",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            return new Compiled(manager.clientSnapshotRevision(), program, identity, manifest, labels, null);\n",
+      "template_region": "{% if features.client_program_actions %}\n            return new Compiled(manager.clientSnapshotRevision(), program, identity, manifest, labels, null);\n{% else %}\n            return new Compiled(manager.clientSnapshotRevision(), program, identity, labels, null);\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 110,
+      "template_bytes": 274,
+      "original_sha256": "sha256:13365b2088c35f1e6a8d999dc70f316e9b62a088f4ab5c305b64c4f7df89c96d",
+      "template_sha256": "sha256:866b726058b0b9a564fb3dce79b06318b77e191dd4462483507f70b10ae882a8"
+    },
+    {
+      "id": "negotiated_runtime_availability",
+      "owners": [
+        "multiplayer_packets"
+      ],
+      "original_region": "        return privateWorldAvailable() || SFMMultiplayerClientRuntime.available();\n",
+      "template_region": "{% if features.multiplayer_packets %}\n        return privateWorldAvailable() || SFMMultiplayerClientRuntime.available();\n{% else %}\n        return privateWorldAvailable();\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 83,
+      "template_bytes": 184,
+      "original_sha256": "sha256:579ce4cfe8f5efaef0e7b36433d0ccaac97d7e6de64feb6fdb28809bdacb4db4",
+      "template_sha256": "sha256:7f55d86efb0fadfc3e82419d11a4128c6c207be462c386baafdc3e67f3bb9714"
+    },
+    {
+      "id": "negotiated_world_identity",
+      "owners": [
+        "multiplayer_packets"
+      ],
+      "original_region": "        return privateWorldAvailable() ? Optional.of(ClientProgramWorldIdentity.integrated(worldId))\n                : SFMMultiplayerClientRuntime.worldIdentity(worldId);\n",
+      "template_region": "{% if features.multiplayer_packets %}\n        return privateWorldAvailable() ? Optional.of(ClientProgramWorldIdentity.integrated(worldId))\n                : SFMMultiplayerClientRuntime.worldIdentity(worldId);\n{% else %}\n        return privateWorldAvailable() ? Optional.of(ClientProgramWorldIdentity.integrated(worldId)) : Optional.empty();\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 171,
+      "template_bytes": 353,
+      "original_sha256": "sha256:fb4841bea4360d82c8f65906f6e702d19f4c1312b9623110d9d21eb7c63cea7c",
+      "template_sha256": "sha256:848e8f5bdcb355af458b2b1d7d4b4993cd463e2ace5ee426c24192c7cd799c9a"
+    },
+    {
+      "id": "display_eligibility_and_notice",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "    public static boolean renderEligible(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        return minecraft.isSameThread() && minecraft.level != null && display.getLevel() == minecraft.level\n                && !display.isRemoved() && minecraft.level.hasChunkAt(display.getBlockPos())\n                && minecraft.level.getBlockEntity(display.getBlockPos()) == display\n                && renderEligible(minecraft, display);\n    }\n\n    private static boolean renderEligible(Minecraft minecraft, TouchDisplayBlockEntity display) {\n        Direction face = display.getBlockState().getValue(TouchDisplayBlock.FACING);\n        BlockPos pos = display.getBlockPos();\n        Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();\n        Vec3 outward = camera.subtract(Vec3.atCenterOf(pos));\n        double front = outward.x * face.getStepX()\n                       + outward.y * face.getStepY()\n                       + outward.z * face.getStepZ();\n        if (front <= 0.05) return false;\n        double distance = Math.max(0.5, outward.length());\n        // The BER call itself proves Minecraft selected the block entity for\n        // rendering. This conservative pixel estimate skips tiny far surfaces;\n        // it does not promise exact GPU depth occlusion behind walls.\n        double projectedPixels = 0.875 * minecraft.getWindow().getHeight() / (1.4 * distance);\n        return projectedPixels >= 4;\n    }\n\n    private static void showOneConsentNotice(Minecraft minecraft) {\n        if (consentNoticeShown || minecraft.player == null) return;\n        consentNoticeShown = true;\n        minecraft.player.displayClientMessage(CONSENT_REQUIRED.getComponent(), true);\n    }\n\n",
+      "template_region": "{% if features.touch_display %}\n    public static boolean renderEligible(TouchDisplayBlockEntity display) {\n        Minecraft minecraft = Minecraft.getInstance();\n        return minecraft.isSameThread() && minecraft.level != null && display.getLevel() == minecraft.level\n                && !display.isRemoved() && minecraft.level.hasChunkAt(display.getBlockPos())\n                && minecraft.level.getBlockEntity(display.getBlockPos()) == display\n                && renderEligible(minecraft, display);\n    }\n\n    private static boolean renderEligible(Minecraft minecraft, TouchDisplayBlockEntity display) {\n        Direction face = display.getBlockState().getValue(TouchDisplayBlock.FACING);\n        BlockPos pos = display.getBlockPos();\n        Vec3 camera = minecraft.gameRenderer.getMainCamera().getPosition();\n        Vec3 outward = camera.subtract(Vec3.atCenterOf(pos));\n        double front = outward.x * face.getStepX()\n                       + outward.y * face.getStepY()\n                       + outward.z * face.getStepZ();\n        if (front <= 0.05) return false;\n        double distance = Math.max(0.5, outward.length());\n        // The BER call itself proves Minecraft selected the block entity for\n        // rendering. This conservative pixel estimate skips tiny far surfaces;\n        // it does not promise exact GPU depth occlusion behind walls.\n        double projectedPixels = 0.875 * minecraft.getWindow().getHeight() / (1.4 * distance);\n        return projectedPixels >= 4;\n    }\n\n    private static void showOneConsentNotice(Minecraft minecraft) {\n        if (consentNoticeShown || minecraft.player == null) return;\n        consentNoticeShown = true;\n        minecraft.player.displayClientMessage(CONSENT_REQUIRED.getComponent(), true);\n    }\n\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 1735,
+      "template_bytes": 1779,
+      "original_sha256": "sha256:c422acc406e497dbbab8c730133c53dcb0ac69bc91105ac81e80215b1ec10a7c",
+      "template_sha256": "sha256:7e98ea2f4c84b7634057359f0a64480d4e79c1f305046358053468419640794c"
+    },
+    {
+      "id": "compiled_manifest_component",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "            @Nullable ClientProgramActionManifest manifest,\n",
+      "template_region": "{% if features.client_program_actions %}\n            @Nullable ClientProgramActionManifest manifest,\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 60,
+      "template_bytes": 113,
+      "original_sha256": "sha256:d9a23eb457bdf1c28ab9dd6d8fb446a7f9d6253b0600a9b7f8e8c7a6bdd008e0",
+      "template_sha256": "sha256:6a770cb6730215999a493f30019c9342167d9ebb028253fa921275e51fad451e"
+    },
+    {
+      "id": "writer_manifest_component",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity, ClientProgramActionManifest manifest,\n",
+      "template_region": "{% if features.client_program_actions %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity, ClientProgramActionManifest manifest,\n{% else %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity,\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 118,
+      "template_bytes": 262,
+      "original_sha256": "sha256:21da2d50bc981aaf6ae90d5b10c3ab107b39555d5a4dc6ce92a568a8ae0be01a",
+      "template_sha256": "sha256:496c1d40c8232852df00f01dd4655d9bbfb34fe862156cc3c40bda49e6f07086"
+    },
+    {
+      "id": "frame_value_storage",
+      "owners": [
+        "client_program_actions"
+      ],
+      "original_region": "        Map<String, SFMValue> values = Map.of();\n",
+      "template_region": "{% if features.client_program_actions %}\n        Map<String, SFMValue> values = Map.of();\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 49,
+      "template_bytes": 102,
+      "original_sha256": "sha256:87aa8fe300e8d8a13e1f1bbbc9e4dc078348fb1d1dcfb685a6aa406fb818ae6a",
+      "template_sha256": "sha256:f7db0aa0a2b5a209b58ae42e90a3e9882fbc7afff03b00a525b12a4dae1263c4"
+    },
+    {
+      "id": "display_execution_records_and_state",
+      "owners": [
+        "touch_display"
+      ],
+      "original_region": "{% if features.client_program_actions %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity, ClientProgramActionManifest manifest,\n{% else %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity,\n{% endif %}\n                          int triggerIndex, boolean renderAllowed) {}\n    private record ExecutionKey(ClientProgramIdentity identity, int triggerIndex) {}\n\n    private static final class FrameState {\n        final ClientProgramIdentity identity;\n        long lastEpoch = Long.MIN_VALUE;\n        long frameIndex;\n        long evaluations;\n        long changedFrames;\n        @Nullable ResourceLocation texture;\n{% if features.client_program_actions %}\n        Map<String, SFMValue> values = Map.of();\n{% endif %}\n\n        FrameState(ClientProgramIdentity identity) {\n            this.identity = identity;\n        }\n    }\n",
+      "template_region": "{% if features.touch_display %}\n{% if features.client_program_actions %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity, ClientProgramActionManifest manifest,\n{% else %}\n    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity,\n{% endif %}\n                          int triggerIndex, boolean renderAllowed) {}\n    private record ExecutionKey(ClientProgramIdentity identity, int triggerIndex) {}\n\n    private static final class FrameState {\n        final ClientProgramIdentity identity;\n        long lastEpoch = Long.MIN_VALUE;\n        long frameIndex;\n        long evaluations;\n        long changedFrames;\n        @Nullable ResourceLocation texture;\n{% if features.client_program_actions %}\n        Map<String, SFMValue> values = Map.of();\n{% endif %}\n\n        FrameState(ClientProgramIdentity identity) {\n            this.identity = identity;\n        }\n    }\n{% endif %}\n",
+      "occurrences": 1,
+      "original_bytes": 882,
+      "template_bytes": 926,
+      "original_sha256": "sha256:e7c8c82364fdafd59bfe6215073946c6d0f8b42646f9794ceba5664d5076f648",
+      "template_sha256": "sha256:31e2d28593b6873a3b74ed6ac66d6ce40ced43193ca5130f05729f99e223c6cc"
+    }
+  ],
+  "region_evidence": {
+    "ordered_regions": 36,
+    "reverse_to_raw_exact": true,
+    "meaning": "Sequential forward transforms begin from the exact raw witness. Outer region original text intentionally includes already-authored inner directives; reverse transforms must run in reverse order. Four identical failure constructor rows are one explicitly counted region (occurrences=4), not unique raw anchors.",
+    "changes_outside_regions": false
+  },
+  "profiles": [
+    {
+      "id": "frame_only",
+      "touch": false,
+      "actions": false,
+      "render": false,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "disk_readonly_access",
+        "sfml_execution_side"
+      ],
+      "output_bytes": 9493,
+      "output_sha256": "sha256:57862f1a2cc7f3acd3c1a0b0896f80359b7df8776de093a950b4e85e6777b9d0"
+    },
+    {
+      "id": "touch",
+      "touch": true,
+      "actions": false,
+      "render": false,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_frame_language",
+        "client_manager",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "packet_values",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 21748,
+      "output_sha256": "sha256:298d7db4e3673947bde85d29883a39460fb0d09ba4d43d55c474cf09f0e7d716"
+    },
+    {
+      "id": "actions",
+      "touch": false,
+      "actions": true,
+      "render": false,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "output_bytes": 9938,
+      "output_sha256": "sha256:3851dcf064bcce811f83391166bdf978ff85e8f2a26de2d6b2453700d539c3ba"
+    },
+    {
+      "id": "touch_actions",
+      "touch": true,
+      "actions": true,
+      "render": false,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 23422,
+      "output_sha256": "sha256:df9c8dd7bca5fa062775a34ddd575ffc2714b61a06f179a32c2a4f01eababb37"
+    },
+    {
+      "id": "touch_render",
+      "touch": true,
+      "actions": false,
+      "render": true,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "packet_values",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 22083,
+      "output_sha256": "sha256:7beccbcec3069ead47336510be90e846b9e8af7355ec3b2764650bde2dc34ba4"
+    },
+    {
+      "id": "touch_render_actions",
+      "touch": true,
+      "actions": true,
+      "render": true,
+      "multiplayer": false,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 23757,
+      "output_sha256": "sha256:5e351b0fe5937cdbdebf7bd73835cc28238e7e36295d7c90548a932b27ddba09"
+    },
+    {
+      "id": "actions_remote",
+      "touch": false,
+      "actions": true,
+      "render": false,
+      "multiplayer": true,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "multiplayer_packets",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side"
+      ],
+      "output_bytes": 10094,
+      "output_sha256": "sha256:4c9997d5819cb3c9ffc7fd85f39bf802255d2c9bf1cdb5800edbde8d0a944da9"
+    },
+    {
+      "id": "touch_actions_remote",
+      "touch": true,
+      "actions": true,
+      "render": false,
+      "multiplayer": true,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "multiplayer_packets",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 23578,
+      "output_sha256": "sha256:1e85c1a67980869d31ff16601e58b266d46ecf275eae0e1c5cbb7dec7b104550"
+    },
+    {
+      "id": "touch_render_actions_remote",
+      "touch": true,
+      "actions": true,
+      "render": true,
+      "multiplayer": true,
+      "explicit_features": [
+        "client_actions",
+        "client_frame_language",
+        "client_frame_render",
+        "client_inbox",
+        "client_manager",
+        "client_program_actions",
+        "client_program_consent",
+        "disk_readonly_access",
+        "image_resources",
+        "multiplayer_packets",
+        "packet_computation",
+        "packet_transport_private",
+        "packet_values",
+        "runtime_resource_cleanup",
+        "sfml_execution_side",
+        "touch_display"
+      ],
+      "output_bytes": 23913,
+      "output_sha256": "sha256:bf88b401ff3eacc0c2dad9504b55912a02da0f374ae34955578f4d002d1f7634"
+    }
+  ],
+  "profile_evidence": {
+    "supported_boolean_masks": 9,
+    "targets": 2,
+    "source_outputs": 18,
+    "independent_expansion_only": true,
+    "real_production_renderer_executed": false,
+    "java_compiled": false,
+    "runtime_executed": false,
+    "full_on_exact_raw": true,
+    "all_masks_prerequisite_closed_by_declared_explicit_lists": true,
+    "full_project_wire_acceptance": false
+  },
+  "provider_contracts": [
+    {
+      "id": "program_builder",
+      "path": "src/main/java/ca/teamdman/sfml/program_builder/ProgramBuilder.java",
+      "current_core": true,
+      "sha256": "sha256:d42bfa8adb5d841532dae9043cdaeb7f6364d462c964a7aaa16aeb7c7ff00d58",
+      "anchors": {
+        "forExecutionSide(ProgramExecutionSide side)": true,
+        "public ProgramBuildResult build(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "program",
+      "path": "src/main/java/ca/teamdman/sfml/ast/Program.java",
+      "current_core": true,
+      "sha256": "sha256:086f8cc029be421f5eed29c4cd54edb566c444ccf9836f2e48ef0429d675382d",
+      "anchors": {
+        "public record Program(": true,
+        "List<Trigger> triggers,": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "frame_trigger",
+      "path": "src/main/java/ca/teamdman/sfml/ast/FrameTrigger.java",
+      "current_core": true,
+      "sha256": "sha256:48febdc9aef80af99647f34290065961472758efe989c1a2c058e19eaeeedab2",
+      "anchors": {
+        "record FrameTrigger": true,
+        "FrameTrigger(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "block",
+      "path": "src/main/java/ca/teamdman/sfml/ast/Block.java",
+      "current_core": true,
+      "sha256": "sha256:44c6e89376a82909e4f6bc603576cf24ff606e220e9199c2c4ab64c005f77347",
+      "anchors": {
+        "statements": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "render_statement",
+      "path": "src/main/java/ca/teamdman/sfml/ast/RenderImageStatement.java",
+      "current_core": true,
+      "sha256": "sha256:06d4a20ddd9e9281086a4aecdbc6b82c67b8540d3dcf0ab7cb1d3c3de940a15d",
+      "anchors": {
+        "record RenderImageStatement": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "if_statement",
+      "path": "src/main/java/ca/teamdman/sfml/ast/IfStatement.java",
+      "current_core": true,
+      "sha256": "sha256:8be0d6712dafc1ea1cbbeb22d740a8ebff5a42a63dde77dcd4e5c718aa69a0b3",
+      "anchors": {
+        "trueBlock": true,
+        "falseBlock": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "manager",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java",
+      "current_core": false,
+      "sha256": "sha256:d5e8419a0d8f1ffb70a76317f92f37afcdb80a9ceb2d98423373f0277f5e974d",
+      "anchors": {
+        "labels()": true,
+        "storedSource()": true,
+        "clientSnapshotRevision()": true,
+        "worldId()": true
+      },
+      "status": "real-provider-staged-not-promoted",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-client-manager-provider-stage-v1/sources/src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java"
+    },
+    {
+      "id": "loaded_registry",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerLoadedRegistry.java",
+      "current_core": true,
+      "sha256": "sha256:4747d24c589691198da6927de3807c947108a8eb07e3bbc4760d3b91a86e8186",
+      "anchors": {
+        "snapshot(Level level)": true,
+        "clear(Level level)": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "display",
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/TouchDisplayBlockEntity.java",
+      "current_core": true,
+      "sha256": "sha256:fb01c764297dfeee1e42c3374e552bd882dbf828d1a9009afcbd0b885ad7118a",
+      "anchors": {
+        "class TouchDisplayBlockEntity": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "display_block",
+      "path": "src/main/java/ca/teamdman/sfm/common/block/TouchDisplayBlock.java",
+      "current_core": true,
+      "sha256": "sha256:8a78ede9f295bdfb63979c8fb15203b0f2b1ac6b0b961a147c785e5a632e64fd",
+      "anchors": {
+        "FACING": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "consent_runtime",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentRuntime.java",
+      "current_core": true,
+      "sha256": "sha256:740abca80575004521a6d90715dc3681994d58756a13cd682a9581b22f573405",
+      "anchors": {
+        "gate()": true,
+        "observe(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "consent_gate",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramConsentGate.java",
+      "current_core": true,
+      "sha256": "sha256:8d0d619601b0e7fbdba204927af635afbe347631a3671a156588cf565fb411af",
+      "anchors": {
+        "EXECUTE": true,
+        "RENDER": true,
+        "Evaluation execution": true,
+        "Evaluation evaluate": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "identity",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramIdentity.java",
+      "current_core": true,
+      "sha256": "sha256:5a98ab3ed814af1664864a95f4bc65a2e20789afe2d9a9d28b78559e773ec462",
+      "anchors": {
+        "fromStoredSourceAndBindings(": true,
+        "CLIENT_MANAGER_RUNTIME": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "world_identity",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramWorldIdentity.java",
+      "current_core": true,
+      "sha256": "sha256:bf911ed28ddb5ab17e0913188c40029ecb17b41afbbfc787331982d29e6f1219",
+      "anchors": {
+        "integrated(UUID persistedWorldId)": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "source_budget",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameSourceBudget.java",
+      "current_core": true,
+      "sha256": "sha256:e2671efcb2dbbbf554d6e5d105f78aefdbdb86865cfe9ba677c57a047ba5b1a2",
+      "anchors": {
+        "permits(String source)": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "work_budget",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameWorkBudget.java",
+      "current_core": true,
+      "sha256": "sha256:6544991f90770fe9b4bfa192eecebb24635cf15f00a7e4d7580708d428ecfc31",
+      "anchors": {
+        "tryAcquire(long actualRenderEpoch)": true,
+        "clear()": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "bindings",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientManagerTargetBindings.java",
+      "current_core": true,
+      "sha256": "sha256:7c7336e3e0034daadc9d18bd157ade145bcbf7e88c8faa0e2a08f2feb1a409f7",
+      "anchors": {
+        "canonical(Program program, LabelPositionHolder labels)": true,
+        "contains(FrameTrigger trigger, LabelPositionHolder labels, BlockPos display)": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "evaluator",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientFrameEvaluator.java",
+      "current_core": true,
+      "sha256": "sha256:0b649fa35a918b3749b6ac5fccc6f5e9e74e4d177b975e023dd70cb43e33bc91",
+      "anchors": {
+        "Optional<ResourceLocation> evaluate(FrameTrigger trigger, long frameIndex)": true,
+        "Evaluation evaluate(FrameTrigger trigger, long frameIndex, Actions actions, boolean renderAllowed)": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "manifest",
+      "path": "src/main/java/ca/teamdman/sfm/client/program/ClientProgramActionManifest.java",
+      "current_core": true,
+      "sha256": "sha256:7aabec5131c06094ff4399f9fbdef2078c3722d809227fda1697fb56b83201e6",
+      "anchors": {
+        "ClientProgramActionManifest compile": true,
+        "permits(": true,
+        "Set<ResourceLocation> capabilities,": true,
+        "String key(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "action_authority",
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAuthorizationService.java",
+      "current_core": true,
+      "sha256": "sha256:c1b41edbd8696d3cbe7fff2aa55b368be711c4c435c3cdec9979b764b07ac509",
+      "anchors": {
+        "shared()": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "action_dispatch",
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientProgramActionDispatcher.java",
+      "current_core": true,
+      "sha256": "sha256:a0245427dc691a9c8051dda10075bb39e11021c252e863011450094d43d20452",
+      "anchors": {
+        "SFMValue invoke(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "action_registry",
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMClientActions.java",
+      "current_core": true,
+      "sha256": "sha256:28e99bfe0fa20dcf7e646b4002ea6adab2cffcacf3b1f2e2046864048f15814c",
+      "anchors": {
+        "programmaticBinding(": true
+      },
+      "status": "real-provider-current-core"
+    },
+    {
+      "id": "remote_world",
+      "path": "src/main/java/ca/teamdman/sfm/client/net/SFMMultiplayerClientRuntime.java",
+      "current_core": false,
+      "sha256": null,
+      "anchors": {},
+      "status": "missing-real-provider",
+      "exact_api_anchors": [
+        "public static boolean available()",
+        "public static Optional<ClientProgramWorldIdentity> worldIdentity("
+      ]
+    }
+  ],
+  "authored_seams": [
+    {
+      "id": "base_manager_identity_and_consent",
+      "owner": "client_frame_language",
+      "raw_lines": [
+        60,
+        62,
+        75,
+        105,
+        327,
+        389,
+        439,
+        446
+      ],
+      "proposal": "Retain the real compiled-source cache, source budget, CLIENT execution assertion, frame-trigger limits, canonical bindings, exact identity and passive consent observation without any display provider. Guard only optional Compiled manifest component and its constructor arguments by client_program_actions.",
+      "counterfactual": "A frame-only program may be compiled/observed without Touch Display, but has no invented generic execution target. It stays unscheduled until an actual available target calls the scheduler."
+    },
+    {
+      "id": "display_scheduler_and_geometry",
+      "owner": "touch_display",
+      "raw_lines": [
+        8,
+        11,
+        26,
+        30,
+        63,
+        68,
+        100,
+        102,
+        109,
+        240,
+        249,
+        288,
+        317,
+        323,
+        408,
+        436,
+        448,
+        464
+      ],
+      "proposal": "Nested touch_display guards cover actual TouchDisplay imports, display maps/budgets, typed surface methods/candidates/eligibility/Writer/ExecutionKey/FrameState and their cleanup. Keep manager/world cleanup outside that gate.",
+      "counterfactual": "Touch-off omits those typed APIs/state. It does not substitute a fake display, nearest target, ticker or host."
+    },
+    {
+      "id": "programmatic_dispatch_and_values",
+      "owner": "client_program_actions",
+      "raw_lines": [
+        3,
+        7,
+        58,
+        59,
+        165,
+        179,
+        256,
+        262,
+        366,
+        375,
+        443,
+        449,
+        459
+      ],
+      "proposal": "Guard action imports/static dispatcher, manifest typing/capabilities/scopes, four-argument Evaluation path, typed values/reset/observation and Writer/Compiled manifest components. Preserve the exact raw four-argument branch when enabled.",
+      "counterfactual": "Actions-off uses existing ClientFrameEvaluator.evaluate(FrameTrigger,long) Optional-image API. It must not reference SFMValue, Evaluation, action lookup, manifest, LET or invocation providers."
+    },
+    {
+      "id": "render_owner_independent_from_actions",
+      "owner": "client_frame_render",
+      "raw_lines": [
+        20,
+        174,
+        177,
+        225,
+        245
+      ],
+      "proposal": "Guard RenderImageStatement detection and retain requestsRender(Block) with a legitimate false result when render is unavailable. For actions-off derive capabilities from the real accepted AST: EXECUTE plus RENDER only if a render statement is found.",
+      "counterfactual": "No capability for an unavailable action/render provider is invented. FrameTrigger already rejects unsupported LET/value conditions without actions and render statements without render."
+    },
+    {
+      "id": "actions_off_image_commit",
+      "owners": [
+        "touch_display",
+        "client_frame_render"
+      ],
+      "raw_lines": [
+        150,
+        177,
+        184,
+        192
+      ],
+      "proposal": "The existing two-argument pure evaluator selects an Optional image with renderAllowed internally true. The Runtime must independently commit that image only if writer.renderAllowed() AND writers.size()==1, after the original consent/identity and work-budget checks; preserve counters/error diagnostics and no unauthorized texture retention.",
+      "counterfactual": "Do not merely copy the image result into state.texture. The unchanged single approved writer/render-consent boundary remains mandatory. This is a reviewed design candidate, not authored or executed semantics."
+    },
+    {
+      "id": "private_vs_negotiated_world",
+      "owner": "multiplayer_packets",
+      "raw_lines": [
+        6,
+        398,
+        406
+      ],
+      "proposal": "Guard negotiated runtime import/calls. Off uses the real privateWorldAvailable() result and integrated-world identity; outside a private integrated world it returns false/Optional.empty via existing APIs.",
+      "counterfactual": "No remote identity, network session or public-server permission is fabricated. Private mode remains non-published single-player on the client thread. Existing unavailability diagnostics may retain their exact historical wording."
+    },
+    {
+      "id": "source_only_vs_full_project_acceptance",
+      "proposal": "Use explicit dependency-closed isolated source proof profiles for L/T/A/R/M masks. Full-project multiplayer wire layout validation is a separate existing acceptance gate and must not be bypassed by a source-only renderer fixture.",
+      "counterfactual": "M-on source factoring is not activation of public multiplayer, a network effect test, or proof that its session/packet/signing providers compile."
+    }
+  ],
+  "scheduler_authority": {
+    "all_on": "Preserves exact original four-argument Evaluation, manifest scopes, policy/identity/availability checks, real work budgets, renderAllowed && writers.size()==1 argument, and retained-texture authority recheck.",
+    "actions_off": "Uses existing ClientFrameEvaluator.evaluate(FrameTrigger,long) Optional API; increments original frame/evaluation counters. The newly authored commit condition independently requires writer.renderAllowed() && writers.size()==1 before retaining an image; it is a source counterfactual, not historical raw behavior or executed rendering proof.",
+    "no_actions_capabilities": "From the actual accepted FrameTrigger/Block AST: EXECUTE always, RENDER only when real requestsRender traverses an available RenderImageStatement. No action manifest, SFMValue, fake permissions or action lookup.",
+    "touch_off": "No TouchDisplay Java imports, typed display scheduler/maps/geometry/records/value observation. Identity/compile/consent APIs remain real but no generic frame executor is invented.",
+    "render_off": "requestsRender(Block) returns false; typed RenderImageStatement/IfStatement imports are absent. Frame evaluation rejects unavailable render statements through the existing actual AST/evaluator contracts.",
+    "multiplayer_off": "privateWorldAvailable() only and real integrated-world identity, otherwise Optional.empty; no fake session or widened public-server boundary."
+  },
+  "lifetime_boundary": {
+    "original_clearWorld_preserved": true,
+    "active_world_established_only_by_display_scheduler": true,
+    "unload_loaded_registry_cleared_even_without_scheduler": true,
+    "identity_only_weak_cache_eagerly_cleared": false,
+    "explanation": "Original identityFor/compiled do not observeWorld. If no actual display scheduler sets activeWorld, unload clears ClientManagerLoadedRegistry(world) but does not eagerly call clearWorld for COMPILED/COMPILED_WORLDS/COMPILE_COUNTS. Those are weak-key caches and liveIdentityFor revalidates current thread/world/chunk/live BE/exact identity. This stage preserves that boundary and makes no eager invalidation claim.",
+    "no_refinement_or_stub": true
+  },
+  "consumer_hook_evidence": [
+    {
+      "api": "consent()",
+      "raw_lines": [
+        75,
+        77
+      ],
+      "availability": "frame language base",
+      "consumers": [
+        "TouchDisplayTerminalRasterTarget",
+        "TouchDisplayTerminalRuntime",
+        "GameTests/Puppets"
+      ],
+      "boundary": "Returns the real client-owned ConsentRuntime gate. It grants no consent and opens no modal."
+    },
+    {
+      "api": "identityFor(manager), liveIdentityFor(expected)",
+      "raw_lines": [
+        79,
+        94
+      ],
+      "availability": "frame language base",
+      "consumers": [
+        "SFMClientProgramConsentAction",
+        "SFMClientActionAuthorizationService",
+        "SFMMultiplayerClientRuntime",
+        "ClientProgramInboxReadSurface",
+        "ClientProgramReadRuntime",
+        "ClientProgramSignerTrustRuntime",
+        "ClientProgramSigningRuntime",
+        "TouchDisplayTerminalRasterTarget",
+        "TouchDisplayTerminalRuntime"
+      ],
+      "boundary": "Keep client-thread, dimension, loaded-chunk, live BE identity and exact compiled identity checks; never trust disk/source metadata alone."
+    },
+    {
+      "api": "diagnosticFor(manager), compileCount(manager)",
+      "raw_lines": [
+        96,
+        105
+      ],
+      "availability": "frame language base",
+      "consumers": [
+        "GameTests/Puppets only in the audited production/test source sets"
+      ],
+      "boundary": "No main-Java external caller found for these diagnostic methods. GUI summary does not compile through these APIs."
+    },
+    {
+      "api": "textureFor(display), textureForSelectedFrame(display,epoch,eligible)",
+      "raw_lines": [
+        109,
+        193
+      ],
+      "availability": "frame language AND touch_display; RENDER detection and authorization remain independently client_frame_render",
+      "consumers": [
+        "TouchDisplayBlockEntityRenderer.textureFor (production)",
+        "GameTests/Puppets.textureForSelectedFrame (ambient seam)"
+      ],
+      "boundary": "Touch owns the actual scheduler target type. Do not guard the whole scheduler by render: action-only display programs still have a genuine execution path. Ambient eligibility is not pixel/occlusion proof."
+    },
+    {
+      "api": "diagnosticFor(display), observation(display)",
+      "raw_lines": [
+        100,
+        102,
+        264,
+        288
+      ],
+      "availability": "frame language AND touch_display",
+      "consumers": [
+        "GameTests/Puppets only"
+      ],
+      "boundary": "Keep zero/empty observations and retained counter/binding shape; no invented display type when Touch Display is unavailable."
+    },
+    {
+      "api": "presentationIdentity(display), retainedTexture(display,state)",
+      "raw_lines": [
+        249,
+        253,
+        272,
+        279
+      ],
+      "availability": "frame language AND touch_display; no approved render writer when client_frame_render is off",
+      "consumers": [
+        "TouchDisplayRasterRuntime",
+        "TouchDisplayTerminalRasterTarget",
+        "TouchDisplayTerminalRuntime"
+      ],
+      "boundary": "Keep single approved writer, live identity, render consent and stale texture eviction. No fallback to an unapproved prior identity."
+    },
+    {
+      "api": "valueFor(display,identity,name)",
+      "raw_lines": [
+        256,
+        262
+      ],
+      "availability": "frame language AND touch_display AND client_program_actions",
+      "consumers": [
+        "GameTests/Puppets only"
+      ],
+      "boundary": "Typed value map/key APIs are actions-owned. Omit the API when those real providers are unavailable, rather than invent an SFMValue observation type."
+    },
+    {
+      "api": "policyBlockers(identity,capability)",
+      "raw_lines": [
+        382,
+        389
+      ],
+      "availability": "frame language base",
+      "consumers": [
+        "ClientProgramReadRuntime",
+        "TouchDisplayTerminalRasterTarget",
+        "TouchDisplayTerminalRuntime",
+        "GameTests/Puppets"
+      ],
+      "boundary": "Keep exact current world identity validation. Private and negotiated world choice is independent of the display/render scheduler."
+    },
+    {
+      "api": "renderEligible(display)",
+      "raw_lines": [
+        408,
+        431
+      ],
+      "availability": "frame language AND touch_display",
+      "consumers": [
+        "TouchDisplayRasterRuntime",
+        "GameTests/Puppets"
+      ],
+      "boundary": "Existing public check verifies client thread/loaded actual display; front-facing/pixel estimate is render relevance, not exact occlusion."
+    },
+    {
+      "api": "onRenderTick, onLevelUnload, observeWorld, clearWorld",
+      "raw_lines": [
+        290,
+        325
+      ],
+      "availability": "frame language base, with display-state clearing guarded by touch_display",
+      "consumers": [
+        "SFMSubscribeEvent automatic discovery; no direct FrameRuntime call in ClientRegistrations"
+      ],
+      "boundary": "Keep loaded-manager registry cleanup even when no eligible display was ever observed. The unconditional event annotation/subscriber does not require mod_event_filtering."
+    }
+  ],
+  "registration_and_query_boundaries": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java",
+      "current_core_lines": [
+        9,
+        15,
+        97,
+        98,
+        248,
+        257,
+        313,
+        315
+      ],
+      "finding": "Consent action contributor requires nested client_actions + client_program_consent; read actions similarly nested client_actions + client_program_reads. Multiplayer initialize is independently gated. FrameRuntime itself uses method annotations, not this explicit initializer."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+      "finding": "Current core CLIENT_MANAGER screen registration/import uses D1 client_manager_gui, not frame language; keep this separation."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/ClientManagerScreen.java",
+      "finding": "Frozen D1 summary reads the BE.storedSource() directly. It never calls identityFor/diagnostic/compileCount. No runtime API must be invented for GUI refresh."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/net/SFMManagerShowQuery.java",
+      "finding": "Frozen query uses ClientManagerProgramProjection as a bounded format helper but authorizes a real server ManagerBlockEntity through SFMManagerOperatorAuthorization. It does not query ClientManagerFrameRuntime or target ClientManagerBlockEntity."
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/event_bus/SFMSubscribeEvent.java",
+      "finding": "Event annotation/class is unconditional. requiredModId filtering alone is optional; ordinary client RenderTick/Unload subscribers must not acquire mod_event_filtering as a blanket prerequisite."
+    }
+  ],
+  "pending_real_closure": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/blockentity/ClientManagerBlockEntity.java",
+      "status": "independently staged manager provider requires parent promotion; raw API and actual label-readonly/signing/GUI fallbacks are not replaced here"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/net/SFMMultiplayerClientRuntime.java",
+      "status": "missing actual negotiated session provider; M-on is source preservation only"
+    },
+    {
+      "group": "signer trust and signing transport",
+      "status": "not required for signing-off basic consent; optional real provider cohorts and full signing admission remain separate"
+    },
+    {
+      "group": "human-only SFMPacketSendAction and action descriptors",
+      "status": "registered action binding/effects are not proved by this runtime's source preservation"
+    },
+    {
+      "group": "external raster/terminal/read/inbox adapters",
+      "status": "future consumers must guard unavailable typed runtime APIs by their real owners; no blanket prerequisites or stubs"
+    },
+    {
+      "group": "full Java/GameTests",
+      "status": "all enabled-profile compilation, actual event discovery, live consent/display scheduling/counter/UV/pixels/authority and multiplayer wire acceptance remain pending"
+    }
+  ],
+  "validation": {
+    "historical_cells": 20,
+    "historical_present": 2,
+    "historical_absent": 18,
+    "one_raw_blob_bytes": 23913,
+    "independent_profiles": 9,
+    "all_on_byte_identity": true,
+    "reverse_transform_identity": true,
+    "production_renderer": "prepared unregistered tests only; not executed",
+    "java_runtime": "none",
+    "tooling_or_live_inputs_changed": false
+  },
+  "publication": {
+    "paths": "portable repository-relative only",
+    "historical_git_ids": "bounded test evidence only; never production generation routing"
+  }
+}

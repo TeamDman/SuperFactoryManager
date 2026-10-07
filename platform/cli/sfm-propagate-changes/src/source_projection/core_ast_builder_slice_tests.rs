@@ -194,29 +194,7 @@ impl Fixture {
             self.ledger.direct_owners == OWNERS.map(str::to_owned),
             "direct ASTBuilder ownership changed"
         );
-        let expected_features = feature_closure(&self.shared, &OWNERS)?;
-        ensure!(
-            self.ledger
-                .feature_contracts
-                .keys()
-                .cloned()
-                .collect::<BTreeSet<_>>()
-                == expected_features,
-            "ASTBuilder prerequisite closure changed; update bounded evidence explicitly"
-        );
-        for (name, expected) in &self.ledger.feature_contracts {
-            let registered = self
-                .shared
-                .features
-                .0
-                .get(name)
-                .ok_or_else(|| eyre::eyre!("missing registered owner {name}"))?;
-            ensure!(
-                expected.requires == registered.requires
-                    && expected.supported_targets == registered.supported_targets,
-                "ASTBuilder feature contract changed at {name}"
-            );
-        }
+        self.validate_historical_and_current_feature_contracts()?;
         ensure!(
             self.ledger
                 .files
@@ -294,6 +272,71 @@ impl Fixture {
         Ok(())
     }
 
+    // Keep frozen historical evidence separate from the reviewed current
+    // Client Manager readonly-disk dependency; no other refinement is accepted.
+    fn validate_historical_and_current_feature_contracts(&self) -> Result<()> {
+        let historical_features = historical_feature_closure(&self.ledger, &OWNERS)?;
+        ensure!(
+            self.ledger
+                .feature_contracts
+                .keys()
+                .cloned()
+                .collect::<BTreeSet<_>>()
+                == historical_features,
+            "frozen ASTBuilder prerequisite closure changed"
+        );
+        let mut current_features = historical_features;
+        ensure!(
+            current_features.insert("disk_readonly_access".to_owned()),
+            "disk readonly refinement must not rewrite the historical ASTBuilder closure"
+        );
+        ensure!(
+            feature_closure(&self.shared, &OWNERS)? == current_features,
+            "current ASTBuilder closure differs beyond the reviewed disk readonly refinement"
+        );
+        let disk = self
+            .shared
+            .features
+            .0
+            .get("disk_readonly_access")
+            .ok_or_else(|| eyre::eyre!("missing reviewed disk readonly prerequisite"))?;
+        ensure!(
+            disk.supported_targets
+                == SUPPORTED_TARGETS
+                    .into_iter()
+                    .map(|(target, _)| target.to_owned())
+                    .collect::<Vec<_>>()
+                && disk.requires.is_empty(),
+            "reviewed disk readonly prerequisite must remain all-ten with no prerequisites"
+        );
+        for (name, historical) in &self.ledger.feature_contracts {
+            let registered = self
+                .shared
+                .features
+                .0
+                .get(name)
+                .ok_or_else(|| eyre::eyre!("missing registered owner {name}"))?;
+            let mut current_requires = historical.requires.clone();
+            if name == "client_manager" {
+                ensure!(
+                    historical
+                        .requires
+                        .iter()
+                        .map(String::as_str)
+                        .eq(["sfml_execution_side", "client_program_consent"]),
+                    "frozen Client Manager prerequisite contract changed"
+                );
+                current_requires.push("disk_readonly_access".to_owned());
+            }
+            ensure!(
+                current_requires == registered.requires
+                    && historical.supported_targets == registered.supported_targets,
+                "ASTBuilder feature contract differs beyond its reviewed refinement at {name}"
+            );
+        }
+        Ok(())
+    }
+
     fn render(
         &self,
         target: &str,
@@ -344,6 +387,26 @@ impl Fixture {
         };
         Ok((context, ast, carrier))
     }
+}
+
+fn historical_feature_closure(ledger: &Ledger, requested: &[&str]) -> Result<BTreeSet<String>> {
+    let mut enabled = requested
+        .iter()
+        .map(|name| (*name).to_owned())
+        .collect::<BTreeSet<_>>();
+    let mut pending = enabled.iter().cloned().collect::<Vec<_>>();
+    while let Some(name) = pending.pop() {
+        let contract = ledger
+            .feature_contracts
+            .get(&name)
+            .ok_or_else(|| eyre::eyre!("missing frozen ASTBuilder prerequisite {name}"))?;
+        for prerequisite in &contract.requires {
+            if enabled.insert(prerequisite.clone()) {
+                pending.push(prerequisite.clone());
+            }
+        }
+    }
+    Ok(enabled)
 }
 
 fn feature_closure(shared: &CoreTestFixture, requested: &[&str]) -> Result<BTreeSet<String>> {

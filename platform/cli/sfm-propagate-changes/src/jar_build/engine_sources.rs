@@ -33,7 +33,7 @@ fn transformed_source_output_jar(plan: &BuildPlan) -> eyre::Result<SourceJarPath
     if !path.is_file() {
         eyre::bail!(
             "Transformed source jar was not produced for {}: {}",
-            plan.branch_name,
+            plan.target_label(),
             path.display()
         );
     }
@@ -84,7 +84,7 @@ fn resolve_antlr_classpath(
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
+    let dependencies = context.plan.parsed_dependencies()?;
     context.bail_if_cancelled()?;
     let coordinates = antlr_classpath_coordinates(antlr_tool_version(&dependencies))?;
     let coordinate_refs = coordinates.iter().map(String::as_str).collect::<Vec<_>>();
@@ -237,6 +237,14 @@ fn run_antlr(
         grammar_root.join("antlr4").join("ANTLRv4Lexer.g4"),
         grammar_root.join("antlr4").join("ANTLRv4Parser.g4"),
     ];
+    let grammars = if let Some(project) = context.plan.named_project() {
+        first_named_compile_grammars(project.project().receipt().files.keys().map(String::as_str))?
+            .into_iter()
+            .map(|relative| context.plan.minecraft_dir.join(relative))
+            .collect::<Vec<_>>()
+    } else {
+        grammars.to_vec()
+    };
     for grammar in &grammars {
         context.bail_if_cancelled()?;
         context.assert_allowed_input(grammar)?;
@@ -284,6 +292,8 @@ fn run_antlr(
         .arg(output_dir)
         .args(grammars);
     context.bail_if_cancelled()?;
+    context.plan.recheck_named_inputs()?;
+    context.plan.recheck_named_sdk()?;
     let output = run_command_capture_output(&context.cancellation_token, &mut command, "antlr")
         .wrap_err("Failed to run ANTLR")?;
     context.bail_if_cancelled()?;
@@ -400,7 +410,7 @@ fn resolve_compile_dependencies(
     resolver: &Resolver,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let dependencies = read_projected_dependencies(&context.plan.lockfile_path)?;
+    let dependencies = context.plan.parsed_dependencies()?;
     context.bail_if_cancelled()?;
     let mut artifacts = Vec::new();
     for dependency in dependencies
@@ -438,12 +448,19 @@ fn resolve_compile_dependencies(
 
 fn collect_project_java_sources(
     context: &ExecutionContext<'_>,
-    _generated_sources: &Path,
+    generated_sources: &Path,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
     let mut sources = Vec::new();
     for root in JAVA_SOURCE_CATALOG.build_roots(JavaBuildSourceGroup::Main) {
-        sources.extend(collect_catalog_root_java_sources(context, root)?);
+        // ANTLR writes into this plan's owned cache, which is identity-scoped for
+        // named projects. The catalog's fixed path is only the legacy location;
+        // collecting it here would omit the new parsers or import stale ones.
+        if root.id == "generated-antlr-main" {
+            sources.extend(collect_java_sources_under(context, generated_sources)?);
+        } else {
+            sources.extend(collect_catalog_root_java_sources(context, root)?);
+        }
     }
     sources.sort();
     sources.dedup();
@@ -491,6 +508,11 @@ fn read_source_excludes(
     source_set: &str,
 ) -> eyre::Result<Vec<String>> {
     context.bail_if_cancelled()?;
+    if let Some(project) = context.plan.named_project() {
+        return project
+            .source_exclusion_policy(source_set)
+            .map(|policy| policy.patterns);
+    }
     let excludes = read_source_excludes_for_minecraft_dir(
         &context.plan.minecraft_dir,
         context.plan.minecraft_version.as_str(),
@@ -508,6 +530,22 @@ fn source_exclude_file_path(context: &ExecutionContext<'_>, source_set: &str) ->
         .join("source-excludes")
         .join(context.plan.minecraft_version.as_str())
         .join(format!("{source_set}-java.txt"))
+}
+
+fn source_exclusion_fingerprint_path(
+    context: &ExecutionContext<'_>,
+    source_set: &str,
+) -> eyre::Result<Option<PathBuf>> {
+    context.bail_if_cancelled()?;
+    if let Some(project) = context.plan.named_project() {
+        return project.source_exclusion_policy(source_set).map(|policy| {
+            policy
+                .output
+                .map(|relative| context.plan.minecraft_dir.join(relative))
+        });
+    }
+    let path = source_exclude_file_path(context, source_set);
+    Ok(path.is_file().then_some(path))
 }
 
 fn collect_java_sources_under(
@@ -872,6 +910,8 @@ fn write_minecraft_libraries_cfg(
         })
         .collect::<eyre::Result<Vec<_>>>()?;
 
+    context.plan.recheck_named_inputs()?;
+    context.bail_if_cancelled()?;
     if let Some(parent) = output.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -885,6 +925,10 @@ fn write_minecraft_libraries_cfg(
     level = "debug",
     skip_all,
     fields(mc = %context.plan.minecraft_version)
+)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Authenticated named downloads and unchanged legacy resolution share one cache boundary."
 )]
 fn resolve_current_minecraft_libraries(
     context: &ExecutionContext<'_>,
@@ -904,9 +948,28 @@ fn resolve_current_minecraft_libraries(
             libraries = libraries.len(),
             "resolve_current_minecraft_libraries cache hit"
         );
+        context.plan.recheck_named_inputs()?;
+        context.bail_if_cancelled()?;
         return Ok(libraries.clone());
     }
 
+    if let Some(inputs) = &context.plan.minecraft.authenticated_inputs {
+        context.plan.recheck_named_inputs()?;
+        let mut paths = Vec::new();
+        for request in inputs.libraries() {
+            let relative = request
+                .library_relative_path()
+                .ok_or_else(|| eyre::eyre!("authenticated library lost its exact path"))?;
+            let path = context.plan.minecraft_libraries_dir.join(relative);
+            acquire_authenticated_child_bytes(context, client, inputs, request, &path)?;
+            paths.push(path);
+        }
+        let paths = dedup_paths_preserve_order(paths);
+        context.plan.recheck_named_inputs()?;
+        context.bail_if_cancelled()?;
+        *cached_libraries = Some(paths.clone());
+        return Ok(paths);
+    }
     let version_json: MinecraftVersionJson = {
         let _span = tracing::debug_span!(
             "resolve_current_minecraft_libraries_read_version_json",

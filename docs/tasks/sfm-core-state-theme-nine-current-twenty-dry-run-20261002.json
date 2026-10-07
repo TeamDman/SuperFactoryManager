@@ -1,0 +1,52 @@
+{
+  "schema": "sfm:closed_twenty_projection_generation_checkpoint@1",
+  "date": "2026-10-02",
+  "status": "accepted_generation_dry_run_not_java_or_release_acceptance",
+  "scope": "Historical pre-four-source-promotion current1933 checkpoint. Later current1937 is a new source identity.",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "core": {"files":1933,"bytes":8940502,"sha256":"695a9e7b358b5d0ee5361ec0b8aedbf03358132c194af5ce4779ef3bde9466d8"},
+  "metadata": {"rule_paths":650,"variants":835,"bytes":457949,"sha256":"e43043491aec02e2221e664dd46c68af363c4d0790173ed4f453f688508210d4"},
+  "definitions": {"owners":180,"bytes":30254,"sha256":"38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"},
+  "catalog": {"projections":20,"bytes":2074,"sha256":"6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"},
+  "cli": {"bytes":93378560,"sha256":"5d7b56f88a2e41976a64fdfbebfc309806e00e119f404dbfe04ed972e06bb64d","installed_into_path":false},
+  "command_shape": "sfm-propagate-changes --output-format json --log-filter info source project dry-run --repo-root <repo-root> --projection <catalog-key>",
+  "terminal": {"session":29826,"actual_exit_code":0,"marker":"CURRENT_TWENTY_DRY_RUN_EXIT=0","normal_children":20,"elapsed_ms":180178},
+  "closed_evidence": {
+    "files":81,"bytes":13008575,
+    "ledger_encoding":"UTF8 ordinal filename NUL decimal bytes NUL lowercase SHA256 LF",
+    "ledger_sha256":"c7eb45aec4c9661750ac6e250e0b375dcd1c545f73640ec2931ac8e15a61a0f8",
+    "run_receipt":{"bytes":15052,"sha256":"a7ef8c9d676183063c17b36bcb87a99b317356612d92bbd5e1e4094e620c3c4e"},
+    "raw_stream_pins":60,"child_receipts":20,"child_exit_failures":0,"kill_requests":0,
+    "trace_representation":"exact duplicate terminal stderr, not JSONL"
+  },
+  "checked": {
+    "typed_artifact_descriptors":22882,"distinct_authored_inputs_native_hashed_by_root":1521,
+    "existing_unchanged_outputs_native_hashed":3420,"planned_created_outputs":19462,"planned_updated_outputs":0,
+    "actual_existing_roots":["sfm-4.34.0/mc-1.19.2","sfm-4.34.0/mc-1.19.4","sfm-4.34.0/mc-1.20"],
+    "absent_roots":17,"all_write_flags_typed_false":true,"core_and_cli_equal_before_after":true,
+    "catalog_and_selector_membership":true,"artifact_status_partitions":true
+  },
+  "projection_artifact_counts": {
+    "sfm-4.34.0/mc-1.19.2":1140,"sfm-4.34.0/mc-1.19.4":1140,"sfm-4.34.0/mc-1.20":1140,
+    "sfm-4.34.0/mc-1.20.1":1142,"sfm-4.34.0/mc-1.20.2":1142,"sfm-4.34.0/mc-1.20.3":1142,"sfm-4.34.0/mc-1.20.4":1142,
+    "sfm-4.34.0/mc-1.21.0":1144,"sfm-4.34.0/mc-1.21.1":1145,"sfm-4.34.0/mc-26.1.2":1156,
+    "sfm-dev/mc-1.19.2":1154,"sfm-dev/mc-1.19.4":1142,"sfm-dev/mc-1.20":1140,
+    "sfm-dev/mc-1.20.1":1142,"sfm-dev/mc-1.20.2":1142,"sfm-dev/mc-1.20.3":1142,"sfm-dev/mc-1.20.4":1142,
+    "sfm-dev/mc-1.21.0":1144,"sfm-dev/mc-1.21.1":1145,"sfm-dev/mc-26.1.2":1156
+  },
+  "independent_audit": {
+    "review_bytes":28966,"review_sha256":"c5aa4275003d12172d00c9adc9ae040b10de2410b027e2963860368bfb825974",
+    "seal_bytes":1279,"seal_sha256":"5fdedfdbf2b7b2ca112eb117e1bf8ed78521c3574161f96315f307da02336c84",
+    "root_fully_read_and_native_pin_verified":true,"findings":0,
+    "independence":"Reviewer prepared V7, not V8; did not invoke this cohort. Independently inspected closed evidence and measured a separate core/CLI before-after window."
+  },
+  "limits": [
+    "No projection writes, Java compilation, Minecraft execution, release compatibility or installed-tool freshness.",
+    "Seventeen roots remain absent; creation descriptors are plans, not materialized outputs.",
+    "Mostly-off public defaults do not prove complete unreleased-feature preservation or feature-on compile closure.",
+    "Rendered hashes and context BLAKE3 were not independently recomputed; authored provenance, native membership and existing unchanged bytes were checked.",
+    "Recorded EOF/reap flags are not independent past OS-lifetime or negative fault-injection evidence.",
+    "This checkpoint must not be relabelled as current1937 generation acceptance."
+  ]
+}

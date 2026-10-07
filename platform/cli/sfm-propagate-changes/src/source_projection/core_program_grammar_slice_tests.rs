@@ -3,6 +3,8 @@
 //! Real rendering and core selection are exercised here. Historical Git bytes
 //! are bounded golden evidence, never a production generation input. Feature
 //! combinations are source/grammar-contract checks, not Java compilation.
+//! The receipt retains its historical keyword-reflow evidence. The current
+//! full-owner grammar now reproduces the raw pinned keyword layout exactly.
 //! Deliberate future edits require review of this bounded golden ledger rather
 //! than automatic per-target hash adoption or historical-tree fallback.
 
@@ -709,11 +711,14 @@ fn twenty_frozen_program_grammar_witnesses_use_real_renderer_and_template_select
         let (_, grammar, program) = fixture.render(&witness.target_id, &requested)?;
         for (path, rendered) in [(GRAMMAR, grammar), (PROGRAM, program)] {
             let expected = &witness.witnesses[path];
-            let bytes = expected_body(
-                path,
-                &expected.raw_git_blob,
-                fixture.blob(&expected.raw_git_blob)?,
-            )?;
+            let raw = fixture.blob(&expected.raw_git_blob)?;
+            let bytes = if path == GRAMMAR && expected.raw_git_blob == GRAMMAR_ON {
+                // Strengthen current rendering to raw Git text; do not apply
+                // the earlier receipt's reviewed whitespace reflow.
+                raw.to_vec()
+            } else {
+                expected_body(path, &expected.raw_git_blob, raw)?
+            };
             assert_eq!(rendered.as_bytes(), bytes, "witness {}", witness.context);
             comparisons += 1;
         }

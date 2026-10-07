@@ -61,6 +61,10 @@ pub enum CoreProjectCommand {
     Reconcile(CoreProjectSelectionArgs),
     /// Build a selected project; release inputs must already be synchronized.
     Build(CoreProjectGradleArgs),
+    /// Native compile of an exact released recipe or declared development profile.
+    Compile(CoreProjectCompileArgs),
+    /// Package an exact release recipe or declared development profile; no app launch.
+    Jar(CoreProjectCompileArgs),
     /// Run a selected project without changing another projection or its saves.
     Run(CoreProjectGradleArgs),
 }
@@ -91,6 +95,25 @@ pub struct CoreProjectGradleArgs {
     /// Use only previously cached Gradle dependencies and Minecraft assets.
     #[facet(default = false, args::named)]
     pub offline: bool,
+}
+
+#[derive(Debug, Facet)]
+pub struct CoreProjectCompileArgs {
+    #[facet(flatten)]
+    pub project: CoreProjectSelectionArgs,
+    /// Explicit reviewed frozen recipe identity; never a dependency profile.
+    #[facet(default, args::named)]
+    pub released_recipe: Option<String>,
+    /// Exact declared schema-4 development profile; excludes released-recipe.
+    #[facet(default, args::named)]
+    pub dependency_profile: Option<String>,
+    /// Existing SDK home; compiler release and tool JVM remain separate.
+    #[facet(args::named)]
+    pub java_home: PathBuf,
+    #[facet(default = false, args::named)]
+    pub explain_rebuild: bool,
+    #[facet(default = false, args::named)]
+    pub wait_for_build_lock: bool,
 }
 
 #[derive(Debug, Facet)]
@@ -147,6 +170,12 @@ impl CoreProjectArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let (args, mode, operation) = match self.command {
+            CoreProjectCommand::Compile(args) => {
+                return invoke_native_compile(&args, cancellation, invocation_dir);
+            }
+            CoreProjectCommand::Jar(args) => {
+                return invoke_native_jar(&args, cancellation, invocation_dir);
+            }
             CoreProjectCommand::Build(args) => {
                 return invoke_gradle(args, false, cancellation, invocation_dir);
             }
@@ -165,6 +194,320 @@ impl CoreProjectArgs {
             cancellation,
             invocation_dir,
         )?))
+    }
+}
+
+fn invoke_native_compile(
+    args: &CoreProjectCompileArgs,
+    cancellation: &CancellationToken,
+    invocation_dir: &Path,
+) -> Result<CliOutput> {
+    if args.dependency_profile.is_some() {
+        return invoke_native_development(args, false, cancellation, invocation_dir);
+    }
+    let recipe = args.released_recipe.as_deref().ok_or_else(|| {
+        eyre::eyre!(
+            "native compile requires exactly one of --released-recipe or --dependency-profile"
+        )
+    })?;
+    cancellation.bail_if_cancelled()?;
+    // Refuse unsupported target/recipe before dev generation or external effects.
+    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let entry = initial.catalog.entry(&args.project.projection)?;
+    preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
+    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let report = project_report(
+        &args.project,
+        GenerationPolicy::BuildRun,
+        "prepare_native_compile",
+        cancellation,
+        invocation_dir,
+    )?;
+    let loaded = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    ensure!(
+        loaded.catalog_sha256 == report.catalog_sha256
+            && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
+            && loaded.catalog.context_identity(&args.project.projection)?
+                == report.context_identity,
+        "named compile catalog changed after generation"
+    );
+    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+        &args.project.repo_root,
+        invocation_dir,
+        &args.project.projection,
+    )?;
+    let checked = collected.check_current()?;
+    ensure!(
+        checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
+        "named compile build metadata changed after generation"
+    );
+    let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
+    frozen.recheck(false)?;
+    let result = crate::jar_build::invoke_named_compile(
+        frozen,
+        &crate::jar_build::NamedCompileOptions {
+            java_home: home,
+            explain_rebuild: args.explain_rebuild,
+            wait_for_build_lock: args.wait_for_build_lock,
+        },
+        cancellation,
+    )?;
+    Ok(CliOutput::facet(result))
+}
+
+fn invoke_native_jar(
+    args: &CoreProjectCompileArgs,
+    cancellation: &CancellationToken,
+    invocation_dir: &Path,
+) -> Result<CliOutput> {
+    if args.dependency_profile.is_some() {
+        return invoke_native_development(args, true, cancellation, invocation_dir);
+    }
+    let recipe = args.released_recipe.as_deref().ok_or_else(|| {
+        eyre::eyre!("native jar requires exactly one of --released-recipe or --dependency-profile")
+    })?;
+    cancellation.bail_if_cancelled()?;
+    // Refuse unsupported target/recipe before dev generation or external effects.
+    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let entry = initial.catalog.entry(&args.project.projection)?;
+    preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
+    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let report = project_report(
+        &args.project,
+        GenerationPolicy::BuildRun,
+        "prepare_native_jar",
+        cancellation,
+        invocation_dir,
+    )?;
+    let loaded = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    ensure!(
+        loaded.catalog_sha256 == report.catalog_sha256
+            && loaded.feature_definitions_sha256 == report.feature_definitions_sha256
+            && loaded.catalog.context_identity(&args.project.projection)?
+                == report.context_identity,
+        "named jar catalog changed after generation"
+    );
+    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+        &args.project.repo_root,
+        invocation_dir,
+        &args.project.projection,
+    )?;
+    let checked = collected.check_current()?;
+    ensure!(
+        checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
+        "named jar build metadata changed after generation"
+    );
+    let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
+    frozen.recheck(false)?;
+    let result = crate::jar_build::invoke_named_jar(
+        frozen,
+        &crate::jar_build::NamedCompileOptions {
+            java_home: home,
+            explain_rebuild: args.explain_rebuild,
+            wait_for_build_lock: args.wait_for_build_lock,
+        },
+        cancellation,
+    )?;
+    Ok(CliOutput::facet(result))
+}
+
+fn invoke_native_development(
+    args: &CoreProjectCompileArgs,
+    package: bool,
+    cancellation: &CancellationToken,
+    invocation_dir: &Path,
+) -> Result<CliOutput> {
+    let profile = args
+        .dependency_profile
+        .as_deref()
+        .ok_or_else(|| eyre::eyre!("missing development profile"))?;
+    ensure!(
+        args.released_recipe.is_none(),
+        "--released-recipe and --dependency-profile are mutually exclusive"
+    );
+    ensure!(
+        profile == crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE,
+        "native development build requires the declared rust-toolchain profile"
+    );
+    let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
+    let entry = initial.catalog.entry(&args.project.projection)?;
+    ensure!(
+        entry.environment == ProjectionEnvironment::Dev,
+        "development native admission requires a development projection"
+    );
+    crate::source_projection::native_project_target::development_native_loader(
+        entry.target_id()?,
+        &entry.minecraft_version,
+    )?;
+    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+        &args.project.repo_root,
+        invocation_dir,
+        &args.project.projection,
+    )?;
+    crate::source_projection::native_project_target::validate_collected_native_profile(
+        &collected, profile,
+    )?;
+    let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    cancellation.bail_if_cancelled()?;
+    let checked = collected.prepare_development()?;
+    Ok(CliOutput::facet(
+        crate::jar_build::invoke_development_project(
+            checked,
+            profile,
+            &crate::jar_build::NamedCompileOptions {
+                java_home: home,
+                explain_rebuild: args.explain_rebuild,
+                wait_for_build_lock: args.wait_for_build_lock,
+            },
+            package,
+            cancellation,
+        )?,
+    ))
+}
+
+fn preflight_native_sdk_home(path: &Path, invocation_dir: &Path) -> Result<PathBuf> {
+    use crate::source_projection::candidate_lock::checked_directory;
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        invocation_dir.join(path)
+    };
+    let home = checked_directory(&absolute)?;
+    for relative in [
+        if cfg!(windows) {
+            "bin/java.exe"
+        } else {
+            "bin/java"
+        },
+        if cfg!(windows) {
+            "bin/javac.exe"
+        } else {
+            "bin/javac"
+        },
+        "release",
+        "lib/modules",
+    ] {
+        checked_file(&home, relative)?;
+    }
+    Ok(home)
+}
+
+fn preflight_named_forge_recipe(target: &str, minecraft_version: &str, recipe: &str) -> Result<()> {
+    ensure!(
+        matches!(target, "1.19.2" | "1.19.4" | "1.20" | "1.20.1")
+            && minecraft_version == target
+            && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1"),
+        "named native Compile requires an exact released Forge-family recipe; NeoForm, packaging, JUnit and launch remain separate gates"
+    );
+    Ok(())
+}
+
+fn preflight_named_compile_recipe(
+    target: &str,
+    minecraft_version: &str,
+    recipe: &str,
+) -> Result<()> {
+    if crate::jar_build::preflight_named_neoform_recipe(target, minecraft_version, recipe)? {
+        return Ok(());
+    }
+    preflight_named_forge_recipe(target, minecraft_version, recipe)
+}
+
+#[cfg(test)]
+mod named_native_sdk_preflight_tests {
+    use super::*;
+
+    #[test]
+    fn exact_neoform_compile_preflight_shares_the_engine_recipe_gate() {
+        let recipe = "sfm:released-native-inputs/4.34.0/1.20.2@1";
+        assert_eq!(
+            preflight_named_compile_recipe("1.20.2", "1.20.2", recipe).is_ok(),
+            cfg!(windows)
+        );
+        assert!(preflight_named_compile_recipe("1.20.2", "1.20.3", recipe).is_err());
+        assert!(preflight_named_compile_recipe("1.20.2", "1.20.2", "unreviewed").is_err());
+        assert!(preflight_named_forge_recipe("1.20.2", "1.20.2", recipe).is_err());
+        for (target, minecraft) in [
+            ("1.20.2", "1.20.2"),
+            ("1.20.3", "1.20.3"),
+            ("1.20.4", "1.20.4"),
+            ("1.21.0", "1.21"),
+            ("1.21.1", "1.21.1"),
+            ("26.1.2", "26.1.2"),
+        ] {
+            let recipe = format!("sfm:released-native-inputs/4.34.0/{target}@1");
+            assert_eq!(
+                preflight_named_compile_recipe(target, minecraft, &recipe).is_ok(),
+                cfg!(windows)
+            );
+            assert!(preflight_named_compile_recipe(target, "unknown", &recipe).is_err());
+            assert!(preflight_named_compile_recipe(target, minecraft, "unreviewed").is_err());
+            assert!(preflight_named_forge_recipe(target, minecraft, &recipe).is_err());
+        }
+        assert!(
+            preflight_named_compile_recipe(
+                "1.21.0",
+                "1.21.0",
+                "sfm:released-native-inputs/4.34.0/1.21.0@1"
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn original_forge_recipe_gate_accepts_only_its_exact_target_before_sdk_or_generation() {
+        for target in ["1.19.2", "1.19.4", "1.20", "1.20.1"] {
+            let recipe = format!("sfm:released-native-inputs/4.34.0/{target}@1");
+            preflight_named_forge_recipe(target, target, &recipe).unwrap();
+            assert!(preflight_named_forge_recipe(target, "different", &recipe).is_err());
+            assert!(preflight_named_forge_recipe(target, target, "unreviewed").is_err());
+        }
+        for target in [
+            "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2", "unknown",
+        ] {
+            let recipe = format!("sfm:released-native-inputs/4.34.0/{target}@1");
+            assert!(preflight_named_forge_recipe(target, target, &recipe).is_err());
+        }
+    }
+
+    #[test]
+    fn named_native_missing_sdk_refuses_before_any_generation() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let missing = directory.path().join("missing-sdk");
+        assert!(preflight_native_sdk_home(&missing, directory.path()).is_err());
+        assert_eq!(fs::read_dir(directory.path())?.count(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn named_native_sdk_preflight_requires_all_regular_execution_inputs() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let home = directory.path().join("sdk");
+        fs::create_dir_all(home.join("bin"))?;
+        fs::create_dir_all(home.join("lib"))?;
+        let paths = [
+            if cfg!(windows) {
+                "bin/java.exe"
+            } else {
+                "bin/java"
+            },
+            if cfg!(windows) {
+                "bin/javac.exe"
+            } else {
+                "bin/javac"
+            },
+            "release",
+            "lib/modules",
+        ];
+        for relative in paths {
+            assert!(preflight_native_sdk_home(&home, directory.path()).is_err());
+            fs::write(home.join(relative), b"fixture")?;
+        }
+        assert_eq!(
+            preflight_native_sdk_home(&home, directory.path())?,
+            fs::canonicalize(home)?
+        );
+        Ok(())
     }
 }
 
@@ -387,6 +730,42 @@ mod tests {
     use crate::source_projection::core_inputs::InputVariant;
     use crate::source_projection::sync::MANIFEST_FILE;
     use std::process::Command;
+
+    #[test]
+    fn native_recipe_and_development_profile_are_exclusive_before_effects() {
+        let args = CoreProjectCompileArgs {
+            project: CoreProjectSelectionArgs {
+                repo_root: PathBuf::from("must-not-be-read"),
+                projection: "unused".to_owned(),
+            },
+            released_recipe: Some("unused".to_owned()),
+            dependency_profile: Some("rust-toolchain".to_owned()),
+            java_home: PathBuf::from("must-not-be-read"),
+            explain_rebuild: false,
+            wait_for_build_lock: false,
+        };
+        let cancellation = CancellationToken::new();
+        for package in [false, true] {
+            let result = if package {
+                invoke_native_jar(&args, &cancellation, Path::new("."))
+            } else {
+                invoke_native_compile(&args, &cancellation, Path::new("."))
+            };
+            let error = result.unwrap_err().to_string();
+            assert!(error.contains("mutually exclusive"), "{error}");
+        }
+        let missing = CoreProjectCompileArgs {
+            released_recipe: None,
+            dependency_profile: None,
+            ..args
+        };
+        assert!(
+            invoke_native_jar(&missing, &cancellation, Path::new("."))
+                .unwrap_err()
+                .to_string()
+                .contains("requires exactly one")
+        );
+    }
 
     fn git(root: &Path, args: &[&str]) {
         assert!(

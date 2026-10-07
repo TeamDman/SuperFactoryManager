@@ -1,0 +1,172 @@
+{
+  "schema": "sfm:core-native-resolver-proposal@1",
+  "status": "staged_unregistered_not_compiled_or_executed",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": {
+    "production_base": "platform/cli/sfm-propagate-changes/src/jar_build/resolve.rs",
+    "base_sha256": "aac4dba83c59801b6552cf0a50be1f513a41767edaf7af449988a84954315998",
+    "base_bytes": 46970,
+    "staged_copy": "target/core-native-resolver-stage-v1/resolve.rs",
+    "staged_sha256": "39374b5ceb32ba61ce6bb4e750f052621a47e7a11f7f70b20ad28f6184e53064",
+    "staged_bytes": 78227,
+    "staged_eol": "LF",
+    "production_modified": false,
+    "promotion": "Review the semantic diff against the exact base hash before applying. The ignored proposal is not a tracked production module and must not replace a changed base automatically.",
+    "dependencies": "No dependency additions, downloads, lockfile changes, cache mutations or Minecraft launches were performed."
+  },
+  "prepared_api": {
+    "immutable_handle": "Arc<PreparedDependencyInputs>; clones share the same receipt, exact schema-2 source bytes and request catalog.",
+    "original_lock_view": "original_lock().clone().into_latest() retains the existing schema-2 ordered artifact/dependency view. Both legacy pin handles share that one Arc. No schema-4 profile is manufactured.",
+    "eager_lookup": [
+      "coordinate",
+      "exact_url",
+      "artifact_pin",
+      "dependencies"
+    ],
+    "immutable_guard": "verify_source_lock_bytes(raw_source_lock_bytes(), refresh) rejects refresh before HTTP-client construction. This verifies held immutable bytes, not a fresh disk reread; exact named-target/provenance rechecks remain a caller integration gate.",
+    "runtime": "frozen_runtime_rows_for(exact root sequence) exposes original global closure rows without inventing per-root POM edges.",
+    "source_exclusions": "Retained in PreparedDependencyInputs; applying them to compiler/run assembly is outside this resolver-only slice."
+  },
+  "proposed_hooks": [
+    {
+      "function": "Resolver::new / new_prepared",
+      "change": "Leave the existing constructor signature and behavior intact. Add an explicit strict constructor with local artifact discovery disabled, no explicit arbitrary artifact sources, shared prepared handle and refresh refusal."
+    },
+    {
+      "function": "resolve_artifacts / resolve_dependencies",
+      "change": "Strict mode validates every coordinate or exact configuration+coordinate row before entering the existing Rayon dispatcher. Unknown first or last requests cannot partially acquire a permitted artifact."
+    },
+    {
+      "function": "resolve_artifact",
+      "change": "Validate the strict coordinate before cache/network work. An already hash-verified source-built cache artifact may pass. Otherwise reject SourceBuild/ExplicitSource misses before artifact-lock creation or cache replacement until the external recipe boundary is sealed."
+    },
+    {
+      "function": "resolve_dynamic_coordinate",
+      "change": "Strict mode returns only the exact recorded resolution or recorded dynamic alias. It does not query live Maven metadata. Legacy exact/dynamic resolution remains on the original branch."
+    },
+    {
+      "function": "resolve_dependency / apply_prepared_dependency_policy",
+      "change": "Require an unambiguous exact recorded or reviewed supplemental configuration row. Preserve requested/resolved notation, loader treatment, Data-run exclusion and bundle policy rather than the legacy Plain/Include defaults."
+    },
+    {
+      "function": "download_locked_remote_artifact / remote_artifact",
+      "change": "Bind coordinate and exact URL to the same original artifact index before download. After an exact locked URL fails, strict mode refuses repository fallback before repository discovery. Legacy fallback is unchanged."
+    },
+    {
+      "function": "locked_artifact_hash / verify_locked_artifact_with_actual_hash",
+      "change": "Strict mode retains and verifies every original exact hash, including weak-metadata rows. Matching metadata must never bless different bytes. Legacy weak validation remains unchanged."
+    },
+    {
+      "function": "cached_artifact_plan",
+      "change": "Validate the coordinate and actual frozen content hash before provenance access/writes. Also reject a caller-supplied reported digest that differs from the actual file contents. The existing cache-lock discipline remains required."
+    },
+    {
+      "function": "source_build_fallback",
+      "change": "Retain a second strict refusal before external source checkout/build calls, even if this helper is reached through a future path."
+    },
+    {
+      "function": "resolve_pom_runtime_dependencies / frozen_runtime_rows_for",
+      "change": "Strict per-root POM requests refuse before classifier/Curse/non-JAR early-empty paths. Use the exact global root sequence and original transitiveRuntime rows at the future planner assembly seam."
+    }
+  ],
+  "tests": {
+    "status": "Authored in the staged copy; not compiled or run.",
+    "count": 8,
+    "names": [
+      "legacy_constructor_and_non_effectful_paths_remain_unrestricted",
+      "strict_refresh_and_single_unknown_requests_refuse_before_cache_effects",
+      "strict_mixed_batches_refuse_before_the_first_effect_callback",
+      "strict_dynamic_resolution_uses_only_the_recorded_alias",
+      "strict_url_guard_binds_one_pin_and_refuses_repository_fallback",
+      "strict_per_root_pom_refuses_even_classifier_roots_and_keeps_global_rows",
+      "strict_hash_gate_never_uses_weak_metadata_as_identity",
+      "strict_handle_is_shared_and_planner_role_policy_is_preserved"
+    ],
+    "fixture_source": "docs/tasks/sfm-core-released-native-adapter-review.json and its bounded checked-file raw lock/build-input witnesses",
+    "effect_checks": "Unknown single requests and refresh use actual resolver entry points. Batch/URL tests use the same pre-dispatch callbacks as production and assert zero callback effects and absent cache roots. No allowed acquisition path is invoked.",
+    "target_examples": {
+      "1.19.2": "Recorded CoFH alias 10.2.0.+ -> 10.2.0.38; Mouse Tweaks Data exclusion.",
+      "1.19.4": "Exact released Forge 1.19.4-45.0.9 userdev, not the newer schema-4 profile's Forge pin.",
+      "1.21.1": "Classifier POM refusal and exact global GuideMe 21.1.1 row.",
+      "26.1.2": "Raw original weak Mekanism pin refusal/comparison and ANTLR [4.13.1] jarJar policy. These tests do not promote the weak input or claim 26.1.2 native execution."
+    },
+    "limitations": [
+      "The equality helper's positive weak-pin case is not an actual-byte acquisition proof.",
+      "The positive reported-cache-digest branch needs a bounded verified-artifact integration fixture after promotion.",
+      "Legacy network fallback is preserved by code branching, not exercised with live networking.",
+      "This proposal does not exercise all 838 pins or the 541 preserved unexpanded pipeline roles."
+    ]
+  },
+  "validation": {
+    "rustfmt": "rustfmt --edition 2024 --check target/core-native-resolver-stage-v1/resolve.rs passed.",
+    "production_hash": "Production resolve.rs remains at the exact base SHA-256; git status shows no modification of that path.",
+    "compilation": "Not run. Parent owns Cargo, registration and gate execution.",
+    "native_build": "Not attempted; no acceptance claim."
+  },
+  "remaining_integration_gates": [
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs"
+      ],
+      "requirement": "Propagate one exact named projection target and immutable prepared handle through seven resolver factories. Keep all branch-based legacy callers unchanged. The JUnit resolver currently passes no lock and must not remain an unpinned bypass."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_sources.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs"
+      ],
+      "requirement": "Replace five strict-context lock rereads with the shared prepared handle; preserve source exclusions and exact role policy. These are not yet patched."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_mappings_compare_artifacts.rs"
+      ],
+      "function": "write_artifact_lockfile_with_extra_cache_paths",
+      "requirement": "Immutable prepared contexts must reject refresh and verify source identity before constructing, migrating, sorting or writing a replacement lock. A resolver cannot enforce this separate writer."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs"
+      ],
+      "function": "resolve_minecraft_plan",
+      "requirement": "Use the released pinned direct version-JSON URL/hash instead of the live global version manifest. Preserve and verify the returned child client/server/mappings/libraries/asset-index checksums before acquisition."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_plan.rs",
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_sources.rs"
+      ],
+      "requirement": "Five direct resolver.client consumers bypass coordinate guards and need exact-request transport helpers. The proposal does not claim to seal them."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs"
+      ],
+      "function": "execute_neoform_userdev",
+      "requirement": "Seal the external NFRT boundary. Its current artifact manifest covers only plan coordinates, warns on misses and permits live repository fallback. A full frozen manifest and a refusal-capable/offline external boundary are required."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/source_projection/native_project_target.rs"
+      ],
+      "requirement": "Recheck the actual exact catalog key, context, guarded destination, generation provenance and current source hashes before cache/acquisition. Do not masquerade as a WorktreeTarget, auto-sync release output or silently choose schema 4."
+    },
+    {
+      "files": [
+        "platform/cli/sfm-propagate-changes/src/jar_build/resolve.rs"
+      ],
+      "requirement": "Source-build cache misses remain intentionally unsupported until locked external Gradle/Cargo recipe dependency closure is validated. Verified cached original bytes do not establish source rebuild reproducibility."
+    }
+  ],
+  "portable_evidence": [
+    "docs/tasks/sfm-core-released-native-adapter-review.json",
+    "docs/tasks/sfm-core-native-artifact-identity-proof.json",
+    "platform/cli/sfm-propagate-changes/src/source_projection/released_native_inputs.rs",
+    "platform/cli/sfm-propagate-changes/src/source_projection/prepared_dependency_inputs.rs"
+  ],
+  "next_step": "Parent review of the exact stage/base diff, promotion of the bounded resolver slice only, focused tests and full gate. Native engine/NFRT integration remains separate work."
+}

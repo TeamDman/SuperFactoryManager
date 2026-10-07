@@ -1,0 +1,1126 @@
+{
+  "schema": "sfm:core-workspace-factory-registry-slice@1",
+  "status": "Ignored source-only proposal; actual production renderer/collector tests prepared but not run",
+  "normalization": "none",
+  "starting_head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "scope": {
+    "new_sources": 4,
+    "historical_cells": 80,
+    "present_cells": 32,
+    "absent_cells": 48,
+    "raw_objects": 11,
+    "raw_bytes": 32668,
+    "authored_bytes": 25530,
+    "registrar_fields": 24,
+    "definitions": 29,
+    "unchanged_providers": 15,
+    "prepared_tests": 8
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "definitions": {
+    "workspace_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "workspace_panel_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "client_actions",
+        "workspace_panels"
+      ]
+    },
+    "workspace_panel_reopening": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "workspace_stack_controls": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "workspace_panel_metadata"
+      ]
+    },
+    "workspace_directional_opening": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "command_palette": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions",
+        "client_theme",
+        "keyboard_profiles"
+      ]
+    },
+    "client_actions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "client_program_consent": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "sfml_execution_side"
+      ]
+    },
+    "confirmation_review_callbacks": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_lookup": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_widget_hosts": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "screen_diagnostics": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "input_diagnostics_panel": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "terminal_remote": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "terminal_properties": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "document_history": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "trajectory_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_counterfactuals": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "editor_document_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "workspace_panels",
+        "editor_documents"
+      ]
+    },
+    "file_explorer": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "review_sessions": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "release_review": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "timeline_panels": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "workspace_panels"
+      ]
+    },
+    "touch_display_terminal_mount": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "workspace_panel_metadata": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "client_theme": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": []
+    },
+    "keyboard_profiles": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [
+        "client_actions"
+      ]
+    },
+    "sfml_execution_side": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    },
+    "editor_documents": {
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": []
+    }
+  },
+  "files": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java",
+      "stage_basename": "SFMWorkspaceScreenTypes.java",
+      "bytes": 9525,
+      "sha256": "sha256:9e58ba1b548b45c59fc773e4d692ab750e473300d896ce682732a40597ca70c8",
+      "lf_count": 243,
+      "cr_count": 0,
+      "final_lf": true,
+      "common_edit_anchor": "public final class SFMWorkspaceScreenTypes",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java",
+        "template": true,
+        "when": {
+          "all_features": [
+            "workspace_panels"
+          ]
+        }
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/OpenPanelAction.java",
+      "stage_basename": "OpenPanelAction.java",
+      "bytes": 11154,
+      "sha256": "sha256:9835e073925361bcb23aff0f1abd10dc7df8d747206c5b6cbca4d8c97523f7db",
+      "lf_count": 275,
+      "cr_count": 0,
+      "final_lf": true,
+      "common_edit_anchor": "public final class OpenPanelAction",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/action/OpenPanelAction.java",
+        "template": true,
+        "when": {
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ],
+          "all_features": [
+            "workspace_panel_actions"
+          ]
+        }
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenType.java",
+      "stage_basename": "SFMTestScreenType.java",
+      "bytes": 2695,
+      "sha256": "sha256:8fabc4de5a233b1b2f967059f03b4295cea4191d0b099fefbed7233c0ace98b3",
+      "lf_count": 74,
+      "cr_count": 0,
+      "final_lf": true,
+      "common_edit_anchor": "public final class SFMTestScreenType",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenType.java",
+        "template": true,
+        "when": {
+          "all_features": [
+            "workspace_panels"
+          ]
+        }
+      }
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenPanel.java",
+      "stage_basename": "SFMTestScreenPanel.java",
+      "bytes": 2156,
+      "sha256": "sha256:6807cb20c5bf4355ceabdab047313a062e41531f9c03e00e5d67ef86c95d4cd0",
+      "lf_count": 78,
+      "cr_count": 0,
+      "final_lf": true,
+      "common_edit_anchor": "public record SFMTestScreenPanel(String displayText) implements SFMScreenPanel {",
+      "source_rule": {
+        "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenPanel.java",
+        "template": true,
+        "when": {
+          "all_features": [
+            "workspace_panels"
+          ]
+        }
+      }
+    }
+  ],
+  "raw_objects": [
+    {
+      "oid": "406b2f18f8554f01778fd98770e59292efa8d13d",
+      "bytes": 1131,
+      "sha256": "sha256:5b702cf0aaa86faf35977ee1c17e26b46edb10614eb627abbec6791ea29e707e",
+      "lf_count": 25,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "59da16fa85b4d0c23263b7a15ade1cc37d367d47",
+      "bytes": 7288,
+      "sha256": "sha256:f8377208fc9094e4f43e5b8c6efb06d58ac31630e71546d89021becab7af2270",
+      "lf_count": 154,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "82dfb94ac046e20aa7cf82487b94d1922ada86f0",
+      "bytes": 1582,
+      "sha256": "sha256:de39746ed5c7a02901863053f805e55cc523877010046f51314315a7bd1fc895",
+      "lf_count": 39,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "8c7ebb25e6b7509fd2ecf9cc2404b420b2f8dce7",
+      "bytes": 1486,
+      "sha256": "sha256:16b5f52fc92dd3424b8d5c5d15c1acf879c8bbb059914400ef40e7a5f7f4ffcd",
+      "lf_count": 50,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "8c96ee65dc8bb0a3a53e105a9e8bcf9be6c7fa7a",
+      "bytes": 8239,
+      "sha256": "sha256:f4b1de0a4b65eff92d08e033e7cc22f4f97c2006afa7a5f49d6012c4039c1ad5",
+      "lf_count": 182,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "bytes": 1143,
+      "sha256": "sha256:85f0a445c2fed85c70d7fef489e455d3284831bb5035f34b63a0126dbd27dc18",
+      "lf_count": 25,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "bytes": 1468,
+      "sha256": "sha256:0c4080040331d83e61954c5eca5dc44976af00a4c2c7edf27e8555d0acb940a2",
+      "lf_count": 50,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "bb521a68ae976edec8aba37d9e662aeb2b8afcf8",
+      "bytes": 822,
+      "sha256": "sha256:8f2126cecf199ea07dc2ada2739ee211a28c0f55a0c2ecf11ecaff04be532d48",
+      "lf_count": 24,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "db32c98079367fee80627b5615f3bae07d33eeda",
+      "bytes": 1407,
+      "sha256": "sha256:fa2ad46fb2c8e03df1f11f7098b9f9b04a11c261fc165b2db4d0a1c9bd115f46",
+      "lf_count": 49,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "f4f4b5f0f0042fefa170d32de574d54a39ed508c",
+      "bytes": 7229,
+      "sha256": "sha256:5ea422f2c907e82a12688ddebc75fea6a8800fe2f018b516d71c4352b4642957",
+      "lf_count": 152,
+      "cr_count": 0,
+      "final_lf": true
+    },
+    {
+      "oid": "fe248698637b426abeffef0916aed5cabd804f00",
+      "bytes": 873,
+      "sha256": "sha256:d47afef05ff1ba4b9a7a3d5dcbd0c5c261c12fd679c70b27c88efc7c73098541",
+      "lf_count": 25,
+      "cr_count": 0,
+      "final_lf": true
+    }
+  ],
+  "historical_membership": {
+    "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java": {
+      "dev/1.19.2": "59da16fa85b4d0c23263b7a15ade1cc37d367d47",
+      "dev/1.19.4": "f4f4b5f0f0042fefa170d32de574d54a39ed508c",
+      "dev/1.20": "bb521a68ae976edec8aba37d9e662aeb2b8afcf8",
+      "dev/1.20.1": "bb521a68ae976edec8aba37d9e662aeb2b8afcf8",
+      "dev/1.20.2": "fe248698637b426abeffef0916aed5cabd804f00",
+      "dev/1.20.3": "fe248698637b426abeffef0916aed5cabd804f00",
+      "dev/1.20.4": "fe248698637b426abeffef0916aed5cabd804f00",
+      "dev/1.21.0": "fe248698637b426abeffef0916aed5cabd804f00",
+      "dev/1.21.1": "fe248698637b426abeffef0916aed5cabd804f00",
+      "dev/26.1.2": "fe248698637b426abeffef0916aed5cabd804f00",
+      "release/1.19.2": null,
+      "release/1.19.4": null,
+      "release/1.20": null,
+      "release/1.20.1": null,
+      "release/1.20.2": null,
+      "release/1.20.3": null,
+      "release/1.20.4": null,
+      "release/1.21.0": null,
+      "release/1.21.1": null,
+      "release/26.1.2": null
+    },
+    "src/main/java/ca/teamdman/sfm/client/action/OpenPanelAction.java": {
+      "dev/1.19.2": "8c96ee65dc8bb0a3a53e105a9e8bcf9be6c7fa7a",
+      "dev/1.19.4": "8c96ee65dc8bb0a3a53e105a9e8bcf9be6c7fa7a",
+      "dev/1.20": null,
+      "dev/1.20.1": null,
+      "dev/1.20.2": null,
+      "dev/1.20.3": null,
+      "dev/1.20.4": null,
+      "dev/1.21.0": null,
+      "dev/1.21.1": null,
+      "dev/26.1.2": null,
+      "release/1.19.2": null,
+      "release/1.19.4": null,
+      "release/1.20": null,
+      "release/1.20.1": null,
+      "release/1.20.2": null,
+      "release/1.20.3": null,
+      "release/1.20.4": null,
+      "release/1.21.0": null,
+      "release/1.21.1": null,
+      "release/26.1.2": null
+    },
+    "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenType.java": {
+      "dev/1.19.2": "82dfb94ac046e20aa7cf82487b94d1922ada86f0",
+      "dev/1.19.4": "82dfb94ac046e20aa7cf82487b94d1922ada86f0",
+      "dev/1.20": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.20.1": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.20.2": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.20.3": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.20.4": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.21.0": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/1.21.1": "b6877191c0ff801d05fea7d521a42c0f0ea06811",
+      "dev/26.1.2": "406b2f18f8554f01778fd98770e59292efa8d13d",
+      "release/1.19.2": null,
+      "release/1.19.4": null,
+      "release/1.20": null,
+      "release/1.20.1": null,
+      "release/1.20.2": null,
+      "release/1.20.3": null,
+      "release/1.20.4": null,
+      "release/1.21.0": null,
+      "release/1.21.1": null,
+      "release/26.1.2": null
+    },
+    "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTestScreenPanel.java": {
+      "dev/1.19.2": "db32c98079367fee80627b5615f3bae07d33eeda",
+      "dev/1.19.4": "db32c98079367fee80627b5615f3bae07d33eeda",
+      "dev/1.20": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.20.1": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.20.2": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.20.3": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.20.4": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.21.0": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/1.21.1": "bade785b21ebc805556d27bf8ed28869cb53c9fb",
+      "dev/26.1.2": "8c7ebb25e6b7509fd2ecf9cc2404b420b2f8dce7",
+      "release/1.19.2": null,
+      "release/1.19.4": null,
+      "release/1.20": null,
+      "release/1.20.1": null,
+      "release/1.20.2": null,
+      "release/1.20.3": null,
+      "release/1.20.4": null,
+      "release/1.21.0": null,
+      "release/1.21.1": null,
+      "release/26.1.2": null
+    }
+  },
+  "actual_provider_closure": [
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientAction.java",
+      "bytes": 3020,
+      "sha256": "sha256:9cf77b5d0dff007ce7400e09919b5dc1d98369a2e77bfdd4b7777c6d832dc420"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionRequirement.java",
+      "bytes": 188,
+      "sha256": "sha256:5e54dad979d9f81b74820b1d2810b42487df1e4bd34b80a33cc20e0542d742ba"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionAvailability.java",
+      "bytes": 1363,
+      "sha256": "sha256:aea89e3a2ac072f69579a9447d44d4ce2cba5f0551bb2a3f6e704a3e21618afb"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionSource.java",
+      "bytes": 1857,
+      "sha256": "sha256:bb3a637c1ed303d5f16d2f4ddf177950076a3cfdfd89eb037e0ec6bb08e0e037"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionContext.java",
+      "bytes": 2894,
+      "sha256": "sha256:2713d367601d6441a697e2c25650a7e187a4157f7785e0c35e407a0650e97a68"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenPanel.java",
+      "bytes": 4493,
+      "sha256": "sha256:7534488e1e0667681a9e4567d068827536587d55fe31cef942d0a141d75f7046"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenPanelBounds.java",
+      "bytes": 749,
+      "sha256": "sha256:cf9503cda9d837a9743656999d42ef98ca2c102df563dfc07b820421c5347254"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMScreenMultiplexer.java",
+      "bytes": 161594,
+      "sha256": "sha256:258b0a9e5fef738d839c3ae5cb79d864e222b49b238b6921ab441bc91ef7d800"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelIntentResult.java",
+      "bytes": 142,
+      "sha256": "sha256:5a9ece47752964199d395fd2fe945243caa95bf475bca1f9c287b03b163e4e82"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceSide.java",
+      "bytes": 590,
+      "sha256": "sha256:1d9e88f2c8eeacc8d10572081558579e0ae1cc959785d8c8152a6667ac3943b0"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelMetadata.java",
+      "bytes": 5246,
+      "sha256": "sha256:243015d12a01a05fa241fcfd90e2dd686b5663682b4a4db8ea55a3e1dcec4114"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMPanelReopenRecipe.java",
+      "bytes": 487,
+      "sha256": "sha256:c7a03242824ac56d58af090ca28d553e86e5dfac29eae8fde76f8f6b652acd65"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMFontUtils.java",
+      "bytes": 15462,
+      "sha256": "sha256:8308845678605cf0bf052c1cfa6f93b2d98c97b4b9e2b5b879b3528c5fd4a78b"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/SFMDeferredRegister.java",
+      "bytes": 6625,
+      "sha256": "sha256:7bddba39daa69c4252b4dafafc4c2cfd6102426468f6d92df2a279c905c1cd8a"
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/SFMRegistryObject.java",
+      "bytes": 3550,
+      "sha256": "sha256:5479e9c1692fa867a4e1031457f0086d9dfed3d656a4553e5414b5da8498978b"
+    }
+  ],
+  "required_peer_stages": [
+    {
+      "stage": "platform/cli/sfm-propagate-changes/target/core-consent-screen-factory-stage-v1",
+      "boundary": "Promote real SFMClientScreenType/SFMClientScreenTypes and three pure carrier OR rules unchanged. Consent factory only under exact UI6. No whole action registry through workspace."
+    },
+    {
+      "stage": "platform/cli/sfm-propagate-changes/target/core-consent-panel-closure-stage-v1",
+      "boundary": "Genuine consent panel and control typed constructor/service, optional signing. Historical Context provider assertion needs explicit current-only OR refinement, separate v2 capsule owned by root/scanner; keep old ledger/goldens unchanged."
+    },
+    {
+      "stage": "platform/cli/sfm-propagate-changes/target/core-terminal-presentation-providers-stage-v2",
+      "boundary": "Genuine terminal Panel/PropertiesPanel selected by exact D2 workspace+widget+client_actions conjunction, effect providers separate. Terminal typed factories remain absent in this cohort."
+    }
+  ],
+  "registrar_members": [
+    {
+      "field": "TEST_SCREEN",
+      "required_features": [
+        "workspace_panels"
+      ],
+      "factory": "SFMTestScreenType",
+      "provider_status": "Authored in this cohort, all ten targets, no client_actions required"
+    },
+    {
+      "field": "CLIENT_SCRIPT_CONSENTS",
+      "required_features": [
+        "workspace_panels",
+        "client_actions",
+        "client_program_consent",
+        "confirmation_review_callbacks",
+        "workspace_panel_lookup",
+        "workspace_widget_hosts"
+      ],
+      "provider_status": "Real matching factory already proposed in consent-factory3; promotion first"
+    },
+    {
+      "field": "TERMINAL_MOUNTS",
+      "required_features": [
+        "workspace_panels",
+        "touch_display_terminal_mount"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "SIZE_DISPLAY",
+      "required_features": [
+        "workspace_panels",
+        "screen_diagnostics"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "INPUT_DIAGNOSTICS",
+      "required_features": [
+        "workspace_panels",
+        "input_diagnostics_panel"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "TERMINAL",
+      "required_features": [
+        "workspace_panels",
+        "terminal_remote",
+        "workspace_widget_hosts",
+        "client_actions"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "TERMINAL_PROPERTIES",
+      "required_features": [
+        "workspace_panels",
+        "terminal_properties",
+        "workspace_widget_hosts",
+        "client_actions",
+        "workspace_panel_lookup"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "HISTORY_GRAPH",
+      "required_features": [
+        "workspace_panels",
+        "trajectory_panels"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "DOCUMENT_HISTORY",
+      "required_features": [
+        "workspace_panels",
+        "document_history"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "CANDIDATE_HISTORY",
+      "required_features": [
+        "workspace_panels",
+        "trajectory_panels",
+        "timeline_panels"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "TEMPORAL_NUMBERING_CHAMBER",
+      "required_features": [
+        "workspace_panels",
+        "trajectory_panels"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "WORKSPACE_COUNTERFACTUAL_CHAMBER",
+      "required_features": [
+        "workspace_panels",
+        "workspace_counterfactuals"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "TEXT_EDITOR",
+      "required_features": [
+        "workspace_panels",
+        "editor_document_panels"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "GRAMMAR",
+      "required_features": [
+        "workspace_panels",
+        "editor_document_panels"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "EXPLORER",
+      "required_features": [
+        "workspace_panels",
+        "file_explorer"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "REVIEW_CHANGES",
+      "required_features": [
+        "workspace_panels",
+        "review_sessions"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "REVIEW_COMMENTS",
+      "required_features": [
+        "workspace_panels",
+        "review_sessions"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "REVIEW_HASHTAGS",
+      "required_features": [
+        "workspace_panels",
+        "review_sessions"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_CHANGES",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_COMMENTS",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_HASHTAGS",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_QUERY",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_STATUS",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    },
+    {
+      "field": "RELEASE_REVIEW_MIGRATIONS",
+      "required_features": [
+        "workspace_panels",
+        "release_review"
+      ],
+      "provider_status": "Real historical factory not authored in this four-file cohort; Java closure pending"
+    }
+  ],
+  "raw_authored_directive_witness": {
+    "path": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java",
+    "oid": "59da16fa85b4d0c23263b7a15ade1cc37d367d47",
+    "boundary": "Keep exact raw Liquid source hash. Only existing touch_display_terminal_mount=true whole-line expansion is the compiled full-on golden, equal to 1.19.4 registrar raw f4f4b5f0f0042fefa170d32de574d54a39ed508c. Do not call normalized bytes the authored witness."
+  },
+  "prior_evidence_count_correction": {
+    "immutable_ledger": "platform/cli/sfm-propagate-changes/target/core-consent-screen-factory-stage-v1/ledger.json",
+    "durable_promotion_ledger": "docs/tasks/sfm-core-consent-screen-factory-slice.json",
+    "bytes": 14996,
+    "sha256": "sha256:c1f38badb689623e8010e5b653a6225f895ad9e2e79e4c6f8d7956711e6cbe44",
+    "field": "remaining_real_blockers[0].witnesses",
+    "old_descriptive_count": 22,
+    "actual_registrar_field_count": 24,
+    "boundary": "The prior ledger's 22 present TREE CELLS is correct and remains unchanged; only the descriptive registrar FIELD count was wrong. Preserve immutable prior source/ledger/test hashes."
+  },
+  "counterfactuals": [
+    "workspace_panels=true/client_actions=false selects genuine registry/Test type/Test panel and no OpenPanelAction; older-eight real direct-panel Opener API preserved, D2 Recipe is independent workspace_panel_reopening.",
+    "D2 reopening=false uses actual direct SFMScreenPanel callback; no recipe import/record/four-argument opener. No stub recipe or mandatory reopening prerequisite.",
+    "D2 command_palette=false removes palette imports/unwrapping/close operations. Actual origin host is used directly. No palette feature enabled implicitly.",
+    "D2 stack_controls=false refuses focused open with feedback and return 0 in typed callback BEFORE recipe.reopen, plus return0 before mutation in static sourceless API. No fake successful operation.",
+    "D2 directional_opening=false refuses directional open with feedback and return0 before recipe.reopen/palette/host mutation; stable Direction enum remains for real callers. No broad caller/registrar dependency change.",
+    "D2 stack/direction paths independently call genuine currently selected host overloads with or without Recipe. Stack owner implies actual metadata prerequisite; directional path does not need metadata.",
+    "Terminal properties registrar does not require terminal_remote just to expose its real unavailable/Rust-owner check. Its actual panel lookup and UI carrier dependencies remain local. Remote-free genuine isRustBacked=false is not a fabricated provider.",
+    "Grammar field belongs to editor_document_panels, not syntax_languages merely because SFML.g4 is its content; released grammar resource remains independently existing.",
+    "Candidate timeline constructor is explicitly trajectory_panels+timeline_panels; other history/review factories keep functional ownership and disclosed transitive provider gaps."
+  ],
+  "remaining_real_blockers": [
+    "Only real Test typed factory/panel is authored here. Twenty-three other D2 factory fields have genuine historical classes but most are still unpromoted; never claim full-on Java/registry closure or fake them.",
+    "OpenPanelAction's current registrar also references other panel actions (close/focus/maximize/diagnostics); this source is not proof that workspace_panel_actions compiles fully.",
+    "Other genuine OpenPanelAction consumers (explorer/review/REPL/symbol/preview) must retain real effect ownership or receive a later reviewed consumer union/pure helper split. This cohort does not silently grant them workspace_panel_actions or widen prerequisites.",
+    "HistoryGraph/Candidate/DocumentHistory/Explorer/Review/Release/Chamber/Editor factories need independent optional API factoring (lookup/reopening/history/editor services) before their individual feature masks compile.",
+    "Terminal ServiceFactory/ScreenType and typed factory backend/endpoint closure remain real missing providers; no process/network substitute.",
+    "Pure carrier current OR refinements need exact current-only action/Choice/UI7 fixture amendments; immutable original ledgers/goldens retained.",
+    "Java compilation, Minecraft registry event wiring, typed command execution, UI focus/lifecycle, consent/signing/filesystem/network admission and release/development parity remain untested."
+  ],
+  "source_only_opener_profiles": [
+    {
+      "target": "1.19.2",
+      "mask": 0,
+      "bytes": 4696,
+      "sha256": "sha256:a52f85f89a3b47703c9cbfb0f6471004c2e7f1c5b4c4e4f506d38391165df3ab"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 1,
+      "bytes": 5911,
+      "sha256": "sha256:1cdb90482f8a1b83df45f22f101b2b7c36bec8544935a024d7e2dc20023c48c9"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 2,
+      "bytes": 6465,
+      "sha256": "sha256:65f97018d18056026e8135703ec821651ce9a9c7f8edb30b38202958fc59f0ce"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 3,
+      "bytes": 6714,
+      "sha256": "sha256:d5b075a3d66032bc424a783170c0c68f920436ddb76ce61420b77a305d41f52e"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 4,
+      "bytes": 5076,
+      "sha256": "sha256:3714a89a641e72b2e25a6e868d8282897074ab558f236f83dcd2a87f0c458044"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 5,
+      "bytes": 6385,
+      "sha256": "sha256:f74bddd023890a7d873d41b98cf5740b1d816c685eb9a96be13fef77fcc28e54"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 6,
+      "bytes": 6887,
+      "sha256": "sha256:defd41183f528be33475602d97576c14a4776c9fcfd46f454fc0e28b6db9b400"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 7,
+      "bytes": 7230,
+      "sha256": "sha256:57eee0ac0720789e519c24369fa69a896bc4110d235253e01b7bc95d42421755"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 8,
+      "bytes": 4797,
+      "sha256": "sha256:5adf092377923df7177008cc062ff2062eb6f818b10dcdb3738a4d8cf9b6a5ae"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 9,
+      "bytes": 6920,
+      "sha256": "sha256:ca3f0e0841f9193c68dc84d5df16290d1c97a254f900cc8127d5b54bc967acff"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 10,
+      "bytes": 7474,
+      "sha256": "sha256:332e23f5e4cdbde3a5407175f4b2b37568e094ea5a5d66040c1c839a5433b847"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 11,
+      "bytes": 7723,
+      "sha256": "sha256:dd1ce1e8e1ca8f9e8640650a4907c8df0d149e77580fdcee55d91d29dbf4a84c"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 12,
+      "bytes": 5177,
+      "sha256": "sha256:32f048687eb21c7abd181f633706e927b49aabdaeda1ad740f7a623462d1b6fd"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 13,
+      "bytes": 7394,
+      "sha256": "sha256:bc2fba39cf19c934f8ff5b718d3202a2630e4bcddcb4443d9b78edc6fbf58212"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 14,
+      "bytes": 7896,
+      "sha256": "sha256:8e705e880c2bfc21e12fae06cbdd9c464736b39f8026bcf3510db523d91c12ca"
+    },
+    {
+      "target": "1.19.2",
+      "mask": 15,
+      "bytes": 8239,
+      "sha256": "sha256:f4b1de0a4b65eff92d08e033e7cc22f4f97c2006afa7a5f49d6012c4039c1ad5"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 0,
+      "bytes": 4696,
+      "sha256": "sha256:a52f85f89a3b47703c9cbfb0f6471004c2e7f1c5b4c4e4f506d38391165df3ab"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 1,
+      "bytes": 5911,
+      "sha256": "sha256:1cdb90482f8a1b83df45f22f101b2b7c36bec8544935a024d7e2dc20023c48c9"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 2,
+      "bytes": 6465,
+      "sha256": "sha256:65f97018d18056026e8135703ec821651ce9a9c7f8edb30b38202958fc59f0ce"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 3,
+      "bytes": 6714,
+      "sha256": "sha256:d5b075a3d66032bc424a783170c0c68f920436ddb76ce61420b77a305d41f52e"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 4,
+      "bytes": 5076,
+      "sha256": "sha256:3714a89a641e72b2e25a6e868d8282897074ab558f236f83dcd2a87f0c458044"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 5,
+      "bytes": 6385,
+      "sha256": "sha256:f74bddd023890a7d873d41b98cf5740b1d816c685eb9a96be13fef77fcc28e54"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 6,
+      "bytes": 6887,
+      "sha256": "sha256:defd41183f528be33475602d97576c14a4776c9fcfd46f454fc0e28b6db9b400"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 7,
+      "bytes": 7230,
+      "sha256": "sha256:57eee0ac0720789e519c24369fa69a896bc4110d235253e01b7bc95d42421755"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 8,
+      "bytes": 4797,
+      "sha256": "sha256:5adf092377923df7177008cc062ff2062eb6f818b10dcdb3738a4d8cf9b6a5ae"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 9,
+      "bytes": 6920,
+      "sha256": "sha256:ca3f0e0841f9193c68dc84d5df16290d1c97a254f900cc8127d5b54bc967acff"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 10,
+      "bytes": 7474,
+      "sha256": "sha256:332e23f5e4cdbde3a5407175f4b2b37568e094ea5a5d66040c1c839a5433b847"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 11,
+      "bytes": 7723,
+      "sha256": "sha256:dd1ce1e8e1ca8f9e8640650a4907c8df0d149e77580fdcee55d91d29dbf4a84c"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 12,
+      "bytes": 5177,
+      "sha256": "sha256:32f048687eb21c7abd181f633706e927b49aabdaeda1ad740f7a623462d1b6fd"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 13,
+      "bytes": 7394,
+      "sha256": "sha256:bc2fba39cf19c934f8ff5b718d3202a2630e4bcddcb4443d9b78edc6fbf58212"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 14,
+      "bytes": 7896,
+      "sha256": "sha256:8e705e880c2bfc21e12fae06cbdd9c464736b39f8026bcf3510db523d91c12ca"
+    },
+    {
+      "target": "1.19.4",
+      "mask": 15,
+      "bytes": 8239,
+      "sha256": "sha256:f4b1de0a4b65eff92d08e033e7cc22f4f97c2006afa7a5f49d6012c4039c1ad5"
+    }
+  ],
+  "validation": {
+    "raw_git_trees": "Fresh read-only 80-cell query, 32present/48absent",
+    "raw_bytes": "All11 exact LF/final-LF raw Git objects inspected; no normalization",
+    "static_body_expansion": "32 present outputs exact by independent whole-line source analysis, not production renderer",
+    "production_renderer": "prepared_not_run",
+    "rust_tests": "prepared_not_run",
+    "java_runtime": "not_run",
+    "effects": "not_run",
+    "live_mutation": "none"
+  },
+  "path_policy": "Repository-relative paths and public content identities only; no personal SDK/cache/home paths."
+}

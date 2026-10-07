@@ -1,0 +1,162 @@
+{
+  "schema": "sfm:promotion41_generation_v4_independent_review@1",
+  "decision": "retained_tooling_and_current_catalog_dry_run_receipts_match_actual_evidence",
+  "findings": [],
+  "reviewed_receipts": [
+    {
+      "path": "docs/tasks/sfm-core-current-generation-audit-20261002-v4.json",
+      "bytes": 22328,
+      "sha256": "403b333214606624a5ce4696c55871de34c8522fce16a70b02022d11c1e6c841"
+    },
+    {
+      "path": "docs/tasks/sfm-core-promotion41-tooling-gate-20261002.json",
+      "bytes": 4446,
+      "sha256": "735250cf63b9b2fd3871a42f76bd85de207f061671a955d359e2fd75dc3f4cff"
+    }
+  ],
+  "source_identity": {
+    "branch": "feat/sfm-main-source-projection",
+    "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+    "read_only_git_identity_rechecked": true,
+    "core_files": 1916,
+    "core_bytes": 8861692,
+    "core_sha256": "68c0078d9612b011fa0e594d6b1a75c7347ef266495c034305c268c7e72b7142",
+    "aggregate_method": "Ordinal slash-relative path + NUL + invariant decimal byte length + NUL + lowercase per-file SHA256 + LF; concatenated UTF8 without BOM then SHA256.",
+    "aggregate_checked_before_and_after_this_audit": true,
+    "source_rule_paths": 633,
+    "source_rule_variants": 818,
+    "feature_definitions": 180,
+    "catalog_contexts": 20
+  },
+  "actual_gate": {
+    "groups": 182,
+    "unique_groups": 182,
+    "ordered_indices_exactly_1_to_182": true,
+    "each_group_has_one_matching_pass_summary": true,
+    "library_groups": 178,
+    "library_listed": 2137,
+    "library_passed": 2123,
+    "library_ignored": 14,
+    "integration_groups": 4,
+    "integration_passed": 70,
+    "integration_ignored": 0,
+    "failed": 0,
+    "source_projection_children": 134,
+    "source_projection_listed_tests": 1046,
+    "unsplit_library_groups": 42,
+    "standalone_groups": 1,
+    "dedicated_fixtures": 1,
+    "empty_bin_harnesses": 2,
+    "empty_doc_harnesses": 1,
+    "terminal_default_build_sequence": true,
+    "exit_zero_marker_count": 1,
+    "exact_terminal_marker": "PROMOTION41_REPLACEMENT_FULL_GATE_EXIT=0",
+    "runner_sources_read_without_execution": [
+      "check-all.ps1",
+      "scripts/test-bounded.ps1",
+      "scripts/bounded-library-plan.ps1"
+    ],
+    "partition_semantics": "Pinned planner checks actual listing coverage exactly once using real libtest ordinal substring, exact and skip semantics."
+  },
+  "actual_current_dry_run_evidence": {
+    "contexts": 20,
+    "evidence_files": 60,
+    "evidence_bytes": 12940296,
+    "artifact_descriptors": 22882,
+    "actual_unique_authored_source_pins": 1521,
+    "all60_file_lengths_and_sha256_match": true,
+    "evidence_pin_set_sha256": "b62ddba74b2bd125e1e728763879bd17da687406103d9dcc1f4dd580e23e6504",
+    "evidence_pin_set_method": "Numeric context index, stdout.json then stderr.log then jsonl; name + NUL + invariant decimal bytes + NUL + lowercase SHA256 + LF; UTF8 without BOM then SHA256.",
+    "all20_rows_fields_and_counts_match_actual_stdout": true,
+    "all20_match_current_catalog_order_target_environment_and_explicit_features": true,
+    "artifact_dispositions_exact_disjoint_cover": true,
+    "all22882_descriptor_source_hashes_match_current_authored_bytes": true,
+    "each_distinct_authored_input_authenticated_under_core_boundary": true,
+    "omitted_paths_unique_and_disjoint_from_selected": true,
+    "output_digest_format_validated_without_regeneration": true,
+    "traces": "Each retained trace parses as one INFO initialization record; not a runtime compilation trace.",
+    "writes_performed_in_actual_reports": false,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed"
+  },
+  "input_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 451451,
+      "sha256": "96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 30254,
+      "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+    },
+    {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2074,
+      "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-next-promotion41-full-gate-20261002-v1.log",
+      "bytes": 38598,
+      "sha256": "15386b1da46e45d2358dd847cb9f90e8598bbfd340e3190e88a7921c9a8ddc7d"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+      "bytes": 93378560,
+      "sha256": "783b737bb901891d0edd0579183d8112be787f0fb265dc48ffa1f37599f9b8bb"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/check-all.ps1",
+      "bytes": 2783,
+      "sha256": "ee6a5a6ff57a6067e1765919a8df94634bd81c6a32fb77b27184772d2dfbc818"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/test-bounded.ps1",
+      "bytes": 11834,
+      "sha256": "2122ad3565796327b9a80cdac85d7809157af32383d53f622c10fc5b55330608"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/scripts/bounded-library-plan.ps1",
+      "bytes": 8458,
+      "sha256": "52119829bfc58ffff7eb9937a4bda7e3505bb78a94dadb057fe7f8e9138a7dc7"
+    }
+  ],
+  "read_only_driver_review": {
+    "dry_run_driver": {
+      "role": "Run-CurrentTwentyDryRuns.ps1",
+      "bytes": 5696,
+      "sha256": "860611d9622b644060914cbec2d4d4afc64f827c639e4fbed1a1c61bb7229760",
+      "read_fully_without_execution": true
+    },
+    "audit_driver": {
+      "role": "Audit-CurrentTwenty.ps1",
+      "bytes": 6742,
+      "sha256": "0a871e3866c8994123451e6ed8d0c7874c55e606f68d545864062b7c100fa645",
+      "read_fully_without_execution": true
+    },
+    "before_after_historical_driver_claim": "Driver is fail-closed on pinned whole-core/metadata/CLI before and after every real dry-run. This peer audit checks retained outputs and current bytes; it does not independently recreate past execution."
+  },
+  "limits": [
+    "Only current explicit catalog selections are covered; newly promoted 41 paths remain omitted there and prepared future cohorts are outside this gate.",
+    "No second renderer invocation or output-byte regeneration. Descriptor output digests are retained renderer receipts.",
+    "Log verifies 182 unique groups and their summaries. The complete original 2137 test-name listing is not retained in this log; its exact-once validation relies on the pinned runner and planner.",
+    "Exit markers and recorded completed sessions were inspected; this audit did not launch, wait for, reap or recover the prior processes.",
+    "Fresh default-feature target binary is authenticated, not installed PATH tooling or final installer acceptance.",
+    "No Java compilation, gameplay, UI/effect execution, complete source migration, release-JAR parity or whole-goal completion is accepted.",
+    "Any later source, rule, catalog or tooling admission requires fresh applicable evidence; this is a snapshot of the exact named inputs."
+  ],
+  "audit_actions": {
+    "reruns": 0,
+    "renderer_runs": 0,
+    "test_or_java_launches": 0,
+    "process_lifecycle_changes": 0,
+    "network_or_dependency_mutations": 0,
+    "production_drive_writes": 0
+  },
+  "persistence_review": "Public repository-relative paths and owned evidence role labels only. Private host/cache/user paths are not copied into this portable review."
+}

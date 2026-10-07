@@ -1,0 +1,136 @@
+{
+  "schema": "sfm:core-released-test-membership-audit@1",
+  "status": "completed_read_only_source_selection_audit_not_compilation_or_parity",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "working_tree_note": "The inspected snapshot includes the 61-selector core migration checkpoint's working-tree changes. It is not a clean-HEAD or released-JAR proof. Subsequent collector and recipe registrations do not change this source selection.",
+  "snapshot": {
+    "executable_sha256": "sha256:d83bad23d80776b7187183e91781b7484d15a222ce789863e937b41d591bc410",
+    "executable_bytes": 91177472,
+    "catalog_sha256": "sha256:709ae9d361c7c1395b5ea67c571da2033f264472e05b10dbf04dcb2f1b79a7d5",
+    "feature_definitions_sha256": "sha256:92e8b326dc3e480b19293c9e24ff3ddf63e1cc1992bf0af59453cd780dbdca11",
+    "project_inputs_sha256": "sha256:b4811ad2c78d93a6634e80630f96a27a73be2de89eb5a96b79281761cb5bedda"
+  },
+  "method": {
+    "command_shape": "sfm-propagate-changes --output-format json source project dry-run --repo-root <repository> --projection <exact-key>",
+    "frozen_release_commits": "docs/tasks/sfm-core-auxiliary-seed.json context_commits",
+    "frozen_source_command_shape": "git ls-tree -r --name-only <frozen-release-commit> -- platform/minecraft/src",
+    "selected_paths": "JSON artifacts object property names starting with src/; compared by exact path to the matching target's frozen release tree",
+    "path_digest": "SHA-256 of UTF-8 sorted selected source paths joined by LF, with final LF",
+    "writes_performed": false,
+    "compilation": "not_performed",
+    "jar_or_gameplay_parity": "not_performed",
+    "scope_note": "MissingReleased counts all frozen src entries, including eight historical datagen .cache files in the union. This is membership evidence, not an assertion that those cache files should be shipped or generated again."
+  },
+  "contexts": [
+    {"key":"sfm-4.34.0/mc-1.19.2","minecraft_version":"1.19.2","context_identity":"blake3:7476ff1c5e580059ca9a85ddc797935ce3ca935d9054aa42dbbc1815a5861601","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:8c0444726bf6b4671206dae9f51744617c489d6effc4e01e38933c82b956d2a2"},
+    {"key":"sfm-dev/mc-1.19.2","minecraft_version":"1.19.2","context_identity":"blake3:989e03a588e2d8497ab40f6acfbdedabffd0d53ef88d3c566ebc8c0c3c9e701a","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:8c0444726bf6b4671206dae9f51744617c489d6effc4e01e38933c82b956d2a2"},
+    {"key":"sfm-4.34.0/mc-1.19.4","minecraft_version":"1.19.4","context_identity":"blake3:4b5cdf144cb69503db252fcde35e40e97a35d174d6b223b6273153c17ad3d294","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:df4933ee8bc91d49d7585da1aab0d4b7249be9cd0880032e1d477755337abcac"},
+    {"key":"sfm-dev/mc-1.19.4","minecraft_version":"1.19.4","context_identity":"blake3:8f482fab2711efa4cdb395344bf42bb133f7c65a425a4a5d3cf0d36c2f8afa56","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:df4933ee8bc91d49d7585da1aab0d4b7249be9cd0880032e1d477755337abcac"},
+    {"key":"sfm-4.34.0/mc-1.20","minecraft_version":"1.20","context_identity":"blake3:5668597a9723513b276c8a41b6279cb7dd5172806e2b4bccf4217ced8d7d77ac","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:df4933ee8bc91d49d7585da1aab0d4b7249be9cd0880032e1d477755337abcac"},
+    {"key":"sfm-dev/mc-1.20","minecraft_version":"1.20","context_identity":"blake3:4915312f689cfca00480de3804f5c675361924f8c3bc1045c0a9ba8d55a651f4","artifacts":1086,"selected_src":935,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:df4933ee8bc91d49d7585da1aab0d4b7249be9cd0880032e1d477755337abcac"},
+    {"key":"sfm-4.34.0/mc-1.20.1","minecraft_version":"1.20.1","context_identity":"blake3:4f0155be5394f36fc68e34dfa3de89f331eae3a59a504eec3dfdbf1a61555ac3","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:4deaf9dfd464dd2b774862b3faf5dc132723bdc3b6dbcf8beaf82c4adfc6ee5f"},
+    {"key":"sfm-dev/mc-1.20.1","minecraft_version":"1.20.1","context_identity":"blake3:e7dfe920c0118e006f6740a9d5cd2350350aa9717e77976e60befafd23f2cc86","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:4deaf9dfd464dd2b774862b3faf5dc132723bdc3b6dbcf8beaf82c4adfc6ee5f"},
+    {"key":"sfm-4.34.0/mc-1.20.2","minecraft_version":"1.20.2","context_identity":"blake3:c3cd6e71fbc3fc6e6342b7bb8460f857f8912ad4ffef52ccb89b4cdacbdfac43","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:15a7a6a7fe858f36d5e81a0073a4a6d20705a42154ae24bcc64a35fc5c52a846"},
+    {"key":"sfm-dev/mc-1.20.2","minecraft_version":"1.20.2","context_identity":"blake3:1e588422ef174948f25e422baba2fa16c3c084656376e45595f15ec77883eb4d","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:15a7a6a7fe858f36d5e81a0073a4a6d20705a42154ae24bcc64a35fc5c52a846"},
+    {"key":"sfm-4.34.0/mc-1.20.3","minecraft_version":"1.20.3","context_identity":"blake3:e6f2403b9fa64f4bde2edcb5bc557ccfe74e631ddcf0eed87ef08aec3d284e9c","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:e4273dd892681345bc440d55e09d76b66c2965bf05ca62ba64e0a749e5de6e26"},
+    {"key":"sfm-dev/mc-1.20.3","minecraft_version":"1.20.3","context_identity":"blake3:14934c6ac847a201aa08474de858d84676842eeda6c406c66f702aa624d4b26f","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:e4273dd892681345bc440d55e09d76b66c2965bf05ca62ba64e0a749e5de6e26"},
+    {"key":"sfm-4.34.0/mc-1.20.4","minecraft_version":"1.20.4","context_identity":"blake3:eb70c4671923ed20bbf88bccdf0401deaf6300f0cad37f78ab3fff927da7a373","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:11fc45cc0e0019d32ab49c418810c368fe872c41ab52b0ce8dba1568925db074"},
+    {"key":"sfm-dev/mc-1.20.4","minecraft_version":"1.20.4","context_identity":"blake3:91ecda6081f318e05bb9f3b2177232bf2cf1821122ed7d236918121e0fb3cb46","artifacts":1088,"selected_src":937,"missing_released":60,"extra_vs_release":0,"selected_paths_sha256":"sha256:11fc45cc0e0019d32ab49c418810c368fe872c41ab52b0ce8dba1568925db074"},
+    {"key":"sfm-4.34.0/mc-1.21.0","minecraft_version":"1.21","context_identity":"blake3:6fbc1b4a0c5c98108d52cc2585acf86f570120b2ad0a72b92466fa954cdcc1b8","artifacts":1091,"selected_src":940,"missing_released":59,"extra_vs_release":0,"selected_paths_sha256":"sha256:cbde343f010947f7da0686ee77e66e5459de32abc30a42c4ffa854e81b3405c6"},
+    {"key":"sfm-dev/mc-1.21.0","minecraft_version":"1.21","context_identity":"blake3:4fa23d91b36c10f6b7dd463d371e44a24ef7bd48b6e0341c6a1304f804dc553a","artifacts":1091,"selected_src":940,"missing_released":59,"extra_vs_release":0,"selected_paths_sha256":"sha256:cbde343f010947f7da0686ee77e66e5459de32abc30a42c4ffa854e81b3405c6"},
+    {"key":"sfm-4.34.0/mc-1.21.1","minecraft_version":"1.21.1","context_identity":"blake3:2c793acd3abbb52c8dc2677e5813f4e885d6e3d6e6ab7a27964d4e0918e4718c","artifacts":1092,"selected_src":941,"missing_released":59,"extra_vs_release":0,"selected_paths_sha256":"sha256:382578ba3692585c03c8532688e86d35ec0a2e014b6922e0f3e051ff618deec9"},
+    {"key":"sfm-dev/mc-1.21.1","minecraft_version":"1.21.1","context_identity":"blake3:b04f8daa57468f303e7ca384072ef511ea3a84cbcad827ef537a494b01020d2e","artifacts":1092,"selected_src":941,"missing_released":59,"extra_vs_release":0,"selected_paths_sha256":"sha256:382578ba3692585c03c8532688e86d35ec0a2e014b6922e0f3e051ff618deec9"},
+    {"key":"sfm-4.34.0/mc-26.1.2","minecraft_version":"26.1.2","context_identity":"blake3:76118713b61ec5ff8f578211f4218a8954ff8d8e8bfecc3236a165d47de45e54","artifacts":1103,"selected_src":952,"missing_released":56,"extra_vs_release":0,"selected_paths_sha256":"sha256:7c642e0877ec4739cf8bf737b8b80b1948b737a2f07d26a420d06de3c3bcad34"},
+    {"key":"sfm-dev/mc-26.1.2","minecraft_version":"26.1.2","context_identity":"blake3:82816e6e00c94282663762ac08dee1304a3e69d5f955afc13b0a0a90fc364bb4","artifacts":1103,"selected_src":952,"missing_released":56,"extra_vs_release":0,"selected_paths_sha256":"sha256:7c642e0877ec4739cf8bf737b8b80b1948b737a2f07d26a420d06de3c3bcad34"}
+  ],
+  "missing_released_union_count": 63,
+  "missing_released_union_by_source_set": {
+    "gametest_java": [
+      "src/gametest/java/ca/teamdman/sfm/gametest/tests/general/RecipesGameTest.java",
+      "src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MekanismNullIoDirectionGameTest.java"
+    ],
+    "test_java": [
+      "src/test/java/ca/teamdman/sfm/test/RegexCacheTests.java",
+      "src/test/java/ca/teamdman/sfm/test/text_editor/TextEditorTests.java",
+      "src/test/java/ca/teamdman/sfml/test/SFMLIntellisenseTests.java",
+      "src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+    ],
+    "generated_datagen_cache": [
+      "src/generated/resources/.cache/1ebf6baef22de7ee4a2d47a696e71032207e75e9",
+      "src/generated/resources/.cache/59eb3dbb5f86130e09b3c62d89b9525ee01cf52d",
+      "src/generated/resources/.cache/67cce32b1c3cbbcb1f646605f4914e3f196986c2",
+      "src/generated/resources/.cache/726a4eaaa226cb50028c5f3f85d691417b67903b",
+      "src/generated/resources/.cache/9fb1092f32d4fcbf9e061ffd718d4ec689c6c95e",
+      "src/generated/resources/.cache/bf0ffec7956ce36aba0a993095f41e47d655813b",
+      "src/generated/resources/.cache/c622617f6fabf890a00b9275cd5f643584a8a2c8",
+      "src/generated/resources/.cache/e178a5522f40c551aab415c9b173854697679d35"
+    ],
+    "generated_resources": [
+      "src/generated/resources/assets/sfm/blockstates/buffer.json",
+      "src/generated/resources/assets/sfm/lang/en_us.json",
+      "src/generated/resources/data/minecraft/tags/blocks/mineable/pickaxe.json"
+    ],
+    "main_java": [
+      "src/main/java/ca/teamdman/sfm/client/handler/TitleScreenOpenTextEditorOnLaunchHandler.java",
+      "src/main/java/ca/teamdman/sfm/client/jei/SFMJEIPlugin.java",
+      "src/main/java/ca/teamdman/sfm/client/registry/SFMBlockEntityRenderers.java",
+      "src/main/java/ca/teamdman/sfm/client/registry/SFMKeyMappings.java",
+      "src/main/java/ca/teamdman/sfm/client/registry/SFMMenuScreens.java",
+      "src/main/java/ca/teamdman/sfm/client/registry/SFMOverlays.java",
+      "src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java",
+      "src/main/java/ca/teamdman/sfm/client/render/FormItemRenderer.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/LabelGunScreen.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/SFMConfirmationScreen.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/SFMFontUtils.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorConfigScreen.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/text_editor/ISFMTextEditScreen.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMTextEditScreenV1.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMTextEditScreenV2.java",
+      "src/main/java/ca/teamdman/sfm/client/screen/widget/SFMButtonBuilder.java",
+      "src/main/java/ca/teamdman/sfm/client/text_editor/ISFMTextEditorRegistration.java",
+      "src/main/java/ca/teamdman/sfm/client/text_editor/ISFMTextEditScreenOpenContext.java",
+      "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditScreenDiskOpenContext.java",
+      "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditScreenV2Registration.java",
+      "src/main/java/ca/teamdman/sfm/client/text_editor/TextEditContext.java",
+      "src/main/java/ca/teamdman/sfm/client/text_styling/ProgramSyntaxHighlightingHelper.java",
+      "src/main/java/ca/teamdman/sfm/common/block_network/CableNetwork.java",
+      "src/main/java/ca/teamdman/sfm/common/block_network/CableNetworkManager.java",
+      "src/main/java/ca/teamdman/sfm/common/block/BufferBlock.java",
+      "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntity.java",
+      "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java",
+      "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java",
+      "src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+      "src/main/java/ca/teamdman/sfm/common/item/DiskItem.java",
+      "src/main/java/ca/teamdman/sfm/common/item/FormItem.java",
+      "src/main/java/ca/teamdman/sfm/common/item/LabelGunItem.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlockEntities.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMBlocks.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMItems.java",
+      "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMProgramLinters.java",
+      "src/main/java/ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java",
+      "src/main/java/ca/teamdman/sfm/common/util/SFMItemUtils.java",
+      "src/main/java/ca/teamdman/sfm/SFM.java"
+    ],
+    "main_resources": [
+      "src/main/resources/assets/sfm/template_programs/changelog.sfml",
+      "src/main/resources/assets/sfm/template_programs/redstone_signals.sfml",
+      "src/main/resources/META-INF/mods.toml",
+      "src/main/resources/META-INF/neoforge.mods.toml",
+      "src/main/resources/sfm.mixins.json"
+    ]
+  },
+  "test_cohort_recommendation": {
+    "staged_next": ["RecipesGameTest.java", "RegexCacheTests.java"],
+    "shared_membership": "Both are released on all ten targets; absence must not become an environment or feature gate.",
+    "recipes_extension": "Only D2 packet_values adds the existing packet recipe exemption. Target/API adapters preserve four recipe access groups, including actual Minecraft 1.21 for stable target 1.21.0.",
+    "regex_extension": "Only target 1.19.2 has the witnessed regression-test extension under regex_overlap_fix. Although the production fix supports 26.1.2 too, its frozen JUnit source has no corresponding extension; do not silently widen test membership.",
+    "unresolved_remaining": [
+      {"path":"MekanismNullIoDirectionGameTest.java","gap":"Released source is an intentional succeed/TODO no-op. Primary-dev implementation needs separately reviewed MekanismSidednessLinterGameTestGenerator and an unregistered mekanism_sidedness_linter owner; no reactor-bug reproduction claim."},
+      {"path":"TextEditorTests.java","gap":"Released source is a commented-out empty test class; dev uses canvas text editor APIs including List.getFirst on Java-17 targets. Needs exact API adaptation rather than unguarded copying."},
+      {"path":"SFMLIntellisenseTests.java","gap":"D2 adds LET/CREATE/BROADCAST assertions. BROADCAST is separately owned by client_inbox and must not be hidden inside an assumed packet_computation-only closure."},
+      {"path":"SFMLTests.java","gap":"Multiple packet_computation, client_inbox, syntax_languages and client_properties changes remain independently unresolved in this two-file slice."}
+    ]
+  }
+}

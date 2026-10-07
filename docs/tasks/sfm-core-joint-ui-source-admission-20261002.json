@@ -1,0 +1,77 @@
+{
+  "schema": "sfm:core_joint_ui_source_admission@1",
+  "date": "2026-10-02",
+  "status": "complete_bounded_source_application_not_runtime_acceptance",
+  "branch": "feat/sfm-main-source-projection",
+  "checkpoint_commit": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "source_review": {
+    "root_literal_check": "115a0c exited 0",
+    "independent_source_review": "35a4af exited 0; authored no production source or tests",
+    "root_full_review_read_and_six_pins": "9208b5 and 16664a exited 0",
+    "proposal_manifest_sha256": "77e35eb8605108c8e28118525de12871618f9079afe561364d0947bef48dadd7",
+    "proposal_seal_sha256": "0dffdf3c5fb45a6c7ddc2da54a247de1c2145faa59b678d42b630667b52dc12a",
+    "claim_limit": "Native read, hash, literal reconstruction and ownership review; no production test or runtime acceptance"
+  },
+  "application": {
+    "native_terminal": "215b50 exited 0",
+    "patches": 31,
+    "targets": 17,
+    "new_targets": 13,
+    "updated_targets": 4,
+    "complete_EOF_continuations": 8,
+    "all_intermediate_and_final_files_match": true,
+    "original_index_bytes_unchanged": true,
+    "cleanup_or_retry": false
+  },
+  "core": {
+    "path": "platform/minecraft/core-liquid-template",
+    "files": 1965,
+    "bytes": 9191718,
+    "sha256": "7b7e4df729ec35773c2b3eb33edfb1b9c12c8eb1cd6d85eb7886a9c95bc30163"
+  },
+  "metadata": {
+    "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+    "rules": 682,
+    "variants": 867,
+    "bytes": 472389,
+    "sha256": "6966cbdbf278fbcf9ee24f3d57f1c125b9a18451c325b123e15f304f8e494b4f",
+    "unchanged_old_rule_arrays": 675,
+    "existing_accessor_change": "Add document_history to the existing older-target any_features only",
+    "new_provider_rules": 6
+  },
+  "providers": [
+    "SFMKeyBindingDetailsScreen",
+    "SFMConsoleWidget",
+    "SFMKeycapRenderer",
+    "SFMKeySequenceCaptureWidget",
+    "SFMTooltipModeAction",
+    "SFMTooltipModeActions"
+  ],
+  "provenance": [
+    "docs/tasks/sfm-three-surface-provider-core-provenance-20261002.json",
+    "docs/tasks/sfm-capture-widget-core-provenance-20261002.json",
+    "docs/tasks/sfm-core-tooltip-mode-action-slice.json"
+  ],
+  "tests": {
+    "new_registered": 32,
+    "historical_controls_retained": 5,
+    "status_at_application_checkpoint": "not_run",
+    "focused_native_terminal": "ffd082 exited 0",
+    "focused_root_log_audit": "e0e984 exited 0",
+    "focused_passes": 37,
+    "focused_failures": 0,
+    "focused_ignores": 0,
+    "focused_log": "platform/cli/sfm-propagate-changes/target/joint-ui-focused-20261002-v1.log",
+    "focused_log_bytes": 2884,
+    "focused_log_sha256": "1fe075699d222d51f3fb996a43f7b8c34fd005c5b9a427a57ba2e395a8bd2753",
+    "next_gate": "Full check-all.ps1 is running in owned session28769; then fresh twenty-context generation against new core and CLI",
+    "limits": "Actual selector, Liquid renderer and collector tests, not Java compilation or UI runtime"
+  },
+  "unchanged": "All180 definitions, catalog20, defaults, prerequisites, dependency identities and lockfiles; original98 staged records retained",
+  "preserved_UI_findings": [
+    "CW-F1 Save and Cancel visibility",
+    "CW-F2 older-target render visibility dispatch",
+    "CW-F3 pending single Escape can construct a rejected empty key sequence"
+  ],
+  "limits": "The UI findings remain source-inferred and runtime unrun. Current Java builds, broad action/provider closure, full non-main preservation, release parity and final installed-tool freshness remain open. The full ten-version goal remains active."
+}

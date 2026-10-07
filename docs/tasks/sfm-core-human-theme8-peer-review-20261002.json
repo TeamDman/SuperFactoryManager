@@ -1,0 +1,367 @@
+{
+  "schema": "sfm:human-action3-theme-preview5-independent-peer-review@1",
+  "status": "source_only_final_capsule_review_pass_no_promotion_authority",
+  "reviewed_date": "2026-10-02",
+  "reviewed_capsule_role": "human-action3-theme-preview5-promotion-stage-v1",
+  "manifest": {
+    "path": "manifest.json",
+    "bytes": 25821,
+    "sha256": "89ab2f81e19884b7a0fca9a9cca04e69c76e7eda1f13bc3b28cb6912dde72e29"
+  },
+  "final_manifest_rechecked": true,
+  "full_final_payload_read": true,
+  "authenticated_manifest_artifacts": 35,
+  "ordered_patches": 17,
+  "exact_context_simulation": {
+    "interpreter": "independent_strict_UTF8_line_hunks_unique_context_source_order_and_exact_EOF_continuations",
+    "production_application": false,
+    "touched_paths": 15,
+    "adds": 12,
+    "updates": 3,
+    "all_final_byte_hash_pins_match": true,
+    "all_12_new_paths_absent_in_frozen_production": true,
+    "all_12_new_final_bodies_equal_originals_or_single_authorized_amendment": true,
+    "maximum_payload_utf16_characters": 15995,
+    "apply_all_before_parser_formatter_or_test": true,
+    "partial_groups": [
+      [
+        9,
+        10
+      ],
+      [
+        11,
+        12
+      ],
+      [
+        13,
+        14
+      ]
+    ],
+    "hash_method": "independent_in_memory_UTF8_SHA256_checked_against_17_known_and_native_byte_hash_controls"
+  },
+  "fresh_production_base_pins": [
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 451451,
+      "sha256": "96596122487a4971757a63fe4c8cdf3663368c3e7c4b4cea759500978263c857"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/feature-definitions.json",
+      "bytes": 30254,
+      "sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83"
+    },
+    {
+      "path": "platform/minecraft/projections.json",
+      "bytes": 2074,
+      "sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 147020,
+      "sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe"
+    },
+    {
+      "path": "docs/tasks/sfm-core-action-helpers-slice.json",
+      "bytes": 253009,
+      "sha256": "dd6d9c025feb3a9da6000354cf91b10c162c2c7dba0d3d283039951ec47d16fc"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMFocusTargetHost.java",
+      "bytes": 267,
+      "sha256": "6423a5dd4f6415c76155628e166ebec06649f188482c0d27a52fccbabb0469db"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 16999,
+      "sha256": "d5fbfb7c1a93294279b9bf53a0007349d344766305546be28429d9c50bf12ac9"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_action_helpers_slice_tests.rs",
+      "bytes": 26432,
+      "sha256": "cefef6e14483a784fae66a205e4484e955b50563876eb7e392d332f47f941887"
+    }
+  ],
+  "all_fresh_production_base_pins_match": true,
+  "original_evidence": {
+    "source_pins": [
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/action/SFMClipboardCopyAction.java",
+        "blob": "bd70d49706f4f40e8f7bc9a5b939dc4be9069e6e",
+        "bytes": 2547,
+        "sha256": "422424d6ecbee5a41552dce03c4bc3f54d23eca167ab2f98858029c22f0bb7a8"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/action/SFMFocusAction.java",
+        "blob": "febb109ea47189a4015a40869f3eae31b3125f6d",
+        "bytes": 3392,
+        "sha256": "efab70c2f60039047876294ef0d12241180ebda0a4d76c561c02c4fc039015d9"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/action/ManagerEditAction.java",
+        "blob": "47fa0bf5fdd16f34fc09319c6980e2d1b34f587d",
+        "bytes": 1066,
+        "sha256": "cf40759a29f58dcf313305dd906cb58dd2ea36ebea0b5b14f7087a932dac0b03"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCompletion.java",
+        "blob": "3a1d2a33da0872ec7dab4858ee02772b1fe3637a",
+        "bytes": 4559,
+        "sha256": "c15e794b749acb17dfdfb23128da642e6f1dbd7ad16240b92773fa46c6b67b03"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCoverage.java",
+        "blob": "7d67d1ee61cfdb4a534dcb6ee47a5e6462f28994",
+        "bytes": 1284,
+        "sha256": "5bb04debf5481de58a579c3afc120aab080e399802a0b9d6f521bd253db9cbd4"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewDefaultNames.java",
+        "blob": "de078cbcf134cbb5b2b9a82e28c9b2ce8835f34a",
+        "bytes": 5065,
+        "sha256": "57d53265f4fdd98ff9e426a722496629ba2d669e2a9dbff03740995625489ed5"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRegistry.java",
+        "blob": "d2ecc0c46b669526e44de2528b338cde6c9c5ed0",
+        "bytes": 1642,
+        "sha256": "7fb1eae67afc031b16da59b9dd561f56951f96d09f2d50c334ed40486fda6fa9"
+      },
+      {
+        "path": "src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewThemeTarget.java",
+        "blob": "a31e576db63d50d99e6c7a2b4adbffca5950c73d",
+        "bytes": 1320,
+        "sha256": "a0da8bdc0e54079027eeda262fd39661363a87b7f3ad2074ae0895a0f3ad95a7"
+      }
+    ],
+    "git_object_authentication": "raw_blob_SHA1_with_Git_blob_size_framing_and_exact_SHA256_bytes_UTF8_LF",
+    "source_bytes": 20875,
+    "historical_cells": 160,
+    "present_cells": 16,
+    "absent_cells": 144,
+    "exact_tree_membership_checked": true,
+    "immutable_ledgers": [
+      {
+        "path": "docs/tasks/sfm-core-human-action-leaves-slice.json",
+        "bytes": 24760,
+        "sha256": "b5b2479a75269f94d7c34ce31c255c5defacdd9f93c0f7eb5b23ecd9fb231d81"
+      },
+      {
+        "path": "docs/tasks/sfm-core-theme-preview-five-slice.json",
+        "bytes": 22404,
+        "sha256": "6464fdfaeac13a88596383dd295d2697747b73b4cd7acfbfb3dd42493f525935"
+      }
+    ],
+    "original_stages_not_modified": true
+  },
+  "source_rule_review": {
+    "base_paths": 633,
+    "proposed_paths": 641,
+    "base_variants": 818,
+    "proposed_variants": 826,
+    "added_paths": 8,
+    "removed_paths": 0,
+    "changed_existing_paths": [
+      "src/main/java/ca/teamdman/sfm/client/action/SFMFocusTargetHost.java"
+    ],
+    "other_existing_entries_preserved": 632,
+    "all_other_metadata_fields_preserved": true,
+    "added_rules": "exact_input_template_true_D2_and_single_existing_semantic_owner",
+    "human_rule_refinement": "only_three_template_flags_false_to_true_against_original_human_delta",
+    "theme_rules": "exact_five_original_ledger_rules",
+    "focus": {
+      "old_all_features": [
+        "typed_command_palette"
+      ],
+      "new_any_features": [
+        "typed_command_palette",
+        "focus_target_actions"
+      ],
+      "body_and_targets_unchanged": true,
+      "template_field_still_omitted_default_false": true,
+      "old_helper_ledger_unchanged": true,
+      "helper_delta_exactly_original_approved_integration": true,
+      "historical_palette_only_membership_assertions_preserved": true
+    }
+  },
+  "definitions_and_defaults": {
+    "definitions": 180,
+    "definitions_hash_unchanged": true,
+    "existing_owner_contracts": [
+      {
+        "owner": "clipboard_action_commands",
+        "requires": [
+          "client_actions"
+        ],
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ]
+      },
+      {
+        "owner": "focus_target_actions",
+        "requires": [
+          "client_actions"
+        ],
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ]
+      },
+      {
+        "owner": "manager_direct_edit_action",
+        "requires": [
+          "manager_editor_actions"
+        ],
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ]
+      },
+      {
+        "owner": "theme_preview_rules",
+        "requires": [
+          "client_theme"
+        ],
+        "targets": [
+          "1.19.2",
+          "1.19.4"
+        ]
+      }
+    ],
+    "added_prerequisites": 0,
+    "catalog_contexts": 20,
+    "catalog_hash_unchanged": true,
+    "all_current_defaults_omit_four_cohort_owners": true,
+    "dependency_or_lock_or_caller_or_registrar_changes": false
+  },
+  "module_review": {
+    "human_original": {
+      "bytes": 21280,
+      "sha256": "b91ad21598a15140893909079422021cb1412a10add8bf2705024bf2298a18e4"
+    },
+    "human_final": {
+      "bytes": 21279,
+      "sha256": "aec58cf17414f85e01d5a1339cffadd6022f600ddca013818089e9833c6f7ccf"
+    },
+    "amendment": "exactly_one_negation_character_removed_from_new_leaf_template_assertion",
+    "focus_host_false_template_assertion_unchanged": true,
+    "other_human_source_unchanged": true,
+    "theme_module_exact_original_peer_module": true,
+    "mod_rs_delta_exactly_two_test_registrations": true,
+    "prepared_tests": {
+      "human": 7,
+      "theme": 6,
+      "compiled": false,
+      "run": false
+    },
+    "actual_fixture_selector_renderer_calls_prepared": true,
+    "historical_Git_is_witness_only": true
+  },
+  "simulated_final_pins": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/mod.rs",
+      "bytes": 17108,
+      "sha256": "51c4ae4ac3fa2f98cf49e22ec4d14b68b79acc73e28549d077783764baaf78bf"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_action_helpers_slice_tests.rs",
+      "bytes": 26781,
+      "sha256": "b7d0a8923377e193e74423892d8579c7029c0a6af39a1b55f6fdfc36ed65542d"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+      "bytes": 453866,
+      "sha256": "d6016e7b3b70288535916182e393c0ab7aff28343cb3fdf4ed25cca827351e8a"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMClipboardCopyAction.java",
+      "bytes": 2547,
+      "sha256": "422424d6ecbee5a41552dce03c4bc3f54d23eca167ab2f98858029c22f0bb7a8"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/SFMFocusAction.java",
+      "bytes": 3392,
+      "sha256": "efab70c2f60039047876294ef0d12241180ebda0a4d76c561c02c4fc039015d9"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/action/ManagerEditAction.java",
+      "bytes": 1066,
+      "sha256": "cf40759a29f58dcf313305dd906cb58dd2ea36ebea0b5b14f7087a932dac0b03"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCompletion.java",
+      "bytes": 4559,
+      "sha256": "c15e794b749acb17dfdfb23128da642e6f1dbd7ad16240b92773fa46c6b67b03"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCoverage.java",
+      "bytes": 1284,
+      "sha256": "5bb04debf5481de58a579c3afc120aab080e399802a0b9d6f521bd253db9cbd4"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewDefaultNames.java",
+      "bytes": 5065,
+      "sha256": "57d53265f4fdd98ff9e426a722496629ba2d669e2a9dbff03740995625489ed5"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewRegistry.java",
+      "bytes": 1642,
+      "sha256": "7fb1eae67afc031b16da59b9dd561f56951f96d09f2d50c334ed40486fda6fa9"
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewThemeTarget.java",
+      "bytes": 1320,
+      "sha256": "a0da8bdc0e54079027eeda262fd39661363a87b7f3ad2074ae0895a0f3ad95a7"
+    },
+    {
+      "path": "docs/tasks/sfm-core-human-action-leaves-slice.json",
+      "bytes": 24760,
+      "sha256": "b5b2479a75269f94d7c34ce31c255c5defacdd9f93c0f7eb5b23ecd9fb231d81"
+    },
+    {
+      "path": "docs/tasks/sfm-core-theme-preview-five-slice.json",
+      "bytes": 22404,
+      "sha256": "6464fdfaeac13a88596383dd295d2697747b73b4cd7acfbfb3dd42493f525935"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_human_action_leaves_slice_tests.rs",
+      "bytes": 21279,
+      "sha256": "aec58cf17414f85e01d5a1339cffadd6022f600ddca013818089e9833c6f7ccf"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/core_theme_preview_five_slice_tests.rs",
+      "bytes": 14956,
+      "sha256": "2cfdf8b84c8b2445024a73c24441fcfb0e6f66388f66f264ac8a17c62fd888a5"
+    }
+  ],
+  "findings": [],
+  "retained_limits": [
+    "Human clipboard, focus and manager-editor effects are retained but not invoked; inherited programmatic defaults deny.",
+    "Existing weaker ManagerScreen caller gate is preserved; complete manager-editor source graph closure is not certified.",
+    "Theme provider selection, Java types, complete build and runtime semantics remain unexecuted acceptance.",
+    "Registry is a synchronized mutable snapshot extension point, not a pure value leaf.",
+    "ThemeTarget address normalization does not prove addressed file I/O; no addressed file was read.",
+    "Completion loop stop is not an executed global suggestion-bound proof.",
+    "All 13 new source tests remain prepared and unrun; prior gate and dry-runs describe the frozen pre-promotion tree.",
+    "Root must separately approve final payloads, release source freeze and recheck every base pin before promotion.",
+    "seal.json is supplemental unmanifested material; this receipt authenticates the final manifest and its 35 declared artifacts.",
+    "The later bounded apply driver is not part of this peer-reviewed manifest.",
+    "No ten-target/twenty-context goal completion, release parity, Java/runtime, UI, permission execution or refusal waiver is claimed."
+  ],
+  "effects": {
+    "production_writes": false,
+    "production_tests_or_renderer": false,
+    "Java_JVM_or_human_actions": false,
+    "network_dependencies_cache_backend_or_terminal": false,
+    "sealed_Vox_capsules_modified": false,
+    "original_or_combined_capsules_modified": false,
+    "output": "new_portable_G_only_peer_receipt"
+  },
+  "publication": "repository_relative_paths_public_owner_names_Git_identities_and_digests_only",
+  "skills_applied": [
+    "i-have-adhd",
+    "govuk-style",
+    "is-this-path-sensitive",
+    "publishing-guidelines"
+  ]
+}

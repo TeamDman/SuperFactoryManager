@@ -1,0 +1,78 @@
+{
+  "schema": "sfm:four_source_closed_tooling_gate@1",
+  "date": "2026-10-02",
+  "status": "closed_tooling_gate_passed_fresh_twenty_pending",
+  "branch": "feat/sfm-main-source-projection",
+  "head": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "predecessor": "docs/tasks/sfm-core-four-source-promotion-focused-20261002.json",
+  "core": {
+    "files": 1937,
+    "bytes": 8949630,
+    "sha256": "3f6838393924ee5f3946acd2af58c8fc97cfdde0334a4213a9f5902c2feead24"
+  },
+  "metadata": {
+    "rule_paths": 654,
+    "variants": 839,
+    "definitions": 180,
+    "catalog_entries": 20,
+    "defaults_prerequisites_dependencies_unchanged": true
+  },
+  "gate": {
+    "session": 36972,
+    "actual_exit_code": 0,
+    "marker": "FOUR_SOURCE_CHECK_ALL_EXIT=0",
+    "command": "pwsh -NoProfile -File check-all.ps1",
+    "working_directory": "platform/cli/sfm-propagate-changes",
+    "process_scoped_environment": {
+      "CARGO_NET_OFFLINE": "true"
+    },
+    "policy_formatting_all_feature_clippy_build": "passed",
+    "ordered_unique_groups": 188,
+    "ordinary_library_passed": 2169,
+    "standalone_fixture_passed": 1,
+    "total_library_passed": 2170,
+    "library_ignored": 14,
+    "integration_passed": 70,
+    "failed": 0,
+    "binary_harnesses": {
+      "harnesses": 2,
+      "tests": 0
+    },
+    "doc_harness_tests": 0,
+    "default_feature_cli_build": "passed",
+    "terminal_state": "closed_and_retired"
+  },
+  "log": {
+    "path": "platform/cli/sfm-propagate-changes/target/core-four-sources-check-all-20261002-v1.log",
+    "bytes": 39879,
+    "sha256": "86684d62d48f4d2078f884833e349a9d14eaced03e584ef167ac7e7b125ffb31",
+    "all_streams_retained": true,
+    "terminal_marker_observed_separately": true
+  },
+  "operational_cli": {
+    "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+    "bytes": 93378560,
+    "sha256": "49fe247894a6de53771cf59c2722d9990278110df678441389a539475510e614",
+    "built_after_test_groups": true,
+    "installed_path_freshness": "not_performed"
+  },
+  "root_native_audit": {
+    "marker": "ROOT_CLOSED1937_GATE188_CORE_AND_ORIGINAL98_INDEX_EXIT=0",
+    "groups_independently_counted": true,
+    "all_groups_ordered_unique": true,
+    "whole_authored_core_rehashed": true,
+    "branch_head_verified": true,
+    "original_index": {
+      "rows": 98,
+      "raw_sha256": "89f54ee23ef06b4fa63b41982398683408c8b2e0c7d9a2f95f3a825cebb5abf1",
+      "names_sha256": "5ba82be5e48169a45816f87f92138ab2213b87bdddce776a6b1bf26c43905fed",
+      "framing": "Default Git output joined with LF and one terminal LF"
+    }
+  },
+  "evidence_limits": [
+    "The source-partitioned test runner does not itself impose per-child deadlines; passing groups are not fault-injection or descendant-retirement proof.",
+    "Fresh twenty-projection dry-runs against this exact core and CLI are pending. Historical 1,933-file generation receipts remain historical.",
+    "Selector/scanner/renderer tests do not prove Java provider closure, compilation, gameplay or release compatibility.",
+    "No cleanup, dependency change, merge, push, tag, publication, installation or goal completion is claimed."
+  ]
+}

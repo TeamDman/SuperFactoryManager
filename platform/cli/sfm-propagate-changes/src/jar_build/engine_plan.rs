@@ -6,10 +6,6 @@ fn common_toolchain_cache_dir() -> PathBuf {
     CACHE_DIR.0.join("minecraft-toolchain")
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "The planner is a single orchestration pass over project inputs."
-)]
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -26,11 +22,32 @@ fn create_plan_for_target(
     target: &WorktreeTarget,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
+    let identity = BuildProjectIdentity::Worktree {
+        branch: target.branch.clone(),
+        root: target.worktree_path.as_path().to_path_buf(),
+    };
+    create_plan_for_project(
+        &NativePlanningOptions::from(options),
+        &identity,
+        cancellation_token,
+    )
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "The planner is a single orchestration pass over project inputs."
+)]
+fn create_plan_for_project(
+    options: &NativePlanningOptions,
+    target: &BuildProjectIdentity,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<BuildPlan> {
+    target.recheck()?;
     cancellation_token.bail_if_cancelled()?;
     let (worktree_path, minecraft_dir, properties_path) = {
         let _span = tracing::debug_span!("plan_resolve_project_paths").entered();
-        let worktree_path = target.worktree_path.as_path().to_path_buf();
-        let minecraft_dir = worktree_path.join("platform").join("minecraft");
+        let worktree_path = target.repository_root().to_path_buf();
+        let minecraft_dir = target.minecraft_dir();
         let properties_path = minecraft_dir.join("gradle.properties");
         (worktree_path, minecraft_dir, properties_path)
     };
@@ -68,9 +85,9 @@ fn create_plan_for_target(
     let (
         gradle_output_jar,
         rust_output_jar,
-        cache_dir,
+        mut cache_dir,
         common_cache_dir,
-        state_dir,
+        mut state_dir,
         maven_cache_dir,
         minecraft_cache_dir,
         minecraft_version_cache_dir,
@@ -83,7 +100,13 @@ fn create_plan_for_target(
             gradle_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
         let rust_output_jar =
             rust_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
-        let cache_dir = minecraft_dir.join("build").join("sfm-toolchain");
+        let cache_dir = if let Some(project) = target.named_project() {
+            minecraft_dir.join(project.receipt().preparation_cache_relative_path()?)
+        } else if let Some(development) = target.development_target() {
+            dunce::simplified(&development.cache_dir).to_path_buf()
+        } else {
+            minecraft_dir.join("build").join("sfm-toolchain")
+        };
         let common_cache_dir = common_toolchain_cache_dir();
         let state_dir = cache_dir.join("state");
         let maven_cache_dir = common_cache_dir.join("maven");
@@ -107,49 +130,85 @@ fn create_plan_for_target(
             lockfile_path,
         )
     };
-    {
+    if !target.is_catalog_owned() {
         let _span = tracing::debug_span!("plan_create_cache_dirs").entered();
         fs::create_dir_all(&state_dir)?;
         fs::create_dir_all(&maven_cache_dir)?;
         fs::create_dir_all(&minecraft_version_cache_dir)?;
         fs::create_dir_all(&minecraft_assets_dir)?;
         fs::create_dir_all(&minecraft_libraries_dir)?;
-    };
+    }
     cancellation_token.bail_if_cancelled()?;
-    let (v3_lockfile, jdk_pins) = {
-        let input = fs::read_to_string(&lockfile_path)
-            .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-        let dependencies = crate::toolchain_lockfile_schema::read_current(&input)
-            .wrap_err_with(|| format!("Failed to load schema v3 lockfile {}", lockfile_path.display()))?;
-        let jdk_pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)
-            .wrap_err_with(|| format!("Failed to read JDK pins from {}", lockfile_path.display()))?;
-        (dependencies, jdk_pins)
-    };
-    let existing_lockfile = {
-        let _span = tracing::debug_span!("plan_project_v3_artifact_lockfile", refresh = options.refresh).entered();
-        Some(project_v3_artifact_lockfile(
-            &v3_lockfile,
-            minecraft_version,
-            &maven_cache_dir,
-        )?)
-    };
-    let lockfile = if options.refresh {
-        None
-    } else {
-        existing_lockfile.clone()
-    };
+    let (existing_lockfile, lockfile, repositories, dependencies, jdk_pins) =
+        if let Some(project) = target.named_project() {
+            project.recheck(false)?;
+            let inputs = project.dependencies();
+            let legacy = inputs.original_lock().clone().into_latest();
+            let repositories = legacy.repositories.clone();
+            let dependencies = prepared_parsed_dependencies(inputs)?;
+            (
+                Some(legacy.clone()),
+                Some(legacy),
+                repositories,
+                dependencies,
+                None,
+            )
+        } else {
+            let (v3_lockfile, jdk_pins) = {
+                let input = fs::read_to_string(&lockfile_path)
+                    .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
+                let dependencies = crate::toolchain_lockfile_schema::read_current(&input)
+                    .wrap_err_with(|| {
+                        format!(
+                            "Failed to load schema v3 lockfile {}",
+                            lockfile_path.display()
+                        )
+                    })?;
+                let jdk_pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)
+                    .wrap_err_with(|| {
+                        format!("Failed to read JDK pins from {}", lockfile_path.display())
+                    })?;
+                (dependencies, jdk_pins)
+            };
+            let existing_lockfile = {
+                let _span = tracing::debug_span!(
+                    "plan_project_v3_artifact_lockfile",
+                    refresh = options.refresh
+                )
+                .entered();
+                Some(project_v3_artifact_lockfile(
+                    &v3_lockfile,
+                    minecraft_version,
+                    &maven_cache_dir,
+                )?)
+            };
+            let lockfile = if options.refresh {
+                None
+            } else {
+                existing_lockfile.clone()
+            };
 
-    let repositories = {
-        let _span = tracing::debug_span!("plan_load_repositories").entered();
-        v3_lockfile
-            .repositories
-            .iter()
-            .map(|repository| Repository {
-                name: repository.id.clone(),
-                url: repository.url.clone(),
-            })
-            .collect::<Vec<_>>()
-    };
+            let repositories = {
+                let _span = tracing::debug_span!("plan_load_repositories").entered();
+                v3_lockfile
+                    .repositories
+                    .iter()
+                    .map(|repository| Repository {
+                        name: repository.id.clone(),
+                        url: repository.url.clone(),
+                    })
+                    .collect::<Vec<_>>()
+            };
+
+            let dependencies = project_v3_dependencies(&v3_lockfile)?;
+            (
+                existing_lockfile,
+                lockfile,
+                repositories,
+                dependencies,
+                jdk_pins,
+            )
+        };
     let resolver = {
         let _span = tracing::debug_span!(
             "plan_create_resolver",
@@ -159,30 +218,57 @@ fn create_plan_for_target(
             artifact_source_count = options.artifact_sources.len(),
         )
         .entered();
-        Resolver::new(
-            maven_cache_dir.clone(),
-            repositories.clone(),
-            options.refresh,
-            options.allow_local_artifact_cache,
-            options.artifact_sources.clone(),
-            lockfile.clone(),
-            existing_lockfile.clone(),
-            cancellation_token.clone(),
-        )?
+        if let Some(project) = target.named_project() {
+            project.recheck(false)?;
+            Resolver::new_prepared(
+                maven_cache_dir.clone(),
+                Arc::clone(project.dependencies()),
+                false,
+                cancellation_token.clone(),
+            )?
+        } else {
+            let resolver = Resolver::new(
+                maven_cache_dir.clone(),
+                repositories.clone(),
+                options.refresh,
+                options.allow_local_artifact_cache,
+                options.artifact_sources.clone(),
+                lockfile.clone(),
+                existing_lockfile.clone(),
+                cancellation_token.clone(),
+            )?;
+            if target.development_target().is_some() {
+                resolver.require_immutable_catalog()?
+            } else {
+                resolver
+            }
+        }
     };
     cancellation_token.bail_if_cancelled()?;
 
-    let dependencies = {
-        let _span = tracing::debug_span!("plan_project_v3_dependencies").entered();
-        project_v3_dependencies(&v3_lockfile)?
-    };
     let loader_toolchain = {
         let _span = tracing::debug_span!(
             "plan_resolve_loader_toolchain",
             dependency_count = dependencies.len(),
         )
         .entered();
-        resolve_loader_toolchain(&dependencies, minecraft_version, loader_version)?
+        if let Some(project) = target.named_project() {
+            if project.receipt().released_inputs.loader_kind == "neogradle_userdev" {
+                validate_named_neoform_compile(project)?;
+                loader_toolchain_plan(
+                    LoaderToolchainKind::NeoGradleUserdev,
+                    &MavenCoordinate::parse(&project.receipt().released_inputs.loader_coordinate)?,
+                )
+            } else {
+                let recipe = named_forge_compile_recipe_for_project(project)?;
+                loader_toolchain_plan(
+                    named_forge_loader_kind(recipe),
+                    &MavenCoordinate::parse(recipe.loader_coordinate)?,
+                )
+            }
+        } else {
+            resolve_loader_toolchain(&dependencies, minecraft_version, loader_version)?
+        }
     };
     cancellation_token.bail_if_cancelled()?;
     let (java_release, java) = {
@@ -191,17 +277,45 @@ fn create_plan_for_target(
             has_java_home = options.java_home.is_some(),
         )
         .entered();
-        let java_release = read_java_toolchain_release(&minecraft_dir, minecraft_version)?;
-        let required_java = required_java_runtime_major(&loader_toolchain, java_release);
+        let java_release = if let Some(project) = target.named_project() {
+            u32::from(project.receipt().compiler_release)
+        } else {
+            read_java_toolchain_release(&minecraft_dir, minecraft_version)?
+        };
+        let required_java = if let Some(project) = target.named_project() {
+            u32::from(project.receipt().tool_jvm_minimum)
+        } else {
+            required_java_runtime_major(&loader_toolchain, java_release)
+        };
+        target.recheck()?;
 
         let java = {
-            let jdk_resolution = crate::jdk::resolve_java_for_lockfile(
-                options.java_home.as_deref(),
-                jdk_pins.as_deref(),
-                required_java,
-                &common_cache_dir.join("jbrsdk"),
-                false,
-            )?;
+            let jdk_resolution = if target.is_catalog_owned() {
+                let home = options.java_home.as_deref().ok_or_else(|| {
+                    eyre::eyre!("named compile requires an explicit checked SDK home")
+                })?;
+                resolve_named_java_with_verified_spelling(
+                    home,
+                    cancellation_token,
+                    |launch_home| {
+                        crate::jdk::resolve_java_for_lockfile(
+                            Some(launch_home),
+                            jdk_pins.as_deref(),
+                            required_java,
+                            &common_cache_dir.join("jbrsdk"),
+                            false,
+                        )
+                    },
+                )?
+            } else {
+                crate::jdk::resolve_java_for_lockfile(
+                    options.java_home.as_deref(),
+                    jdk_pins.as_deref(),
+                    required_java,
+                    &common_cache_dir.join("jbrsdk"),
+                    false,
+                )?
+            };
             JavaPlan {
                 executable: jdk_resolution.executable,
                 home: jdk_resolution.home,
@@ -210,10 +324,59 @@ fn create_plan_for_target(
                 selection: jdk_resolution.selection,
                 pin_url: jdk_resolution.pin_url,
                 pin_sha512: jdk_resolution.pin_sha512,
+                execution_identity: None,
             }
         };
         (java_release, java)
     };
+    let mut java = java;
+    if let Some(project) = target.named_project() {
+        target.recheck()?;
+        let sdk_identity = named_sdk_identity(&java)?;
+        java.execution_identity = Some(sdk_identity.clone());
+        let key = crate::source_projection::provenance::sha256(
+            format!(
+                "{}\n{sdk_identity}",
+                project.receipt().preparation_identity()?
+            )
+            .as_bytes(),
+        );
+        cache_dir = minecraft_dir
+            .join("build/sfm-toolchain/native-project")
+            .join(key.trim_start_matches("sha256:"));
+        state_dir = cache_dir.join("state");
+        crate::source_projection::native_project_target::inspect_cache_ancestors(
+            &minecraft_dir,
+            &cache_dir
+                .strip_prefix(&minecraft_dir)?
+                .to_string_lossy()
+                .replace('\\', "/"),
+        )?;
+        fs::create_dir_all(&state_dir)?;
+        fs::create_dir_all(&maven_cache_dir)?;
+        fs::create_dir_all(&minecraft_version_cache_dir)?;
+        fs::create_dir_all(&minecraft_libraries_dir)?;
+    }
+    if let Some(development) = target.development_target() {
+        target.recheck()?;
+        let sdk_identity = named_sdk_identity(&java)?;
+        java.execution_identity = Some(sdk_identity.clone());
+        let key = crate::source_projection::provenance::sha256(
+            format!("{}\n{sdk_identity}", development.cache_identity).as_bytes(),
+        );
+        cache_dir = minecraft_dir.join("build/sfm-toolchain/native-project")
+            .join(key.trim_start_matches("sha256:"));
+        state_dir = cache_dir.join("state");
+        crate::source_projection::native_project_target::inspect_cache_ancestors(
+            &minecraft_dir,
+            &cache_dir.strip_prefix(&minecraft_dir)?.to_string_lossy().replace('\\', "/"),
+        )?;
+        for directory in [&state_dir, &maven_cache_dir, &minecraft_version_cache_dir,
+            &minecraft_assets_dir, &minecraft_libraries_dir] {
+            fs::create_dir_all(directory)?;
+        }
+    }
+    target.recheck()?;
 
     let (forge_userdev, mcp_config) = {
         let _span =
@@ -266,6 +429,7 @@ fn create_plan_for_target(
             &forge_userdev,
             mcp_config.as_ref(),
             &dependencies,
+            target.named_project(),
         )?
     };
     {
@@ -279,14 +443,29 @@ fn create_plan_for_target(
 
     let minecraft = {
         let _span = tracing::debug_span!("plan_resolve_minecraft_inputs").entered();
-        resolve_minecraft_plan(
-            &minecraft_cache_dir,
-            &resolver.client,
-            minecraft_version,
-            cancellation_token,
-        )?
+        if let Some(project) = target.named_project() {
+            resolve_frozen_minecraft_plan(
+                project,
+                &minecraft_cache_dir,
+                &resolver.client,
+                cancellation_token,
+            )?
+        } else if let BuildProjectIdentity::Development { project, target } = target
+            && loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+        {
+            resolve_development_minecraft_plan(project, &target.receipt.dependency_profile, &minecraft_cache_dir, &resolver.client, cancellation_token)?
+        } else {
+            resolve_minecraft_plan(
+                &minecraft_cache_dir,
+                &resolver.client,
+                minecraft_version,
+                cancellation_token,
+            )?
+        }
     };
-    artifacts.push(minecraft.version_manifest.clone());
+    if let Some(manifest) = &minecraft.version_manifest {
+        artifacts.push(manifest.clone());
+    }
     artifacts.push(minecraft.version_json.clone());
     cancellation_token.bail_if_cancelled()?;
 
@@ -301,12 +480,13 @@ fn create_plan_for_target(
             .iter()
             .filter(|dependency| should_plan_project_dependency(&loader_toolchain, dependency))
             .collect::<Vec<_>>();
-        let mut dependency_plans = resolver.resolve_dependencies(selected.iter().map(|dependency| {
-            (
-                dependency.configuration.clone(),
-                dependency.coordinate.clone(),
-            )
-        }))?;
+        let mut dependency_plans =
+            resolver.resolve_dependencies(selected.iter().map(|dependency| {
+                (
+                    dependency.configuration.clone(),
+                    dependency.coordinate.clone(),
+                )
+            }))?;
         for (plan, dependency) in dependency_plans.iter_mut().zip(selected) {
             plan.bundle.clone_from(&dependency.bundle);
             plan.artifact_treatment = dependency.artifact_treatment;
@@ -348,14 +528,18 @@ fn create_plan_for_target(
         )
         .entered();
         BuildPlan {
-            schema_version: 1,
+            schema_version: if target.is_catalog_owned() {
+                2
+            } else {
+                1
+            },
             mode: match options.mode {
                 BuildMode::Plan => "plan".to_string(),
                 BuildMode::Build => "build".to_string(),
             },
-            branch_name: target.branch.clone(),
+            branch_name: target.legacy_branch().cloned(),
             minecraft_version: MinecraftVersion::parse(minecraft_version)?,
-            worktree_path,
+            worktree_path: target.legacy_branch().map(|_| worktree_path),
             minecraft_dir,
             gradle_output_jar,
             rust_output_jar,
@@ -385,6 +569,10 @@ fn create_plan_for_target(
             graph,
             artifact_portability: ArtifactPortabilityAudit::default(),
             warnings,
+            catalog_project: target
+                .named_project()
+                .map(|project| project.receipt().clone()),
+            identity: target.clone(),
         }
     };
     {
@@ -601,7 +789,8 @@ fn enforce_portable_artifacts(plan: &BuildPlan) -> eyre::Result<()> {
 
     let mut message = format!(
         "Artifact portability audit failed for {}: {} non-portable artifact(s)",
-        plan.branch_name, plan.artifact_portability.non_portable_artifacts
+        plan.target_label(),
+        plan.artifact_portability.non_portable_artifacts
     );
     for issue in plan.artifact_portability.issues.iter().take(10) {
         let coordinate = issue.coordinate.as_deref().unwrap_or("<unknown>");
@@ -630,6 +819,7 @@ fn core_coordinates(
     userdev: &ForgeUserdevPlan,
     mcp_config: Option<&McpConfigPlan>,
     dependencies: &[ParsedDependency],
+    named_project: Option<&crate::source_projection::frozen_recipe_project::FrozenRecipeProject>,
 ) -> eyre::Result<Vec<(ArtifactId, MavenCoordinate, ArtifactPurpose)>> {
     let mut coordinates = Vec::new();
 
@@ -709,7 +899,11 @@ fn core_coordinates(
         ));
     }
 
-    add_mcp_tool_coordinates(&mut coordinates, mcp_config)?;
+    if let Some(project) = named_project {
+        add_named_forge_mcp_tool_coordinates(&mut coordinates, project, mcp_config)?;
+    } else {
+        add_mcp_tool_coordinates(&mut coordinates, mcp_config)?;
+    }
 
     add_project_tool_coordinates(&mut coordinates, dependencies)?;
 
@@ -786,6 +980,27 @@ fn add_transitive_runtime_dependency_plans(
     resolver: &Resolver,
     mut dependencies: Vec<DependencyPlan>,
 ) -> eyre::Result<Vec<DependencyPlan>> {
+    let selected_roots = dependencies
+        .iter()
+        .filter(|dependency| is_runtime_transitive_root(&dependency.configuration))
+        .map(|dependency| {
+            (
+                dependency.configuration.clone(),
+                dependency.resolved_notation.clone(),
+            )
+        })
+        .collect::<Vec<_>>();
+    if let Some(rows) = resolver.frozen_runtime_rows_for_selected_roots(&selected_roots)? {
+        // Schema 2 records an ordered global closure, not per-root POM edges.
+        // Keep every recorded role and let the strict resolver retain its policy.
+        for row in rows {
+            dependencies.push(resolver.resolve_dependency(
+                &row.configuration,
+                &MavenCoordinate::parse(&row.requested_coordinate)?,
+            )?);
+        }
+        return Ok(dependencies);
+    }
     let mut seen = dependencies
         .iter()
         .map(|dependency| dependency.resolved_notation.clone())
@@ -1101,12 +1316,12 @@ fn resolve_minecraft_plan(
     let libraries_count = version_json.libraries.len();
 
     Ok(MinecraftPlan {
-        version_manifest: plain_artifact(
+        version_manifest: Some(plain_artifact(
             ArtifactId::from("minecraft-version-manifest"),
             VERSION_MANIFEST_URL,
             manifest_path,
             ArtifactPurpose::from("Minecraft version discovery"),
-        )?,
+        )?),
         version_json: plain_artifact(
             ArtifactId::from("minecraft-version-json"),
             version_url,
@@ -1124,6 +1339,7 @@ fn resolve_minecraft_plan(
             .server_mappings
             .map(|download| download.url),
         libraries_count,
+        authenticated_inputs: None,
     })
 }
 
@@ -1236,8 +1452,7 @@ struct ParsedDependency {
     configuration: String,
     coordinate: MavenCoordinate,
     bundle: Option<crate::toolchain_lockfile_schema::version::v3::BundlePolicyV3>,
-    artifact_treatment:
-        crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
+    artifact_treatment: crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3,
     data_run_policy: crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3,
 }
 
@@ -1292,9 +1507,11 @@ fn project_v3_dependencies(
         }
     }
     projected.sort_by(|left, right| {
-        left.configuration
-            .cmp(&right.configuration)
-            .then_with(|| left.coordinate.to_string().cmp(&right.coordinate.to_string()))
+        left.configuration.cmp(&right.configuration).then_with(|| {
+            left.coordinate
+                .to_string()
+                .cmp(&right.coordinate.to_string())
+        })
     });
     projected.dedup_by(|left, right| {
         left.configuration == right.configuration
@@ -1309,9 +1526,57 @@ fn project_v3_dependencies(
 fn read_projected_dependencies(lockfile_path: &Path) -> eyre::Result<Vec<ParsedDependency>> {
     let input = fs::read_to_string(lockfile_path)
         .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-    let lockfile = crate::toolchain_lockfile_schema::read_current(&input)
-        .wrap_err_with(|| format!("Failed to load schema v3 lockfile {}", lockfile_path.display()))?;
+    let lockfile = crate::toolchain_lockfile_schema::read_current(&input).wrap_err_with(|| {
+        format!(
+            "Failed to load schema v3 lockfile {}",
+            lockfile_path.display()
+        )
+    })?;
     project_v3_dependencies(&lockfile)
+}
+
+/// Native transfer roles from the actual effective development profile.
+#[cfg(windows)]
+pub(super) fn development_nfrt_dependency_rows(
+    lock: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
+) -> eyre::Result<Vec<crate::source_projection::released_native_inputs::ReleasedPreparedDependency>> {
+    use crate::source_projection::released_native_inputs::ReleasedBundlePolicy;
+    use crate::source_projection::released_native_inputs::ReleasedPreparedDependency;
+    use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
+    use crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3;
+
+    project_v3_dependencies(lock)?
+        .into_iter()
+        // Loader archives are selected separately by their actual userdev pin.
+        .filter(|row| row.configuration != "minecraft")
+        .map(|row| {
+            let coordinate = row.coordinate.to_string();
+            let matches = lock.artifacts.iter().enumerate().filter(|(_, pin)| pin.coordinate.as_deref() == Some(coordinate.as_str())).collect::<Vec<_>>();
+            eyre::ensure!(matches.len() == 1, "development dependency role requires one exact artifact: {coordinate}");
+            let (index, pin) = matches[0];
+            Ok(ReleasedPreparedDependency {
+                // No schema-2 original row is invented for a schema-4 profile.
+                original_dependency_index: None,
+                configuration: row.configuration,
+                requested_coordinate: coordinate.clone(),
+                resolved_coordinate: coordinate,
+                artifact_index: index,
+                artifact_hash: pin.hash.to_string(),
+                artifact_treatment: match row.artifact_treatment {
+                    ArtifactTreatmentV3::Plain => "plain",
+                    ArtifactTreatmentV3::LoaderManagedMod => "loader_managed_mod",
+                }.to_owned(),
+                data_run_policy: match row.data_run_policy {
+                    DataRunPolicyV3::Include => "include",
+                    DataRunPolicyV3::Exclude => "exclude",
+                }.to_owned(),
+                bundle: row.bundle.map(|bundle| ReleasedBundlePolicy {
+                    accepted_version_range: bundle.accepted_version_range,
+                    artifact_version: bundle.artifact_version,
+                    is_obfuscated: bundle.is_obfuscated,
+                }),
+            })
+        }).collect()
 }
 
 fn project_v3_artifact_lockfile(
@@ -1332,12 +1597,15 @@ fn project_v3_artifact_lockfile(
         .into_iter()
         .map(|dependency| {
             let coordinate = dependency.coordinate.to_string();
-            let artifact = lockfile.artifacts.iter().find(|artifact| {
-                if dependency.configuration == "minecraft" {
-                    return loader_artifact_id == Some(artifact.id.as_str());
-                }
-                artifact.coordinate.as_deref() == Some(coordinate.as_str())
-            })
+            let artifact = lockfile
+                .artifacts
+                .iter()
+                .find(|artifact| {
+                    if dependency.configuration == "minecraft" {
+                        return loader_artifact_id == Some(artifact.id.as_str());
+                    }
+                    artifact.coordinate.as_deref() == Some(coordinate.as_str())
+                })
                 .ok_or_else(|| {
                     eyre::eyre!("Projected dependency artifact is missing: {coordinate}")
                 })?;
@@ -1364,9 +1632,7 @@ fn project_v3_artifact_lockfile(
                 ArtifactProvenanceV3::RemoteMaven => ArtifactSource::RemoteMaven,
                 ArtifactProvenanceV3::RemoteHttp => ArtifactSource::RemoteHttp,
                 ArtifactProvenanceV3::SourceBuild => ArtifactSource::SourceBuild,
-                ArtifactProvenanceV3::ToolchainGenerated => {
-                    ArtifactSource::ExistingSfmCacheUnknown
-                }
+                ArtifactProvenanceV3::ToolchainGenerated => ArtifactSource::ExistingSfmCacheUnknown,
             },
             repository: artifact.repository_id.clone(),
             url: artifact.url.clone(),
@@ -1712,4 +1978,3 @@ fn graph_planned(id: &str, reason: &str, inputs: Vec<&str>, outputs: Vec<&str>) 
         rebuild_reason: reason.to_string(),
     }
 }
-

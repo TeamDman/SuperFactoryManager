@@ -1,0 +1,3275 @@
+{
+  "schema": "sfm:core_transfer_ast_slice@1",
+  "status": "staged_authoring_preview_only_post_promotion_tests_unregistered",
+  "scope": "three_released_ast_transfer_classes",
+  "source_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "production_import_policy": "production renders only core-owned authored files; exact frozen Git blobs are bounded migration/test witnesses",
+  "feature_context_origin": "explicit reconstructed flags used to match historical bodies; not a claim that frozen commits had these compile-time flags",
+  "normalization": {
+    "policy": "raw_exact_lf",
+    "raw_variants": 8,
+    "crlf_count": 0,
+    "lone_cr": false,
+    "all_have_existing_final_lf": true,
+    "edits_permitted": "none; no whitespace/token/final-LF edits"
+  },
+  "functional_owner": {
+    "name": "packet_computation",
+    "supported_targets": [
+      "1.19.2",
+      "1.19.4"
+    ],
+    "requires": [
+      "packet_values",
+      "runtime_resource_cleanup"
+    ],
+    "new_flags": false,
+    "cleanup_only_hunks": "none in these three classes; input-source relocation is packet runtime, not an independently enabled cleanup path",
+    "unjustified_prerequisites": [
+      "packet_transport_private",
+      "client_inbox",
+      "multiplayer_packets",
+      "client_program_signing",
+      "client_program_actions"
+    ]
+  },
+  "inputs": [
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-transfer-ast-stage-v1/ForgetStatement.java",
+      "template_sha256": "sha256:1fb2a19e5746644f15eb4d2ddb42e1d0d4781ce864a9a1b9d933d1a71e4728d4",
+      "template_bytes": 5023,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "9e2f8d90ee991d46c66e956dcf8a1dc366ed66aa",
+          "raw_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "raw_bytes": 2351,
+          "normalized_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "normalized_bytes": 2351,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        },
+        {
+          "oid": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "normalized_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "normalized_bytes": 3316,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        }
+      ],
+      "owner_hunks": [
+        {
+          "oldStart": 4,
+          "old": [
+            "import ca.teamdman.sfm.common.program.ExecuteProgramBehaviour;"
+          ],
+          "new": [],
+          "id": "PC1",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 6,
+          "old": [
+            "import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;"
+          ],
+          "new": [
+            "import ca.teamdman.sfm.common.program.ProgramInputForgetRequest;",
+            "import ca.teamdman.sfm.common.program.ProgramInputSource;"
+          ],
+          "id": "PC2",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 15,
+          "old": [
+            "        Set<Label> labelToForget"
+          ],
+          "new": [
+            "        Set<Label> labelToForget,",
+            "        boolean allInputs"
+          ],
+          "id": "PC3",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 17,
+          "old": [],
+          "new": [
+            "    public ForgetStatement(Set<Label> labelToForget) {",
+            "        this(Set.copyOf(labelToForget), false);",
+            "    }",
+            "",
+            "    public ForgetStatement {",
+            "        labelToForget = Set.copyOf(labelToForget);",
+            "        if (allInputs && !labelToForget.isEmpty()) {",
+            "            throw new IllegalArgumentException(\"Bare FORGET cannot also name labels\");",
+            "        }",
+            "    }",
+            "",
+            "    public static ForgetStatement allInputsStatement() {",
+            "        return new ForgetStatement(Set.of(), true);",
+            "    }",
+            ""
+          ],
+          "id": "PC4",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 26,
+          "old": [
+            "        List<InputStatement> newInputs = new ArrayList<>();",
+            "        for (InputStatement oldInputStatement : context.getInputs()) {",
+            "            var newLabels = oldInputStatement.labelAccess().labels().stream()",
+            "                    .filter(label -> !this.labelToForget.contains(label))",
+            "                    .toList();",
+            "",
+            "            // always fire event from old to new, even if new has no labels",
+            "            InputStatement newInputStatement = new InputStatement(",
+            "                    new LabelAccess(",
+            "                            newLabels,",
+            "                            oldInputStatement.labelAccess().sides(),",
+            "                            oldInputStatement.labelAccess().slots(),",
+            "                            oldInputStatement.labelAccess().roundRobin()",
+            "                    ),",
+            "                    oldInputStatement.resourceLimits(),",
+            "                    oldInputStatement.each()",
+            "            );",
+            "            if (!(context.getBehaviour() instanceof ExecuteProgramBehaviour)) {",
+            "                /// This is a waste when running the program.",
+            "                /// Only needed for {@link ca.teamdman.sfm.common.program.linting.GatherWarningsProgramBehaviour}.",
+            "                /// Will allow it for other non-execute behaviours just to avoid trouble.",
+            "                context.getProgram().astBuilder().setLocationFromOtherNode(newInputStatement, oldInputStatement);",
+            "            }",
+            "            if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {",
+            "                simulation.onInputStatementForgetTransform(context, oldInputStatement, newInputStatement);",
+            "            }",
+            "            // this could be a set instead of list contains check, but whatever. Should be small",
+            "            oldInputStatement.freeSlotsIf(slot -> labelToForget.contains(slot.label));",
+            "            oldInputStatement.transferSlotsTo(newInputStatement);",
+            "",
+            "            if (newLabels.isEmpty()) {",
+            "                oldInputStatement.freeSlots();",
+            "            } else {",
+            "                newInputs.add(newInputStatement);"
+          ],
+          "new": [
+            "        ProgramInputForgetRequest request = allInputs",
+            "                                            ? ProgramInputForgetRequest.all()",
+            "                                            : ProgramInputForgetRequest.labels(labelToForget);",
+            "        List<ProgramInputSource> newInputs = new ArrayList<>();",
+            "        for (ProgramInputSource inputSource : context.getInputs()) {",
+            "            ProgramInputSource retainedSource = inputSource.forget(context, request);",
+            "            if (retainedSource != null) {",
+            "                newInputs.add(retainedSource);"
+          ],
+          "id": "PC5",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 62,
+          "old": [
+            "        context.getInputs().clear();",
+            "        context.getInputs().addAll(newInputs);"
+          ],
+          "new": [
+            "        context.replaceInputs(newInputs);"
+          ],
+          "id": "PC6",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        },
+        {
+          "oldStart": 71,
+          "old": [
+            ""
+          ],
+          "new": [
+            "        if (allInputs) {",
+            "            return \"FORGET\";",
+            "        }"
+          ],
+          "id": "PC7",
+          "owner": "packet_computation",
+          "meaning": "all-input request and retained-source lifetime"
+        }
+      ],
+      "real_mc_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9e2f8d90ee991d46c66e956dcf8a1dc366ed66aa",
+          "raw_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "raw_bytes": 2351,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "9e2f8d90ee991d46c66e956dcf8a1dc366ed66aa",
+          "raw_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "raw_bytes": 2351,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "raw_bytes": 3316,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        }
+      ],
+      "consumer_contexts": [
+        {
+          "context": "dev/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSourceTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramInputSourceTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSourceTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramInputSourceTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        },
+        {
+          "context": "release/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-transfer-ast-stage-v1/InputStatement.java",
+      "template_sha256": "sha256:24165e50462caaf351c36a634838bf1ab304f8946870406f028fdf736db53bed",
+      "template_bytes": 16580,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "fdb0f9a028d82679b3eb43c5f87cbb3ef3f213c1",
+          "raw_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "raw_bytes": 6380,
+          "normalized_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "normalized_bytes": 6380,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        },
+        {
+          "oid": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "normalized_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "normalized_bytes": 12757,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        }
+      ],
+      "owner_hunks": [
+        {
+          "oldStart": 5,
+          "old": [
+            "import ca.teamdman.sfm.common.resourcetype.ResourceType;",
+            "import net.minecraft.core.BlockPos;",
+            "import net.minecraft.core.Direction;",
+            "import org.jetbrains.annotations.Nullable;"
+          ],
+          "new": [],
+          "id": "PC1",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 10,
+          "old": [
+            "import java.util.ArrayDeque;",
+            "import java.util.Iterator;",
+            "import java.util.List;"
+          ],
+          "new": [],
+          "id": "PC2",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 14,
+          "old": [
+            "import java.util.function.Consumer;",
+            "import java.util.function.Predicate;"
+          ],
+          "new": [
+            "import java.util.ArrayList;",
+            "import java.util.List;",
+            "import java.util.Optional;"
+          ],
+          "id": "PC3",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 43,
+          "old": [
+            "    private @Nullable ArrayDeque<LimitedInputSlot<?, ?, ?>> limitedInputSlotsCache = null;"
+          ],
+          "new": [
+            "    private final ProgramInputSelection selection;"
+          ],
+          "id": "PC4",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 45,
+          "old": [],
+          "new": [
+            "    private final String bindingName;",
+            ""
+          ],
+          "id": "PC5",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 51,
+          "old": [],
+          "new": [
+            "        this(labelAccess, resourceLimits, each, ProgramInputSelection.ANY, null);",
+            "    }",
+            "",
+            "    public InputStatement(",
+            "            LabelAccess labelAccess,",
+            "            ResourceLimits resourceLimits,",
+            "            boolean each,",
+            "            ProgramInputSelection selection,",
+            "            String bindingName",
+            "    ) {",
+            ""
+          ],
+          "id": "PC6",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 54,
+          "old": [],
+          "new": [
+            "        this.selection = Objects.requireNonNull(selection);",
+            "        this.bindingName = bindingName;"
+          ],
+          "id": "PC7",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 59,
+          "old": [
+            "        context.addInput(this);"
+          ],
+          "new": [
+            "        ProgramInputSource inputSource = new WorldProgramInputSource(this);",
+            "        if (selection != ProgramInputSelection.ANY) {",
+            "            inputSource = new FilteringProgramInputSource(inputSource, selection);",
+            "        }",
+            "        context.addInput(inputSource);"
+          ],
+          "id": "PC8",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 64,
+          "old": [
+            "            simulation.onInputStatementExecution(context, this);",
+            "        }",
+            "    }",
+            "",
+            "    @SuppressWarnings({\"unchecked\"}) // basically impossible to make this method generic safe",
+            "    public void gatherSlots(",
+            "            ProgramContext context,",
+            "            Consumer<LimitedInputSlot<?, ?, ?>> slotConsumer",
+            "    ) {",
+            "",
+            "        context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS.get(toStringPretty())));",
+            "",
+            "        // do we have a cached result?",
+            "        if (limitedInputSlotsCache != null) {",
+            "            // log cache hit",
+            "            context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_CACHE_HIT.get()));",
+            "            // return cached results",
+            "            for (var slot : limitedInputSlotsCache) {",
+            "                slotConsumer.accept(slot);"
+          ],
+          "new": [
+            "            if (bindingName != null) {",
+            "                context.getVariableEnvironment().setRelation(bindingName, ProgramRelation.EMPTY);"
+          ],
+          "id": "PC9",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 84,
+          "old": [],
+          "new": [
+            "            simulation.onInputStatementExecution(context, this);"
+          ],
+          "id": "PC10",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 87,
+          "old": [
+            "        // log cache miss",
+            "        context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_CACHE_MISS.get()));",
+            "",
+            "        // prepare the cache state",
+            "        limitedInputSlotsCache = new ArrayDeque<>(27);",
+            "",
+            "        // monkey-patch the result acceptor to update the cache before returning results",
+            "        {",
+            "            var original = slotConsumer;",
+            "            slotConsumer = slot -> {",
+            "                limitedInputSlotsCache.add(slot);",
+            "                original.accept(slot);",
+            "            };",
+            "        }",
+            "",
+            "        if (!each) {",
+            "            // log not each",
+            "            context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_NOT_EACH.get()));",
+            "",
+            "            // create a single matcher to be shared by all capabilities",
+            "            List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers();",
+            "            for (var resourceType : resourceLimits.getReferencedResourceTypes()) { // TODO: Fix #166",
+            "                // log gather for resource type",
+            "                context",
+            "                        .getLogger()",
+            "                        .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_FOR_RESOURCE_TYPE.get(",
+            "                                resourceType.displayAsCapabilityClass(),",
+            "                                resourceType.displayAsCapabilityClass()",
+            "                        )));",
+            "",
+            "                // gather slots for each capability found for positions tagged by a provided label",
+            "                Consumer<LimitedInputSlot<?, ?, ?>> finalSlotConsumer = slotConsumer;",
+            "                // TODO: fix #166 forEachCapability advances the round robin when it should be shared between resource types",
+            "                resourceType.forEachCapability(",
+            "                        context, labelAccess, (label, pos, direction, cap) -> gatherSlotsForCap(",
+            "                                context,",
+            "                                (ResourceType<Object, Object, Object>) resourceType,",
+            "                                label, pos, direction, cap,",
+            "                                inputTrackers,",
+            "                                finalSlotConsumer",
+            "                        )",
+            "                );",
+            "            }",
+            "        } else {",
+            "            // log yes each",
+            "            context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_EACH.get()));",
+            "",
+            "            for (var resourceType : resourceLimits.getReferencedResourceTypes()) {",
+            "                // log gather for resource type",
+            "                context",
+            "                        .getLogger()",
+            "                        .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_FOR_RESOURCE_TYPE.get(",
+            "                                resourceType.displayAsCapabilityClass(),",
+            "                                resourceType.displayAsCapabilityClass()",
+            "                        )));",
+            "",
+            "                // gather slots for each capability found for positions tagged by a provided label",
+            "                Consumer<LimitedInputSlot<?, ?, ?>> finalSlotConsumer = slotConsumer;",
+            "                resourceType.forEachCapability(",
+            "                        context, labelAccess, (label, pos, direction, cap) -> {",
+            "                            List<IInputResourceTracker> inputTrackers = resourceLimits.createInputTrackers();",
+            "                            gatherSlotsForCap(",
+            "                                    context,",
+            "                                    (ResourceType<Object, Object, Object>) resourceType,",
+            "                                    label, pos, direction, cap,",
+            "                                    inputTrackers,",
+            "                                    finalSlotConsumer",
+            "                            );",
+            "                        }",
+            "                );"
+          ],
+          "new": [
+            "        if (bindingName != null) {",
+            "            List<ProgramRelationRow> rows = new ArrayList<>();",
+            "            for (ProgramResourceObservation observation : ProgramResourceObserver.observe(",
+            "                    context,",
+            "                    List.of(inputSource),",
+            "                    (resourceType, stack) -> true",
+            "            )) {",
+            "                for (long occurrence = 0; occurrence < observation.amount(); occurrence++) {",
+            "                    ProgramResourceValue resourceValue = ProgramResourceValue.fromObservation(observation);",
+            "                    rows.add(new ProgramRelationRow(",
+            "                            ProgramOccurrenceId.create(),",
+            "                            selection.bind(resourceValue.resourceType(), resourceValue.stack())",
+            "                    ));",
+            "                }"
+          ],
+          "id": "PC11",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 158,
+          "old": [],
+          "new": [
+            "            context.getVariableEnvironment().setRelation(bindingName, new ProgramRelation(rows));"
+          ],
+          "id": "PC12",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 166,
+          "old": [],
+          "new": [
+            "        if (selection != ProgramInputSelection.ANY) rtn.append(selection.toSource()).append(\" \");"
+          ],
+          "id": "PC13",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 171,
+          "old": [],
+          "new": [
+            "        if (bindingName != null) rtn.append(\" AS \").append(bindingName);"
+          ],
+          "id": "PC14",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 179,
+          "old": [],
+          "new": [
+            "        if (selection != ProgramInputSelection.ANY) sb.append(\" \").append(selection.toSource());"
+          ],
+          "id": "PC15",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 194,
+          "old": [],
+          "new": [
+            "        if (bindingName != null) sb.append(\" AS \").append(bindingName);"
+          ],
+          "id": "PC16",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 215,
+          "old": [],
+          "new": [
+            "    public ProgramInputSelection selection() {",
+            "        return selection;",
+            "    }",
+            "",
+            "    public Optional<String> bindingName() {",
+            "        return Optional.ofNullable(bindingName);",
+            "    }",
+            ""
+          ],
+          "id": "PC17",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 224,
+          "old": [
+            "        ) && this.each == that.each;"
+          ],
+          "new": [
+            "        ) && this.each == that.each",
+            "          && Objects.equals(this.selection, that.selection)",
+            "          && Objects.equals(this.bindingName, that.bindingName);"
+          ],
+          "id": "PC18",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        },
+        {
+          "oldStart": 230,
+          "old": [
+            "        return Objects.hash(labelAccess, resourceLimits, each);",
+            "    }",
+            "",
+            "    /**",
+            "     * Release the slots acquired by this statement",
+            "     * </p>",
+            "     * This was separated from {@link OutputStatement#tick(ProgramContext)} because we need input statements",
+            "     * to keep their counts when used by multiple output statements.",
+            "     */",
+            "    public void freeSlots() {",
+            "",
+            "        if (limitedInputSlotsCache != null) {",
+            "            LimitedInputSlotObjectPool.release(limitedInputSlotsCache);",
+            "            limitedInputSlotsCache = null;",
+            "        }",
+            "    }",
+            "",
+            "    public void freeSlotsIf(Predicate<LimitedInputSlot<?, ?, ?>> condition) {",
+            "",
+            "        if (limitedInputSlotsCache != null) {",
+            "            Iterator<LimitedInputSlot<?, ?, ?>> iterator = limitedInputSlotsCache.iterator();",
+            "            while (iterator.hasNext()) {",
+            "                LimitedInputSlot<?, ?, ?> slot = iterator.next();",
+            "                if (condition.test(slot)) {",
+            "                    iterator.remove();",
+            "                    LimitedInputSlotObjectPool.release(slot);",
+            "                }",
+            "            }",
+            "            if (limitedInputSlotsCache.isEmpty()) {",
+            "                limitedInputSlotsCache = null;",
+            "            }",
+            "        }",
+            "    }",
+            "",
+            "    public void transferSlotsTo(InputStatement other) {",
+            "",
+            "        if (limitedInputSlotsCache != null) {",
+            "            if (other.limitedInputSlotsCache == null) {",
+            "                other.limitedInputSlotsCache = new ArrayDeque<>();",
+            "            }",
+            "            other.limitedInputSlotsCache.addAll(limitedInputSlotsCache);",
+            "        }",
+            "        limitedInputSlotsCache = null;",
+            "    }",
+            "",
+            "    private <STACK, ITEM, CAP> void gatherSlotsForCap(",
+            "            ProgramContext context,",
+            "            ResourceType<STACK, ITEM, CAP> type,",
+            "            Label label,",
+            "            BlockPos pos,",
+            "            Direction direction,",
+            "            CAP capability,",
+            "            List<IInputResourceTracker> trackers,",
+            "            Consumer<LimitedInputSlot<?, ?, ?>> acceptor",
+            "    ) {",
+            "",
+            "        context",
+            "                .getLogger()",
+            "                .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_RANGE.get(",
+            "                        labelAccess.slots())));",
+            "        for (int slot = 0; slot < type.getSlots(capability); slot++) {",
+            "            int finalSlot = slot;",
+            "            if (labelAccess.slots().contains(slot)) {",
+            "                STACK stack = type.getStackInSlot(capability, slot);",
+            "                if (shouldCreateSlot(type, stack)) {",
+            "                    for (IInputResourceTracker tracker : trackers) {",
+            "                        if (tracker.matchesCapabilityType(capability) && tracker.matchesStack(stack)) {",
+            "                            context",
+            "                                    .getLogger()",
+            "                                    .debug(x -> x.accept(IOStatement.LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_CREATED.get(",
+            "                                            finalSlot,",
+            "                                            stack,",
+            "                                            tracker.toString()",
+            "                                    )));",
+            "                            acceptor.accept(LimitedInputSlotObjectPool.acquire(",
+            "                                    label, pos, direction, slot, capability,",
+            "                                    tracker,",
+            "                                    stack,",
+            "                                    type",
+            "                            ));",
+            "                        }",
+            "                    }",
+            "                } else {",
+            "                    context",
+            "                            .getLogger()",
+            "                            .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_SHOULD_NOT_CREATE.get(",
+            "                                    finalSlot,",
+            "                                    stack",
+            "                            )));",
+            "                }",
+            "            } else {",
+            "                context",
+            "                        .getLogger()",
+            "                        .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_SLOT_NOT_IN_RANGE.get(finalSlot)));",
+            "            }",
+            "        }",
+            "    }",
+            "",
+            "    private <STACK, ITEM, CAP> boolean shouldCreateSlot(",
+            "            ResourceType<STACK, ITEM, CAP> type,",
+            "            STACK stack",
+            "    ) {",
+            "        // make sure there are items to move",
+            "        return !type.isEmpty(stack);"
+          ],
+          "new": [
+            "        return Objects.hash(labelAccess, resourceLimits, each, selection, bindingName);"
+          ],
+          "id": "PC19",
+          "owner": "packet_computation",
+          "meaning": "selection/binding and execution-local input ownership"
+        }
+      ],
+      "real_mc_seams": [],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "fdb0f9a028d82679b3eb43c5f87cbb3ef3f213c1",
+          "raw_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "raw_bytes": 6380,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "fdb0f9a028d82679b3eb43c5f87cbb3ef3f213c1",
+          "raw_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "raw_bytes": 6380,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "raw_bytes": 12757,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        }
+      ],
+      "consumer_contexts": [
+        {
+          "context": "dev/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/FilteringProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/WorldProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramExecutionScopeTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/FilteringProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/WorldProgramInputSource.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramExecutionScopeTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        },
+        {
+          "context": "release/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/industrialforegoing/IndustrialForegoingBlackholeDoubleMoveRegressionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundContainerExportsInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundInputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/NoSlotStatementProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/util/SFMASTUtils.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/CodegenTests.java"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+      "core_input": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+      "staged_input": "platform/cli/sfm-propagate-changes/target/core-transfer-ast-stage-v1/OutputStatement.java",
+      "template_sha256": "sha256:16ba72a6cf99d5127543503e8310ec709b06bfee673246957a9f0b778e7f752f",
+      "template_bytes": 36980,
+      "membership": {
+        "targets": [],
+        "all_features": [],
+        "any_features": [],
+        "none_features": []
+      },
+      "raw_variants": [
+        {
+          "oid": "cf8b94d12caacdc42f17cce606d35df13de7f9fb",
+          "raw_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "raw_bytes": 34485,
+          "normalized_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "normalized_bytes": 34485,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        },
+        {
+          "oid": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "normalized_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "normalized_bytes": 34019,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        },
+        {
+          "oid": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "raw_bytes": 34515,
+          "normalized_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "normalized_bytes": 34515,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        },
+        {
+          "oid": "110ae7d7cdb3f042d4d4b93514ad0b30fa94fe81",
+          "raw_sha256": "sha256:d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+          "raw_bytes": 34493,
+          "normalized_sha256": "sha256:d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+          "normalized_bytes": 34493,
+          "crlf_to_lf_count": 0,
+          "appended_final_lf": false,
+          "other_token_edits": false
+        }
+      ],
+      "owner_hunks": [
+        {
+          "oldStart": 417,
+          "old": [
+            "     * Input slots are freed when the input statement falls out of scope, see: {@link InputStatement#freeSlots()}"
+          ],
+          "new": [
+            "     * Input slots are freed when their source falls out of scope, see: {@link ProgramInputSource#free()}"
+          ],
+          "id": "PC1",
+          "owner": "packet_computation",
+          "meaning": "generic input-source iteration and generated-source diagnostics"
+        },
+        {
+          "oldStart": 439,
+          "old": [
+            "        // gather the input slots from all the input statements, +27 to hopefully avoid resizing"
+          ],
+          "new": [
+            "        // gather the input slots from all active input sources, +27 to hopefully avoid resizing"
+          ],
+          "id": "PC2",
+          "owner": "packet_computation",
+          "meaning": "generic input-source iteration and generated-source diagnostics"
+        },
+        {
+          "oldStart": 442,
+          "old": [
+            "        for (var inputStatement : context.getInputs()) {",
+            "            inputStatement.gatherSlots(context, inputSlots::add);"
+          ],
+          "new": [
+            "        for (var inputSource : context.getInputs()) {",
+            "            inputSource.gatherSlots(context, inputSlots::add);"
+          ],
+          "id": "PC3",
+          "owner": "packet_computation",
+          "meaning": "generic input-source iteration and generated-source diagnostics"
+        },
+        {
+          "oldStart": 699,
+          "old": [],
+          "new": [
+            "        if (slot instanceof LimitedInputSlot<?, ?, ?> inputSlot && inputSlot.isGeneratedSource()) {",
+            "            report.append(\"Source: \").append(inputSlot.getGeneratedSourceDescription()).append(\"\\n\");",
+            "            report",
+            "                    .append(\"Capability: \")",
+            "                    .append(slot.getHandler())",
+            "                    .append(\" (\")",
+            "                    .append(slot.getHandler().getClass().getName())",
+            "                    .append(\")\\n\");",
+            "            return;",
+            "        }"
+          ],
+          "id": "PC4",
+          "owner": "packet_computation",
+          "meaning": "generic input-source iteration and generated-source diagnostics"
+        }
+      ],
+      "real_mc_seams": [
+        {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "owner": "minecraft_version",
+          "meaning": "dimension().location() instead of dimensionTypeId().location()"
+        },
+        {
+          "targets": [
+            "26.1.2"
+          ],
+          "owner": "minecraft_version",
+          "meaning": "Identifier import and three registry-ID locals; dimension().identifier()"
+        },
+        {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "owner": "minecraft_version_released_behavior",
+          "meaning": "respect normal slot and stack limits; when maxStackSizeForSlot > 99 respect the larger slot without ordinary stack limit; retain RedundantIfStatement annotation"
+        }
+      ],
+      "witnesses": [
+        {
+          "context": "dev/1.19.2",
+          "source_commit": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cf8b94d12caacdc42f17cce606d35df13de7f9fb",
+          "raw_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "raw_bytes": 34485,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "cf8b94d12caacdc42f17cce606d35df13de7f9fb",
+          "raw_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "raw_bytes": 34485,
+          "explicit_features": [
+            "packet_computation",
+            "packet_values",
+            "runtime_resource_cleanup"
+          ],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20",
+          "source_commit": "6bf4845761d06560fc5e0e36018b5d583589004d",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.1",
+          "source_commit": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_commit": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_commit": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_commit": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_commit": "43068d610b1c053c6569be486439769eec2ae9ef",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "raw_bytes": 34515,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "raw_bytes": 34515,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_commit": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110ae7d7cdb3f042d4d4b93514ad0b30fa94fe81",
+          "raw_sha256": "sha256:d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+          "raw_bytes": 34493,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.2",
+          "source_commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.19.4",
+          "source_commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20",
+          "source_commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.1",
+          "source_commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.2",
+          "source_commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.3",
+          "source_commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.20.4",
+          "source_commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "raw_bytes": 34019,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.0",
+          "source_commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "raw_bytes": 34515,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/1.21.1",
+          "source_commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "raw_bytes": 34515,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "context": "release/26.1.2",
+          "source_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+          "present": true,
+          "mode": "100644",
+          "raw_blob": "110ae7d7cdb3f042d4d4b93514ad0b30fa94fe81",
+          "raw_sha256": "sha256:d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+          "raw_bytes": 34493,
+          "explicit_features": [],
+          "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+          "stage_preview_raw_exact": true
+        }
+      ],
+      "consumer_contexts": [
+        {
+          "context": "dev/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/AssertSourceNavigationJourneyPuppetAction.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/TitleScreenOutputStatementSourceNavigationGamePuppet.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue608OutputEnergyCharacterizationGameTestGenerator.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue610DropperStarvationGameTestGenerator.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue610QuantizedSourceCharacterizationGameTest.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/GeneratedPacketInputSourceGameTest.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/client/symbol/SFMDefinitionContextAdapterTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/client/symbol/SFMSymbolServerInstalledIntegrationTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSourceTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramResourceObserverTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/AssertSourceNavigationJourneyPuppetAction.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/TitleScreenOutputStatementSourceNavigationGamePuppet.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue608OutputEnergyCharacterizationGameTestGenerator.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue610DropperStarvationGameTestGenerator.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/mekanism/Issue610QuantizedSourceCharacterizationGameTest.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/GeneratedPacketInputSourceGameTest.java",
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/client/symbol/SFMDefinitionContextAdapterTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/client/symbol/SFMSymbolServerInstalledIntegrationTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/GeneratedItemProgramInputSourceTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfm/common/program/ProgramResourceObserverTests.java",
+            "platform/minecraft/src/test/java/ca/teamdman/sfml/test/SFMLTests.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "dev/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.19.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.19.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.20.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.20",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.20.3",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.20.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.20.4",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/26.1.2",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.21.1",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        },
+        {
+          "context": "release/1.21.0",
+          "source_consumers": [
+            "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/ConditionalOutputInspectionGameTest.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/client/ProgramTokenContextActions.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/capability/SFMBlockCapabilityDiscovery.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/net/ServerboundOutputInspectionRequestPacket.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/linting/GatherWarningsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/program/SimulateExploreAllPathsProgramBehaviour.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Block.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+            "platform/minecraft/src/main/java/ca/teamdman/sfml/ast/Program.java"
+          ]
+        }
+      ]
+    }
+  ],
+  "preservation_contracts": [
+    {
+      "id": "T1",
+      "rule": "All-off and cleanup-only keep AST-owned INPUT cache, gather/free/freeSlotsIf/transferSlotsTo; no generic source or relation objects appear",
+      "owner": "released_baseline"
+    },
+    {
+      "id": "T2",
+      "rule": "Binding creates one occurrence row per observed unit without transfer; simulation binds ProgramRelation.EMPTY and returns before observation",
+      "owner": "packet_computation"
+    },
+    {
+      "id": "T3",
+      "rule": "Generated input diagnostics return before dereferencing null block positions; ordinary world diagnostics remain unchanged",
+      "owner": "packet_computation"
+    },
+    {
+      "id": "T4",
+      "rule": "Bare FORGET off retains ASTBuilder USED_LABELS behavior; on uses allInputsStatement and source-specific forget, which also covers generated inputs",
+      "owner": "packet_computation"
+    },
+    {
+      "id": "T5",
+      "rule": "Set.copyOf and allInputs-with-labels refusal occur only in packet-enabled constructor; preserve released record mutability off",
+      "owner": "packet_computation"
+    },
+    {
+      "id": "T6",
+      "rule": "Transfer/extraction/retention algorithms and already released pool safeguards are unchanged by this slice",
+      "owner": "released_baseline"
+    },
+    {
+      "id": "T7",
+      "rule": "Newer stack-limit behavior is retained even with packet and cleanup disabled",
+      "owner": "minecraft_version_released_behavior"
+    }
+  ],
+  "downstream_java_closure_gaps": [
+    {
+      "paths": [
+        "src/main/java/ca/teamdman/sfml/ast/ProgramInputSelection.java",
+        "src/main/java/ca/teamdman/sfm/common/program/FilteringProgramInputSource.java"
+      ],
+      "need": "INPUT selectors/capability and pattern binding",
+      "status": "not core-owned at this review"
+    },
+    {
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramInputSource.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramInputForgetRequest.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramExecutionScope.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramVariableEnvironment.java"
+      ],
+      "need": "generic runtime ownership, FORGET dispatch and binding environment",
+      "status": "not core-owned at this review"
+    },
+    {
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramRelation.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramRelationRow.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramOccurrenceId.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceValue.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObservation.java",
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramResourceObserver.java"
+      ],
+      "need": "occurrence-preserving read-only INPUT relations",
+      "status": "not core-owned at this review"
+    },
+    {
+      "paths": [
+        "src/main/java/ca/teamdman/sfm/common/program/ProgramContext.java",
+        "src/main/java/ca/teamdman/sfm/common/program/LimitedInputSlot.java",
+        "src/main/java/ca/teamdman/sfm/common/program/WorldProgramInputSource.java"
+      ],
+      "need": "runtime9 source contracts and generated slot diagnostics",
+      "status": "separately staged runtime9; root promotion pending"
+    },
+    {
+      "paths": [
+        "src/main/java/ca/teamdman/sfml/ast/ASTBuilder.java",
+        "src/main/antlr/sfml/SFML.g4"
+      ],
+      "need": "matching packet constructor/FORGET parser branches",
+      "status": "already authored by language owner; combination/build closure pending"
+    }
+  ],
+  "independent_owner_profiles": [
+    {
+      "target": "1.19.2",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "explicit_features": [
+        "packet_values"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "explicit_features": [
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "explicit_features": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "explicit_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "9e2f8d90ee991d46c66e956dcf8a1dc366ed66aa",
+          "raw_bytes": 2351,
+          "raw_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "fdb0f9a028d82679b3eb43c5f87cbb3ef3f213c1",
+          "raw_bytes": 6380,
+          "raw_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "cf8b94d12caacdc42f17cce606d35df13de7f9fb",
+          "raw_bytes": 34485,
+          "raw_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.2",
+      "explicit_features": [
+        "client_manager",
+        "client_program_consent",
+        "sfml_execution_side"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [
+        "packet_values"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [
+        "packet_computation",
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "9e2f8d90ee991d46c66e956dcf8a1dc366ed66aa",
+          "raw_bytes": 2351,
+          "raw_sha256": "sha256:18bb4bde9eae3fe49205a55f8c82f8e974e0273b6e3fcb7692a603361d3d80e3",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "fdb0f9a028d82679b3eb43c5f87cbb3ef3f213c1",
+          "raw_bytes": 6380,
+          "raw_sha256": "sha256:a8634a77684e857eff1bd882a0fb3f11f7ff89359a275ab3385ad9b8938077ac",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "cf8b94d12caacdc42f17cce606d35df13de7f9fb",
+          "raw_bytes": 34485,
+          "raw_sha256": "sha256:672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.19.4",
+      "explicit_features": [
+        "client_manager",
+        "client_program_consent",
+        "sfml_execution_side"
+      ],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.20",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.20.1",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.20.2",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "0914c11cb27f8d3f980cd39a7006ebfa5f5cba16",
+          "raw_bytes": 34019,
+          "raw_sha256": "sha256:15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_bytes": 34515,
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "ad1f009cf92f9eaa99b1fea5afe6df840cb1148d",
+          "raw_bytes": 34515,
+          "raw_sha256": "sha256:1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "explicit_features": [],
+      "feature_context_origin": "reconstructed_explicit_owner_selection_not_historical_feature_claim",
+      "records": [
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/ForgetStatement.java",
+          "raw_blob": "87bfeed60c730f05c3b974e563aadd5e5e282049",
+          "raw_bytes": 3316,
+          "raw_sha256": "sha256:c8797d7672d21795ef71d5ae826bdfb8e3b5f90d34cc87d7e0330efae5cd6ccc",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/InputStatement.java",
+          "raw_blob": "7c254cec224aab0c79b3bd88deeccfec932ae306",
+          "raw_bytes": 12757,
+          "raw_sha256": "sha256:125f9a6b466fe916fdbdd83f758354fe3d21748eeed672337267d6461099ee0e",
+          "stage_preview_raw_exact": true
+        },
+        {
+          "path": "src/main/java/ca/teamdman/sfml/ast/OutputStatement.java",
+          "raw_blob": "110ae7d7cdb3f042d4d4b93514ad0b30fa94fe81",
+          "raw_bytes": 34493,
+          "raw_sha256": "sha256:d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+          "stage_preview_raw_exact": true
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "physical_staging_reread": true,
+    "witness_contexts": 20,
+    "witness_cells": 60,
+    "raw_variants": 8,
+    "present_raw_exact_authoring_previews": 60,
+    "absent_witnesses": 0,
+    "independent_profiles": 20,
+    "independent_present": 60,
+    "controlled_renderer_claim": false,
+    "actual_core_selector_claim": false,
+    "cargo_or_java_build_run": false,
+    "locks_changed": false,
+    "dependencies_changed": false,
+    "production_inputs_changed": false,
+    "remaining": "root review/promotion and registered real-core tests; full Java closure and runtime regression tests"
+  },
+  "post_promotion_test_module": "platform/cli/sfm-propagate-changes/src/source_projection/core_transfer_ast_slice_tests.rs"
+}

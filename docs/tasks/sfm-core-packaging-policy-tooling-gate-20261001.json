@@ -1,0 +1,1102 @@
+{
+  "schema": "sfm:core-tooling-gate@1",
+  "date": "2026-10-01",
+  "branch": "feat/sfm-main-source-projection",
+  "head_before_gate": "33fcbf81efdf33a44d9f08bfba21d9356db422dc",
+  "invocation": {
+    "working_directory": "platform/cli/sfm-propagate-changes",
+    "command": "$env:CARGO_NET_OFFLINE='true'; ./check-all.ps1",
+    "terminal_exit_code": 0,
+    "process_session": 72999
+  },
+  "coverage": {
+    "library_listed": 2064,
+    "library_passed": 2050,
+    "library_ignored": 14,
+    "integration_passed": 70,
+    "shards": 173,
+    "bin_tests": 0,
+    "doc_tests": 0
+  },
+  "stages": {
+    "dependency_policy": "passed",
+    "formatting": "passed",
+    "production_all_feature_clippy": "passed",
+    "all_feature_build": "passed",
+    "bounded_library_integration_fixture": "passed",
+    "bin_doc_harnesses": "passed_zero_tests",
+    "final_default_feature_build": "passed"
+  },
+  "inputs": {
+    "core_files": 1859,
+    "core_bytes": 8326920,
+    "core_sha256": "5cff48111efee0d4fe9efaedbbd62b34a8ad0e76591cbbde3b8ff4d6ef6bfed7",
+    "metadata_rules": 576,
+    "metadata_sha256": "dc16e3d12e3a79bbe633de591bba90722bec5ad110891953bff497f2533952c3",
+    "feature_definitions_sha256": "38d9a82444b8478e80018a51ebcbd99a959788f3ccf38237d4175455be810b83",
+    "projection_catalog_sha256": "6ea98197a04c3d24e1d481b04ad4c2b57e5dc62d538cf6511b430ed967516b06",
+    "cargo_lock_sha256": "4748e21abb11d4fcaa8c91998ad7c5f6a5033bc1bcf1ccd064b1f92afae5afbe",
+    "older_staged_records": 98,
+    "older_staged_records_unchanged": true
+  },
+  "observations": {
+    "full_stream_log": "platform/cli/sfm-propagate-changes/target/core-packaging-policy-full-gate-20261001-v1.log",
+    "log_bytes": 36244,
+    "log_sha256": "02d226a6acae0a12877657587b11bd5ec5b93a9c63dc13719e7390e15bf1b45c",
+    "result_method": "173 unique raw PASS summaries parsed from the retained full-stream log; failed sum zero. Four integration targets total 70. Fixture and standalone counts remain part of library coverage.",
+    "final_default_cli": {
+      "path": "platform/cli/sfm-propagate-changes/target/debug/sfm-propagate-changes.exe",
+      "bytes": 93378560,
+      "sha256": "318f9f146e6cb7ce90b572a7cf82da3de526e5a665c30d0deb8c322417c3ef2f",
+      "limit": "Fresh default operational build for these inputs only; not installed-tool freshness after later source mutations."
+    }
+  },
+  "covered_change": "The reviewed six-file Windows argument-spelling and release packaging policy, including twelve additional regressions beyond the historical properties/signing gate.",
+  "not_proven": [
+    "Staged workspace/consent/factory/choice/input-diagnostic/terminal providers",
+    "Minecraft JAR/reobfuscation correctness or gameplay",
+    "The unresolved 1.20 class differences or release behavioral parity",
+    "Complete ten-version development preservation and final matrix acceptance",
+    "Final installed-tool freshness"
+  ],
+  "shard_results": [
+    {
+      "name": "unit:artifact_lock",
+      "passed": 15,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:branch_targets",
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:cancellation",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:cli",
+      "passed": 316,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:colour",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:curseforge",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:dependency_classfile_stubs",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:dependency_inventory",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:dependency_locked_sources",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:dependency_sources",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:file_identity",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:jar_build",
+      "passed": 238,
+      "failed": 0,
+      "ignored": 3
+    },
+    {
+      "name": "unit:java_analysis",
+      "passed": 226,
+      "failed": 0,
+      "ignored": 3
+    },
+    {
+      "name": "unit:java_source_catalog",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:jdk",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:jdk_artifact_cache",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:logging",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:modrinth",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:propagate",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_capture",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_capture_io",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_git",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_java_diff",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_ledger",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_ledger_resolve",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_source_probe",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_surface_v1",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_text_diff",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_v1",
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:release_review_working_tree",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:review_session_v1",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:review_session_v2",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_archive",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_audit",
+      "passed": 39,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_cache",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_decompile",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_git",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_maven",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:candidate_lock",
+      "passed": 21,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:catalog_owned_project",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:context",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_action_helpers_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_action_leaf_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_action_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_ast_builder_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_baseline_client_registration_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_buffer_manager_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_build_seed",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_button_builder_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_catalog",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_client_action_registry_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_client_expression_descriptor_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_client_manager_provider_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_client_registration_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_computercraft_handles_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_computercraft_integration_slice_tests",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_config_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_confirmation_screen_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_datagen_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_development_leaf_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_development_resources_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_disk_item_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_echo_palette_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_editor_api_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_editor_models_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_editor_path_models_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_editor_screens_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_event_discovery_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_features",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_fix_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_form_label_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_frame_ast_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_frame_evaluator_manifest_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_frame_helpers_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_frame_runtime_slice_tests",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_gametest_framework_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_icon_rendering_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_image_resource_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_inputs",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_item_tooltip_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_keyboard_carriers_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_label_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_language_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_localization_changelog_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_manager_consent_providers_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_manager_label_linter_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_mixin_closure_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_network_inspection_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_network_layout",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_network_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_packet_declaration_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_packet_providers_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_packet_statement_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_program_action_dispatch_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_program_grammar_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_program_relations_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_program_runtime_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_properties_provider_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_redstone_capability_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_redstone_resource_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_registration_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_released_test_gaps_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_released_tests_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_resource_first_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_runtime_closure_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_screen_panel_protocol_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_seed",
+      "passed": 13,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_signer_trust_providers_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_signing_delegates_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_signing_runtime_ui_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_signing_transport_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_slice_test_support",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_startup_registration_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_terminal_carriers_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_terminal_value_models_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_text_provider_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_theme_keyboard_models_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_theme_preview_models_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_theme_provider_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_touch_display_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_transfer_ast_slice_tests",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_typed_palette_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_ui_helpers_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_utility_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_value_foundation_slice_tests",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_version_seed",
+      "passed": 15,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_host_providers_slice_tests",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_host_slice_tests",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_layout_leaves_slice_tests",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_layout_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_panel_context_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_panel_intent_slice_tests",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_primitives_slice_tests",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_workspace_toast_actions_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:core_world_capability_slice_tests",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:development_baseline",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_projection:development_fixtures",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_projection:development_gradle",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_projection:directive_scanner",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:frozen_authoring",
+      "passed": 11,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:frozen_recipe_project",
+      "passed": 14,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:frozen_release",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:inputs",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:manifest",
+      "passed": 31,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:named_root",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:native_project_target",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:nfrt_child_identity_supplement",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:prepared_dependency_inputs",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:project_layout",
+      "passed": 4,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_projection:projection_catalog",
+      "passed": 14,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:promotion",
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:provenance",
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_apply",
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_baseline",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_jar_absence",
+      "passed": 9,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_resources",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_source_parity_test",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:release_version",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:released_native_inputs",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 1
+    },
+    {
+      "name": "unit:source_projection:selection",
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:sync",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:tests",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_projection:variant_consolidation",
+      "passed": 17,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:source_provider",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:syntax_highlight",
+      "passed": 29,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:toolchain_lockfile_schema",
+      "passed": 33,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:toolchain_lockfile_write",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "integration:java_analysis_scenarios",
+      "passed": 15,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "integration:release_review_git_test",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "integration:release_review_materialize_test",
+      "passed": 40,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "integration:source_jar_absence_cli_test",
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "unit:tests::frozen_stage_rejects_global_log_file_before_logging_initializes",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "name": "fixture",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0
+    }
+  ]
+}

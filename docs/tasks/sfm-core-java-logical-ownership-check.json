@@ -1,0 +1,77 @@
+{
+  "schema": "sfm:core_java_logical_ownership_check@1",
+  "result": "No physically absent Java path in this inventory has an existing logical source rule. The resource audit's alternate-input explanation does not apply to these Java files.",
+  "scope": {
+    "frozen_development_contexts": 10,
+    "all_java_union_paths": 2610,
+    "physical_absent_main_java": 904,
+    "physical_absent_gametest_java": 314,
+    "physical_absent_test_java": 452,
+    "physical_absent_java_total": 1670,
+    "physical_absent_datagen_java": 0,
+    "absent_java_paths_with_existing_logical_rules": 0,
+    "dangling_logical_rules_found": 0
+  },
+  "snapshot": {
+    "metadata_path": "platform/minecraft/core-liquid-template/project-inputs.json",
+    "metadata_sha256": "sha256:3a2b10ffc67b9db18cd9403a8d662ca0378007b5307bd2101435f9cd5e31d65f",
+    "metadata_hash_equal_before_after": true,
+    "current_core_boundary": "platform/minecraft/core-liquid-template/src",
+    "parent_activity": "The parent had just promoted 27 main Java workspace files. The earlier 931 main Java absences therefore became 904. No Java source changed during this bounded check."
+  },
+  "frozen_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f"
+  },
+  "categories": {
+    "main_java": {
+      "physical_absent": 904,
+      "no_logical_rule": 904,
+      "logical_rule_dangling_input": 0,
+      "logical_rule_all_inputs_exist": 0
+    },
+    "gametest_java": {
+      "physical_absent": 314,
+      "no_logical_rule": 314,
+      "logical_rule_dangling_input": 0,
+      "logical_rule_all_inputs_exist": 0
+    },
+    "test_java": {
+      "physical_absent": 452,
+      "no_logical_rule": 452,
+      "logical_rule_dangling_input": 0,
+      "logical_rule_all_inputs_exist": 0
+    }
+  },
+  "logical_bound_paths": [],
+  "methodology": [
+    "Read each frozen development src tree with offline git ls-tree. Include only ordinary 100644 .java paths.",
+    "Find the union of Java paths across the 10 development trees. Check physical core/src presence for each path.",
+    "For every physically absent path, inspect the exact current project-inputs.json source_rules entry.",
+    "If a rule exists, check each core-relative input path. This inventory found no such rules for any absent Java path.",
+    "Check the metadata hash before and after the read-only check."
+  ],
+  "interpretation": {
+    "resource_comparison": "The 109 additional resource paths already use 293 core-owned versioned assets. These 1,670 Java paths have neither their expected physical source path nor an alternative logical source rule.",
+    "next_step": "Review Java files by real source consumers and independent feature owners. Do not import complete historical Java files or enable unrelated features to make the count shrink.",
+    "limits": "This is an inventory, not a renderer, compile, gameplay or feature-closure test. Many development-only tests and optional classes can remain absent in the current mostly-off public catalog. The counts do not claim that every missing class belongs in every build."
+  },
+  "effects": {
+    "new_portable_ledger_only": true,
+    "core_changes": false,
+    "metadata_changes": false,
+    "generated_projection_changes": false,
+    "cargo": false,
+    "java": false,
+    "downloads": false,
+    "dependencies": false
+  }
+}

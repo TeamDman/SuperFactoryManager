@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+{% case minecraft_version %}
+{% when "1.19.4" %}
+  "category": "misc",
+{% else %}
+{% endcase %}
+  "key": {
+    "C": {
+      "item": "sfm:cable"
+    },
+    "G": {
+      "tag": "forge:glass"
+    },
+    "I": {
+      "item": "minecraft:iron_bars"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    }
+  },
+  "pattern": [
+    "IGI",
+    "GCG",
+    "IRI"
+  ],
+  "result": {
+    "item": "sfm:touch_display"
+{% case minecraft_version %}
+{% when "1.19.4" %}
+  },
+  "show_notification": true
+{% else %}
+  }
+{% endcase %}
+}

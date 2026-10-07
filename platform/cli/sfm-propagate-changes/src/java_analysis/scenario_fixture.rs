@@ -17,6 +17,9 @@ use std::path::PathBuf;
 pub struct JavaAnalysisScenarioFixture {
     pub jdk_source_tree: PathBuf,
     pub cache_home: CacheHome,
+    /// Explicit non-executed runtime identity for derived decompiler providers.
+    /// Scenario indexing must not acquire a real SDK merely to name a provider.
+    pub decompiler_runtime_identity: String,
 }
 
 thread_local! {

@@ -22,8 +22,9 @@ write. A timeout does not prove that the provider rejected it.
 
 ## Review the inputs and authority
 
-Use the [contributor guide](../source-projection-contributor-guide.md#advancing-the-checked-in-release-preset)
-for packaging and guarded promotion. Compatibility approval and promotion must
+Use the [archived candidate-promotion workflow](../source-projection-contributor-guide-history-through-20261007.md#advancing-the-checked-in-release-preset)
+for this older packaging and guarded-promotion contract. It is not the current
+core Liquid generation workflow. Compatibility approval and promotion must
 already be complete. This document does not grant either.
 
 Record these inputs in a private release record outside both the checkout and

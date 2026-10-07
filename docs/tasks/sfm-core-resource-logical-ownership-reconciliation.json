@@ -1,0 +1,3639 @@
+{
+  "schema": "sfm:core_resource_logical_ownership_reconciliation@1",
+  "scope": {
+    "reason": "Reconcile physical core/src absence with actual current core-owned source selection. Physical absence alone is not an ownership/renderer gap.",
+    "frozen_contexts": 20,
+    "physical_source_absent_resources": 146,
+    "generated_resources": 127,
+    "main_resources": 19,
+    "newly_staged_paths": 29,
+    "housekeeping_exclusions": 8,
+    "existing_logically_owned_paths": 109,
+    "existing_authored_asset_inputs": 293,
+    "logical_witness_cells": 2180,
+    "raw_equal_present_cells": 1380,
+    "correct_absent_cells": 800,
+    "remaining_unowned_paths_in_this_inventory": 0
+  },
+  "context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "metadata": {
+    "path": "platform/minecraft/core-liquid-template/project-inputs.json",
+    "pre_promotion_sha256": "sha256:13e852510747217e69c211ea8248e79b856c63cb01d0062c46b5f9032505437a",
+    "initial_read_hash_before_after_equal": true,
+    "post_root_workspace_promotion_sha256": "sha256:3a2b10ffc67b9db18cd9403a8d662ca0378007b5307bd2101435f9cd5e31d65f",
+    "full_metadata_stable_across_later_root_promotion": false,
+    "scoped109_resource_bindings_unchanged": true,
+    "concurrent_activity": "Root promoted27Java workspace files and metadata while a later audit repeat ran. Initial full metadata read was internally hash-stable; subsequent full metadata bytes changed legitimately. All109scopedresourcebindings and293rawsourceinputmanifest stayed identical; no agent metadata writes."
+  },
+  "selected_input_manifest": {
+    "sha256": "sha256:1937ebe853e5dc5592c12b32263d22883d0feb18339f2b8227dc12f50927023d",
+    "file_count": 293,
+    "before_after_equal": true,
+    "encoding": "UTF8 of exact input-relative path + NUL + algorithm-prefixed SHA256 + NUL + decimal byte_count + LF; paths ordered with the observed PowerShell Sort-Object -CaseSensitive. This is an audit receipt, not a production serialized artifact identity.",
+    "limit_per_file": 16777216
+  },
+  "binding_encoding": {
+    "input": "For each row and binding: assets/versioned/<source_sha256>/<row.path>, strictly checked for exact equality to real metadata input.",
+    "rendering": "All293actualrules are template:false; all feature predicate arrays are empty. targets is the exact rule target list. No release/dev environment, projection key, historical tree lookup, alternate catalog or feature blanket selects code.",
+    "witnesses": "For each of20commits read the exact main/generated resource tree, select at most one current target rule, compare current authored asset's recomputed Git blob ID with raw frozen witness or exact absence. Historical Git reads occur only during this offline audit, never production rendering.",
+    "byte_policy": "All1380presentcells are RAW EXACT; no EOF, CRLF, generated-banner, formatting or semantic normalization was used."
+  },
+  "source_rows": [
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "93f833ac591ca833dd51bbf9f6610cfb4cf37cef",
+          "bytes": 1305,
+          "source_sha256": "129bf52fbdcfc97b8e2131a7851ebd4904a95c9d39d7ea91c4d5051cfb20976c",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "95d1e91182591a940c3740b5713906c0180c85a7",
+          "bytes": 1286,
+          "source_sha256": "aa0ffca923bffaa00fc011bcad6e69207deeceb85f42264c0a761c2c2818247b",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/fancy_cable_connection.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "2467e97396fa8c537393251414ddbfaf1dc85883",
+          "bytes": 1258,
+          "source_sha256": "30e91e236a951029deb279694667a0022015b533beb6767838bdcb485160478d",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "b25f782cf1188f8c9c28c1974a3ececce865b631",
+          "bytes": 1280,
+          "source_sha256": "661c0de63494aabe2e7899c6fbcf3cf99f984db1b81dff4b22a3b6b5f2720f65",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/fancy_cable_core.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "493a685adac616c191c69f71320ec54531385e1d",
+          "bytes": 182,
+          "source_sha256": "6509744f15a40b0a6d478b6897c000d10bde6e7bf35ebb7becef427fd2d8ccbf",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "5ffb89fc1794c40dbf5eb3738c47a10aa7e5c0ba",
+          "bytes": 206,
+          "source_sha256": "b95cfc74c3965a1cc3a0e299d927ef55ff0874b0cea86ad90d8b3bb629fbe98a",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/manager.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "dbaace93c940c2e6089784d61bad41c5970aaf7a",
+          "bytes": 127,
+          "source_sha256": "9e102156cc1c763c03205fef1aef2aa2b6755577578618a2419032641501c6d0",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "f19c14cee2f043240f1114bd025fb4a76625a845",
+          "bytes": 103,
+          "source_sha256": "44b8fb846a5a9c406b7206f9e6cb58dca22fca0fc133de51fa53f0184e25206b",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/test_barrel_tank.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "f04a1f4bac1af45c733d0826d2fd47f3733f773c",
+          "bytes": 1292,
+          "source_sha256": "986556902a251d054c704dfb068105d1deb16cb3cac20292d15ccc3461d2bb21",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "f566f6e4e7146b17b10a04072801c7a62bcf92ef",
+          "bytes": 1317,
+          "source_sha256": "c53fb12b708feb1bf54f6b45febc9349bc270c5860054854da10be69fb89f134",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/tough_fancy_cable_connection.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "549b566119b029af2325ef5d5b1beabdf509d64e",
+          "bytes": 1270,
+          "source_sha256": "2d3f54a46efd188383332414c2f93079e3b5acdacf418d329be69fed6a7df24c",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "ea3d89412fbde0f40c5ceb3c3c633a471b3a51e6",
+          "bytes": 1292,
+          "source_sha256": "2d54882544efcf72b6443221dadd2086277d8080b3f6e02cfa73227d0e7d776a",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/tough_fancy_cable_core.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "7a1872401a9f63e6d25101a9fa408dde2f993a7a",
+          "bytes": 1296,
+          "source_sha256": "d1bbe7e9d580a723abd9929506206c256f81d87769097f4be1c58933ae47596b",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "b380b3cca8bbfc0f252cdceb08e3d4d5189185d1",
+          "bytes": 1325,
+          "source_sha256": "b339749e49a7e5f9b44e650ddb0e19d167229ed6e2777f4aee027747fcfb62ff",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/tunnelled_fancy_cable_connection.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "06b3a8cba87b23a2a702795bbcea8ce8e5751f83",
+          "bytes": 1300,
+          "source_sha256": "878f158420b301aa97d7ef9c1fa6de1f7e01cdfafd7a41313924126429d7ce16",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "93d37f0e2c7e90f31e03d6945575a91e94391fa7",
+          "bytes": 1278,
+          "source_sha256": "ecffa296db2fbd88bfffb41e424321c5accbcc8078163cd8cff1e8ab8dcbdc2c",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/tunnelled_fancy_cable_core.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "80bdbbc91408ff8b323aeec9e724950df25e6f84",
+          "bytes": 236,
+          "source_sha256": "779580f5ce03b6731611116308ded868838f68f5d8db86e0f96c4e3d2054e41c",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "83cf1cbe8d91350b56e54f970c626249fd77c53d",
+          "bytes": 212,
+          "source_sha256": "77dde43b7b431493923c8b82047984a805b913a0fd680cf48693f592b7b9da21",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/tunnelled_manager.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "846b7d2f2751f056cf87fc3a9ffa7cadc33ea1b8",
+          "bytes": 104,
+          "source_sha256": "25c19d2651b1a1d1303d024dde29f2f8cd152e3a4c3b220004bfe531f853c4a5",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "d38a0e7657bb5363900c8b14ca9ebc96888405cc",
+          "bytes": 106,
+          "source_sha256": "be1d5d53d44c0b2e12bc0d1b92ab276ea43c10773b81e151c187afacae6e5495",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/water_tank_active.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "1db47b96e39690c757ccde9eb75f0596792d40c6",
+          "bytes": 106,
+          "source_sha256": "73e07413263a9754f7ec08363102be285c9e64cc25d44dd7e0b75274c6148502",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "6d57153291c0f6672fa4a55dc82861229b603be0",
+          "bytes": 108,
+          "source_sha256": "039266fd42a1b07eee40dc579cb551fe47696b75212b377e8ac8bc267dd7e5a1",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/block/water_tank_inactive.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "0721c06de339b3915ab91b3f7ee760d981c44f3f",
+          "bytes": 66,
+          "source_sha256": "be8fad55eef56e0b1ad221cd394ec8b102fb7db7c207f8d9bc6e4d2ac7d4591e",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "b5f6012fbd7c979f60f51f6e747948d996f0cc46",
+          "bytes": 93,
+          "source_sha256": "246bed910d2b8a3d98dafdee01ace2c08bd0353e42508b74e23146a4df03e5d5",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/assets/sfm/models/item/form.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "0829c6fe44c65482c1fafc2f48491f6e92f44ea7",
+          "bytes": 857,
+          "source_sha256": "a73c2a6f6ce6b508458d35a67d6c6ebb217f30ced0794eaee3c04ab348c5a67d",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "792de04f92a458bf528488d61c642b0918d0727d",
+          "bytes": 891,
+          "source_sha256": "5727f5789edb11f131644706496c1dffd0cf975e9a93686ffbd355b733468feb",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "95f3148c6bc73a2fe02c46456ad07e5a52016a49",
+          "bytes": 891,
+          "source_sha256": "a3d8a380ea09a6e1e65ff73767aa5493bd4e6418b8d72740e47e2158ce71c6f8",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "c68f0f7765d3e5245d2efdb378b944cf21be84e0",
+          "bytes": 857,
+          "source_sha256": "def4fd9859e92a1bbdaae8db9742fcb367ea15d1fe6b5f8109be42d08af53f39",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_horizontal.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "2d65892a0c6912e65411afc62f25024b67d9a817",
+          "bytes": 871,
+          "source_sha256": "2122a75f60e61e34c7ba0113f1497d0d745e51c6a2e67041ac76bd4b0fdf9555",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "4b2e48ce2c6c97ea4e673ec49496369ce8c37f47",
+          "bytes": 905,
+          "source_sha256": "e0a67254bc5c0a083005916cb0ba8320fff92c34e194c501e0c42579248604a4",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "81b392fcb785394588ca32f63c20d112c12fdd76",
+          "bytes": 871,
+          "source_sha256": "5224bfc9fa21bac9bab20e3a41b11e146b1417186bb9cf3ee97342c730100ad8",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "a403a5baba42c64d41fd105578bf7b0a09266487",
+          "bytes": 905,
+          "source_sha256": "ae4fb4174bccc13b0bf3f387cc04b666a1e612345b41a5d1eb8e7771f1b9f839",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_vertical.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "0e9b0e24d0e0c6956bd0f0785d2f3d627c316067",
+          "bytes": 887,
+          "source_sha256": "355295a84d8ff17e07ed459111cf608c5fa1d17f5e65794e1db2172e17b17df1",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "1347b02f6376b4defa924b74f9075624a49bdb53",
+          "bytes": 921,
+          "source_sha256": "d09f6bff3bd8007481bd1f47c61134fa5a51e9a100da7d7e4db426faade65daf",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "3f4ccafc0db71a7c7e7481a0f17cb3882017eaec",
+          "bytes": 921,
+          "source_sha256": "8a62a5ec206c738ba29afd2a6e043a17fdf4768a850958a4de569bc12b4339ec",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "bfc7e0ecdd182e165d023519afa5ada491839d6e",
+          "bytes": 887,
+          "source_sha256": "8db52a3287873725a1be20fb30130e97a6793596ac79ab885b3fe0c6ecbe9e7d",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tough_fancy_cable_horizontal.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "47392e9b54e50bfd864f047205fcb76e0cc35ce3",
+          "bytes": 821,
+          "source_sha256": "f84e1ebdc6d6b112a94c6d9b92fbed7ec82156bcff722ccda6db75b2a01af817",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "5247945dad0b2ecdcc2881890bf1af5fc38505aa",
+          "bytes": 855,
+          "source_sha256": "c84ae075abfe73a5049472f06df7695f6cb5dff8b56a7c5ffb5b8f2f1a473494",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "faf736218b850f0b160f7a7b409db0d4a0366150",
+          "bytes": 821,
+          "source_sha256": "461f0f9eb07f6aba5fdda45267bc0844b20d6820ef44faed3e1e6271e56b289c",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "fe71c7dfd960c71d5499504d850bfb3e887becc1",
+          "bytes": 855,
+          "source_sha256": "0033b989a4f34ee38bd0433e1a6ddf8902df9d86bd3e55abbebac551b96e6e11",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_horizontal.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "92196b3aba67da3e490a55873858620c9379afdc",
+          "bytes": 817,
+          "source_sha256": "1f7045cab5f426153a2b2ee006922b6ad415506720154f2e3f8e9ffd20e108e4",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "e707f5d0bbaf51485a829b5cc06b7cf1fd028e08",
+          "bytes": 851,
+          "source_sha256": "c9485d8d0da2235287bbc4038a36195d570b7fb5d2e91071b09f6be998377a4e",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "e8dddfb5995822a559f6c4cc5c84d967bc580cae",
+          "bytes": 817,
+          "source_sha256": "5ca1cb946575a800e2ed0e23fd08ba5c707aa5b2ce18f809b8898c4fc42cc816",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "ff57e75a560b4024280c8cd64e9da515c2d4dce0",
+          "bytes": 851,
+          "source_sha256": "708b14cb314093d85b3f62adec4b416486d39b4a7be196f721f675054e3d55b0",
+          "targets": [
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_vertical.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "15c4e9f87072820002add96f39a1a429da6c5fa7",
+          "bytes": 851,
+          "source_sha256": "6e3105988b48bb5c16e7e9119a7df5993fceef122b933f3e284be6a697a480a9",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "7b6792d0af3448ef74904f1321126e5882a1d6db",
+          "bytes": 851,
+          "source_sha256": "48252a94237f036c3c43c132ecb08bc0ca8b5a6d9bb951475d743795319d53ff",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "7cf49b5d234e743a61d9c7e4588e4cead91f911f",
+          "bytes": 885,
+          "source_sha256": "a5a053ab483d7b0e01a6ea2bfaca65c7687344b6b1ad7026d9562dfa808cc700",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "8940bb13d0e4cc122ba2c5e694b40d1615de0c2a",
+          "bytes": 885,
+          "source_sha256": "f560eef3022ef9443fc52d26ac6e64a5835a7f0781c8b3e3f52ab8a6a6897208",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "650920a17855e65d8c89c5a564769ffb2d41aa14",
+          "bytes": 881,
+          "source_sha256": "5bc0f470ee4693903ed51fc3e98a0fef5cf0718e373650a948b8d7e7476cfb3a",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "ba5cc1bb01d2ca681e0f65ebd2b69f65bde09197",
+          "bytes": 847,
+          "source_sha256": "52b791b24c08c5a32a085e825ac52eee0ff88a236ae9dcd1e1e09e96fca3ff31",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "bce28baee84d1421952e4f5ba32b2c1ed1b54936",
+          "bytes": 881,
+          "source_sha256": "a5d636a321bbdea65d15a9a83daedecd0833f28186b8956aefd7c3c5789f4074",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "c22ab75e4b2f1ae93e378ef57612d8c85d747a2e",
+          "bytes": 847,
+          "source_sha256": "2d29e9e9dc9447d4405e0545f2db0ec9cf38b8388946b0372e16d6e4e299d314",
+          "targets": [
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "6aa2a3f04ba576ee1ef03cefa2d2d305b91b9961",
+          "bytes": 621,
+          "source_sha256": "6ef30f758449bec1c98192417b0b544b8bbdc6d3b0b4694298ea099b86eb60e6",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "c6fa03b46687532efc976500546cd948a1c4b90c",
+          "bytes": 621,
+          "source_sha256": "98317b85443d1b1bdc7a1d7298d6efa2cbca064daa67720eae2900d8a848e16a",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "cb8fdfefe796127a4a9cc2af7501736cf8349a5e",
+          "bytes": 655,
+          "source_sha256": "ebfc3ed985929f6621ade5dfc46a1aac0edb82182f132860cfc378d0a13cca97",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "e6a204718a6326bcc6a14437da3ebfab887b1725",
+          "bytes": 655,
+          "source_sha256": "f2bde3414b635bf3df555d63028b6cf19528d71cb87b59617094952b5b91cdb2",
+          "targets": [
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_horizontal.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "813a014d925cdae359763cba7d8d406aa6643828",
+          "bytes": 582,
+          "source_sha256": "611dac518533a19f3cb2b6cbc4da00312d1b70795552d680de266de831515a3e",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "d075da070509b90b9af48208df602c83eaa0307a",
+          "bytes": 582,
+          "source_sha256": "130e10d1883ec750afe27ad2bd92e16c441bdeee1b204e97c83a13250879f37d",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "dadcc1841effecf19dd870ad15ec227ca69603f9",
+          "bytes": 616,
+          "source_sha256": "78186a13674bbf0caf10f68b855f379b933ca487838b0cfdf099d893af526633",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "f78cee62e494399fc0e44b3e85dc1b81c5bb55e1",
+          "bytes": 616,
+          "source_sha256": "9a39cd688e94e1d9b1e9ed385ee688aae508bf0a30288bb06a9c61bc51cb99b6",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_vertical.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "1bf455b1a252ae826ad44066dbaebd836675ef86",
+          "bytes": 625,
+          "source_sha256": "52a5d1995e653579a1450bada4bf0525c3caacdb0b8cd211593283be4056e3f8",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "53a10f116051e2d5fb41845437b4f56bc9438749",
+          "bytes": 659,
+          "source_sha256": "daec69dc4e27905fdc1b23c1a928ff44ee52668f1a764df041c45d697395d83a",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "55b1c99c6f7f23381f4e7b166aee97bb073d7370",
+          "bytes": 659,
+          "source_sha256": "a86ee7daa61b0c15c34bcd133fe8d1390b62a05c1b12f7c66596b54b7263c036",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "7adf951ffe63d403d1371374316761bcf40abfc3",
+          "bytes": 625,
+          "source_sha256": "ed962098fa8b791f537bc3721e5c118fa8277f22929fba6af91f1c63993ba823",
+          "targets": [
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/advancements/recipes/misc/uncraft_tunnelled_manager.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "5ac15b7b751f8d87c98b871d5c98d1283a420581",
+          "bytes": 52,
+          "source_sha256": "928dc01d1fa9374f639fb787c60a702a76bdd5f106532dc5562e7b9d173a6c62",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "9e4388ae9f8555e251220dbd4999ec8b0f36928a",
+          "bytes": 30,
+          "source_sha256": "d15ac51dd211d715b4ff312fc4875a48371abdf6da4748f228212ddc9c1d1762",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/disk_reset.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "43e0ae2bec7a05220415398aae061f659b6a7ca9",
+          "bytes": 35,
+          "source_sha256": "07ab4496bb62c1c18f05ef6aadc818404125cdd595ca4c6d84fdcdae9d3d6b1a",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "4f4ca7e91705b274a8387f73b69848f27a086d08",
+          "bytes": 57,
+          "source_sha256": "706cb69a5ae1e73fb99376aa843938d143c6cd70ccbeb49b7a8023095fa0367f",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/label_gun_reset.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "6a64b42c81a75bce079c88570c07a4a35bbd8a94",
+          "bytes": 290,
+          "source_sha256": "d0b28e2f2b8a43ef59fad1d5e18259df77ce92c6d48a61ecad0f78ff1ed4e4a2",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "a2dd8e88ce8c2ae678fc63e35d03a499eb75c302",
+          "bytes": 230,
+          "source_sha256": "e4ae4c2dcfa9a4003cb4666a31491068646d4a9a2c0573914e923a94428e410e",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tough_cable_horizontal.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "601e8c4f1ebcf03d72833eaac713605aa8b72528",
+          "bytes": 302,
+          "source_sha256": "a77a75e263b47ca1b86065a42345d36b1e0419c2053176be29f51afec93224f7",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "eb9c16dbc62c6ab52dbf2ea7e2f5c3a2aa4a2edb",
+          "bytes": 242,
+          "source_sha256": "c71fc0e2175117cc471aaa0282b8e6dcc332fe07b63a51b5d350aa2e9eec6246",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tough_cable_vertical.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "ab950d9385c432408a420bb14631c73c289776fb",
+          "bytes": 302,
+          "source_sha256": "c78ccc101563679af2656ed0baaa7056f661f65412de49f62506e1cb6c5d257a",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "c6ee5a85ba91b65e05728b8f35ce0a373660a5cd",
+          "bytes": 242,
+          "source_sha256": "513461e978a4f5edef82010c00d81a6b5b3c1970ce9f657060e93a1e95734653",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tough_fancy_cable_horizontal.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "300d175010eedbfe37480216ec239dce277baccf",
+          "bytes": 283,
+          "source_sha256": "bc78fbf52a2000c27890f21aed6c65e3d78dcbbdb8dc1e9437966e33b1eda9f5",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "aa8093116a9e94982defebb97c7c0e859c818693",
+          "bytes": 225,
+          "source_sha256": "a29f2e00bb0934cbfe33ffe7972fac48ea91c4b15189f7e1840d187437601014",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_cable_horizontal.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "48ee61471807e6277c0e9bcd1b553f497b99cf6d",
+          "bytes": 283,
+          "source_sha256": "e18f27b945ae4a0fbc89da134a385abccebdb3fb48edd6127d6145a7cd318920",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "c1b629aa536af74b2974b485f9657b219ae7bfc8",
+          "bytes": 225,
+          "source_sha256": "59fa407de68f702288f2fc560008dbb607936818ac126d5c81adf3600afe97d0",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_cable_vertical.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "bb62a1c2ac0d4191953eb652f51fdae3425a16fb",
+          "bytes": 237,
+          "source_sha256": "3352b8a613a68357a2a54818069104ddbbfb14225acef111b543da5bbe9d5f77",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "c199fa922dc700651e8d084e8cbade30e14868b4",
+          "bytes": 295,
+          "source_sha256": "0a30f2c9f16918fd6994fcc2db07f2494dafc170aec70bddfb03139b0bdc1e43",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_horizontal.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "0a6d3b82cac9aee1ae4db7fb4eff7c61dad886d1",
+          "bytes": 295,
+          "source_sha256": "3eb3c59b6bce394da6d8e90660b7de6f0d611eea0b700e617f90a7bee657ceb5",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "9caa983944e350972cca29579c6b67c86367b720",
+          "bytes": 237,
+          "source_sha256": "d1f1c6a10930380c48ff18be5408e34052e19fa58fd9dfae060908fcacbe3493",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_vertical.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "046b0e9f780ffc49ae94837fb780306023b289d4",
+          "bytes": 287,
+          "source_sha256": "3fe13dac425731019d7dab148bc4699e4523be4b9d4be8201d4cc92552979c06",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "6ba19f12c297320500c53f68c48e5adaf79546e7",
+          "bytes": 229,
+          "source_sha256": "afa639ac05ff5576767ff9d25f7a8f78f52f028667fffe67a592ebe8787eb902",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_manager_horizontal.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "67747d5f3bf6420e36fdc4fee4e063c80323b2c1",
+          "bytes": 281,
+          "source_sha256": "08e6a769e0536d0e447d9d617340421cef01bf26f7205254a685b7f6ce3f732e",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "94bcfb8d9278993ac64c1c074c22fe7d256d4ce4",
+          "bytes": 377,
+          "source_sha256": "65184e07904f0ad642635191616db662ae2f3d41cf93f87e59829669ffeafa0a",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/tunnelled_manager_vertical.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "28474c702333393957779379152d88d8a1f3f1af",
+          "bytes": 161,
+          "source_sha256": "2100c0cd7a0bbee920497526ee4aed1b38f367143fc774d24e4e4d4117edf336",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "5365072cb755d99852586aa2b53ffa39cf8fd546",
+          "bytes": 199,
+          "source_sha256": "b0cda663f763b94a39f3124b5750c8895fcef3a3d2aa33b898b618930cf437e6",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipe/uncraft_tunnelled_manager.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "5ac15b7b751f8d87c98b871d5c98d1283a420581",
+          "bytes": 52,
+          "source_sha256": "928dc01d1fa9374f639fb787c60a702a76bdd5f106532dc5562e7b9d173a6c62",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "9e4388ae9f8555e251220dbd4999ec8b0f36928a",
+          "bytes": 30,
+          "source_sha256": "d15ac51dd211d715b4ff312fc4875a48371abdf6da4748f228212ddc9c1d1762",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/disk_reset.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "43e0ae2bec7a05220415398aae061f659b6a7ca9",
+          "bytes": 35,
+          "source_sha256": "07ab4496bb62c1c18f05ef6aadc818404125cdd595ca4c6d84fdcdae9d3d6b1a",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "4f4ca7e91705b274a8387f73b69848f27a086d08",
+          "bytes": 57,
+          "source_sha256": "706cb69a5ae1e73fb99376aa843938d143c6cd70ccbeb49b7a8023095fa0367f",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/label_gun_reset.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "d19846b2447bb195f87e82aeb8969cbf277cf9ff",
+          "bytes": 305,
+          "source_sha256": "d9156a3034d4a8f17249eb66edf6091402ec89888325a2a30c4151585de044a2",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "d5524cbf867483b8dd62ceb1ab1e3101e82fef27",
+          "bytes": 254,
+          "source_sha256": "f9daf31cc0e9f200c8a190958f62b20deccd45720bc35aace16376a0750371c5",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "ecfeaacac84375856ad0dd6590d8300d7d068b87",
+          "bytes": 276,
+          "source_sha256": "518a9119743e91358722cd67b3b49a1cd9e989abe476d5f769dd09ed1c67c087",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tough_cable_horizontal.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "ac51ed72239718f3ce9f28cc7e52715e11ed4766",
+          "bytes": 266,
+          "source_sha256": "01964df80035462b858ce6be426ec33a6ec65b47c9251809deecdcc038cd81ab",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "aeb9ba8a9d203129401f6a2254b973c04afaf375",
+          "bytes": 288,
+          "source_sha256": "4983d149f3c3488b28ab4e704c5310aa7a43485746683f350832167ba3d467f5",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "e797f3df261062bd47b8bddf3f68e3b03811a852",
+          "bytes": 317,
+          "source_sha256": "45f3b2f9133eacef8902eba0eeb014ee49edcc9c1d082a8eacc7e9aef313a122",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tough_cable_vertical.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "578df0c2f650f22485c8bceefc875c4eba751318",
+          "bytes": 317,
+          "source_sha256": "af32e0da2173fc35b47db8e945e637442d869ea69ece22c6e714efe21fcd86ab",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "60dcc5e62add799e0620931bba0a05280e4232cb",
+          "bytes": 266,
+          "source_sha256": "a6ec68f1cfc42b584e44b7d744c47d332756eaea05ad928488ad6d12d2aa0889",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "ab913cfe4199adb0e3025e9b53f2cc3c5215e944",
+          "bytes": 288,
+          "source_sha256": "4df773173c5b0804aee24265c746e78a4329f5414a11b5d71ea545a3c5bb15c4",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tough_fancy_cable_horizontal.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "7f29ad7791cd93020e2e8f1bef1c60f7baed14cd",
+          "bytes": 273,
+          "source_sha256": "2ef3d051c15fe68387221fcf523f2b5e9a135aee6056ffc3e06b0c00afee18f1",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "9f1163ac1f8ff688f5750bc722ee4c55708d94a6",
+          "bytes": 302,
+          "source_sha256": "65bc9c17df31282a4f92fd0c716f121fa285bb7d4ca45aa80f6e6be668980328",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "a6499105e1f6a45512a200351a1c146795b1d1de",
+          "bytes": 251,
+          "source_sha256": "8aa8efd2834012bd5716e04361c4acbb7c0e6fca77ce88f7dac5cf81ceacdfce",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_cable_horizontal.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "2e6eeeac0d8a42b95d1d4e1708b5c065f02ea040",
+          "bytes": 302,
+          "source_sha256": "e7b5b5f0dc02c963131f5f641323ad51ce45ac8520dbdd2031662a4c37ce39e0",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "3274597a374abcf203fd218f76c1ffba29ae0baf",
+          "bytes": 273,
+          "source_sha256": "29f65465779acc1a312cf66849c0d9efbf525d74e8ee70355c368c948d362296",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "b815acf4c0b535946474984eca3c097135e229b8",
+          "bytes": 251,
+          "source_sha256": "dd56891872cd1b04af61e59d8583eb60aa79616ce2490e79b0e43f0594f80ba5",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_cable_vertical.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "89e702c435fb3a1549c04352b5419a5c528e9d1c",
+          "bytes": 314,
+          "source_sha256": "7103c0a1c5413515551d25856ea50b39f77ff19f64f40e8ad267fcd5d4d4affc",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "94e2abbfc169cd149063045e4ed3ee48bbafaf73",
+          "bytes": 285,
+          "source_sha256": "17973af353ef678d370c07275887d2590cae6c5c1deb58c2ce647a1368dccf3e",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "a1b18c9ad176176ccdb07cb03136e0082584281a",
+          "bytes": 263,
+          "source_sha256": "6f32ea8945d06f6e7dbdc2e38794f430b8aebe419dc30a0878d57761860b5e27",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_horizontal.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "37542bfd6897c11e49bc76d678816470c1ba221e",
+          "bytes": 285,
+          "source_sha256": "b8da591dbf05e2084f66692415b5aa585d6a1df89446c78a2cf640246a0ab7a5",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "6455ea20f6bc30034d1536f9aae508b702508155",
+          "bytes": 314,
+          "source_sha256": "99f9be9c4554cedc07e9a59fadbfd6a437dfc3006a559d61c66f284ceac16dc1",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "a122def41532a170b4a4013f4de07399229c9a5d",
+          "bytes": 263,
+          "source_sha256": "f17c9a799b185fc45f59d160bcdb8e70a82e1f3d2626b57041000476f2a92d1f",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_vertical.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "025c063777b533bc516aad79db09d98f9af06619",
+          "bytes": 255,
+          "source_sha256": "6ab0c96eeefa7ba33db5715c029115453ae358c2f713efd878d1f4a6c2c2be1c",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "b5f5382a600fae26eedd25bd8e81816d83fa924f",
+          "bytes": 277,
+          "source_sha256": "ecba1b59b904bb8878a3f2663b8c3f5d7e3f757735c36f74e25a188b9d74101b",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "f05232ebfe116325b83a5295a523b5416b4c22b7",
+          "bytes": 306,
+          "source_sha256": "af2e62b184667011cfdccf18c69ef5f8d5edb3c9683534fb3e78a20f1ee0970f",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_manager_horizontal.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "05102f71e281566932051b35cd39f987f64bc729",
+          "bytes": 375,
+          "source_sha256": "7bf8c69c465cfedbe769d8d79406fc614270b412e5dafff504e31a0e51b2cdbf",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "430a9983b161cb8810b8b70dbc97a32e0241e884",
+          "bytes": 353,
+          "source_sha256": "401223440cb3cf35248276502db05bfc1f3681ca760eeec9248dbdaf0d6ce530",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "fb7b4a23f9c78eeb3c31d41fca1b4dac362de1ff",
+          "bytes": 404,
+          "source_sha256": "4095c345ad9de85028fde78114437d3e75b1c65e7e12941cfa8a971a6152cb52",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/tunnelled_manager_vertical.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "cb0d9142c23c0bec5dbeb0b78e5779826b311e1e",
+          "bytes": 163,
+          "source_sha256": "49bbdb214c8ec5b3340dd5bf0846d79754be4bfcafa7784d43dcf4254191ad5b",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "feaed7f5427d6404469a8c1fa353bf710880df87",
+          "bytes": 185,
+          "source_sha256": "cacc07c83eb9bbf835e72309126f3fd3e6ee7ca85955df993cec0e6ff3df1aa0",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/minecraft/recipes/uncraft_tunnelled_manager.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "05f9ddc5462c084360666a50e0b8e0476e0c9220",
+          "bytes": 822,
+          "source_sha256": "79470dc74b2d69ed2a125b8be927645d81b1627fc50596c7d996b6abca23875b",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "3f6ebf0c47051efe117eecec78fce8ced44eb968",
+          "bytes": 788,
+          "source_sha256": "4998ae4c6c9ea5171ebda32e981ec4733702b9c589946021572d7cf4466f857d",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "94f51c7c2c77b6109e11da2b942947f4f08c017a",
+          "bytes": 788,
+          "source_sha256": "e9e91538fd9d2277577224d44bdff3fb9e903573cd3e74c4ea9b7d77aa6beeac",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "dcb0896aa5904a02755d269cbad105c39c01745d",
+          "bytes": 822,
+          "source_sha256": "0979aba0aeeed9bd8f2cb61f52ce2cd15c448b4a67c191d4559e2180be2af4f1",
+          "targets": [
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/cable.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "4129db4d7e49d59ed1c077f57db35bf1ac5a0a3f",
+          "bytes": 604,
+          "source_sha256": "422a93de5b3cb4a45fc228fe4179174bcd7b839e183ca47e7a1c2d87122b496c",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "831061af7a163c6e6ece61a5d70aaf9589596b4b",
+          "bytes": 604,
+          "source_sha256": "5dbe9e99333f64f66a25097333decc47dacf5d10f8c218d3c75b4bf9d08565ad",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "a35a1b0736d392da017d308ed2bf4fd724c86e99",
+          "bytes": 570,
+          "source_sha256": "079b767e9055a2f9f78a41eb705d0584b73ef5e560e64d0e5ef5a3ae3da10b04",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "b9406a308d0166ceafd7c6c08149f2e2b7793a3e",
+          "bytes": 570,
+          "source_sha256": "d3d19151d2e9dbf944d35fe1c4c82de681a15cdd4b3acd2548c6881b3cc2341c",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/disk.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "1cae0ffb971b9040ca9b6a51dcc5503589da2bbd",
+          "bytes": 800,
+          "source_sha256": "37fc22fdc16ab4ca5fa2627fcf522d51bba9fd2ab79cdafbf9bfb57fd1135b07",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "5d703dcd80406fdd493a38b9c3328c95c05e796a",
+          "bytes": 834,
+          "source_sha256": "7a6b9668134acee373551b170f79e16f9d6810ace5b33ff11336560d77701428",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "8e2244f6ca7a389b4ad0a3415aa93e42a3d22c01",
+          "bytes": 834,
+          "source_sha256": "73840bd1cc190fe8144e9dff461593ddd1db4f6c36cf3e09cea232b6c685eb3a",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "dc3187cc6b138aaea5f2d66b0dcc1523d75cdd66",
+          "bytes": 800,
+          "source_sha256": "c868eb870bbe3a1b6e003c6f7108f8a4eefede55edcc8e2e7d6561ca5e08ad01",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/fancy_cable.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "552057783e94a29e4aa54816e7870f6c0959f9c8",
+          "bytes": 840,
+          "source_sha256": "1d9334c203709e003849bbf9bc595e0d50bf0d62eb316cfc404d513d697f9437",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "764863cb17f96912d8df37dca3ed90b1c8e54b04",
+          "bytes": 840,
+          "source_sha256": "d8c2bf6d40acba17a2d912a4210b27825236076aa12c62961304c10f140f6cd7",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "87d14a482bef1aba89f67caaed45141d8b1e73da",
+          "bytes": 806,
+          "source_sha256": "e0e76548486e4e907795d95cebd56c3ef763c4dde5ff34943059dbeaddda4ea8",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "c164d8671d1555f360e464be0f5e77037eda347c",
+          "bytes": 806,
+          "source_sha256": "8be8ce2afca130dd69fced83137afa6838e69e50b2c692756e88800396fe96f4",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/fancy_to_cable.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "53989a74f1bca56794499a4290c8eaa96597da80",
+          "bytes": 826,
+          "source_sha256": "f6545210bd954df271de0e357e1af93d42673a9467d194ca65b676579d564fb6",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "8472507c673c3074a3245ee90a09073a61270f25",
+          "bytes": 792,
+          "source_sha256": "e9b3112bc5c6e0e40edd27b8807442b3938052cfae9c29ffa97ef8eb55b03327",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "b753fd2a2bd81f8a6e02210c0ac850220dd4a812",
+          "bytes": 792,
+          "source_sha256": "fccf7c6991e08f9f70c518a037d79621c5d51ad48846c7adb59ef6057ba4dc81",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "fde355ef945cc9776939e025d8f588128c09b6d1",
+          "bytes": 826,
+          "source_sha256": "2dbd372ffc0b1fcf5e17d03da68982aaf992ec49048e14e9e6ef58b8189348ea",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/manager.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "0da7326228cfcbe46b6b8076e8bc2ce229f28773",
+          "bytes": 635,
+          "source_sha256": "ecf465a5385f662f30ad538d92f66d8a54849f9bc219e1c737f5a0cbda2a22fa",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "2f78b29f91f3c6ef296fe3ac14138c67d6ec70fc",
+          "bytes": 601,
+          "source_sha256": "9e108fdd84e152983e8726ce177222434860b7a96eb00c2e1814d405b0488ac0",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "864942ee1689d6bbaca04e7448965b89536ce13a",
+          "bytes": 635,
+          "source_sha256": "47a3d418a2903b8e07131e1f34f6fb81f77c06fd5ac7f7742aa6bf20bc5e753c",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "aa891fbe2e0569a00b2e58b21068465473f128e2",
+          "bytes": 601,
+          "source_sha256": "c2154c2a4fb89e99d6e2dad262bc282e237b8bd65d704416a0b520a962fdbe63",
+          "targets": [
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/network_tool.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "263db9f673e6d367a58f9aaa9802c7a0a875ed70",
+          "bytes": 584,
+          "source_sha256": "3306b67fec9eadd983396d0f555f8e9a6e59c2f87e00132cbbd0940085616424",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "28ee3c3c12e4f2fc1ec54a63dfb4cf6330523a0e",
+          "bytes": 618,
+          "source_sha256": "c131122179fb3052ba394133722510778c030faacdcd643a81c03e038ca6a4a4",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "985e2dfadea3f4c11dd32241d6d5f033c0f0b090",
+          "bytes": 584,
+          "source_sha256": "d727373eec16fb3ee8ead7abd801c8dc2656b7a50664b97536f30749371e9fb6",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "99e916368682445e8b458d08bb8ccac45aeef96c",
+          "bytes": 618,
+          "source_sha256": "b7c143fdc1b15f08a183f5d57bfe317bd3ba5069553e30b9811bf0f219c5c703",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/printing_press.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "0d73e891c9f27d6194a299ec8df0f0f122d42dda",
+          "bytes": 823,
+          "source_sha256": "382adcced7beaa94562168ef25b770676ed3e35b71bdb4e7f3604465f91f218f",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "34706e65d3324454e4ad1c094ad7d5ef708737d9",
+          "bytes": 857,
+          "source_sha256": "0a4bb82573bf7cf89798b5c72c6b4a53d67b36b3b29db2e962808f3f56f1d699",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "953f9a31f77d8a971d8e1e36688b6d1106517d12",
+          "bytes": 857,
+          "source_sha256": "5e34daff7c88a5a5cfb73d60357d50ff6eaead19305e32b123b71365943a3c4f",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "f7acc9cc111b10263662e7afd3d6a4e680a3f012",
+          "bytes": 823,
+          "source_sha256": "2eec5db40a4ef9908db035c5f07de2f4d905773324f8f33b12c70503020bc0cf",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/tough_cable.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "237739309ecc2c12edda48c651c766a199b62415",
+          "bytes": 623,
+          "source_sha256": "65f7a3dfa195064bc413a8e93b3f3e3dbf0c1de8f6716fb76f9c3c08ebfc0d1b",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "3f42dff30cb2214f3801f5ab3d1528e84ad7496e",
+          "bytes": 657,
+          "source_sha256": "103bb7e90c6056094ca4bc32b55daf226b0e4a5d2c217dba37838f68fdf0a0fd",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "69aa1d5353a603448825a5601474b2e0ce87b137",
+          "bytes": 623,
+          "source_sha256": "af0fc85c15bcf717dc8214648de96730aab78f78eb463acad0a648cb3caf7db2",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "9e1d133672fc9717a13820f9a34a21bbaa45624e",
+          "bytes": 657,
+          "source_sha256": "683b63cda24fb846af2850d3eba22ee193cf8694be513be648dc8b861d125947",
+          "targets": [
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/tough_fancy_to_fancy.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "04d725c9f1e4a1c9b459b869ffe6e38327c23d3c",
+          "bytes": 627,
+          "source_sha256": "00beb24bf088a2b6b9cf4989aec9c1412d11dd41d7762ed5894ecde9158b673c",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "913ec974c677bac80229bf1850e8fba3a65418c5",
+          "bytes": 627,
+          "source_sha256": "112aea1f43ffe08e0ffa3e1f9a7d6845099b81fe1e9600825c32ac07163f89b3",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "9772a14a85f322fccb68e2aa21353e03fe85aabf",
+          "bytes": 593,
+          "source_sha256": "3026049dd0a31f2f5fe559c0e5c40206e031fb21e6599afafe4658f10c0afb74",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "c8d273d45a9631d1d1164aa1ea9b15a0f7eece8f",
+          "bytes": 593,
+          "source_sha256": "541c3eda6bb9906288a277fc6a994442cd118dafa0a018f7a1e49e313f92bcbf",
+          "targets": [
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/tough_to_cable.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "06c39f66a31be6abb841f23e4f6f9965bb67cb52",
+          "bytes": 587,
+          "source_sha256": "b4206fc2d12d9a765e5e7e924622edb47b5e3ccae75f111fe094464d2de77eb7",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "481bbc85a7a9c66d5863df93850f6fd468948f4a",
+          "bytes": 621,
+          "source_sha256": "492a21a806a9f299195a82bd5fa7568b668293ea7cab5d6608d31661c37b43c6",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "487519505860497666dc2164e368a8ac8f7d47d6",
+          "bytes": 587,
+          "source_sha256": "3619a0ebdb40bee08c82514d9e83365812fb4af09a22579e0fc3699458ba9e9d",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "4f55b7f5aa5a6a3df56075371615dbdaf7ab2087",
+          "bytes": 621,
+          "source_sha256": "07483fced3c34c073883e06a6f5cbc7ea5aeb338d5f4e06b9a169bed4805df03",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_manager.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "296aeae61a28640870ca838f92bd2205c9aaf130",
+          "bytes": 614,
+          "source_sha256": "27c124b8def6a47ea3eb9ecacd3d0bec88825089e429e2347c07cbe10090b0c2",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "7732eec2576aa4a73cc78526fcdbc7b834e14d8c",
+          "bytes": 580,
+          "source_sha256": "14df2435cdc45bbc38eededbba810fa92cf491960be90a9190c6a73ba24f7006",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "866409a40fc64da3c49251ee751d7c2cd1fde2e4",
+          "bytes": 614,
+          "source_sha256": "fa26bf0600e07b1a1fac410a5d67535826b1b542610ee0c8e5b9dde3fe8fffdf",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "fb92f5550c11d3338aee77b105d7c1987ec12018",
+          "bytes": 580,
+          "source_sha256": "9520968c70c18f929fc5ab949add30c1cff36dc545c17c608d6dd64859174038",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/water_tank.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 12,
+      "bindings": [
+        {
+          "oid": "02310aa6201f80a9a36128303d7de2bc5fd5f911",
+          "bytes": 620,
+          "source_sha256": "927baa199477331460242ffd21892a976184e1b7983f2616b92141e9c0af7342",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "85b4d2c195a1a99547ffc4a63ef069c04d96abdc",
+          "bytes": 586,
+          "source_sha256": "e4b5ab1b71de3c3f6da4d013da89908a7cbc38281cea772f27e9ab26b84f6aae",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "983c87285489ff8bc95ae569ac4dc249a4d2e582",
+          "bytes": 586,
+          "source_sha256": "1114f71be2610828dcca8dc13784098a5b3b54c2b2afe98943ff41e1a9917b01",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "a7a5bec4f855d7051d2b6398b63e0e72c4bea5b0",
+          "bytes": 620,
+          "source_sha256": "ccc799c4d3e1c786f59a69f8684f219ac20489eb93843c81fea8c39d99aee4e6",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/advancements/recipes/misc/xp_goop.json",
+      "matched_absent": 8
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "0cb83c09d07c8cdca703874a35105178a3854f08",
+          "bytes": 326,
+          "source_sha256": "dc2835cbb5dddc953aed3e1f13f083afb4ff753eed6d96abc071b8f53839feb3",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "cba61296607ffee8566ff110c52c51d184869694",
+          "bytes": 368,
+          "source_sha256": "53dfee8ce57ce4d992110d4138ca06f0185a87cc4a573b40ea2beaabae38e991",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/buffer.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "0e27b3c6ad4c3d9c99d5975251e05e66c5c5dcd6",
+          "bytes": 366,
+          "source_sha256": "dd4333b10e0c3990d1c19ba3dc4bc5cacdc34d9a09806f111c45a135c11dded7",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "0e70c23736265c534e7d0ea732e74bc10ed0915d",
+          "bytes": 325,
+          "source_sha256": "b8deeff75fc063ff5dab0ae8ac8cad884b5182c8411c736a0fa99421198f340d",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "0e70c23736265c534e7d0ea732e74bc10ed0915d",
+          "bytes": 325,
+          "source_sha256": "b8deeff75fc063ff5dab0ae8ac8cad884b5182c8411c736a0fa99421198f340d",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "ed22664b7a9cd4b42c3572439474b72fe2df76bc",
+          "bytes": 373,
+          "source_sha256": "385d8e77bb7521d2b2324f204978524824ec85543115e68dc42940df1998cb96",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "118afde59f063fc818ba07bc8543218bf986fa21",
+          "bytes": 378,
+          "source_sha256": "e934efab0100afa34b1d6742fc113dca3f08e6bbb9923935c7ce51f8b168e1b0",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "b04d316849ad42fce864ce4e14eb36b9dbf70fb4",
+          "bytes": 331,
+          "source_sha256": "5cce2ef4bc031f21d299aa5f0e97fe20d7f515c5008795ac19b82641ec676b20",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/fancy_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "205a95fdc46e1cb6913e3bb4faf8c4b52158237f",
+          "bytes": 385,
+          "source_sha256": "e82975298b105d1109bfedf49061a207f40d5ecf29d72b4a14e5023875554c36",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "b04d316849ad42fce864ce4e14eb36b9dbf70fb4",
+          "bytes": 331,
+          "source_sha256": "5cce2ef4bc031f21d299aa5f0e97fe20d7f515c5008795ac19b82641ec676b20",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/fancy_cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "1ffc02d0669726751457a016cf2392e00ec1fe73",
+          "bytes": 370,
+          "source_sha256": "b78d86d496de6e5bf95da1bb69aee0f303f948601784497c373b203e61031fba",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "242519cdc64c24f1577822e171ade7f7fbb5a77d",
+          "bytes": 327,
+          "source_sha256": "f1e363a534d1d7bdcccf5bf49f17a5ba6050e43510b03b7c1003f9d570334bb8",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/manager.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "cea36f0c5069a2fe47ef9c0f9d83f8b3e99766ae",
+          "bytes": 334,
+          "source_sha256": "0838e0bc978531780dc749540fa426ab5f775d50497176f962c0843fb7d0b527",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "edcc47e4f06864657407b859aae26e98d3fa0a41",
+          "bytes": 384,
+          "source_sha256": "70f0125eeec252403b15c9700aac043cca3eb7bf92a66607951ef05c0a97ccbc",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/printing_press.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "aa49739f7eb1ce459fc428d4152a175ffab6e6a1",
+          "bytes": 378,
+          "source_sha256": "cc453a7f538fb8c8bb069f6b45057d00b2f31e00d3b42ba597c4ae50aa4dad5c",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "f51bdfb4462f7ec994cf0d1734e26e157944b962",
+          "bytes": 331,
+          "source_sha256": "ca9792000c096ec36b44a20030341c376952b4816dada8e9b40710017b40b4f3",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tough_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "f51bdfb4462f7ec994cf0d1734e26e157944b962",
+          "bytes": 331,
+          "source_sha256": "ca9792000c096ec36b44a20030341c376952b4816dada8e9b40710017b40b4f3",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "ffc94585fe26787366324267a152b821e24ca521",
+          "bytes": 385,
+          "source_sha256": "57b847fa19995c6f467a8c4d78b82f742cc9a37ca7bc9de0ea6c97beedfaec46",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tough_cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "1af017d26a59cc417701331de67d7160918a83f7",
+          "bytes": 337,
+          "source_sha256": "734d69296e4c40ee3818b003dfca8d8cbf4b3240369c321c8b99e467fd304f14",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "31a7e579d1b6950937adb54669b12b26977f67cc",
+          "bytes": 390,
+          "source_sha256": "d51fd97a0ee63fd061132bf5c08690194d93e49aa9144a7f5c3f77344de13400",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tough_fancy_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "1af017d26a59cc417701331de67d7160918a83f7",
+          "bytes": 337,
+          "source_sha256": "734d69296e4c40ee3818b003dfca8d8cbf4b3240369c321c8b99e467fd304f14",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "6df9a2e1a5facd0930d0960197b8de088e103cce",
+          "bytes": 397,
+          "source_sha256": "4764a174fc0d3208fcaf45714511fd20a98ce6474f6f465653a7b122140a5527",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tough_fancy_cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "355752681de4c44c2bfb1a874200fb1067685b90",
+          "bytes": 386,
+          "source_sha256": "71b0750b6edff7658268d4b3208be47c364500e1c2413682e5209aac118664cd",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "4739f801a6c2ecc5cccb6f815c074f2962746284",
+          "bytes": 335,
+          "source_sha256": "315cecbbba4a7c953c8ca670180c10ffc1c0dfbc4ccf25408815491320f7d167",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tunnelled_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "4739f801a6c2ecc5cccb6f815c074f2962746284",
+          "bytes": 335,
+          "source_sha256": "315cecbbba4a7c953c8ca670180c10ffc1c0dfbc4ccf25408815491320f7d167",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "b18fd663b05620bb72e182e8d2247ac20020442c",
+          "bytes": 393,
+          "source_sha256": "62661e3b827b009cfae9ea5e25cdb62bac7504f854823320cbaafca3c131fc02",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tunnelled_cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "85d2fab468640e57716bbb0f00a642fd00521393",
+          "bytes": 341,
+          "source_sha256": "ac4302fa3f729eda689e50f6752e5b9398b1a159647b0b7611db63df50c2bcc1",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "ca201aca1f7541fad415f441d7410926aef08df1",
+          "bytes": 398,
+          "source_sha256": "55fba1e10699ecce95658432d260d6a30b881aeecb5d1262fae69b02513bded3",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tunnelled_fancy_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "85d2fab468640e57716bbb0f00a642fd00521393",
+          "bytes": 341,
+          "source_sha256": "ac4302fa3f729eda689e50f6752e5b9398b1a159647b0b7611db63df50c2bcc1",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "a12beee27a9bb30886e07959688f9b69755329ac",
+          "bytes": 405,
+          "source_sha256": "53fb59c83ee3273481246afd33e9cf1fbae332ad512b0b7f6745dcea9967d94b",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tunnelled_fancy_cable_facade.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "89ce590d35e9373aaae9f5c79410799211bf5913",
+          "bytes": 390,
+          "source_sha256": "2728939720a99b28124e27de0e04996f2ab165469c10e0a081850b75b75460d1",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "edb32c5d3614d8144bc8145d8a2e7bc9b26cb5f6",
+          "bytes": 337,
+          "source_sha256": "0e7c08aaae8451548ac09d5482aa43cdf40513da6d7a45a08838228921119d26",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/tunnelled_manager.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "285a6558dc37a18183670f4703007da30c4cd6f0",
+          "bytes": 330,
+          "source_sha256": "7f4a2b2a7270b5ffd44327fc08430c343110ce3a9364bffeea6a715c1d2edf2a",
+          "targets": [
+            "1.19.2",
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "58c4c544a0dd73c99820eea50803148e75b4f7c6",
+          "bytes": 376,
+          "source_sha256": "75ceec6d473c7d269d4398f7de0a69662509464f0346687e592d09a9cb6cac9a",
+          "targets": [
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/loot_tables/blocks/water_tank.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "b67deb58484d67b51ba2820dceab2e8c340ee421",
+          "bytes": 404,
+          "source_sha256": "e26f780ee41117be85250a8f5c3c190b3ff154486e0ac39147e1c63c1b126110",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "dc2362912ab8663748108321a89d29d0a7bd4c2c",
+          "bytes": 320,
+          "source_sha256": "2a3484715f519e29e25971e1b1028811659842cc46b62b04a32f3aae2051e6aa",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/cable.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "3cc3ac0c4e874b979e29f731c9bc8efd9def1c11",
+          "bytes": 372,
+          "source_sha256": "6b9349a6cdba45dbee22d427e2f0c0c2ac3284e39fadd6163b3c6d7971709a41",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "c5561f873af8953e228d5e5c89756ea77def55e4",
+          "bytes": 536,
+          "source_sha256": "03c9281d3ae3ca5446cdb5de98c88b025cdf536a85e315b6204259efe9a97b52",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/disk.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "94085114a70d84f896ac94bd74bc8dd531429de2",
+          "bytes": 179,
+          "source_sha256": "bebf932b729ac9e43ed70e28db32fb45cfa89b6f2d10f39ed81df2f78d9e9ba1",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "d92c34384cf68b6872f084986a05c91757e7a4aa",
+          "bytes": 125,
+          "source_sha256": "7be2b3e15a50daeb6f78b615413e053dffff212a59e1f8167ab9a681d33cbaba",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/enchanted_book_copy.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "790f212ef161b532b336061f003076334bc2141c",
+          "bytes": 153,
+          "source_sha256": "176f02c432632ff47dd33447127c41e1c3a66549905bc6af7cbed074ec6579c6",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "ed0d48d88ca9422d79b7b3088784eccd2d407b24",
+          "bytes": 191,
+          "source_sha256": "b902ba51eb75ae71fc0385a4065c90fab604f93a3c36a7ecaecb9122314c1ce1",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/fancy_cable.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "a7c4e40b3bef4eb7f46c30427e09b62822a5c09e",
+          "bytes": 248,
+          "source_sha256": "33b39ee15ab6781068d772910a5b42adf15f96a6674b2d970b2b8c6833014c06",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "bac29a620eb3e67dafa83d342f832d6a2deff543",
+          "bytes": 328,
+          "source_sha256": "18636c39e30442086ff40916093b4104d23ec7b284dc65b197dd0176e9c659e4",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/manager.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "c0646deb80b6ca4e63bd1e49f9e9cb7d91d68462",
+          "bytes": 122,
+          "source_sha256": "fdd1088321c2d9736f08ee706bf9be52a7e990fa940263f85b92fa25d0ff9495",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "ffe3b90ecdd5087df3b16d592a17bed8d51ee099",
+          "bytes": 174,
+          "source_sha256": "0c89b3e00402726de5f71b718a419fe6c112379bfde2b7615ee14028c9b4e652",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/map_copy.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "44a2aea6f05097f7d25aee3cbf542359d984f55c",
+          "bytes": 430,
+          "source_sha256": "c75e6c3f861d4e9cd333f7179dbab2b64c3079b627eade0f29a51b3044029429",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "de3e6452f7c0dede5eb5d1863335eb9397220698",
+          "bytes": 328,
+          "source_sha256": "35cd0bc13c6a85712de432bc60a1cc653d09d585cca878a71a9d9ef9e980b137",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/network_tool.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "91e078ce95131fb86d867c33921a71ada8a700a9",
+          "bytes": 375,
+          "source_sha256": "6587d2cb6535a18f84ef75d6d854a6a8d776e8ef424da3a7e831289c300e0b4b",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "e80535f69ed781800580e18bf62fd7df12a36c0c",
+          "bytes": 521,
+          "source_sha256": "d40c6254a3f7456936d4e7f585ee35cad833ce4c3e38d674ac20e42f4eaeba4a",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/printing_press.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "27f300e988eb23a68a91cd4190e192c74836494f",
+          "bytes": 157,
+          "source_sha256": "9745533bdde05572b1a2fd301860ece7557bb91cd7557c20266d21dfb3bd7845",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "5a4252f622232e8105b94cea1a0befd94a9cf0e0",
+          "bytes": 105,
+          "source_sha256": "df86bd459825b4424465fa46d08bb1476aaab0e6a8d410c1006cd0988553d7a1",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/program_copy.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "740b692625339f1191502888b05752f64e31b73e",
+          "bytes": 290,
+          "source_sha256": "53ade495082dd85800ef21d8e266d21d61465c364717a2316fb8487abe015c4b",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "dce55ae83862fd84b6bd9a94a4eea39be244bad1",
+          "bytes": 230,
+          "source_sha256": "891aafd20aadab0f2ef55de1b64c76878f215873e1598420fe94fd27697f2c03",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/tough_cable.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "a8d47bf04b76ee597117e84edcd222a104c9be8b",
+          "bytes": 229,
+          "source_sha256": "b6a926ad854807873c3b060cd3cca29580a830349c1d7a41b29dcee9b44cd0fa",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "f7b5a0759a45369a8594925ce0a14edc82167f11",
+          "bytes": 287,
+          "source_sha256": "981b12285841d15ffafd441f9a2cb8e35a8e9e697bdf2637e6d2dba86f2e33ad",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/tunnelled_manager.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "00a8fda03126b16b0746231a2ffc303301e5eba2",
+          "bytes": 377,
+          "source_sha256": "187c0f76009d32db2f2c03cc8727b52e015eb3e848e3f2d205a5da12786fd2a8",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "dc3bdbad0a8035f69b9da29adcc28666bf1cf666",
+          "bytes": 295,
+          "source_sha256": "b18efa268f8804603d1a89b1e281b2141f9eb2469a925a0cc592dffcd9449ca6",
+          "targets": [
+            "26.1.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/water_tank.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "59c333582c0e12f41329116d693981b3cba1ec0a",
+          "bytes": 125,
+          "source_sha256": "101b6bf8ccdebc96edf787912eb761da0d3f9b1f3c1ecff01ce99abae4995804",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "a2f96a74ae10f8125c4e6c112587a9211ea8cfc1",
+          "bytes": 177,
+          "source_sha256": "429457d80f60f983707804cb7cd9d76f7fe68e0bcc28935eec9a0ebce6c20e38",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/written_book_copy.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 6,
+      "bindings": [
+        {
+          "oid": "ec9c0c3367b6c76654b09cd8f03ad131f2ea13b8",
+          "bytes": 312,
+          "source_sha256": "22d40588c4a1c058bcaa002d521c0e7e99b7ae16546cd495261f014a3262ec30",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "ffa1439105bde56e72e906c6396e268f8ddebe47",
+          "bytes": 526,
+          "source_sha256": "d478ab260076b0e0589b7a995979012b1bf0f5aa9e548cbb5298ac524691702c",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipe/xp_goop.json",
+      "matched_absent": 14
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "2c8dd374fe45d21856650952a1b89df0cb05fb33",
+          "bytes": 443,
+          "source_sha256": "8d26646d3c05908e62ffd78b28805846032773b6a615eeb4c6442706543960c7",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "6f9e8cf4b602a3d2b0912a5e9901299b3c594c95",
+          "bytes": 392,
+          "source_sha256": "764bdf388d727c08d199077b5e388562dd37c64638e3bdd680dfb7a02893a3f4",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "7bee063e65750eda342372f61e042ec2b073c0f8",
+          "bytes": 414,
+          "source_sha256": "4a400449e1329177b1a5a136c6b24ec3860e6bce270dc684aeed2c203a2174d0",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "01a210e26bbe3f5dc3ab739f7d30eefa12641400",
+          "bytes": 563,
+          "source_sha256": "05685ef07f0993c2021b87945cfe19ec72e1473401207c000701b5109427ec4f",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "d351f910a8bff86e9a51c22e4c80ebe50609fb16",
+          "bytes": 512,
+          "source_sha256": "e89bcf99b4cd6feceaf7a07c6fa8c829465142fae3ba21ed9284543ac734214c",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "d4c652e3f5e8321b7acde9b1f582e35f47425aec",
+          "bytes": 534,
+          "source_sha256": "396101e449de54d14d763a3e8cdb5badec1139c526262f935f3e16fa046a7274",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/disk.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "a95a68d58dfc75c5c879d529bc74c4d7da3401b2",
+          "bytes": 155,
+          "source_sha256": "8d8a5f76543995d4592c9e1ea70c396218cbeb891eb2d20dbf098c793c0afdf2",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "bfa360b905b292babc0810f71aa551541dddec37",
+          "bytes": 177,
+          "source_sha256": "d35093c58cc4405d17d044d5dd0a4fdff4875d7293ed3369a4a9f00440572e2e",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/fancy_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "9877118bb100dacaaafbec34adb47defb0b7ae31",
+          "bytes": 155,
+          "source_sha256": "dd851f0220f21df6f00b2ec3332f178d9254a1926636191b0ca81d65187ad180",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "cb91dea4f527306d847ce421978fc22f64f31f0b",
+          "bytes": 177,
+          "source_sha256": "e87fdf9ef19355b5baca1466d6cf4266c90e8b956c9d0d8d22cadd4d0ad8ddd9",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/fancy_to_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "7fa88fa0c8dc3ada4f5e2390b08783a0bb4ee30c",
+          "bytes": 318,
+          "source_sha256": "d33db5e89336019fdace27c607f646e01ed2c64e1a19586ec33d1f817cb390ac",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "861d16bcc0cf686e35fe9219f3ca7693e8925271",
+          "bytes": 347,
+          "source_sha256": "b196458b63a9fc1efacfb8ee9ece55baaa887d1a0c9827cbcff3e9894779d12e",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "ab13a2a084da060208ec3d09595e15af588837bf",
+          "bytes": 296,
+          "source_sha256": "df76bf8c24b2d7320f50011ea3346bf6a2e0029520ba6510f39f262ff8d2e9bc",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/manager.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "09659d0456653c6111efb70713fdb12c9065773b",
+          "bytes": 416,
+          "source_sha256": "d80a874f205ecdfdcd9c58a69a8cfa814267d4a24e056f5bea1f89465f54bf64",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "3416b3d09e61fe44c2585e84fbf0f2de9efe5243",
+          "bytes": 394,
+          "source_sha256": "8cf20f1f720c1d7fb2e743aab4f054b305a65f5d453fd5570ab575ad94a67905",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "989b1957d8c6112e20508b9799c5674c61d46198",
+          "bytes": 445,
+          "source_sha256": "cd0b820bf25674e11ac12fdb2a818ce8944f0d701b4f28f057cf2ff3f87353b9",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/network_tool.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "18579776f15a4371d49847f7269d53499510a50b",
+          "bytes": 489,
+          "source_sha256": "07c436ee2bdedf9ea3c01b2e15101a4907db7d2081b878ddf070b968f9fc7707",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "98e065ec535f1cb9ff4b3c2ad97d1708df43d593",
+          "bytes": 511,
+          "source_sha256": "d449e1d03c62def53524f9a81fe0ae2c254e106b5557c3db5e9fff7873951029",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "c69811bd5e961ce648e1e4b777a5727a02e64f8a",
+          "bytes": 540,
+          "source_sha256": "5dca2c30088b0219a8ab5cb8c4b145dd9eba2ab19db5ba39195655ea9602a0d7",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/printing_press.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "2ea60a1ee4dcce139a9c7713dde3cd0ffb4006e9",
+          "bytes": 254,
+          "source_sha256": "a67a2bb629dfd604cb3ef863b3ca7214769277ab36aaa756b6bb674cac3a4429",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "5a43b23634e71991ad0b5b40b187e783513ded8d",
+          "bytes": 276,
+          "source_sha256": "0e79aec2c9b12c9a85af557049b7c157a7f05ff0cf761b10d2ca01bb04aee594",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "87b647e6c251492db26b6e469178c4988d488723",
+          "bytes": 305,
+          "source_sha256": "35c7d16783893fba1fabfc41f582ea0afa7ccb7e12d7a29fab603aa401880b9d",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/tough_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "7576792dc2f0826e3af4a732dd4f89a03d3fd8ff",
+          "bytes": 167,
+          "source_sha256": "715fbb7eb942a55cf730cc01481a32021a347f458243014ecca5dcf612fd7cf8",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "d46d33313cd510a602b28a24d1c43d23318150d0",
+          "bytes": 189,
+          "source_sha256": "09d6ed1df232995481fc82bc612c524bb38f7847b8ac74510c1dea7e5253a161",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/tough_fancy_to_fancy.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "53a408cc3c5d206514b400188500f5a8b2d5be64",
+          "bytes": 177,
+          "source_sha256": "534ced50b631373748c01c2001654e5c3862dbad1554f11c115805a1796cf170",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "8ae66fd1839bfab1ea45cec6db533039f23ed4cc",
+          "bytes": 155,
+          "source_sha256": "0da2bf11e8b5c403b64e261715e138544713b44293a0649bdd6ae36a27a28925",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/tough_to_cable.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "213c6362643b3e532dd42a17117b0847022244a1",
+          "bytes": 255,
+          "source_sha256": "c625a5ca5f076726b9071b0e31f68eb649653197dac18344becd8aac6e1907c6",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "5786093f84d9f860017d888e25a23e3a9be9ac6f",
+          "bytes": 306,
+          "source_sha256": "6f99d4029dbeceda40fb67b1e011ad529a9016aa3391b816b2a2fecadaa87984",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "6481e961af7e0fa47d4e40afb9e5a2abcff352c5",
+          "bytes": 277,
+          "source_sha256": "0f8abc9b150fb1fc8000f1bdb13b11c301f0e7d581496797b8a5f2ddf724914d",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/tunnelled_manager.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "1d0a7d6b720d49c32150e2e51f1a8ac83b158d90",
+          "bytes": 392,
+          "source_sha256": "aba3d7faba34857caba2c0c32860007482956d2e4fba874438f8abd7f124baa2",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "df4d2edc9496188474a52de8c91c61c88f2d960b",
+          "bytes": 363,
+          "source_sha256": "6919763290131c28bcb3275fd276e52cbbd57dd04c36cda82dd44c5c1ace28ec",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "dfd320ffd3fa27809a88cb2a39292658d93ce41a",
+          "bytes": 341,
+          "source_sha256": "39591941d13fc7b9f91dac26ed99811b623df8b7d65c9c097b3bcbf355350e14",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/water_tank.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 14,
+      "bindings": [
+        {
+          "oid": "32465de76b881b1e3d9100b2e98a03695dbbea67",
+          "bytes": 490,
+          "source_sha256": "bfb7e026bccde962721f5226f8dfa34535ae7527a94830257f086907b31889f0",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "ca9b01d52eba89bf74c4beed9a945815f2be5f49",
+          "bytes": 512,
+          "source_sha256": "67c30463073847d80d617d434937ac0452e76c8db4d06450a4a2a67db3210df3",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        }
+      ],
+      "path": "src/generated/resources/data/sfm/recipes/xp_goop.json",
+      "matched_absent": 6
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "0f776584c85230589cd71687d6cc4c47e1e3b7d8",
+          "bytes": 1847,
+          "source_sha256": "eb8c32f2dfbe834c481dc4c27a824e346950e8e8a9a5c7ce4496b8b0482f152b",
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1"
+          ]
+        },
+        {
+          "oid": "462885260ac442c72749e6f7f7b2f4994a914f8e",
+          "bytes": 1556,
+          "source_sha256": "5913a5cecdc9a79c95aeb3b2b70e80642a7ff41cc1e96a4e21f48734ac8817db",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "a7eaa390ff9b1d3080ccc6c2f3986a03efbf74fe",
+          "bytes": 1629,
+          "source_sha256": "91e08cf0994fe9ccb6cafc1ed4c55ac748304ea6abe76c3a7334341f1fa69838",
+          "targets": [
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "b61ef6a5b03c64d9a7dcf68a1759d7a57bf453e8",
+          "bytes": 1687,
+          "source_sha256": "a376c90153ba0cfc2561b35083c548400198c4a2e54351fdb47cfb36737c0c20",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "dfaa529a29e45fc0efde7270b272b0ec06ee0a57",
+          "bytes": 1770,
+          "source_sha256": "64401e907fad197e3107064e0c20780858be04bdba32966ae4f427e15cb5f82e",
+          "targets": [
+            "1.19.2"
+          ]
+        }
+      ],
+      "path": "src/main/resources/META-INF/accesstransformer.cfg",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "5c8d7103269a7d14f53e502a02ceaa8151a440fa",
+          "bytes": 22606,
+          "source_sha256": "7f048cd48437999f05c9a061744116d7b5bee9cff0743d918f21448f93166d55",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "f4436bf71619f08377fd8bf7ef9d38565d325e53",
+          "bytes": 22599,
+          "source_sha256": "0ee67d76a1e88c60680559cddb144df0fcbb1e72e96d5dc84fefd0f92f66280b",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/main/resources/assets/sfm/lang/pt_br.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "3c709449cb42b8b352949142d3b4435ebe1c39c1",
+          "bytes": 29845,
+          "source_sha256": "46a82243540445144455d182dc02946e318b578b907afa3abc8c1e1156ed30f7",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "a8a9a6e1970466e0f7c82b6edeb3a56862f331f1",
+          "bytes": 29838,
+          "source_sha256": "03c2b0908866f288fdfaaafa11b1049e09a74edcdd63062795f44aac7dbb2536",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/main/resources/assets/sfm/lang/ru_ru.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "4dd4d4d5fc996f9d52325a972e804316edbf6f97",
+          "bytes": 21994,
+          "source_sha256": "b6e5e3ee298de7dbd954a85c46d99b6f4702d9f8e70f1c2be92cc21d4ae9b7bd",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "c61740cf4b0c3599d03a1bab581ab9b2f07cfd3d",
+          "bytes": 21987,
+          "source_sha256": "1bf986350f9cab4f46bf7e284c9d3a1bdebd4c927abe65a80ccd68b2d388c0da",
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ]
+        }
+      ],
+      "path": "src/main/resources/assets/sfm/lang/zh_cn.json",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "0d38c426421d79a403e25b2201c9f09bfe6b668b",
+          "bytes": 112,
+          "source_sha256": "63ff8a09bb4736f8403a1f729a5099e40e61b11a7e4bd68980164e37022e9493",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "1f9272a353e5c27bdef7b1ad7ca8159c3571f27c",
+          "bytes": 112,
+          "source_sha256": "7a4f8a61992422984a8c8af1c1c17a50348354fc5f63bb8e7184855e955a78e4",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "75e7958cb5089b88024d8857c4276329e8e6eb39",
+          "bytes": 112,
+          "source_sha256": "1d5ad61b47effb43e9fcc3999022dc37f628e1a9a6e25068f4cc9282af10dd3a",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "76025df46ffee1bb426badc5a3b929d299a699e4",
+          "bytes": 111,
+          "source_sha256": "e4e81823fb1c4a06791ce8f03d3e727fdc8910b90d4253c3cdb7eefda6299516",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "781a054488328fc647e257fefd1e38f3d566ec55",
+          "bytes": 112,
+          "source_sha256": "595ce204d21cb5cacaaeed59e03fa63ef2a388f0d82a893f8d96b0002ec2f820",
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "ff6a906aef898569ea2a853234ac8aeb3fc62acb",
+          "bytes": 112,
+          "source_sha256": "db527bee164cd871497bad360bb6aa8eea53b85f32b0aae9a1c679afc675a914",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/main/resources/pack.mcmeta",
+      "matched_absent": 0
+    },
+    {
+      "raw_equal_present": 20,
+      "bindings": [
+        {
+          "oid": "0477339bf83be9d3b9387142b76da3ef3ea3a1cb",
+          "bytes": 130,
+          "source_sha256": "e34138103e6d563f7596a5dfff9db8840795ab1b144d94679f488a15581553d4",
+          "targets": [
+            "26.1.2"
+          ]
+        },
+        {
+          "oid": "357020c80aa9a39b52cf0eb929f939f975f000f7",
+          "bytes": 89,
+          "source_sha256": "7ab06d1a85a7b1652fca33ac04432bef40ddabf41f5c66bb7eaa136266db7c15",
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ]
+        },
+        {
+          "oid": "7ad7b5fc1e1ec69aea1530739112e6c0c35c0e5d",
+          "bytes": 89,
+          "source_sha256": "255f852b3a1edbf677cd99cb0a5a134036372ef24c0ce43d362eee5357e08131",
+          "targets": [
+            "1.20.2"
+          ]
+        },
+        {
+          "oid": "83a3273ce5af68fc2784a88a3b60b582d9c4194b",
+          "bytes": 89,
+          "source_sha256": "5c4a17efdea95feed3c8eb14e772c2a526082def0501389caca845ff92e460de",
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ]
+        },
+        {
+          "oid": "87a28d5a7951aa2a1e2aede8a835b800b0f53c53",
+          "bytes": 88,
+          "source_sha256": "a100cbd3f90efea614d6010c98c9f69b8dc58ebe3a72e69da66f3599e281c21b",
+          "targets": [
+            "1.19.2"
+          ]
+        },
+        {
+          "oid": "960249b5605ed1c0415baf21bfd220ba6223f8bd",
+          "bytes": 89,
+          "source_sha256": "c0f70839041179fe8205b2cf70f14f8118677963e4238746aca000ea6341b88b",
+          "targets": [
+            "1.19.4"
+          ]
+        },
+        {
+          "oid": "ccf54f88cd6c21516927a76ee812c134c7707aa7",
+          "bytes": 89,
+          "source_sha256": "a9ee2bbde01514825503c352d33369f283f7f771fd37ffaa50dd87edf03f1c33",
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ]
+        }
+      ],
+      "path": "src/main/resources/pack/classic/pack.mcmeta",
+      "matched_absent": 0
+    }
+  ],
+  "new_cohort": {
+    "ledger": "docs/tasks/sfm-core-development-resources-slice.json",
+    "sha256": "sha256:be1bc80930f0a2c2b52476bfdcc64b878d043773e735940d612bd845753183b0",
+    "stage_prefix": "platform/cli/sfm-propagate-changes/target/core-development-resources-stage-v1/",
+    "paths": [
+      "src/generated/resources/assets/sfm/blockstates/client_manager.json",
+      "src/generated/resources/assets/sfm/blockstates/touch_display.json",
+      "src/generated/resources/assets/sfm/models/block/buffer_image.json",
+      "src/generated/resources/assets/sfm/models/block/client_manager.json",
+      "src/generated/resources/assets/sfm/models/block/touch_display.json",
+      "src/generated/resources/assets/sfm/models/item/client_manager.json",
+      "src/generated/resources/assets/sfm/models/item/packet.json",
+      "src/generated/resources/assets/sfm/models/item/touch_display.json",
+      "src/generated/resources/data/sfm/advancements/recipes/misc/client_manager.json",
+      "src/generated/resources/data/sfm/advancements/recipes/misc/touch_display.json",
+      "src/generated/resources/data/sfm/advancements/recipes/sfm/client_manager.json",
+      "src/generated/resources/data/sfm/advancements/recipes/sfm/touch_display.json",
+      "src/generated/resources/data/sfm/loot_tables/blocks/client_manager.json",
+      "src/generated/resources/data/sfm/loot_tables/blocks/touch_display.json",
+      "src/generated/resources/data/sfm/recipes/client_manager.json",
+      "src/generated/resources/data/sfm/recipes/touch_display.json",
+      "src/main/resources/assets/sfm/template_programs/buffer_redstone_counter.sfml",
+      "src/main/resources/assets/sfm/template_programs/packet_computation.sfml",
+      "src/main/resources/assets/sfm/textures/block/client_manager_bottom.png",
+      "src/main/resources/assets/sfm/textures/block/client_manager_side.png",
+      "src/main/resources/assets/sfm/textures/block/client_manager_side.png.mcmeta",
+      "src/main/resources/assets/sfm/textures/block/client_manager_top.png",
+      "src/main/resources/assets/sfm/textures/block/touch_display_bottom.png",
+      "src/main/resources/assets/sfm/textures/block/touch_display_face.png",
+      "src/main/resources/assets/sfm/textures/block/touch_display_side.png",
+      "src/main/resources/assets/sfm/textures/block/touch_display_side.png.mcmeta",
+      "src/main/resources/assets/sfm/textures/item/packet.png",
+      "src/main/resources/data/sfm/computercraft/turtle_upgrade/labeler.json",
+      "src/main/resources/data/sfm/computercraft/turtle_upgrades/labeler.json"
+    ],
+    "status": "29assets/texts staged only; actual collector tests unregistered/unrun until parent promotion."
+  },
+  "housekeeping_exclusions": [
+    "src/generated/resources/.cache/1ebf6baef22de7ee4a2d47a696e71032207e75e9",
+    "src/generated/resources/.cache/59eb3dbb5f86130e09b3c62d89b9525ee01cf52d",
+    "src/generated/resources/.cache/67cce32b1c3cbbcb1f646605f4914e3f196986c2",
+    "src/generated/resources/.cache/726a4eaaa226cb50028c5f3f85d691417b67903b",
+    "src/generated/resources/.cache/9fb1092f32d4fcbf9e061ffd718d4ec689c6c95e",
+    "src/generated/resources/.cache/bf0ffec7956ce36aba0a993095f41e47d655813b",
+    "src/generated/resources/.cache/c622617f6fabf890a00b9275cd5f643584a8a2c8",
+    "src/generated/resources/.cache/e178a5522f40c551aab415c9b173854697679d35"
+  ],
+  "methodology": [
+    "Independently derive union of10frozen development main/generated resource trees; check whether exact same core/src path physically exists.",
+    "For109non-cache/non-staged absences resolve actual project-inputs.json source_rules instead of treating flat physical absence as unowned.",
+    "Verify every selected core asset regular-file status, bounded bytes, exact assets/versioned/<SHA>/<same-src-path> owner, raw content SHA256 and Git blob SHA1.",
+    "Check all20targetcontexts for unique actual rule membership and raw source equivalence; no new output generation is necessary.",
+    "Repeat complete293-inputreads/metadata parse/frozen-tree checks. Resource source manifest and exact109bindings unchanged; broader root metadata promotion recorded explicitly."
+  ],
+  "interpretation": {
+    "current_result": "No additional static asset/resource authoring is required for these109existinglogicalbindings.29stagedfiles still require parent review/promotion/metadata registration/test execution.",
+    "limits": "Bounded ownership/content audit, not actual CLI source-project execution, Java/JAR/datagen/runtime/build/Gradle acceptance, complete compiled feature closure, atomic immutable filesystem snapshot, or proof that physical core/src alone contains every logical input. Current mostly-off public catalog remains unchanged.",
+    "earlier_evidence": "The previous29slice correctly named broader physical inventory as outside its scope. This new ledger resolves that open inventory without rewriting its historical delivery or old ownership ledger."
+  },
+  "effects": {
+    "new_portable_ledger_only": true,
+    "live_core_changes": false,
+    "agent_metadata_changes": false,
+    "catalog_changes": false,
+    "projection_sync": false,
+    "builds": false,
+    "cargo": false,
+    "downloads": false,
+    "lock_changes": false,
+    "dependencies": false
+  }
+}

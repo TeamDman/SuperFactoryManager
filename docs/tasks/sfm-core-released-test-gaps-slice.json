@@ -1,0 +1,793 @@
+{
+  "schema": "sfm:core-released-test-gaps-slice@1",
+  "scope": "four_released_test_gap_classes_only",
+  "status": "staged_templates_and_unregistered_post_promotion_tests_not_runtime_acceptance",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "source_witness_definition": "Resolve platform/minecraft/<core-relative-path> at the exact context commit. Raw Git objects are offline bounded regression witnesses, never production source inputs.",
+  "source_context_commits": {
+    "dev/1.19.2": "f3ff2f6425434f36c7c680fa909c977b158e1860",
+    "dev/1.19.4": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+    "dev/1.20": "6bf4845761d06560fc5e0e36018b5d583589004d",
+    "dev/1.20.1": "faa040ce14dd825f2dd9716ea59508bf46278c06",
+    "dev/1.20.2": "a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9",
+    "dev/1.20.3": "704aa69edad5376d8d6cfb0b0ef7845af077e647",
+    "dev/1.20.4": "11d3ed07d654ff801329f17cf1eb81c2b347eecd",
+    "dev/1.21.0": "43068d610b1c053c6569be486439769eec2ae9ef",
+    "dev/1.21.1": "7524ab5512878b773e212600c9578b2bc4db4717",
+    "dev/26.1.2": "6bd27f03863ddd041344cbc3da51b01a7b3c3e1f",
+    "release/1.19.2": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "release/1.19.4": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "release/1.20": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "release/1.20.1": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "release/1.20.2": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "release/1.20.3": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "release/1.20.4": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "release/1.21.0": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "release/1.21.1": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "release/26.1.2": "fe32b29453b13b4f3050ad441677c7eb79e80814"
+  },
+  "owners": [
+    {
+      "id": "mekanism_sidedness_linter",
+      "supported_targets": [
+        "1.19.2"
+      ],
+      "requires": [],
+      "status": "approved_new_owner_runtime_closure_pending"
+    },
+    {
+      "id": "editor_v2_cursor_advance",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "status": "registered_existing_behavior_owner"
+    },
+    {
+      "id": "packet_computation",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_values",
+        "runtime_resource_cleanup"
+      ],
+      "status": "registered_existing_behavior_owner"
+    },
+    {
+      "id": "packet_transport_private",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_computation"
+      ],
+      "status": "registered_existing_behavior_owner"
+    },
+    {
+      "id": "client_inbox",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "requires": [
+        "packet_transport_private"
+      ],
+      "status": "registered_existing_behavior_owner"
+    },
+    {
+      "id": "client_theme",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "status": "registered_existing_behavior_owner"
+    },
+    {
+      "id": "client_properties",
+      "supported_targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "requires": [],
+      "status": "registered_existing_behavior_owner"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MekanismNullIoDirectionGameTest.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-released-test-gaps-stage-v1/MekanismNullIoDirectionGameTest.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MekanismNullIoDirectionGameTest.java",
+      "source_sha256": "sha256:6711c3fb616f247290b94f9c7e841748016053311f7870424ef3b0ba5324955b",
+      "source_bytes": 1887,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "mekanism_sidedness_linter"
+      ],
+      "version_groups": [
+        [
+          "1.19.2"
+        ],
+        [
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "b38e959873f309c6748f65cebf041e34da8061b5",
+        "dev/1.19.4": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.20": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.20.1": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.20.2": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.20.3": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.20.4": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.21.0": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/1.21.1": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "dev/26.1.2": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.19.2": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.19.4": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.20": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.20.1": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.20.2": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.20.3": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.20.4": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.21.0": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/1.21.1": "61e6408ea1c182378d772d9e510969cd44e6d225",
+        "release/26.1.2": "61e6408ea1c182378d772d9e510969cd44e6d225"
+      }
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfm/test/text_editor/TextEditorTests.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-released-test-gaps-stage-v1/TextEditorTests.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/test/text_editor/TextEditorTests.java",
+      "source_sha256": "sha256:1b0c4afc4bd1e6dfa18763532705242ebf7be6d7ea35829da94afb3ac966174a",
+      "source_bytes": 6101,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "editor_v2_cursor_advance"
+      ],
+      "version_groups": [
+        [
+          "1.19.2",
+          "1.19.4",
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.19.4": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.20": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.20.1": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.20.2": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.20.3": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.20.4": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.21.0": "559950607461b338eb73dae84cab31011177d864",
+        "dev/1.21.1": "559950607461b338eb73dae84cab31011177d864",
+        "dev/26.1.2": "559950607461b338eb73dae84cab31011177d864",
+        "release/1.19.2": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.19.4": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.20": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.20.1": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.20.2": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.20.3": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.20.4": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.21.0": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/1.21.1": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+        "release/26.1.2": "36db8c768d940f04aa0cf3b3eebad3642a53f10a"
+      }
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLIntellisenseTests.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-released-test-gaps-stage-v1/SFMLIntellisenseTests.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfml/test/SFMLIntellisenseTests.java",
+      "source_sha256": "sha256:2452989046d075ed60a62e837a26f2420978cc97bee36f674366a7c9949435c9",
+      "source_bytes": 25326,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "packet_computation",
+        "packet_transport_private"
+      ],
+      "version_groups": [
+        [
+          "1.19.2",
+          "1.19.4"
+        ],
+        [
+          "1.20",
+          "1.20.1",
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "69776d7146670517f14c71545c1722cac41089df",
+        "dev/1.19.4": "69776d7146670517f14c71545c1722cac41089df",
+        "dev/1.20": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.20.1": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.20.2": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.20.3": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.20.4": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.21.0": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/1.21.1": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "dev/26.1.2": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.19.2": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.19.4": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.20": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.20.1": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.20.2": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.20.3": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.20.4": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.21.0": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/1.21.1": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+        "release/26.1.2": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b"
+      }
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "stage_path": "platform/cli/sfm-propagate-changes/target/core-released-test-gaps-stage-v1/SFMLTests.java",
+      "core_path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "source_sha256": "sha256:6af2a183edecf123d26bcafec4d4d6b5cb516ead8421cd6b0bc7a1bc625fba10",
+      "source_bytes": 34114,
+      "membership": "shared_all_ten_targets_all_feature_masks",
+      "member_features": [
+        "packet_transport_private",
+        "client_inbox",
+        "packet_computation",
+        "client_theme",
+        "client_properties"
+      ],
+      "version_groups": [
+        [
+          "1.19.2",
+          "1.19.4"
+        ],
+        [
+          "1.20",
+          "1.20.1"
+        ],
+        [
+          "1.20.2",
+          "1.20.3",
+          "1.20.4",
+          "1.21",
+          "1.21.1",
+          "26.1.2"
+        ]
+      ],
+      "witnesses": {
+        "dev/1.19.2": "ea428df66690ebb72ddae0c1460331396706ec66",
+        "dev/1.19.4": "ea428df66690ebb72ddae0c1460331396706ec66",
+        "dev/1.20": "a090acc94faaf59fc456e080204ff66b37db48ec",
+        "dev/1.20.1": "a090acc94faaf59fc456e080204ff66b37db48ec",
+        "dev/1.20.2": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "dev/1.20.3": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "dev/1.20.4": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "dev/1.21.0": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "dev/1.21.1": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "dev/26.1.2": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+        "release/1.19.2": "246cb5415bea1470adb1c47e3d6380b30ab18231",
+        "release/1.19.4": "246cb5415bea1470adb1c47e3d6380b30ab18231",
+        "release/1.20": "246cb5415bea1470adb1c47e3d6380b30ab18231",
+        "release/1.20.1": "246cb5415bea1470adb1c47e3d6380b30ab18231",
+        "release/1.20.2": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+        "release/1.20.3": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+        "release/1.20.4": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+        "release/1.21.0": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+        "release/1.21.1": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+        "release/26.1.2": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6"
+      }
+    }
+  ],
+  "raw_variants": [
+    {
+      "blob": "b38e959873f309c6748f65cebf041e34da8061b5",
+      "raw_sha256": "sha256:14f1a52a7e4a22570570a345bfad065e2b641dc487e617dc3fb7c9c47f57396b",
+      "raw_bytes": 934,
+      "raw_cr_count": 0,
+      "raw_lf_count": 32,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:14f1a52a7e4a22570570a345bfad065e2b641dc487e617dc3fb7c9c47f57396b",
+      "normalized_bytes": 934,
+      "removed_cr": 0
+    },
+    {
+      "blob": "61e6408ea1c182378d772d9e510969cd44e6d225",
+      "raw_sha256": "sha256:6045a6a2ec17c5db35e9055651dbf395c52cdd970fa34496151902c34abd1fd4",
+      "raw_bytes": 962,
+      "raw_cr_count": 0,
+      "raw_lf_count": 37,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:6045a6a2ec17c5db35e9055651dbf395c52cdd970fa34496151902c34abd1fd4",
+      "normalized_bytes": 962,
+      "removed_cr": 0
+    },
+    {
+      "blob": "559950607461b338eb73dae84cab31011177d864",
+      "raw_sha256": "sha256:933a84267aa97b0d3a26c83a70047b05a91db2b5f997ded672ba8cf6d5c2a641",
+      "raw_bytes": 1282,
+      "raw_cr_count": 0,
+      "raw_lf_count": 37,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:933a84267aa97b0d3a26c83a70047b05a91db2b5f997ded672ba8cf6d5c2a641",
+      "normalized_bytes": 1282,
+      "removed_cr": 0
+    },
+    {
+      "blob": "36db8c768d940f04aa0cf3b3eebad3642a53f10a",
+      "raw_sha256": "sha256:9bbb7ae08d7e5d68558cb17794eeefa5a85050a924bae8d42c98c31f1bfda385",
+      "raw_bytes": 4797,
+      "raw_cr_count": 89,
+      "raw_lf_count": 89,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:cec9a2d71dbcbf6de93e85030c97a748e283b605aa3e86381e704d33f4efa194",
+      "normalized_bytes": 4708,
+      "removed_cr": 89
+    },
+    {
+      "blob": "69776d7146670517f14c71545c1722cac41089df",
+      "raw_sha256": "sha256:c72c2fc8ddd54c0592dda4b770ce5fe8a2a16f2245d037bea0fc9d03f4a40c2a",
+      "raw_bytes": 25248,
+      "raw_cr_count": 565,
+      "raw_lf_count": 601,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:09d237aea8a8f5193085059962cfd871658354bdbcc56d11e2b58b3745b4573d",
+      "normalized_bytes": 24683,
+      "removed_cr": 565
+    },
+    {
+      "blob": "9953a24df82b7cd8da8103e9cd5b19c4470ccd8b",
+      "raw_sha256": "sha256:96ed33c409218f32d1f243301d904a55500d8f5ea68fae5157845ad35191fe36",
+      "raw_bytes": 24011,
+      "raw_cr_count": 571,
+      "raw_lf_count": 571,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:a7b45f3ad21a204498d8d7ba6cbd5a8c7e122c51a515012ba886e571aefc94e0",
+      "normalized_bytes": 23440,
+      "removed_cr": 571
+    },
+    {
+      "blob": "ea428df66690ebb72ddae0c1460331396706ec66",
+      "raw_sha256": "sha256:3288ee95ebbf3eed110e737ba5a88ad65a2cfdf681615749f4fd7b4673622657",
+      "raw_bytes": 32451,
+      "raw_cr_count": 0,
+      "raw_lf_count": 936,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:3288ee95ebbf3eed110e737ba5a88ad65a2cfdf681615749f4fd7b4673622657",
+      "normalized_bytes": 32451,
+      "removed_cr": 0
+    },
+    {
+      "blob": "a090acc94faaf59fc456e080204ff66b37db48ec",
+      "raw_sha256": "sha256:6455af9c03d7e9cd2cbdf60fd36576d02f7e142e91fc7b621ca3bd7e7a10a87f",
+      "raw_bytes": 28380,
+      "raw_cr_count": 0,
+      "raw_lf_count": 845,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:6455af9c03d7e9cd2cbdf60fd36576d02f7e142e91fc7b621ca3bd7e7a10a87f",
+      "normalized_bytes": 28380,
+      "removed_cr": 0
+    },
+    {
+      "blob": "aaff9069a061bd1a83ba8c75a000b4ad5d832edd",
+      "raw_sha256": "sha256:1565454ff45534c46d75b7fc481d49067409b06dd88ed80d326413f4176d7fbe",
+      "raw_bytes": 28392,
+      "raw_cr_count": 0,
+      "raw_lf_count": 845,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:1565454ff45534c46d75b7fc481d49067409b06dd88ed80d326413f4176d7fbe",
+      "normalized_bytes": 28392,
+      "removed_cr": 0
+    },
+    {
+      "blob": "246cb5415bea1470adb1c47e3d6380b30ab18231",
+      "raw_sha256": "sha256:91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+      "raw_bytes": 27597,
+      "raw_cr_count": 0,
+      "raw_lf_count": 823,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+      "normalized_bytes": 27597,
+      "removed_cr": 0
+    },
+    {
+      "blob": "e2b467dbc0899215be4b2fb7d2b5dc22a49e44a6",
+      "raw_sha256": "sha256:1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+      "raw_bytes": 27609,
+      "raw_cr_count": 0,
+      "raw_lf_count": 823,
+      "raw_final_lf": true,
+      "normalized_sha256": "sha256:1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+      "normalized_bytes": 27609,
+      "removed_cr": 0
+    }
+  ],
+  "normalization": {
+    "approved_blob_count": 3,
+    "removed_cr_total": 1225,
+    "rule": "CRLF to LF only for the three enumerated nonzero-CR raw blobs. Preserve every non-EOL byte, existing LF, and final LF. Eight already-LF variants remain byte exact.",
+    "forbidden": [
+      "token edits",
+      "other whitespace changes",
+      "BOM changes",
+      "lone CR rewriting",
+      "appending final newline"
+    ]
+  },
+  "sfml_member_patches": [
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_properties"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "import ca.teamdman.sfm.properties.SFMProperties;\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "all_features": [
+        "packet_transport_private"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "import ca.teamdman.sfml.ast.*;\nimport ca.teamdman.sfm.common.value.SFMValuePattern;\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_theme"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "import net.minecraft.ChatFormatting;\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_properties"
+      ],
+      "any_features": [],
+      "old": "import java.nio.file.Paths;\n",
+      "new": "",
+      "insert_old_after": "import java.nio.file.Path;\n"
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "all_features": [
+        "packet_transport_private"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "    public void packetComputationLanguageSurfaceBuildsDefinitionsAndStatements() {\n        String source = \"\"\"\n                let me be player of TeamDman\n                let JobId be like guid\n                let Request be like object with field type of \"Request\"\n                    and field prompt like string\n                    and field JobId\n                let Response be like object with field type of \"Response\"\n                    and field JobId like guid\n                    and field text like string\n\n                every 20 ticks do\n                    input WITH CAPABILITY sfm:text from chest as userinput\n                    let userinputstring be string of invoke sfm:text/read with userinput\n                    let request be Request with field prompt of userinputstring\n                        and field JobId of new guid\n                    create input sfm:packet with request\n                    broadcast to me\n                    output to chest1\n                end\n\n                every 20 ticks do\n                    input like Response from inbox as r\n                    output to responsechest\n                end\n                \"\"\";\n\n        assertNoCompileErrors(source);\n        Program program = compile(source);\n        assertEquals(\"TeamDman\", program.definitions().player(\"ME\").orElseThrow());\n        assertSame(SFMValuePattern.GUID, program.definitions().pattern(\"jobid\").orElseThrow());\n        assertTrue(program.definitions().pattern(\"request\").orElseThrow() instanceof SFMValuePattern.ObjectPattern);\n        assertEquals(\n                java.util.List.of(\n                        InputStatement.class,\n                        LetStatement.class,\n                        LetStatement.class,\n                        CreateInputStatement.class,\n                        BroadcastStatement.class,\n                        OutputStatement.class\n                ),\n                program.triggers().get(0).getStatements().get(0).getStatements().stream()\n                        .map(Object::getClass)\n                        .toList()\n        );\n        assertNoCompileErrors(program.toString());\n        assertTrue(program.astBuilder().getNodesUnderCursor(source.indexOf(\"broadcast\"))\n                                  .stream()\n                                  .map(com.mojang.datafixers.util.Pair::getFirst)\n                                  .anyMatch(BroadcastStatement.class::isInstance));\n        assertTrue(program.astBuilder().getNodesUnderCursor(source.indexOf(\"let Request\"))\n                                  .stream()\n                                  .map(com.mojang.datafixers.util.Pair::getFirst)\n                                  .anyMatch(ProgramPatternDeclaration.class::isInstance));\n    }\n\n    @Test\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "all_features": [
+        "client_inbox"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "    public void addressedBroadcastPreservesLegacyFormAndSourceRoundTrip() {\n        String source = \"\"\"\n                let viewer be player of TeamDman\n                every 20 ticks do\n                    broadcast to viewer\n                    broadcast to viewer channel sfm:dashboard_state\n                end\n                \"\"\";\n        assertNoCompileErrors(source);\n        Program program = compile(source);\n        var statements = program.triggers().get(0).getStatements().get(0).getStatements();\n        BroadcastStatement legacy = (BroadcastStatement) statements.get(0);\n        BroadcastStatement addressed = (BroadcastStatement) statements.get(1);\n        assertNull(legacy.channel());\n        assertEquals(\"sfm:dashboard_state\", addressed.channel().toString());\n        assertNoCompileErrors(program.toString());\n    }\n\n    @Test\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4"
+      ],
+      "all_features": [],
+      "any_features": [
+        "packet_computation",
+        "packet_transport_private",
+        "client_inbox"
+      ],
+      "old": "",
+      "new": "    public void newKeywordsRemainLegalLegacyLabels() {\n        assertNoCompileErrors(\"\"\"\n                every 20 ticks do\n                    input from let\n                    output to like\n                    input from object\n                    output to broadcast\n                    input from channel\n                end\n                \"\"\");\n    }\n\n    @Test\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_theme"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "    @Test\n    public void syntaxHighlightingTokenRanges() {\n        var rawInput = \"EVERY 20 TICKS DO\\nEND\";\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_theme"
+      ],
+      "any_features": [],
+      "old": "",
+      "new": "        var highlights = ProgramSyntaxHighlightingHelper.getTokenHighlights(rawInput);\n\n        var every = highlights.stream()\n                .filter(highlight -> highlight.text().equals(\"EVERY\"))\n                .findFirst()\n                .orElseThrow();\n        assertEquals(0, every.startIndex());\n        assertEquals(4, every.stopIndex());\n        assertEquals(0xFF5555FF, every.colour());\n\n        var ticks = highlights.stream()\n                .filter(highlight -> highlight.text().equals(\"TICKS\"))\n                .findFirst()\n                .orElseThrow();\n        assertEquals(0xFFFFAA00, ticks.colour());\n    }\n\n\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_properties"
+      ],
+      "any_features": [],
+      "old": "        assertNotNull(examplesPath, \"Could not locate examples directory starting from \" + System.getProperty(\"user.dir\"));\n",
+      "new": "        assertNotNull(examplesPath, \"Could not locate examples directory starting from \" + SFMProperties.userDirectory());\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_properties"
+      ],
+      "any_features": [],
+      "old": "        assertNotNull(examplesPath, \"Could not locate template programs directory starting from \" + System.getProperty(\"user.dir\"));\n",
+      "new": "        assertNotNull(examplesPath, \"Could not locate template programs directory starting from \" + SFMProperties.userDirectory());\n",
+      "insert_old_after": ""
+    },
+    {
+      "targets": [
+        "1.19.2",
+        "1.19.4",
+        "1.20",
+        "1.20.1",
+        "1.20.2",
+        "1.20.3",
+        "1.20.4",
+        "1.21.0",
+        "1.21.1",
+        "26.1.2"
+      ],
+      "all_features": [
+        "client_properties"
+      ],
+      "any_features": [],
+      "old": "        Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n",
+      "new": "        Path cwd = SFMProperties.userDirectory();\n",
+      "insert_old_after": ""
+    }
+  ],
+  "intellisense_segments": {
+    "first_test": "    @Test\n    public void packetLanguageStatementStartersAreCompletionCandidates() {\n        Set<Integer> candidates = candidateTokensAtEnd(\"\"\"\n                EVERY 20 TICKS DO\n                \"\"\");\n        assertTrue(candidates.contains(SFMLLexer.INPUT));\n        assertTrue(candidates.contains(SFMLLexer.LET));\n        assertTrue(candidates.contains(SFMLLexer.CREATE));\n        assertTrue(candidates.contains(SFMLLexer.BROADCAST));\n    }\n\n",
+    "second_test": "    @Test\n    public void packetLanguageDeclarationsAreCompletionCandidates() {\n        Set<Integer> candidates = candidateTokensAtEnd(\"\");\n        assertTrue(candidates.contains(SFMLLexer.LET));\n        assertTrue(candidates.contains(SFMLLexer.EVERY));\n    }\n\n",
+    "let_assertions": "        assertTrue(candidates.contains(SFMLLexer.LET));\n        assertTrue(candidates.contains(SFMLLexer.CREATE));\n",
+    "broadcast_assertion": "        assertTrue(candidates.contains(SFMLLexer.BROADCAST));\n",
+    "helper": "    private static Set<Integer> candidateTokensAtEnd(String source) {\n        ProgramBuildResult result = new ProgramBuilder(source).build();\n        CommonTokenStream tokens = result.metadata().tokens();\n        tokens.fill();\n        CodeCompletionCore core = new CodeCompletionCore(\n                result.metadata().parser(),\n                Set.of(SFMLParser.RULE_resourceId, SFMLParser.RULE_label),\n                Set.of(SFMLLexer.WS)\n        );\n        return core.collectCandidates(tokens.size() - 1, null).tokens.keySet();\n    }\n\n"
+  },
+  "membership_observation": {
+    "method": "Read-only inspection of actual current core paths and project-inputs sparse rules before staging, not a new native or generated-project run.",
+    "core_present": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "sparse_rules_present": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "historical_present_cells": 80,
+    "all_off_behavior": "Every class is a released shared source input. Feature flags gate members, not the whole test file. No metadata.template:true requirement is imposed on Java; production renders Java automatically."
+  },
+  "reviewed_member_boundaries": [
+    {
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MekanismNullIoDirectionGameTest.java",
+      "owner": "mekanism_sidedness_linter",
+      "support": "1.19.2 only",
+      "behavior": "Only the primary development witness adds the generator import/check. All ten releases and nine other development contexts keep helper.succeed and the exact TODO comment. The active test is a linter check, not a reactor or capability incident reproduction.",
+      "pending_closure": [
+        "MekanismSidednessLinterGameTestGenerator",
+        "MekanismSidednessProgramLinter behavior",
+        "SFMMekanismCompat registration",
+        "locked Mekanism dependency availability"
+      ]
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfm/test/text_editor/TextEditorTests.java",
+      "owner": "editor_v2_cursor_advance",
+      "support": "all ten targets",
+      "behavior": "The two active development tests assert the cursor advancement introduced by this existing independent fix. All ten released sources remain the commented-out empty class when off. The getter returns ArrayDeque<Cursor>, so getFirst is not a Java21 List API and requires no rewrite.",
+      "evidence": [
+        "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/MultiCursor.java",
+        "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/TextEditContext.java"
+      ],
+      "not_required": [
+        "canvas_text_editor",
+        "workspace_panels",
+        "command_palette"
+      ]
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLIntellisenseTests.java",
+      "owner": "packet_computation and packet_transport_private",
+      "support": "two oldest targets only",
+      "behavior": "Completion test/helper shells follow their actual OR consumers. LET/CREATE assertions require packet_computation; BROADCAST requires packet_transport_private. The declaration test requires packet_computation. Eight newer targets retain exact released test APIs even with artificial global feature bits.",
+      "not_required": [
+        "client_inbox"
+      ]
+    },
+    {
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "owner": "packet_transport_private, client_inbox, packet_computation, client_theme, client_properties",
+      "support": "packet members D2; theme/properties all ten",
+      "behavior": "The compound packet-language test uses legacy BROADCAST and requires private transport, which closes computation. The addressed broadcast test requires inbox. The keyword-label test shell follows the three actual grammar consumers. TokenHighlight/getTokenHighlights are owned by client_theme, not coarse syntax_languages. User-directory accesses are owned by client_properties.",
+      "annotation_seam": "The historical common leading @Test is retained. Each optional packet-method segment carries its trailing next-test annotation; any selected subset keeps exactly one annotation before each remaining method.",
+      "api_adapter": "Forge fluid/item imports on 1.19.2/1.19.4/1.20/1.20.1, NeoForge on six later targets. Actual catalog Minecraft selector for target1.21.0 is1.21."
+    }
+  ],
+  "historical_taxonomy_corrections": [
+    "Previous test membership prose called getFirst a Java21 List API. Actual MultiCursor returns ArrayDeque<Cursor>; this source seam is Java17-compatible without rewriting.",
+    "Previous ownership inventory grouped range-highlighting under syntax_languages. Current authored ProgramSyntaxHighlightingHelper exposes those methods only under client_theme.",
+    "Broadcast token ownership is packet_transport_private. Addressed CHANNEL ownership is client_inbox. These are not computation-only assertions."
+  ],
+  "evidence": {
+    "historical_source_comparisons": {
+      "count": 80,
+      "passed": 80,
+      "method": "Restricted read-only directive extraction versus fixed normalized source witnesses."
+    },
+    "independent_predicate_probes": {
+      "count": 5120,
+      "passed": 5120,
+      "method": "All128 masks of seven named owners across ten actual version selectors and four templates. Fixed full-source expectations remove only independently disabled member segments. Artificial unsupported bits prove MC guards only, not context acceptance."
+    },
+    "post_promotion_tests": "New unregistered core_released_test_gaps_slice_tests.rs requires promoted actual core, real owner/membership validation, production Java rendering, fixed raw/normalized goldens, supported partial masks and refusal, common-edit propagation and negative evidence checks.",
+    "not_claimed": [
+      "native compilation",
+      "JUnit/GameTest execution",
+      "Mekanism runtime closure",
+      "reactor incident reproduction",
+      "JAR parity",
+      "registered support from static masks"
+    ],
+    "reproducible_read_only_commands": [
+      "git rev-parse <exact-commit>:platform/minecraft/<core-relative-path>",
+      "git cat-file blob <exact-raw-oid>"
+    ]
+  },
+  "promotion_requirements": [
+    "Register the exact primary-only mekanism_sidedness_linter owner before promoting a source that references it.",
+    "Preserve existing independently registered cursor/theme/properties/packet owner prerequisites; do not infer a canvas dependency.",
+    "Promote only these four staged source paths as shared inputs and register focused tests.",
+    "Keep generator/linter runtime closure as a separate acceptance gate; source reconstruction does not exercise it.",
+    "Run real JUnit/GameTest validation after production membership/rendering and helper closure are accepted."
+  ]
+}

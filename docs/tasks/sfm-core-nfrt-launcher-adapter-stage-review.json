@@ -1,0 +1,563 @@
+{
+  "schema": "sfm:named_nfrt_launcher_adapter_stage_review@1",
+  "status": "staged_unregistered_planning_foundation_javac_shape_passed_native_execution_refused",
+  "starting_head": "3271454bdda2a8fd94744f5b273537aee256d00f",
+  "scope": {
+    "targets": [
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.21.0",
+      "1.21.1",
+      "26.1.2"
+    ],
+    "native_execution_enabled": false,
+    "original_schema2_lock_changes": 0,
+    "original_released_role_input_changes": 0,
+    "new_dependency_identities": 0,
+    "java_main_executions": 0,
+    "nfrt_graph_executions": 0,
+    "child_tool_executions": 0,
+    "cache_acquisition_or_repair": 0,
+    "live_engine_edits": 0,
+    "registered_module_edits": 0,
+    "note": "This review proves the exact upstream Java hook shape through javac only. It does not prove six-target native compile, runnable integration, child isolation or runtime correctness."
+  },
+  "artifacts": [
+    {
+      "path": "target/core-nfrt-launcher-stage-v1/SFMNamedNeoFormLauncher.java",
+      "bytes": 28819,
+      "sha256": "3a3868fe950d8a0be3c3cde04a95b299190468a407a64dd6f3d6c1cd571a5c38",
+      "role": "Ignored original adapter staging. Must be promoted separately before module registration. main always refuses."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/source_projection/nfrt_launcher_adapter_plan.rs",
+      "bytes": 19107,
+      "sha256": "d1a8933ab944101dd288f24e2fb674b425a53b22825b4ca27c409773ce50fb71",
+      "role": "NEW unregistered pure receipt/proposal/refusal module with three authored regression tests; no Cargo or test execution in this slice."
+    }
+  ],
+  "reference_inputs": [
+    {
+      "path": "docs/tasks/sfm-core-released-native-adapter-review.json",
+      "sha256": "8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21",
+      "role": "Exact original schema-2 recipes and 13 role-input witnesses per target."
+    },
+    {
+      "path": "docs/tasks/sfm-core-named-nfrt-compile-review.json",
+      "sha256": "8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d",
+      "role": "Original parent/function child request and six-target integration inventory."
+    },
+    {
+      "path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json",
+      "sha256": "45ddda335ea4624b9a873ddf1ceb53f7265f2d8bbb48bb2bd97d0e903fdab785",
+      "role": "Root's read-only original NeoForm/userdev byte identity proof. This is not authorization for child substitutions."
+    },
+    {
+      "path": "docs/tasks/sfm-core-nfrt-child-supplement-stage-review.json",
+      "sha256": "3376a98a0efe9c9ec6dce19263d86fa7f348dba781d93190b4a45e32e5601fe7",
+      "role": "Human-authorized exact 15-tool checksum supplement proposal, not automatic native enablement."
+    }
+  ],
+  "authority_and_portability": {
+    "publisher": "Potentially public repository evidence; all paths are repository-relative or placeholders.",
+    "normalization": "No historical Java/lock/body normalization. javac emits only new ignored shape classes.",
+    "full_sha256_role": "Full SHA-256 in the future Java contract is a transfer-byte identity. Rust must first validate original schema-2 ContentHash or authenticated child/supplement identity; local SHA alone is not new dependency authority.",
+    "existing_jdk": "Shape proof uses the already selected JBRSDK21 compiler. Its identity below does not add a JDK archive pin or authorize a different tool SDK."
+  },
+  "nfrt_parent": {
+    "coordinate": "net.neoforged:neoform-runtime:2.0.19:all",
+    "original_content_hash": "blake3:008acc741f349d2b57d6c393f3cb248974143a1a",
+    "full_observed_blake3": "008acc741f349d2b57d6c393f3cb248974143a1acd6021f38be6baf3f0e09a99",
+    "bytes": 4479682,
+    "sha256": "6db13ff7efaa70cf076f1f5d6a4f116885a3a5fa4e03960da88b9d92b25089bd",
+    "verification": "Read exact existing JAR bytes and check full SHA before bytecode inspection and each javac attempt; original ContentHash/full-BLAKE3 prefix was independently verified by root.",
+    "inspected_entries": [
+      {
+        "entry": "net/neoforged/neoform/runtime/cli/Main.class",
+        "bytes": 9151,
+        "sha256": "e11ec45279514210e3a42e84d10fa4769b2bbc2c340e5354b3105da64b2f71f6",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/cli/NeoFormEngineCommand.class",
+        "bytes": 10093,
+        "sha256": "dc44049f0f4df0258170b79d8021115a87746519241ed11bdf8238acc11d8e1c",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/cli/LockManager.class",
+        "bytes": 8240,
+        "sha256": "ee2f294b1384a26b5888409ae673a91701aa240c5402d6f61a505a0495691c56",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/cache/CacheManager.class",
+        "bytes": 22086,
+        "sha256": "7eeb760a991ad3b61722685bb59af7dbb266cbec6b791debc9d591fdc5369b31",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/cache/LauncherInstallations.class",
+        "bytes": 11501,
+        "sha256": "205e280d633a3fea4f5fa56c0394f4fa89c2dc7b8300643b7b1bba6920ac29a3",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ArtifactManager.class",
+        "bytes": 20280,
+        "sha256": "ccc5ee18e0e97c8b43eb8146777a4eeb10ceb76bce342486c75fab33f64e4098",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/Artifact.class",
+        "bytes": 2475,
+        "sha256": "438c9098dcaf9df1b3d0935022fa047beb1258a665b2a79bfaa554e78e5231b2",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem.class",
+        "bytes": 2255,
+        "sha256": "a225548763837c89861f4f99cc5318bcb5e53fe8d17e0bc4312c5ff2263038fb",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem$MavenCoordinateItem.class",
+        "bytes": 2728,
+        "sha256": "6509ef483716b50ab133435e77bb482024225dd1b67680bb7e3c5bfe5a55ac5d",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem$MinecraftLibraryItem.class",
+        "bytes": 1832,
+        "sha256": "404a6879c4a7e2355d6bfb64bb3768155e8a441638eb7ff74caabbef55757e59",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem$PathItem.class",
+        "bytes": 1619,
+        "sha256": "735842c001e6e397baa0bf694e644bd5b819947c92dffda5ac5dae1f844c0238",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/artifacts/ClasspathItem$NodeOutputItem.class",
+        "bytes": 1841,
+        "sha256": "82eedc6e4e6e52c0ba5550cba8fbef83e640bf3965ca282034d9f34101197de5",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/manifests/MinecraftVersionManifest.class",
+        "bytes": 5319,
+        "sha256": "c2874fea9dbbb05ce5cd7c7ce6ebdf2af1b59aabb095b5ff453f4c18e32a8079",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/manifests/MinecraftLibrary.class",
+        "bytes": 6484,
+        "sha256": "a1e9a5e908a1e2839bdf4b85d3bc338e38509e27e92875ff1db5cd2528d85758",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/manifests/MinecraftDownload.class",
+        "bytes": 2531,
+        "sha256": "cb9a444e8d7358b195250f13f1c3c1e28b6975f0a37cfed5a91b9d9bb385cad8",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/utils/MavenCoordinate.class",
+        "bytes": 5843,
+        "sha256": "ed31a154404fe03369fab0b138e941013e7da58b30b97d868a7a09bc73faa6f3",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/downloads/DownloadManager.class",
+        "bytes": 11901,
+        "sha256": "9870afa771ff791a28be00d01c3a3f42a660bfe72d5833b1449b8918d48b6ae8",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/actions/ExternalJavaToolAction.class",
+        "bytes": 17898,
+        "sha256": "2fd57867cf8a00944e7828f4f99dcc3c61d9ba30ce8e5e87ddb630e6ae6b3f21",
+        "class_major": 65
+      },
+      {
+        "entry": "net/neoforged/neoform/runtime/engine/NeoFormEngine.class",
+        "bytes": 39915,
+        "sha256": "845b2c7502c7be4f29df462663c98ffa075fb3972ad3a4845ab401d2bb490820",
+        "class_major": 65
+      }
+    ],
+    "inspection_command_shape": "<verified-jdk>/bin/javap.exe -classpath <exact-verified-nfrt2.0.19-all.jar> -private -c <exact-class>",
+    "source_clone_limit": "An existing source checkout helped locate flows but has no witnessed exact 2.0.19 tag. Pinned JAR signatures, bytecode and javac shape are authoritative."
+  },
+  "upstream_entry_flow": {
+    "class": "net.neoforged.neoform.runtime.cli.NeoFormEngineCommand",
+    "method": "public final Integer call()",
+    "reviewed_bytecode_points": [
+      {
+        "offset": 42,
+        "operation": "Main.createLauncherInstallations"
+      },
+      {
+        "offset": 51,
+        "operation": "Main.createCacheManager"
+      },
+      {
+        "offset": 60,
+        "operation": "new DownloadManager"
+      },
+      {
+        "offset": 69,
+        "operation": "Main.createLockManager"
+      },
+      {
+        "offset": 78,
+        "operation": "CacheManager.setDisabled"
+      },
+      {
+        "offset": 87,
+        "operation": "CacheManager.setAnalyzeMisses"
+      },
+      {
+        "offset": 96,
+        "operation": "Conditional cache/lock maintenance"
+      },
+      {
+        "offset": 113,
+        "operation": "Main.createArtifactManager"
+      },
+      {
+        "offset": 139,
+        "operation": "new NeoFormEngine with supplied ArtifactManager/cache/lock objects"
+      },
+      {
+        "offset": 169,
+        "operation": "Select child Java executable/home"
+      },
+      {
+        "offset": 226,
+        "operation": "runWithNeoFormEngine"
+      }
+    ],
+    "limitation": "call is final and creates DownloadManager directly. There is no overrideable DownloadManager factory. The staged manager never delegates to this downloader, but subclass interception is not an OS network sandbox or a proof that child ProcessBuilder paths are contained."
+  },
+  "reviewed_hooks": [
+    {
+      "owner": "ArtifactManager",
+      "count": 11,
+      "methods": [
+        "get(String)",
+        "get(MavenCoordinate)",
+        "get(String, URI)",
+        "get(MavenCoordinate, URI)",
+        "get(MinecraftLibrary)",
+        "resolveClasspath(Collection<ClasspathItem>)",
+        "getVersionManifest(String)",
+        "getLauncherManifest()",
+        "downloadFromManifest(MinecraftVersionManifest, String)",
+        "loadArtifactManifest(Path)",
+        "setWarnOnArtifactManifestMiss(boolean)"
+      ],
+      "behavior": "Exact approved requests only. No superclass request delegation, inherited downloader, arbitrary URL/path parsing, wildcard manifest or warning fallback. Refuse unknown coordinate/repository/library/manifest key before artifact byte I/O. Full batch preflight preserves order and duplicates."
+    },
+    {
+      "owner": "Main",
+      "methods": [
+        "getWorkDir()",
+        "getEffectiveRepositories()",
+        "createLauncherInstallations()",
+        "createCacheManager()",
+        "createLockManager()",
+        "createArtifactManager(...)"
+      ],
+      "behavior": "Invocation-owned paths, no repositories, disabled intermediate cache, no launcher roots and no shared maintenance. Constructor checks actual tool JVM minimum."
+    },
+    {
+      "owner": "LauncherInstallations",
+      "methods": [
+        "getInstallationRoots()",
+        "getAssetRoots()",
+        "getAssetDirectoryForIndex(String)"
+      ],
+      "behavior": "No installation/asset discovery. Asset-index request refuses. Constructor IOException and no-throws getter match exact pinned API."
+    },
+    {
+      "owner": "CacheManager",
+      "methods": [
+        "isDisabled()",
+        "setDisabled(boolean)",
+        "setAnalyzeMisses(boolean)",
+        "getAssetsDir()",
+        "performMaintenance()",
+        "cleanUpAll()",
+        "cleanUpIntermediateResults()",
+        "restoreOutputsFromCache(...)",
+        "saveOutputs(...)"
+      ],
+      "behavior": "Always disabled; cannot re-enable or analyze misses. No asset discovery or intermediate restore/save/maintenance. Cleanup refuses rather than touching unrelated cache."
+    },
+    {
+      "owner": "LockManager",
+      "methods": [
+        "performMaintenance()"
+      ],
+      "behavior": "No shared cleanup. Future factory would use invocation-owned home only."
+    }
+  ],
+  "launch_contract": {
+    "status": "In-memory Java constructor shape and Rust planning receipt only. No contract file format/parser/exporter or launched CLI provided.",
+    "fields": [
+      "targetId",
+      "minecraftVersion",
+      "compilerRelease",
+      "minimumToolJvm",
+      "projectIdentity",
+      "sourceLockSha256",
+      "supplementSha256",
+      "invocationRoot",
+      "versionManifest",
+      "exactArtifacts",
+      "libraries",
+      "downloads",
+      "frozenRuntimeCoordinates"
+    ],
+    "source_authorities": [
+      "original_schema2_pin",
+      "authenticated_minecraft_child",
+      "approved_nfrt_child"
+    ],
+    "artifact_fields": [
+      "exact coordinate",
+      "exact HTTPS URL",
+      "absolute normalized invocation input snapshot path",
+      "positive bounded byte length",
+      "full SHA-256",
+      "authority origin",
+      "authority identity"
+    ],
+    "child_fields": "ManifestChild includes exact MinecraftDownload record. URL, size, source authority and full version-JSON membership must agree before child snapshot consumption.",
+    "selected_loader_components": "The Rust proposal checks the original :userdev coordinate derived from recipe base loader identity. It does not request an unclassified base loader JAR.",
+    "path_boundary": "Inputs must be under the fresh invocation inputs root; duplicate coordinate/path or conflicting version-JSON snapshot identity refuses.",
+    "runtime_boundary": "Retain original frozen root and transitive row order. The Java contract retains this sequence but enforcement at every runtime consumer remains an explicit integration gate; no live POM discovery.",
+    "context_matrix": [
+      {
+        "target": "1.20.2",
+        "actual_minecraft": "1.20.2",
+        "compiler_release": 17,
+        "tool_jvm_minimum": 21
+      },
+      {
+        "target": "1.20.3",
+        "actual_minecraft": "1.20.3",
+        "compiler_release": 17,
+        "tool_jvm_minimum": 21
+      },
+      {
+        "target": "1.20.4",
+        "actual_minecraft": "1.20.4",
+        "compiler_release": 17,
+        "tool_jvm_minimum": 21
+      },
+      {
+        "target": "1.21.0",
+        "actual_minecraft": "1.21",
+        "compiler_release": 21,
+        "tool_jvm_minimum": 21
+      },
+      {
+        "target": "1.21.1",
+        "actual_minecraft": "1.21.1",
+        "compiler_release": 21,
+        "tool_jvm_minimum": 21
+      },
+      {
+        "target": "26.1.2",
+        "actual_minecraft": "26.1.2",
+        "compiler_release": 25,
+        "tool_jvm_minimum": 25
+      }
+    ],
+    "generated_classpath": "NodeOutputItem always refuses. A future route must prove fresh invocation-local producer completion/output identity before acceptance; path existence or inherited cache markers are insufficient.",
+    "byte_verifier": "Regular file, exact length and streamed full SHA-256; symbolic-link/realpath checks; pre/post length/fileKey/mtime checks. Read-only and no implicit repair.",
+    "reparse_toc_tou_limit": "The Java checks are not an atomic Windows reparse or subsequent-consumer-open proof. A Rust exporter must own immutable snapshots and reject every reparse ancestor before Java startup; later consumer path mutation remains open.",
+    "entry_point": "main unconditionally throws UnsupportedOperationException; adapterForReviewedContract exposes only hook shape and is not an execution permit."
+  },
+  "javac_shape_proof": {
+    "status": "passed_exit_0",
+    "command_shape": "<existing-verified-jdk21>/bin/javac.exe --release 21 -proc:none -implicit:none -classpath <exact-verified-nfrt2.0.19-all.jar> -d <new-isolated-owned-stage-output> target/core-nfrt-launcher-stage-v1/SFMNamedNeoFormLauncher.java",
+    "compiler": "javac 21.0.11",
+    "runtime_version": "21.0.11+1-b1163.116",
+    "implementor_version": "JBRSDK-21.0.11+1-1163.116-nomod",
+    "javac_exe_sha256": "cc50808d1f96efda9ec1a52c67dc432ae31cb636a976ccd53289a734a3c06ed6",
+    "java_exe_sha256": "cd23f1d9b3ba8f99370503e3f13b057c3ca3b0cb32b926f1a39637a34e11ebc1",
+    "output_root": "target/core-nfrt-launcher-stage-v1/javac-shape-bc56a5c9b9a04c6498531ca51ab6f82e",
+    "final_source_sha256": "3a3868fe950d8a0be3c3cde04a95b299190468a407a64dd6f3d6c1cd571a5c38",
+    "emitted_classes": [
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher.class",
+        "bytes": 9199,
+        "sha256": "54d2f3b95433adf0077be006b2c0ede10c8b8c6ed9904031a1d12b56925b8821",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$ArtifactPin.class",
+        "bytes": 3387,
+        "sha256": "753c12cff55518e87c8a961cb000e42dfee6b38da845255c58c8125879ab1a98",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$ExactArtifactManager.class",
+        "bytes": 9039,
+        "sha256": "e094f39b7086ca9958f3827c3fbd0eebe6b55c68592951d2f7a2097938d1c4a5",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$LaunchContract.class",
+        "bytes": 7025,
+        "sha256": "5c2b491030649973c0cb2e1e7ab2b648e8ee1ceb0a010ae6e53414212925f660",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$ManifestChild.class",
+        "bytes": 2887,
+        "sha256": "efa1e89ca8fb510cf78eb98ecda4838fc6f2ebdd37bcaa067ef90767909d54c1",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$NamedOnlyMain.class",
+        "bytes": 3005,
+        "sha256": "6f4776da1bdc76e891a29c1a856cee30de93c7e9e38a20ce50246211fa645c5a",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$NoIntermediateCache.class",
+        "bytes": 2551,
+        "sha256": "ffa7d6acfb695d12e49078e172046b0198e0894168cd62d7dfa4c283d8057702",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$NoLauncherProbing.class",
+        "bytes": 1439,
+        "sha256": "4321d244e6da6a569c520aea9344b65d0843956aa6f41a1507972055882a03ba",
+        "class_major": 65
+      },
+      {
+        "relative_path": "ca/teamdman/sfm/toolchain/nfrt/SFMNamedNeoFormLauncher$NoLockMaintenance.class",
+        "bytes": 567,
+        "sha256": "b72418edf1ec689dd31afd0af86858695873776a0239905a7e275e9d0925f7cc",
+        "class_major": 65
+      }
+    ],
+    "earlier_attempts": [
+      {
+        "status": "failed",
+        "exit_code": 3,
+        "reason": "Initial getAssetDirectoryForIndex override declared IOException though the pinned getter does not. Sandbox JAR realpath also reported access denied. Source corrected and read-only compiler rerun outside sandbox."
+      },
+      {
+        "status": "failed",
+        "exit_code": 1,
+        "reason": "LauncherInstallations(List<Path>) constructor declares IOException. Staged constructor corrected."
+      },
+      {
+        "status": "passed",
+        "exit_code": 0,
+        "reason": "Corrected initial source compiled; after final JVM/path-conflict/asset refusal tightening the final source compiled again."
+      }
+    ],
+    "effects": "Only fresh ignored javac class output; no Java main, graph, childtool, download, repair, cleanup, cache lock or dependency/JDK mutation.",
+    "limit": "Successful javac proves method signatures/types against pinned NFRT and class-major65 output, not hook behavior, cryptographic provenance of a new SDK, source release parity or native execution."
+  },
+  "rust_proposal": {
+    "status": "authored_unregistered_scoped_rustfmt_passed_no_cargo",
+    "APIs": [
+      "propose_named_nfrt_adapter(FrozenRecipeProject, NfrtChildIdentitySupplement, refresh)",
+      "receipt()",
+      "proposal_identity()",
+      "validate_declared_tool_major(u16)",
+      "require_native_execution()"
+    ],
+    "behavior": "Refresh-first refusal; bind checked project/dependencies/supplement exact target/actual-MC/recipe/lock/catalog/tool boundaries; exact NFRT/userdev pins; retain frozen runtime sequence. No recheck I/O, contract export, acquisition, copying, cache changes or Java process.",
+    "identity_limit": "Proposal identity is context-specific, but it is not a final build cache identity until actual SDK, immutable byte snapshots and outputs are sealed.",
+    "tests": [
+      {
+        "name": "five_real_recipe_ten_context_proposals_keep_compile_and_tool_jvm_separate",
+        "status": "authored_not_run",
+        "scope": "Five real recipe fixtures across release/dev produce ten distinct proposal identities. Raw locks unchanged, compiler/tool split explicit, execution always refused."
+      },
+      {
+        "name": "refresh_and_foreign_supplement_refuse_before_caller_effects",
+        "status": "authored_not_run",
+        "scope": "Refresh and foreign recipe supplement fail before caller effect callback."
+      },
+      {
+        "name": "adapter_source_has_all_pinned_request_hooks_and_no_graph_entry_point",
+        "status": "authored_not_run",
+        "scope": "Fixed Java raw hash and exact source-hook/refusal shape; no inherited artifact/download delegation."
+      }
+    ],
+    "target_26_limit": "No actual 26.1.2 private-handle proposal or SDK25 shape run in this slice. Existing weak original Mekanism exact-byte gate remains mandatory; this module does not manufacture replacement bytes."
+  },
+  "original_input_recheck": [
+    {
+      "target": "1.20.2",
+      "source_lock_sha256": "df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    },
+    {
+      "target": "1.20.3",
+      "source_lock_sha256": "fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    },
+    {
+      "target": "1.20.4",
+      "source_lock_sha256": "565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    },
+    {
+      "target": "1.21.0",
+      "source_lock_sha256": "2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    },
+    {
+      "target": "1.21.1",
+      "source_lock_sha256": "2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    },
+    {
+      "target": "26.1.2",
+      "source_lock_sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+      "source_lock_unchanged": true,
+      "role_inputs": 13,
+      "role_input_changes": 0
+    }
+  ],
+  "required_remaining_gates": [
+    "Promote approved exact child manifest/helper and adapter source separately; run root-owned focused/full Rust gates.",
+    "Implement bounded Rust contract exporter after checked named ownership/raw-lock recheck, original parent checks, authenticated Minecraft child checks and exact child supplement verification.",
+    "Produce immutable invocation-owned snapshot files with full original-authority and transfer identity; reject reparse ancestors before effects.",
+    "Implement fresh generated classpath producer completion/hash receipts, including NodeOutputItem, without existence-based cache trust.",
+    "Enforce frozen runtime/function consumer sequences and exact repository identities throughout engine integration.",
+    "Choose and prove child-process network containment; this Java adapter alone does not constrain arbitrary external subprocess networking.",
+    "Verify actual tool SDK identities for JVM21/JVM25 and keep compiler releases17/21/25 distinct.",
+    "Wire named-only Compile after closure. Packaging, JUnit, runtime, all-six real compile and release parity remain separate acceptance gates."
+  ],
+  "readiness": {
+    "installer": "Not applicable to this isolated unregistered stage; no installed CLI or registered tool behavior changed.",
+    "process_state": "No NFRT/MC/native graph or child tool launched. javac-only shape process exited0.",
+    "dependency_posture": "Original dependencies frozen except the separately human-authorized exact15child supplement, already delivered; this slice adds no further dependency identities.",
+    "cleanup": "None. Earlier failed isolated shape directories remain recoverable.",
+    "next_action": "Root reviews the staged Java/new Rust/portable ledger, promotes only approved source inputs, and runs focused planning/refusal tests before any execution wiring."
+  }
+}

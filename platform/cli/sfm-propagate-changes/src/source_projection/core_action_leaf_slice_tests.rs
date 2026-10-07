@@ -10,7 +10,6 @@ use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
 use super::core_inputs::discover_core_source_files;
-use super::core_inputs::select_core_inputs;
 use super::core_slice_test_support::CoreTestFixture;
 use super::core_slice_test_support::read_bounded;
 use super::core_slice_test_support::read_git_blobs;
@@ -252,7 +251,9 @@ impl LeafFixture {
     }
 
     fn render(&self, path: &str, context: &ProjectionContext) -> Result<Option<Vec<u8>>> {
-        let selection = select_core_inputs(&self.core.metadata, context, &self.inventory)?;
+        let selection = self
+            .core
+            .selection_for_assertion(context, &self.inventory)?;
         let Some(input) = selection.inputs.get(path) else {
             ensure!(
                 selection.omitted_paths.contains(path),
@@ -347,12 +348,35 @@ fn validate_membership(core: &CoreTestFixture, leaf: &Leaf) -> Result<()> {
         .source_rules
         .get(&leaf.path)
         .ok_or_else(|| eyre::eyre!("leaf has no explicit production membership rule"))?;
+    // Preserve the original ledger ownership witness above. Current neutral
+    // consumers share exact helper bytes without enabling unrelated behavior.
+    let (current_all, current_any) = match leaf.path.as_str() {
+        PANEL_ID => (&[][..], &["workspace_panels", "workspace_dividers"][..]),
+        SCORER => (
+            all,
+            &[
+                "typed_command_palette",
+                "command_history",
+                "editor_search",
+                "explorer_search",
+                "release_review",
+                "client_control_cli",
+                "explorer_compaction",
+                "explorer_navigation",
+                "file_explorer",
+                "java_symbols",
+                "registry_explorer",
+                "workspace_counterfactuals",
+            ][..],
+        ),
+        _ => (all, any),
+    };
     ensure!(
         rules.len() == 1
             && rules[0].input == leaf.path
             && same_set(&rules[0].when.targets, targets)
-            && same_set(&rules[0].when.all_features, all)
-            && same_set(&rules[0].when.any_features, any)
+            && same_set(&rules[0].when.all_features, current_all)
+            && same_set(&rules[0].when.any_features, current_any)
             && rules[0].when.none_features.is_empty(),
         "leaf production predicate differs from its reviewed functional owner"
     );
@@ -384,7 +408,7 @@ fn three_leaf_inputs_reconstruct_twenty_historical_membership_contexts() -> Resu
 }
 
 #[test]
-fn current_twenty_catalog_contexts_omit_all_leaf_inputs_before_source_reads() -> Result<()> {
+fn leaf_twenty_historical_feature_off_controls_omit_before_source_reads() -> Result<()> {
     let mut fixture = LeafFixture::load()?;
     let catalog = CoreCatalog::load(&fixture.core.repository, &fixture.core.repository)?;
     assert_eq!(catalog.catalog.0.len(), 20);
@@ -396,11 +420,11 @@ fn current_twenty_catalog_contexts_omit_all_leaf_inputs_before_source_reads() ->
         .join("deliberately_missing_leaf_read_boundary");
     let mut omitted = 0;
     for key in catalog.catalog.0.keys() {
-        let context = catalog.context(key)?;
+        let context = fixture.core.historical_feature_off_catalog_context(key)?;
         for path in PATHS {
             assert!(
                 fixture.render(path, &context)?.is_none(),
-                "current {key} / {path} unexpectedly includes an unapproved owner"
+                "historical feature-off {key} / {path} unexpectedly includes an owner"
             );
             omitted += 1;
         }
@@ -458,6 +482,28 @@ fn leaf_owners_toggle_independently_with_actual_registered_prerequisites() -> Re
         let basic = fixture.core.context(target, &["client_actions"])?;
         for path in PATHS {
             fixture.assert_output(path, &basic, false)?;
+        }
+    }
+    Ok(())
+}
+
+#[test]
+fn shared_matcher_owners_select_raw_scorer_without_palette_or_history() -> Result<()> {
+    let fixture = LeafFixture::load()?;
+    for target in &TARGETS[..2] {
+        for owner in ["editor_search", "explorer_search", "release_review"] {
+            let context = fixture.core.context(target, &[owner])?;
+            fixture.assert_output(SCORER, &context, true)?;
+            fixture.assert_output(STRUCTURED, &context, false)?;
+            fixture.assert_output(PANEL_ID, &context, false)?;
+            for forbidden in [
+                "typed_command_palette",
+                "command_history",
+                "context_actions",
+                "client_actions",
+            ] {
+                assert!(!context.features[forbidden]);
+            }
         }
     }
     Ok(())

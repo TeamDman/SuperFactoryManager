@@ -1,0 +1,272 @@
+{
+  "schema": "sfm:java_windows_argfile_review@1",
+  "status": "six bounded real JDK17 subprocess observations complete; root generic-tool helper independently reviewed; actual native retry remains parent-owned",
+  "scope": {
+    "production_source_edits_performed_by_this_agent": false,
+    "registered_rust_or_cargo_invoked": false,
+    "minecraft_or_dependency_graph_executed": false,
+    "downloads_or_dependency_changes": false,
+    "cache_mutations_or_cleanup": false,
+    "fixture_outputs": "fresh goal-owned ignored roots only",
+    "fixture_deleted": false
+  },
+  "sdk_identity": {
+    "java_version": "17.0.14",
+    "implementor": "JetBrains s.r.o.",
+    "implementor_version": "JBRSDK-17.0.14+1-1367.22-nomod",
+    "compiler_release_in_this_fixture": 17,
+    "roles": [
+      {
+        "role": "bin/java.exe",
+        "bytes": 35192,
+        "sha256": "186d651179d34ce21d857597bb88a7b1e244973e64f3a9bec1e9daaffd919e31"
+      },
+      {
+        "role": "bin/javac.exe",
+        "bytes": 25464,
+        "sha256": "e84e764317af846582fb4bd168922ac5bf6fe8448264a05a71507d6dc311624f"
+      },
+      {
+        "role": "release",
+        "bytes": 1306,
+        "sha256": "77b520735396e45ced0a1d0c776c7efcab9e42f94a4b44882f20932b74e4046b"
+      },
+      {
+        "role": "lib/modules",
+        "bytes": 57867577,
+        "sha256": "2a673430bdd899f1b802a4426f57c21783d86db9c83ac73454a67463aff7b492"
+      }
+    ],
+    "all_four_roles_checked_before_and_after_each_actual_child": true,
+    "absolute_sdk_home_persisted": false
+  },
+  "stage_receipts": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-java-argfile-path-stage-v1/WindowsArgfileProbe.java",
+      "bytes": 756,
+      "sha256": "fe1460a51ad8caeaa1a1350412a6f82a2337ef1472ea0f5432e18cc7a258c14d"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-java-argfile-path-stage-v1/Test-JavaArgfilePaths.ps1",
+      "bytes": 6563,
+      "sha256": "2eb5b4fb6c3fb535e19cd9db9d34f0e7890847c4a77a8253c40505908eec3fc7"
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/target/core-java-argfile-path-stage-v1/Test-JavaShortTransport.ps1",
+      "bytes": 4207,
+      "sha256": "deaa00a28caec8ae3c49fa34b4ec6cb5e3dc12995876c28f44a822ef97277d0d"
+    }
+  ],
+  "real_observations": {
+    "initial_fixture_refusal": {
+      "jvm_started": false,
+      "phase": "Windows ProcessStart/CreateProcess before JVM startup",
+      "normal_working_directory_characters": 327,
+      "error": "The directory name is invalid",
+      "fixture_corrected_to_separate_cwd_limit_from_argfile_parsing": true
+    },
+    "working_directory_unchanged_in_six_actual_children_characters": 234,
+    "java_original_absolute_argfile_characters": 363,
+    "java_same_basename_relative_reference_characters": 128,
+    "javac_absolute_argfile_characters": 359,
+    "normal_nio_source_argfile_absolute_characters": 248,
+    "normal_nio_output_characters": 370,
+    "normal_nio_output_present": true,
+    "normal_nio_output_expected_ascii": "sfm:nio_path_probe@1\\n",
+    "normal_nio_output_bytes": 21,
+    "normal_nio_output_exact_expected_bytes_verified": true,
+    "short_transport_characters": 186,
+    "original_argfile_sha256": "f33a05f688572560c46ab9158f696b52b0f2b30b8aca340c9cda64497fedae2e",
+    "short_transport_sha256": "f33a05f688572560c46ab9158f696b52b0f2b30b8aca340c9cda64497fedae2e",
+    "short_transport_exact_bytes_preserved": true,
+    "original_argfile_unchanged": true,
+    "results": [
+      {
+        "name": "java_absolute_long_argfile",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Error: could not open `<repo>/platform\\cli\\sfm-propagate-changes\\target\\core-java-argfile-path-stage-v1\\proof-<fixture-id>\\long-normal-segment-0123456789\\long-normal-segment-0123456789\\version-<110-v-characters>.java.args'\r\n",
+        "arguments": [
+          "@<absolute-original-version-argfile>"
+        ]
+      },
+      {
+        "name": "java_relative_argfile_same_cwd",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Error: could not open `version-<110-v-characters>.java.args'\r\n",
+        "arguments": [
+          "@<unchanged-version-basename>"
+        ]
+      },
+      {
+        "name": "javac_absolute_long_argfile",
+        "exit_code": 0,
+        "stdout": "javac 17.0.14\r\n",
+        "stderr": "",
+        "arguments": [
+          "@<absolute-compiler-version-argfile>"
+        ]
+      },
+      {
+        "name": "java_relative_argfile_normal_long_nio_output",
+        "exit_code": 0,
+        "stdout": "nio_output_bytes=21\r\nnio_output_normal_path=<repo>/platform\\cli\\sfm-propagate-changes\\target\\core-java-argfile-path-stage-v1\\proof-<fixture-id>\\long-normal-segment-0123456789\\long-normal-segment-0123456789\\nio-output-<110-n-characters>\\nio-proof.txt\r\n",
+        "stderr": "",
+        "arguments": [
+          "@nio.java.args"
+        ]
+      },
+      {
+        "name": "java_direct_source_verbatim_nio_negative",
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "Exception in thread \"main\" java.nio.file.InvalidPathException: Illegal character [?] in path at index 2: \\\\?\\<repo>/platform\\cli\\sfm-propagate-changes\\target\\core-java-argfile-path-stage-v1\\proof-<fixture-id>\\long-normal-segment-0123456789\\long-normal-segment-0123456789\\nio-output-<110-n-characters>\\nio-proof.txt\r\n\tat java.base/sun.nio.fs.WindowsPathParser.nextSlash(WindowsPathParser.java:202)\r\n\tat java.base/sun.nio.fs.WindowsPathParser.parse(WindowsPathParser.java:111)\r\n\tat java.base/sun.nio.fs.WindowsPathParser.parse(WindowsPathParser.java:77)\r\n\tat java.base/sun.nio.fs.WindowsPath.parse(WindowsPath.java:92)\r\n\tat java.base/sun.nio.fs.WindowsFileSystem.getPath(WindowsFileSystem.java:232)\r\n\tat java.base/java.nio.file.Path.of(Path.java:147)\r\n\tat WindowsArgfileProbe.main(WindowsArgfileProbe.java:11)\r\n",
+        "arguments": [
+          "<absolute-fixture-java-source>",
+          "<verbatim-prefixed-long-output>"
+        ]
+      },
+      {
+        "name": "java_short_absolute_exact_byte_transport",
+        "exit_code": 0,
+        "stdout": "openjdk 17.0.14 2025-01-21\r\nOpenJDK Runtime Environment JBR-17.0.14+1-1367.22-nomod (build 17.0.14+1-b1367.22)\r\nOpenJDK 64-Bit Server VM JBR-17.0.14+1-1367.22-nomod (build 17.0.14+1-b1367.22, mixed mode, sharing)\r\n",
+        "stderr": "",
+        "arguments": [
+          "@<short-absolute-transport>"
+        ]
+      }
+    ],
+    "capture_note": "Stdout/stderr are actual captured strings with repository roots, random fixture IDs and repeated long-name segments replaced by explicit portable placeholders only."
+  },
+  "findings": [
+    "The JDK17 java launcher refused a normal absolute @argfile at363 characters.",
+    "The same java launcher also refused a128-character relative basename from cwd234 because the underlying original file still lay at363 characters. Relative naming alone is therefore not a reliable general long-path fix.",
+    "The java launcher accepted a short @nio.java.args reference whose normal underlying absolute path was248 characters, preserving cwd234, and the source-mode program wrote21 expected bytes to a normal JavaNIO output at370 characters.",
+    "The same verified JDK17 javac accepted its ordinary long absolute @argfile at359 characters and reported javac17.0.14. The native compile callers' javac @ handling is not proven broken by this launcher incident.",
+    "JavaNIO rejected the verbatim-prefixed output at '?' with InvalidPathException while normal long output worked; keep typed canonical ownership separate from the normal Java-facing path representation.",
+    "An exact-byte @argfile transport at186 characters worked with unchanged cwd234. Retaining the persisted original and using a truly short owned transport is supported by this bounded fixture.",
+    "Windows child startup rejected the initial normal cwd327 before any JVM ran; shortening only @ input cannot solve every possible long working-directory startup problem."
+  ],
+  "seven_callsite_audit": [
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+      "method": "ExecutionContext::run_java_tool_with_classpath",
+      "callee": "java launcher",
+      "argfile": "work_dir/<tool_id>.java.args",
+      "current_directory": "work_dir",
+      "first_native_compile_relevance": "direct",
+      "recommendation": "Retain original tool-specific persisted argfile and existing work_dir. Root-owned fix may launch an exact-byte copy from a checked normal short uniquely owned temporary path. Keep the guard alive through child completion.",
+      "root_owns_live_fix": true
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+      "method": "compile_project main javac branch",
+      "callee": "javac",
+      "argfile": "project_root/javac-main.args",
+      "current_directory": "inherits original Rust CLI cwd",
+      "first_native_compile_relevance": "direct",
+      "recommendation": "Leave unchanged for this fix. The actual long absolute javac @ probe passed. A new current_dir would change legacy semantics and is not justified by Java launcher behavior."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+      "method": "compile_optional_source_set",
+      "callee": "javac",
+      "argfile": "project_root/javac-<source_set>.args",
+      "current_directory": "inherits original Rust CLI cwd",
+      "first_native_compile_relevance": "optional later source sets",
+      "recommendation": "Leave unchanged for the same observed javac distinction; no blind prefix or cwd rewrite."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+      "method": "compile_junit_event_runner",
+      "callee": "javac",
+      "argfile": "cache_dir/junit-runner/javac-junit-runner.args",
+      "current_directory": "inherits original Rust CLI cwd",
+      "first_native_compile_relevance": "not needed for first main compile",
+      "recommendation": "Leave unchanged; the bounded javac long @ probe passed."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+      "method": "execute_run_test JUnit launcher",
+      "callee": "java launcher",
+      "argfile": "cache_dir/run/test/junit.java.args",
+      "current_directory": "plan.minecraft_dir",
+      "first_native_compile_relevance": "none; launch is legacy-only",
+      "recommendation": "Future launcher reuse of the same short owned transport is preferable. Preserve minecraft_dir cwd; a filename-only reference does not resolve this cache-outside-project layout."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/engine_run.rs",
+      "method": "run_launch_command",
+      "callee": "java launcher",
+      "argfile": "cache_dir/run/<kind>/launch.java.args",
+      "current_directory": "existing world/instance working_dir",
+      "first_native_compile_relevance": "none; launch is legacy-only",
+      "recommendation": "Future short owned transport can preserve exact argument bytes and world cwd. Do not switch cwd to the argfile parent or change launch environment/legacy wire fields."
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/src/jar_build/clean_loader_probe.rs",
+      "method": "CleanLoaderProbe::run launcher",
+      "callee": "java launcher",
+      "argfile": "instance/user_jvm_args.txt plus one instance/libraries/<loader>/win_args.txt",
+      "current_directory": "instance_dir",
+      "first_native_compile_relevance": "none; release isolation probe",
+      "recommendation": "Preserve both argument-file order and instance_dir cwd. Typed strip_prefix(instance_dir) is structurally possible, but the long-basename negative means relative form alone is insufficient; future shared short transport should handle each exact byte file in order."
+    }
+  ],
+  "root_owned_minimal_helper_contract": {
+    "input": "existing tool-specific persisted argfile, original work_dir, original verified Java SDK",
+    "transport": "existing tempfile::NamedTempFile dependency; exact-byte copy; normal short absolute Java-facing @ path; no new Windows features",
+    "unchanged": [
+      "Original persisted argfile bytes, filename, fingerprint and diagnostic provenance.",
+      "Working directory and relative argument-content interpretation.",
+      "Classpath/library ordering.",
+      "Prepared dependency recipe and source ownership.",
+      "SDK identity/rechecks.",
+      "Legacy CLI/wire fields.",
+      "All three javac sites."
+    ],
+    "lifetime": "Unique temp owner remains in scope until run_command_capture_output returns, including cancellation/failure handling.",
+    "required_refusals": [
+      "Transport path that cannot satisfy the reviewed conservative Windows length boundary.",
+      "Nonabsolute/unrepresentable launcher path rather than lossy string or blind prefix rewriting.",
+      "Copy/write/read failure or byte-count mismatch.",
+      "Changed named source/SDK identity at the existing execution preflight."
+    ],
+    "not_an_authorized_extra_fix": "No automatic workdir shortening, cache rewrites, dependency refresh, legacy receipt mutation or wholesale argument-path rewrite."
+  },
+  "root_helper_read_only_review": {
+    "source": "platform/cli/sfm-propagate-changes/src/jar_build/engine_execute.rs",
+    "source_bytes": 112392,
+    "source_sha256_at_review": "6511f6518b3630b080dc7dd1a1afe3819ef8c5340201471f2335331028c7b34c",
+    "anchors": [
+      "java_tool_argfile_argument",
+      "java_tool_argfile_transport",
+      "ExecutionContext::run_java_tool_with_classpath"
+    ],
+    "blocking_findings": [],
+    "reviewed_contracts": [
+      "The same rendered bytes populate the original tool-specific persisted argfile and the transport; no classpath or argument-content rewriting.",
+      "Typed OsString constructs the @ argument without lossy display conversion. The Windows transport must be absolute, nonverbatim and below260 UTF-16 units; unsafe paths refuse rather than silently rewrite.",
+      "The original work_dir and original diagnostic argfile path remain unchanged.",
+      "The NamedTempFile local remains alive throughout normal child capture and the existing cancellation kill/wait path.",
+      "Existing named source and SDK rechecks remain before spawn, and run_command_capture_output checks cancellation before spawning.",
+      "The three direct javac callers and other launcher sites are not changed by this bounded helper."
+    ],
+    "proof_limits": [
+      "This is read-only static review, not an execution of the registered helper or a Rust test claim.",
+      "The standalone short-transport probe closed its copied file before Java opened it. The parent-owned native retry also checks JVM opening the helper's still-open NamedTempFile under Windows sharing semantics.",
+      "Existing abnormal subprocess capture-error cleanup is unchanged; the normal/cancellation lifetime review does not claim to repair every prior child-cleanup error path."
+    ]
+  },
+  "limits": [
+    "Six real bounded JDK17 children; no JDK21 claim.",
+    "No Java build graph, native compile or JAR acceptance was performed by this fixture.",
+    "The long javac probe is -version, not an annotation-processor or complete source compilation proof.",
+    "The NIO positive is a21-byte ordinary file write, not proof that every JVM library/native tool path supports arbitrary lengths.",
+    "These observations establish specific accepted/refused paths, not an exhaustive boundary search or universal Windows MAX_PATH theorem.",
+    "Output capture limits were checked after these controlled tiny children completed; no claim of an unbounded hostile-child capture policy.",
+    "The first too-long-cwd attempt created ignored recovery directories but launched no JVM. All recovery fixtures remain, not auto-deleted.",
+    "Root owns all production helper edits and subsequent actual native compile evidence."
+  ]
+}

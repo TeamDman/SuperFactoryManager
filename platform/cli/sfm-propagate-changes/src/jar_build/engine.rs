@@ -18,6 +18,7 @@ use super::SourceOutputOptions;
 pub(super) use super::artifact_audit_issue_kind::ArtifactAuditIssueKind;
 pub(super) use super::artifact_audit_report::ArtifactAuditReport;
 pub(super) use super::artifact_audit_severity::ArtifactAuditSeverity;
+use super::authenticated_minecraft_inputs;
 use super::game_puppet_preview_artifact_root;
 use super::hash::ContentHash;
 use super::hash::ContentHashAlgorithm;
@@ -86,7 +87,6 @@ use zip::CompressionMethod;
 use zip::ZipArchive;
 use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
-
 #[path = "resolve.rs"]
 mod resolve;
 
@@ -755,7 +755,7 @@ fn acquire_build_cache_lock(
     operation: &str,
 ) -> eyre::Result<ArtifactLock> {
     let lock_path = build_cache_lock_path(plan);
-    let artifact = format!("{} build cache for {operation}", plan.branch_name);
+    let artifact = format!("{} build cache for {operation}", plan.target_label());
     if options.wait_for_build_lock {
         return ArtifactLock::acquire(&lock_path, artifact);
     }
@@ -767,8 +767,8 @@ fn acquire_build_cache_lock(
              Lock: {}\n\
              Likely cause: an open `sfm-propagate-changes run client`, `run server`, or `game-test run-server` using this branch.\n\
              Close the running game/server or rerun this command with `--wait-for-build-lock` to wait for it to exit.",
-            plan.branch_name,
-            plan.worktree_path.display(),
+            plan.target_label(),
+            plan.repository_root().display(),
             plan.cache_dir.display(),
             lock_path.display()
         )
@@ -2275,9 +2275,20 @@ impl TargetFailure {
 }
 
 include!("engine_model.rs");
+include!("engine_named_compile.rs");
+include!("engine_development_project.rs");
+include!("engine_named_nfrt_compile.rs");
+include!("engine_named_jar.rs");
+include!("engine_catalog_release_packaging.rs");
+include!("engine_named_sdk_launch.rs");
 include!("engine_plan.rs");
 include!("engine_run.rs");
 include!("engine_execute.rs");
+include!("engine_specialsource_launch.rs");
 include!("engine_sources.rs");
+#[cfg(test)]
+include!("engine_authenticated_library_batch_tests.rs");
+#[cfg(test)]
+include!("engine_authenticated_library_cache_tests.rs");
 include!("engine_source_catalog.rs");
 include!("engine_mappings_compare_artifacts.rs");

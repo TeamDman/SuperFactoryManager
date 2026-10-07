@@ -1,0 +1,63 @@
+package ca.teamdman.sfm.client.screen.review.comment;
+
+import java.util.List;
+
+/** UI boundary implemented by the frozen fixture now and the canonical kernel after integration. */
+public interface SFMReviewCommentDataSource {
+    enum Side { BEFORE, AFTER }
+{% if features.legacy_comment_review or features.legacy_repository_review %}
+    enum EvaluationStatus { RESOLVED_EXACTLY, RESOLVED_WITH_RELOCATION, AMBIGUOUS, NO_MATCH, INVALID_RULE, SCOPE_MISSING, CONTENT_CHANGED }
+    enum StyleChannel { FOREGROUND, BACKGROUND, UNDERLINE, GUTTER }
+{% else %}
+    enum EvaluationStatus {
+        RESOLVED_EXACTLY,
+        RESOLVED_WITH_RELOCATION,
+        AMBIGUOUS,
+        NO_MATCH,
+        INVALID_RULE,
+        SCOPE_MISSING,
+        CONTENT_CHANGED,
+        CANDIDATE_PINNED,
+        CANDIDATE_PINNED_UNAVAILABLE
+    }
+    enum StyleChannel { FOREGROUND, BACKGROUND, UNDERLINE }
+{% endif %}
+    record DocumentView(String id, Side side, String path, String text) {}
+    record RangeView(String documentRevisionId, int startByte, int endByte) {}
+    record CommentView(String id, String text, String provenance, boolean archived,
+{% if features.legacy_comment_review or features.legacy_repository_review %}
+                       List<RangeView> ranges, EvaluationStatus evaluationStatus) {}
+{% else %}
+                       boolean candidate, String targetLabel,
+                       List<RangeView> ranges, EvaluationStatus evaluationStatus) {
+        /** Keeps fixture and downstream construction concise for ordinary committed comments. */
+        public CommentView(
+                String id,
+                String text,
+                String provenance,
+                boolean archived,
+                List<RangeView> ranges,
+                EvaluationStatus evaluationStatus
+        ) {
+            this(id, text, provenance, archived, false, "committed selection", ranges, evaluationStatus);
+        }
+    }
+{% endif %}
+    record StyleRuleView(String id, List<String> requiredHashtags, int priority,
+{% if features.legacy_comment_review or features.legacy_repository_review %}
+                         Integer foreground, Integer background, Integer underline, Integer gutter, boolean enabled) {}
+{% else %}
+                         Integer foreground, Integer background, Integer underline,
+                         String gutterMarker, boolean enabled) {}
+{% endif %}
+    record MigrationView(String commentId, EvaluationStatus status, String diagnostic) {}
+    record LegacyRow(String operationId, String reviewed, String decision, String audit) {}
+    record SessionView(String title, List<DocumentView> documents, List<CommentView> comments,
+                       List<StyleRuleView> styleRules, List<MigrationView> migrations, List<LegacyRow> legacyRows) {}
+
+    SessionView refresh();
+    String createLiteralComment(String text, List<RangeView> ranges);
+    void editComment(String id, String text);
+    void archiveComment(String id);
+    void updateStyleColour(String ruleId, StyleChannel channel, int argb);
+}

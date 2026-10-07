@@ -1,0 +1,50 @@
+{
+  "schema": "sfm:workspace_repair_focused_validation@1",
+  "date": "2026-10-03",
+  "status": "all_seven_focused_groups_passed_full_tooling_gate_running",
+  "scope": "Real core selection and Liquid rendering contracts for Workspace, palette, Echo, Toast, tooltip actions and client registration. Not Java compilation or gameplay.",
+  "prior_evidence": ["sfm-core-workspace-navigation-first-validation-20261002.json", "sfm-core-workspace-conjunction-history-validation-20261003.json", "sfm-core-workspace-registrar-marker-targeted-validation-20261003.json"],
+  "test_optimization": {
+    "target": "platform/cli/sfm-propagate-changes/src/source_projection/core_workspace_navigation_family_tests.rs",
+    "before_bytes": 20877,
+    "before_sha256": "9d9fd138a95fa645089ca4e1d6d5ab332110f4a4aea163c1047187b6aa8264c2",
+    "tested_bytes": 21595,
+    "tested_sha256": "5139c392e077eacb714c3aaac45f423b1f02ac86ca57d99fa15ce53d4f5c3898",
+    "root_ordered_pair_check": "819c74_native_exit_0",
+    "independent_source_review": "661c5f_native_exit_0_no_unresolved_semantic_blocker",
+    "root_application": "2e8463_native_exit_0_exact_postimage",
+    "rules": "One actual source inventory and selection per immutable finalized context. Fresh bounded source reads, strict registrar history checks and real rendering remain per selected leaf. All six test bodies, 25 goldens, 24 rules and omission assertions remain unchanged.",
+    "limit": "Per-context inventory snapshot is appropriate only for these fixed source-contract tests without concurrent inventory mutations. Not a production or shared source/output cache.",
+    "source_derived_preparations": {"previous_leaf_discoveries": 874, "new_exact_context_discoveries": 48},
+    "observed_workspace_group_seconds": 46.64,
+    "prior_failed_group_seconds": 865.38,
+    "performance_limit": "Observed test runs differ in the corrected registrar assertion; this is not a controlled performance benchmark."
+  },
+  "actual_focused_gate": {
+    "mode": "seven_serial_locked_offline_all_features_library_groups",
+    "retired_session": 5394,
+    "terminal_receipt": "9a2ed2",
+    "native_exit": 0,
+    "passed": 39,
+    "failed": 0,
+    "ignored": 0,
+    "listed_library_cases": 2263,
+    "groups": [
+      {"name": "core_workspace_palette_current_contract", "passed": 3, "seconds": 0.01},
+      {"name": "core_workspace_navigation_family_tests", "passed": 6, "seconds": 46.64},
+      {"name": "core_echo_palette_slice_tests", "passed": 8, "seconds": 38.19},
+      {"name": "core_workspace_toast_actions_slice_tests", "passed": 5, "seconds": 36.90},
+      {"name": "core_tooltip_mode_action_slice_tests", "passed": 10, "seconds": 22.04},
+      {"name": "core_client_registration_current_contract", "passed": 1, "seconds": 0.13},
+      {"name": "core_client_registration_slice_tests", "passed": 6, "seconds": 51.14}
+    ],
+    "log_bytes": 4158,
+    "log_sha256": "d1625c88ae26fdebcd74ecd7680ec103b8a5c86c23a5d0fdbba2b3cb66a7d212"
+  },
+  "unchanged_authored_core": {"files": 1989, "bytes": 9291503, "ordinal_member_sha256": "d1c480d6c3a903d448db334edd34e0eab79f1588c01399bfb044f88b50cd97f2", "rules": 706, "variants": 891, "feature_definitions": 180, "projection_keys": 20},
+  "full_gate": {"status": "running_not_completed", "launch_receipt": "4c731b", "session": 76797, "command": "check-all.ps1", "last_observed": "dependency policy and formatting completed; all-feature Clippy running", "formatting_may_change_Rust_source_byte_pins": true},
+  "preserved": {"feature_defaults_prerequisites_and_dependency_locks": "unchanged", "physical_index_sha256": "a2a602682a9bb6c5cfcbb79bfd28b964e5f932a11522558222f2d65990914728", "staging_operations": 0, "historical_failed_receipts_retained": true},
+  "pending": ["full_tooling_gate", "fresh_twenty_context_generation", "remaining_provider_preservation", "Java_runtime_release_parity_and_final_installed_tool_freshness"],
+  "whole_goal_complete": false,
+  "disk_space_error_encountered": false
+}
