@@ -1,13 +1,13 @@
 # Oracle driven Liquid projection workflow
 
-Plan status: Complete. Final acceptance passed on 7 October 2026; no commit or publication performed.
+Plan status: Complete. Final acceptance passed on 7 October 2026. The user's subsequent commit authorization produced `b7a61a287` (authored migration) and `1eebf2b2b` (ten release projects); no merge, push or publication performed.
 Implementation branch: `feat/sfm-main-source-projection`.
 Last updated: 2026-10-07.
 Current focus: handoff for review. All ten release builds and practical inventories, all ten dev-all native JARs and all three representative partial-feature builds are accepted. The original twenty-entry catalog is restored exactly.
 
 Final checkpoint acceptance: `b4-v42-final-checkpoint-20261007.exit.json` records worker `41888`, stage `complete`, exit 0 at `2026-10-07T12:52:48.9865098Z`. Fresh full oracle status proves 20/20 coverage, current references/snapshot and zero unresolved paths. All twenty output checks pass. The native audit verifies ten release and ten development JARs; the static Gradle-input audit covers all twenty roots without executing Gradle. The required Rust gate, final installation and idle latency verification passed. No goal worker remains running. Receipts use `b4-v42-final-*`; gate log is `check-all-v42-20261007.log` in the external evidence root recorded below.
 
-Version-control handoff audit: `git ls-files` reports no tracked release or development projection files at this working-tree checkpoint. `git status` reports the projection directory as untracked; an ordinary release Java path is not ignored, while the matching development path is ignored by the exact `sfm-dev/` rule. Release outputs are ready for later review/version-control adoption, not already committed. Preserve the index: this goal does not authorize staging or commits. The contributor guide now states that boundary explicitly.
+Version-control handoff audit: the final validation checkpoint originally left release outputs untracked because commits were not authorized. The user subsequently requested commits on 7 October 2026. Commit `b7a61a287` preserves the authored migration and `1eebf2b2b` tracks all ten release projects (11,473 files). Development outputs remain ignored; local partial-feature experiments remain uncommitted. Earlier no-commit and untracked-output notes below describe the validation checkpoint, not the current adoption state. The installed executable still contains the validated source; its embedded revision records the pre-commit build, not the new commit IDs.
 
 ## How to use this plan
 

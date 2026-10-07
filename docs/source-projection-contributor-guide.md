@@ -75,6 +75,6 @@ The twenty-project static audit verifies required scripts, wrapper entry points 
 
 This work remains on the source-projection feature branch. Native packaging does not authorize publication, changing the default branch or retiring the existing version branches. A future release requires its own review and compatibility evidence.
 
-The manifested release roots are currently untracked working-tree artifacts, eligible for version control; they have not been staged or committed by this goal. Development roots under `sfm-dev/` are ignored. The checked-in-release workflow describes the intended contribution surface after a separately authorized review and commit, not a claim that these outputs are already in Git history.
+The authored migration is committed as `b7a61a287`; the ten manifested release roots are tracked in `1eebf2b2b`, following the user's separate commit authorization on 7 October 2026. Development roots under `sfm-dev/` remain ignored. Local partial-feature experiments are not part of the checked-in release snapshot. No merge, push or publication was performed.
 
 The [archived contributor workflow](source-projection-contributor-guide-history-through-20261007.md) preserves the earlier frozen imports, overlays, candidate and publication notes without deleting their decisions or evidence. Its old paths, progress counts and owner-selection instructions are historical, not the current generation workflow.
