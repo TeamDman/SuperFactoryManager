@@ -97,10 +97,9 @@ mod tests {
     use crate::source_projection::manifest::SourceProjectionManifest;
     use std::fs;
 
-    const OFFICIAL_EMPTY_REFMAP: &[u8] = include_bytes!(
-        "../../../../minecraft/projection-resources/released-4.34.0/sfm.refmap.json"
-    );
-    const MANIFEST: &str = include_str!("../../../../minecraft/source-projection.json");
+    const OFFICIAL_EMPTY_REFMAP: &[u8] = b"{\n  \"mappings\": {},\n  \"data\": {}\n}";
+    const MANIFEST: &str =
+        include_str!("../../tests/fixtures/source_projection/legacy-source-projection.json");
     const REFMAP_OUTPUT: &str = "src/main/resources/sfm.refmap.json";
     const REFMAP_SHA256: &str =
         "sha256:2c94879b9e943b34c562f6966f9e0aa88c1a30b39bc8e17bd18772b66af24523";

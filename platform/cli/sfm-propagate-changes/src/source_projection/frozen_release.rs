@@ -351,8 +351,8 @@ mod tests {
     use super::super::sync::sync_projection;
     use super::*;
     use crate::cancellation::CancellationToken;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
     use crate::source_projection::manifest::PathEffect;
     use crate::source_projection::manifest::PathEffectKind;
@@ -643,8 +643,8 @@ mod tests {
         );
         let cancellation = CancellationToken::new();
         for target in ["1.19.4", "1.20"] {
-            SourceArgs {
-                command: SourceCommand::Sync(project_args(root.path(), target)),
+            LegacySourceArgs {
+                command: LegacySourceCommand::Sync(project_args(root.path(), target)),
             }
             .invoke_in(&cancellation, root.path())
             .unwrap();
@@ -671,8 +671,8 @@ mod tests {
             let mut under_source = project_args(root.path(), "1.19.4");
             under_source.output_root = PathBuf::from("platform/minecraft/SRC/frozen-probe");
             assert!(
-                SourceArgs {
-                    command: SourceCommand::Sync(under_source),
+                LegacySourceArgs {
+                    command: LegacySourceCommand::Sync(under_source),
                 }
                 .invoke_in(&cancellation, root.path())
                 .is_err()
@@ -683,8 +683,8 @@ mod tests {
             root_alias.output_root =
                 PathBuf::from(root.path().to_string_lossy().to_ascii_uppercase());
             assert!(
-                SourceArgs {
-                    command: SourceCommand::Sync(root_alias),
+                LegacySourceArgs {
+                    command: LegacySourceCommand::Sync(root_alias),
                 }
                 .invoke_in(&cancellation, root.path())
                 .is_err()
@@ -731,8 +731,8 @@ mod tests {
         )
         .unwrap();
         for target in ["1.19.4", "1.20"] {
-            SourceArgs {
-                command: SourceCommand::Check(project_args(root.path(), target)),
+            LegacySourceArgs {
+                command: LegacySourceCommand::Check(project_args(root.path(), target)),
             }
             .invoke_in(&cancellation, root.path())
             .unwrap();
@@ -741,8 +741,8 @@ mod tests {
         let edited = root.path().join("generated/1.20").join(EXTRA);
         fs::write(&edited, b"contributor edit\n").unwrap();
         assert!(
-            SourceArgs {
-                command: SourceCommand::Sync(project_args(root.path(), "1.20")),
+            LegacySourceArgs {
+                command: LegacySourceCommand::Sync(project_args(root.path(), "1.20")),
             }
             .invoke_in(&cancellation, root.path())
             .is_err()

@@ -410,9 +410,9 @@ mod tests {
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::source_projection::candidate_lock::tests::Fixture;
 
@@ -502,6 +502,7 @@ mod tests {
     fn parses_reviewed_digest_and_verifies_producer_package_with_path_free_report() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-package-verify",
             "--package-root",
             "C:/reviewed/package",
@@ -511,8 +512,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleasePackageVerify(parsed_args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleasePackageVerify(parsed_args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-package-verify command");

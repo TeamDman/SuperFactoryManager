@@ -369,8 +369,8 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::source_projection::candidate_lock::tests::Fixture;
 
     fn fixture_args() -> (Fixture, ReleasePackageArgs) {
@@ -418,6 +418,7 @@ mod tests {
     fn release_package_parses_explicit_inventory_lock_and_output() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-package",
             "--repo-root",
             "C:/reviewed/repo",
@@ -435,8 +436,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleasePackage(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleasePackage(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-package command");

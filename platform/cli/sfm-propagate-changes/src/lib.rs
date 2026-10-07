@@ -97,7 +97,9 @@ fn reject_stage_log_file_before_logging(cli: &Cli) -> eyre::Result<()> {
         && matches!(
             &cli.command,
             cli::Command::Source(cli::source::SourceArgs {
-                command: cli::source::SourceCommand::FrozenPresetStage(_),
+                command: cli::source::SourceCommand::Legacy(cli::source::LegacySourceArgs {
+                    command: cli::source::LegacySourceCommand::FrozenPresetStage(_),
+                }),
             })
         )
     {
@@ -178,15 +180,17 @@ mod tests {
                 ..Default::default()
             },
             command: cli::Command::Source(cli::source::SourceArgs {
-                command: cli::source::SourceCommand::FrozenPresetStage(
-                    cli::source::FrozenPresetStageArgs {
-                        repo_root: PathBuf::from("authored"),
-                        candidate_root: PathBuf::from("candidate"),
-                        preview: PathBuf::from("preview.json"),
-                        preview_sha256: "sha256:reviewed".to_owned(),
-                        apply: false,
-                    },
-                ),
+                command: cli::source::SourceCommand::Legacy(cli::source::LegacySourceArgs {
+                    command: cli::source::LegacySourceCommand::FrozenPresetStage(
+                        cli::source::FrozenPresetStageArgs {
+                            repo_root: PathBuf::from("authored"),
+                            candidate_root: PathBuf::from("candidate"),
+                            preview: PathBuf::from("preview.json"),
+                            preview_sha256: "sha256:reviewed".to_owned(),
+                            apply: false,
+                        },
+                    ),
+                }),
             }),
             builtins: figue::FigueBuiltins::default(),
         }

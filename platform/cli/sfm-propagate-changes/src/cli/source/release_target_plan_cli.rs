@@ -188,9 +188,9 @@ pub(super) mod tests {
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
     use crate::source_projection::candidate_lock::tests::Fixture;
@@ -323,6 +323,7 @@ pub(super) mod tests {
     fn cli_requires_exact_target_and_reviewed_promotion() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-target-plan",
             "--package-root",
             "C:/reviewed/package",
@@ -354,8 +355,11 @@ pub(super) mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleaseTargetPlan(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleaseTargetPlan(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-target-plan command");
@@ -365,6 +369,7 @@ pub(super) mod tests {
         assert!(
             figue::from_slice::<Cli>(&[
                 "source",
+                "legacy",
                 "release-target-plan",
                 "--repo-root",
                 "C:/reviewed/repo",

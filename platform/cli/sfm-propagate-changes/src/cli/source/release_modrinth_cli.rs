@@ -185,8 +185,8 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::release_target_plan_cli::tests::git;
     use crate::cli::source::release_target_plan_cli::tests::packaged_candidate;
     use crate::modrinth::ModrinthCreateVersionPayload;
@@ -277,6 +277,7 @@ mod tests {
     fn cli_requires_reviewed_metadata_and_rejects_effect_or_secret_options() {
         let arguments = [
             "source",
+            "legacy",
             "release-modrinth",
             "--package-root",
             "C:/reviewed/package",
@@ -311,8 +312,11 @@ mod tests {
             .into_result()
             .unwrap()
             .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleaseModrinth(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleaseModrinth(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-modrinth command");

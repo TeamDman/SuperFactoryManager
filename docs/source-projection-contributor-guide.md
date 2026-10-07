@@ -73,8 +73,12 @@ The twenty-project static audit verifies required scripts, wrapper entry points 
 
 ## Adoption and historical reference
 
-This work remains on the source-projection feature branch. Native packaging does not authorize publication, changing the default branch or retiring the existing version branches. A future release requires its own review and compatibility evidence.
+The snapshot-era `development-baselines`, `development-overlays`, `release-baselines`, `mc-version` and `projection-resources` trees have been retired. The old root `source-projection.json` is retained only as a test fixture. Current commands use `projections.json` and the Liquid core.
 
-The authored migration is committed as `b7a61a287`; the ten manifested release roots are tracked in `1eebf2b2b`, following the user's separate commit authorization on 7 October 2026. Development roots under `sfm-dev/` remain ignored. Local partial-feature experiments are not part of the checked-in release snapshot. No merge, push or publication was performed.
+Historical preset, import, seed and publication commands are grouped under `source legacy`. They exist for explicit work with pre-consolidation checkouts and compatibility tests. Ordinary generation uses `source project`; do not recreate the retired directories in the current checkout. Historical documentation retains old paths as evidence.
+
+The source-projection branch is now `main`, published as the GitHub default branch with the user's authorization. Existing version branches remain available. Native packaging does not establish publication readiness; a future release requires its own review and compatibility evidence.
+
+The authored migration is committed as `b7a61a287`; the ten manifested release roots are tracked in `1eebf2b2b`, following the user's separate commit authorization on 7 October 2026. Development roots under `sfm-dev/` remain ignored. Local partial-feature experiments are not part of the checked-in release snapshot. The migration was pushed as `main`; no mod release was published. The [layout retirement plan](tasks/sfm-projection-retirement-plan.md) records the subsequent cleanup and its validation.
 
 The [archived contributor workflow](source-projection-contributor-guide-history-through-20261007.md) preserves the earlier frozen imports, overlays, candidate and publication notes without deleting their decisions or evidence. Its old paths, progress counts and owner-selection instructions are historical, not the current generation workflow.

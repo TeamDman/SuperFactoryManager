@@ -1,9 +1,0 @@
-{
-  "model": {
-    "type": "minecraft:special",
-    "base": "sfm:item/form",
-    "model": {
-      "type": "sfm:form"
-    }
-  }
-}

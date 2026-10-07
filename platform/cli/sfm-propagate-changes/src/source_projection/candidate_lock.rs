@@ -867,8 +867,8 @@ pub(crate) mod tests {
     use super::*;
     use crate::cancellation::CancellationToken;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
@@ -1089,8 +1089,8 @@ pub(crate) mod tests {
             let mut targets = Vec::new();
             for (id, minecraft_version, loader, java_major) in TARGETS {
                 let root = temp.path().join("candidates").join(id);
-                SourceArgs {
-                    command: SourceCommand::Sync(SourceProjectArgs {
+                LegacySourceArgs {
+                    command: LegacySourceCommand::Sync(SourceProjectArgs {
                         repo_root: repo.clone(),
                         target: id.to_owned(),
                         preset: format!("released-{mod_version}"),
@@ -1323,8 +1323,8 @@ pub(crate) mod tests {
                 .iter()
                 .map(|(target, path)| format!("{target}={}", path.display()))
                 .collect();
-            SourceArgs {
-                command: SourceCommand::CandidateVerify(CandidateVerifyArgs {
+            LegacySourceArgs {
+                command: LegacySourceCommand::CandidateVerify(CandidateVerifyArgs {
                     repo_root: self.repo.clone(),
                     lock: lock_path,
                     candidate_root,

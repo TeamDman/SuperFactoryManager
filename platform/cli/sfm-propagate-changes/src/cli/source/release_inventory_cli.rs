@@ -173,14 +173,15 @@ mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::source_projection::candidate_lock::CandidateTargetLock;
 
     #[test]
     fn release_inventory_parses_explicit_lock_and_local_roots() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-inventory",
             "--repo-root",
             "C:/reviewed/repo",
@@ -192,8 +193,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleaseInventory(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleaseInventory(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-inventory command");

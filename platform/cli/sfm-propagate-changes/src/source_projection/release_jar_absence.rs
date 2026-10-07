@@ -452,7 +452,7 @@ mod tests {
     #[test]
     fn checked_in_release_manifest_derives_echo_and_touch_rules() {
         let manifest = SourceProjectionManifest::from_json(include_str!(
-            "../../../../minecraft/source-projection.json"
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let (features, rules) = forbidden_entries(&manifest, "1.19.2", "released-4.34.0").unwrap();

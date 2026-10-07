@@ -904,7 +904,7 @@ mod tests {
         BTreeMap<String, ProjectedArtifact>,
     ) {
         let manifest = SourceProjectionManifest::from_json(include_str!(
-            "../../../../minecraft/source-projection.json"
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let preset = if target == "1.19.2" {

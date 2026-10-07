@@ -281,7 +281,6 @@ fn load_catalog(repo_root: &Path, invocation_dir: &Path) -> Result<LoadedCatalog
 mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
-    use crate::source_projection::candidate_lock::checked_file;
     use crate::source_projection::core_catalog::MAX_CATALOG_INPUT_BYTES as MAX_INPUT_BYTES;
     use std::fs;
 
@@ -734,9 +733,10 @@ mod tests {
                 "platform/minecraft/mc-version/{}/{ITEM_PATH}",
                 entry.target_id().unwrap()
             );
-            let witness =
-                fs::read_to_string(checked_file(&loaded.repo_root, &witness_path).unwrap())
-                    .unwrap();
+            let witness = String::from_utf8(
+                crate::source_projection::legacy_test_fixture::read(repo, &witness_path).unwrap(),
+            )
+            .unwrap();
             assert_eq!(
                 normalize_source(&report.rendered_content),
                 normalize_source(&witness),

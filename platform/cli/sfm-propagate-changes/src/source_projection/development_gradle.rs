@@ -696,7 +696,15 @@ mod tests {
 
     fn copy_import_into_temp(temp: &Path, target: &str) -> Result<PathBuf> {
         let relative = format!("platform/minecraft/development-baselines/{target}");
-        let original = current_repository().join(&relative).join("gradle-project");
+        let fixture = tempfile::tempdir()?;
+        super::super::legacy_test_fixture::materialize(
+            fixture.path(),
+            &[
+                &format!("{relative}/gradle-project"),
+                &format!("{relative}/gradle-provenance.json"),
+            ],
+        )?;
+        let original = fixture.path().join(&relative).join("gradle-project");
         let copied = temp.join(&relative).join("gradle-project");
         for entry in WalkDir::new(&original).follow_links(false) {
             let entry = entry?;
@@ -708,7 +716,8 @@ mod tests {
                 fs::copy(entry.path(), destination)?;
             }
         }
-        let original_provenance = current_repository()
+        let original_provenance = fixture
+            .path()
             .join(&relative)
             .join("gradle-provenance.json");
         let copied_provenance = temp.join(relative).join("gradle-provenance.json");
@@ -819,7 +828,18 @@ mod tests {
 
     #[test]
     fn pinned_2612_gradle_overlay_applies_only_after_verified_import() {
-        let root = current_repository();
+        let fixture = tempfile::tempdir().unwrap();
+        super::super::legacy_test_fixture::materialize(
+            fixture.path(),
+            &[
+                "platform/minecraft/source-projection.json",
+                "platform/minecraft/development-baselines/26.1.2/gradle-project",
+                "platform/minecraft/development-baselines/26.1.2/gradle-provenance.json",
+                "platform/minecraft/development-overlays/26.1.2",
+            ],
+        )
+        .unwrap();
+        let root = fixture.path().to_path_buf();
         let manifest = SourceProjectionManifest::from_json(
             &fs::read_to_string(root.join("platform/minecraft/source-projection.json")).unwrap(),
         )
@@ -864,10 +884,9 @@ mod tests {
 
     #[test]
     fn pinned_2612_gradle_overlay_rejects_import_drift() {
-        let root = current_repository();
-        let manifest = SourceProjectionManifest::from_json(
-            &fs::read_to_string(root.join("platform/minecraft/source-projection.json")).unwrap(),
-        )
+        let manifest = SourceProjectionManifest::from_json(include_str!(
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
+        ))
         .unwrap();
         let binding = manifest
             .preset("current-development-head-26.1.2")

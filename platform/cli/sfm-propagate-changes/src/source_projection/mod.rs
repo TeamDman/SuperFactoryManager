@@ -61,6 +61,9 @@ pub mod sync;
 pub mod variant_consolidation;
 
 #[cfg(test)]
+pub(crate) mod legacy_test_fixture;
+
+#[cfg(test)]
 mod core_accessor_document_history_tests;
 #[cfg(test)]
 mod core_action_helpers_slice_tests;

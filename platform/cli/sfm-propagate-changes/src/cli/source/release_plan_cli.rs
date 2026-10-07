@@ -112,9 +112,9 @@ mod tests {
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
     use crate::cli::source::release_package_cli::COMPLETION_FILE;
@@ -182,6 +182,7 @@ mod tests {
     fn parses_and_plans_exact_verified_package_without_paths_or_side_effects() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-plan",
             "--package-root",
             "C:/reviewed/package",
@@ -191,8 +192,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleasePlan(parsed_args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleasePlan(parsed_args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-plan command");

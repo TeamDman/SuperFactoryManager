@@ -1645,7 +1645,7 @@ mod tests {
     #[test]
     fn published_release_preset_cannot_gain_version_sources() {
         let checked_in = SourceProjectionManifest::from_json(include_str!(
-            "../../../../minecraft/source-projection.json"
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let published = checked_in.preset("released-4.34.0").unwrap();
@@ -1676,7 +1676,7 @@ mod tests {
     #[test]
     fn release_mod_version_is_optional_identity_bound_and_matches_preset_id() {
         let checked_in = SourceProjectionManifest::from_json(include_str!(
-            "../../../../minecraft/source-projection.json"
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let published = checked_in.preset("released-4.34.0").unwrap();
@@ -1717,7 +1717,7 @@ mod tests {
     #[test]
     fn frozen_release_requires_exact_target_inventory_and_keeps_legacy_identity() {
         let checked_in = SourceProjectionManifest::from_json(include_str!(
-            "../../../../minecraft/source-projection.json"
+            "../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let legacy = checked_in.preset("released-4.34.0").unwrap();

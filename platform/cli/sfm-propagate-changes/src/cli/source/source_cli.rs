@@ -1,16 +1,11 @@
-//! Explicit, fail-closed source-projection commands.
+//! Historical snapshot/preset commands exposed only under `source legacy`.
 
 use super::candidate_lock_cli::CandidateVerifyArgs;
-use super::core_project_cli::CoreProjectArgs;
 use super::core_seed_cli::CoreAuxiliarySeedArgs;
 use super::core_seed_cli::CoreBuildSeedArgs;
 use super::core_seed_cli::CoreSeedArgs;
 use super::core_seed_cli::CoreVersionSeedArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
-use super::oracle_cli::SourceOracleArgs;
-use super::projection_catalog_cli::SourceListArgs;
-use super::projection_catalog_cli::SourceRenderArgs;
-use super::projection_catalog_cli::SourceShowArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
 use super::release_modrinth_cli::ReleaseModrinthArgs;
@@ -21,7 +16,6 @@ use super::release_provider_plan_cli::ReleaseModrinthRequestPreviewArgs;
 use super::release_provider_plan_cli::ReleaseProviderPlanArgs;
 use super::release_tag_preflight_cli::ReleaseTagPreflightArgs;
 use super::release_target_plan_cli::ReleaseTargetPlanArgs;
-use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
@@ -84,18 +78,14 @@ use std::thread;
 use std::time::Duration;
 
 #[derive(Debug, Facet)]
-pub struct SourceArgs {
+pub struct LegacySourceArgs {
     #[facet(args::subcommand)]
-    pub command: SourceCommand,
+    pub command: LegacySourceCommand,
 }
 
 #[derive(Debug, Facet)]
 #[repr(u8)]
-pub enum SourceCommand {
-    /// Compare pinned local Git oracles with fresh core-rendered projections.
-    Oracle(SourceOracleArgs),
-    /// Generate named projects from core Liquid inputs only; legacy preset commands remain separate.
-    Project(CoreProjectArgs),
+pub enum LegacySourceCommand {
     /// Preview or explicitly apply the reviewed shared-source authoring seed; never a production fallback.
     SeedShared(CoreSeedArgs),
     /// Preview or explicitly apply reconstructed version templates; never a production fallback.
@@ -104,12 +94,6 @@ pub enum SourceCommand {
     SeedBuild(CoreBuildSeedArgs),
     /// Preview or explicitly import feature-independent resources and test sources.
     SeedAuxiliary(CoreAuxiliarySeedArgs),
-    /// List named projections from the core-owned catalog without generating files.
-    List(SourceListArgs),
-    /// Inspect one named projection's explicit version, environment and features.
-    Show(SourceShowArgs),
-    /// Render one core-owned Java template without generating a project or building a JAR.
-    Render(SourceRenderArgs),
     /// Calculate a candidate preset-definition fingerprint before publishing it.
     PresetIdentity(SourcePresetIdentityArgs),
     /// Import pinned 4.34.0 tag sources and Gradle inputs without touching generated projects.
@@ -158,8 +142,6 @@ pub enum SourceCommand {
     ReleaseTargetPlan(ReleaseTargetPlanArgs),
     /// Prepare one verified Modrinth request with a selected JAR of at most 64 MiB; never upload.
     ReleaseModrinth(ReleaseModrinthArgs),
-    /// Show one generated file's recorded owner and current edit state.
-    Trace(SourceTraceArgs),
 }
 
 #[derive(Debug, Facet)]
@@ -389,7 +371,7 @@ impl SourceGradleMode {
     }
 }
 
-impl SourceArgs {
+impl LegacySourceArgs {
     /// # Errors
     ///
     /// Returns an error for invalid inputs, changed generated files or I/O.
@@ -398,67 +380,91 @@ impl SourceArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
+        let legacy_root = match &self.command {
+            LegacySourceCommand::SeedShared(args) => Some(&args.repo_root),
+            LegacySourceCommand::SeedVersions(args) => Some(&args.repo_root),
+            LegacySourceCommand::SeedBuild(args) => Some(&args.repo_root),
+            LegacySourceCommand::SeedAuxiliary(args) => Some(&args.repo_root),
+            LegacySourceCommand::ImportRelease(args) => Some(&args.repo_root),
+            LegacySourceCommand::ImportDevelopment(args) => Some(&args.repo_root),
+            LegacySourceCommand::ImportDevelopmentFixtures(args) => Some(&args.repo_root),
+            LegacySourceCommand::DryRun(args)
+            | LegacySourceCommand::Check(args)
+            | LegacySourceCommand::Sync(args)
+            | LegacySourceCommand::Reconcile(args) => Some(&args.repo_root),
+            LegacySourceCommand::Build(args) | LegacySourceCommand::Run(args) => {
+                Some(&args.project.repo_root)
+            }
+            _ => None,
+        };
+        if let Some(root) = legacy_root {
+            let root = resolve_repository_root(root.clone(), invocation_dir)?;
+            ensure!(
+                !root.join("platform/minecraft/projections.json").exists(),
+                "snapshot/preset authoring is retired in catalog repositories; use source project with --projection instead"
+            );
+        }
         let (args, mode) = match self.command {
-            SourceCommand::Oracle(args) => return args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::Project(args) => return args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::SeedShared(args) => return args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::SeedVersions(args) => {
+            LegacySourceCommand::SeedShared(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::SeedBuild(args) => return args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::SeedAuxiliary(args) => {
+            LegacySourceCommand::SeedVersions(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::List(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::Show(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::Render(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::PresetIdentity(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::ImportRelease(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::ImportDevelopment(args) => return args.invoke_in(invocation_dir),
-            SourceCommand::ImportDevelopmentFixtures(args) => {
+            LegacySourceCommand::SeedBuild(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            LegacySourceCommand::SeedAuxiliary(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            LegacySourceCommand::PresetIdentity(args) => return args.invoke_in(invocation_dir),
+            LegacySourceCommand::ImportRelease(args) => return args.invoke_in(invocation_dir),
+            LegacySourceCommand::ImportDevelopment(args) => return args.invoke_in(invocation_dir),
+            LegacySourceCommand::ImportDevelopmentFixtures(args) => {
                 return args.invoke_in(invocation_dir);
             }
-            SourceCommand::FrozenInventoryPreview(args) => {
+            LegacySourceCommand::FrozenInventoryPreview(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::FrozenInventoryMatrixPreview(args) => {
+            LegacySourceCommand::FrozenInventoryMatrixPreview(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::FrozenPresetStage(args) => {
+            LegacySourceCommand::FrozenPresetStage(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::Build(args) => {
+            LegacySourceCommand::Build(args) => {
                 return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Build);
             }
-            SourceCommand::Run(args) => {
+            LegacySourceCommand::Run(args) => {
                 return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Run);
             }
-            SourceCommand::Promote(args) => return args.invoke_in(cancellation, invocation_dir),
-            SourceCommand::CandidateVerify(args) => {
+            LegacySourceCommand::Promote(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::ReleaseInventory(args) => {
+            LegacySourceCommand::CandidateVerify(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::ReleasePackage(args) => {
+            LegacySourceCommand::ReleaseInventory(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
-            SourceCommand::ReleasePackageVerify(args) => {
+            LegacySourceCommand::ReleasePackage(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            LegacySourceCommand::ReleasePackageVerify(args) => {
                 return args.invoke_in(cancellation);
             }
-            SourceCommand::ReleasePlan(args) => return args.invoke_in(cancellation),
-            SourceCommand::ReleaseProviderPlan(args) => return args.invoke_in(cancellation),
-            SourceCommand::ReleaseModrinthRequestPreview(args) => {
+            LegacySourceCommand::ReleasePlan(args) => return args.invoke_in(cancellation),
+            LegacySourceCommand::ReleaseProviderPlan(args) => return args.invoke_in(cancellation),
+            LegacySourceCommand::ReleaseModrinthRequestPreview(args) => {
                 return args.invoke_in(cancellation);
             }
-            SourceCommand::ReleaseTagPreflight(args) => return args.invoke_in(cancellation),
-            SourceCommand::ReleaseTargetPlan(args) => return args.invoke_in(cancellation),
-            SourceCommand::ReleaseModrinth(args) => return args.invoke_in(cancellation),
-            SourceCommand::Trace(args) => return args.invoke_in(),
-            SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
-            SourceCommand::Check(args) => (args, SyncMode::Check),
-            SourceCommand::Sync(args) => (args, SyncMode::Apply),
-            SourceCommand::Reconcile(args) => (args, SyncMode::Reconcile),
+            LegacySourceCommand::ReleaseTagPreflight(args) => return args.invoke_in(cancellation),
+            LegacySourceCommand::ReleaseTargetPlan(args) => return args.invoke_in(cancellation),
+            LegacySourceCommand::ReleaseModrinth(args) => return args.invoke_in(cancellation),
+            LegacySourceCommand::DryRun(args) => (args, SyncMode::DryRun),
+            LegacySourceCommand::Check(args) => (args, SyncMode::Check),
+            LegacySourceCommand::Sync(args) => (args, SyncMode::Apply),
+            LegacySourceCommand::Reconcile(args) => (args, SyncMode::Reconcile),
         };
         args.invoke_in(cancellation, invocation_dir, mode)
     }
@@ -1811,7 +1817,7 @@ pub(super) mod tests {
     #[test]
     fn frozen_matrix_requires_exact_explicit_development_selections() {
         let manifest = SourceProjectionManifest::from_json(include_str!(
-            "../../../../../minecraft/source-projection.json"
+            "../../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let complete = real_frozen_matrix_selections();
@@ -1848,6 +1854,7 @@ pub(super) mod tests {
     fn frozen_matrix_command_parses_repeated_explicit_selections() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "frozen-inventory-matrix-preview",
             "--repo-root",
             ".",
@@ -1863,8 +1870,11 @@ pub(super) mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::FrozenInventoryMatrixPreview(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::FrozenInventoryMatrixPreview(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected frozen-inventory-matrix-preview command");
@@ -2526,7 +2536,7 @@ pub(super) mod tests {
         let pinned = root.join("platform/minecraft/development-baselines/1.19.4/gradle-project");
         fs::create_dir_all(&pinned).unwrap();
         let manifest = SourceProjectionManifest::from_json(include_str!(
-            "../../../../../minecraft/source-projection.json"
+            "../../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let selection = select(&manifest, "1.19.4", "current-development-head-1.19.4").unwrap();
@@ -2596,10 +2606,22 @@ pub(super) mod tests {
 
     #[test]
     fn pinned_release_gradle_inputs_accept_only_preset_scoped_version_rewrite() {
-        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../..")
-            .canonicalize()
-            .unwrap();
+        let fixture = tempfile::tempdir().unwrap();
+        let mut paths = vec!["platform/minecraft/source-projection.json".to_owned()];
+        for (target, tag, _) in crate::source_projection::release_baseline::RELEASE_4_34_0_TAGS {
+            paths.push(format!(
+                "platform/minecraft/release-baselines/{tag}/gradle-project"
+            ));
+            paths.push(format!(
+                "platform/minecraft/mc-version/{target}/gradle.properties"
+            ));
+        }
+        crate::source_projection::legacy_test_fixture::materialize(
+            fixture.path(),
+            &paths.iter().map(String::as_str).collect::<Vec<_>>(),
+        )
+        .unwrap();
+        let repo_root = fixture.path().canonicalize().unwrap();
         let manifest = SourceProjectionManifest::from_json(
             &fs::read_to_string(repo_root.join("platform/minecraft/source-projection.json"))
                 .unwrap(),
@@ -2775,6 +2797,7 @@ pub(super) mod tests {
         for verb in ["dry-run", "check", "sync", "reconcile"] {
             let parsed = figue::from_slice::<Cli>(&[
                 "source",
+                "legacy",
                 verb,
                 "--repo-root",
                 ".",
@@ -2792,6 +2815,7 @@ pub(super) mod tests {
         }
         let identity = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "preset-identity",
             "--repo-root",
             ".",
@@ -2802,13 +2826,15 @@ pub(super) mod tests {
         .expect("preset identity command should parse")
         .get_silent();
         assert!(matches!(identity.command, Command::Source(_)));
-        let importer = figue::from_slice::<Cli>(&["source", "import-release", "--repo-root", "."])
-            .into_result()
-            .expect("release import command should parse")
-            .get_silent();
+        let importer =
+            figue::from_slice::<Cli>(&["source", "legacy", "import-release", "--repo-root", "."])
+                .into_result()
+                .expect("release import command should parse")
+                .get_silent();
         assert!(matches!(importer.command, Command::Source(_)));
         let importer = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "import-development",
             "--repo-root",
             ".",
@@ -2828,8 +2854,11 @@ pub(super) mod tests {
         .into_result()
         .expect("development import command should parse")
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ImportDevelopment(importer),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ImportDevelopment(importer),
+                }),
         }) = importer.command
         else {
             panic!("expected development import command");
@@ -2842,6 +2871,7 @@ pub(super) mod tests {
         );
         let fixture_importer = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "import-development-fixtures",
             "--repo-root",
             ".",
@@ -2861,8 +2891,11 @@ pub(super) mod tests {
         .into_result()
         .expect("development fixture import command should parse")
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ImportDevelopmentFixtures(fixture_importer),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ImportDevelopmentFixtures(fixture_importer),
+                }),
         }) = fixture_importer.command
         else {
             panic!("expected development fixture import command");
@@ -2872,6 +2905,7 @@ pub(super) mod tests {
         for verb in ["build", "run"] {
             let parsed = figue::from_slice::<Cli>(&[
                 "source",
+                "legacy",
                 verb,
                 "--repo-root",
                 ".",
@@ -2889,6 +2923,7 @@ pub(super) mod tests {
         }
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "build",
             "--repo-root",
             ".",
@@ -2905,8 +2940,11 @@ pub(super) mod tests {
         .into_result()
         .expect("development build options should parse")
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::Build(build),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::Build(build),
+                }),
         }) = parsed.command
         else {
             panic!("expected source build command");
@@ -3245,7 +3283,7 @@ pub(super) mod tests {
         let canonical = source_path(&repo_root, Path::new("platform/minecraft/src")).unwrap();
         let alternate = source_path(&repo_root, Path::new("alternate/src")).unwrap();
         let manifest = SourceProjectionManifest::from_json(include_str!(
-            "../../../../../minecraft/source-projection.json"
+            "../../../tests/fixtures/source_projection/legacy-source-projection.json"
         ))
         .unwrap();
         let development = select(&manifest, "1.19.4", "current-development-head-1.19.4").unwrap();
@@ -3352,8 +3390,8 @@ pub(super) mod tests {
         .unwrap();
 
         let cancellation = CancellationToken::new();
-        SourceArgs {
-            command: SourceCommand::Sync(fixture_args(repo.path())),
+        LegacySourceArgs {
+            command: LegacySourceCommand::Sync(fixture_args(repo.path())),
         }
         .invoke_in(&cancellation, repo.path())
         .unwrap();
@@ -3363,14 +3401,14 @@ pub(super) mod tests {
                 .unwrap()
                 .starts_with("// GENERATED")
         );
-        SourceArgs {
-            command: SourceCommand::Check(fixture_args(repo.path())),
+        LegacySourceArgs {
+            command: LegacySourceCommand::Check(fixture_args(repo.path())),
         }
         .invoke_in(&cancellation, repo.path())
         .unwrap();
         fs::write(&output, "contributor change\n").unwrap();
-        let _ = SourceArgs {
-            command: SourceCommand::Sync(fixture_args(repo.path())),
+        let _ = LegacySourceArgs {
+            command: LegacySourceCommand::Sync(fixture_args(repo.path())),
         }
         .invoke_in(&cancellation, repo.path())
         .unwrap_err();

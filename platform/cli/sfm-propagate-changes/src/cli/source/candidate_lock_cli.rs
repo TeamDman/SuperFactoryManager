@@ -186,8 +186,8 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceFrozenInventoryMatrixPreviewArgs;
     use crate::source_projection::manifest::FrozenSourceBinding;
     use crate::source_projection::manifest::SCHEMA_VERSION;
@@ -487,8 +487,8 @@ mod tests {
             let cancellation = CancellationToken::new();
             for id in FROZEN_TARGETS {
                 let root = external.join(id);
-                SourceArgs {
-                    command: SourceCommand::Sync(frozen_project_args(&repo, id, &root)),
+                LegacySourceArgs {
+                    command: LegacySourceCommand::Sync(frozen_project_args(&repo, id, &root)),
                 }
                 .invoke_in(&cancellation, &repo)
                 .unwrap();
@@ -624,6 +624,7 @@ mod tests {
     fn candidate_verify_parses_distinct_portable_lock_and_local_roots() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "candidate-verify",
             "--repo-root",
             "C:/reviewed/repo",
@@ -635,8 +636,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::CandidateVerify(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::CandidateVerify(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source candidate-verify command");

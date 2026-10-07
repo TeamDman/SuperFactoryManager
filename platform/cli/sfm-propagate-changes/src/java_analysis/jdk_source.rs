@@ -1206,7 +1206,7 @@ mod tests {
     #[test]
     fn generated_legacy_release_lockfile_uses_selected_exact_jdk_home() {
         assert_unpinned_lockfile_uses_selected_home(include_str!(
-            "../../../../minecraft/release-baselines/4.34.0-1.21.0/gradle-project/sfm-toolchain.lock.json"
+            "../../../../minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-2.json"
         ));
     }
 
@@ -1266,7 +1266,7 @@ mod tests {
         std::fs::write(
             project_root.join("sfm-toolchain.lock.json"),
             include_str!(
-                "../../../../minecraft/release-baselines/4.34.0-1.21.0/gradle-project/sfm-toolchain.lock.json"
+                "../../../../minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-2.json"
             ),
         )
         .expect("real release lockfile");

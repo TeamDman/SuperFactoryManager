@@ -679,8 +679,8 @@ mod tests {
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::SourceProjectArgs;
     use crate::source_projection::candidate_lock::CandidateTargetLock;
     use crate::source_projection::candidate_lock::tests::Fixture as CandidateFixture;
@@ -885,6 +885,7 @@ mod tests {
             "--output-format",
             "json",
             "source",
+            "legacy",
             "promote",
             "--request",
             "reviewed.json",
@@ -893,8 +894,11 @@ mod tests {
         .unwrap()
         .get_silent();
         assert_eq!(parsed.global_args.output_format, Some(OutputFormat::Json));
-        let Command::Source(SourceArgs {
-            command: SourceCommand::Promote(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::Promote(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source promote command");
@@ -912,6 +916,7 @@ mod tests {
     fn apply_and_repair_acknowledgement_are_explicit_flags() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "promote",
             "--request",
             "reviewed.json",
@@ -925,8 +930,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::Promote(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::Promote(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source promote command");
@@ -941,6 +949,7 @@ mod tests {
     fn new_immutable_acknowledgement_is_an_explicit_flag() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "promote",
             "--request",
             "reviewed.json",
@@ -954,8 +963,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::Promote(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::Promote(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source promote command");
@@ -1628,6 +1640,13 @@ mod tests {
             String::from_utf8(output.stdout).unwrap().trim().to_owned()
         };
         git(&["config", "core.longpaths", "true"]);
+        // Exercise the retired workflow at its last preserved layout, not
+        // whatever future main HEAD happens to contain.
+        git(&[
+            "checkout",
+            "--detach",
+            crate::source_projection::legacy_test_fixture::CHECKPOINT,
+        ]);
         git(&[
             "sparse-checkout",
             "set",
@@ -1638,6 +1657,9 @@ mod tests {
             "platform/minecraft/projection-resources",
             "platform/minecraft/mc-version",
         ]);
+        // This isolated fixture models a legacy-only checkout. A real catalog
+        // repository must keep rejecting snapshot authoring.
+        git(&["rm", "--", "platform/minecraft/projections.json"]);
         git(&["config", "user.name", "SFM Fixture"]);
         git(&["config", "user.email", "sfm-fixture@example.invalid"]);
         let manifest_path = repo.join("platform/minecraft/source-projection.json");
@@ -1668,8 +1690,8 @@ mod tests {
         let mut candidates = BTreeMap::new();
         for target in &manifest.targets {
             let root = scratch.path().join("candidates").join(&target.id);
-            SourceArgs {
-                command: SourceCommand::Sync(SourceProjectArgs {
+            LegacySourceArgs {
+                command: LegacySourceCommand::Sync(SourceProjectArgs {
                     repo_root: repo.clone(),
                     target: target.id.clone(),
                     preset: PRESET.to_owned(),
@@ -1766,8 +1788,8 @@ mod tests {
         let mut incomplete_roots = candidate_roots.clone();
         incomplete_roots.pop();
         assert!(
-            SourceArgs {
-                command: SourceCommand::CandidateVerify(CandidateVerifyArgs {
+            LegacySourceArgs {
+                command: LegacySourceCommand::CandidateVerify(CandidateVerifyArgs {
                     repo_root: repo.clone(),
                     lock: lock_path.clone(),
                     candidate_root: incomplete_roots,

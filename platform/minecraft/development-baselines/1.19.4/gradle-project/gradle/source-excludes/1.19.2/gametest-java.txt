@@ -1,1 +1,0 @@
-# Paths are relative to src/gametest/java.

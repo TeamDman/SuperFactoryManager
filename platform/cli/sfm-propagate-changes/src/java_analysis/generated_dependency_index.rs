@@ -923,14 +923,15 @@ mod tests {
     #[test]
     #[ignore = "requires the local offline artifact cache"]
     fn real_generated_1192_and_1211_roots_resolve_pinned_types() {
-        let minecraft = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../minecraft/mc-version");
+        let minecraft =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../minecraft/projections/sfm-4.34.0");
         let cache = crate::paths::CacheHome::resolve().unwrap();
         for (version, qualified_name) in [
             ("1.19.2", "org.spongepowered.asm.mixin.Mixin"),
             ("1.21.1", "com.google.gson.Gson"),
         ] {
             let scanned = scan_generated_dependency_type(
-                &minecraft.join(version),
+                &minecraft.join(format!("mc-{version}")),
                 &cache.0,
                 qualified_name,
                 &CancellationToken::new(),

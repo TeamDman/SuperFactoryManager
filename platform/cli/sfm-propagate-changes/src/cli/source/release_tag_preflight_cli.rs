@@ -541,9 +541,9 @@ mod tests {
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
     use crate::cli::source::CandidateVerifyArgs;
+    use crate::cli::source::LegacySourceArgs;
+    use crate::cli::source::LegacySourceCommand;
     use crate::cli::source::ReleasePackageArgs;
-    use crate::cli::source::SourceArgs;
-    use crate::cli::source::SourceCommand;
     use crate::cli::source::candidate_lock_cli::verify_candidate_in;
     use crate::cli::source::release_inventory_cli::ReleaseInventory;
     use crate::source_projection::candidate_lock::tests::Fixture;
@@ -654,6 +654,7 @@ mod tests {
     fn cli_requires_explicit_target_and_reviewed_release_commit() {
         let parsed = figue::from_slice::<Cli>(&[
             "source",
+            "legacy",
             "release-tag-preflight",
             "--repo-root",
             "C:/reviewed/repo",
@@ -669,8 +670,11 @@ mod tests {
         .into_result()
         .unwrap()
         .get_silent();
-        let Command::Source(SourceArgs {
-            command: SourceCommand::ReleaseTagPreflight(args),
+        let Command::Source(crate::cli::source::SourceArgs {
+            command:
+                crate::cli::source::SourceCommand::Legacy(LegacySourceArgs {
+                    command: LegacySourceCommand::ReleaseTagPreflight(args),
+                }),
         }) = parsed.command
         else {
             panic!("expected source release-tag-preflight command");
@@ -679,6 +683,7 @@ mod tests {
         assert!(
             figue::from_slice::<Cli>(&[
                 "source",
+                "legacy",
                 "release-tag-preflight",
                 "--repo-root",
                 "C:/reviewed/repo",

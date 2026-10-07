@@ -19,8 +19,8 @@ fn run_check(jar: &Path) -> std::process::Output {
 }
 
 fn run_check_target(jar: &Path, target: &str) -> std::process::Output {
-    let manifest =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../minecraft/source-projection.json");
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/source_projection/legacy-source-projection.json");
     Command::new(env!("CARGO_BIN_EXE_source-jar-absence"))
         .args(["--manifest", manifest.to_str().unwrap()])
         .args(["--target", target, "--preset", "released-4.34.0"])

@@ -1,4 +1,5 @@
 mod candidate_lock_cli;
+mod catalog_commands;
 mod core_project_cli;
 mod core_seed_cli;
 mod frozen_preset_stage_cli;
@@ -17,6 +18,8 @@ mod source_cli;
 mod source_trace_cli;
 
 pub use candidate_lock_cli::CandidateVerifyArgs;
+pub use catalog_commands::SourceArgs;
+pub use catalog_commands::SourceCommand;
 pub use core_project_cli::CoreProjectArgs;
 pub use core_seed_cli::CoreAuxiliarySeedArgs;
 pub use core_seed_cli::CoreBuildSeedArgs;

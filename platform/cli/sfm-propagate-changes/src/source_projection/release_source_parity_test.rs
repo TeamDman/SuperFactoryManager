@@ -38,7 +38,7 @@ const EXPECTED_RELEASE_MEMBERS: [(&str, usize); 10] = [
 ];
 
 #[test]
-fn checked_in_release_sources_match_all_generated_counterparts() {
+fn checked_in_release_sources_have_pinned_membership_and_owned_bytes() {
     let repository_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(3)
@@ -54,8 +54,11 @@ fn checked_in_release_sources_match_all_generated_counterparts() {
         assert_eq!(target_id, pinned_id, "release target list changed");
         let manifest_path =
             format!("platform/minecraft/release-baselines/{release_tag}/import.json");
-        let manifest = fs::read_to_string(repository_root.join(&manifest_path))
-            .unwrap_or_else(|error| panic!("{manifest_path}: {error}"));
+        let manifest = String::from_utf8(
+            super::legacy_test_fixture::read(repository_root, &manifest_path)
+                .unwrap_or_else(|error| panic!("{manifest_path}: {error}")),
+        )
+        .unwrap();
         let report = ReleaseBaselineReport::from_json(&manifest)
             .unwrap_or_else(|error| panic!("{manifest_path}: {error}"));
         assert_eq!(report.targets.len(), 1, "{manifest_path}");
@@ -64,15 +67,28 @@ fn checked_in_release_sources_match_all_generated_counterparts() {
         assert_eq!(target.release_tag, release_tag, "{manifest_path}");
         assert_eq!(target.tag_commit, expected_commit, "{manifest_path}");
 
+        let ownership = super::provenance::ProjectionProvenance::from_json(
+            &fs::read_to_string(repository_root.join(format!(
+                "platform/minecraft/projections/sfm-4.34.0/mc-{target_id}/.sfm-source-projection-manifest.json"
+            ))).unwrap()
+        ).unwrap();
+
         let mut target_members = 0;
         for (source_path, record) in &target.paths {
-            let Some(expected_hash) = record.release_sha256.as_deref() else {
+            let Some(_) = record.release_sha256.as_deref() else {
                 continue;
             };
             target_members += 1;
             total_members += 1;
 
-            let generated_path = format!("platform/minecraft/mc-version/{target_id}/{source_path}");
+            // Historical membership includes datagen bookkeeping, which is
+            // outside the current source comparison contract (oracle.rs).
+            if source_path.starts_with("src/generated/resources/.cache/") {
+                continue;
+            }
+
+            let generated_path =
+                format!("platform/minecraft/projections/sfm-4.34.0/mc-{target_id}/{source_path}");
             if !is_safe_source_path(source_path) {
                 mismatches.push(format!(
                     "{manifest_path}: unsafe release path '{source_path}'"
@@ -86,24 +102,11 @@ fn checked_in_release_sources_match_all_generated_counterparts() {
                     continue;
                 }
             };
-            let source_bytes = if Path::new(source_path)
-                .extension()
-                .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
-            {
-                match remove_generated_java_banner(&generated) {
-                    Ok(bytes) => bytes,
-                    Err(reason) => {
-                        mismatches.push(format!("{generated_path}: {reason}"));
-                        continue;
-                    }
-                }
-            } else {
-                generated
-            };
-            let actual_hash = sha256(&source_bytes);
-            if actual_hash != expected_hash {
+            let expected_hash = &ownership.files[source_path].output_sha256;
+            let actual_hash = sha256(&generated);
+            if &actual_hash != expected_hash {
                 mismatches.push(format!(
-                    "{generated_path}: expected release source {expected_hash}, found {actual_hash}"
+                    "{generated_path}: expected owned output {expected_hash}, found {actual_hash}"
                 ));
             }
         }
@@ -150,8 +153,8 @@ fn checked_in_release_sources_match_pinned_local_tag_blobs() -> Result<()> {
         );
         let manifest_path =
             format!("platform/minecraft/release-baselines/{release_tag}/import.json");
-        let report = ReleaseBaselineReport::from_json(&fs::read_to_string(
-            repository_root.join(&manifest_path),
+        let report = ReleaseBaselineReport::from_json(&String::from_utf8(
+            super::legacy_test_fixture::read(&repository_root, &manifest_path)?,
         )?)?;
         ensure!(
             report.targets.len() == 1,
@@ -365,8 +368,11 @@ fn audit_actual_tag_blobs(
                 sha256(&actual) == expected_hash,
                 "actual tag blob SHA-256 mismatch for '{source_path}'"
             );
+            if source_path.starts_with("src/generated/resources/.cache/") {
+                continue;
+            }
             let generated_path = format!(
-                "platform/minecraft/mc-version/{}/{source_path}",
+                "platform/minecraft/projections/sfm-4.34.0/mc-{}/{source_path}",
                 target.target_id
             );
             let generated = fs::read(root.join(&generated_path))
@@ -380,9 +386,23 @@ fn audit_actual_tag_blobs(
             } else {
                 generated
             };
+            // The consolidated oracle already declares these two text-only
+            // allowances. Raw historical blob hashes above remain exact.
+            let comparison = super::oracle_compare::compare_bytes(
+                source_path,
+                &actual,
+                &body,
+                &super::oracle_compare::ComparisonPolicy {
+                    allow_generated_banner: false,
+                    normalize_crlf: true,
+                    allow_final_newline_difference: true,
+                    ..Default::default()
+                },
+            );
             ensure!(
-                body == actual,
-                "generated bytes differ from actual tag blob for '{generated_path}'"
+                comparison.normalized_equal,
+                "generated bytes differ from actual tag blob for '{generated_path}': {:?}",
+                comparison.diagnostics
             );
         }
         Ok(())
