@@ -1,0 +1,12 @@
+{
+  "type": "sfm:printing_press",
+  "form": {
+    "item": "minecraft:written_book"
+  },
+  "ink": {
+    "tag": "c:dyes/black"
+  },
+  "paper": {
+    "item": "minecraft:book"
+  }
+}

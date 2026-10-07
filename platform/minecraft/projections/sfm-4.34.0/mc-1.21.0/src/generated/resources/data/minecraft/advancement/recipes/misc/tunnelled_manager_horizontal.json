@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_manager": {
+      "conditions": {
+        "items": [
+          {
+            "items": "sfm:manager"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "minecraft:tunnelled_manager_horizontal"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_manager"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "minecraft:tunnelled_manager_horizontal"
+    ]
+  }
+}

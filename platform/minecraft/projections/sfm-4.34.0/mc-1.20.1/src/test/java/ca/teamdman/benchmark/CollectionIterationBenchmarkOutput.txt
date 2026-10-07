@@ -1,0 +1,550 @@
+
+> Configure project :
+Java: 17.0.6, JVM: 17.0.6+7-b469.82 (JetBrains s.r.o.), Arch: amd64
+
+> Task :generateGrammarSource UP-TO-DATE
+
+> Task :compileJava
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: Some input files use unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+
+> Task :processResources UP-TO-DATE
+> Task :classes
+> Task :generateTestGrammarSource NO-SOURCE
+> Task :compileTestJava
+> Task :processTestResources NO-SOURCE
+> Task :testClasses
+
+> Task :ca.teamdman.benchmark.CollectionIterationBenchmark.main()
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArray
+
+# Run progress: 0.00% complete, ETA 00:11:00
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 16.736 ns/op
+# Warmup Iteration   2: 16.426 ns/op
+# Warmup Iteration   3: 18.170 ns/op
+# Warmup Iteration   4: 18.454 ns/op
+# Warmup Iteration   5: 18.954 ns/op
+Iteration   1: 18.810 ns/op
+Iteration   2: 20.955 ns/op
+Iteration   3: 18.725 ns/op
+Iteration   4: 18.444 ns/op
+Iteration   5: 18.917 ns/op
+
+# Run progress: 4.55% complete, ETA 00:10:40
+# Fork: 1 of 1
+# Warmup Iteration   1: 17.621 ns/op
+# Warmup Iteration   2: 17.055 ns/op
+# Warmup Iteration   3: 18.911 ns/op
+# Warmup Iteration   4: 18.859 ns/op
+# Warmup Iteration   5: 18.573 ns/op
+Iteration   1: 19.078 ns/op
+Iteration   2: 18.748 ns/op
+Iteration   3: 18.966 ns/op
+Iteration   4: 19.222 ns/op
+Iteration   5: 19.009 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArray":
+  19.005 ±(99.9%) 0.666 ns/op [Average]
+  (min, avg, max) = (18.748, 19.005, 19.222), stdev = 0.173
+  CI (99.9%): [18.338, 19.671] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArrayFor
+
+# Run progress: 9.09% complete, ETA 00:10:10
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 17.982 ns/op
+# Warmup Iteration   2: 18.554 ns/op
+# Warmup Iteration   3: 18.717 ns/op
+# Warmup Iteration   4: 17.805 ns/op
+# Warmup Iteration   5: 17.786 ns/op
+Iteration   1: 18.076 ns/op
+Iteration   2: 18.006 ns/op
+Iteration   3: 17.827 ns/op
+Iteration   4: 17.769 ns/op
+Iteration   5: 17.890 ns/op
+
+# Run progress: 13.64% complete, ETA 00:09:39
+# Fork: 1 of 1
+# Warmup Iteration   1: 16.870 ns/op
+# Warmup Iteration   2: 17.024 ns/op
+# Warmup Iteration   3: 17.664 ns/op
+# Warmup Iteration   4: 17.602 ns/op
+# Warmup Iteration   5: 18.016 ns/op
+Iteration   1: 17.865 ns/op
+Iteration   2: 17.625 ns/op
+Iteration   3: 17.908 ns/op
+Iteration   4: 17.566 ns/op
+Iteration   5: 17.737 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArrayFor":
+  17.740 ±(99.9%) 0.569 ns/op [Average]
+  (min, avg, max) = (17.566, 17.740, 17.908), stdev = 0.148
+  CI (99.9%): [17.171, 18.309] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArrayList
+
+# Run progress: 18.18% complete, ETA 00:09:09
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 27.790 ns/op
+# Warmup Iteration   2: 27.351 ns/op
+# Warmup Iteration   3: 26.186 ns/op
+# Warmup Iteration   4: 26.368 ns/op
+# Warmup Iteration   5: 26.108 ns/op
+Iteration   1: 26.050 ns/op
+Iteration   2: 25.829 ns/op
+Iteration   3: 26.630 ns/op
+Iteration   4: 26.185 ns/op
+Iteration   5: 26.220 ns/op
+
+# Run progress: 22.73% complete, ETA 00:08:38
+# Fork: 1 of 1
+# Warmup Iteration   1: 27.752 ns/op
+# Warmup Iteration   2: 27.374 ns/op
+# Warmup Iteration   3: 25.901 ns/op
+# Warmup Iteration   4: 26.222 ns/op
+# Warmup Iteration   5: 26.025 ns/op
+Iteration   1: 26.181 ns/op
+Iteration   2: 26.523 ns/op
+Iteration   3: 28.563 ns/op
+Iteration   4: 27.432 ns/op
+Iteration   5: 26.505 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateArrayList":
+  27.041 ±(99.9%) 3.736 ns/op [Average]
+  (min, avg, max) = (26.181, 27.041, 28.563), stdev = 0.970
+  CI (99.9%): [23.305, 30.777] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateHashSet
+
+# Run progress: 27.27% complete, ETA 00:08:07
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 212.901 ns/op
+# Warmup Iteration   2: 216.279 ns/op
+# Warmup Iteration   3: 207.597 ns/op
+# Warmup Iteration   4: 206.866 ns/op
+# Warmup Iteration   5: 209.378 ns/op
+Iteration   1: 207.592 ns/op
+Iteration   2: 209.297 ns/op
+Iteration   3: 213.267 ns/op
+Iteration   4: 209.450 ns/op
+Iteration   5: 209.250 ns/op
+
+# Run progress: 31.82% complete, ETA 00:07:37
+# Fork: 1 of 1
+# Warmup Iteration   1: 210.525 ns/op
+# Warmup Iteration   2: 208.885 ns/op
+# Warmup Iteration   3: 208.427 ns/op
+# Warmup Iteration   4: 207.639 ns/op
+# Warmup Iteration   5: 211.266 ns/op
+Iteration   1: 210.945 ns/op
+Iteration   2: 208.624 ns/op
+Iteration   3: 212.581 ns/op
+Iteration   4: 209.163 ns/op
+Iteration   5: 209.383 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateHashSet":
+  210.139 ±(99.9%) 6.219 ns/op [Average]
+  (min, avg, max) = (208.624, 210.139, 212.581), stdev = 1.615
+  CI (99.9%): [203.920, 216.358] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateLinkedHashSet
+
+# Run progress: 36.36% complete, ETA 00:07:06
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 42.092 ns/op
+# Warmup Iteration   2: 45.226 ns/op
+# Warmup Iteration   3: 44.236 ns/op
+# Warmup Iteration   4: 44.043 ns/op
+# Warmup Iteration   5: 44.513 ns/op
+Iteration   1: 44.996 ns/op
+Iteration   2: 44.585 ns/op
+Iteration   3: 44.829 ns/op
+Iteration   4: 45.430 ns/op
+Iteration   5: 45.623 ns/op
+
+# Run progress: 40.91% complete, ETA 00:06:36
+# Fork: 1 of 1
+# Warmup Iteration   1: 41.496 ns/op
+# Warmup Iteration   2: 44.457 ns/op
+# Warmup Iteration   3: 45.090 ns/op
+# Warmup Iteration   4: 45.774 ns/op
+# Warmup Iteration   5: 46.550 ns/op
+Iteration   1: 46.837 ns/op
+Iteration   2: 45.642 ns/op
+Iteration   3: 45.850 ns/op
+Iteration   4: 45.524 ns/op
+Iteration   5: 45.447 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateLinkedHashSet":
+  45.860 ±(99.9%) 2.182 ns/op [Average]
+  (min, avg, max) = (45.447, 45.860, 46.837), stdev = 0.567
+  CI (99.9%): [43.678, 48.042] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectAVLTreeSet
+
+# Run progress: 45.45% complete, ETA 00:06:05
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 62.999 ns/op
+# Warmup Iteration   2: 60.524 ns/op
+# Warmup Iteration   3: 64.018 ns/op
+# Warmup Iteration   4: 63.268 ns/op
+# Warmup Iteration   5: 63.899 ns/op
+Iteration   1: 65.028 ns/op
+Iteration   2: 64.146 ns/op
+Iteration   3: 64.826 ns/op
+Iteration   4: 63.975 ns/op
+Iteration   5: 64.955 ns/op
+
+# Run progress: 50.00% complete, ETA 00:05:35
+# Fork: 1 of 1
+# Warmup Iteration   1: 63.131 ns/op
+# Warmup Iteration   2: 60.819 ns/op
+# Warmup Iteration   3: 63.031 ns/op
+# Warmup Iteration   4: 63.500 ns/op
+# Warmup Iteration   5: 63.629 ns/op
+Iteration   1: 64.966 ns/op
+Iteration   2: 63.739 ns/op
+Iteration   3: 64.013 ns/op
+Iteration   4: 64.236 ns/op
+Iteration   5: 65.203 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectAVLTreeSet":
+  64.431 ±(99.9%) 2.416 ns/op [Average]
+  (min, avg, max) = (63.739, 64.431, 65.203), stdev = 0.627
+  CI (99.9%): [62.015, 66.847] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectArraySet
+
+# Run progress: 54.55% complete, ETA 00:05:04
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 25.262 ns/op
+# Warmup Iteration   2: 25.326 ns/op
+# Warmup Iteration   3: 25.274 ns/op
+# Warmup Iteration   4: 25.633 ns/op
+# Warmup Iteration   5: 26.095 ns/op
+Iteration   1: 25.772 ns/op
+Iteration   2: 25.779 ns/op
+Iteration   3: 25.899 ns/op
+Iteration   4: 25.638 ns/op
+Iteration   5: 25.797 ns/op
+
+# Run progress: 59.09% complete, ETA 00:04:34
+# Fork: 1 of 1
+# Warmup Iteration   1: 25.978 ns/op
+# Warmup Iteration   2: 25.618 ns/op
+# Warmup Iteration   3: 25.135 ns/op
+# Warmup Iteration   4: 25.117 ns/op
+# Warmup Iteration   5: 24.643 ns/op
+Iteration   1: 25.831 ns/op
+Iteration   2: 25.634 ns/op
+Iteration   3: 25.773 ns/op
+Iteration   4: 26.007 ns/op
+Iteration   5: 25.882 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectArraySet":
+  25.825 ±(99.9%) 0.528 ns/op [Average]
+  (min, avg, max) = (25.634, 25.825, 26.007), stdev = 0.137
+  CI (99.9%): [25.297, 26.354] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectLinkedOpenHashSet
+
+# Run progress: 63.64% complete, ETA 00:04:03
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 40.141 ns/op
+# Warmup Iteration   2: 39.392 ns/op
+# Warmup Iteration   3: 39.182 ns/op
+# Warmup Iteration   4: 39.992 ns/op
+# Warmup Iteration   5: 39.167 ns/op
+Iteration   1: 39.681 ns/op
+Iteration   2: 39.855 ns/op
+Iteration   3: 40.369 ns/op
+Iteration   4: 41.498 ns/op
+Iteration   5: 39.962 ns/op
+
+# Run progress: 68.18% complete, ETA 00:03:33
+# Fork: 1 of 1
+# Warmup Iteration   1: 40.459 ns/op
+# Warmup Iteration   2: 39.485 ns/op
+# Warmup Iteration   3: 39.843 ns/op
+# Warmup Iteration   4: 38.966 ns/op
+# Warmup Iteration   5: 39.316 ns/op
+Iteration   1: 40.348 ns/op
+Iteration   2: 39.590 ns/op
+Iteration   3: 40.259 ns/op
+Iteration   4: 39.561 ns/op
+Iteration   5: 39.731 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectLinkedOpenHashSet":
+  39.898 ±(99.9%) 1.453 ns/op [Average]
+  (min, avg, max) = (39.561, 39.898, 40.348), stdev = 0.377
+  CI (99.9%): [38.445, 41.351] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectOpenHashSet
+
+# Run progress: 72.73% complete, ETA 00:03:02
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 59.886 ns/op
+# Warmup Iteration   2: 66.623 ns/op
+# Warmup Iteration   3: 66.949 ns/op
+# Warmup Iteration   4: 65.180 ns/op
+# Warmup Iteration   5: 66.346 ns/op
+Iteration   1: 65.782 ns/op
+Iteration   2: 65.659 ns/op
+Iteration   3: 66.669 ns/op
+Iteration   4: 65.757 ns/op
+Iteration   5: 66.061 ns/op
+
+# Run progress: 77.27% complete, ETA 00:02:32
+# Fork: 1 of 1
+# Warmup Iteration   1: 62.158 ns/op
+# Warmup Iteration   2: 66.511 ns/op
+# Warmup Iteration   3: 67.059 ns/op
+# Warmup Iteration   4: 65.312 ns/op
+# Warmup Iteration   5: 65.341 ns/op
+Iteration   1: 66.034 ns/op
+Iteration   2: 65.668 ns/op
+Iteration   3: 66.806 ns/op
+Iteration   4: 65.470 ns/op
+Iteration   5: 65.619 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectOpenHashSet":
+  65.920 ±(99.9%) 2.068 ns/op [Average]
+  (min, avg, max) = (65.470, 65.920, 66.806), stdev = 0.537
+  CI (99.9%): [63.851, 67.988] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectRBTreeSet
+
+# Run progress: 81.82% complete, ETA 00:02:01
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 63.804 ns/op
+# Warmup Iteration   2: 63.050 ns/op
+# Warmup Iteration   3: 64.393 ns/op
+# Warmup Iteration   4: 63.773 ns/op
+# Warmup Iteration   5: 65.740 ns/op
+Iteration   1: 65.379 ns/op
+Iteration   2: 64.517 ns/op
+Iteration   3: 65.534 ns/op
+Iteration   4: 64.935 ns/op
+Iteration   5: 64.928 ns/op
+
+# Run progress: 86.36% complete, ETA 00:01:31
+# Fork: 1 of 1
+# Warmup Iteration   1: 64.730 ns/op
+# Warmup Iteration   2: 64.698 ns/op
+# Warmup Iteration   3: 64.767 ns/op
+# Warmup Iteration   4: 64.030 ns/op
+# Warmup Iteration   5: 64.380 ns/op
+Iteration   1: 65.753 ns/op
+Iteration   2: 64.671 ns/op
+Iteration   3: 65.630 ns/op
+Iteration   4: 65.206 ns/op
+Iteration   5: 65.441 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateObjectRBTreeSet":
+  65.340 ±(99.9%) 1.646 ns/op [Average]
+  (min, avg, max) = (64.671, 65.340, 65.753), stdev = 0.428
+  CI (99.9%): [63.694, 66.986] (assumes normal distribution)
+
+
+# JMH version: 1.37
+# VM version: JDK 17.0.6, OpenJDK 64-Bit Server VM, 17.0.6+7-b469.82
+# VM invoker: C:\Program Files\Java\jbrsdk_jcef-17.0.6-x64-b469\bin\java.exe
+# VM options: -Dfile.encoding=UTF-8 -Duser.country=CA -Duser.language=en -Duser.variant
+# Blackhole mode: compiler (auto-detected, use -Djmh.blackhole.autoDetect=false to disable)
+# Warmup: 5 iterations, 1 s each
+# Measurement: 5 iterations, 5 s each
+# Timeout: 10 min per iteration
+# Threads: 1 thread, will synchronize iterations
+# Benchmark mode: Average time, time/op
+# Benchmark: ca.teamdman.benchmark.CollectionIterationBenchmark.iterateSpeedySet
+
+# Run progress: 90.91% complete, ETA 00:01:00
+# Warmup Fork: 1 of 1
+# Warmup Iteration   1: 39.307 ns/op
+# Warmup Iteration   2: 34.557 ns/op
+# Warmup Iteration   3: 34.075 ns/op
+# Warmup Iteration   4: 34.314 ns/op
+# Warmup Iteration   5: 34.621 ns/op
+Iteration   1: 35.769 ns/op
+Iteration   2: 34.677 ns/op
+Iteration   3: 34.461 ns/op
+Iteration   4: 34.392 ns/op
+Iteration   5: 35.239 ns/op
+
+# Run progress: 95.45% complete, ETA 00:00:30
+# Fork: 1 of 1
+# Warmup Iteration   1: 38.135 ns/op
+# Warmup Iteration   2: 35.080 ns/op
+# Warmup Iteration   3: 34.139 ns/op
+# Warmup Iteration   4: 34.299 ns/op
+# Warmup Iteration   5: 34.805 ns/op
+Iteration   1: 35.398 ns/op
+Iteration   2: 34.746 ns/op
+Iteration   3: 34.654 ns/op
+Iteration   4: 34.718 ns/op
+Iteration   5: 34.951 ns/op
+
+
+Result "ca.teamdman.benchmark.CollectionIterationBenchmark.iterateSpeedySet":
+  34.893 ±(99.9%) 1.167 ns/op [Average]
+  (min, avg, max) = (34.654, 34.893, 35.398), stdev = 0.303
+  CI (99.9%): [33.726, 36.060] (assumes normal distribution)
+
+
+# Run complete. Total time: 00:11:10
+
+REMEMBER: The numbers below are just data. To gain reusable insights, you need to follow up on
+why the numbers are the way they are. Use profilers (see -prof, -lprof), design factorial
+experiments, perform baseline and negative tests that provide experimental control, make sure
+the benchmarking environment is safe on JVM/OS/HW level, ask for reviews from the domain experts.
+Do not assume the numbers tell you what you want them to tell.
+
+NOTE: Current JVM experimentally supports Compiler Blackholes, and they are in use. Please exercise
+extra caution when trusting the results, look into the generated code to check the benchmark still
+works, and factor in a small probability of new VM bugs. Additionally, while comparisons between
+different JVMs are already problematic, the performance difference caused by different Blackhole
+modes can be very significant. Please make sure you use the consistent Blackhole mode for comparisons.
+
+Benchmark                                                    Mode  Cnt    Score   Error  Units
+CollectionIterationBenchmark.iterateArray                    avgt    5   19.005 ± 0.666  ns/op
+CollectionIterationBenchmark.iterateArrayFor                 avgt    5   17.740 ± 0.569  ns/op
+CollectionIterationBenchmark.iterateArrayList                avgt    5   27.041 ± 3.736  ns/op
+CollectionIterationBenchmark.iterateHashSet                  avgt    5  210.139 ± 6.219  ns/op
+CollectionIterationBenchmark.iterateLinkedHashSet            avgt    5   45.860 ± 2.182  ns/op
+CollectionIterationBenchmark.iterateObjectAVLTreeSet         avgt    5   64.431 ± 2.416  ns/op
+CollectionIterationBenchmark.iterateObjectArraySet           avgt    5   25.825 ± 0.528  ns/op
+CollectionIterationBenchmark.iterateObjectLinkedOpenHashSet  avgt    5   39.898 ± 1.453  ns/op
+CollectionIterationBenchmark.iterateObjectOpenHashSet        avgt    5   65.920 ± 2.068  ns/op
+CollectionIterationBenchmark.iterateObjectRBTreeSet          avgt    5   65.340 ± 1.646  ns/op
+CollectionIterationBenchmark.iterateSpeedySet                avgt    5   34.893 ± 1.167  ns/op
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 8.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+See https://docs.gradle.org/7.5/userguide/command_line_interface.html#sec:command_line_warnings
+
+BUILD SUCCESSFUL in 11m 17s
+5 actionable tasks: 3 executed, 2 up-to-date

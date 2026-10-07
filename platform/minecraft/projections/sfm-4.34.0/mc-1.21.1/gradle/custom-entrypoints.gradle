@@ -1,0 +1,40 @@
+if (!project.ext.has('sfmSourceSetsConfigured')) {
+    throw new GradleException("custom-entrypoints.gradle requires source-sets.gradle to be applied first")
+}
+
+if (project.ext.has('sfmCustomEntrypointsConfigured')) {
+    throw new GradleException("custom-entrypoints.gradle must not be applied more than once")
+}
+
+ext.sfmCustomEntrypointsConfigured = true
+
+// List of fully qualified entry point classes
+def entryPoints = [
+        'ca.teamdman.ai.ProjectTestMethodLister',
+        'ca.teamdman.ai.ProjectEverythingLister',
+        'ca.teamdman.ai.FileImportWalker'
+        // Add more classes here as needed
+]
+entryPoints.each { className ->
+    // Extract simple class name for the task name (e.g., ProjectTestMethodLister)
+    def simpleClassName = className.substring(className.lastIndexOf('.') + 1)
+
+    // Define a task name, e.g., runProjectTestMethodLister
+    def taskName = "run${simpleClassName}"
+
+    // Create the JavaExec task
+    //noinspection ConfigurationAvoidance
+    task(taskName, type: JavaExec) {
+        group = 'Execution'
+        description = "Runs the ${className} class"
+
+        // Set the main class to run
+        mainClass.set(className)
+
+        // Set the classpath to include compiled test classes and dependencies
+        classpath = sourceSets.test.runtimeClasspath
+
+        // Optional: Set JVM arguments if needed
+        // e.g., jvmArgs = ['-Xmx1G']
+    }
+}

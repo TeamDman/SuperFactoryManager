@@ -1,0 +1,14 @@
+name "Redstone signals"
+
+every redstone pulse do
+    input from a
+    output to b
+end
+
+every 20 ticks do
+    -- this checks the redstone signal on the manager block
+    if redstone ge 2 then
+        input from a
+        output to b
+    end
+end

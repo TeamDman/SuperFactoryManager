@@ -1,0 +1,34 @@
+name "Limits"
+
+every 20 ticks do
+
+    -- This is hard to explain since there's so many variations
+    -- This is more a collection of samples than a coherent program
+    -- Guess what you think each statement does, try them out on your own!
+
+    INPUT FROM a
+    INPUT 1 FROM a
+    INPUT stone FROM a
+    INPUT 3 stone FROM a
+    INPUT 5 RETAIN 3 stone FROM a
+    INPUT 5 *ingot FROM a
+    INPUT 5 EACH *ingot FROM a
+    INPUT 5 RETAIN 1 EACH *ingot FROM a
+
+    -- quantity and retention can both be expanded with the EACH keyword
+    -- this only makes sense if your resource id is a pattern
+    INPUT 5 EACH RETAIN 3 EACH *ingot* FROM a
+
+    OUTPUT TO b
+
+    INPUT 1 "redstone" FROM EACH a
+    OUTPUT 1 TO EACH b
+
+    OUTPUT 5 TO b
+    OUTPUT 5 stone TO b
+    OUTPUT RETAIN 1 coal TO furnace BOTTOM SIDE
+    OUTPUT 8 EACH *ingot* to b
+    OUTPUT RETAIN 8 EACH *ingot* to b
+    OUTPUT 8 EACH retain 8 EACH *ingot* to b
+
+end

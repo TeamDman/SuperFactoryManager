@@ -1,0 +1,6 @@
+{
+  "type": "sfm:printing_press",
+  "form": "minecraft:written_book",
+  "ink": "#c:dyes/black",
+  "paper": "minecraft:book"
+}

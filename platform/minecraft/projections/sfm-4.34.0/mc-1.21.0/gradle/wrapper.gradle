@@ -1,0 +1,14 @@
+if (project.ext.has('sfmWrapperConfigured')) {
+    throw new GradleException("wrapper.gradle must not be applied more than once")
+}
+
+ext.sfmWrapperConfigured = true
+
+tasks.named('wrapper', Wrapper).configure {
+    // Define wrapper values here so as to not have to always do so when updating gradlew.properties.
+    // Switching this to Wrapper.DistributionType.ALL will download the full Gradle sources that comes with
+    // documentation attached on cursor hover of Gradle classes and methods. However, this comes with increased
+    // file size for Gradle. If you do switch this to ALL, run the Gradle wrapper task twice afterwards.
+    // (Verify by checking gradle/wrapper/gradle-wrapper.properties to see if distributionUrl now points to `-all`)
+    distributionType = Wrapper.DistributionType.BIN
+}
