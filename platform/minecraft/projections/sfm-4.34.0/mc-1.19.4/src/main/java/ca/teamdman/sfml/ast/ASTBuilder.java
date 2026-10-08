@@ -185,7 +185,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .stream()
                 .map(Label::name)
                 .collect(Collectors.toSet());
-        Program program = new Program(this, name.value(), triggers, labels, USED_RESOURCES);
+        Program program = new Program(
+                this,
+                name.value(),
+                triggers,
+                labels,
+                USED_RESOURCES
+        );
         trackNode(program, ctx);
         return program;
     }
@@ -311,7 +317,11 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         var matchers = visitInputResourceLimits(ctx.inputResourceLimits());
         var exclusions = visitResourceExclusion(ctx.resourceExclusion());
         var each = ctx.EACH() != null;
-        InputStatement inputStatement = new InputStatement(labelAccess, matchers.withExclusions(exclusions), each);
+        InputStatement inputStatement = new InputStatement(
+                labelAccess,
+                matchers.withExclusions(exclusions),
+                each
+        );
         trackNode(inputStatement, ctx);
         return inputStatement;
     }

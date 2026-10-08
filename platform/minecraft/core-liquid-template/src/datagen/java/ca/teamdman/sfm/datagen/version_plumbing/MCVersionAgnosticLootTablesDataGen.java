@@ -50,7 +50,6 @@ import net.minecraftforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 {% when '26.1.2' %}
 {% endcase %}
-
 {% case minecraft_version %}
 {% when '1.19.2' %}
 import java.util.ArrayList;

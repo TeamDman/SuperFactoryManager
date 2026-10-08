@@ -114,13 +114,15 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
-    public void load(CompoundTag pTag) {
-
+    public void load(
+            CompoundTag pTag
+    ) {
         super.load(pTag);
 {% when '1.20.3', '1.20.4' %}
     @Override
-    public void load(CompoundTag pTag) {
-
+    public void load(
+            CompoundTag pTag
+    ) {
         super.load(pTag);
 {% when '1.21', '1.21.1' %}
     @Override
@@ -146,11 +148,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 {% endcase %}
     }
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-{% when '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     @Override
     public void clearContent() {
 
@@ -246,8 +243,9 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     @Override
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-    protected void saveAdditional(CompoundTag pTag) {
-
+    protected void saveAdditional(
+            CompoundTag pTag
+    ) {
         super.saveAdditional(pTag);
 {% when '1.21', '1.21.1' %}
     protected void saveAdditional(
@@ -265,11 +263,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
 {% endcase %}
     }
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-{% when '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     @Override
     protected Component getDefaultName() {
 

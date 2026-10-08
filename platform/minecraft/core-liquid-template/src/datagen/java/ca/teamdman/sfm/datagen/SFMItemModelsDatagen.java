@@ -177,8 +177,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
             ItemModelGenerators itemModels,
 {% else %}
 {% endcase %}
-            SFMRegistryObject<Item, ? extends Item> item
-    ) {
+            SFMRegistryObject<Item, ? extends Item> item) {
 {% case minecraft_version %}
 {% when "26.1.2" %}
         itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);

@@ -39,7 +39,6 @@ public class TunnelledManagerBlock extends ManagerBlock {
             BlockPos pos,
             BlockState state
     ) {
-
         return SFMBlockEntities.TUNNELLED_MANAGER
                 .get()
                 .create(pos, state);

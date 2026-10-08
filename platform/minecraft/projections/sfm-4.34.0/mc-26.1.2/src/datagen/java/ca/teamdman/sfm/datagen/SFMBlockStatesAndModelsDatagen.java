@@ -29,7 +29,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-
 import java.util.Optional;
 
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
@@ -44,6 +43,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     );
 
     public SFMBlockStatesAndModelsDatagen(PackOutput output) {
+
         super(output, SFM.MOD_ID);
     }
 
@@ -209,9 +209,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         Identifier cableModelId = ModelLocationUtils.getModelLocation(cableBlock.get());
         blockModels.blockStateOutput.accept(
                 MultiVariantGenerator.dispatch(cableFacadeBlock.get(),
-                        BlockModelGenerators.plainVariant(cableModelId)
-                )
-        );
+                        BlockModelGenerators.plainVariant(cableModelId)));
         SFM.LOGGER.info("Registering fancy cable variants for \"{}\"", fancyCableBlock.getId().get());
         registerFancyCableVariant(blockModels, fancyCableBlock, fancyCableFacadeBlock);
     }
@@ -398,5 +396,6 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                         new FormItemRenderer.Unbaked()
                 )
         );
+
     }
 }

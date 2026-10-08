@@ -23,15 +23,10 @@ import org.jetbrains.annotations.Nullable;
 {% endcase %}
 
 public class TunnelledManagerBlockEntity extends ManagerBlockEntity {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
-    public TunnelledManagerBlockEntity(BlockPos blockPos, BlockState blockState) {
-{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
     public TunnelledManagerBlockEntity(
             BlockPos blockPos,
             BlockState blockState
     ) {
-{% endcase %}
         super(SFMBlockEntities.TUNNELLED_MANAGER.get(), blockPos, blockState);
     }
 {% case minecraft_version %}

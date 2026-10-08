@@ -63,7 +63,9 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
     @Override
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-    public void load(CompoundTag pTag) {
+    public void load(
+            CompoundTag pTag
+    ) {
         super.load(pTag);
         FacadeData tried = FacadeData.load(level, pTag);
 {% when '1.21', '1.21.1' %}
@@ -117,7 +119,9 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
     @Override
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-    protected void saveAdditional(CompoundTag pTag) {
+    protected void saveAdditional(
+            CompoundTag pTag
+    ) {
         super.saveAdditional(pTag);
         if (facadeData != null) {
             facadeData.save(pTag);

@@ -73,8 +73,9 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
-    public void load(CompoundTag pTag) {
-
+    public void load(
+            CompoundTag pTag
+    ) {
         super.load(pTag);
         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
     }
@@ -150,8 +151,9 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag pTag) {
-
+    protected void saveAdditional(
+            CompoundTag pTag
+    ) {
         super.saveAdditional(pTag);
     }
 

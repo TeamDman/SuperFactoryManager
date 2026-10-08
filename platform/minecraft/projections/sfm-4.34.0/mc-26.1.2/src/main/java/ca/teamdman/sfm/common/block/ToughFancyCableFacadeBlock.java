@@ -50,7 +50,14 @@ public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements
     }
 
     @Override
-    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            @MCVersionDependentBehaviour LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
+
         return new ItemStack(SFMBlocks.TOUGH_FANCY_CABLE.get());
     }
 

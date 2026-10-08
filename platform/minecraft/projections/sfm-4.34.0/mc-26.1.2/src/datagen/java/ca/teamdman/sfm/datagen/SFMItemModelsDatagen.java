@@ -78,8 +78,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
 
     private void basicItem(
             ItemModelGenerators itemModels,
-            SFMRegistryObject<Item, ? extends Item> item
-    ) {
+            SFMRegistryObject<Item, ? extends Item> item) {
         itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
     }
 }

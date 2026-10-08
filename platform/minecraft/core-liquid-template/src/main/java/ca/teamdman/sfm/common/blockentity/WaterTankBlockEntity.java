@@ -78,6 +78,7 @@ public class WaterTankBlockEntity extends BlockEntity {
 
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     };
+
 {% when '26.1.2' %}
 
         public void setCapacity(int capacity) {
@@ -119,11 +120,6 @@ public class WaterTankBlockEntity extends BlockEntity {
 {% endcase %}
     private boolean active = false;
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
-{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     public WaterTankBlockEntity(
             BlockPos pos,
             BlockState state
@@ -217,12 +213,14 @@ public class WaterTankBlockEntity extends BlockEntity {
             TANK.setFluid(FluidStack.EMPTY);
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     private void updateTank() {
+
         if (active) {
             TANK.setFluid(new FluidStack(Fluids.WATER, TANK.getCapacity()));
         } else {
             TANK.setFluid(FluidStack.EMPTY);
 {% when '26.1.2' %}
     private void updateTank() {
+
         FluidResource water = FluidResource.of(Fluids.WATER);
         if (active) {
             TANK.set(0, water, TANK.getCapacityAsInt(0, water));

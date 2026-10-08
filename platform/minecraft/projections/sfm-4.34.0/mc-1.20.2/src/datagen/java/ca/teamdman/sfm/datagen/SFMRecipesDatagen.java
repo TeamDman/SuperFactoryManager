@@ -21,7 +21,6 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
     public SFMRecipesDatagen(GatherDataEvent event) {
-
         super(event, SFM.MOD_ID);
     }
 
@@ -278,12 +277,18 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(SFMRecipeSerializers.DISK_RESET.get())
-                .save(writer, SFMRecipeSerializers.DISK_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.DISK_RESET.getPath()
+                );
 
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(SFMRecipeSerializers.LABEL_GUN_RESET.get())
-                .save(writer, SFMRecipeSerializers.LABEL_GUN_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.LABEL_GUN_RESET.getPath()
+                );
     }
 
     private void addPrintingPressRecipe(

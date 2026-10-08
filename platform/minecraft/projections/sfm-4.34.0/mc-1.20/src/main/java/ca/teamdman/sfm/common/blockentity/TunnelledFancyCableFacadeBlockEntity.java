@@ -11,7 +11,6 @@ import net.minecraftforge.client.model.data.ModelData;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.Nullable;
-
 import static ca.teamdman.sfm.common.blockentity.FancyCableFacadeBlockEntity.FACADE_DIRECTION;
 
 public class TunnelledFancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {

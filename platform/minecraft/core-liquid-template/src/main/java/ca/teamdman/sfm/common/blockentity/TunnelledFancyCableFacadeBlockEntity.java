@@ -26,7 +26,6 @@ import net.neoforged.neoforge.client.model.data.ModelData;
 {% when '26.1.2' %}
 import net.neoforged.neoforge.model.data.ModelData;
 {% endcase %}
-
 import static ca.teamdman.sfm.common.blockentity.FancyCableFacadeBlockEntity.FACADE_DIRECTION;
 
 public class TunnelledFancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {

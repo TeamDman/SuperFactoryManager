@@ -57,7 +57,6 @@ public class WaterTankBlockEntity extends BlockEntity {
 
     private boolean active = false;
 
-
     public WaterTankBlockEntity(
             BlockPos pos,
             BlockState state
@@ -117,6 +116,7 @@ public class WaterTankBlockEntity extends BlockEntity {
     }
 
     private void updateTank() {
+
         FluidResource water = FluidResource.of(Fluids.WATER);
         if (active) {
             TANK.set(0, water, TANK.getCapacityAsInt(0, water));

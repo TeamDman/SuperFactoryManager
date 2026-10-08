@@ -48,7 +48,9 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
     public abstract ModelData getModelData();
 
     @Override
-    public void load(CompoundTag pTag) {
+    public void load(
+            CompoundTag pTag
+    ) {
         super.load(pTag);
         FacadeData tried = FacadeData.load(level, pTag);
         if (tried != null) {
@@ -70,7 +72,9 @@ public abstract class CommonFacadeBlockEntity extends BlockEntity implements IFa
     }
 
     @Override
-    protected void saveAdditional(CompoundTag pTag) {
+    protected void saveAdditional(
+            CompoundTag pTag
+    ) {
         super.saveAdditional(pTag);
         if (facadeData != null) {
             facadeData.save(pTag);

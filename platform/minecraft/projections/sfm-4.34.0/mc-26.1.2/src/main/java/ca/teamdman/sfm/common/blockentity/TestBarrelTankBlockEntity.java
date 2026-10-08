@@ -55,7 +55,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
         ContainerHelper.loadAllItems(input, this.items);
     }
 
-
     @Override
     public void clearContent() {
 
@@ -139,7 +138,6 @@ public class TestBarrelTankBlockEntity extends BaseContainerBlockEntity {
         super.saveAdditional(output);
         ContainerHelper.saveAllItems(output, this.items, true);
     }
-
 
     @Override
     protected Component getDefaultName() {

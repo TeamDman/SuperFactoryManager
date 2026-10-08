@@ -12,7 +12,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
-
     public SFMLootTablesDatagen(GatherDataEvent event) {
         super(event, SFM.MOD_ID);
     }

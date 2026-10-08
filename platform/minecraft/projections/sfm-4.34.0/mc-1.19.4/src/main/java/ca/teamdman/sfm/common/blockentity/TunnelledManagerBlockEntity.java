@@ -12,7 +12,10 @@ import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.Nullable;
 
 public class TunnelledManagerBlockEntity extends ManagerBlockEntity {
-    public TunnelledManagerBlockEntity(BlockPos blockPos, BlockState blockState) {
+    public TunnelledManagerBlockEntity(
+            BlockPos blockPos,
+            BlockState blockState
+    ) {
         super(SFMBlockEntities.TUNNELLED_MANAGER.get(), blockPos, blockState);
     }
 

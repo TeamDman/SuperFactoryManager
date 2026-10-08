@@ -68,13 +68,12 @@ import net.neoforged.neoforge.client.model.generators.ModelFile;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 {% endcase %}
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "26.1.2" %}
 import java.util.Optional;
-
 {% else %}
 {% endcase %}
+
 public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStatesAndModelsDataGen {
 {% case minecraft_version %}
 {% when "26.1.2" %}
@@ -94,6 +93,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     );
 
     public SFMBlockStatesAndModelsDatagen(PackOutput output) {
+
         super(output, SFM.MOD_ID);
 {% else %}
         super(event, SFM.MOD_ID);
@@ -536,9 +536,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         Identifier cableModelId = ModelLocationUtils.getModelLocation(cableBlock.get());
         blockModels.blockStateOutput.accept(
                 MultiVariantGenerator.dispatch(cableFacadeBlock.get(),
-                        BlockModelGenerators.plainVariant(cableModelId)
-                )
-        );
+                        BlockModelGenerators.plainVariant(cableModelId)));
 {% else %}
         simpleBlock(cableFacadeBlock.get(), cubeAll(cableBlock.get()));
 {% endcase %}
@@ -873,6 +871,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                         new FormItemRenderer.Unbaked()
                 )
         );
+
     }
 {% else %}
 {% endcase %}

@@ -80,7 +80,6 @@ public class SFMItemUtils {
 
 {% else %}
     public static boolean isClientAndMoreInfoKeyPressed() {
-
         return SFMEnvironmentUtils.isClient() && SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY);
     }
 

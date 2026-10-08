@@ -24,7 +24,6 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 
 public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
     public SFMRecipesDatagen(GatherDataEvent event) {
-
         super(event, SFM.MOD_ID);
     }
 
@@ -285,6 +284,7 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                         writer,
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.DISK_RESET.get()).getPath()
                 );
+
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(LabelGunResetRecipe::new)

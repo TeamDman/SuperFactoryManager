@@ -34,8 +34,8 @@ public class WaterTankBlockEntity extends BlockEntity {
             return copy;
         }
     };
-    private boolean active = false;
 
+    private boolean active = false;
 
     public WaterTankBlockEntity(
             BlockPos pos,
@@ -96,6 +96,7 @@ public class WaterTankBlockEntity extends BlockEntity {
     }
 
     private void updateTank() {
+
         if (active) {
             TANK.setFluid(new FluidStack(Fluids.WATER, TANK.getCapacity()));
         } else {

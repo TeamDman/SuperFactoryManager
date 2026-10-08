@@ -44,7 +44,14 @@ public class TunnelledFancyCableFacadeBlock extends FancyCableFacadeBlock implem
     }
 
     @Override
-    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            @MCVersionDependentBehaviour LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
+
         return new ItemStack(SFMBlocks.TUNNELLED_FANCY_CABLE.get());
     }
 

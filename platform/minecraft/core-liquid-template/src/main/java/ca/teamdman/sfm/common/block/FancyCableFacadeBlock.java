@@ -67,7 +67,13 @@ public class FancyCableFacadeBlock extends FancyCableBlock implements EntityBloc
             BlockState pState
     ) {
 {% when '26.1.2' %}
-    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            @MCVersionDependentBehaviour LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
 {% endcase %}
         return new ItemStack(SFMBlocks.FANCY_CABLE.get());
     }

@@ -106,7 +106,14 @@ public class CableFacadeBlock extends CableBlock implements EntityBlock, IFacada
     ) {
 
 {% when '26.1.2' %}
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
+
 {% endcase %}
         return new ItemStack(SFMBlocks.CABLE.get());
     }

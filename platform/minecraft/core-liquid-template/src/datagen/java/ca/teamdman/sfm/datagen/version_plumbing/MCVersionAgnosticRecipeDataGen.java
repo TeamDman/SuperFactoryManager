@@ -36,7 +36,10 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 public abstract class MCVersionAgnosticRecipeDataGen extends RecipeProvider {
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    public MCVersionAgnosticRecipeDataGen(GatherDataEvent event, String modId) {
+    public MCVersionAgnosticRecipeDataGen(
+            GatherDataEvent event,
+            String modId
+    ) {
         super(event.getGenerator());
 {% when '1.19.4', '1.20', '1.20.1' %}
     public MCVersionAgnosticRecipeDataGen(
@@ -89,7 +92,10 @@ public abstract class MCVersionAgnosticRecipeDataGen extends RecipeProvider {
 
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    protected ShapedRecipeBuilder beginShaped(ItemLike result, int count) {
+    protected ShapedRecipeBuilder beginShaped(
+            ItemLike result,
+            int count
+    ) {
         return new ShapedRecipeBuilder(result, count);
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     protected ShapedRecipeBuilder beginShaped(
@@ -128,7 +134,10 @@ public abstract class MCVersionAgnosticRecipeDataGen extends RecipeProvider {
 
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    protected ShapelessRecipeBuilder beginShapeless(ItemLike result, int count) {
+    protected ShapelessRecipeBuilder beginShapeless(
+            ItemLike result,
+            int count
+    ) {
         return new ShapelessRecipeBuilder(result, count);
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     protected ShapelessRecipeBuilder beginShapeless(

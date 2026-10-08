@@ -253,7 +253,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 executionSideDeclaration
         );
 {% else %}
-        Program program = new Program(this, name.value(), triggers, labels, USED_RESOURCES);
+        Program program = new Program(
+                this,
+                name.value(),
+                triggers,
+                labels,
+                USED_RESOURCES
+        );
 {% endif %}
 {% endif %}
         trackNode(program, ctx);
@@ -474,6 +480,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     @Override
     public ASTNode visitIntervalNoSpace(SFMLParser.IntervalNoSpaceContext ctx) {
+
         String suffixedPeriod = ctx.period.getText();
         Interval interval = buildInterval(
                 suffixedPeriod.substring(0, suffixedPeriod.length() - 1),
@@ -638,7 +645,11 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 bindingName
         );
 {% else %}
-        InputStatement inputStatement = new InputStatement(labelAccess, matchers.withExclusions(exclusions), each);
+        InputStatement inputStatement = new InputStatement(
+                labelAccess,
+                matchers.withExclusions(exclusions),
+                each
+        );
 {% endif %}
         trackNode(inputStatement, ctx);
         return inputStatement;

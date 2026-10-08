@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipProvider;
-
 import java.util.function.Consumer;
 
 import static ca.teamdman.sfm.common.block.ToughCableBlock.TOUGH_CABLE_BLOCK;

@@ -71,18 +71,16 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 {% else %}
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.data.event.GatherDataEvent;
-
 import java.util.function.Consumer;
 {% endcase %}
 {% endcase %}
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "26.1.2" %}
 import java.util.concurrent.CompletableFuture;
-
 {% else %}
 {% endcase %}
+
 public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
 {% case minecraft_version %}
 {% when "26.1.2" %}
@@ -90,7 +88,6 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
         super(registries, output);
 {% else %}
     public SFMRecipesDatagen(GatherDataEvent event) {
-
         super(event, SFM.MOD_ID);
 {% endcase %}
     }
@@ -554,10 +551,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 );
 {% else %}
                 .special(SFMRecipeSerializers.DISK_RESET.get())
-                .save(writer, SFMRecipeSerializers.DISK_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.DISK_RESET.getPath()
+                );
+{% endcase %}
+{% endcase %}
 
-{% endcase %}
-{% endcase %}
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
 {% case minecraft_version %}
@@ -577,7 +577,10 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 );
 {% else %}
                 .special(SFMRecipeSerializers.LABEL_GUN_RESET.get())
-                .save(writer, SFMRecipeSerializers.LABEL_GUN_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.LABEL_GUN_RESET.getPath()
+                );
 {% endcase %}
 {% endcase %}
     }

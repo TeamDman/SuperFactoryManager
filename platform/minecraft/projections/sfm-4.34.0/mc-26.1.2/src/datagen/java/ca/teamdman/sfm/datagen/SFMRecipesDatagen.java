@@ -23,7 +23,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.common.Tags;
-
 import java.util.concurrent.CompletableFuture;
 
 public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
@@ -288,6 +287,7 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                         writer,
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.DISK_RESET.get()).getPath()
                 );
+
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(LabelGunResetRecipe::new)

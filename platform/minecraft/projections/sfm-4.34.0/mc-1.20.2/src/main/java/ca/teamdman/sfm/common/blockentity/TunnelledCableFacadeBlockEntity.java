@@ -54,5 +54,4 @@ public class TunnelledCableFacadeBlockEntity extends CommonFacadeBlockEntity {
         }
         return ModelData.EMPTY;
     }
-
 }

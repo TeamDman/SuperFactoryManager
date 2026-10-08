@@ -53,7 +53,6 @@ public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
     ) {
         super(output, requiredTables, subProviders, registries);
 {% else %}
-
     public SFMLootTablesDatagen(GatherDataEvent event) {
         super(event, SFM.MOD_ID);
 {% endcase %}

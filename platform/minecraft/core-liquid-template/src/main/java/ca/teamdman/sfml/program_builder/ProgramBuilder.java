@@ -78,8 +78,7 @@ public class ProgramBuilder {
 
     /// Reduce duplication of effort compiling the same program over and over again
 {% if features.sfml_execution_side %}
-    private static final WeakHashMap<String, Map<ProgramExecutionSide, CachedProgramBuildResult>> cache =
-            new WeakHashMap<>();
+    private static final WeakHashMap<String, Map<ProgramExecutionSide, CachedProgramBuildResult>> cache = new WeakHashMap<>();
 {% else %}
     private static final WeakHashMap<String, CachedProgramBuildResult> cache = new WeakHashMap<>();
 {% endif %}

@@ -10,7 +10,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
 {% endif %}
-
 {% if features.packet_computation %}
 {% else %}
 import java.util.ArrayDeque;

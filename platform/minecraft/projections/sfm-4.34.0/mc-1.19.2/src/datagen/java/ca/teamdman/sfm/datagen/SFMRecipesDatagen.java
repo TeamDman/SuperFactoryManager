@@ -18,12 +18,10 @@ import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.Tags;
 import net.minecraftforge.data.event.GatherDataEvent;
-
 import java.util.function.Consumer;
 
 public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
     public SFMRecipesDatagen(GatherDataEvent event) {
-
         super(event, SFM.MOD_ID);
     }
 
@@ -280,12 +278,18 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(SFMRecipeSerializers.DISK_RESET.get())
-                .save(writer, SFMRecipeSerializers.DISK_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.DISK_RESET.getPath()
+                );
 
         //noinspection DataFlowIssue
         SpecialRecipeBuilder
                 .special(SFMRecipeSerializers.LABEL_GUN_RESET.get())
-                .save(writer, SFMRecipeSerializers.LABEL_GUN_RESET.getPath());
+                .save(
+                        writer,
+                        SFMRecipeSerializers.LABEL_GUN_RESET.getPath()
+                );
     }
 
     private void addPrintingPressRecipe(

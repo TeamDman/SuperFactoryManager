@@ -8,7 +8,6 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;

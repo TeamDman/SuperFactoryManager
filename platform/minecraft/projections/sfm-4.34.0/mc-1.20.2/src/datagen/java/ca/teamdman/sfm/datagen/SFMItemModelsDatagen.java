@@ -80,8 +80,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
     }
 
     private void basicItem(
-            SFMRegistryObject<Item, ? extends Item> item
-    ) {
+            SFMRegistryObject<Item, ? extends Item> item) {
         withExistingParent(
                 item.getPath(),
                 mcLoc("item/generated")

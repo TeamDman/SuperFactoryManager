@@ -22,13 +22,12 @@ import net.minecraftforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
 {% endcase %}
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "26.1.2" %}
 import java.util.concurrent.CompletableFuture;
-
 {% else %}
 {% endcase %}
+
 public class SFMBlockTagsDatagen extends MCVersionAgnosticBlockTagsDataGen {
 {% case minecraft_version %}
 {% when "26.1.2" %}

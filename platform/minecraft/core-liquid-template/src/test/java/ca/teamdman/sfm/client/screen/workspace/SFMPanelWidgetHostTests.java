@@ -217,7 +217,6 @@ class SFMPanelWidgetHostTests {
 {% case minecraft_version %}
 {% when "1.19.2" %}
 {% when "1.19.4" %}
-
         @Override
         @MCVersionDependentBehaviour
         public boolean isFocused() {
@@ -229,7 +228,6 @@ class SFMPanelWidgetHostTests {
         public void setFocused(boolean focused) {
             setPanelFocused(focused);
         }
-
 {% endcase %}
         @Override public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) { }
         @Override public NarrationPriority narrationPriority() { return focused ? NarrationPriority.FOCUSED : NarrationPriority.NONE; }

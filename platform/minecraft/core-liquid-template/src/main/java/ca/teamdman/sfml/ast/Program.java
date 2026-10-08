@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 {% if features.sfml_execution_side %}
+
 import org.jetbrains.annotations.Nullable;
 {% endif %}
 

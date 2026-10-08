@@ -78,7 +78,6 @@ public final class ClientManagerBlock extends BaseEntityBlock {
 {% else %}
         ItemStack held = player.getItemInHand(hand);
         if (level.isClientSide()) return InteractionResult.SUCCESS;
-
         if (held.getItem() instanceof DiskItem && manager.disk().isEmpty()) {
             ItemStack inserted = held.copy();
             inserted.setCount(1);

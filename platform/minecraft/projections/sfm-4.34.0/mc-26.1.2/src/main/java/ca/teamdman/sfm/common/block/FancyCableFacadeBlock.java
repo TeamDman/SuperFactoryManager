@@ -36,7 +36,13 @@ public class FancyCableFacadeBlock extends FancyCableBlock implements EntityBloc
     }
 
     @Override
-    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            @MCVersionDependentBehaviour LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
         return new ItemStack(SFMBlocks.FANCY_CABLE.get());
     }
 

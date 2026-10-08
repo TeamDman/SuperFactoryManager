@@ -59,7 +59,14 @@ public class ToughCableFacadeBlock extends CableFacadeBlock implements EntityBlo
     }
 
     @Override
-    public ItemStack getCloneItemStack(@MCVersionDependentBehaviour LevelReader level, BlockPos pos, BlockState state, boolean includeData, Player player) {
+    public ItemStack getCloneItemStack(
+            @MCVersionDependentBehaviour LevelReader level,
+            BlockPos pos,
+            BlockState state,
+            boolean includeData,
+            Player player
+    ) {
+
         return new ItemStack(SFMBlocks.TOUGH_CABLE.get());
     }
 
