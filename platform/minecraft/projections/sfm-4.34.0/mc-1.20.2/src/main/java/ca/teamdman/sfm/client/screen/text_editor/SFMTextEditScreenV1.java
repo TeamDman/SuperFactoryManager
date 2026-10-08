@@ -1006,7 +1006,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     );
                 } else {
                     graphics.fill(
-                            cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
+                            cursorX,
+                            cursorY - 1,
+                            cursorX + 1,
+                            cursorY + 1 + 9,
+                            -1
+                    );
                 }
             }
         }

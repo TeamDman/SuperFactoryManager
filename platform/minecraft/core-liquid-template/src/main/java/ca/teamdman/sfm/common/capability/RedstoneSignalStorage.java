@@ -115,7 +115,6 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
 {% endif %}
 {% case minecraft_version %}
 {% when "26.1.2" %}
-
     @Override
     public void serialize(ValueOutput output) {
         output.putInt("value", this.value);
@@ -137,11 +136,12 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
             IntTag nbt
     ) {
         this.value = nbt.getAsInt();
-
     }
 {% else %}
     @Override
-    public void deserializeNBT(IntTag nbt) {
+    public void deserializeNBT(
+            IntTag nbt
+    ) {
 {% if features.redstone_buffer_storage %}
         this.value = Mth.clamp(nbt.getAsInt(), 0, this.maxValue);
 {% else %}

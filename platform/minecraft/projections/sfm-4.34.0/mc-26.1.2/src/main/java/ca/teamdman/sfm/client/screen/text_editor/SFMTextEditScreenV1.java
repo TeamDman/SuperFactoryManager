@@ -432,8 +432,16 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 Component pPlaceholder,
                 Component pMessage
         ) {
-            super(pFont, pX, pY, pWidth, pHeight, pPlaceholder, pMessage, -2039584, true, -3092272, true, true);
 
+            super(
+                    pFont,
+                    pX,
+                    pY,
+                    pWidth,
+                    pHeight,
+                    pPlaceholder,
+                    pMessage, -2039584, true, -3092272, true, true
+            );
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
             this.rebuild(false);
@@ -566,10 +574,11 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             return this.font.lineHeight * (content.size() + 2);
         }
 
-
         @Override
         public boolean mouseDragged(
-                MouseButtonEvent event, double dx, double dy
+                MouseButtonEvent event,
+                double dx,
+                double dy
         ) {
             int button = event.button();
             double mx = event.x(),
@@ -977,7 +986,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     );
                 } else {
                     graphics.fill(
-                            cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
+                            cursorX,
+                            cursorY - 1,
+                            cursorX + 1,
+                            cursorY + 1 + 9,
+                            -1
+                    );
                 }
             }
         }

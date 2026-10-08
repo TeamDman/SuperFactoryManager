@@ -4238,7 +4238,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         SFMSymbolHoverIdentity.TextGlyphRange range = symbolHoverUnderline.orElseThrow();
 {% if features.canvas_indexed_document %}
         SFMDrawCanvasDocumentIndex index = model()
-                .documentIndex(this.font.width(" "), this.font.lineHeight);
+                .documentIndex(this.font.width(" "),
+                this.font.lineHeight);
 {% else %}
         SFMDrawCanvasDocumentIndex index = SFMDrawCanvasDocumentIndex.build(model().glyphs(), this.font.width(" "), this.font.lineHeight);
 {% endif %}

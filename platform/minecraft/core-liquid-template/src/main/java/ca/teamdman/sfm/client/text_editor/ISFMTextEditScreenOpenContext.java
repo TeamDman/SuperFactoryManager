@@ -121,23 +121,33 @@ public interface ISFMTextEditScreenOpenContext {
     }
 
 {% if features.editor_async_save %}
-    default boolean asynchronousSave() { return false; }
+    default boolean asynchronousSave() {
+        return false;
+    }
 
     default java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult> saveDocumentAsync(String content) {
         return java.util.concurrent.CompletableFuture.completedFuture(saveDocument(content));
     }
 
     /** Whether Save-and-close may hand an accepted async operation to durable host feedback. */
-    default boolean detachSaveAndCloseAfterSubmission() { return false; }
+    default boolean detachSaveAndCloseAfterSubmission() {
+        return false;
+    }
 
     /** Called on the client thread only after durable async success. */
     default void documentSaved(String submittedText) { }
 
-    default void finishAsyncSaveClose() { SFMScreenChangeHelpers.popScreen(); }
+    default void finishAsyncSaveClose() {
+        SFMScreenChangeHelpers.popScreen();
+    }
 
-    default boolean saveHostIsCurrent() { return true; }
+    default boolean saveHostIsCurrent() {
+        return true;
+    }
 
-    default boolean cancelPendingSave() { return false; }
+    default boolean cancelPendingSave() {
+        return false;
+    }
 {% endif %}
 
 {% else %}

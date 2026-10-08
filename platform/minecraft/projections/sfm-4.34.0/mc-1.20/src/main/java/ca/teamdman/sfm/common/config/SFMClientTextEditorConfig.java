@@ -14,9 +14,7 @@ import java.util.Objects;
 
 public class SFMClientTextEditorConfig {
     public final ForgeConfigSpec.BooleanValue showLineNumbers;
-
     public final ForgeConfigSpec.EnumValue<SFMTextEditorIntellisenseLevel> intellisenseLevel;
-
     public final ForgeConfigSpec.ConfigValue<String> preferredEditor;
 
     SFMClientTextEditorConfig(ForgeConfigSpec.Builder builder) {
@@ -39,8 +37,7 @@ public class SFMClientTextEditorConfig {
         } else {
             return Objects.requireNonNullElse(
                     SFMTextEditors.registry().get(id),
-                    SFMTextEditors.V1.get()
-            );
+                    SFMTextEditors.V1.get());
         }
     }
 

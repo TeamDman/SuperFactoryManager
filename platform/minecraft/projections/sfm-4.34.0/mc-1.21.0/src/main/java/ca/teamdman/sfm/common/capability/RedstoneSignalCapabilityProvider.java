@@ -14,7 +14,6 @@ import org.jetbrains.annotations.Nullable;
 /// See {@link SFMBlockCapabilityProvider} for more information.
 /// This is the fallback provider for the "built-in" behaviour provided by the modding framework.
 public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvider<IRedstoneSignalStorage>, IBlockCapabilityProvider<IRedstoneSignalStorage, @Nullable Direction> {
-
     @Override
     public boolean matchesCapabilityKind(SFMBlockCapabilityKind<?> capabilityKind) {
         return capabilityKind.equals(SFMWellKnownCapabilities.REDSTONE_HANDLER);

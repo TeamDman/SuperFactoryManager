@@ -1,11 +1,6 @@
 package ca.teamdman.sfm.common.capability;
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
-{% else %}
-
-{% endcase %}
-{% case minecraft_version %}
 {% when "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 import ca.teamdman.sfm.common.registry.registration.SFMCapabilities;
 {% endcase %}

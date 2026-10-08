@@ -36,7 +36,6 @@ public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvi
 {% case minecraft_version %}
 {% when "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvider<IRedstoneSignalStorage>, IBlockCapabilityProvider<IRedstoneSignalStorage, @Nullable Direction> {
-
 {% else %}
 public class RedstoneSignalCapabilityProvider implements SFMBlockCapabilityProvider<RedstoneSignalStorage> {
 {% endcase %}

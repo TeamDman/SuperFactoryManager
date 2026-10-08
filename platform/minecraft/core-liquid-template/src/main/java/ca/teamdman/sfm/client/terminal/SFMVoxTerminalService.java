@@ -91,7 +91,6 @@ import org.facet.vox.generated.TerminalTuningMode;
 import org.facet.vox.generated.TerminalTuningRequest;
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 {% endcase %}
-
 import java.net.InetSocketAddress;
 import java.time.Duration;
 {% case minecraft_version %}

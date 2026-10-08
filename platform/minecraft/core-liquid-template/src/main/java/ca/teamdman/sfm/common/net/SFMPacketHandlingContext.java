@@ -54,11 +54,9 @@ public class SFMPacketHandlingContext {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3" %}
     public SFMPacketHandlingContext(Supplier<NetworkEvent.Context> inner) {
-
         this.inner = inner.get();
 {% when "1.20.4" %}
     public SFMPacketHandlingContext(PlayPayloadContext inner) {
-
         this.inner = inner;
 {% when "1.21", "1.21.1", "26.1.2" %}
     public SFMPacketHandlingContext(IPayloadContext inner) {

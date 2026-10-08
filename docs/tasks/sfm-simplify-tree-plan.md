@@ -45,6 +45,9 @@ the manifested checkpoint now covers 154 templates.
 A further 38 completed templates passed all 760 pinned-context checks and were
 manifested together. The manifested checkpoint now covers 192 templates;
 the last 14 files from this discovery queue are assigned to the three workers.
+Those 14 templates are now finished and passed all 280 coordinator context
+checks. All assigned work is complete; the fresh full-tree audit is running to
+establish the final candidate count rather than reusing an earlier snapshot.
 
 Initial full inventory: 2,610 Java files, including 889 Liquid templates and
 1,721 directive-free identity inputs. Metadata has no Java project-file

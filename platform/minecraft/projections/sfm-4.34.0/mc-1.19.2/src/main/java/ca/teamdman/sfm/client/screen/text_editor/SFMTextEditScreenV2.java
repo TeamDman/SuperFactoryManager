@@ -289,5 +289,4 @@ public class SFMTextEditScreenV2 extends Screen implements ISFMTextEditScreen {
                 .map(SFMExtendedButtonWithTooltip.class::cast)
                 .forEach(x -> x.renderToolTip(pose, mx, my));
     }
-
 }

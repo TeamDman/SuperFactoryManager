@@ -21,7 +21,6 @@ public class SFMPacketHandlingContext {
     private final PlayPayloadContext inner;
 
     public SFMPacketHandlingContext(PlayPayloadContext inner) {
-
         this.inner = inner;
     }
 

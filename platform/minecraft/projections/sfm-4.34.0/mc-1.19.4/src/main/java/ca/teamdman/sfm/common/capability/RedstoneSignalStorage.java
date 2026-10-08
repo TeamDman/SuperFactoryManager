@@ -66,7 +66,9 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
     }
 
     @Override
-    public void deserializeNBT(IntTag nbt) {
+    public void deserializeNBT(
+            IntTag nbt
+    ) {
         this.value = nbt.getAsInt();
     }
 

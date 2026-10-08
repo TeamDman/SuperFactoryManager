@@ -89,7 +89,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
     protected void updateWidgetNarration(NarrationElementOutput narration) {
         narration.add(NarratedElementType.TITLE, getMessage());
     }
-    
+
     @Override
     @MCVersionDependentBehaviour
     public void renderWidget(
@@ -106,7 +106,6 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
         graphics.pose().translate(0.0F, 0.0F, 400.0F);
 
         super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
-
         graphics.pose().popPose();
     }
 
@@ -221,8 +220,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollWidget {
 
         // Calculate which items are visible in the current viewport
         int itemHeight = getItemHeight();
-        int startIndex = (int)(scrollAmount() / itemHeight);
-        int visibleCount = (int)Math.ceil((double)height / itemHeight) + 1;
+        int startIndex = (int) (scrollAmount() / itemHeight);
+        int visibleCount = (int) Math.ceil((double) height / itemHeight) + 1;
         int endIndex = Math.min(items.size(), startIndex + visibleCount);
 
         // Only render the visible items

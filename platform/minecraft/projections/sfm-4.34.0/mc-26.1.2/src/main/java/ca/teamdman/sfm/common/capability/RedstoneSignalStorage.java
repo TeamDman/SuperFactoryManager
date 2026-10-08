@@ -66,7 +66,6 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, ValueIOSer
         return true;
     }
 
-
     @Override
     public void serialize(ValueOutput output) {
         output.putInt("value", this.value);

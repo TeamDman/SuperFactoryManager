@@ -272,7 +272,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mx, int my, float partialTicks) {
+    public void render(
+            GuiGraphics graphics,
+            int mx,
+            int my,
+            float partialTicks
+    ) {
 
         // render background
         this.renderBackground(graphics);
@@ -827,7 +832,13 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         @Override
-        protected void renderContents(GuiGraphics graphics, int mx, int my, float partialTicks) {
+        protected void renderContents(
+                GuiGraphics graphics,
+                int mx,
+                int my,
+                float partialTicks
+        ) {
+
             Matrix4f matrix4f = graphics.pose().last().pose();
 
             // rebuild the program if necessary
@@ -998,7 +1009,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     );
                 } else {
                     graphics.fill(
-                            cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
+                            cursorX,
+                            cursorY - 1,
+                            cursorX + 1,
+                            cursorY + 1 + 9,
+                            -1
+                    );
                 }
             }
         }

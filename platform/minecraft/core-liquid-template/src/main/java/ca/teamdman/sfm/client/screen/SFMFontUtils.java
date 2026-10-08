@@ -526,7 +526,6 @@ public class SFMFontUtils {
     ) {
         graphics.text(font, text, x, y, normalizeLegacyRgb(colour), shadow);
     }
-
 {% endif %}
 {% endcase %}
 }

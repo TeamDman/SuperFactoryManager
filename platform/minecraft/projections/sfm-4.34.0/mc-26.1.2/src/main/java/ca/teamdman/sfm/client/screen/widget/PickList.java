@@ -163,7 +163,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         } else {
             this.setScrollAmount(
                     this.selectionIndex * this.getItemHeight()
-                            - this.height / 2.0f + this.getItemHeight()
+                    - this.height / 2.0f + this.getItemHeight()
             );
         }
     }

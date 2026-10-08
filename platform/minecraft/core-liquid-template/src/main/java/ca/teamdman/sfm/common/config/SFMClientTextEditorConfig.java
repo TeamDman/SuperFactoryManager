@@ -34,9 +34,7 @@ public class SFMClientTextEditorConfig {
     public final ForgeConfigSpec.BooleanValue canvasWheelZooms;
     public final ForgeConfigSpec.BooleanValue canvasMiddlePans;
 {% endif %}
-
     public final ForgeConfigSpec.EnumValue<SFMTextEditorIntellisenseLevel> intellisenseLevel;
-
     public final ForgeConfigSpec.ConfigValue<String> preferredEditor;
 {% else %}
     public final ModConfigSpec.BooleanValue showLineNumbers;
@@ -91,8 +89,7 @@ public class SFMClientTextEditorConfig {
 {% else %}
             return Objects.requireNonNullElse(
                     SFMTextEditors.registry().get(id),
-                    SFMTextEditors.V1.get()
-            );
+                    SFMTextEditors.V1.get());
 {% endcase %}
         }
     }

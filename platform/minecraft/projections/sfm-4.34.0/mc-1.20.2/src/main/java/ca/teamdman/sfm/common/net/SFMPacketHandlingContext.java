@@ -22,7 +22,6 @@ public class SFMPacketHandlingContext {
     private final NetworkEvent.Context inner;
 
     public SFMPacketHandlingContext(Supplier<NetworkEvent.Context> inner) {
-
         this.inner = inner.get();
     }
 

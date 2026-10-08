@@ -106,7 +106,6 @@ public class SFMScreenRenderUtils {
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);
 {% else %}
-
         graphics.fill(RenderPipelines.GUI_TEXT_HIGHLIGHT, startX, startY, endX, endY, -16776961);
 {% endcase %}
     }

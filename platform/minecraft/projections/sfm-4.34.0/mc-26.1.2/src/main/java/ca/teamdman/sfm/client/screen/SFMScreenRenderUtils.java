@@ -28,7 +28,6 @@ public class SFMScreenRenderUtils {
             int endX,
             int endY
     ) {
-
         graphics.fill(RenderPipelines.GUI_TEXT_HIGHLIGHT, startX, startY, endX, endY, -16776961);
     }
 

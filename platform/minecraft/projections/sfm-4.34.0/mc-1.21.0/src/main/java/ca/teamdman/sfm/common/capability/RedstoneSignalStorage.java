@@ -78,6 +78,5 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
             IntTag nbt
     ) {
         this.value = nbt.getAsInt();
-
     }
 }

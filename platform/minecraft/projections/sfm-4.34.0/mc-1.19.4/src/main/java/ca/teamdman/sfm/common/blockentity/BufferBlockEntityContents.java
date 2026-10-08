@@ -26,7 +26,6 @@ public class BufferBlockEntityContents {
 
     public BufferBlock.ContainedResource lastUsedResource = BufferBlock.ContainedResource.Unknown;
 
-
     /// Should return None if querying for a resource type when other resource types are not empty.
     public <CAP> SFMBlockCapabilityResult<CAP> getCapability(
             ResourceType<?, ?, CAP> type

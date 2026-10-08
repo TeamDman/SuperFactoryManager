@@ -516,7 +516,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             float partialTicks
     ) {
 {% when "1.20", "1.20.1" %}
-    public void render(GuiGraphics graphics, int mx, int my, float partialTicks) {
+    public void render(
+            GuiGraphics graphics,
+            int mx,
+            int my,
+            float partialTicks
+    ) {
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public void render(
             GuiGraphics graphics,
@@ -902,14 +907,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 Component pPlaceholder,
                 Component pMessage
         ) {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-{% else %}
-            super(pFont, pX, pY, pWidth, pHeight, pPlaceholder, pMessage, -2039584, true, -3092272, true, true);
-{% endcase %}
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
             super(
                     pFont,
                     pX,
@@ -917,10 +915,13 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     pWidth,
                     pHeight,
                     pPlaceholder,
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
                     pMessage
-            );
 {% else %}
+                    pMessage, -2039584, true, -3092272, true, true
 {% endcase %}
+            );
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
             this.rebuild(false);
@@ -1266,11 +1267,6 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             return this.font.lineHeight * (content.size() + 2);
         }
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-{% else %}
-
-{% endcase %}
         @Override
         public boolean mouseDragged(
 {% case minecraft_version %}
@@ -1281,7 +1277,9 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 double dx,
                 double dy
 {% else %}
-                MouseButtonEvent event, double dx, double dy
+                MouseButtonEvent event,
+                double dx,
+                double dy
 {% endcase %}
         ) {
 {% case minecraft_version %}
@@ -1586,7 +1584,13 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 float partialTicks
         ) {
 {% when "1.20", "1.20.1" %}
-        protected void renderContents(GuiGraphics graphics, int mx, int my, float partialTicks) {
+        protected void renderContents(
+                GuiGraphics graphics,
+                int mx,
+                int my,
+                float partialTicks
+        ) {
+
             Matrix4f matrix4f = graphics.pose().last().pose();
 
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
@@ -1886,7 +1890,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                     );
 {% else %}
                     graphics.fill(
-                            cursorX, cursorY - 1, cursorX + 1, cursorY + 1 + 9, -1);
+                            cursorX,
+                            cursorY - 1,
+                            cursorX + 1,
+                            cursorY + 1 + 9,
+                            -1
+                    );
 {% endcase %}
                 }
             }

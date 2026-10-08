@@ -195,10 +195,9 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         graphics.pose().translate(0.0F, 0.0F, 400.0F);
 
         super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
-
         graphics.pose().popPose();
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-    
+
     @Override
     @MCVersionDependentBehaviour
     public void renderWidget(
@@ -215,7 +214,6 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         graphics.pose().translate(0.0F, 0.0F, 400.0F);
 
         super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
-
         graphics.pose().popPose();
 {% when '26.1.2' %}
 
@@ -288,12 +286,7 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
         } else {
             this.setScrollAmount(
                     this.selectionIndex * this.getItemHeight()
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                     - this.height / 2.0f + this.getItemHeight()
-{% when '26.1.2' %}
-                            - this.height / 2.0f + this.getItemHeight()
-{% endcase %}
             );
         }
     }
@@ -395,14 +388,8 @@ public class PickList<T extends PickListItem> extends AbstractScrollArea {
 
         // Calculate which items are visible in the current viewport
         int itemHeight = getItemHeight();
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-        int startIndex = (int)(scrollAmount() / itemHeight);
-        int visibleCount = (int)Math.ceil((double)height / itemHeight) + 1;
-{% when '26.1.2' %}
         int startIndex = (int) (scrollAmount() / itemHeight);
         int visibleCount = (int) Math.ceil((double) height / itemHeight) + 1;
-{% endcase %}
         int endIndex = Math.min(items.size(), startIndex + visibleCount);
 
 {% case minecraft_version %}
