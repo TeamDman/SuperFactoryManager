@@ -23,7 +23,6 @@ import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -35,7 +34,6 @@ public class SFMJEIPlugin implements IModPlugin {
     public @Nullable IJeiRuntime jeiRuntime = null;
 
     public SFMJEIPlugin() {
-
         if (INSTANCE != null) {
             throw new IllegalStateException("Tried to create multiple instances of SFMJEIPlugin");
         }
@@ -43,19 +41,16 @@ public class SFMJEIPlugin implements IModPlugin {
     }
 
     public static @Nullable IJeiRuntime getJeiRuntime() {
-
         return INSTANCE != null ? INSTANCE.jeiRuntime : null;
     }
 
     @Override
     public Identifier getPluginUid() {
-
         return SFMResourceLocation.fromSFMPath(SFM.MOD_ID);
     }
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-
         registration.addRecipeCategories(
                 new PrintingPressJEICategory(registration.getJeiHelpers()),
                 new FallingAnvilJEICategory(registration.getJeiHelpers())
@@ -64,7 +59,6 @@ public class SFMJEIPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
-
         registration.addCraftingStation(
                 PrintingPressJEICategory.RECIPE_TYPE,
                 SFMBlocks.PRINTING_PRESS.get()
@@ -116,38 +110,31 @@ public class SFMJEIPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-
-        registration.addGuiContainerHandler(
-                ManagerScreen.class, new IGuiContainerHandler<>() {
-                    @Override
-                    public List<Rect2i> getGuiExtraAreas(ManagerScreen screen) {
-
-                        var buttons = screen.getButtonsForJEIExclusionZones();
-                        return buttons
-                                .stream()
-                                .filter(b -> b.visible)
-                                .map(b -> new Rect2i(
-                                        SFMWidgetUtils.getX(b),
-                                        SFMWidgetUtils.getY(b),
-                                        b.getWidth(),
-                                        b.getHeight()
-                                ))
-                                .toList();
-                    }
-                }
-        );
+        registration.addGuiContainerHandler(ManagerScreen.class, new IGuiContainerHandler<>() {
+            @Override
+            public List<Rect2i> getGuiExtraAreas(ManagerScreen screen) {
+                var buttons = screen.getButtonsForJEIExclusionZones();
+                return buttons
+                        .stream()
+                        .filter(b -> b.visible)
+                        .map(b -> new Rect2i(
+                                SFMWidgetUtils.getX(b),
+                                SFMWidgetUtils.getY(b),
+                                b.getWidth(),
+                                b.getHeight()
+                        ))
+                        .toList();
+            }
+        });
     }
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-
         this.jeiRuntime = jeiRuntime;
     }
 
     @Override
     public void onRuntimeUnavailable() {
-
         jeiRuntime = null;
     }
-
 }

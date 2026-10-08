@@ -24,13 +24,12 @@ import net.minecraftforge.fml.common.Mod;
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 import net.neoforged.bus.api.IEventBus;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 {% when "26.1.2" %}
 import java.util.function.Supplier;
-
 {% endcase %}
+
 public class SFMItems {
 {% case minecraft_version %}
 {% when "1.19.2" %}
@@ -68,46 +67,22 @@ public class SFMItems {
             SFMBlocks.FANCY_CABLE
     );
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE = register(
-{% when "26.1.2" %}
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE =
-            register(
-{% endcase %}
             "tough_cable",
             SFMBlocks.TOUGH_CABLE
     );
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE = register(
-{% when "26.1.2" %}
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE =
-            register(
-{% endcase %}
             "tough_fancy_cable",
             SFMBlocks.TOUGH_FANCY_CABLE
     );
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE = register(
-{% when "26.1.2" %}
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE =
-            register(
-{% endcase %}
             "tunnelled_cable",
             SFMBlocks.TUNNELLED_CABLE
     );
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE = register(
-{% when "26.1.2" %}
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE =
-            register(
-{% endcase %}
             "tunnelled_fancy_cable",
             SFMBlocks.TUNNELLED_FANCY_CABLE
     );
@@ -149,9 +124,11 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, DiskItem> DISK
 {% case minecraft_version %}
 {% when "1.19.2" %}
-            = REGISTRY.register("disk", DiskItem::new);
+            = REGISTRY.register(
+                    "disk", DiskItem::new);
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-            = REGISTERER.register("disk", DiskItem::new);
+            = REGISTERER.register(
+                    "disk", DiskItem::new);
 {% when "26.1.2" %}
             = REGISTERER.register(
                     "disk",
@@ -214,9 +191,11 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, FormItem> FORM
 {% case minecraft_version %}
 {% when "1.19.2" %}
-            = REGISTRY.register("form", FormItem::new);
+            = REGISTRY.register(
+            "form", FormItem::new);
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-            = REGISTERER.register("form", FormItem::new);
+            = REGISTERER.register(
+            "form", FormItem::new);
 {% when "26.1.2" %}
             = REGISTERER.register(
             "form",
@@ -304,6 +283,7 @@ public class SFMItems {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 {% when "26.1.2" %}
+
         return register(name, block, new Item.Properties());
     }
 {% endcase %}
@@ -325,9 +305,15 @@ public class SFMItems {
                 name,
 {% case minecraft_version %}
 {% when "1.19.2" %}
-                () -> new BlockItem(block.get(), new Item.Properties().tab(SFMCreativeTabs.MAIN))
+                () -> new BlockItem(
+                        block.get(),
+                        new Item.Properties().tab(SFMCreativeTabs.MAIN)
+                )
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-                () -> new BlockItem(block.get(), new Item.Properties())
+                () -> new BlockItem(
+                        block.get(),
+                        new Item.Properties()
+                )
 {% when "26.1.2" %}
                 registryName -> new BlockItem(
                         block.get(),

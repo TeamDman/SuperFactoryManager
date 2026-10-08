@@ -13,6 +13,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.*;
 import net.minecraft.world.level.Level;
+
 import org.jspecify.annotations.NonNull;
 
 import java.util.Objects;
@@ -47,11 +48,13 @@ public record PrintingPressRecipe(
 
     @Override
     public boolean showNotification() {
+
         return false;
     }
 
     @Override
     public String group() {
+
         return "";
     }
 

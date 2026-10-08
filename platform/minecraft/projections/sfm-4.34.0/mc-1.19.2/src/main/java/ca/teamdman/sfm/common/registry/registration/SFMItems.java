@@ -70,7 +70,8 @@ public class SFMItems {
     );
 
     public static final SFMRegistryObject<Item, DiskItem> DISK
-            = REGISTRY.register("disk", DiskItem::new);
+            = REGISTRY.register(
+                    "disk", DiskItem::new);
 
     public static final SFMRegistryObject<Item, LabelGunItem> LABEL_GUN
             = REGISTRY.register(
@@ -89,7 +90,8 @@ public class SFMItems {
     );
 
     public static final SFMRegistryObject<Item, FormItem> FORM
-            = REGISTRY.register("form", FormItem::new);
+            = REGISTRY.register(
+            "form", FormItem::new);
 
     public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
             = REGISTRY.register(
@@ -123,7 +125,10 @@ public class SFMItems {
 
         return REGISTRY.register(
                 name,
-                () -> new BlockItem(block.get(), new Item.Properties().tab(SFMCreativeTabs.MAIN))
+                () -> new BlockItem(
+                        block.get(),
+                        new Item.Properties().tab(SFMCreativeTabs.MAIN)
+                )
         );
     }
 

@@ -94,11 +94,7 @@ public final class SFMBlockEntities {
             () -> new BlockEntityType<>(TunnelledManagerBlockEntity::new, SFMBlocks.TUNNELLED_MANAGER.get())
 {% endcase %}
     );
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
 
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<CableFacadeBlockEntity>>
             CABLE_FACADE = REGISTERER.register(
             "cable_facade",

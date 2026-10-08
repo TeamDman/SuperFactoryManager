@@ -7,7 +7,6 @@ import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-
 public interface SFMPacketDaddy<T extends SFMPacket> {
     enum PacketDirection {
         SERVERBOUND,

@@ -13,7 +13,6 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.bus.api.IEventBus;
-
 import java.util.function.Supplier;
 
 public class SFMItems {
@@ -40,26 +39,22 @@ public class SFMItems {
             SFMBlocks.FANCY_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE =
-            register(
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_CABLE = register(
             "tough_cable",
             SFMBlocks.TOUGH_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE =
-            register(
+    public static final SFMRegistryObject<Item, BlockItem> TOUGH_FANCY_CABLE = register(
             "tough_fancy_cable",
             SFMBlocks.TOUGH_FANCY_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE =
-            register(
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_CABLE = register(
             "tunnelled_cable",
             SFMBlocks.TUNNELLED_CABLE
     );
 
-    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE =
-            register(
+    public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_FANCY_CABLE = register(
             "tunnelled_fancy_cable",
             SFMBlocks.TUNNELLED_FANCY_CABLE
     );
@@ -153,6 +148,7 @@ public class SFMItems {
             String name,
             SFMRegistryObject<Block, ? extends Block> block
     ) {
+
         return register(name, block, new Item.Properties());
     }
 

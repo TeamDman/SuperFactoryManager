@@ -357,7 +357,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     @MCVersionDependentBehaviour
     public float getBlitOffsetGood() {
-
         return 0F;
     }
 
@@ -766,7 +765,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         Matrix4f pose = graphics.pose().last().pose();
         BufferBuilder bufferbuilder;
 
-
         // Draw the plot background
         bufferbuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         bufferbuilder.addVertex(pose, plotX, plotY, 0).setColor(0, 0, 0, 0.5f);
@@ -921,5 +919,4 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         int j = (this.height - this.imageHeight) / 2;
         graphics.blit(BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight);
     }
-
 }

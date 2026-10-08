@@ -93,27 +93,20 @@ public class SFMAnnotationUtils {
             return inner.memberName();
         }
 
-{% if features.mod_event_filtering %}
         public Type clazz() {
 
             return inner.clazz();
         }
 
+{% if features.mod_event_filtering %}
         public String getString(String key, String defaultValue) {
 
             Object value = annotationData().get(key);
             return value instanceof String string ? string : defaultValue;
         }
 
-        @SuppressWarnings("unchecked")
-{% else %}
-        public Type clazz() {
-
-            return inner.clazz();
-        }
-
-        @SuppressWarnings("unchecked")
 {% endif %}
+        @SuppressWarnings("unchecked")
         public <T extends Enum<T>> EnumSet<T> getEnumSet(
                 String key,
                 Class<T> clazz

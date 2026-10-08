@@ -143,6 +143,7 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     @MCVersionDependentBehaviour
     public @NotNull SFMEnchantmentKey createEnchantmentKey(ResourceKey<Enchantment> enchantment) {
+
         return new SFMEnchantmentKey(getLevel().registryAccess(), enchantment);
     }
 
@@ -266,7 +267,10 @@ public class SFMGameTestHelper extends GameTestHelper {
         return getItemResourceHandler(pos, null);
     }
 
-    public IItemHandler getItemHandler(BlockPos pos) {
+    public IItemHandler getItemHandler(
+            BlockPos pos
+    ) {
+
         return IItemHandler.of(getItemResourceHandler(pos));
     }
 

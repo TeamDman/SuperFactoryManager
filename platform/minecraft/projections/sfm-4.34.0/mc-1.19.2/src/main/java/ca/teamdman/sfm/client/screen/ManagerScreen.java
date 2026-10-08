@@ -357,7 +357,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     @MCVersionDependentBehaviour
     public float getBlitOffsetGood() {
-
         return (float) getBlitOffset();
     }
 
@@ -929,5 +928,4 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         int j = (this.height - this.imageHeight) / 2;
         blit(matrixStack, i, j, 0, 0, this.imageWidth, this.imageHeight);
     }
-
 }

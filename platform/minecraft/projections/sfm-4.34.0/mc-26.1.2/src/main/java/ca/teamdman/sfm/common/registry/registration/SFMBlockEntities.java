@@ -49,6 +49,7 @@ public final class SFMBlockEntities {
             "tunnelled_manager",
             () -> new BlockEntityType<>(TunnelledManagerBlockEntity::new, SFMBlocks.TUNNELLED_MANAGER.get())
     );
+
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<CableFacadeBlockEntity>>
             CABLE_FACADE = REGISTERER.register(
             "cable_facade",

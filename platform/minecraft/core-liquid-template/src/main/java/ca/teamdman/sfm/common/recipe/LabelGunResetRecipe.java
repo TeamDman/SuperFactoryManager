@@ -49,7 +49,9 @@ import net.minecraft.world.level.Level;
 public class LabelGunResetRecipe extends CustomRecipe {
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    public LabelGunResetRecipe(ResourceLocation id) {
+    public LabelGunResetRecipe(
+            ResourceLocation id
+    ) {
         super(id);
     }
 {% when '1.19.4', '1.20', '1.20.1' %}
@@ -77,7 +79,6 @@ public class LabelGunResetRecipe extends CustomRecipe {
             StreamCodec.unit(INSTANCE);
 
     public LabelGunResetRecipe() {}
-
 {% endcase %}
 
     @Override
@@ -112,7 +113,9 @@ public class LabelGunResetRecipe extends CustomRecipe {
     @Override
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    public ItemStack assemble(CraftingContainer pContainer) {
+    public ItemStack assemble(
+            CraftingContainer pContainer
+    ) {
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
     public ItemStack assemble(
             CraftingContainer craftingContainer,

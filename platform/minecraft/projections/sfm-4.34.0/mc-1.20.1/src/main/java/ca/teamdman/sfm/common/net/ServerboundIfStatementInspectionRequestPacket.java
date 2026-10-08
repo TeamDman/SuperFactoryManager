@@ -32,7 +32,6 @@ public record ServerboundIfStatementInspectionRequestPacket(
 
         @Override
         public ServerboundIfStatementInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundIfStatementInspectionRequestPacket(
                     friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
                     friendlyByteBuf.readInt()

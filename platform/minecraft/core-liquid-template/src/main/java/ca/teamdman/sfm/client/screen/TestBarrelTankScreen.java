@@ -216,7 +216,6 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
 {% endcase %}
     }
 
-
     @Override
     protected void init() {
         super.init();

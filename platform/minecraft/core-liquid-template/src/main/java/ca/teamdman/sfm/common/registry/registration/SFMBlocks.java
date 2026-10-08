@@ -56,32 +56,26 @@ public class SFMBlocks {
                     ));
 {% endcase %}
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
     public static final SFMRegistryObject<Block, BufferBlock> BUFFER_BLOCK =
             REGISTERER.register(
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
                     "buffer", () -> new BufferBlock(
                             BlockBehaviour.Properties
                                     .of(Material.PISTON)
-                                    .destroyTime(1.5f)
-                                    .sound(SoundType.METAL),
-                            BufferBlockTier.MaxUnit
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-    public static final SFMRegistryObject<Block,BufferBlock> BUFFER_BLOCK = REGISTERER.register(
-            "buffer", () -> new BufferBlock(
-                    BlockBehaviour.Properties.of()
+                    "buffer", () -> new BufferBlock(
+                            BlockBehaviour.Properties
+                                    .of()
+{% when "26.1.2" %}
+                    "buffer", registryName -> new BufferBlock(
+                            BlockBehaviour.Properties
+                                    .of()
+                                    .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+{% endcase %}
                                     .destroyTime(1.5f)
                                     .sound(SoundType.METAL),
                             BufferBlockTier.MaxUnit
-{% when "26.1.2" %}
-    public static final SFMRegistryObject<Block,BufferBlock> BUFFER_BLOCK = REGISTERER.register(
-            "buffer", registryName -> new BufferBlock(
-                    BlockBehaviour.Properties.of()
-                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .destroyTime(1.5f)
-                            .sound(SoundType.METAL),
-                    BufferBlockTier.MaxUnit
-{% endcase %}
                     )
             );
 

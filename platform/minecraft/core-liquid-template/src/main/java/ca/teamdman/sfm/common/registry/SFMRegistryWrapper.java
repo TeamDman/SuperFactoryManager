@@ -41,11 +41,6 @@ import java.util.stream.StreamSupport;
 /// Helps reduce {@link MCVersionDependentBehaviour}
 @MCVersionDependentBehaviour
 public final class SFMRegistryWrapper<T> implements Iterable<T> {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
-{% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     private final ResourceKey<? extends Registry<T>> registryKey;
 
 {% case minecraft_version %}
@@ -161,10 +156,11 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
     public Set<Map.Entry<ResourceKey<T>, T>> entries() {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
-        return getInnerRegistry().getEntries();
+        return getInnerRegistry()
+                .getEntries();
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-        return getInnerRegistry().entrySet();
+        return getInnerRegistry()
+                .entrySet();
 {% endcase %}
     }
 
@@ -275,11 +271,6 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
 {% endcase %}
     }
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
-{% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     @SuppressWarnings("rawtypes")
     @Override
     public boolean equals(Object obj) {

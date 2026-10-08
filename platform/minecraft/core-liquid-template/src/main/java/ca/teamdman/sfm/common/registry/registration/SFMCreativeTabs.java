@@ -38,7 +38,6 @@ import net.minecraftforge.registries.RegistryObject;
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
-
 import java.util.function.Supplier;
 {% endcase %}
 
@@ -129,32 +128,11 @@ public class SFMCreativeTabs {
                                                                                            .map(ItemStack::new)
                                                                                            .toList()))
         );
-{% when '1.20', '1.20.1' %}
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
     public static void register(IEventBus bus) {
 
         CREATIVE_TABS.register(bus);
     }
-
-    public static void populateMainCreativeTab(
-            @SuppressWarnings("unused")
-            CreativeModeTab.ItemDisplayParameters params,
-            CreativeModeTab.Output output
-    ) {
-
-        output.acceptAll(
-                SFMItems.REGISTERER
-                        .getOurEntries()
-                        .stream()
-                        .map(SFMRegistryObject::get)
-                        .map(ItemStack::new)
-                        .toList()
-        );
-{% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-    public static void register(IEventBus bus) {
-
-        CREATIVE_TABS.register(bus);
-    }
-
 
     public static void populateMainCreativeTab(
             @SuppressWarnings("unused")

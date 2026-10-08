@@ -135,11 +135,6 @@ public class SFMDataComponents {
                     .build()
     );
 
-{% case minecraft_version %}
-{% when '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
     public static void register(IEventBus bus) {
         DATA_COMPONENT_TYPES.register(bus);
     }

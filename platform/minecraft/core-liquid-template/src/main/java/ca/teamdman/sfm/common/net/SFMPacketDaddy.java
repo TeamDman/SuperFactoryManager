@@ -20,7 +20,6 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
 import java.util.function.Supplier;
 
-
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
 public interface SFMPacketDaddy<T extends SFMPacket> {

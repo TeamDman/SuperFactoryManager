@@ -25,7 +25,6 @@ import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.capabilities.CapabilityToken;
 {% when '1.20.4', '1.21', '1.21.1' %}
 {% endcase %}
-
 import java.util.stream.Stream;
 
 public class SlurryResourceType extends RegistryBackedResourceType<SlurryStack, Slurry, ISlurryHandler> {

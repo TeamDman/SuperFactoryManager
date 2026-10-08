@@ -8,6 +8,7 @@ import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.FriendlyByteBuf;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
 import java.util.Collection;

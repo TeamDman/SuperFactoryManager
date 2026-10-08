@@ -38,7 +38,6 @@ public record ServerboundManagerSetLogLevelPacket(
 
         @Override
         public ServerboundManagerSetLogLevelPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundManagerSetLogLevelPacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readBlockPos(),

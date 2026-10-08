@@ -8,6 +8,7 @@ import net.neoforged.fml.loading.FMLLoader;
 public class SFMEnvironmentUtils {
 
     public static boolean isGameLoaded() {
+
         return FMLLoader.getCurrentOrNull() != null;
     }
 

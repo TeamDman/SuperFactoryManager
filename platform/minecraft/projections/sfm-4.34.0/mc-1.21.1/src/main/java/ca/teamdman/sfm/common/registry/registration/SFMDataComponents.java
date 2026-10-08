@@ -136,7 +136,6 @@ public class SFMDataComponents {
                     .build()
     );
 
-
     public static void register(IEventBus bus) {
         DATA_COMPONENT_TYPES.register(bus);
     }

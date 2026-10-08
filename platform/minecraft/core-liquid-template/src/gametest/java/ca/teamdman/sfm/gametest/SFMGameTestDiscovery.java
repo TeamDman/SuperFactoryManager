@@ -34,7 +34,6 @@ import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.Collection;
 {% if features.gametest_sides %}
@@ -235,20 +234,10 @@ public class SFMGameTestDiscovery {
     }
 
     private static String qualifyTestName(SFMGameTestDefinition test) {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
-{% when "26.1.2" %}
-{% endcase %}
         return SFM.MOD_ID + ":" + test.testName();
     }
 
     private static String normalizeSelector(String selector) {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
-{% when "26.1.2" %}
-{% endcase %}
         return selector.contains(":") ? selector : SFM.MOD_ID + ":" + selector;
     }
 

@@ -64,7 +64,6 @@ public record ServerboundManagerRebuildPacket(
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
         public ServerboundManagerRebuildPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
 {% when '1.21', '1.21.1', '26.1.2' %}
         public ServerboundManagerRebuildPacket decode(RegistryFriendlyByteBuf friendlyByteBuf) {
 {% endcase %}

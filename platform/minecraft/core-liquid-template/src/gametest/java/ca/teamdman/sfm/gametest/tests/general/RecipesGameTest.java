@@ -27,7 +27,6 @@ import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeType;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "26.1.2" %}
 import java.util.Collection;
@@ -57,7 +56,6 @@ public class RecipesGameTest extends SFMGameTestDefinition {
                 .getLevel()
                 .getRecipeManager()
                 .getAllRecipesFor(RecipeType.CRAFTING);
-
 {% when "26.1.2" %}
         Collection<RecipeHolder<CraftingRecipe>> craftingRecipes = helper
                 .getLevel()
@@ -69,8 +67,8 @@ public class RecipesGameTest extends SFMGameTestDefinition {
                 .getLevel()
                 .getRecipeManager()
                 .getAllRecipesFor(RecipeType.CRAFTING);
-
 {% endcase %}
+
         // We will track the SFM items whose recipes we have observed
 {% case minecraft_version %}
 {% when "26.1.2" %}

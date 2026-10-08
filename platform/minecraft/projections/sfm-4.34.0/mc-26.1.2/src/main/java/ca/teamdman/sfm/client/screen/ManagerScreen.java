@@ -353,7 +353,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         statusCountdown -= partialTicks;
     }
 
-
     @Override
     protected void init() {
 
@@ -746,9 +745,9 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             int plotPosX = plotX + spaceBetweenPoints * i;
 
             if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
-                    && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
-                    && my - topPos >= plotY - 2
-                    && my - topPos <= plotY + plotHeight + 2) {
+                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
+                && my - topPos >= plotY - 2
+                && my - topPos <= plotY + plotHeight + 2) {
                 mouseTickTimeIndex = i;
             }
         }

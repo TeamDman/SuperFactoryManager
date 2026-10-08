@@ -180,7 +180,6 @@ public record ServerboundContainerExportsInspectionRequestPacket(
 
         @Override
         public ServerboundContainerExportsInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundContainerExportsInspectionRequestPacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readBlockPos()

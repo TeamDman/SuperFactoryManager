@@ -45,6 +45,4 @@ public class SFMConfirmationScreen extends ConfirmScreen {
                 delay
         );
     }
-
-
 }

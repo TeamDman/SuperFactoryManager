@@ -30,13 +30,15 @@ public class SFMBlocks {
                                     .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
                     ));
 
-    public static final SFMRegistryObject<Block,BufferBlock> BUFFER_BLOCK = REGISTERER.register(
-            "buffer", registryName -> new BufferBlock(
-                    BlockBehaviour.Properties.of()
-                            .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
-                            .destroyTime(1.5f)
-                            .sound(SoundType.METAL),
-                    BufferBlockTier.MaxUnit
+    public static final SFMRegistryObject<Block, BufferBlock> BUFFER_BLOCK =
+            REGISTERER.register(
+                    "buffer", registryName -> new BufferBlock(
+                            BlockBehaviour.Properties
+                                    .of()
+                                    .setId(ResourceKey.create(REGISTERER.registry().registryKey(), registryName))
+                                    .destroyTime(1.5f)
+                                    .sound(SoundType.METAL),
+                            BufferBlockTier.MaxUnit
                     )
             );
 

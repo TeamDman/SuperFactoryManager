@@ -57,7 +57,6 @@ import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 import org.jetbrains.annotations.Nullable;
 {% endcase %}
-
 import java.util.ArrayList;
 {% case minecraft_version %}
 {% when "26.1.2" %}
@@ -108,7 +107,6 @@ public class SFMJEIPlugin implements IModPlugin {
     public @Nullable IJeiRuntime jeiRuntime = null;
 
     public SFMJEIPlugin() {
-
         if (INSTANCE != null) {
             throw new IllegalStateException("Tried to create multiple instances of SFMJEIPlugin");
         }
@@ -116,7 +114,6 @@ public class SFMJEIPlugin implements IModPlugin {
     }
 
     public static @Nullable IJeiRuntime getJeiRuntime() {
-
         return INSTANCE != null ? INSTANCE.jeiRuntime : null;
     }
 
@@ -143,20 +140,14 @@ public class SFMJEIPlugin implements IModPlugin {
     public ResourceLocation getPluginUid() {
 {% when "1.21.1" %}
     public ResourceLocation getPluginUid() {
-
 {% when "26.1.2" %}
     public Identifier getPluginUid() {
-
 {% endcase %}
         return SFMResourceLocation.fromSFMPath(SFM.MOD_ID);
     }
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-{% case minecraft_version %}
-{% when "1.21.1", "26.1.2" %}
-
-{% endcase %}
         registration.addRecipeCategories(
                 new PrintingPressJEICategory(registration.getJeiHelpers()),
                 new FallingAnvilJEICategory(registration.getJeiHelpers())
@@ -166,17 +157,11 @@ public class SFMJEIPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
-        registration.addRecipeCatalyst(
-                new ItemStack(SFMBlocks.PRINTING_PRESS.get()),
-                PrintingPressJEICategory.RECIPE_TYPE
-{% when "1.21.1" %}
-
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
         registration.addRecipeCatalyst(
                 new ItemStack(SFMBlocks.PRINTING_PRESS.get()),
                 PrintingPressJEICategory.RECIPE_TYPE
 {% when "26.1.2" %}
-
         registration.addCraftingStation(
                 PrintingPressJEICategory.RECIPE_TYPE,
                 SFMBlocks.PRINTING_PRESS.get()
@@ -303,8 +288,6 @@ public class SFMJEIPlugin implements IModPlugin {
 
     @Override
     public void registerGuiHandlers(IGuiHandlerRegistration registration) {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         registration.addGuiContainerHandler(ManagerScreen.class, new IGuiContainerHandler<>() {
             @Override
             public List<Rect2i> getGuiExtraAreas(ManagerScreen screen) {
@@ -321,28 +304,6 @@ public class SFMJEIPlugin implements IModPlugin {
                         .toList();
             }
         });
-{% when "1.21.1", "26.1.2" %}
-
-        registration.addGuiContainerHandler(
-                ManagerScreen.class, new IGuiContainerHandler<>() {
-                    @Override
-                    public List<Rect2i> getGuiExtraAreas(ManagerScreen screen) {
-
-                        var buttons = screen.getButtonsForJEIExclusionZones();
-                        return buttons
-                                .stream()
-                                .filter(b -> b.visible)
-                                .map(b -> new Rect2i(
-                                        SFMWidgetUtils.getX(b),
-                                        SFMWidgetUtils.getY(b),
-                                        b.getWidth(),
-                                        b.getHeight()
-                                ))
-                                .toList();
-                    }
-                }
-        );
-{% endcase %}
     }
 {% case minecraft_version %}
 {% when "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
@@ -360,15 +321,12 @@ public class SFMJEIPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime jeiRuntime) {
-
         this.jeiRuntime = jeiRuntime;
     }
 
     @Override
     public void onRuntimeUnavailable() {
-
         jeiRuntime = null;
     }
-
 {% endcase %}
 }

@@ -12,7 +12,6 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.crafting.*;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +34,7 @@ public class RecipesGameTest extends SFMGameTestDefinition {
                 .recipeAccess()
                 .recipeMap()
                 .byType(RecipeType.CRAFTING);
+
         // We will track the SFM items whose recipes we have observed
         Map<Identifier, Object> seenSFMItemIds = new HashMap<>();
 

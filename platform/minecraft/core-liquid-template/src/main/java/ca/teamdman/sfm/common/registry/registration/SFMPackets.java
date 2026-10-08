@@ -60,7 +60,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
 {% if features.packet_direction_validation %}
@@ -105,7 +104,6 @@ public class SFMPackets {
     private static final IdentityHashMap<Class<? extends SFMPacket>, SFMPacketDaddy<? extends SFMPacket>> DADDY_MAP = new IdentityHashMap<>();
     private static final IdentityHashMap<Class<? extends SFMPacket>, CustomPacketPayload.Type<? extends SFMWrappedPacket<? extends SFMPacket>>> TYPE_MAP = new IdentityHashMap<>();
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
     private static int registrationIndex = 0;
@@ -117,6 +115,7 @@ public class SFMPackets {
     private static int registrationIndex = 0;
 
 {% when "1.20.4" %}
+
 {% when "1.21", "1.21.1", "26.1.2" %}
     @SuppressWarnings("ExtractMethodRecommender")
 {% endcase %}

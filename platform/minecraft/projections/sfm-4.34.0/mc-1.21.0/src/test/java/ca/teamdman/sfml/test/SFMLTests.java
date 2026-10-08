@@ -505,7 +505,6 @@ public class SFMLTests {
         }
     }
 
-
     @Test
     public void syntaxHighlighting2() {
         var rawInput = """

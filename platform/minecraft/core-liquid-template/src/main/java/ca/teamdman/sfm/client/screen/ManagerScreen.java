@@ -489,7 +489,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
     @MCVersionDependentBehaviour
     public float getBlitOffsetGood() {
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2" %}
         return (float) getBlitOffset();
@@ -1106,7 +1105,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         Matrix4f pose = graphics.pose().last().pose();
         BufferBuilder bufferbuilder;
 
-
         // Draw the plot background
         bufferbuilder = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
         bufferbuilder.addVertex(pose, plotX, plotY, 0).setColor(0, 0, 0, 0.5f);
@@ -1198,9 +1196,9 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                 && my - topPos <= plotY + plotHeight + 2) {
 {% else %}
             if (mx - leftPos >= plotPosX - spaceBetweenPoints / 2
-                    && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
-                    && my - topPos >= plotY - 2
-                    && my - topPos <= plotY + plotHeight + 2) {
+                && mx - leftPos <= plotPosX + spaceBetweenPoints / 2
+                && my - topPos >= plotY - 2
+                && my - topPos <= plotY + plotHeight + 2) {
 {% endif %}
 {% endcase %}
                 mouseTickTimeIndex = i;
@@ -1509,8 +1507,4 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         graphics.blit(RenderPipelines.GUI_TEXTURED, BACKGROUND_TEXTURE_LOCATION, i, j, 0, 0, this.imageWidth, this.imageHeight, 256, 256, color);
 {% endcase %}
     }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
-{% endcase %}
 }

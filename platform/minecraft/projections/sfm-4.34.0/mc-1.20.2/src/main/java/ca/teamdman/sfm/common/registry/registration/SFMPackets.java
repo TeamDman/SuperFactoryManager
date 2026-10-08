@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.NetworkRegistry;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.simple.SimpleChannel;
-
 import java.util.function.Supplier;
 
 public class SFMPackets {
@@ -18,7 +17,6 @@ public class SFMPackets {
             SFM_CHANNEL_VERSION::equals,
             SFM_CHANNEL_VERSION::equals
     );
-
     private static int registrationIndex = 0;
 
     public static <T extends SFMPacket> void registerPacket(

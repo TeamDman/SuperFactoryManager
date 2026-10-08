@@ -7,7 +7,6 @@ import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.TestFunction;
 import net.neoforged.neoforge.event.RegisterGameTestsEvent;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -119,12 +118,10 @@ public class SFMGameTestDiscovery {
     }
 
     private static String qualifyTestName(SFMGameTestDefinition test) {
-
         return SFM.MOD_ID + ":" + test.testName();
     }
 
     private static String normalizeSelector(String selector) {
-
         return selector.contains(":") ? selector : SFM.MOD_ID + ":" + selector;
     }
 

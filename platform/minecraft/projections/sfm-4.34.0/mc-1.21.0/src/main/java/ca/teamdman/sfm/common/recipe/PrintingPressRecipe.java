@@ -25,18 +25,14 @@ import java.util.Objects;
  */
 public record PrintingPressRecipe(
         Ingredient form,
-
         Ingredient ink,
-
         Ingredient paper
 ) implements Recipe<PrintingPressBlockEntity> {
-
     @Override
     public boolean matches(
             PrintingPressBlockEntity pContainer,
             Level pLevel
     ) {
-
         return paper.test(pContainer.getPaper())
                && ink.test(pContainer.getInk())
                && form.test(FormItem.getBorrowedReferenceFromForm(pContainer.getForm()));
@@ -65,6 +61,7 @@ public record PrintingPressRecipe(
     @MCVersionDependentBehaviour
     @Override
     public ItemStack getResultItem(HolderLookup.Provider pRegistries) {
+
         return ItemStack.EMPTY;
     }
 

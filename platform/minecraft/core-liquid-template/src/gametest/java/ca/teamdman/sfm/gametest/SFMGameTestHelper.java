@@ -131,7 +131,9 @@ import java.util.stream.IntStream;
 
 public class SFMGameTestHelper extends GameTestHelper {
 {% if features.client_properties %}
-    private static final long MAX_PROGRAM_RUN_MILLIS = SFMProperties.gameTestMaxProgramRunMillis(80L);
+    private static final long MAX_PROGRAM_RUN_MILLIS = SFMProperties.gameTestMaxProgramRunMillis(
+            80L
+    );
 {% else %}
     private static final long MAX_PROGRAM_RUN_MILLIS = Long.getLong(
             "sfm.gametest.maxProgramRunMillis",
@@ -248,6 +250,7 @@ public class SFMGameTestHelper extends GameTestHelper {
         return new SFMEnchantmentKey(enchantment);
 {% when "1.21", "1.21.1", "26.1.2" %}
     public @NotNull SFMEnchantmentKey createEnchantmentKey(ResourceKey<Enchantment> enchantment) {
+
         return new SFMEnchantmentKey(getLevel().registryAccess(), enchantment);
 {% endcase %}
     }
@@ -512,7 +515,10 @@ public class SFMGameTestHelper extends GameTestHelper {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 {% when "26.1.2" %}
-    public IItemHandler getItemHandler(BlockPos pos) {
+    public IItemHandler getItemHandler(
+            BlockPos pos
+    ) {
+
         return IItemHandler.of(getItemResourceHandler(pos));
     }
 

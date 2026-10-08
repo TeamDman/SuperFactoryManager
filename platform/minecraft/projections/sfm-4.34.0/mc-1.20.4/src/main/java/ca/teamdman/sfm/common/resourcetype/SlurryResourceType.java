@@ -16,7 +16,6 @@ import mekanism.common.capabilities.Capabilities;
 import mekanism.common.lib.transmitter.TransmissionType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-
 import java.util.stream.Stream;
 
 public class SlurryResourceType extends RegistryBackedResourceType<SlurryStack, Slurry, ISlurryHandler> {

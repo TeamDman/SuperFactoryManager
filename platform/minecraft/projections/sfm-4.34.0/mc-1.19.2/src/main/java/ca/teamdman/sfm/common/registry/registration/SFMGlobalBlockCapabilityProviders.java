@@ -16,7 +16,6 @@ import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraftforge.eventbus.api.IEventBus;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;

@@ -30,7 +30,6 @@ public class LabelGunResetRecipe extends CustomRecipe {
 
     public LabelGunResetRecipe() {}
 
-
     @Override
     public boolean matches(
             CraftingInput craftingInput,

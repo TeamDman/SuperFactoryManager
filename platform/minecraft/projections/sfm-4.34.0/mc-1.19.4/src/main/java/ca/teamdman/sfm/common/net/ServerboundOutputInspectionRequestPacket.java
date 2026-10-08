@@ -297,7 +297,6 @@ public record ServerboundOutputInspectionRequestPacket(
 
         @Override
         public ServerboundOutputInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundOutputInspectionRequestPacket(
                     friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
                     friendlyByteBuf.readInt()

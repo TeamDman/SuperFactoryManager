@@ -15,7 +15,9 @@ import net.minecraft.world.level.Level;
  * Printing press copies a form using ink and paper.
  */
 public class LabelGunResetRecipe extends CustomRecipe {
-    public LabelGunResetRecipe(ResourceLocation id) {
+    public LabelGunResetRecipe(
+            ResourceLocation id
+    ) {
         super(id);
     }
 
@@ -37,7 +39,9 @@ public class LabelGunResetRecipe extends CustomRecipe {
     }
 
     @Override
-    public ItemStack assemble(CraftingContainer pContainer) {
+    public ItemStack assemble(
+            CraftingContainer pContainer
+    ) {
         int foundLabelGuns = 0;
         for (int i = 0; i < pContainer.getContainerSize(); i++) {
             ItemStack stack = pContainer.getItem(i);

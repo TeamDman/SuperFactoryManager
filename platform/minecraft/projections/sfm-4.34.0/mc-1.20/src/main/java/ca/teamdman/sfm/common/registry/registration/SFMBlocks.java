@@ -25,9 +25,11 @@ public class SFMBlocks {
             =
             REGISTERER.register("manager", ManagerBlock::new);
 
-    public static final SFMRegistryObject<Block,BufferBlock> BUFFER_BLOCK = REGISTERER.register(
-            "buffer", () -> new BufferBlock(
-                    BlockBehaviour.Properties.of()
+    public static final SFMRegistryObject<Block, BufferBlock> BUFFER_BLOCK =
+            REGISTERER.register(
+                    "buffer", () -> new BufferBlock(
+                            BlockBehaviour.Properties
+                                    .of()
                                     .destroyTime(1.5f)
                                     .sound(SoundType.METAL),
                             BufferBlockTier.MaxUnit

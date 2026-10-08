@@ -15,6 +15,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -27,18 +28,14 @@ public record PrintingPressRecipe(
         ResourceLocation id,
 
         Ingredient form,
-
         Ingredient ink,
-
         Ingredient paper
 ) implements Recipe<PrintingPressBlockEntity> {
-
     @Override
     public boolean matches(
             PrintingPressBlockEntity pContainer,
             Level pLevel
     ) {
-
         return paper.test(pContainer.getPaper())
                && ink.test(pContainer.getInk())
                && form.test(FormItem.getBorrowedReferenceFromForm(pContainer.getForm()));
@@ -46,8 +43,9 @@ public record PrintingPressRecipe(
 
     @MCVersionDependentBehaviour
     @Override
-    public ItemStack assemble(PrintingPressBlockEntity pContainer) {
-
+    public ItemStack assemble(
+            PrintingPressBlockEntity pContainer
+    ) {
         ItemStack rtn = FormItem.getCopiedReferenceFromForm(pContainer.getForm());
         rtn.setCount(pContainer.getPaper().getCount());
         return rtn;
@@ -137,7 +135,6 @@ public record PrintingPressRecipe(
                 ResourceLocation pRecipeId,
                 FriendlyByteBuf pBuffer
         ) {
-
             Ingredient form = Ingredient.fromNetwork(pBuffer);
             Ingredient ink = Ingredient.fromNetwork(pBuffer);
             Ingredient paper = Ingredient.fromNetwork(pBuffer);
@@ -149,7 +146,6 @@ public record PrintingPressRecipe(
                 FriendlyByteBuf pBuffer,
                 PrintingPressRecipe pRecipe
         ) {
-
             pRecipe.form.toNetwork(pBuffer);
             pRecipe.ink.toNetwork(pBuffer);
             pRecipe.paper.toNetwork(pBuffer);

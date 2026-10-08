@@ -21,7 +21,6 @@ import java.util.stream.StreamSupport;
 /// Helps reduce {@link MCVersionDependentBehaviour}
 @MCVersionDependentBehaviour
 public final class SFMRegistryWrapper<T> implements Iterable<T> {
-
     private final ResourceKey<? extends Registry<T>> registryKey;
 
     @MCVersionDependentBehaviour
@@ -85,8 +84,8 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
 
     @MCVersionDependentBehaviour
     public Set<Map.Entry<ResourceKey<T>, T>> entries() {
-
-        return getInnerRegistry().entrySet();
+        return getInnerRegistry()
+                .entrySet();
     }
 
     @Override
@@ -142,7 +141,6 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
         // Return it
         return maybeInner;
     }
-
 
     @SuppressWarnings("rawtypes")
     @Override

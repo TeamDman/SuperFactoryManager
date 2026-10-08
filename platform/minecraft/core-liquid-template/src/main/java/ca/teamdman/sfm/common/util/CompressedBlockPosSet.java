@@ -18,7 +18,6 @@ import net.minecraft.network.FriendlyByteBuf;
 {% when '1.21', '1.21.1', '26.1.2' %}
 import net.minecraft.network.codec.StreamCodec;
 {% endcase %}
-
 import java.util.ArrayList;
 
 /**

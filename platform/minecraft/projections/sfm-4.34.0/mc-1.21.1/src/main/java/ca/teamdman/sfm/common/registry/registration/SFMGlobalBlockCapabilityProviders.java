@@ -17,7 +17,6 @@ import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.IBlockCapabilityProvider;
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;

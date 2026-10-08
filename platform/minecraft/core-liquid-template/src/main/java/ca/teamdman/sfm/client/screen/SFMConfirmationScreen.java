@@ -34,6 +34,7 @@ public class SFMConfirmationScreen extends ConfirmScreen {
 {% if features.confirmation_review_callbacks %}
     private Consumer<Boolean> choice;
     private int remainingDelay;
+
 {% else %}
 {% endif %}
 {% else %}
@@ -185,18 +186,4 @@ public class SFMConfirmationScreen extends ConfirmScreen {
                 delay
         );
     }
-{% case minecraft_version %}
-{% when "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
-{% if features.confirmation_review_callbacks %}
-
-
-{% else %}
-
-
-{% endif %}
-{% else %}
-
-
-{% endcase %}
 }

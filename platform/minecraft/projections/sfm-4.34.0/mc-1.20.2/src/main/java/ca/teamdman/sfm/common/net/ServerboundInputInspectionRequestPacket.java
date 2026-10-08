@@ -33,7 +33,6 @@ public record ServerboundInputInspectionRequestPacket(
 
         @Override
         public ServerboundInputInspectionRequestPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundInputInspectionRequestPacket(
                     friendlyByteBuf.readUtf(Program.MAX_PROGRAM_LENGTH),
                     friendlyByteBuf.readInt()

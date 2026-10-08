@@ -37,7 +37,6 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
         this.extractTooltip(graphics, mx, my);
     }
 
-
     @Override
     protected void init() {
         super.init();

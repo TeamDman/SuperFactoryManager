@@ -32,7 +32,6 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.capabilities.IBlockCapabilityProvider;
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.stream.Collectors;

@@ -68,7 +68,6 @@ public class TestBarrelTankScreen extends AbstractContainerScreen<TestBarrelTank
         RenderSystem.disableBlend();
     }
 
-
     @Override
     protected void init() {
         super.init();

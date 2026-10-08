@@ -53,7 +53,6 @@ public record ServerboundManagerRebuildPacket(
 
         @Override
         public ServerboundManagerRebuildPacket decode(FriendlyByteBuf friendlyByteBuf) {
-
             return new ServerboundManagerRebuildPacket(
                     friendlyByteBuf.readVarInt(),
                     friendlyByteBuf.readBlockPos()

@@ -87,7 +87,8 @@ public final class SFMRegistryWrapper<T> implements Iterable<T> {
 
     @MCVersionDependentBehaviour
     public Set<Map.Entry<ResourceKey<T>, T>> entries() {
-        return getInnerRegistry().getEntries();
+        return getInnerRegistry()
+                .getEntries();
     }
 
     @Override

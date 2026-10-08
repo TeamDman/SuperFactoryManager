@@ -146,6 +146,7 @@ public class SFMGameTestHelper extends GameTestHelper {
 
     @MCVersionDependentBehaviour
     public @NotNull SFMEnchantmentKey createEnchantmentKey(ResourceKey<Enchantment> enchantment) {
+
         return new SFMEnchantmentKey(getLevel().registryAccess(), enchantment);
     }
 

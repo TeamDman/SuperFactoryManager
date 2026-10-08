@@ -631,9 +631,7 @@ public class SFMLTests {
     @Test
     public void syntaxHighlightingTokenRanges() {
         var rawInput = "EVERY 20 TICKS DO\nEND";
-{% endif %}
 
-{% if features.client_theme %}
         var highlights = ProgramSyntaxHighlightingHelper.getTokenHighlights(rawInput);
 
         var every = highlights.stream()
@@ -650,7 +648,6 @@ public class SFMLTests {
                 .orElseThrow();
         assertEquals(0xFFFFAA00, ticks.colour());
     }
-
 
 {% endif %}
     @Test

@@ -356,7 +356,6 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
 
     @MCVersionDependentBehaviour
     public float getBlitOffsetGood() {
-
         return 0F;
     }
 
@@ -929,5 +928,4 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         //noinspection SuspiciousNameCombination
         blit(matrixStack, i, j, 0, 0, this.imageWidth, this.imageHeight);
     }
-
 }

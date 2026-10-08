@@ -43,14 +43,16 @@ import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.*;
 {% endcase %}
 import net.minecraft.world.level.Level;
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
 import org.jetbrains.annotations.Nullable;
+
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 {% when '26.1.2' %}
 import org.jspecify.annotations.NonNull;
-{% endcase %}
 
+{% endcase %}
 import java.util.Objects;
 
 /**
@@ -65,34 +67,14 @@ public record PrintingPressRecipe(
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 {% endcase %}
         Ingredient form,
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         Ingredient ink,
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         Ingredient paper
 ) implements Recipe<PrintingPressBlockEntity> {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
     @Override
     public boolean matches(
             PrintingPressBlockEntity pContainer,
             Level pLevel
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         return paper.test(pContainer.getPaper())
                && ink.test(pContainer.getInk())
                && form.test(FormItem.getBorrowedReferenceFromForm(pContainer.getForm()));
@@ -102,10 +84,14 @@ public record PrintingPressRecipe(
     @Override
 {% case minecraft_version %}
 {% when '1.19.2' %}
-    public ItemStack assemble(PrintingPressBlockEntity pContainer) {
-
+    public ItemStack assemble(
+            PrintingPressBlockEntity pContainer
+    ) {
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-    public ItemStack assemble(PrintingPressBlockEntity pContainer, RegistryAccess p_267165_) {
+    public ItemStack assemble(
+            PrintingPressBlockEntity pContainer,
+            RegistryAccess p_267165_
+    ) {
 {% when '1.21', '1.21.1' %}
     public ItemStack assemble(
             PrintingPressBlockEntity pContainer,
@@ -158,10 +144,9 @@ public record PrintingPressRecipe(
     @MCVersionDependentBehaviour
     @Override
     public ItemStack getResultItem(RegistryAccess p_267052_) {
+
         return ItemStack.EMPTY;
-
     }
-
 
     @MCVersionDependentBehaviour
     @Override
@@ -182,8 +167,8 @@ public record PrintingPressRecipe(
     @MCVersionDependentBehaviour
     @Override
     public ItemStack getResultItem(RegistryAccess p_267052_) {
-        return ItemStack.EMPTY;
 
+        return ItemStack.EMPTY;
     }
 
 {% when '1.21', '1.21.1' %}
@@ -198,11 +183,13 @@ public record PrintingPressRecipe(
     @MCVersionDependentBehaviour
     @Override
     public ItemStack getResultItem(HolderLookup.Provider pRegistries) {
+
         return ItemStack.EMPTY;
     }
 
 {% when '26.1.2' %}
     public boolean showNotification() {
+
         return false;
     }
 
@@ -213,6 +200,7 @@ public record PrintingPressRecipe(
     public RecipeSerializer<?> getSerializer() {
 {% when '26.1.2' %}
     public String group() {
+
         return "";
     }
 
@@ -318,7 +306,6 @@ public record PrintingPressRecipe(
                 ResourceLocation pRecipeId,
                 FriendlyByteBuf pBuffer
         ) {
-
             Ingredient form = Ingredient.fromNetwork(pBuffer);
             Ingredient ink = Ingredient.fromNetwork(pBuffer);
             Ingredient paper = Ingredient.fromNetwork(pBuffer);
@@ -330,7 +317,6 @@ public record PrintingPressRecipe(
                 FriendlyByteBuf pBuffer,
                 PrintingPressRecipe pRecipe
         ) {
-
             pRecipe.form.toNetwork(pBuffer);
             pRecipe.ink.toNetwork(pBuffer);
             pRecipe.paper.toNetwork(pBuffer);
@@ -363,7 +349,6 @@ public record PrintingPressRecipe(
                 FriendlyByteBuf pBuffer,
                 PrintingPressRecipe pRecipe
         ) {
-
             pRecipe.form.toNetwork(pBuffer);
             pRecipe.ink.toNetwork(pBuffer);
             pRecipe.paper.toNetwork(pBuffer);

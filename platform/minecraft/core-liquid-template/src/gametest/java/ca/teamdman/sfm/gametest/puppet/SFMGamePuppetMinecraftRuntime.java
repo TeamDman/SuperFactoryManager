@@ -357,8 +357,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                     .createWorldGenSettings(0L, false, false);
             LevelSettings levelSettings = new LevelSettings(
                     SFMGamePuppetHarness.WORLD_NAME_PREFIX + active.definition.puppetName(),
-                    GameType.CREATIVE,
-                    false,
+                    GameType.CREATIVE, false,
                     Difficulty.HARD,
                     true,
                     SFMGamePuppetHarness.createWorldGameRules(null),
@@ -367,8 +366,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
             LevelSettings levelSettings = new LevelSettings(
                     SFMGamePuppetHarness.WORLD_NAME_PREFIX + active.definition.puppetName(),
-                    GameType.CREATIVE,
-                    false,
+                    GameType.CREATIVE, false,
                     Difficulty.HARD,
                     true,
                     SFMGamePuppetHarness.createWorldGameRules(null),
@@ -454,6 +452,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 {% when "1.19.2", "1.19.4" %}
     @Override
     public boolean startGameTest(String testName) {
+
         if (active.gameTestStartFailure != null) {
             throw new IllegalStateException("Could not start GameTest " + testName, active.gameTestStartFailure);
         }
@@ -3733,14 +3732,16 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             RenderSystem.disableDepthTest();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
-            RenderSystem.setProjectionMatrix(Matrix4f.orthographic(
-                    0F,
-                    (float) (captureTarget.width / captionLayout.guiScale()),
-                    0F,
-                    (float) (captureTarget.height / captionLayout.guiScale()),
-                    1000F,
-                    net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane()
-            ));
+            RenderSystem.setProjectionMatrix(
+                    Matrix4f.orthographic(
+                            0F,
+                            (float) (captureTarget.width / captionLayout.guiScale()),
+                            0F,
+                            (float) (captureTarget.height / captionLayout.guiScale()),
+                            1000F,
+                            net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane()
+                    )
+            );
             modelView.setIdentity();
             modelView.translate(0D, 0D, 1000F - net.minecraftforge.client.ForgeHooksClient.getGuiFarPlane());
             RenderSystem.applyModelViewMatrix();

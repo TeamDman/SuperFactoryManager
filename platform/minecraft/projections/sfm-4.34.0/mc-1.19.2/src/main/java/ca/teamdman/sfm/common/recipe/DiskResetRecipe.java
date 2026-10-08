@@ -48,7 +48,10 @@ public class DiskResetRecipe extends CustomRecipe {
     }
 
     @Override
-    public boolean canCraftInDimensions(int pWidth, int pHeight) {
+    public boolean canCraftInDimensions(
+            int pWidth,
+            int pHeight
+    ) {
         return true;
     }
 

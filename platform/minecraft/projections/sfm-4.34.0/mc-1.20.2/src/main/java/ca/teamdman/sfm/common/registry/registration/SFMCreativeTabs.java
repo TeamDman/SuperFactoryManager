@@ -12,7 +12,6 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
-
 import java.util.function.Supplier;
 
 @MCVersionDependentBehaviour
@@ -44,7 +43,6 @@ public class SFMCreativeTabs {
 
         CREATIVE_TABS.register(bus);
     }
-
 
     public static void populateMainCreativeTab(
             @SuppressWarnings("unused")
