@@ -33,7 +33,7 @@ ClientManagerBlock) passed all 60 pinned contexts and reached zero candidate
 pairs. Dispatch through manifestation took 72.958 seconds, including coordinator
 audit setup. Subsequent three-worker batches continue at the session limit.
 The first 31 templates and their affected outputs are committed at `59283c48a`.
-A further 45 completed templates passed an independent coordinator check of all
+A further 45 templates, committed at `640dba853`, passed a coordinator check of all
 900 pinned contexts. Their selected manifestation changed 471 outputs and left
 259 unchanged, with no removals. Further disjoint worker queues remain active.
 
@@ -53,9 +53,21 @@ block comments and text blocks. JLS 3.4 and 3.10.6 establish that CRLF/CR line
 terminators, including text-block normalization before indentation/escape
 processing, do not change the text-block value. Comment text, literal content,
 escapes and text-block indentation remain exact; source is not rewritten before
-parsing. Eleven focused regressions pass, including rejection of changed comment
-text, literal values, escapes and indentation. Java 26 support, broader current-
-source validation and final tool installation remain pending.
+parsing. The Java 26 adapter is limited to same-width parser-only placeholders
+for validated direct constructor delegation statements; original token bytes and
+positions are retained. It rejects misplaced/duplicate delegation and requires
+the complete adapted tree to parse without errors. Sixteen focused regressions
+pass, including the actual released constructor body, malformed-input rejection,
+and rejection of changed comment text, values, escapes and indentation. The new
+optimized CLI rechecked all 13 previously failing files successfully across
+their 260 pinned contexts. Four retain real whitespace candidates and return to
+the ordinary worker queue. WaterTankNetworkFormation and SFMPackFinders also
+passed their 40 contexts with zero pairs after comment-only EOL normalization.
+Current Clippy passes; broad validation and final installation remain pending.
+The line-ending rule is grounded in the
+[Java language specification](https://docs.oracle.com/javase/specs/jls/se26/html/jls-3.html#jls-3.10.6);
+the constructor boundary follows
+[JLS 8.8.7](https://docs.oracle.com/javase/specs/jls/se26/html/jls-8.html#jls-8.8.7).
 The tree audit script emits bounded failure summaries; its initial version
 printed excessively large failure comparisons and was corrected.
 

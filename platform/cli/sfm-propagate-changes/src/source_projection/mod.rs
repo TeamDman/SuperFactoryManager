@@ -56,6 +56,7 @@ pub mod release_version;
 pub mod released_native_inputs;
 pub mod selection;
 pub(crate) mod simplify;
+mod simplify_flexible_constructor;
 pub mod sync;
 pub mod variant_consolidation;
 

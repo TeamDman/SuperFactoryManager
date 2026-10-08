@@ -4,11 +4,12 @@
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
+use std::borrow::Cow;
 use std::ops::Range;
 use tree_sitter_patched_arborium::Node;
 use tree_sitter_patched_arborium::Parser;
 
-pub(crate) const ALGORITHM: &str = "sfm:manifested_java_whitespace@2";
+pub(crate) const ALGORITHM: &str = "sfm:manifested_java_whitespace@3";
 pub(crate) const MAX_SOURCE_BYTES: usize = 1024 * 1024;
 const MAX_ATOMS: usize = 100_000;
 const MAX_REGIONS: usize = 128;
@@ -71,9 +72,18 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
     );
     let mut parser = Parser::new();
     parser.set_language(&arborium_java::language().into())?;
-    let tree = parser
+    let mut tree = parser
         .parse(&source, None)
         .ok_or_else(|| eyre::eyre!("Java parser returned no tree"))?;
+    let mut delegation_keywords = Vec::new();
+    if tree.root_node().has_error()
+        && let Some(adapted) =
+            super::simplify_flexible_constructor::adapt(&source, &mut parser, &tree)
+                .map_err(|error| eyre::eyre!(error))?
+    {
+        tree = adapted.tree;
+        delegation_keywords = adapted.delegation_keywords;
+    }
     let root = tree.root_node();
     ensure!(
         !root.has_error(),
@@ -87,7 +97,7 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
         start_line: 1,
         end_line: 1,
     });
-    collect(root, &source, 0, &mut atoms)?;
+    collect(root, &source, &delegation_keywords, 0, &mut atoms)?;
     let last_line = source.bytes().filter(|byte| *byte == b'\n').count() + 1;
     atoms.push(Atom {
         key: "<EOF>".into(),
@@ -113,7 +123,13 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
     })
 }
 
-fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) -> Result<()> {
+fn collect(
+    node: Node<'_>,
+    source: &str,
+    delegation_keywords: &[Range<usize>],
+    depth: usize,
+    atoms: &mut Vec<Atom>,
+) -> Result<()> {
     ensure!(
         depth <= 256 && atoms.len() < MAX_ATOMS,
         "Java syntax complexity limit exceeded"
@@ -122,9 +138,14 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
         !node.is_missing() && !node.is_error(),
         "missing or erroneous Java syntax"
     );
-    let kind = node.kind();
-    // Preserve the complete spelling of comments and literals, including text
-    // block indentation and line endings. Never trim or visit their fragments.
+    let kind = if delegation_keywords.contains(&node.byte_range()) {
+        &source[node.byte_range()]
+    } else {
+        node.kind()
+    };
+    // Preserve comments and literals as complete atoms. Only physical line
+    // terminators in block comments and text blocks are canonicalized below;
+    // indentation, escapes and all other contents remain exact.
     if node.child_count() == 0
         || kind.ends_with("_literal")
         || matches!(kind, "line_comment" | "block_comment")
@@ -140,7 +161,7 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
             let raw = &source[range.clone()];
             validate_unicode_atom(kind, raw)?;
             atoms.push(Atom {
-                key: format!("{}:{kind}{raw}", kind.len()),
+                key: format!("{}:{kind}{}", kind.len(), atom_spelling(kind, raw)),
                 ancestors: ancestor_kinds(node),
                 range,
                 start_line: node.start_position().row + 1,
@@ -150,10 +171,23 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
     } else {
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
-            collect(child, source, depth + 1, atoms)?;
+            collect(child, source, delegation_keywords, depth + 1, atoms)?;
         }
     }
     Ok(())
+}
+
+fn atom_spelling<'a>(kind: &str, raw: &'a str) -> Cow<'a, str> {
+    // JLS 3.4 treats CRLF as one line terminator. JLS 3.10.6 explicitly
+    // normalizes physical CRLF/CR to LF before text-block indentation and
+    // escape processing. Do not normalize escaped \\r, indentation, or text.
+    if raw.contains('\r')
+        && (kind == "block_comment" || (kind == "string_literal" && raw.starts_with("\"\"\"")))
+    {
+        Cow::Owned(raw.replace("\r\n", "\n").replace('\r', "\n"))
+    } else {
+        Cow::Borrowed(raw)
+    }
 }
 
 fn validate_unicode_atom(kind: &str, raw: &str) -> Result<()> {
@@ -417,6 +451,39 @@ mod tests {
                 "class A { /* keep\n text */ }"
             )
             .classification,
+            "whitespace_only"
+        );
+        assert_eq!(
+            comparison(
+                "class A { /* keep\r\n text */ }",
+                "class A { /* keep\n changed */ }"
+            )
+            .classification,
+            "code_or_comment_change"
+        );
+    }
+
+    #[test]
+    fn text_block_physical_line_endings_are_equivalent_but_contents_are_exact() {
+        let before = "class A { String s = \"\"\"\r\n  keep\\r\r\n  text\r\n  \"\"\"; }";
+        let after = before.replace("\r\n", "\n");
+        assert_eq!(comparison(before, &after).classification, "whitespace_only");
+        for changed in [
+            after.replace("keep", "changed"),
+            after.replace("\\r", "\\n"),
+            after.replace("  text", "   text"),
+        ] {
+            assert_eq!(
+                comparison(before, &changed).classification,
+                "code_or_comment_change"
+            );
+        }
+        assert_eq!(
+            comparison(
+                r#"class A { String s = "keep\r\n"; }"#,
+                r#"class A { String s = "keep\n"; }"#
+            )
+            .classification,
             "code_or_comment_change"
         );
     }
@@ -438,6 +505,25 @@ mod tests {
         ] {
             assert!(parse(source.into()).is_err(), "{source}");
         }
+    }
+
+    #[test]
+    fn flexible_constructor_comparison_keeps_original_tokens_and_structure() {
+        let before = "class A { A() { int x = 1; this(x); done(); } }";
+        let after = "class A { A() {\n int x = 1;\n this( x );\n done(); } }";
+        assert_eq!(comparison(before, after).classification, "whitespace_only");
+        for changed in [
+            after.replace("this", "super"),
+            after.replace("1", "2"),
+            after.replace("done()", "changed()"),
+            after.replace("this", "sfm$"),
+        ] {
+            assert_eq!(
+                comparison(before, &changed).classification,
+                "code_or_comment_change"
+            );
+        }
+        assert!(parse("class A { A() { if (yes) { this(1); } } }".into()).is_err());
     }
 
     #[test]
