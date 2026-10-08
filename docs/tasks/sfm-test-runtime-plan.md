@@ -147,6 +147,15 @@ of self time, while 30 native profile selections consumed 0.443 s. Contention
 and repeated fixture/process work remain targets; do not infer that profile
 parsing dominates from the earlier contended matrix duration.
 
+Checkpoint `2707098d5` commits the gix policy and fixture improvements. A fresh
+32-thread diagnostic run passed all 1,663 active library tests in 131.606 s
+(21 ignored, including the new profiling-only duplicate). The slowest current
+test is frozen-preset staging at 69.31 s under contention, followed by generated
+symbol selectors at 61.50 s. Staging repeatedly starts Git for HEAD, index flags
+and status during its ten-file write transaction. Replace redundant subprocess
+queries without weakening its concurrent-edit checks; this is the next concrete
+target. The latest full gate remains 123.576 s, not an under-minute result.
+
 Formatting, current-source all-feature Clippy, binary tests and doc tests also
 passed. Validation was completed in stages after repairing the socket fixture;
 it was not one uninterrupted check-all invocation. The initial all-feature
