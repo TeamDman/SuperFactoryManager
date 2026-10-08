@@ -57,6 +57,37 @@ Changing the catalog invalidates retained build receipts that bind its full hash
 
 For a contributor edit, keep the edited generated file intact. Apply the intended change to its core owner, check the affected feature combinations, and reconcile only when the rendered bytes match. There is no automatic inverse transform from arbitrary Java edits to Liquid templates.
 
+## Find whitespace-only simplification candidates
+
+Scan complete generated Java before deciding which Liquid branches to combine:
+
+```powershell
+sfm-propagate-changes --output-format json source simplify scan --repo-root . --file src/main/java/ca/teamdman/sfm/SFM.java
+```
+
+The default compares all catalog contexts. Repeat `--projection <exact-key>` to
+select at least 2 contexts. `--max-regions 128` increases the displayed regions
+per pair from the default of 16. Counts remain complete when snippets are limited.
+
+The scanner reads existing projections; it does not generate, format or modify
+files. It checks catalog ownership and each file's recorded output hash, then
+parses each distinct complete Java source once. It preserves comment and literal
+bytes, including text-block indentation. Unicode escapes and unsupported syntax
+remain unverified rather than being treated as equivalent.
+
+Each pair reports `exact`, `whitespace_only` or `code_or_comment_change`.
+Whitespace-only whole-file results require matching tokens and syntax-tree shape.
+Local whitespace candidates can also appear in otherwise different files. They
+include before/after snippets with zero-based, end-exclusive byte ranges and
+one-based line numbers. They are review leads, not permission to rewrite a branch.
+
+Check `all_inputs_verified` and the per-input diagnostics. A successful command
+can return an incomplete scan with unverified inputs. It does not establish that
+the core still renders those files, that every possible feature combination was
+checked, or that Java compilation and behaviour are equivalent. Use `source
+project check` for core freshness. Existing exact oracle checks remain unchanged;
+this command does not waive differences caused by later template edits.
+
 ## Standalone Gradle projects
 
 Contributors can build the ordinary generated project under `platform/minecraft/projections/<projection-key>/` with its own Gradle wrapper. Rust is not required to edit or build those generated files. Automated work in this repository must not execute Gradle.

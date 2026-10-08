@@ -5,6 +5,7 @@ use super::oracle_cli::SourceOracleArgs;
 use super::projection_catalog_cli::SourceListArgs;
 use super::projection_catalog_cli::SourceRenderArgs;
 use super::projection_catalog_cli::SourceShowArgs;
+use super::simplify_cli::SimplifyArgs;
 use super::source_cli::LegacySourceArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
@@ -35,6 +36,8 @@ pub enum SourceCommand {
     Render(SourceRenderArgs),
     /// Inspect one generated file's ownership and edit state.
     Trace(SourceTraceArgs),
+    /// Find whitespace-only candidate regions in manifested Java; never rewrite.
+    Simplify(SimplifyArgs),
     /// Historical snapshot/preset operations for pre-consolidation checkouts.
     Legacy(LegacySourceArgs),
 }
@@ -56,6 +59,7 @@ impl SourceArgs {
             SourceCommand::Show(args) => args.invoke_in(invocation_dir),
             SourceCommand::Render(args) => args.invoke_in(invocation_dir),
             SourceCommand::Trace(args) => args.invoke_in(),
+            SourceCommand::Simplify(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Legacy(args) => args.invoke_in(cancellation, invocation_dir),
         }
     }
