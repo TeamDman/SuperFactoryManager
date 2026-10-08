@@ -20,14 +20,18 @@ use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
+#[cfg(test)]
 const REVIEW: &str =
     include_str!("../../../../../docs/tasks/sfm-core-released-native-adapter-review.json");
+#[cfg(test)]
 const REVIEW_SHA256: &str =
     "sha256:8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21";
 const MAX_REVIEW_BYTES: usize = 512 * 1024;
 const MAX_LOCK_BYTES: usize = 1024 * 1024;
 const MAX_ROLE_INPUT_BYTES: usize = 512 * 1024;
 const MAX_ROLE_INPUT_TOTAL_BYTES: usize = 4 * 1024 * 1024;
+pub(crate) const BUILD_CONFIGURATION_PATH: &str =
+    "platform/minecraft/build-configuration/released-native.json";
 const MAX_EXACT_WITNESS_BYTES: usize = 128 * 1024 * 1024;
 
 /// Logical context, not a branch, path or dependency profile.
@@ -225,7 +229,6 @@ impl ReleasedNativeInputs {
 #[derive(Clone, Debug, Facet)]
 struct ReviewDocument {
     schema: String,
-    status: String,
     targets: Vec<ReviewedRecipe>,
 }
 
@@ -355,7 +358,8 @@ struct ExclusionWitness {
 /// # Errors
 /// Rejects unknown recipes, refresh, context/hash/pin mismatches, incomplete
 /// role evidence, ambiguous bindings and unavailable source provenance.
-pub fn review_released_native_inputs(
+pub(crate) fn review_released_native_inputs_from_configuration(
+    configuration: &str,
     request: &ReleasedNativeRequest<'_>,
     raw_lock: &[u8],
     role_input_bytes: &BTreeMap<String, Vec<u8>>,
@@ -364,7 +368,7 @@ pub fn review_released_native_inputs(
         !request.refresh,
         "released native input is immutable; --refresh is not supported"
     );
-    let document = frozen_review()?;
+    let document = parse_configuration(configuration)?;
     let recipe = document
         .targets
         .iter()
@@ -405,7 +409,7 @@ pub fn review_released_native_inputs(
     let receipt = ReleasedNativeReceipt {
         schema: "sfm:released_native_input_review@1".to_owned(),
         recipe_id: recipe.recipe_id.clone(),
-        recipe_review_sha256: REVIEW_SHA256.to_owned(),
+        recipe_review_sha256: sha256(configuration.as_bytes()),
         source_lock_sha256: sha256(raw_lock),
         target_id: recipe.target.clone(),
         minecraft_version: recipe.minecraft_version.clone(),
@@ -441,6 +445,7 @@ pub fn review_released_native_inputs(
 /// # Errors
 /// Returns review errors or a precise unresolved/mismatching byte requirement.
 /// Witnesses match original content hashes, never a new local checksum.
+#[cfg(test)]
 pub fn prepare_released_native_inputs(
     request: &ReleasedNativeRequest<'_>,
     raw_lock: &[u8],
@@ -451,19 +456,17 @@ pub fn prepare_released_native_inputs(
         .require_exact_bytes(exact_artifact_bytes)
 }
 
-fn frozen_review() -> Result<ReviewDocument> {
+fn parse_configuration(configuration: &str) -> Result<ReviewDocument> {
     ensure!(
-        REVIEW.len() <= MAX_REVIEW_BYTES && sha256(REVIEW.as_bytes()) == REVIEW_SHA256,
-        "compiled released-native review changed; exact recipe review/fixture renewal required"
+        configuration.len() <= MAX_REVIEW_BYTES,
+        "released-native build configuration exceeds its bounded limit"
     );
-    let document: ReviewDocument =
-        facet_json::from_str(REVIEW).wrap_err("invalid compiled released-native review")?;
+    let document: ReviewDocument = facet_json::from_str(configuration)
+        .wrap_err("invalid released-native build configuration")?;
     ensure!(
-        document.schema == "sfm:core_released_native_adapter_review@1"
-            && document.status
-                == "reviewed_input_inventory_and_adapter_proposal_not_registered_or_built"
+        document.schema == "sfm:released_native_build_configuration@1"
             && document.targets.len() == 10,
-        "unsupported compiled released-native review"
+        "unsupported released-native build configuration"
     );
     let targets = document
         .targets
@@ -475,6 +478,38 @@ fn frozen_review() -> Result<ReviewDocument> {
         "duplicate compiled released recipe target"
     );
     Ok(document)
+}
+
+// Temporary historical-test adapter; production receives checkout-owned inputs.
+#[cfg(test)]
+fn historical_configuration() -> String {
+    REVIEW.replace(
+        "sfm:core_released_native_adapter_review@1",
+        "sfm:released_native_build_configuration@1",
+    )
+}
+
+#[cfg(test)]
+fn frozen_review() -> Result<ReviewDocument> {
+    ensure!(
+        sha256(REVIEW.as_bytes()) == REVIEW_SHA256,
+        "historical fixture changed"
+    );
+    parse_configuration(&historical_configuration())
+}
+
+#[cfg(test)]
+pub fn review_released_native_inputs(
+    request: &ReleasedNativeRequest<'_>,
+    raw_lock: &[u8],
+    role_input_bytes: &BTreeMap<String, Vec<u8>>,
+) -> Result<ReleasedNativeInputReview> {
+    review_released_native_inputs_from_configuration(
+        &historical_configuration(),
+        request,
+        raw_lock,
+        role_input_bytes,
+    )
 }
 
 fn check_role_inputs(

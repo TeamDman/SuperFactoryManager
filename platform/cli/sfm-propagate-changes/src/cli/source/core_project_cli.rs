@@ -51,14 +51,14 @@ pub struct CoreProjectArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum CoreProjectCommand {
+    /// Render selected core files into selected projections using Git dirty protection.
+    Manifest(CoreManifestArgs),
     /// Preview core-owned generation and conflict checks without writing.
     DryRun(CoreProjectSelectionArgs),
     /// Require a named project's sources and ownership to match current inputs.
     Check(CoreProjectSelectionArgs),
     /// Synchronize an exact catalog destination after contributor-edit checks.
     Sync(CoreProjectSelectionArgs),
-    /// Adopt provenance only after authored inputs match contributor output bytes.
-    Reconcile(CoreProjectSelectionArgs),
     /// Build a selected project; release inputs must already be synchronized.
     Build(CoreProjectGradleArgs),
     /// Native compile of an exact released recipe or declared development profile.
@@ -67,6 +67,58 @@ pub enum CoreProjectCommand {
     Jar(CoreProjectCompileArgs),
     /// Run a selected project without changing another projection or its saves.
     Run(CoreProjectGradleArgs),
+}
+
+#[derive(Debug, Facet)]
+pub struct CoreManifestArgs {
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+    /// Repeat for exact core-relative paths; omitted or * means all files.
+    #[facet(default, args::named)]
+    pub file: Vec<String>,
+    /// Repeat for exact projection keys; omitted or * means all projections.
+    #[facet(default, args::named)]
+    pub projection: Vec<String>,
+    /// Allow dirty selected outputs, optionally restricted to a repository-relative path.
+    #[facet(default, args::named)]
+    #[expect(
+        clippy::option_option,
+        reason = "Figue distinguishes absent, bare and path-scoped --allow-dirty"
+    )]
+    pub allow_dirty: Option<Option<String>>,
+    #[facet(default = false, args::named)]
+    pub dry_run: bool,
+}
+
+#[cfg(test)]
+mod manifestation_argument_tests {
+    use super::CoreManifestArgs;
+
+    #[test]
+    fn dirty_override_distinguishes_absent_bare_and_scoped() {
+        let absent = figue::from_slice::<CoreManifestArgs>(&["--repo-root", "."]).unwrap();
+        assert_eq!(absent.allow_dirty, None);
+        let bare =
+            figue::from_slice::<CoreManifestArgs>(&["--repo-root", ".", "--allow-dirty"]).unwrap();
+        assert_eq!(bare.allow_dirty, Some(None));
+        let scoped = figue::from_slice::<CoreManifestArgs>(&[
+            "--repo-root",
+            ".",
+            "--allow-dirty",
+            "platform/minecraft/projections",
+            "--file",
+            "src/A.java",
+            "--projection",
+            "example/mc-1.19.2",
+        ])
+        .unwrap();
+        assert_eq!(
+            scoped.allow_dirty,
+            Some(Some("platform/minecraft/projections".into()))
+        );
+        assert_eq!(scoped.file, ["src/A.java"]);
+        assert_eq!(scoped.projection, ["example/mc-1.19.2"]);
+    }
 }
 
 #[derive(Debug, Facet)]
@@ -170,6 +222,23 @@ impl CoreProjectArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let (args, mode, operation) = match self.command {
+            CoreProjectCommand::Manifest(args) => {
+                let (root, rendered) = crate::source_projection::manifestation::render_selected(
+                    &args.repo_root,
+                    invocation_dir,
+                    &args.file,
+                    &args.projection,
+                    cancellation,
+                )?;
+                return Ok(CliOutput::facet(
+                    crate::source_projection::manifestation::manifest_selected(
+                        &root,
+                        &rendered,
+                        &args.allow_dirty,
+                        args.dry_run,
+                    )?,
+                ));
+            }
             CoreProjectCommand::Compile(args) => {
                 return invoke_native_compile(&args, cancellation, invocation_dir);
             }
@@ -185,7 +254,6 @@ impl CoreProjectArgs {
             CoreProjectCommand::DryRun(args) => (args, SyncMode::DryRun, "dry_run"),
             CoreProjectCommand::Check(args) => (args, SyncMode::Check, "check"),
             CoreProjectCommand::Sync(args) => (args, SyncMode::Apply, "sync"),
-            CoreProjectCommand::Reconcile(args) => (args, SyncMode::Reconcile, "reconcile"),
         };
         Ok(CliOutput::facet(project_report(
             &args,
@@ -728,7 +796,6 @@ mod tests {
     use crate::source_projection::core_inputs::BuildTargetMetadata;
     use crate::source_projection::core_inputs::InputPredicate;
     use crate::source_projection::core_inputs::InputVariant;
-    use crate::source_projection::sync::MANIFEST_FILE;
     use std::process::Command;
 
     #[test]
@@ -891,12 +958,16 @@ mod tests {
     }
 
     #[test]
-    fn exact_named_sync_check_and_contributor_reconciliation_preserve_edits() {
+    fn exact_named_sync_check_and_contributor_hydration_preserve_edits() {
         let (temp, args) = fixture();
         let first = invoke(&args, SyncMode::Apply, temp.path()).unwrap();
         assert!(first.writes_performed);
         let project = temp.path().join(&first.project_dir);
-        let manifest_before = fs::read(project.join(MANIFEST_FILE)).unwrap();
+        assert!(
+            !project
+                .join(".sfm-source-projection-manifest.json")
+                .exists()
+        );
         assert!(
             !invoke(&args, SyncMode::Check, temp.path())
                 .unwrap()
@@ -907,10 +978,6 @@ mod tests {
         fs::write(&output, replacement).unwrap();
         assert!(invoke(&args, SyncMode::Apply, temp.path()).is_err());
         assert_eq!(fs::read(&output).unwrap(), replacement);
-        assert_eq!(
-            fs::read(project.join(MANIFEST_FILE)).unwrap(),
-            manifest_before
-        );
         fs::write(
             temp.path()
                 .join(CORE_ROOT)
@@ -918,7 +985,7 @@ mod tests {
             b"class Shared { int contributed; }\n",
         )
         .unwrap();
-        invoke(&args, SyncMode::Reconcile, temp.path()).unwrap();
+        invoke(&args, SyncMode::Apply, temp.path()).unwrap();
         assert_eq!(fs::read(&output).unwrap(), replacement);
         invoke(&args, SyncMode::Check, temp.path()).unwrap();
     }
@@ -927,13 +994,22 @@ mod tests {
     fn ignored_development_and_trackable_release_destinations_do_not_collide() {
         let (temp, mut args) = fixture();
         let release = invoke(&args, SyncMode::Apply, temp.path()).unwrap();
-        let release_manifest =
-            fs::read(temp.path().join(&release.project_dir).join(MANIFEST_FILE)).unwrap();
+        let release_manifest = fs::read(
+            temp.path()
+                .join(&release.project_dir)
+                .join("src/main/java/Shared.java"),
+        )
+        .unwrap();
         args.projection = "ignored/nested".to_owned();
         let dev = invoke(&args, SyncMode::Apply, temp.path()).unwrap();
         assert_eq!(dev.environment, "dev");
         assert_eq!(
-            fs::read(temp.path().join(&release.project_dir).join(MANIFEST_FILE)).unwrap(),
+            fs::read(
+                temp.path()
+                    .join(&release.project_dir)
+                    .join("src/main/java/Shared.java")
+            )
+            .unwrap(),
             release_manifest
         );
         git(
@@ -996,7 +1072,12 @@ mod tests {
         )
         .unwrap();
         assert!(!release.writes_performed);
-        let before = fs::read(temp.path().join(&release.project_dir).join(MANIFEST_FILE)).unwrap();
+        let before = fs::read(
+            temp.path()
+                .join(&release.project_dir)
+                .join("src/main/java/Shared.java"),
+        )
+        .unwrap();
         args.projection = "ignored/nested".to_owned();
         let dev = project_report(
             &args,
@@ -1008,7 +1089,12 @@ mod tests {
         .unwrap();
         assert!(dev.writes_performed);
         assert_eq!(
-            fs::read(temp.path().join(&release.project_dir).join(MANIFEST_FILE)).unwrap(),
+            fs::read(
+                temp.path()
+                    .join(&release.project_dir)
+                    .join("src/main/java/Shared.java")
+            )
+            .unwrap(),
             before
         );
     }

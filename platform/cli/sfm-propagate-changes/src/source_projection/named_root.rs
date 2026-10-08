@@ -7,7 +7,6 @@ use super::candidate_lock::checked_directory;
 use super::projection_catalog::ProjectionCatalog;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::validate_projection_key;
-use super::sync::MANIFEST_FILE;
 use super::sync::ProjectedArtifact;
 use super::sync::validate_catalog_artifacts;
 use eyre::Result;
@@ -45,6 +44,17 @@ pub fn catalog_projection_root(
     key: &str,
     artifacts: &BTreeMap<String, ProjectedArtifact>,
 ) -> Result<PathBuf> {
+    catalog_projection_roots(repo_root, catalog, &[(key, artifacts)])?
+        .remove(key)
+        .ok_or_else(|| eyre::eyre!("requested root was not validated: {key}"))
+}
+
+/// Validate a selected batch with shared Git queries, without reading outputs.
+pub(crate) fn catalog_projection_roots(
+    repo_root: &Path,
+    catalog: &ProjectionCatalog,
+    selections: &[(&str, &BTreeMap<String, ProjectedArtifact>)],
+) -> Result<BTreeMap<String, PathBuf>> {
     let root = checked_directory(repo_root)?;
     ensure_git_worktree_root(&root)?;
     // This boundary validates layout, not feature registration. The catalog
@@ -55,31 +65,47 @@ pub fn catalog_projection_root(
         .flat_map(|entry| entry.features.iter().cloned())
         .collect();
     catalog.validate(&features)?;
-    let entry = catalog.entry(key)?;
-    validate_catalog_artifacts(artifacts)?;
-    let relative = catalog.project_dir(key)?;
-    inspect_destination_chain(&root, &relative)?;
-    let destination = root.join(&relative);
-    let relative = relative
-        .components()
-        .map(|component| match component {
-            Component::Normal(name) => name
-                .to_str()
-                .ok_or_else(|| eyre::eyre!("catalog destination is not UTF-8")),
-            _ => Err(eyre::eyre!(
-                "catalog destination is not an exact relative path"
-            )),
-        })
-        .collect::<Result<Vec<_>>>()?
-        .join("/");
-    validate_projection_key(&relative)?;
+    let mut destinations = BTreeMap::new();
+    let mut policies = BTreeMap::new();
+    let mut development_roots = Vec::new();
+    let mut policy_paths = BTreeSet::new();
+    for &(key, artifacts) in selections {
+        let entry = catalog.entry(key)?;
+        validate_catalog_artifacts(artifacts)?;
+        let relative = catalog.project_dir(key)?;
+        inspect_destination_chain(&root, &relative)?;
+        let destination = root.join(&relative);
+        let relative = relative
+            .components()
+            .map(|component| match component {
+                Component::Normal(name) => name
+                    .to_str()
+                    .ok_or_else(|| eyre::eyre!("catalog destination is not UTF-8")),
+                _ => Err(eyre::eyre!(
+                    "catalog destination is not an exact relative path"
+                )),
+            })
+            .collect::<Result<Vec<_>>>()?
+            .join("/");
+        validate_projection_key(&relative)?;
 
-    if entry.environment == ProjectionEnvironment::Dev {
-        let tracked = git_query(
-            &root,
-            &["ls-files", "--cached", "-z", "--", &relative],
-            None,
-        )?;
+        if entry.environment == ProjectionEnvironment::Dev {
+            development_roots.push(relative.clone());
+        }
+        let mut paths = artifacts
+            .keys()
+            .map(|path| format!("{relative}/{path}"))
+            .collect::<BTreeSet<_>>();
+        // Ignoring only Java files is insufficient for a disposable project.
+        paths.insert(format!("{relative}/sfm-projection-ignore-probe"));
+        policy_paths.extend(paths.iter().cloned());
+        policies.insert(key, (entry.environment, paths));
+        destinations.insert(key.to_owned(), destination);
+    }
+    if !development_roots.is_empty() {
+        let mut args = vec!["ls-files", "--cached", "-z", "--"];
+        args.extend(development_roots.iter().map(String::as_str));
+        let tracked = git_query(&root, &args, None)?;
         ensure!(
             tracked.status.success(),
             "cannot inspect tracked development outputs"
@@ -87,18 +113,10 @@ pub fn catalog_projection_root(
         let tracked = nul_paths(&tracked.stdout)?;
         ensure!(
             tracked.is_empty(),
-            "development projection `{key}` contains tracked files; move or review them before generation"
+            "selected development projection contains tracked files; move or review them before generation"
         );
     }
 
-    let mut policy_paths = artifacts
-        .keys()
-        .map(|path| format!("{relative}/{path}"))
-        .collect::<BTreeSet<_>>();
-    policy_paths.insert(format!("{relative}/{MANIFEST_FILE}"));
-    // Test an ordinary prospective child as well as the concrete managed set;
-    // ignoring only Java files or only hidden provenance is insufficient.
-    policy_paths.insert(format!("{relative}/sfm-projection-ignore-probe"));
     let mut input = Vec::new();
     for path in &policy_paths {
         input.extend_from_slice(path.as_bytes());
@@ -122,17 +140,19 @@ pub fn catalog_projection_root(
         ignored.is_subset(&policy_paths),
         "Git ignore result contains an unrequested path"
     );
-    match entry.environment {
-        ProjectionEnvironment::Dev => ensure!(
-            ignored == policy_paths,
-            "development projection `{key}` is not completely ignored; add an exact root ignore rule before generation"
-        ),
-        ProjectionEnvironment::Release => ensure!(
-            ignored.is_empty(),
-            "release projection `{key}` contains ignored outputs; make its complete generated tree trackable before generation"
-        ),
+    for (key, (environment, paths)) in policies {
+        match environment {
+            ProjectionEnvironment::Dev => ensure!(
+                paths.is_subset(&ignored),
+                "development projection `{key}` is not completely ignored; add an exact root ignore rule before generation"
+            ),
+            ProjectionEnvironment::Release => ensure!(
+                paths.is_disjoint(&ignored),
+                "release projection `{key}` contains ignored outputs; make its complete generated tree trackable before generation"
+            ),
+        }
     }
-    Ok(destination)
+    Ok(destinations)
 }
 
 fn inspect_destination_chain(root: &Path, relative: &Path) -> Result<()> {
@@ -356,8 +376,17 @@ mod tests {
     fn arbitrary_names_obey_explicit_environment_and_do_not_create_roots() {
         let fixture = Fixture::new();
         fixture.ignore("/platform/minecraft/projections/release-looking/custom/\n");
-        let dev = fixture.root("release-looking/custom").unwrap();
-        let release = fixture.root("sfm-dev/custom").unwrap();
+        let roots = catalog_projection_roots(
+            fixture.temp.path(),
+            &fixture.catalog,
+            &[
+                ("release-looking/custom", &fixture.files),
+                ("sfm-dev/custom", &fixture.files),
+            ],
+        )
+        .unwrap();
+        let dev = &roots["release-looking/custom"];
+        let release = &roots["sfm-dev/custom"];
         assert!(dev.ends_with("platform/minecraft/projections/release-looking/custom"));
         assert!(release.ends_with("platform/minecraft/projections/sfm-dev/custom"));
         assert!(!dev.exists() && !release.exists());

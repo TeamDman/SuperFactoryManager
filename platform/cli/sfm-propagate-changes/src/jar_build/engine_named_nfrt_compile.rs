@@ -122,8 +122,8 @@ fn validate_named_neoform_compile(
             && released.loader_coordinate == expected.loader,
         "named NeoForm Compile requires its exact reviewed Windows loader recipe"
     );
-    crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared(
-        Arc::clone(project.dependencies()), false,
+    crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared_at(
+        project.project().repo_root(), Arc::clone(project.dependencies()), false,
     )?;
     Ok(())
 }
@@ -142,7 +142,7 @@ fn development_neoform_source<'a>(
 ) -> eyre::Result<DevelopmentNeoformSource<'a>> {
     let owner = crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner::from_checked(project, profile)?;
     let dependencies = Arc::new(crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies::from_checked(&owner, false)?);
-    let supplement = crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_development(Arc::clone(&dependencies), false)?;
+    let supplement = crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_development_at(project.repo_root(), Arc::clone(&dependencies), false)?;
     Ok(DevelopmentNeoformSource { owner, dependencies, supplement })
 }
 
@@ -230,7 +230,7 @@ impl<'a> NeoformCompileSource<'a> {
         use crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement;
         match self {
             Self::Released(project) => {
-                let supplement = NfrtChildIdentitySupplement::from_prepared(Arc::clone(project.dependencies()), false)?;
+                let supplement = NfrtChildIdentitySupplement::from_prepared_at(project.project().repo_root(), Arc::clone(project.dependencies()), false)?;
                 NfrtExportPlan::prepare(project, &supplement, selected, executable, invocation, false)
             }
             Self::Development(source) => NfrtExportPlan::prepare_development(&source.owner, &source.dependencies, &source.supplement, selected, executable, invocation, false),

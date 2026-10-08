@@ -27,13 +27,8 @@ use super::named_root::catalog_projection_root;
 use super::projection_catalog::CATALOG_PATH;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::validate_projection_key;
-use super::provenance::CATALOG_MANIFEST_SCHEMA;
-use super::provenance::CatalogProjectionOwner;
-use super::provenance::MAX_MANIFEST_BYTES;
-use super::provenance::ProjectionProvenance;
 use super::provenance::sha256;
 use super::sync::CatalogProjectionIdentity;
-use super::sync::MANIFEST_FILE;
 use super::sync::ProjectedArtifact;
 use super::sync::SyncMode;
 use super::sync::sync_catalog_projection;
@@ -68,7 +63,6 @@ pub struct CatalogOwnedProjectReceipt {
     pub catalog_sha256: String,
     pub feature_definitions_sha256: String,
     pub project_inputs_sha256: String,
-    pub provenance_sha256: String,
     pub authored_source_inventory_sha256: String,
     pub generated_source_inventory_sha256: String,
     pub files: BTreeMap<String, CatalogOwnedFileReceipt>,
@@ -227,22 +221,6 @@ impl CollectedCatalogProject {
         let source_inventory = inspect_generated_sources(&project_root, &self.artifacts)?;
         sync_catalog_projection(&project_root, &self.identity, &self.artifacts, SyncMode::Check)
             .wrap_err("catalog ownership requires a current generated project; use the existing named source workflow")?;
-        let provenance_bytes =
-            read_checked(&project_root, MANIFEST_FILE, MAX_MANIFEST_BYTES as u64)?;
-        let provenance = ProjectionProvenance::from_json(std::str::from_utf8(&provenance_bytes)?)?;
-        ensure!(
-            provenance.schema == CATALOG_MANIFEST_SCHEMA
-                && provenance.target_id == self.identity.target_id
-                && provenance.minecraft_version == self.identity.minecraft_version
-                && provenance.catalog.as_ref()
-                    == Some(&CatalogProjectionOwner {
-                        projection_key: self.identity.projection_key.clone(),
-                        environment: self.identity.environment,
-                        context_identity: self.identity.context_identity.clone(),
-                    })
-                && provenance.files.len() == self.artifacts.len(),
-            "catalog project provenance has a different owner or selected file set"
-        );
         let mut files = BTreeMap::new();
         let mut total = 0_u64;
         for (output, artifact) in &self.artifacts {
@@ -251,17 +229,6 @@ impl CollectedCatalogProject {
             ensure!(
                 actual == artifact.output_bytes,
                 "catalog-owned generated output changed during check: {output}"
-            );
-            let witness = provenance
-                .files
-                .get(output)
-                .ok_or_else(|| eyre::eyre!("catalog provenance does not own `{output}`"))?;
-            ensure!(
-                witness.source_path == artifact.source_path
-                    && witness.source_sha256 == sha256(&artifact.source_bytes)
-                    && witness.output_sha256 == sha256(&artifact.output_bytes)
-                    && witness.overlay.is_none(),
-                "catalog-owned provenance changed during check: {output}"
             );
             files.insert(
                 output.clone(),
@@ -280,11 +247,6 @@ impl CollectedCatalogProject {
             "catalog generated source inventory changed during check"
         );
         self.recheck_authored_snapshot()?;
-        ensure!(
-            read_checked(&project_root, MANIFEST_FILE, MAX_MANIFEST_BYTES as u64)?
-                == provenance_bytes,
-            "catalog provenance bytes changed during check"
-        );
         let receipt = CatalogOwnedProjectReceipt {
             schema: RECEIPT_SCHEMA.to_owned(),
             scope: "read_only_selected_input_ownership_not_native_build".to_owned(),
@@ -304,7 +266,6 @@ impl CollectedCatalogProject {
             catalog_sha256: self.loaded.catalog_sha256.clone(),
             feature_definitions_sha256: self.loaded.feature_definitions_sha256.clone(),
             project_inputs_sha256: sha256(&self.metadata_bytes),
-            provenance_sha256: sha256(&provenance_bytes),
             authored_source_inventory_sha256: inventory_digest(&self.source_inventory)?,
             generated_source_inventory_sha256: inventory_digest(&source_inventory)?,
             files,
@@ -473,14 +434,6 @@ impl CatalogOwnedProject {
             self.artifacts(),
             SyncMode::Check,
         )?;
-        ensure!(
-            sha256(&read_checked(
-                &root,
-                MANIFEST_FILE,
-                MAX_MANIFEST_BYTES as u64
-            )?) == self.receipt.provenance_sha256,
-            "checked catalog project provenance changed"
-        );
         for (output, artifact) in self.artifacts() {
             ensure!(
                 read_checked(&root, output, MAX_CORE_FILE_BYTES)? == artifact.output_bytes,
@@ -1193,7 +1146,7 @@ pub(crate) mod tests {
                 assert!(collected.check_current().is_err());
                 assert!(!fixture.root(&key).exists());
                 let root = fixture.publish(&key);
-                let manifest_before = fs::read(root.join(MANIFEST_FILE))?;
+                let manifest_before = fs::read(root.join(JAVA))?;
                 let checked = fixture.collect(&key)?.check_current()?;
                 assert_eq!(checked.receipt().schema, RECEIPT_SCHEMA);
                 assert_eq!(checked.receipt().environment.as_str(), environment);
@@ -1217,7 +1170,7 @@ pub(crate) mod tests {
                     &[0, 255, 13, 10]
                 );
                 checked.recheck()?;
-                assert_eq!(fs::read(root.join(MANIFEST_FILE))?, manifest_before);
+                assert_eq!(fs::read(root.join(JAVA))?, manifest_before);
                 assert!(!root.join("build").exists());
                 assert!(
                     !fixture
@@ -1370,14 +1323,14 @@ pub(crate) mod tests {
             let path = root.join(extra);
             fs::create_dir_all(path.parent().unwrap())?;
             fs::write(&path, b"unowned input")?;
-            let before = fs::read(root.join(MANIFEST_FILE))?;
+            let before = fs::read(root.join(JAVA))?;
             let error = fixture.collect(&key)?.check_current().unwrap_err();
             assert!(
                 error.to_string().contains("extra unowned source inputs"),
                 "{error:?}"
             );
             assert_eq!(fs::read(path)?, b"unowned input");
-            assert_eq!(fs::read(root.join(MANIFEST_FILE))?, before);
+            assert_eq!(fs::read(root.join(JAVA))?, before);
             assert!(!root.join("build").exists());
         }
         Ok(())
@@ -1418,16 +1371,17 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn retained_development_preparation_creates_owned_output_but_preserves_contributor_edits()
-    -> Result<()> {
+    fn retained_development_preparation_refreshes_ignored_disposable_outputs() -> Result<()> {
         let fixture = Fixture::new();
         let key = Fixture::key(0, "dev");
         let checked = fixture.collect(&key)?.prepare_development()?;
         checked.recheck()?;
         let changed = checked.project_root().join(JAVA);
+        let expected = fs::read(&changed)?;
         fs::write(&changed, b"class ContributorEdit {}\n")?;
-        assert!(fixture.collect(&key)?.prepare_development().is_err());
-        assert_eq!(fs::read(changed)?, b"class ContributorEdit {}\n");
+        assert!(checked.recheck().is_err());
+        fixture.collect(&key)?.prepare_development()?.recheck()?;
+        assert_eq!(fs::read(changed)?, expected);
         Ok(())
     }
 
@@ -1480,7 +1434,7 @@ pub(crate) mod tests {
             assert_eq!(fs::read(path)?, changed);
             assert!(!root.join("build").exists());
         }
-        for relative in [JAVA, ROLE_OUTPUT, MANIFEST_FILE] {
+        for relative in [JAVA, ROLE_OUTPUT] {
             let fixture = Fixture::new();
             let key = Fixture::key(0, "release");
             let root = fixture.publish(&key);
@@ -1511,9 +1465,8 @@ pub(crate) mod tests {
         assert!(!root.join(JAVA).exists());
         let fixture = Fixture::new();
         let root = fixture.publish(&key);
-        fs::remove_file(root.join(MANIFEST_FILE))?;
-        assert!(fixture.collect(&key)?.check_current().is_err());
-        assert!(!root.join(MANIFEST_FILE).exists());
+        assert!(!root.join(".sfm-source-projection-manifest.json").exists());
+        fixture.collect(&key)?.check_current()?;
         Ok(())
     }
 
@@ -1583,7 +1536,7 @@ pub(crate) mod tests {
             super::super::native_project_target::NATIVE_DEPENDENCY_PROFILE,
         )?;
         let receipt_before = old.receipt.to_json()?;
-        let provenance_before = fs::read(root.join(MANIFEST_FILE))?;
+        let provenance_before = fs::read(root.join(JAVA))?;
         let checked = fixture.collect(&key)?.check_current()?;
         assert_eq!(
             checked
@@ -1615,7 +1568,6 @@ pub(crate) mod tests {
             catalog_sha256: owned.catalog_sha256.clone(),
             feature_definitions_sha256: owned.feature_definitions_sha256.clone(),
             project_inputs_sha256: owned.project_inputs_sha256.clone(),
-            provenance_sha256: owned.provenance_sha256.clone(),
             lockfile_sha256: sha256(
                 checked
                     .selected_input("sfm-toolchain.lock.json")?
@@ -1645,7 +1597,7 @@ pub(crate) mod tests {
         assert_eq!(mapped.to_json()?, receipt_before);
         assert_eq!(mapped.cache_identity()?, old.cache_identity);
         assert_eq!(old.receipt.to_json()?, receipt_before);
-        assert_eq!(fs::read(root.join(MANIFEST_FILE))?, provenance_before);
+        assert_eq!(fs::read(root.join(JAVA))?, provenance_before);
         old.recheck()?;
         assert!(!old.cache_dir.exists());
         Ok(())
@@ -1731,7 +1683,7 @@ pub(crate) mod tests {
                 3 => receipt.catalog_sha256.push('0'),
                 4 => receipt.feature_definitions_sha256.push('0'),
                 5 => receipt.project_inputs_sha256.push('0'),
-                6 => receipt.provenance_sha256.push('0'),
+                6 => receipt.context_identity.push('0'),
                 7 => receipt.authored_source_inventory_sha256.push('0'),
                 _ => receipt.generated_source_inventory_sha256.push('0'),
             }

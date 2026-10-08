@@ -1,10 +1,6 @@
 //! Historical snapshot/preset commands exposed only under `source legacy`.
 
 use super::candidate_lock_cli::CandidateVerifyArgs;
-use super::core_seed_cli::CoreAuxiliarySeedArgs;
-use super::core_seed_cli::CoreBuildSeedArgs;
-use super::core_seed_cli::CoreSeedArgs;
-use super::core_seed_cli::CoreVersionSeedArgs;
 use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
@@ -86,14 +82,6 @@ pub struct LegacySourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum LegacySourceCommand {
-    /// Preview or explicitly apply the reviewed shared-source authoring seed; never a production fallback.
-    SeedShared(CoreSeedArgs),
-    /// Preview or explicitly apply reconstructed version templates; never a production fallback.
-    SeedVersions(CoreVersionSeedArgs),
-    /// Preview or explicitly import reviewed standalone build inputs into the core.
-    SeedBuild(CoreBuildSeedArgs),
-    /// Preview or explicitly import feature-independent resources and test sources.
-    SeedAuxiliary(CoreAuxiliarySeedArgs),
     /// Calculate a candidate preset-definition fingerprint before publishing it.
     PresetIdentity(SourcePresetIdentityArgs),
     /// Import pinned 4.34.0 tag sources and Gradle inputs without touching generated projects.
@@ -381,10 +369,6 @@ impl LegacySourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         let legacy_root = match &self.command {
-            LegacySourceCommand::SeedShared(args) => Some(&args.repo_root),
-            LegacySourceCommand::SeedVersions(args) => Some(&args.repo_root),
-            LegacySourceCommand::SeedBuild(args) => Some(&args.repo_root),
-            LegacySourceCommand::SeedAuxiliary(args) => Some(&args.repo_root),
             LegacySourceCommand::ImportRelease(args) => Some(&args.repo_root),
             LegacySourceCommand::ImportDevelopment(args) => Some(&args.repo_root),
             LegacySourceCommand::ImportDevelopmentFixtures(args) => Some(&args.repo_root),
@@ -405,18 +389,6 @@ impl LegacySourceArgs {
             );
         }
         let (args, mode) = match self.command {
-            LegacySourceCommand::SeedShared(args) => {
-                return args.invoke_in(cancellation, invocation_dir);
-            }
-            LegacySourceCommand::SeedVersions(args) => {
-                return args.invoke_in(cancellation, invocation_dir);
-            }
-            LegacySourceCommand::SeedBuild(args) => {
-                return args.invoke_in(cancellation, invocation_dir);
-            }
-            LegacySourceCommand::SeedAuxiliary(args) => {
-                return args.invoke_in(cancellation, invocation_dir);
-            }
             LegacySourceCommand::PresetIdentity(args) => return args.invoke_in(invocation_dir),
             LegacySourceCommand::ImportRelease(args) => return args.invoke_in(invocation_dir),
             LegacySourceCommand::ImportDevelopment(args) => return args.invoke_in(invocation_dir),

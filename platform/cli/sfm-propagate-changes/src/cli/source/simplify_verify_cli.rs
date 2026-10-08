@@ -4,6 +4,8 @@ use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::core_catalog::read_bounded_catalog_input;
+use crate::source_projection::core_features::CoreFeatureDefinitions;
+use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
 use crate::source_projection::core_inputs::CORE_METADATA_PATH;
 use crate::source_projection::core_inputs::CORE_ROOT;
 use crate::source_projection::core_inputs::CoreProjectInputs;
@@ -11,14 +13,14 @@ use crate::source_projection::core_inputs::select_core_inputs;
 use crate::source_projection::oracle::ORACLES_PATH;
 use crate::source_projection::oracle::OracleBindings;
 use crate::source_projection::oracle_git::OracleGitRepository;
+use crate::source_projection::projection_catalog::CATALOG_PATH;
+use crate::source_projection::projection_catalog::ProjectionCatalog;
 use crate::source_projection::promotion::validate_relative_path;
-use crate::source_projection::provenance::ProjectionProvenance;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::render_java_source;
 use crate::source_projection::simplify::Comparison;
 use crate::source_projection::simplify::ParsedJava;
 use crate::source_projection::simplify::{self};
-use crate::source_projection::sync::MANIFEST_FILE;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
@@ -316,18 +318,20 @@ fn oracle_location(
             .project_dir(key)?
             .to_string_lossy()
             .replace('\\', "/");
-        let manifest = git
-            .file_at_commit(commit, &format!("{prefix}/{MANIFEST_FILE}"))?
-            .ok_or_else(|| eyre::eyre!("pinned projection has no provenance: {key}"))?;
-        let manifest = ProjectionProvenance::from_json(std::str::from_utf8(&manifest.bytes)?)?;
-        let owner = manifest
-            .catalog
-            .ok_or_else(|| eyre::eyre!("pinned projection has no catalog owner"))?;
+        let registry = git
+            .file_at_commit(commit, FEATURE_DEFINITIONS_PATH)?
+            .ok_or_else(|| eyre::eyre!("pinned commit has no feature definitions"))?;
+        let registry = CoreFeatureDefinitions::from_json(std::str::from_utf8(&registry.bytes)?)?;
+        let pinned = git
+            .file_at_commit(commit, CATALOG_PATH)?
+            .ok_or_else(|| eyre::eyre!("pinned commit has no projections catalog"))?;
+        let pinned = ProjectionCatalog::from_json(
+            std::str::from_utf8(&pinned.bytes)?,
+            &registry.registered_names(),
+        )?;
+        registry.validate_entry(pinned.entry(key)?)?;
         ensure!(
-            owner.projection_key == key
-                && owner.context_identity == catalog.catalog.context_identity(key)?
-                && owner.environment == entry.environment
-                && manifest.target_id == entry.target_id()?,
+            pinned.context_identity(key)? == catalog.catalog.context_identity(key)?,
             "pinned projection context mismatch"
         );
         Ok((commit.clone(), prefix))
@@ -361,7 +365,6 @@ mod tests {
     use super::*;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::projection_catalog::CATALOG_PATH;
-    use crate::source_projection::provenance::CatalogProjectionOwner;
     use std::fs;
     use std::process::Command;
 
@@ -425,20 +428,6 @@ mod tests {
             .to_string_lossy()
             .replace('\\', "/");
         write(root, &format!("{prefix}/{FILE}"), b"class A {}\n");
-        let manifest = ProjectionProvenance::new_catalog(
-            "1.19.2",
-            "1.19.2",
-            CatalogProjectionOwner {
-                projection_key: "a".into(),
-                environment: catalog.catalog.entry("a").unwrap().environment,
-                context_identity: catalog.catalog.context_identity("a").unwrap(),
-            },
-        );
-        write(
-            root,
-            &format!("{prefix}/{MANIFEST_FILE}"),
-            manifest.to_json().unwrap().as_bytes(),
-        );
         git(root, &["init", "--quiet"]);
         git(root, &["add", "."]);
         git(root, &["commit", "--quiet", "-m", "baseline"]);
@@ -452,6 +441,20 @@ mod tests {
         };
         let report = verify(&args, &CancellationToken::new(), root).unwrap();
         assert!(report.all_oracles_verified);
+        let catalog_before = fs::read(root.join(CATALOG_PATH)).unwrap();
+        write(
+            root,
+            CATALOG_PATH,
+            br#"{"a":{"minecraft_version":"1.19.2","environment":"dev","features":[]}}"#,
+        );
+        assert!(
+            format!(
+                "{:#}",
+                verify(&args, &CancellationToken::new(), root).unwrap_err()
+            )
+            .contains("pinned projection context mismatch")
+        );
+        write(root, CATALOG_PATH, &catalog_before);
         assert_eq!(
             report.inputs[0].comparison.as_ref().unwrap().classification,
             "whitespace_only"

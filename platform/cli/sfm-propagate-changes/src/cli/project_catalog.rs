@@ -11,7 +11,7 @@ use std::path::PathBuf;
 /// Read a static Java catalog from one generated standalone Gradle project.
 #[derive(Facet, Debug)]
 pub struct ProjectCatalogArgs {
-    /// Generated project root containing `.sfm-source-projection-manifest.json`.
+    /// Generated project root registered in its checkout's projections.json.
     #[facet(args::named)]
     pub project_root: PathBuf,
     /// Catalog category: test, game-test, or puppet.

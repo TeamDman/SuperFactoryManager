@@ -87,7 +87,6 @@ pub struct NativeProjectReceipt {
     pub catalog_sha256: String,
     pub feature_definitions_sha256: String,
     pub project_inputs_sha256: String,
-    pub provenance_sha256: String,
     pub lockfile_sha256: String,
     pub effective_dependencies_sha256: String,
     pub effective_source_exclusions_sha256: String,
@@ -254,7 +253,6 @@ fn target_from_checked(
         catalog_sha256: owned.catalog_sha256.clone(),
         feature_definitions_sha256: owned.feature_definitions_sha256.clone(),
         project_inputs_sha256: owned.project_inputs_sha256.clone(),
-        provenance_sha256: owned.provenance_sha256.clone(),
         lockfile_sha256: sha256(checked.selected_input(LOCKFILE)?.output_bytes()),
         effective_dependencies_sha256: profile.dependencies_sha256,
         effective_source_exclusions_sha256: profile.source_exclusions_sha256,
@@ -484,7 +482,6 @@ mod tests {
     use crate::source_projection::core_inputs::select_core_inputs;
     use crate::source_projection::named_root::catalog_projection_root;
     use crate::source_projection::projection_catalog::CATALOG_PATH;
-    use crate::source_projection::sync::MANIFEST_FILE;
     use crate::source_projection::sync::SyncMode;
     use crate::source_projection::sync::sync_catalog_projection;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
@@ -787,7 +784,7 @@ mod tests {
             assert!(fixture.check().is_err());
             assert!(!fixture.root.exists());
             fixture.publish();
-            let manifest_before = fs::read(fixture.root.join(MANIFEST_FILE)).unwrap();
+            let manifest_before = fs::read(fixture.root.join("src/main/java/Shared.java")).unwrap();
             let target = fixture.check().unwrap();
             assert_eq!(target.receipt.projection_key, key);
             assert_eq!(target.receipt.dependency_profile, NATIVE_DEPENDENCY_PROFILE);
@@ -798,7 +795,7 @@ mod tests {
             );
             assert!(!target.cache_dir.exists());
             assert_eq!(
-                fs::read(fixture.root.join(MANIFEST_FILE)).unwrap(),
+                fs::read(fixture.root.join("src/main/java/Shared.java")).unwrap(),
                 manifest_before
             );
             assert!(target.receipt.to_json().unwrap().contains(RECEIPT_SCHEMA));
@@ -839,7 +836,6 @@ mod tests {
             CORE_METADATA_PATH.to_owned(),
             FEATURE_DEFINITIONS_PATH.to_owned(),
             CATALOG_PATH.to_owned(),
-            format!("platform/minecraft/projections/{KEY}/{MANIFEST_FILE}"),
             format!("platform/minecraft/projections/{KEY}/src/main/java/Shared.java"),
         ] {
             let fixture = Fixture::new(RAW_V4, KEY, "release");
@@ -869,7 +865,7 @@ mod tests {
                 2 => changed.context_identity.push('0'),
                 3 => changed.dependency_profile.push_str("-other"),
                 4 => changed.lockfile_sha256.push('0'),
-                5 => changed.provenance_sha256.push('0'),
+                5 => changed.context_identity.push('0'),
                 _ => changed.effective_source_exclusions_sha256.push('0'),
             }
             assert_ne!(changed.cache_identity().unwrap(), original);
@@ -957,7 +953,8 @@ mod tests {
                 let fixture = Fixture::new(RAW_V4, key, environment);
                 fixture.publish();
                 let target = fixture.check().unwrap();
-                let manifest_before = fs::read(fixture.root.join(MANIFEST_FILE)).unwrap();
+                let manifest_before =
+                    fs::read(fixture.root.join("src/main/java/Shared.java")).unwrap();
                 let source = fixture.root.join(extra);
                 fs::create_dir_all(source.parent().unwrap()).unwrap();
                 fs::write(&source, b"unowned physical source input").unwrap();
@@ -966,7 +963,7 @@ mod tests {
                 assert!(target.recheck().is_err());
                 assert_eq!(fs::read(&source).unwrap(), b"unowned physical source input");
                 assert_eq!(
-                    fs::read(fixture.root.join(MANIFEST_FILE)).unwrap(),
+                    fs::read(fixture.root.join("src/main/java/Shared.java")).unwrap(),
                     manifest_before
                 );
                 assert!(!target.cache_dir.exists());

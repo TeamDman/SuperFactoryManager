@@ -28,17 +28,27 @@ use std::io::Cursor;
 use std::io::Read;
 use std::sync::Arc;
 
+#[cfg(test)]
 const INVENTORY: &str =
     include_str!("../../../../../docs/tasks/sfm-core-named-nfrt-compile-review.json");
+#[cfg(test)]
 const INVENTORY_SHA256: &str =
     "sha256:8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d";
 const NFRT: &str = "net.neoforged:neoform-runtime:2.0.19:all";
+const BUILD_CONFIGURATION_PATH: &str = "platform/minecraft/build-configuration/nfrt.json";
 const MAX_CONTRACT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TOTAL_INPUT_BYTES: usize = 1024 * 1024 * 1024;
 const MAX_INPUTS: usize = 8192;
 
+#[cfg(test)]
 #[derive(Debug, Facet)]
 struct ReviewedInventory {
+    targets: Vec<ReviewedTarget>,
+}
+
+#[derive(Debug, Facet)]
+struct BuildConfiguration {
+    schema: String,
     targets: Vec<ReviewedTarget>,
 }
 
@@ -249,13 +259,9 @@ impl NfrtExportPlan {
         );
         validate_invocation_id(invocation_id)?;
         dependencies.recheck_source(project)?;
-        ensure!(
-            sha256(INVENTORY.as_bytes()) == INVENTORY_SHA256,
-            "frozen NFRT function inventory changed"
-        );
         let source = dependencies.receipt();
         let child = supplement.receipt();
-        let target = reviewed_target(&source.target_id)?;
+        let target = configured_target(project.project().repo_root(), &source.target_id)?;
         ensure!(
             child.source_lock_sha256 == source.source_lock_sha256
                 && child.original_request_catalog_identity == source.request_catalog_identity
@@ -436,10 +442,6 @@ impl NfrtExportPlan {
             "NFRT exporter refuses refresh before any caller effects"
         );
         validate_invocation_id(invocation_id)?;
-        ensure!(
-            sha256(INVENTORY.as_bytes()) == INVENTORY_SHA256,
-            "frozen NFRT function inventory changed"
-        );
         let owner = project.receipt();
         let original = project.dependencies();
         let child = supplement.receipt();
@@ -456,7 +458,7 @@ impl NfrtExportPlan {
                 && child.original_lock_immutable,
             "NFRT exporter lost the exact project/original/supplement binding"
         );
-        let target = reviewed_target(&child.target_id)?;
+        let target = configured_target(project.project().repo_root(), &child.target_id)?;
         ensure!(
             target.minecraft_version == child.minecraft_version
                 && target.recipe_id == child.recipe_id
@@ -1215,6 +1217,84 @@ fn sdk_transfer(java: &ResolvedJava, raw: &[u8], minimum: u16) -> Result<NfrtToo
     })
 }
 
+fn configured_target(root: &std::path::Path, target: &str) -> Result<ReviewedTarget> {
+    let bytes = crate::source_projection::core_catalog::read_bounded_catalog_input(
+        root,
+        BUILD_CONFIGURATION_PATH,
+    )?;
+    let document: BuildConfiguration = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+    ensure!(
+        document.schema == "sfm:nfrt_build_configuration@1",
+        "unsupported NFRT build configuration"
+    );
+    let mut targets = document
+        .targets
+        .into_iter()
+        .filter(|row| row.target == target);
+    let selected = targets
+        .next()
+        .ok_or_else(|| eyre::eyre!("no NFRT build configuration for {target}"))?;
+    ensure!(
+        targets.next().is_none(),
+        "duplicate NFRT target configuration: {target}"
+    );
+    Ok(selected)
+}
+
+#[cfg(test)]
+mod configuration_tests {
+    use super::*;
+
+    fn fixture(version: &str) -> tempfile::TempDir {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join(BUILD_CONFIGURATION_PATH);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let json = format!(
+            r#"{{"schema":"sfm:nfrt_build_configuration@1","targets":[{{
+            "target":"example","minecraft_version":"{version}","recipe_id":"example",
+            "source_lock":{{"sha256":"fixture"}},"compiler_release":17,"minimum_tool_jvm":21,
+            "parents":[],"requested_functions_in_original_property_order":{{}},
+            "joined_steps_in_original_order":[],"selected_source_tool_coordinates_in_inventory_order":[]
+        }}]}}"#
+        );
+        std::fs::write(path, json).unwrap();
+        root
+    }
+
+    #[test]
+    fn reads_selected_checkout_without_compiled_repository_data() {
+        let first = fixture("first");
+        let second = fixture("second");
+        assert_eq!(
+            configured_target(first.path(), "example")
+                .unwrap()
+                .minecraft_version,
+            "first"
+        );
+        assert_eq!(
+            configured_target(second.path(), "example")
+                .unwrap()
+                .minecraft_version,
+            "second"
+        );
+        assert!(configured_target(first.path(), "absent").is_err());
+    }
+
+    #[test]
+    fn refuses_unknown_schema_and_missing_configuration() {
+        let root = fixture("example");
+        let path = root.path().join(BUILD_CONFIGURATION_PATH);
+        let json = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("sfm:nfrt_build_configuration@1", "unknown");
+        std::fs::write(&path, json).unwrap();
+        assert!(configured_target(root.path(), "example").is_err());
+        std::fs::remove_file(path).unwrap();
+        assert!(configured_target(root.path(), "example").is_err());
+    }
+}
+
+#[cfg(test)]
 fn reviewed_target(target: &str) -> Result<ReviewedTarget> {
     let document: ReviewedInventory = facet_json::from_str(INVENTORY)?;
     document
@@ -1379,6 +1459,29 @@ pub(super) mod tests {
             &BTreeSet::new(),
         )?;
         let mut fixture = Fixture::new();
+        for filename in [
+            "nfrt-child-identities.json",
+            "nfrt-source-library-identities.json",
+        ] {
+            let relative = format!("{CORE_ROOT}/build/supplements/{filename}");
+            let destination = fixture.repository().join(&relative);
+            std::fs::create_dir_all(destination.parent().unwrap())?;
+            std::fs::copy(repository.join(relative), destination)?;
+        }
+        let configuration_relative =
+            crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
+        let configuration_path = fixture.repository().join(configuration_relative);
+        std::fs::create_dir_all(
+            configuration_path
+                .parent()
+                .expect("configuration has a parent"),
+        )?;
+        std::fs::copy(repository.join(configuration_relative), &configuration_path)?;
+        let nfrt_configuration_path = fixture.repository().join(BUILD_CONFIGURATION_PATH);
+        std::fs::copy(
+            repository.join(BUILD_CONFIGURATION_PATH),
+            &nfrt_configuration_path,
+        )?;
         for input in std::iter::once(&recipe.source_lock).chain(recipe.role_input_hashes.iter()) {
             let source = input
                 .path

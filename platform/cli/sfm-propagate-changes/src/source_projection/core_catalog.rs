@@ -35,6 +35,31 @@ pub struct CoreCatalog {
 }
 
 impl CoreCatalog {
+    /// Resolve an existing projection through its containing checkout's catalog.
+    /// No generated-history file or version inferred from a directory name is used.
+    ///
+    /// # Errors
+    /// Rejects an unsafe root, missing/invalid catalog, or a directory that is not
+    /// exactly a catalogued projection root.
+    pub fn for_project(project_root: &Path) -> Result<(Self, String)> {
+        let project_root = checked_directory(project_root)?;
+        for ancestor in project_root.ancestors() {
+            if !ancestor.join(CATALOG_PATH).is_file() {
+                continue;
+            }
+            let loaded = Self::load(ancestor, ancestor)?;
+            for key in loaded.catalog.0.keys() {
+                let expected = loaded.repo_root.join(loaded.catalog.project_dir(key)?);
+                if expected == project_root {
+                    let key = key.clone();
+                    return Ok((loaded, key));
+                }
+            }
+            eyre::bail!("project is not an exact root in the containing projections catalog");
+        }
+        eyre::bail!("project has no containing checkout projections catalog")
+    }
+
     /// Load explicit projection selectors and validate every catalog entry.
     ///
     /// # Errors
@@ -106,27 +131,82 @@ impl CoreCatalog {
 /// Rejects escaping/reparse paths, non-files, failed I/O and inputs over 1 MiB,
 /// including growth observed after the initial metadata inspection.
 pub fn read_bounded_catalog_input(root: &Path, relative: &str) -> Result<Vec<u8>> {
+    read_bounded_input(root, relative, MAX_CATALOG_INPUT_BYTES)
+}
+
+pub(crate) fn read_bounded_input(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
     let path = checked_file(root, relative)?;
     let file =
         fs::File::open(&path).wrap_err_with(|| format!("cannot open source input `{relative}`"))?;
     ensure!(
-        file.metadata()?.len() <= MAX_CATALOG_INPUT_BYTES,
-        "source input `{relative}` exceeds the {MAX_CATALOG_INPUT_BYTES}-byte limit"
+        file.metadata()?.len() <= limit,
+        "source input `{relative}` exceeds the {limit}-byte limit"
     );
     let mut bytes = Vec::new();
-    file.take(MAX_CATALOG_INPUT_BYTES + 1)
+    file.take(limit + 1)
         .read_to_end(&mut bytes)
         .wrap_err_with(|| format!("cannot read source input `{relative}`"))?;
     ensure!(
-        bytes.len() as u64 <= MAX_CATALOG_INPUT_BYTES,
-        "source input `{relative}` exceeds the {MAX_CATALOG_INPUT_BYTES}-byte limit"
+        bytes.len() as u64 <= limit,
+        "source input `{relative}` exceeds the {limit}-byte limit"
     );
     Ok(bytes)
+}
+
+/// Minimal catalog fixture for consumers of generated projects; no source or
+/// generation-history snapshots are involved.
+#[cfg(test)]
+pub(crate) fn write_project_catalog_fixture(
+    repo: &Path,
+    key: &str,
+    version: &str,
+) -> Result<PathBuf> {
+    use super::projection_catalog::ProjectionEntry;
+    use super::projection_catalog::ProjectionEnvironment;
+    let registry = repo.join(FEATURE_DEFINITIONS_PATH);
+    fs::create_dir_all(registry.parent().unwrap())?;
+    fs::write(registry, "{}")?;
+    let catalog = ProjectionCatalog(BTreeMap::from([(
+        key.to_owned(),
+        ProjectionEntry {
+            minecraft_version: version.to_owned(),
+            environment: ProjectionEnvironment::Release,
+            features: vec![],
+        },
+    )]));
+    fs::write(repo.join(CATALOG_PATH), catalog.to_json(&BTreeSet::new())?)?;
+    let root = repo.join(catalog.project_dir(key)?);
+    fs::create_dir_all(&root)?;
+    Ok(root)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_lookup_uses_catalog_values_without_generation_history() {
+        let temp = tempfile::tempdir().unwrap();
+        let registry = temp.path().join(FEATURE_DEFINITIONS_PATH);
+        fs::create_dir_all(registry.parent().unwrap()).unwrap();
+        fs::write(
+            registry,
+            r#"{"echo":{"supported_targets":["1.21.0"],"requires":[]}}"#,
+        )
+        .unwrap();
+        fs::write(temp.path().join(CATALOG_PATH),
+            r#"{"custom/mc-1.19.2":{"minecraft_version":"1.21","environment":"dev","features":[]}}"#).unwrap();
+        let project = temp
+            .path()
+            .join("platform/minecraft/projections/custom/mc-1.19.2");
+        fs::create_dir_all(project.join("src")).unwrap();
+        let (loaded, key) = CoreCatalog::for_project(&project).unwrap();
+        assert_eq!(key, "custom/mc-1.19.2");
+        assert_eq!(loaded.context(&key).unwrap().minecraft_version, "1.21");
+        assert!(CoreCatalog::for_project(&project.join("src")).is_err());
+        fs::remove_file(temp.path().join(CATALOG_PATH)).unwrap();
+        assert!(CoreCatalog::for_project(&project).is_err());
+    }
 
     #[test]
     fn catalog_values_not_nested_key_spelling_choose_runtime_and_flags() {

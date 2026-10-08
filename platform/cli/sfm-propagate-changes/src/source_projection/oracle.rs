@@ -2289,6 +2289,11 @@ mod tests {
     fn manifested_observation_checks_ownership_and_unowned_source_membership_without_writes() {
         use super::super::projection_catalog::ProjectionEnvironment;
         let temp = tempfile::tempdir().unwrap();
+        let initialized = super::super::release_baseline::frozen_git_command(temp.path())
+            .args(["init", "--quiet"])
+            .output()
+            .unwrap();
+        assert!(initialized.status.success());
         let directory = temp.path().join("projection");
         let identity = CatalogProjectionIdentity {
             target_id: "1.19.2".into(),
@@ -2305,7 +2310,11 @@ mod tests {
                 .unwrap()
                 .starts_with("current:")
         );
-        let manifest_before = fs::read(directory.join(super::super::sync::MANIFEST_FILE)).unwrap();
+        assert!(
+            !directory
+                .join(".sfm-source-projection-manifest.json")
+                .exists()
+        );
         fs::write(directory.join("src/Extra.java"), b"class Extra {}\n").unwrap();
         assert!(
             observe_owned_output(&directory, &identity, &rendered)
@@ -2324,11 +2333,12 @@ mod tests {
             observe_owned_output(&directory, &identity, &rendered)
                 .unwrap_err()
                 .to_string()
-                .contains("was edited")
+                .contains("differs from selected core inputs")
         );
-        assert_eq!(
-            fs::read(directory.join(super::super::sync::MANIFEST_FILE)).unwrap(),
-            manifest_before
+        assert!(
+            !directory
+                .join(".sfm-source-projection-manifest.json")
+                .exists()
         );
         assert_eq!(
             fs::read(directory.join("src/Example.java")).unwrap(),

@@ -218,6 +218,15 @@ pub(crate) fn render_java_artifact(
     artifact: &mut ProjectedArtifact,
     context: &ProjectionContext,
 ) -> Result<()> {
+    render_java_artifact_with(output_path, artifact, context, render_java_source)
+}
+
+pub(super) fn render_java_artifact_with(
+    output_path: &str,
+    artifact: &mut ProjectedArtifact,
+    context: &ProjectionContext,
+    mut render: impl FnMut(&str, &ProjectionContext) -> Result<String>,
+) -> Result<()> {
     if !Path::new(output_path)
         .extension()
         .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
@@ -231,7 +240,7 @@ pub(crate) fn render_java_artifact(
     };
     let source = std::str::from_utf8(java_bytes)
         .wrap_err_with(|| format!("Java source '{output_path}' is not UTF-8"))?;
-    let rendered = render_java_source(source, context)
+    let rendered = render(source, context)
         .wrap_err_with(|| format!("cannot project Java source '{output_path}'"))?;
     let line_ending = preferred_line_ending(source);
     artifact.output_bytes =

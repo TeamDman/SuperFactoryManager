@@ -25,7 +25,28 @@ sfm-propagate-changes --output-format json source project sync --repo-root . --p
 sfm-propagate-changes --output-format json source project check --repo-root . --projection sfm-dev/mc-1.19.2
 ```
 
-For contributor changes, review the generated diff and manually apply its intent to the appropriate core templates and selection rules. Render the affected contexts. `sync` fails closed on edited outputs; it does not overwrite them. Only run `source project reconcile --repo-root . --projection <key>` after the core renders exactly the edited output. Reconciliation updates provenance without overwriting contributor content. Never edit the provenance manifest to bypass a conflict. Check both enabled and disabled feature contexts before accepting a change.
+### Refresh selected files
+
+Use `manifest` to select core-relative input files and exact projection keys. Repeat either option to select several. Omit an option, or pass a quoted `'*'`, to select all.
+
+```powershell
+sfm-propagate-changes source project manifest --repo-root . --file src/main/java/ca/teamdman/sfm/SFM.java --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes source project manifest --repo-root . --file src/main/java/ca/teamdman/sfm/SFM.java --projection '*'
+sfm-propagate-changes source project manifest --repo-root . --file '*' --projection '*' --dry-run
+```
+
+Git status protects dirty selected outputs when their bytes would change. Identical outputs need no write. Ignored development outputs are disposable and can be regenerated.
+
+Bare `--allow-dirty` permits replacing dirty outputs within the selected write set. Add a repository-relative file or directory to restrict that override, for example `--allow-dirty platform/minecraft/projections/sfm-4.34.0/mc-1.19.2/src/main/java/ca/teamdman/sfm/SFM.java`. The override never selects additional files. Review the diff before using it. A second manifestation may need this override because the first changed tracked output files.
+
+### Hydrate contributor changes before merging
+
+1. Keep the contributor's generated-file PR available for review. Do not merge it into the canonical branch yet.
+2. Create a hydration PR that includes the original contribution and applies its intent to the core templates and selection rules.
+3. Verify the affected enabled and disabled feature contexts. Manifest their outputs, using a scoped dirty override only when needed.
+4. Review the generated diff against the original contribution. Merge the hydration PR only when the core and outputs agree.
+
+There is no automatic inverse transform from Java edits to Liquid templates. There is no generation-history manifest or reconciliation step. If the core already renders the contributor's exact bytes, manifestation leaves those bytes untouched.
 
 Each generated root has ordinary Java, resources, build scripts and a Gradle wrapper. Contributors can use that standalone Gradle project without Rust. Automated work in this repository must follow `docs/AGENTS.md`: use native Rust build tooling rather than executing Gradle. Native `source project compile` and `jar` take exactly one of `--released-recipe <exact-recipe-id>` or `--dependency-profile rust-toolchain`, plus `--java-home <approved-sdk-directory>`. Release recipes retain their original locks. Development builds use the selected project's captured schema-4 profile; they do not borrow a release recipe or fabricate a version branch.
 
@@ -42,7 +63,7 @@ sfm-propagate-changes --output-format json source project jar --repo-root . --pr
 sfm-propagate-changes --output-format json source project jar --repo-root . --projection sfm-dev/mc-1.19.2 --dependency-profile rust-toolchain --java-home '<approved-java-17-sdk>'
 ```
 
-These are separate alternatives, not two required steps. Release builds check existing generated outputs; synchronize them first if the check reports missing or stale files. Development builds can prepare their declared ignored destination, but still refuse contributor conflicts. Neither command launches Minecraft or runs GameTests. Inspect the returned build receipt rather than treating a preflight receipt as compilation evidence.
+These are separate alternatives, not two required steps. Release builds check existing generated outputs; synchronize them first if the check reports missing or stale files. Development builds can regenerate their declared ignored destination. Keep contributor edits in tracked release projections or authored templates, not disposable development outputs. Neither command launches Minecraft or runs GameTests. Inspect the returned build receipt rather than treating a preflight receipt as compilation evidence.
 
 ### Review one feature at a time
 
@@ -53,9 +74,9 @@ The current feature registry is `platform/minecraft/core-liquid-template/feature
 3. Compare the generated Java and resource files with the corresponding release or dev-all projection. Review ordinary output, not just Liquid branches. Exclude provenance and build outputs from the code review diff.
 4. Compile or package the experimental context through its supported native route. A successful render does not prove that providers, registrations and imports compile together.
 
-Changing the catalog invalidates retained build receipts that bind its full hash. Generated ownership instead binds the exact entry's context: adding a separate entry does not change an existing entry's context identity. Changing an existing entry's feature set cannot be reconciled over its old owner; use a separate key. Do not change the catalog or authored inputs during a running build. Experimental contexts do not add to the 20 required release and dev-all acceptance rows.
+Changing the catalog invalidates retained build receipts that bind its full hash. Use separate keys to keep feature combinations available side by side. Do not change the catalog or authored inputs during a running build. Experimental contexts do not add to the 20 required release and dev-all acceptance rows.
 
-For a contributor edit, keep the edited generated file intact. Apply the intended change to its core owner, check the affected feature combinations, and reconcile only when the rendered bytes match. There is no automatic inverse transform from arbitrary Java edits to Liquid templates.
+For contributor edits, follow the hydration PR procedure above before regenerating or merging.
 
 ## Find whitespace-only simplification candidates
 
@@ -74,7 +95,7 @@ Candidate gaps can be alignment artifacts between genuinely different methods.
 Never distort formatting merely to force their count to zero.
 
 For a custom projection already committed in Git, supply `--projection KEY`
-and `--baseline-commit FULL_COMMIT_SHA`. Its committed projection provenance
+and `--baseline-commit FULL_COMMIT_SHA`. Its committed catalog context
 must match the selected context. Branch movement and on-disk projection edits
 do not move the pinned oracle. Missing objects, unsupported Java and semantic
 changes are not certified. This checks selected contexts, not every possible
@@ -105,8 +126,8 @@ select at least 2 contexts. `--max-regions 128` increases the displayed regions
 per pair from the default of 16. Counts remain complete when snippets are limited.
 
 The scanner reads existing projections; it does not generate, format or modify
-files. It checks catalog ownership and each file's recorded output hash, then
-parses each distinct complete Java source once. It preserves comment and literal
+files. It uses catalog-selected paths and parses each distinct complete Java
+source once. It does not certify their origin or freshness. It preserves comment and literal
 bytes, including text-block indentation. Unicode escapes and unsupported syntax
 remain unverified rather than being treated as equivalent.
 
@@ -116,8 +137,8 @@ Local whitespace candidates can also appear in otherwise different files. They
 include before/after snippets with zero-based, end-exclusive byte ranges and
 one-based line numbers. They are review leads, not permission to rewrite a branch.
 
-Check `all_inputs_verified` and the per-input diagnostics. A successful command
-can return an incomplete scan with unverified inputs. It does not establish that
+Check `all_inputs_parsed` and the per-input diagnostics. A successful command
+can return an incomplete scan with unparsed inputs. It does not establish that
 the core still renders those files, that every possible feature combination was
 checked, or that Java compilation and behaviour are equivalent. Use `source
 project check` for core freshness. Existing exact oracle checks remain unchanged;

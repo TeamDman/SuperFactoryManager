@@ -77,7 +77,7 @@ mod tests {
     use crate::java_analysis::JavaAnalysisScenarioFixture;
     use crate::java_analysis::with_java_analysis_scenario_fixture;
     use crate::paths::CacheHome;
-    use crate::source_projection::provenance::ProjectionProvenance;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
     use std::io::Cursor;
     use std::io::Write as _;
     use std::path::PathBuf;
@@ -86,7 +86,9 @@ mod tests {
 
     fn generated_project_fixture() -> (tempfile::TempDir, SymbolQueryWorkspaceArgs) {
         let temporary = tempfile::tempdir().expect("temporary generated project");
-        let project_root = temporary.path().join("generated-project");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         let main_root = project_root.join("src/main/java/example");
         let toolchain_root = project_root.join("gradle/java-toolchain/1.19.2");
         std::fs::create_dir_all(&main_root).expect("main source root");
@@ -96,18 +98,7 @@ mod tests {
             "rootProject.name = 'sfm'\n",
         )
         .expect("Gradle settings");
-        std::fs::write(
-            project_root.join(".sfm-source-projection-manifest.json"),
-            ProjectionProvenance::new(
-                "1.19.2",
-                "1.19.2",
-                "current-development-pilot",
-                "blake3:test",
-            )
-            .to_json()
-            .expect("projection manifest"),
-        )
-        .expect("projection manifest file");
+        write_project_catalog_fixture(temporary.path(), "1.19.2", "1.19.2").unwrap();
         std::fs::write(
             toolchain_root.join("java-toolchain.gradle"),
             "JavaLanguageVersion.of(17)\n",
@@ -120,7 +111,7 @@ mod tests {
         .expect("Java source");
         let workspace = SymbolQueryWorkspaceArgs {
             branch: None,
-            project_root: Some(PathBuf::from("generated-project")),
+            project_root: Some(PathBuf::from("platform/minecraft/projections/1.19.2")),
             source_root: Vec::new(),
             classpath_mode: None,
             java_home: None,
@@ -131,7 +122,9 @@ mod tests {
     #[test]
     fn generated_project_queries_use_only_project_sources_and_no_dependency_index() {
         let (temporary, workspace) = generated_project_fixture();
-        let project_root = temporary.path().join("generated-project");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         let resolved = workspace.clone().resolve(temporary.path()).unwrap();
         assert_eq!(resolved.workspace.context.branch, "project:1.19.2");
         assert!(resolved.generated_project);
@@ -196,7 +189,9 @@ mod tests {
     #[test]
     fn generated_project_selector_queries_use_pinned_cached_classfiles() {
         let (temporary, workspace) = generated_project_fixture();
-        let project_root = temporary.path().join("generated-project");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         std::fs::write(
             project_root.join("src/main/java/example/Use.java"),
             "package example; import dep.External; public class Use { External value; }",
@@ -272,7 +267,9 @@ mod tests {
     #[test]
     fn generated_project_exact_member_selectors_use_pinned_cached_classfiles() {
         let (temporary, workspace) = generated_project_fixture();
-        let project_root = temporary.path().join("generated-project");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         let cache_root = temporary.path().join("cache");
         let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
         std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
@@ -407,7 +404,9 @@ mod tests {
     #[test]
     fn generated_project_location_queries_do_not_acquire_branch_dependencies() {
         let (temporary, workspace) = generated_project_fixture();
-        let project_root = temporary.path().join("generated-project");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         let resolved = workspace.clone().resolve(temporary.path()).unwrap();
         let source_file = resolved
             .workspace
@@ -474,18 +473,16 @@ mod tests {
             .expect("missing project root must fail");
         assert!(format!("{missing:#}").contains("Failed to resolve generated project root"));
 
-        workspace.project_root = Some(PathBuf::from("generated-project"));
+        workspace.project_root = Some(PathBuf::from("platform/minecraft/projections/1.19.2"));
         std::fs::write(
-            temporary
-                .path()
-                .join("generated-project/.sfm-source-projection-manifest.json"),
-            "not a projection manifest",
+            temporary.path().join("platform/minecraft/projections.json"),
+            "not a projection catalog",
         )
         .unwrap();
         let invalid = workspace
             .resolve(temporary.path())
             .err()
-            .expect("malformed project manifest must fail");
-        assert!(format!("{invalid:#}").contains("Invalid generated project manifest"));
+            .expect("malformed project catalog must fail");
+        assert!(format!("{invalid:#}").contains("could not parse projections catalog"));
     }
 }

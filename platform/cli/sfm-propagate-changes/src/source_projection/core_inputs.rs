@@ -13,7 +13,6 @@ use super::core_network_layout::NETWORK_REGISTRATION_PATH;
 use super::core_network_layout::validate_network_context;
 use super::directive_scanner::ScannedSource;
 use super::directive_scanner::scan;
-use super::inputs::render_java_artifact;
 use super::project_layout::validate_target_project;
 use super::projection_catalog::SUPPORTED_TARGETS;
 use super::projection_catalog::validate_projection_key;
@@ -633,6 +632,16 @@ pub(super) fn render_core_input(
     bytes: Vec<u8>,
     context: &ProjectionContext,
 ) -> Result<ProjectedArtifact> {
+    render_core_input_with(output, selected, bytes, context, render_java_source)
+}
+
+pub(super) fn render_core_input_with(
+    output: &str,
+    selected: &SelectedCoreInput,
+    bytes: Vec<u8>,
+    context: &ProjectionContext,
+    mut render: impl FnMut(&str, &ProjectionContext) -> Result<String>,
+) -> Result<ProjectedArtifact> {
     validate_output_path(output)?;
     validate_input_path(&selected.input)?;
     ensure!(
@@ -653,12 +662,12 @@ pub(super) fn render_core_input(
             .wrap_err_with(|| format!("core template `{}` is not UTF-8", selected.input))?;
         validate_core_template_selectors(source, output)?;
         if java {
-            render_java_artifact(output, &mut artifact, context)?;
+            super::inputs::render_java_artifact_with(output, &mut artifact, context, &mut render)?;
         } else {
             let (bom, body) = source
                 .strip_prefix('\u{feff}')
                 .map_or(("", source), |body| ("\u{feff}", body));
-            let rendered = render_java_source(body, context)
+            let rendered = render(body, context)
                 .wrap_err_with(|| format!("cannot render core text `{}`", selected.input))?;
             artifact.output_bytes = Vec::with_capacity(bom.len() + rendered.len());
             artifact.output_bytes.extend_from_slice(bom.as_bytes());

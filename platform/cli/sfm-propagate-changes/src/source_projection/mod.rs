@@ -7,15 +7,12 @@
 pub mod candidate_lock;
 pub mod catalog_owned_project;
 pub mod context;
-pub mod core_build_seed;
 pub mod core_catalog;
 pub mod core_features;
 #[cfg(windows)]
 mod core_input_leases;
 pub mod core_inputs;
 pub mod core_network_layout;
-pub mod core_seed;
-pub mod core_version_seed;
 pub mod development_baseline;
 pub mod development_fixtures;
 pub mod development_gradle;
@@ -26,6 +23,7 @@ pub mod frozen_recipe_project;
 pub mod frozen_release;
 pub mod inputs;
 pub mod manifest;
+pub(crate) mod manifestation;
 pub mod named_root;
 pub mod native_project_target;
 pub mod nfrt_child_identity_supplement;
@@ -65,241 +63,9 @@ pub mod variant_consolidation;
 pub(crate) mod legacy_test_fixture;
 
 #[cfg(test)]
-mod core_accessor_document_history_tests;
-#[cfg(test)]
-mod core_action_helpers_slice_tests;
-#[cfg(test)]
-mod core_action_leaf_slice_tests;
-#[cfg(test)]
-mod core_action_slice_tests;
-#[cfg(test)]
-mod core_ast_builder_slice_tests;
-#[cfg(test)]
-mod core_baseline_client_registration_slice_tests;
-#[cfg(test)]
-mod core_buffer_manager_slice_tests;
-#[cfg(test)]
-mod core_button_builder_slice_tests;
-#[cfg(test)]
-mod core_capture_widget_provider_tests;
-#[cfg(test)]
-mod core_client_action_registry_slice_tests;
-#[cfg(test)]
-mod core_client_expression_descriptor_slice_tests;
-#[cfg(test)]
-mod core_client_manager_provider_slice_tests;
-#[cfg(test)]
-mod core_client_registration_current_contract;
-#[cfg(test)]
-mod core_client_registration_slice_tests;
-#[cfg(test)]
-mod core_command_draft_analysis_provider_tests;
-#[cfg(test)]
-mod core_computercraft_handles_slice_tests;
-#[cfg(test)]
-mod core_computercraft_integration_slice_tests;
-#[cfg(test)]
-mod core_config_slice_tests;
-#[cfg(test)]
-mod core_confirmation_screen_slice_tests;
-#[cfg(test)]
-mod core_consent_action_choice_providers_slice_tests;
-#[cfg(test)]
-mod core_consent_panel_closure_slice_tests;
-#[cfg(test)]
-mod core_consent_screen_factory_slice_tests;
-#[cfg(test)]
-mod core_datagen_slice_tests;
-#[cfg(test)]
-mod core_development_leaf_slice_tests;
-#[cfg(test)]
-mod core_development_resources_slice_tests;
-#[cfg(test)]
-mod core_disk_item_slice_tests;
-#[cfg(test)]
-mod core_document_history_providers_slice_tests;
-#[cfg(test)]
-mod core_echo_palette_slice_tests;
-#[cfg(test)]
-mod core_editor_api_slice_tests;
-#[cfg(test)]
-mod core_editor_models_slice_tests;
-#[cfg(test)]
-mod core_editor_path_models_slice_tests;
-#[cfg(test)]
-mod core_editor_screens_slice_tests;
-#[cfg(test)]
-mod core_event_discovery_slice_tests;
-#[cfg(test)]
-mod core_fix_slice_tests;
-#[cfg(test)]
-mod core_form_label_slice_tests;
-#[cfg(test)]
-mod core_frame_ast_slice_tests;
-#[cfg(test)]
-mod core_frame_evaluator_manifest_slice_tests;
-#[cfg(test)]
-mod core_frame_helpers_slice_tests;
-#[cfg(test)]
-mod core_frame_runtime_slice_tests;
-#[cfg(test)]
-mod core_gametest_framework_slice_tests;
-#[cfg(test)]
-mod core_human_action_leaves_slice_tests;
-#[cfg(test)]
-mod core_icon_rendering_slice_tests;
-#[cfg(test)]
-mod core_image_resource_slice_tests;
-#[cfg(test)]
-mod core_input_diagnostics_slice_tests;
-#[cfg(test)]
-mod core_item_tooltip_slice_tests;
-#[cfg(test)]
-mod core_keybinding_state_models_slice_tests;
-#[cfg(test)]
-mod core_keyboard_carriers_slice_tests;
-#[cfg(test)]
-mod core_keyboard_eight_provider_tests;
-#[cfg(test)]
-mod core_label_slice_tests;
-#[cfg(test)]
-mod core_language_slice_tests;
-#[cfg(test)]
-mod core_localization_changelog_slice_tests;
-#[cfg(test)]
-mod core_manager_consent_providers_slice_tests;
-#[cfg(test)]
-mod core_manager_label_linter_slice_tests;
-#[cfg(test)]
-mod core_mixin_closure_slice_tests;
-#[cfg(test)]
-mod core_network_inspection_slice_tests;
-#[cfg(test)]
-mod core_network_slice_tests;
-#[cfg(test)]
-mod core_network_transport_guard_slice_tests;
-#[cfg(test)]
-mod core_packet_declaration_slice_tests;
-#[cfg(test)]
-mod core_packet_providers_slice_tests;
-#[cfg(test)]
-mod core_packet_statement_slice_tests;
-#[cfg(all(test, windows))]
-mod core_palette_history_provider_wave_tests;
-#[cfg(test)]
-mod core_pointer_input_modifiers_slice_tests;
-#[cfg(test)]
-mod core_program_action_dispatch_slice_tests;
-#[cfg(test)]
-mod core_program_authorization_current_contract;
-#[cfg(test)]
-mod core_program_grammar_slice_tests;
-#[cfg(test)]
-mod core_program_relations_slice_tests;
-#[cfg(test)]
-mod core_program_runtime_slice_tests;
-#[cfg(test)]
-mod core_properties_provider_slice_tests;
-#[cfg(test)]
-mod core_redstone_capability_slice_tests;
-#[cfg(test)]
-mod core_redstone_resource_slice_tests;
-#[cfg(test)]
-mod core_registration_slice_tests;
-#[cfg(test)]
 mod core_release_project_role_fixtures;
 #[cfg(test)]
-mod core_released_test_gaps_slice_tests;
-#[cfg(test)]
-mod core_released_tests_slice_tests;
-#[cfg(test)]
-mod core_resource_first_slice_tests;
-#[cfg(test)]
-mod core_runtime_closure_slice_tests;
-#[cfg(test)]
-mod core_screen_panel_protocol_slice_tests;
-#[cfg(test)]
-mod core_signer_trust_providers_slice_tests;
-#[cfg(test)]
-mod core_signing_delegates_slice_tests;
-#[cfg(test)]
-mod core_signing_runtime_ui_slice_tests;
-#[cfg(test)]
-mod core_signing_transport_slice_tests;
-#[cfg(test)]
-mod core_single_line_input_slice_tests;
-#[cfg(test)]
 mod core_slice_test_support;
-#[cfg(test)]
-mod core_small_three_leaves_slice_tests;
-#[cfg(test)]
-mod core_startup_registration_slice_tests;
-#[cfg(test)]
-mod core_terminal_carriers_slice_tests;
-#[cfg(test)]
-mod core_terminal_model_providers_slice_tests;
-#[cfg(test)]
-mod core_terminal_presentation_providers_slice_tests;
-#[cfg(test)]
-mod core_terminal_value_models_slice_tests;
-#[cfg(test)]
-mod core_text_provider_slice_tests;
-#[cfg(test)]
-mod core_theme_keyboard_models_slice_tests;
-#[cfg(test)]
-mod core_theme_preview_five_slice_tests;
-#[cfg(test)]
-mod core_theme_preview_models_slice_tests;
-#[cfg(test)]
-mod core_theme_provider_slice_tests;
-#[cfg(test)]
-mod core_theme_runtime_six_slice_tests;
-#[cfg(test)]
-mod core_three_surface_provider_tests;
-#[cfg(test)]
-mod core_tooltip_mode_action_slice_tests;
-#[cfg(test)]
-mod core_touch_display_slice_tests;
-#[cfg(test)]
-mod core_transfer_ast_slice_tests;
-#[cfg(test)]
-mod core_typed_palette_slice_tests;
-#[cfg(test)]
-mod core_ui_helpers_slice_tests;
-#[cfg(test)]
-mod core_utility_slice_tests;
-#[cfg(test)]
-mod core_value_foundation_slice_tests;
-#[cfg(test)]
-mod core_workspace_factory_registry_slice_tests;
-#[cfg(test)]
-mod core_workspace_host_current_contract;
-#[cfg(test)]
-mod core_workspace_host_providers_slice_tests;
-#[cfg(test)]
-mod core_workspace_host_slice_tests;
-#[cfg(test)]
-mod core_workspace_layout_leaves_slice_tests;
-#[cfg(test)]
-mod core_workspace_layout_slice_tests;
-#[cfg(test)]
-mod core_workspace_navigation_family_tests;
-#[cfg(test)]
-mod core_workspace_palette_current_contract;
-#[cfg(test)]
-mod core_workspace_panel_context_slice_tests;
-#[cfg(test)]
-mod core_workspace_panel_intent_slice_tests;
-#[cfg(test)]
-mod core_workspace_primitives_slice_tests;
-#[cfg(test)]
-mod core_workspace_registrar_current_contract;
-#[cfg(test)]
-mod core_workspace_toast_actions_slice_tests;
-#[cfg(test)]
-mod core_world_capability_slice_tests;
-#[cfg(test)]
-mod release_source_parity_test;
 
 use context::ProjectionContext;
 use context::to_liquid_object;
@@ -319,42 +85,84 @@ use liquid::model::ValueView;
 /// or non-string case selectors, or a Liquid rendering error. Callers should add the source path to the error
 /// context before reporting it to an author.
 pub fn render_java_source(source: &str, context: &ProjectionContext) -> Result<String> {
-    let ScannedSource::Template(template) = scan(source)? else {
-        return Ok(source.to_owned());
-    };
+    PreparedSource::parse(source)?.render(context)
+}
 
-    for (condition, line) in &template.referenced_conditions {
-        let (root, name) = condition
-            .split_once('.')
-            .ok_or_else(|| eyre::eyre!("invalid projection condition '{condition}'"))?;
-        let registered = match root {
-            "features" => context.features.contains_key(name),
-            "targets" => context.targets.contains_key(name),
-            _ => eyre::bail!("invalid projection condition root '{root}'"),
+enum PreparedSource {
+    Identity(String),
+    Template {
+        scanned: ScannedTemplate,
+        compiled: liquid::Template,
+    },
+}
+
+impl PreparedSource {
+    fn parse(source: &str) -> Result<Self> {
+        let ScannedSource::Template(scanned) = scan(source)? else {
+            return Ok(Self::Identity(source.to_owned()));
         };
-        ensure!(
-            registered,
-            "line {line}: unknown projection condition '{condition}'"
-        );
+        let compiled = liquid::ParserBuilder::with_stdlib()
+            .build()
+            .wrap_err("could not create the source projection parser")?
+            .parse(&scanned.skeleton)
+            .wrap_err("could not parse source projection directives")?;
+        Ok(Self::Template { scanned, compiled })
     }
 
-    let mut globals = to_liquid_object(context)?;
-    validate_selectors(&template, &globals)?;
-    for (index, chunk) in template.chunks.into_iter().enumerate() {
-        globals.insert(
-            format!("__sfm_chunk_{index}").into(),
-            liquid::model::Value::scalar(chunk),
-        );
+    fn render(&self, context: &ProjectionContext) -> Result<String> {
+        let Self::Template {
+            scanned: template,
+            compiled,
+        } = self
+        else {
+            let Self::Identity(source) = self else {
+                unreachable!()
+            };
+            return Ok(source.clone());
+        };
+
+        for (condition, line) in &template.referenced_conditions {
+            let (root, name) = condition
+                .split_once('.')
+                .ok_or_else(|| eyre::eyre!("invalid projection condition '{condition}'"))?;
+            let registered = match root {
+                "features" => context.features.contains_key(name),
+                "targets" => context.targets.contains_key(name),
+                _ => eyre::bail!("invalid projection condition root '{root}'"),
+            };
+            ensure!(
+                registered,
+                "line {line}: unknown projection condition '{condition}'"
+            );
+        }
+
+        let mut globals = to_liquid_object(context)?;
+        validate_selectors(template, &globals)?;
+        for (index, chunk) in template.chunks.iter().enumerate() {
+            globals.insert(
+                format!("__sfm_chunk_{index}").into(),
+                liquid::model::Value::scalar(chunk.clone()),
+            );
+        }
+        let rendered = compiled
+            .render(&globals)
+            .wrap_err("could not render source projection directives")?;
+        Ok(rendered)
     }
-    let parser = liquid::ParserBuilder::with_stdlib()
-        .build()
-        .wrap_err("could not create the source projection parser")?;
-    let rendered = parser
-        .parse(&template.skeleton)
-        .wrap_err("could not parse source projection directives")?
-        .render(&globals)
-        .wrap_err("could not render source projection directives")?;
-    Ok(rendered)
+}
+
+/// Invocation-local parsed templates; context validation still runs on every render.
+#[derive(Default)]
+pub(super) struct SourceRenderCache(std::collections::BTreeMap<String, PreparedSource>);
+
+impl SourceRenderCache {
+    pub(super) fn render(&mut self, source: &str, context: &ProjectionContext) -> Result<String> {
+        if !self.0.contains_key(source) {
+            self.0
+                .insert(source.to_owned(), PreparedSource::parse(source)?);
+        }
+        self.0.get(source).expect("just inserted").render(context)
+    }
 }
 
 fn validate_selectors(template: &ScannedTemplate, globals: &liquid::Object) -> Result<()> {
@@ -373,6 +181,20 @@ fn validate_selectors(template: &ScannedTemplate, globals: &liquid::Object) -> R
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn parsed_cache_reuses_templates_but_not_context_values_or_validation() {
+        let mut cache = SourceRenderCache::default();
+        let source = "{% if features.touch_display %}\nyes\n{% else %}\nno\n{% endif %}\n";
+        let mut context = context();
+        context.features.insert("touch_display".into(), true);
+        assert_eq!(cache.render(source, &context).unwrap(), "yes\n");
+        context.features.insert("touch_display".into(), false);
+        assert_eq!(cache.render(source, &context).unwrap(), "no\n");
+        assert_eq!(cache.0.len(), 1);
+        context.features.remove("touch_display");
+        assert!(cache.render(source, &context).is_err());
+    }
 
     #[test]
     fn registered_boolean_alternatives_render_all_masks_and_validate_inactive_names() {

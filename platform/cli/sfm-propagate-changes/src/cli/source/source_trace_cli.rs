@@ -1,27 +1,19 @@
-//! Read-only ownership and edit-state lookup for one generated project file.
+//! Read-only current-template lookup for one generated project file.
 
 use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::checked_directory;
-use crate::source_projection::candidate_lock::checked_file;
+use crate::source_projection::core_catalog::CoreCatalog;
+use crate::source_projection::manifestation::render_output;
 use crate::source_projection::promotion::validate_relative_path;
-use crate::source_projection::provenance::CatalogProjectionOwner;
-use crate::source_projection::provenance::ProjectionProvenance;
 use crate::source_projection::provenance::sha256;
-use crate::source_projection::sync::MANIFEST_FILE;
 use eyre::Result;
-use eyre::WrapErr;
-use eyre::ensure;
 use facet::Facet;
 use figue::{self as args};
-use std::fs;
 use std::path::PathBuf;
-
-const TRACE_SCHEMA: &str = "sfm:source_projection_trace@1";
-const MAX_MANIFEST_BYTES: u64 = 16 * 1024 * 1024;
 
 #[derive(Debug, Facet)]
 pub struct SourceTraceArgs {
-    /// Absolute generated Minecraft project root containing provenance.
+    /// Generated Minecraft project root registered in its checkout's catalog.
     #[facet(args::named)]
     pub project_root: PathBuf,
     /// Project-relative generated file, such as src/main/java/Example.java.
@@ -32,28 +24,21 @@ pub struct SourceTraceArgs {
 #[derive(Debug, Facet)]
 struct SourceTraceReport {
     schema: String,
-    target_id: String,
-    #[facet(default, skip_serializing_if = Option::is_none)]
-    catalog: Option<CatalogProjectionOwner>,
-    preset_id: String,
-    preset_definition_identity: String,
+    projection_key: String,
+    minecraft_version: String,
     generated_file: String,
     source_path: String,
-    overlay: Option<String>,
     source_sha256: String,
-    generated_sha256: String,
-    current_sha256: String,
-    generated_file_matches_manifest: bool,
-    provenance_manifest_sha256: String,
+    rendered_sha256: String,
+    current_sha256: Option<String>,
+    matches_current_template: bool,
 }
 
 impl SourceTraceArgs {
-    /// Inspect one owned generated file without changing the project or its manifest.
+    /// Render and compare one output without writing it or recording history.
     ///
     /// # Errors
-    ///
-    /// Rejects an unsafe root or file, absent or malformed provenance, an
-    /// unowned file, a missing file, or a reparse-point path.
+    /// Rejects unsafe paths, invalid configuration and unselected outputs.
     pub(super) fn invoke_in(self) -> Result<CliOutput> {
         Ok(CliOutput::facet(trace(&self)?))
     }
@@ -62,148 +47,100 @@ impl SourceTraceArgs {
 fn trace(args: &SourceTraceArgs) -> Result<SourceTraceReport> {
     validate_relative_path(&args.file)?;
     let root = checked_directory(&args.project_root)?;
-    let manifest_path = checked_file(&root, MANIFEST_FILE)?;
-    let metadata = fs::metadata(&manifest_path)?;
-    ensure!(
-        metadata.len() <= MAX_MANIFEST_BYTES,
-        "source projection manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"
-    );
-    let manifest_bytes = fs::read(&manifest_path).wrap_err("cannot read source provenance")?;
-    ensure!(
-        manifest_bytes.len() as u64 <= MAX_MANIFEST_BYTES,
-        "source projection manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit"
-    );
-    let manifest = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
-    let file = manifest
-        .files
-        .get(&args.file)
-        .ok_or_else(|| eyre::eyre!("generated file is not owned by this source projection"))?;
-    let output_path = checked_file(&root, &args.file)?;
-    let current_sha256 = sha256(&fs::read(output_path).wrap_err("cannot read generated file")?);
+    let (loaded, key) = CoreCatalog::for_project(&root)?;
+    let artifact = render_output(&loaded, &key, &args.file)?;
+    let current = crate::source_projection::manifestation::read_output(&root, &args.file)?;
     Ok(SourceTraceReport {
-        schema: if manifest.catalog.is_some() {
-            "sfm:source_projection_trace@2".to_owned()
-        } else {
-            TRACE_SCHEMA.to_owned()
-        },
-        target_id: manifest.target_id,
-        catalog: manifest.catalog,
-        preset_id: manifest.preset_id,
-        preset_definition_identity: manifest.preset_definition_identity,
+        schema: "sfm:source_projection_trace@3".to_owned(),
+        minecraft_version: loaded.catalog.entry(&key)?.minecraft_version.clone(),
+        projection_key: key,
         generated_file: args.file.clone(),
-        source_path: file.source_path.clone(),
-        overlay: file.overlay.clone(),
-        source_sha256: file.source_sha256.clone(),
-        generated_sha256: file.output_sha256.clone(),
-        generated_file_matches_manifest: current_sha256 == file.output_sha256,
-        current_sha256,
-        provenance_manifest_sha256: sha256(&manifest_bytes),
+        source_path: artifact.source_path,
+        source_sha256: sha256(&artifact.source_bytes),
+        rendered_sha256: sha256(&artifact.output_bytes),
+        matches_current_template: current.as_deref() == Some(artifact.output_bytes.as_slice()),
+        current_sha256: current.as_deref().map(sha256),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::source_projection::provenance::ProjectedFileProvenance;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
+    use crate::source_projection::core_inputs::CORE_METADATA_PATH;
+    use crate::source_projection::core_inputs::CORE_ROOT;
+    use std::fs;
 
     fn fixture() -> (tempfile::TempDir, SourceTraceArgs) {
         let temp = tempfile::tempdir().unwrap();
-        let project = temp.path().join("project");
-        let output = project.join("src/main/java/Example.java");
-        fs::create_dir_all(output.parent().unwrap()).unwrap();
-        fs::write(&output, b"class Example {}\n").unwrap();
-        let mut provenance =
-            ProjectionProvenance::new("1.19.2", "1.19.2", "released-4.34.0", "blake3:example");
-        provenance.files.insert(
-            "src/main/java/Example.java".to_owned(),
-            ProjectedFileProvenance {
-                source_path: "src/main/java/Example.java".to_owned(),
-                source_sha256: sha256(b"class Example {}\n"),
-                overlay: Some("release-tag".to_owned()),
-                output_sha256: sha256(b"class Example {}\n"),
-            },
-        );
-        fs::write(project.join(MANIFEST_FILE), provenance.to_json().unwrap()).unwrap();
-        (
-            temp,
-            SourceTraceArgs {
-                project_root: project,
-                file: "src/main/java/Example.java".to_owned(),
-            },
-        )
-    }
-
-    #[test]
-    fn reports_owner_and_current_edit_state_without_writing() {
-        let (_temp, args) = fixture();
-        let manifest_before = fs::read(args.project_root.join(MANIFEST_FILE)).unwrap();
-        let initial = trace(&args).unwrap();
-        assert_eq!(initial.schema, TRACE_SCHEMA);
-        assert_eq!(initial.source_path, args.file);
-        assert_eq!(initial.overlay.as_deref(), Some("release-tag"));
-        assert!(initial.generated_file_matches_manifest);
-        fs::write(args.project_root.join(&args.file), b"contributor edit\n").unwrap();
-        let edited = trace(&args).unwrap();
-        assert!(!edited.generated_file_matches_manifest);
-        assert_eq!(edited.generated_sha256, initial.generated_sha256);
-        assert_ne!(edited.current_sha256, initial.current_sha256);
-        assert_eq!(
-            fs::read(args.project_root.join(MANIFEST_FILE)).unwrap(),
-            manifest_before
-        );
-    }
-
-    #[test]
-    fn traces_nested_catalog_owner_without_inventing_a_flat_preset() {
-        let (_temp, args) = fixture();
-        let mut manifest = ProjectionProvenance::new_catalog(
-            "1.19.2",
-            "1.19.2",
-            CatalogProjectionOwner {
-                projection_key: "custom/nested/project".to_owned(),
-                environment:
-                    crate::source_projection::projection_catalog::ProjectionEnvironment::Dev,
-                context_identity: format!("blake3:{}", "a".repeat(64)),
-            },
-        );
-        manifest.files.insert(
-            args.file.clone(),
-            ProjectedFileProvenance {
-                source_path: format!("platform/minecraft/core-liquid-template/{}", args.file),
-                source_sha256: sha256(b"class Example {}\n"),
-                overlay: None,
-                output_sha256: sha256(b"class Example {}\n"),
-            },
-        );
+        let root = write_project_catalog_fixture(temp.path(), "custom/nested", "1.19.2").unwrap();
         fs::write(
-            args.project_root.join(MANIFEST_FILE),
-            manifest.to_json().unwrap(),
+            temp.path().join(CORE_METADATA_PATH),
+            r#"{
+            "schema_version":1,
+            "targets":{"1.19.2":{"java_major":17,"loader":"forge"}},
+            "source_rules":{},"project_files":{}
+        }"#,
         )
         .unwrap();
-        let before = fs::read(args.project_root.join(MANIFEST_FILE)).unwrap();
-        let report = trace(&args).unwrap();
-        assert_eq!(report.schema, "sfm:source_projection_trace@2");
-        assert_eq!(
-            report.catalog.unwrap().projection_key,
-            "custom/nested/project"
-        );
-        assert!(report.preset_id.is_empty() && report.preset_definition_identity.is_empty());
-        assert!(report.generated_file_matches_manifest);
-        assert_eq!(
-            fs::read(args.project_root.join(MANIFEST_FILE)).unwrap(),
-            before
+        let mut metadata = fs::read(temp.path().join(CORE_METADATA_PATH)).unwrap();
+        metadata.resize(1024 * 1024 + 1, b' ');
+        fs::write(temp.path().join(CORE_METADATA_PATH), metadata).unwrap();
+        let source = temp
+            .path()
+            .join(CORE_ROOT)
+            .join("src/main/java/Example.java");
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        fs::write(source, "class Example {}\n").unwrap();
+        let args = SourceTraceArgs {
+            project_root: root,
+            file: "src/main/java/Example.java".to_owned(),
+        };
+        (temp, args)
+    }
+
+    #[test]
+    fn compares_fresh_render_and_reports_missing_or_edited_output_without_writing() {
+        let (temp, args) = fixture();
+        let missing = trace(&args).unwrap();
+        assert_eq!(missing.projection_key, "custom/nested");
+        assert!(!missing.matches_current_template);
+        assert!(missing.current_sha256.is_none());
+        let (catalog, key) = CoreCatalog::for_project(&args.project_root).unwrap();
+        let artifact = render_output(&catalog, &key, &args.file).unwrap();
+        let output = args.project_root.join(&args.file);
+        fs::create_dir_all(output.parent().unwrap()).unwrap();
+        fs::write(&output, &artifact.output_bytes).unwrap();
+        assert!(trace(&args).unwrap().matches_current_template);
+        fs::write(&output, "contributor edit\n").unwrap();
+        assert!(!trace(&args).unwrap().matches_current_template);
+        assert_eq!(fs::read_to_string(&output).unwrap(), "contributor edit\n");
+        fs::write(
+            temp.path().join(CORE_ROOT).join(&args.file),
+            "class Changed {}\n",
+        )
+        .unwrap();
+        let changed = trace(&args).unwrap();
+        assert_ne!(changed.rendered_sha256, missing.rendered_sha256);
+        assert!(
+            !args
+                .project_root
+                .join(".sfm-source-projection-manifest.json")
+                .exists()
         );
     }
 
     #[test]
-    fn rejects_unowned_unsafe_and_missing_files() {
+    fn rejects_unselected_and_unsafe_outputs() {
         let (_temp, mut args) = fixture();
         args.file = "src/main/java/Other.java".to_owned();
-        assert!(trace(&args).unwrap_err().to_string().contains("not owned"));
+        assert!(
+            trace(&args)
+                .unwrap_err()
+                .to_string()
+                .contains("not selected")
+        );
         args.file = "../outside.java".to_owned();
-        assert!(trace(&args).is_err());
-        args.file = "src/main/java/Example.java".to_owned();
-        fs::remove_file(args.project_root.join(&args.file)).unwrap();
         assert!(trace(&args).is_err());
     }
 }

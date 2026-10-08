@@ -14,7 +14,6 @@ const JUNIT_ANNOTATIONS: &[&str] = &[
     "org.junit.jupiter.api.TestFactory",
     "org.junit.jupiter.api.TestTemplate",
 ];
-const PROJECTION_MANIFEST_NAME: &str = ".sfm-source-projection-manifest.json";
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct StaticJavaCatalogEntry {
@@ -76,17 +75,13 @@ fn static_java_catalog_for_project(
 ) -> eyre::Result<Vec<StaticJavaCatalogEntry>> {
     let project_root = dunce::canonicalize(project_root)
         .wrap_err_with(|| format!("Failed to resolve generated project root {}", project_root.display()))?;
-    let manifest_path = project_root.join(PROJECTION_MANIFEST_NAME);
-    let manifest_text = fs::read_to_string(&manifest_path)
-        .wrap_err_with(|| format!("Failed to read generated project manifest {}", manifest_path.display()))?;
-    let manifest = crate::source_projection::provenance::ProjectionProvenance::from_json(&manifest_text)
-        .wrap_err_with(|| format!("Invalid generated project manifest {}", manifest_path.display()))?;
+    let (catalog, key) = crate::source_projection::core_catalog::CoreCatalog::for_project(&project_root)?;
     eyre::ensure!(
         project_root.join("settings.gradle").is_file(),
         "Generated project root {} has no settings.gradle",
         project_root.display(),
     );
-    static_java_catalog(&project_root, &manifest.minecraft_version, category)
+    static_java_catalog(&project_root, &catalog.catalog.entry(&key)?.minecraft_version, category)
 }
 
 fn validate_static_puppet_selection_for_target(
@@ -564,25 +559,27 @@ mod static_java_catalog_tests {
     use super::static_java_catalog_for_project;
     use super::snake_case;
     use super::wildcard_matches;
-    use crate::source_projection::provenance::ProjectionProvenance;
+    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
+    use crate::source_projection::projection_catalog::CATALOG_PATH;
     use std::fs;
     use tempfile::tempdir;
 
     #[test]
-    fn generated_project_catalog_uses_its_manifest_version_and_project_sources() {
+    fn generated_project_catalog_uses_checkout_version_and_project_sources() {
         let temporary = tempdir().expect("temporary generated project should be created");
-        let project_root = temporary.path().join("mc-version/1.21.0");
+        let project_root = temporary.path().join("platform/minecraft/projections/example/arbitrary-name");
         let source_root = project_root.join("src/test/java/example");
         fs::create_dir_all(&source_root).expect("generated test source root should be created");
         fs::write(project_root.join("settings.gradle"), "rootProject.name = 'sfm-1.21.0'\n")
             .expect("generated Gradle settings should be written");
-        let provenance =
-            ProjectionProvenance::new("1.21.0", "1.21", "released-4.34.0", "blake3:test");
+        let registry = temporary.path().join(FEATURE_DEFINITIONS_PATH);
+        fs::create_dir_all(registry.parent().unwrap()).unwrap();
+        fs::write(registry, r#"{"example":{"supported_targets":["1.21.0"],"requires":[]}}"#).unwrap();
         fs::write(
-            project_root.join(super::PROJECTION_MANIFEST_NAME),
-            provenance.to_json().expect("provenance should serialize"),
+            temporary.path().join(CATALOG_PATH),
+            r#"{"example/arbitrary-name":{"minecraft_version":"1.21","environment":"release","features":[]}}"#,
         )
-        .expect("generated project manifest should be written");
+        .expect("checkout catalog should be written");
         for name in ["IncludedTests", "ExcludedTests"] {
             fs::write(
                 source_root.join(format!("{name}.java")),

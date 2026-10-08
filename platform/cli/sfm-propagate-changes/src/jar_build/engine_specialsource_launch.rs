@@ -821,7 +821,6 @@ mod reviewed_specialsource_launch_tests {
             catalog_sha256: "synthetic-catalog".to_owned(),
             feature_definitions_sha256: "synthetic-features".to_owned(),
             project_inputs_sha256: "synthetic-inputs".to_owned(),
-            provenance_sha256: "synthetic-provenance".to_owned(),
             authored_source_inventory_sha256: "synthetic-authored".to_owned(),
             generated_source_inventory_sha256: "synthetic-generated".to_owned(),
             files: BTreeMap::new(),

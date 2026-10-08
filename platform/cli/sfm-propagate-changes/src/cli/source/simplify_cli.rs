@@ -5,13 +5,10 @@ use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::source_projection::promotion::validate_relative_path;
-use crate::source_projection::provenance::MAX_MANIFEST_BYTES;
-use crate::source_projection::provenance::ProjectionProvenance;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::simplify::Comparison;
 use crate::source_projection::simplify::ParsedJava;
 use crate::source_projection::simplify::{self};
-use crate::source_projection::sync::MANIFEST_FILE;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
@@ -62,9 +59,7 @@ struct ProjectionInput {
     enabled_features: Vec<String>,
     context_identity: String,
     path: String,
-    manifest_sha256: Option<String>,
     source_sha256: Option<String>,
-    template_source_path: Option<String>,
     status: String,
     diagnostic: Option<String>,
 }
@@ -90,9 +85,9 @@ struct ScanReport {
     file: String,
     catalog_sha256: String,
     feature_definitions_sha256: String,
-    all_inputs_verified: bool,
+    all_inputs_parsed: bool,
     distinct_sources_parsed: usize,
-    verified_pair_count: usize,
+    parsed_pair_count: usize,
     pairs_with_whitespace_candidates: usize,
     inputs: Vec<ProjectionInput>,
     pairs: Vec<PairReport>,
@@ -188,16 +183,14 @@ fn scan(
             enabled_features: entry.features.clone(),
             context_identity,
             path: format!("{project}/{}", args.file),
-            manifest_sha256: None,
             source_sha256: None,
-            template_source_path: None,
-            status: "unverified".into(),
+            status: "unparsed".into(),
             diagnostic: None,
         };
-        let loaded = load_java(&catalog, &args.file, &mut input, &mut cache);
+        let loaded = load_java(&catalog, &mut input, &mut cache);
         match loaded {
             Ok(value) => {
-                input.status = "verified_manifested_java".into();
+                input.status = "parsed_manifested_java".into();
                 parsed.push(Some(value));
             }
             Err(error) => {
@@ -208,7 +201,7 @@ fn scan(
         inputs.push(input);
     }
     let mut pairs = Vec::new();
-    let mut verified_pair_count = 0;
+    let mut parsed_pair_count = 0;
     let mut pairs_with_whitespace_candidates = 0;
     for left in 0..inputs.len() {
         for right in left + 1..inputs.len() {
@@ -216,7 +209,7 @@ fn scan(
             let comparison = match (&parsed[left], &parsed[right]) {
                 (Some(a), Some(b)) => {
                     let mut report = simplify::compare(a, b);
-                    verified_pair_count += 1;
+                    parsed_pair_count += 1;
                     if report.whitespace_gap_count > 0 {
                         pairs_with_whitespace_candidates += 1;
                     }
@@ -231,7 +224,7 @@ fn scan(
             };
             let diagnostic = comparison
                 .is_none()
-                .then(|| "unverified input; inspect projection diagnostics".into());
+                .then(|| "unparsed input; inspect projection diagnostics".into());
             pairs.push(PairReport {
                 before_projection: inputs[left].projection.clone(),
                 after_projection: inputs[right].projection.clone(),
@@ -241,16 +234,16 @@ fn scan(
         }
     }
     Ok(ScanReport {
-        schema: "sfm:source_simplify_scan@1".into(),
+        schema: "sfm:source_simplify_scan@2".into(),
         algorithm: simplify::ALGORITHM.into(),
         parser: crate::java_analysis::syntax::JAVA_PARSER_FINGERPRINT.into(),
         scope: "manifested_java_candidates_not_rewrite_or_semantic_or_oracle_proof".into(),
         file: args.file.clone(),
         catalog_sha256: catalog.catalog_sha256,
         feature_definitions_sha256: catalog.feature_definitions_sha256,
-        all_inputs_verified: parsed.iter().all(Option::is_some),
+        all_inputs_parsed: parsed.iter().all(Option::is_some),
         distinct_sources_parsed: cache.len(),
-        verified_pair_count,
+        parsed_pair_count,
         pairs_with_whitespace_candidates,
         inputs,
         pairs,
@@ -262,43 +255,12 @@ fn scan(
 
 fn load_java(
     catalog: &CoreCatalog,
-    file: &str,
     input: &mut ProjectionInput,
     cache: &mut BTreeMap<String, std::result::Result<Arc<ParsedJava>, String>>,
 ) -> Result<Arc<ParsedJava>> {
-    let entry = catalog.catalog.entry(&input.projection)?;
-    let project = catalog.catalog.project_dir(&input.projection)?;
-    let manifest_path = project
-        .join(MANIFEST_FILE)
-        .to_string_lossy()
-        .replace('\\', "/");
-    let manifest_bytes = read(&catalog.repo_root, &manifest_path, MAX_MANIFEST_BYTES)?;
-    input.manifest_sha256 = Some(sha256(&manifest_bytes));
-    let manifest = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
-    let owner = manifest
-        .catalog
-        .as_ref()
-        .ok_or_else(|| eyre::eyre!("missing catalog ownership"))?;
-    ensure!(
-        owner.projection_key == input.projection
-            && owner.context_identity == input.context_identity
-            && owner.environment == entry.environment
-            && manifest.target_id == entry.target_id()?
-            && manifest.minecraft_version == entry.minecraft_version,
-        "projection ownership/context is stale or mismatched"
-    );
-    let record = manifest
-        .files
-        .get(file)
-        .ok_or_else(|| eyre::eyre!("file is not a manifested member of this projection"))?;
-    input.template_source_path = Some(record.source_path.clone());
     let bytes = read(&catalog.repo_root, &input.path, simplify::MAX_SOURCE_BYTES)?;
     let hash = sha256(&bytes);
     input.source_sha256 = Some(hash.clone());
-    ensure!(
-        hash == record.output_sha256,
-        "generated file differs from its provenance; contributor edits are not certified"
-    );
     let value = cache.entry(hash).or_insert_with(|| {
         String::from_utf8(bytes)
             .map_err(|error| error.to_string())
@@ -316,9 +278,6 @@ mod tests {
     use super::*;
     use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
     use crate::source_projection::projection_catalog::CATALOG_PATH;
-    use crate::source_projection::projection_catalog::ProjectionEnvironment;
-    use crate::source_projection::provenance::CatalogProjectionOwner;
-    use crate::source_projection::provenance::ProjectedFileProvenance;
     const FILE: &str = "src/main/java/A.java";
 
     fn fixture() -> (tempfile::TempDir, SimplifyScanArgs) {
@@ -335,25 +294,6 @@ mod tests {
             let project = root.join(catalog.catalog.project_dir(key).unwrap());
             fs::create_dir_all(project.join(FILE).parent().unwrap()).unwrap();
             fs::write(project.join(FILE), text).unwrap();
-            let mut manifest = ProjectionProvenance::new_catalog(
-                "1.19.2",
-                "1.19.2",
-                CatalogProjectionOwner {
-                    projection_key: key.into(),
-                    environment: ProjectionEnvironment::Release,
-                    context_identity: catalog.catalog.context_identity(key).unwrap(),
-                },
-            );
-            manifest.files.insert(
-                FILE.into(),
-                ProjectedFileProvenance {
-                    source_path: FILE.into(),
-                    source_sha256: sha256(text.as_bytes()),
-                    overlay: None,
-                    output_sha256: sha256(text.as_bytes()),
-                },
-            );
-            fs::write(project.join(MANIFEST_FILE), manifest.to_json().unwrap()).unwrap();
         }
         let args = SimplifyScanArgs {
             repo_root: root.to_path_buf(),
@@ -374,8 +314,8 @@ mod tests {
         )
         .unwrap();
         let report = scan(&args, &CancellationToken::new(), temp.path()).unwrap();
-        assert!(report.all_inputs_verified);
-        assert_eq!(report.verified_pair_count, 1);
+        assert!(report.all_inputs_parsed);
+        assert_eq!(report.parsed_pair_count, 1);
         assert_eq!(
             report.pairs[0].comparison.as_ref().unwrap().classification,
             "whitespace_only"
@@ -393,39 +333,23 @@ mod tests {
     }
 
     #[test]
-    fn edits_missing_inputs_and_wrong_owners_never_certify() {
+    fn disk_edits_are_compared_but_missing_inputs_are_not_parsed() {
         let (temp, args) = fixture();
         let root = temp.path().join("platform/minecraft/projections/a");
         fs::write(root.join(FILE), "class Edited {}").unwrap();
         let report = scan(&args, &CancellationToken::new(), temp.path()).unwrap();
-        assert!(!report.all_inputs_verified);
-        assert_eq!(report.verified_pair_count, 0);
-        assert!(
-            report.inputs[0]
-                .diagnostic
-                .as_ref()
-                .unwrap()
-                .contains("differs from its provenance")
+        assert!(report.all_inputs_parsed);
+        assert_eq!(report.parsed_pair_count, 1);
+        assert_eq!(
+            report.pairs[0].comparison.as_ref().unwrap().classification,
+            "code_or_comment_change"
         );
-        fs::remove_file(root.join(MANIFEST_FILE)).unwrap();
-        assert!(
-            !scan(&args, &CancellationToken::new(), temp.path())
-                .unwrap()
-                .all_inputs_verified
-        );
-        let other = temp
-            .path()
-            .join("platform/minecraft/projections/b")
-            .join(MANIFEST_FILE);
-        fs::copy(other, root.join(MANIFEST_FILE)).unwrap();
+        assert!(!report.core_freshness_checked);
+        fs::remove_file(root.join(FILE)).unwrap();
         let report = scan(&args, &CancellationToken::new(), temp.path()).unwrap();
-        assert!(
-            report.inputs[0]
-                .diagnostic
-                .as_ref()
-                .unwrap()
-                .contains("ownership/context")
-        );
+        assert!(!report.all_inputs_parsed);
+        assert_eq!(report.parsed_pair_count, 0);
+        assert!(report.inputs[0].diagnostic.is_some());
     }
 
     #[test]

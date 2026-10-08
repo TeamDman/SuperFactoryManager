@@ -4,7 +4,6 @@ use super::core_inputs::CORE_ROOT;
 use super::projection_catalog::ProjectionCatalog;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::validate_projection_key;
-use super::provenance::CATALOG_MANIFEST_SCHEMA;
 use super::provenance::CatalogProjectionOwner;
 use super::provenance::LEGACY_MANIFEST_SCHEMA;
 use super::provenance::MAX_MANIFEST_BYTES;
@@ -77,16 +76,12 @@ impl CatalogProjectionIdentity {
 #[derive(Clone, Copy, Debug)]
 enum SyncIdentity<'a> {
     Legacy(&'a ProjectionIdentity),
-    Catalog(&'a CatalogProjectionIdentity),
 }
 
 impl SyncIdentity<'_> {
     fn validate(self) -> Result<()> {
         match self {
             Self::Legacy(identity) => validate_identity(identity),
-            Self::Catalog(identity) => identity
-                .owner()
-                .validate(&identity.target_id, &identity.minecraft_version),
         }
     }
 
@@ -99,12 +94,6 @@ impl SyncIdentity<'_> {
                     && manifest.minecraft_version == identity.minecraft_version
                     && manifest.preset_id == identity.preset_id
                     && manifest.preset_definition_identity == identity.preset_definition_identity
-            }
-            Self::Catalog(identity) => {
-                manifest.schema == CATALOG_MANIFEST_SCHEMA
-                    && manifest.target_id == identity.target_id
-                    && manifest.minecraft_version == identity.minecraft_version
-                    && manifest.catalog.as_ref() == Some(&identity.owner())
             }
         }
     }
@@ -204,12 +193,43 @@ pub fn sync_catalog_projection(
     mode: SyncMode,
 ) -> Result<SyncReport> {
     validate_catalog_artifacts(artifacts)?;
-    sync_owned_projection(
-        destination_root,
-        SyncIdentity::Catalog(identity),
-        artifacts,
-        mode,
-    )
+    identity
+        .owner()
+        .validate(&identity.target_id, &identity.minecraft_version)?;
+    let destination_root = absolute_root(destination_root)?;
+    inspect_root(&destination_root)?;
+    let mut report = SyncReport::default();
+    for (path, artifact) in artifacts {
+        inspect_output_parents(&destination_root, path)?;
+        match read_regular_file_if_present(&destination_root.join(path))? {
+            Some(bytes) if bytes == artifact.output_bytes => report.unchanged.push(path.clone()),
+            Some(_) => report.updated.push(path.clone()),
+            None => report.created.push(path.clone()),
+        }
+    }
+    if mode == SyncMode::Check {
+        ensure!(
+            !report.needs_write(),
+            "generated project differs from selected core inputs; use source project manifest"
+        );
+        return Ok(report);
+    }
+    ensure!(
+        mode != SyncMode::Reconcile,
+        "provenance reconciliation is retired; hydrate contributor changes into the core template and manifest them"
+    );
+    let repo = destination_root
+        .ancestors()
+        .find(|path| path.join(".git").exists())
+        .ok_or_else(|| eyre::eyre!("projection output is not inside a Git worktree"))?;
+    let projection = super::manifestation::RenderedProjection {
+        key: identity.projection_key.clone(),
+        root: destination_root.clone(),
+        artifacts: artifacts.clone(),
+        removed: BTreeSet::new(),
+    };
+    super::manifestation::manifest_selected(repo, &[projection], &None, mode == SyncMode::DryRun)?;
+    Ok(report)
 }
 
 fn sync_owned_projection(
@@ -325,11 +345,6 @@ fn desired_manifest(
             &identity.minecraft_version,
             &identity.preset_id,
             &identity.preset_definition_identity,
-        ),
-        SyncIdentity::Catalog(identity) => ProjectionProvenance::new_catalog(
-            &identity.target_id,
-            &identity.minecraft_version,
-            identity.owner(),
         ),
     };
     for (path, artifact) in artifacts {
@@ -678,19 +693,24 @@ pub(crate) fn validate_catalog_artifacts(
     validate_artifacts(artifacts)?;
     validate_catalog_case_components(artifacts.keys().map(String::as_str))?;
     for (path, artifact) in artifacts {
-        validate_projection_key(path)?;
-        ensure!(
-            !path.split('/').any(|part| matches!(
-                part.to_ascii_lowercase().as_str(),
-                ".git" | ".gradle" | ".idea"
-            )) && !path.split('/').next().is_some_and(|part| matches!(
-                part.to_ascii_lowercase().as_str(),
-                "build" | "run" | "target"
-            )),
-            "catalog output `{path}` names Git, IDE or runtime state"
-        );
+        validate_catalog_output(path)?;
         validate_catalog_source(&artifact.source_path, artifact.overlay.as_deref())?;
     }
+    Ok(())
+}
+
+pub(super) fn validate_catalog_output(path: &str) -> Result<()> {
+    validate_projection_key(path)?;
+    ensure!(
+        !path.split('/').any(|part| matches!(
+            part.to_ascii_lowercase().as_str(),
+            ".git" | ".gradle" | ".idea"
+        )) && !path.split('/').next().is_some_and(|part| matches!(
+            part.to_ascii_lowercase().as_str(),
+            "build" | "run" | "target"
+        )),
+        "catalog output `{path}` names Git, IDE or runtime state"
+    );
     Ok(())
 }
 
@@ -868,7 +888,7 @@ fn absolute_root(root: &Path) -> Result<PathBuf> {
     Ok(absolute)
 }
 
-fn inspect_root(root: &Path) -> Result<()> {
+pub(super) fn inspect_root(root: &Path) -> Result<()> {
     for ancestor in root.ancestors() {
         match fs::symlink_metadata(ancestor) {
             Ok(metadata) => {
@@ -910,7 +930,7 @@ fn nearest_existing_parent(root: &Path) -> Result<&Path> {
     }
 }
 
-fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
+pub(super) fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
     let mut parent = root
         .join(path)
         .parent()
@@ -938,7 +958,7 @@ fn inspect_output_parents(root: &Path, path: &str) -> Result<()> {
     Ok(())
 }
 
-fn read_regular_file_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
+pub(super) fn read_regular_file_if_present(path: &Path) -> Result<Option<Vec<u8>>> {
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
             ensure!(
@@ -1069,173 +1089,66 @@ mod tests {
         )])
     }
 
+    fn git_fixture(root: &Path) {
+        let output = super::super::release_baseline::frozen_git_command(root)
+            .args(["init", "--quiet"])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+    }
+
     #[test]
-    fn named_sync_is_deterministic_and_keeps_the_explicit_owner() {
+    fn named_sync_is_repeatable_without_history_and_hydration_needs_no_reconcile() {
         let temporary = tempfile::tempdir().unwrap();
-        let destination = temporary.path().join("custom/nested/key");
+        git_fixture(temporary.path());
+        let destination = temporary.path().join("named");
         let identity = catalog_identity();
         let wanted = catalog_files("first\n");
         let dry =
             sync_catalog_projection(&destination, &identity, &wanted, SyncMode::DryRun).unwrap();
-        assert_eq!(dry.created, vec!["src/main/java/Example.java"]);
+        assert_eq!(dry.created, ["src/main/java/Example.java"]);
         assert!(!destination.exists());
         sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).unwrap();
-        let manifest = fs::read_to_string(destination.join(MANIFEST_FILE)).unwrap();
-        let parsed = ProjectionProvenance::from_json(&manifest).unwrap();
-        assert_eq!(parsed.schema, CATALOG_MANIFEST_SCHEMA);
-        assert_eq!(parsed.catalog.unwrap(), identity.owner());
-        assert!(!manifest.contains("preset_id"));
-        assert!(
-            !sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Check)
-                .unwrap()
-                .needs_write()
-        );
+        assert!(!destination.join(MANIFEST_FILE).exists());
         assert!(
             !sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply)
                 .unwrap()
                 .needs_write()
         );
-        assert_eq!(
-            fs::read_to_string(destination.join(MANIFEST_FILE)).unwrap(),
-            manifest
-        );
-        let updated = catalog_files("second\n");
-        assert_eq!(
-            sync_catalog_projection(&destination, &identity, &updated, SyncMode::Apply)
-                .unwrap()
-                .updated,
-            vec!["src/main/java/Example.java"]
-        );
-    }
-
-    #[test]
-    fn named_context_changes_and_legacy_owners_cannot_claim_an_existing_root() {
-        let temporary = tempfile::tempdir().unwrap();
-        let destination = temporary.path().join("named");
-        let named = catalog_identity();
-        let files = catalog_files("unchanged\n");
-        sync_catalog_projection(&destination, &named, &files, SyncMode::Apply).unwrap();
-        let manifest_before = fs::read(destination.join(MANIFEST_FILE)).unwrap();
-        for changed in ["key", "environment", "fingerprint", "target"] {
-            let mut wrong = named.clone();
-            match changed {
-                "key" => wrong.projection_key = "another/nested/key".to_owned(),
-                "environment" => wrong.environment = ProjectionEnvironment::Dev,
-                "fingerprint" => wrong.context_identity = format!("blake3:{}", "b".repeat(64)),
-                "target" => {
-                    wrong.target_id = "1.19.4".to_owned();
-                    wrong.minecraft_version = "1.19.4".to_owned();
-                }
-                _ => unreachable!(),
-            }
-            for mode in [SyncMode::Apply, SyncMode::Reconcile] {
-                let error = sync_catalog_projection(&destination, &wrong, &files, mode)
-                    .unwrap_err()
-                    .to_string();
-                assert!(error.contains("belongs to"), "{changed}: {error}");
-            }
-        }
-        let mut legacy = identity("released-4.34.0");
-        legacy.target_id = "1.19.2".to_owned();
-        assert!(
-            sync_projection(&destination, &legacy, &files, SyncMode::Apply)
-                .unwrap_err()
-                .to_string()
-                .contains("belongs to")
-        );
-        assert_eq!(
-            fs::read(destination.join(MANIFEST_FILE)).unwrap(),
-            manifest_before
-        );
-        let old_destination = temporary.path().join("legacy");
-        sync_projection(&old_destination, &legacy, &files, SyncMode::Apply).unwrap();
-        assert!(
-            sync_catalog_projection(&old_destination, &named, &files, SyncMode::Reconcile)
-                .unwrap_err()
-                .to_string()
-                .contains("belongs to")
-        );
-    }
-
-    #[test]
-    fn named_contributor_edits_require_exact_backpropagation_before_reconcile() {
-        let temporary = tempfile::tempdir().unwrap();
-        let destination = temporary.path().join("named");
-        let identity = catalog_identity();
-        sync_catalog_projection(
-            &destination,
-            &identity,
-            &catalog_files("original\n"),
-            SyncMode::Apply,
-        )
-        .unwrap();
         let output = destination.join("src/main/java/Example.java");
-        fs::write(&output, b"contributor edit\n").unwrap();
-        let before = fs::read(destination.join(MANIFEST_FILE)).unwrap();
-        let mut wrong = catalog_files("different\n");
-        wrong.insert(
-            "src/main/java/Other.java".to_owned(),
-            catalog_artifact("other\n"),
-        );
-        for mode in [SyncMode::Apply, SyncMode::Reconcile] {
-            assert!(
-                sync_catalog_projection(&destination, &identity, &wrong, mode)
-                    .unwrap_err()
-                    .to_string()
-                    .contains("backpropagate")
-            );
-        }
-        assert!(!destination.join("src/main/java/Other.java").exists());
-        assert_eq!(fs::read(destination.join(MANIFEST_FILE)).unwrap(), before);
-        let fixed = catalog_files("contributor edit\n");
-        assert!(sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Apply).is_err());
-        let reconciled =
-            sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Reconcile).unwrap();
+        fs::write(&output, "contributor\n").unwrap();
         assert!(
-            reconciled.manifest_changed
-                && reconciled.created.is_empty()
-                && reconciled.updated.is_empty()
+            sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).is_err()
         );
-        assert_eq!(fs::read(output).unwrap(), b"contributor edit\n");
-        sync_catalog_projection(&destination, &identity, &fixed, SyncMode::Check).unwrap();
+        assert_eq!(fs::read(&output).unwrap(), b"contributor\n");
+        let hydrated = catalog_files("contributor\n");
+        assert!(
+            !sync_catalog_projection(&destination, &identity, &hydrated, SyncMode::Apply)
+                .unwrap()
+                .needs_write()
+        );
+        sync_catalog_projection(&destination, &identity, &hydrated, SyncMode::Check).unwrap();
+        assert!(!destination.join(MANIFEST_FILE).exists());
     }
 
     #[test]
-    fn named_stale_files_require_explicit_removal_and_unowned_files_are_never_adopted() {
+    fn named_sync_leaves_unselected_outputs_and_rejects_retired_reconcile() {
         let temporary = tempfile::tempdir().unwrap();
+        git_fixture(temporary.path());
         let destination = temporary.path().join("named");
         let identity = catalog_identity();
         let wanted = catalog_files("first\n");
-        let mut original = wanted.clone();
-        original.insert(
-            "src/main/java/Old.java".to_owned(),
-            catalog_artifact("old\n"),
-        );
-        sync_catalog_projection(&destination, &identity, &original, SyncMode::Apply).unwrap();
-        let stale = destination.join("src/main/java/Old.java");
+        sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).unwrap();
+        let extra = destination.join("src/main/java/Extra.java");
+        fs::write(&extra, "keep\n").unwrap();
+        sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Apply).unwrap();
+        assert_eq!(fs::read(extra).unwrap(), b"keep\n");
         assert!(
             sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
                 .unwrap_err()
                 .to_string()
-                .contains("stale generated files")
+                .contains("retired")
         );
-        assert_eq!(fs::read(&stale).unwrap(), b"old\n");
-        fs::remove_file(stale).unwrap();
-        sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Reconcile).unwrap();
-        let collision = destination.join("src/main/java/Other.java");
-        fs::write(&collision, b"same bytes\n").unwrap();
-        let mut unowned = wanted;
-        unowned.insert(
-            "src/main/java/Other.java".to_owned(),
-            catalog_artifact("same bytes\n"),
-        );
-        assert!(
-            sync_catalog_projection(&destination, &identity, &unowned, SyncMode::Apply)
-                .unwrap_err()
-                .to_string()
-                .contains("unowned file")
-        );
-        assert_eq!(fs::read(collision).unwrap(), b"same bytes\n");
     }
 
     #[test]

@@ -113,7 +113,7 @@ impl SymbolProjectListArgs {
 mod tests {
     use super::*;
     use crate::cli::output::OutputFormat;
-    use crate::source_projection::provenance::ProjectionProvenance;
+    use crate::source_projection::core_catalog::write_project_catalog_fixture;
     use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
     use sha2::Digest as _;
     use sha2::Sha512;
@@ -121,7 +121,9 @@ mod tests {
     #[test]
     fn project_list_reports_missing_pinned_jdk_without_losing_project_symbols() {
         let temporary = tempfile::tempdir().expect("temporary generated project");
-        let project_root = temporary.path().join("mc-version/1.19.2");
+        let project_root = temporary
+            .path()
+            .join("platform/minecraft/projections/1.19.2");
         let main_root = project_root.join("src/main/java/example");
         let toolchain_root = project_root.join("gradle/java-toolchain/1.19.2");
         std::fs::create_dir_all(&main_root).expect("main source root");
@@ -131,18 +133,7 @@ mod tests {
             "rootProject.name = 'sfm'\n",
         )
         .expect("settings.gradle");
-        std::fs::write(
-            project_root.join(".sfm-source-projection-manifest.json"),
-            ProjectionProvenance::new(
-                "1.19.2",
-                "1.19.2",
-                "current-development-pilot",
-                "blake3:test",
-            )
-            .to_json()
-            .expect("projection provenance"),
-        )
-        .expect("projection manifest");
+        write_project_catalog_fixture(temporary.path(), "1.19.2", "1.19.2").unwrap();
         std::fs::write(
             toolchain_root.join("java-toolchain.gradle"),
             "JavaLanguageVersion.of(17)\n",
@@ -233,14 +224,19 @@ mod tests {
         let temporary = tempfile::tempdir().expect("invocation directory");
         let error = SymbolProjectListArgs {
             pattern: None,
-            project_root: PathBuf::from("generated-project"),
+            project_root: PathBuf::from("platform/minecraft/projections/1.19.2"),
             java_home: Some(PathBuf::from("selected-jdk")),
         }
         .invoke_in_with_resolver(
             &CancellationToken::new(),
             temporary.path(),
             |root, java_home| {
-                assert_eq!(root, temporary.path().join("generated-project"));
+                assert_eq!(
+                    root,
+                    temporary
+                        .path()
+                        .join("platform/minecraft/projections/1.19.2")
+                );
                 assert_eq!(
                     java_home,
                     Some(temporary.path().join("selected-jdk").as_path())

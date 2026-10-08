@@ -1,0 +1,1455 @@
+{
+  "schema": "sfm:nfrt_build_configuration@1",
+  "targets": [
+    {
+      "target": "1.20.2",
+      "minecraft_version": "1.20.2",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.2@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-2.json",
+        "sha256": "df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9",
+        "bytes": 48109,
+        "schema_version": 2,
+        "minecraft_version": "1.20.2",
+        "dependency_count": 1,
+        "artifact_count": 83,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 17,
+      "minimum_tool_jvm": 21,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:1.20.2-20231019.002635@zip",
+          "locked_hash": "blake3:ba7abd19d442b85fc77a8b1d28396da8dccf1308",
+          "cached_bytes": 1720346,
+          "cached_sha256": "bfe2fc44a7b756a3307a714496e950abaf3306741ae7717dc4c78a3b527ae974",
+          "entry": "config.json",
+          "entry_bytes": 8207,
+          "entry_sha256": "e63eb63e367175a7eaf87bf8da13c6b35868822e01d70ce3808e2d08e5c1c892",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:ba7abd19d442b85fc77a8b1d28396da8dccf1308a838bb021630df54df905c9c",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.2",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "official",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:20.2.86:userdev",
+          "locked_hash": "blake3:6ed4051437648b1c7de4d44f6cd83d207e6db43a",
+          "cached_bytes": 3588851,
+          "cached_sha256": "d25c8a4b7ab0a7f8bf96ad8d97aa7373ad41a103472b4d766f261e358dd32fb4",
+          "entry": "config.json",
+          "entry_bytes": 9125,
+          "entry_sha256": "8ee0d9f771ebb8db6826a3e8e5277eb64df455b0fe39ceb76c9a5a88c3525344",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:6ed4051437648b1c7de4d44f6cd83d207e6db43a96084888ed37623e8a2faa4c",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.2",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "runs",
+              "modules"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "decompile": {
+          "version": "org.vineflower:vineflower:1.9.3",
+          "args": [
+            "-din=1",
+            "-rbr=1",
+            "-dgs=1",
+            "-asc=1",
+            "-rsy=1",
+            "-iec=1",
+            "-jvn=1",
+            "-iib=1",
+            "-bsm=1",
+            "-dcl=1",
+            "-nls=1",
+            "-log=TRACE",
+            "-cfg",
+            "{libraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4G"
+          ],
+          "repo": null,
+          "java_version": 17
+        },
+        "merge": {
+          "version": "net.neoforged:mergetool:2.0.0:fatjar",
+          "args": [
+            "--client",
+            "{client}",
+            "--server",
+            "{server}",
+            "--ann",
+            "{version}",
+            "--output",
+            "{output}",
+            "--inject",
+            "false"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "rename": {
+          "version": "net.neoforged:AutoRenamingTool:1.0.7:all",
+          "args": [
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--map",
+            "{mappings}",
+            "--cfg",
+            "{libraries}",
+            "--ann-fix",
+            "--ids-fix",
+            "--src-fix",
+            "--record-fix"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "mergeMappings": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "MERGE_MAPPING",
+            "--left",
+            "{mappings}",
+            "--right",
+            "{official}",
+            "--right-names",
+            "right,left",
+            "--classes",
+            "--fields",
+            "--methods",
+            "--output",
+            "{output}"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "bundleExtractJar": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "bundler_extract",
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--jar-only"
+          ],
+          "jvmargs": [],
+          "repo": null
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson"
+        },
+        {
+          "type": "downloadClient"
+        },
+        {
+          "type": "downloadServer"
+        },
+        {
+          "name": "extractServer",
+          "type": "bundleExtractJar",
+          "input": "{downloadServerOutput}"
+        },
+        {
+          "type": "downloadClientMappings"
+        },
+        {
+          "type": "mergeMappings",
+          "official": "{downloadClientMappingsOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripClient",
+          "input": "{downloadClientOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripServer",
+          "input": "{extractServerOutput}"
+        },
+        {
+          "type": "merge",
+          "client": "{stripClientOutput}",
+          "server": "{stripServerOutput}",
+          "version": "1.20.2"
+        },
+        {
+          "type": "listLibraries"
+        },
+        {
+          "type": "rename",
+          "input": "{mergeOutput}",
+          "libraries": "{listLibrariesOutput}",
+          "mappings": "{mergeMappingsOutput}"
+        },
+        {
+          "type": "decompile",
+          "libraries": "{listLibrariesOutput}",
+          "input": "{renameOutput}"
+        },
+        {
+          "type": "inject",
+          "input": "{decompileOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{injectOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "org.vineflower:vineflower:1.9.3",
+        "net.neoforged:mergetool:2.0.0:fatjar",
+        "net.neoforged:AutoRenamingTool:1.0.7:all",
+        "net.minecraftforge:installertools:1.3.2:fatjar"
+      ]
+    },
+    {
+      "target": "1.20.3",
+      "minecraft_version": "1.20.3",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.3@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.3/schema-2.json",
+        "sha256": "fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d",
+        "bytes": 48169,
+        "schema_version": 2,
+        "minecraft_version": "1.20.3",
+        "dependency_count": 1,
+        "artifact_count": 83,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 17,
+      "minimum_tool_jvm": 21,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:1.20.3-20231205.165107@zip",
+          "locked_hash": "blake3:8ccc46247981591cb0d648bddc1b6e616921fca7",
+          "cached_bytes": 1785114,
+          "cached_sha256": "42225115b3705a4233d4e0feea3aaad4e55612a8fe0bd9ab312a9f2839044740",
+          "entry": "config.json",
+          "entry_bytes": 8237,
+          "entry_sha256": "088a66792a03a9472627490a4a496b8329b28e1b2d16aea1039085767a50f05a",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:8ccc46247981591cb0d648bddc1b6e616921fca7c205d83d045d37c6d6c0e334",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.3",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "official",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:20.3.8-beta:userdev",
+          "locked_hash": "blake3:312dea13eac8741fec87ddec5362fa4bf038faa4",
+          "cached_bytes": 3596132,
+          "cached_sha256": "86d1752617902a7d5211c309dbcaab43a032c00646845fdeeee649b6a14742d4",
+          "entry": "config.json",
+          "entry_bytes": 9153,
+          "entry_sha256": "ec08ac2734ac97753bbd688d3bbd92ee2e4cb71c7032c61d2b2035a3782b4b62",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:312dea13eac8741fec87ddec5362fa4bf038faa42c962932b973feead1846ba2",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.3",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "runs",
+              "modules"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "decompile": {
+          "version": "org.vineflower:vineflower:1.9.3",
+          "args": [
+            "-din=1",
+            "-rbr=1",
+            "-dgs=1",
+            "-asc=1",
+            "-rsy=1",
+            "-iec=1",
+            "-jvn=1",
+            "-iib=1",
+            "-bsm=1",
+            "-dcl=1",
+            "-nls=1",
+            "-ind=    ",
+            "-log=TRACE",
+            "-cfg",
+            "{libraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4G"
+          ],
+          "repo": null,
+          "java_version": 17
+        },
+        "merge": {
+          "version": "net.neoforged:mergetool:2.0.2:fatjar",
+          "args": [
+            "--client",
+            "{client}",
+            "--server",
+            "{server}",
+            "--ann",
+            "{version}",
+            "--output",
+            "{output}",
+            "--inject",
+            "false"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "rename": {
+          "version": "net.neoforged:AutoRenamingTool:1.0.11:all",
+          "args": [
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--map",
+            "{mappings}",
+            "--cfg",
+            "{libraries}",
+            "--ann-fix",
+            "--ids-fix",
+            "--src-fix",
+            "--record-fix"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "mergeMappings": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "MERGE_MAPPING",
+            "--left",
+            "{mappings}",
+            "--right",
+            "{official}",
+            "--right-names",
+            "right,left",
+            "--classes",
+            "--fields",
+            "--methods",
+            "--output",
+            "{output}"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "bundleExtractJar": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "bundler_extract",
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--jar-only"
+          ],
+          "jvmargs": [],
+          "repo": null
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson"
+        },
+        {
+          "type": "downloadClient"
+        },
+        {
+          "type": "downloadServer"
+        },
+        {
+          "name": "extractServer",
+          "type": "bundleExtractJar",
+          "input": "{downloadServerOutput}"
+        },
+        {
+          "type": "downloadClientMappings"
+        },
+        {
+          "type": "mergeMappings",
+          "official": "{downloadClientMappingsOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripClient",
+          "input": "{downloadClientOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripServer",
+          "input": "{extractServerOutput}"
+        },
+        {
+          "type": "merge",
+          "client": "{stripClientOutput}",
+          "server": "{stripServerOutput}",
+          "version": "1.20.3"
+        },
+        {
+          "type": "listLibraries"
+        },
+        {
+          "type": "rename",
+          "input": "{mergeOutput}",
+          "libraries": "{listLibrariesOutput}",
+          "mappings": "{mergeMappingsOutput}"
+        },
+        {
+          "type": "decompile",
+          "libraries": "{listLibrariesOutput}",
+          "input": "{renameOutput}"
+        },
+        {
+          "type": "inject",
+          "input": "{decompileOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{injectOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "org.vineflower:vineflower:1.9.3",
+        "net.neoforged:mergetool:2.0.2:fatjar",
+        "net.neoforged:AutoRenamingTool:1.0.11:all",
+        "net.minecraftforge:installertools:1.3.2:fatjar"
+      ]
+    },
+    {
+      "target": "1.20.4",
+      "minecraft_version": "1.20.4",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.20.4@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.20.4/schema-2.json",
+        "sha256": "565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406",
+        "bytes": 48012,
+        "schema_version": 2,
+        "minecraft_version": "1.20.4",
+        "dependency_count": 4,
+        "artifact_count": 81,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 17,
+      "minimum_tool_jvm": 21,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:1.20.4-20231207.154220@zip",
+          "locked_hash": "blake3:af9b38aa9afc5620f0eaaa4e8793d30ec303d1d2",
+          "cached_bytes": 1785114,
+          "cached_sha256": "c15e272d3a0e9d59a181ff2b6d37bd07ef9db4bef0f07d2eceb4144448db3087",
+          "entry": "config.json",
+          "entry_bytes": 8237,
+          "entry_sha256": "298f51d4bf4ab06c6e850e5671aec0db92ea71d66b1b8479c3db90126e3fe93e",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:af9b38aa9afc5620f0eaaa4e8793d30ec303d1d2b57e12be733e4bd7c27ddfbf",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.4",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "official",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:20.4.231:userdev",
+          "locked_hash": "blake3:c8186bce8892b9a8cd703372cd3f770acc435b71",
+          "cached_bytes": 3697677,
+          "cached_sha256": "aeee0c14ca4099beef4acd0b295a1d5b59bb331a8189d3f1a38dcfc71fc735ba",
+          "entry": "config.json",
+          "entry_bytes": 7955,
+          "entry_sha256": "cdb5d509040cd73fbf551a93c06375c6c5a376e3a56124293b300a74bfcec37f",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:c8186bce8892b9a8cd703372cd3f770acc435b71da44de88abb1ff8c93e17975",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.20.4",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "runs",
+              "modules"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "decompile": {
+          "version": "org.vineflower:vineflower:1.9.3",
+          "args": [
+            "-din=1",
+            "-rbr=1",
+            "-dgs=1",
+            "-asc=1",
+            "-rsy=1",
+            "-iec=1",
+            "-jvn=1",
+            "-iib=1",
+            "-bsm=1",
+            "-dcl=1",
+            "-nls=1",
+            "-ind=    ",
+            "-log=TRACE",
+            "-cfg",
+            "{libraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4G"
+          ],
+          "repo": null,
+          "java_version": 17
+        },
+        "merge": {
+          "version": "net.neoforged:mergetool:2.0.2:fatjar",
+          "args": [
+            "--client",
+            "{client}",
+            "--server",
+            "{server}",
+            "--ann",
+            "{version}",
+            "--output",
+            "{output}",
+            "--inject",
+            "false"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "rename": {
+          "version": "net.neoforged:AutoRenamingTool:1.0.11:all",
+          "args": [
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--map",
+            "{mappings}",
+            "--cfg",
+            "{libraries}",
+            "--ann-fix",
+            "--ids-fix",
+            "--src-fix",
+            "--record-fix"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "mergeMappings": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "MERGE_MAPPING",
+            "--left",
+            "{mappings}",
+            "--right",
+            "{official}",
+            "--right-names",
+            "right,left",
+            "--classes",
+            "--fields",
+            "--methods",
+            "--output",
+            "{output}"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "bundleExtractJar": {
+          "version": "net.minecraftforge:installertools:1.3.2:fatjar",
+          "args": [
+            "--task",
+            "bundler_extract",
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--jar-only"
+          ],
+          "jvmargs": [],
+          "repo": null
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson"
+        },
+        {
+          "type": "downloadClient"
+        },
+        {
+          "type": "downloadServer"
+        },
+        {
+          "name": "extractServer",
+          "type": "bundleExtractJar",
+          "input": "{downloadServerOutput}"
+        },
+        {
+          "type": "downloadClientMappings"
+        },
+        {
+          "type": "mergeMappings",
+          "official": "{downloadClientMappingsOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripClient",
+          "input": "{downloadClientOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripServer",
+          "input": "{extractServerOutput}"
+        },
+        {
+          "type": "merge",
+          "client": "{stripClientOutput}",
+          "server": "{stripServerOutput}",
+          "version": "1.20.4"
+        },
+        {
+          "type": "listLibraries"
+        },
+        {
+          "type": "rename",
+          "input": "{mergeOutput}",
+          "libraries": "{listLibrariesOutput}",
+          "mappings": "{mergeMappingsOutput}"
+        },
+        {
+          "type": "decompile",
+          "libraries": "{listLibrariesOutput}",
+          "input": "{renameOutput}"
+        },
+        {
+          "type": "inject",
+          "input": "{decompileOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{injectOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "org.vineflower:vineflower:1.9.3",
+        "net.neoforged:mergetool:2.0.2:fatjar",
+        "net.neoforged:AutoRenamingTool:1.0.11:all",
+        "net.minecraftforge:installertools:1.3.2:fatjar"
+      ]
+    },
+    {
+      "target": "1.21.0",
+      "minecraft_version": "1.21",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.21.0@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-2.json",
+        "sha256": "2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4",
+        "bytes": 51096,
+        "schema_version": 2,
+        "minecraft_version": "1.21",
+        "dependency_count": 4,
+        "artifact_count": 86,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 21,
+      "minimum_tool_jvm": 21,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:1.21-20240613.152323@zip",
+          "locked_hash": "blake3:6e1d2309b587f8d17c1573994195b90a40b56ebc",
+          "cached_bytes": 1689762,
+          "cached_sha256": "33bbf6d5dc922c081521b745d73f262a5738f7c6ff7c1e98b4ceef9068398857",
+          "entry": "config.json",
+          "entry_bytes": 8415,
+          "entry_sha256": "358cf183a1172a9fc66087ea77fa31f60b905ff392f387314b0c131a16774fcd",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:6e1d2309b587f8d17c1573994195b90a40b56ebc80de13797e452f314aa95817",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.21.0",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "official",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:21.0.143:userdev",
+          "locked_hash": "blake3:80adfede0c23d4cf520a6cf7c30af66f0248147d",
+          "cached_bytes": 3819798,
+          "cached_sha256": "8626c68ef4f79ea1593adc518b10b7e4b117dd35bef1bb5ce03393cf215f0570",
+          "entry": "config.json",
+          "entry_bytes": 9430,
+          "entry_sha256": "d2212aff993e675cbdec6c03671afef1185dcd3c85f2545d8cb2211eda1b34c6",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:80adfede0c23d4cf520a6cf7c30af66f0248147d7baa89c7c6588b46133e4a2d",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.21.0",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "testLibraries",
+              "runs",
+              "modules"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "decompile": {
+          "version": "org.vineflower:vineflower:1.10.1",
+          "args": [
+            "--decompile-inner",
+            "--remove-bridge",
+            "--decompile-generics",
+            "--ascii-strings",
+            "--remove-synthetic",
+            "--include-classpath",
+            "--variable-renaming=jad",
+            "--ignore-invalid-bytecode",
+            "--bytecode-source-mapping",
+            "--dump-code-lines",
+            "--indent-string=    ",
+            "--log-level=TRACE",
+            "-cfg",
+            "{libraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4G"
+          ],
+          "repo": null,
+          "java_version": 21
+        },
+        "merge": {
+          "version": "net.neoforged:mergetool:2.0.3:fatjar",
+          "args": [
+            "--client",
+            "{client}",
+            "--server",
+            "{server}",
+            "--ann",
+            "{version}",
+            "--output",
+            "{output}",
+            "--inject",
+            "false"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "rename": {
+          "version": "net.neoforged:AutoRenamingTool:2.0.3:all",
+          "args": [
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--map",
+            "{mappings}",
+            "--cfg",
+            "{libraries}",
+            "--ann-fix",
+            "--ids-fix",
+            "--src-fix",
+            "--record-fix",
+            "--unfinal-params"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "mergeMappings": {
+          "version": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+          "args": [
+            "--task",
+            "MERGE_MAPPING",
+            "--left",
+            "{mappings}",
+            "--right",
+            "{official}",
+            "--right-names",
+            "right,left",
+            "--classes",
+            "--fields",
+            "--methods",
+            "--output",
+            "{output}"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "bundleExtractJar": {
+          "version": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+          "args": [
+            "--task",
+            "bundler_extract",
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--jar-only"
+          ],
+          "jvmargs": [],
+          "repo": null
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson"
+        },
+        {
+          "type": "downloadClient"
+        },
+        {
+          "type": "downloadServer"
+        },
+        {
+          "name": "extractServer",
+          "type": "bundleExtractJar",
+          "input": "{downloadServerOutput}"
+        },
+        {
+          "type": "downloadClientMappings"
+        },
+        {
+          "type": "mergeMappings",
+          "official": "{downloadClientMappingsOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripClient",
+          "input": "{downloadClientOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripServer",
+          "input": "{extractServerOutput}"
+        },
+        {
+          "type": "merge",
+          "client": "{stripClientOutput}",
+          "server": "{stripServerOutput}",
+          "version": "1.21"
+        },
+        {
+          "type": "listLibraries"
+        },
+        {
+          "type": "rename",
+          "input": "{mergeOutput}",
+          "libraries": "{listLibrariesOutput}",
+          "mappings": "{mergeMappingsOutput}"
+        },
+        {
+          "type": "decompile",
+          "libraries": "{listLibrariesOutput}",
+          "input": "{renameOutput}"
+        },
+        {
+          "type": "inject",
+          "input": "{decompileOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{injectOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "org.vineflower:vineflower:1.10.1",
+        "net.neoforged:mergetool:2.0.3:fatjar",
+        "net.neoforged:AutoRenamingTool:2.0.3:all",
+        "net.neoforged.installertools:installertools:2.1.2:fatjar"
+      ]
+    },
+    {
+      "target": "1.21.1",
+      "minecraft_version": "1.21.1",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/1.21.1@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-2.json",
+        "sha256": "2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876",
+        "bytes": 57844,
+        "schema_version": 2,
+        "minecraft_version": "1.21.1",
+        "dependency_count": 11,
+        "artifact_count": 93,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 21,
+      "minimum_tool_jvm": 21,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:1.21.1-20240808.144430@zip",
+          "locked_hash": "blake3:93b04805230706400a2ab580d470efa00da6de74",
+          "cached_bytes": 1683830,
+          "cached_sha256": "3fcdf0f0d115774cfceaf206a05a6dc964e2189bfd00f5b5f863e37f4b7733c7",
+          "entry": "config.json",
+          "entry_bytes": 8419,
+          "entry_sha256": "8bb6e77641c7c208b820ee938b5990ad5371343403511514807bf9b96f28c62b",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:93b04805230706400a2ab580d470efa00da6de74a6878ba78fafcad2f2f0ab03",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.21.1",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "official",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:21.1.206:userdev",
+          "locked_hash": "blake3:a1eed39b88e5c7f7fa250d96de653e3e8639d566",
+          "cached_bytes": 3973795,
+          "cached_sha256": "a6fe516c4ba9ed291f49633d27ed5c4674c7f5f0ac5abb66d9466a4b9656aa68",
+          "entry": "config.json",
+          "entry_bytes": 10209,
+          "entry_sha256": "ce26ab5ec60ec8ea7a7b6b33abd1c18c5cfbe459e0cb85bb79458f31546e2268",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:a1eed39b88e5c7f7fa250d96de653e3e8639d566cadaf149261ec2a2fcc4f310",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "1.21.1",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "testLibraries",
+              "runs",
+              "modules"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "decompile": {
+          "version": "org.vineflower:vineflower:1.10.1",
+          "args": [
+            "--decompile-inner",
+            "--remove-bridge",
+            "--decompile-generics",
+            "--ascii-strings",
+            "--remove-synthetic",
+            "--include-classpath",
+            "--variable-renaming=jad",
+            "--ignore-invalid-bytecode",
+            "--bytecode-source-mapping",
+            "--dump-code-lines",
+            "--indent-string=    ",
+            "--log-level=TRACE",
+            "-cfg",
+            "{libraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4G"
+          ],
+          "repo": null,
+          "java_version": 21
+        },
+        "merge": {
+          "version": "net.neoforged:mergetool:2.0.3:fatjar",
+          "args": [
+            "--client",
+            "{client}",
+            "--server",
+            "{server}",
+            "--ann",
+            "{version}",
+            "--output",
+            "{output}",
+            "--inject",
+            "false"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "rename": {
+          "version": "net.neoforged:AutoRenamingTool:2.0.3:all",
+          "args": [
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--map",
+            "{mappings}",
+            "--cfg",
+            "{libraries}",
+            "--ann-fix",
+            "--ids-fix",
+            "--src-fix",
+            "--record-fix",
+            "--unfinal-params"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "mergeMappings": {
+          "version": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+          "args": [
+            "--task",
+            "MERGE_MAPPING",
+            "--left",
+            "{mappings}",
+            "--right",
+            "{official}",
+            "--right-names",
+            "right,left",
+            "--classes",
+            "--fields",
+            "--methods",
+            "--output",
+            "{output}"
+          ],
+          "jvmargs": [],
+          "repo": null
+        },
+        "bundleExtractJar": {
+          "version": "net.neoforged.installertools:installertools:2.1.2:fatjar",
+          "args": [
+            "--task",
+            "bundler_extract",
+            "--input",
+            "{input}",
+            "--output",
+            "{output}",
+            "--jar-only"
+          ],
+          "jvmargs": [],
+          "repo": null
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson"
+        },
+        {
+          "type": "downloadClient"
+        },
+        {
+          "type": "downloadServer"
+        },
+        {
+          "name": "extractServer",
+          "type": "bundleExtractJar",
+          "input": "{downloadServerOutput}"
+        },
+        {
+          "type": "downloadClientMappings"
+        },
+        {
+          "type": "mergeMappings",
+          "official": "{downloadClientMappingsOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripClient",
+          "input": "{downloadClientOutput}"
+        },
+        {
+          "type": "strip",
+          "name": "stripServer",
+          "input": "{extractServerOutput}"
+        },
+        {
+          "type": "merge",
+          "client": "{stripClientOutput}",
+          "server": "{stripServerOutput}",
+          "version": "1.21.1"
+        },
+        {
+          "type": "listLibraries"
+        },
+        {
+          "type": "rename",
+          "input": "{mergeOutput}",
+          "libraries": "{listLibrariesOutput}",
+          "mappings": "{mergeMappingsOutput}"
+        },
+        {
+          "type": "decompile",
+          "libraries": "{listLibrariesOutput}",
+          "input": "{renameOutput}"
+        },
+        {
+          "type": "inject",
+          "input": "{decompileOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{injectOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "org.vineflower:vineflower:1.10.1",
+        "net.neoforged:mergetool:2.0.3:fatjar",
+        "net.neoforged:AutoRenamingTool:2.0.3:all",
+        "net.neoforged.installertools:installertools:2.1.2:fatjar"
+      ]
+    },
+    {
+      "target": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/26.1.2@1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
+        "sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+        "bytes": 50153,
+        "schema_version": 2,
+        "minecraft_version": "26.1.2",
+        "dependency_count": 8,
+        "artifact_count": 80,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 25,
+      "minimum_tool_jvm": 25,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:26.1.2-1@zip",
+          "locked_hash": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda",
+          "cached_bytes": 103496,
+          "cached_sha256": "3eb9f8cc282badfbc210a27a8304f14cc58fa40401a94072874dfaded3c8cb52",
+          "entry": "config.json",
+          "entry_bytes": 2354,
+          "entry_sha256": "48e374b748a41985182aac160a0fdf625e037d85e8e12e482ef44b6ceaee4a59",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda6f861480b337003f089e93d4",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "26.1.2",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:26.1.2.72:userdev",
+          "locked_hash": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0f",
+          "cached_bytes": 4472859,
+          "cached_sha256": "4b43713ebc7316c94861221aac1473dbab4ebc9e2e41466347d0f42dd17c881c",
+          "entry": "config.json",
+          "entry_bytes": 7022,
+          "entry_sha256": "7b420b3d02a7c47381632f64f46f97fdc936a89f7524bb55cce61537a21cb701",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0fedd0332f275f42e8b8245c57",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "26.1.2",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "testLibraries",
+              "runs",
+              "modules",
+              "features"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "preProcessJar": {
+          "classpath": [
+            "net.neoforged.installertools:installertools:4.0.16:fatjar"
+          ],
+          "args": [
+            "--task",
+            "PROCESS_MINECRAFT_JAR",
+            "--input",
+            "{inputClientJar}",
+            "--input",
+            "{inputServerJar}",
+            "--output",
+            "{output}",
+            "--no-mod-manifest"
+          ],
+          "jvmargs": [],
+          "java_version": 25
+        },
+        "decompile": {
+          "classpath": [
+            "org.vineflower:vineflower:1.11.2",
+            "net.neoforged:vineflower-plugins:0.1.5"
+          ],
+          "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+          "args": [
+            "--decompile-inner",
+            "--remove-bridge",
+            "--decompile-generics",
+            "--ascii-strings",
+            "--remove-synthetic",
+            "--include-classpath",
+            "--ignore-invalid-bytecode",
+            "--bytecode-source-mapping",
+            "--dump-code-lines",
+            "--indent-string=    ",
+            "--log-level=WARN",
+            "-cfg={inputLibraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4g"
+          ],
+          "java_version": 25
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson",
+          "json": "{downloadManifestOutput}"
+        },
+        {
+          "type": "downloadClient",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "downloadServer",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "listLibraries",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "preProcessJar",
+          "inputServerJar": "{downloadServerOutput}",
+          "inputClientJar": "{downloadClientOutput}"
+        },
+        {
+          "type": "decompile",
+          "inputLibraries": "{listLibrariesOutput}",
+          "input": "{preProcessJarOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{decompileOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "net.neoforged.installertools:installertools:4.0.16:fatjar",
+        "org.vineflower:vineflower:1.11.2",
+        "net.neoforged:vineflower-plugins:0.1.5"
+      ]
+    }
+  ]
+}

@@ -41,15 +41,6 @@ const MAX_SOURCE_BYTES: u64 = 1024 * 1024;
 const MAX_BLOB_TOTAL_BYTES: u64 = 16 * 1024 * 1024;
 const MAX_BLOB_COUNT: usize = 128;
 
-// Fixed-wave reader admission; existing shared parser and other callers are unchanged.
-#[path = "core_wave_process_capture.rs"]
-mod wave_process_capture;
-
-#[cfg(windows)]
-pub(super) use wave_process_capture::read_wave_git_blobs;
-#[cfg(windows)]
-pub(super) use wave_process_capture::read_wave_git_tree;
-
 pub(super) struct CoreTestFixture {
     pub repository: PathBuf,
     pub core: PathBuf,

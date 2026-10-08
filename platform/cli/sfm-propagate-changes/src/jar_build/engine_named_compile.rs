@@ -134,6 +134,10 @@ mod named_forge_compile_cohort_tests {
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;
         let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;
         let mut fixture = Fixture::new();
+        let configuration = crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
+        let destination = fixture.repository().join(configuration);
+        fs::create_dir_all(destination.parent().unwrap())?;
+        fs::copy(repository.join(configuration), destination)?;
         let raw_lock = read_bounded(
             &checked_file(repository, &recipe.source_lock.path)?,
             1024 * 1024,

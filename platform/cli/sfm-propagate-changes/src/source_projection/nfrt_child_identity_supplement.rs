@@ -22,16 +22,23 @@ use std::io::Cursor;
 use std::io::Read;
 use std::sync::Arc;
 
+const MANIFEST_PATH: &str =
+    "platform/minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json";
+const SOURCE_LIBRARIES_PATH: &str =
+    "platform/minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json";
+#[cfg(test)]
 const MANIFEST: &str = include_str!(
     "../../../../../platform/minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json"
 );
 const MANIFEST_SHA256: &str =
     "sha256:be8fbfd87a20f6ba018056f651f3f3d2bec054a0c19424c89127ae2c75311b6f";
+#[cfg(test)]
 const SOURCE_LIBRARIES: &str = include_str!(
     "../../../../../platform/minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json"
 );
 const SOURCE_LIBRARIES_SHA256: &str =
     "sha256:986a253497f049fb22ca354f58aabe269651b90d3d734a99f5d46a3830c1ebf3";
+#[cfg(test)]
 const OFFICIAL_PROOF: &str =
     include_str!("../../../../../docs/tasks/sfm-core-nfrt-child-official-identity-proof.json");
 const OFFICIAL_PROOF_SHA256: &str =
@@ -281,10 +288,29 @@ impl NfrtChildIdentitySupplement {
     /// malformed/ambiguous supplement data or a changed official proof before
     /// any caller can perform I/O. Weak original identities must already have
     /// passed the original input preparation gate; this cannot bypass it.
+    pub(crate) fn from_prepared_at(
+        root: &std::path::Path,
+        original: Arc<PreparedDependencyInputs>,
+        refresh: bool,
+    ) -> Result<Self> {
+        refuse_refresh(refresh)?;
+        let (document, libraries) = read_configuration(root)?;
+        Self::from_prepared_documents(original, document, libraries)
+    }
+
+    #[cfg(test)]
     pub fn from_prepared(original: Arc<PreparedDependencyInputs>, refresh: bool) -> Result<Self> {
         refuse_refresh(refresh)?;
         let document = reviewed_document()?;
         let source_libraries = reviewed_source_library_document()?;
+        Self::from_prepared_documents(original, document, source_libraries)
+    }
+
+    fn from_prepared_documents(
+        original: Arc<PreparedDependencyInputs>,
+        document: SupplementDocument,
+        source_libraries: SourceLibraryDocument,
+    ) -> Result<Self> {
         let target_index = bound_target(&document, original.receipt())?;
         original.verify_source_lock_bytes(original.raw_source_lock_bytes(), false)?;
         for parent in &document.targets[target_index].parents {
@@ -307,6 +333,17 @@ impl NfrtChildIdentitySupplement {
 
     /// Bind identical reviewed tool parents to an actual development catalog.
     /// Its raw lock, profile and request identity remain development-owned.
+    pub(crate) fn from_development_at(
+        root: &std::path::Path,
+        original: Arc<DevelopmentNfrtDependencies>,
+        refresh: bool,
+    ) -> Result<Self> {
+        refuse_refresh(refresh)?;
+        let (document, libraries) = read_configuration(root)?;
+        Self::from_development_documents(original, document, libraries)
+    }
+
+    #[cfg(test)]
     pub(crate) fn from_development(
         original: Arc<DevelopmentNfrtDependencies>,
         refresh: bool,
@@ -314,6 +351,14 @@ impl NfrtChildIdentitySupplement {
         refuse_refresh(refresh)?;
         let document = reviewed_document()?;
         let source_libraries = reviewed_source_library_document()?;
+        Self::from_development_documents(original, document, source_libraries)
+    }
+
+    fn from_development_documents(
+        original: Arc<DevelopmentNfrtDependencies>,
+        document: SupplementDocument,
+        source_libraries: SourceLibraryDocument,
+    ) -> Result<Self> {
         let source = original.receipt();
         let target_index = document
             .targets
@@ -543,17 +588,42 @@ impl NfrtChildIdentitySupplement {
     }
 }
 
+fn read_configuration(
+    root: &std::path::Path,
+) -> Result<(SupplementDocument, SourceLibraryDocument)> {
+    use super::core_catalog::read_bounded_catalog_input;
+    let manifest = read_bounded_catalog_input(root, MANIFEST_PATH)?;
+    let libraries = read_bounded_catalog_input(root, SOURCE_LIBRARIES_PATH)?;
+    ensure!(
+        manifest.len() <= MAX_MANIFEST_BYTES && sha256(&manifest) == MANIFEST_SHA256,
+        "authorized NFRT child pins changed"
+    );
+    let document: SupplementDocument = facet_json::from_str(std::str::from_utf8(&manifest)?)?;
+    // Exact authorized pin bytes already bind the historical publisher evidence.
+    // Runtime verifies downloaded bytes against these pins, not a review document.
+    validate_pinned_document(&document, None)?;
+    Ok((
+        document,
+        source_library_document(std::str::from_utf8(&libraries)?)?,
+    ))
+}
+
+#[cfg(test)]
 fn reviewed_document() -> Result<SupplementDocument> {
     reviewed_document_bytes(MANIFEST, OFFICIAL_PROOF)
 }
 
+#[cfg(test)]
 fn reviewed_source_library_document() -> Result<SourceLibraryDocument> {
+    source_library_document(SOURCE_LIBRARIES)
+}
+
+fn source_library_document(input: &str) -> Result<SourceLibraryDocument> {
     ensure!(
-        SOURCE_LIBRARIES.len() <= MAX_MANIFEST_BYTES
-            && sha256(SOURCE_LIBRARIES.as_bytes()) == SOURCE_LIBRARIES_SHA256,
+        input.len() <= MAX_MANIFEST_BYTES && sha256(input.as_bytes()) == SOURCE_LIBRARIES_SHA256,
         "authorized source-library supplement changed"
     );
-    let document = facet_json::from_str::<SourceLibraryDocument>(SOURCE_LIBRARIES)?;
+    let document = facet_json::from_str::<SourceLibraryDocument>(input)?;
     validate_source_library_document(&document)?;
     Ok(document)
 }
@@ -623,6 +693,7 @@ fn validate_source_library_document(document: &SourceLibraryDocument) -> Result<
     Ok(())
 }
 
+#[cfg(test)]
 fn reviewed_document_bytes(manifest: &str, official_proof: &str) -> Result<SupplementDocument> {
     ensure!(
         manifest.len() <= MAX_MANIFEST_BYTES
@@ -641,7 +712,10 @@ fn reviewed_document_bytes(manifest: &str, official_proof: &str) -> Result<Suppl
     clippy::too_many_lines,
     reason = "One fail-closed pass verifies the fixed fifteen-artifact authorization and ordered parent proofs."
 )]
-fn validate_document(document: &SupplementDocument, proof: &OfficialProof) -> Result<()> {
+fn validate_pinned_document(
+    document: &SupplementDocument,
+    proof: Option<&OfficialProof>,
+) -> Result<()> {
     ensure!(
         document.schema == "sfm:nfrt_child_identity_supplement@1"
             && document.status == "authorized_identity_only_native_disabled"
@@ -660,10 +734,13 @@ fn validate_document(document: &SupplementDocument, proof: &OfficialProof) -> Re
                 .eq(TARGETS),
         "NFRT child supplement widened its separately reviewed scope"
     );
-    ensure!(
-        proof.schema == "sfm:nfrt_child_official_identity_proof@1" && proof.artifacts.len() == 15,
-        "official NFRT child identity proof has wrong scope"
-    );
+    if let Some(proof) = proof {
+        ensure!(
+            proof.schema == "sfm:nfrt_child_official_identity_proof@1"
+                && proof.artifacts.len() == 15,
+            "official NFRT child identity proof has wrong scope"
+        );
+    }
     let coordinates = document
         .artifacts
         .iter()
@@ -676,15 +753,17 @@ fn validate_document(document: &SupplementDocument, proof: &OfficialProof) -> Re
         .map(|child| child.official_url.as_str())
         .collect::<BTreeSet<_>>();
     ensure!(urls.len() == 15, "ambiguous NFRT child URL");
-    let proof_coordinates = proof
-        .artifacts
-        .iter()
-        .map(|row| row.coordinate.as_str())
-        .collect::<BTreeSet<_>>();
-    ensure!(
-        proof_coordinates == coordinates,
-        "official proof omitted or introduced a child"
-    );
+    if let Some(proof) = proof {
+        let proof_coordinates = proof
+            .artifacts
+            .iter()
+            .map(|row| row.coordinate.as_str())
+            .collect::<BTreeSet<_>>();
+        ensure!(
+            proof_coordinates == coordinates,
+            "official proof omitted or introduced a child"
+        );
+    }
     let mut occurrence_count = 0;
     for target in &document.targets {
         let upstream = if target.target_id == "1.21.0" {
@@ -804,28 +883,35 @@ fn validate_document(document: &SupplementDocument, proof: &OfficialProof) -> Re
                 "child request is detached from authenticated parent entry"
             );
         }
-        let official = proof
-            .artifacts
-            .iter()
-            .find(|row| row.coordinate == child.coordinate)
-            .ok_or_else(|| eyre::eyre!("official child identity missing"))?;
-        ensure!(
-            official.targets == child.targets
-                && official.observed_cache.bytes == child.bytes
-                && official.observed_cache.sha256 == child.sha256
-                && official.official_artifact_url == child.official_url
-                && official.official_checksum.coordinate == child.coordinate
-                && official.official_checksum.url == child.official_checksum_url
-                && official.official_checksum.http_status == 200
-                && official.official_checksum.checksum_sha256 == child.sha256
-                && valid_sha256(&official.official_checksum.checksum_body_sha256)
-                && official.official_checksum.matches
-                && official.official_checksum.redirect_location.is_empty()
-                && !official.official_checksum.observed_at.is_empty(),
-            "child SHA-256 does not match exact official publisher proof"
-        );
+        if let Some(proof) = proof {
+            let official = proof
+                .artifacts
+                .iter()
+                .find(|row| row.coordinate == child.coordinate)
+                .ok_or_else(|| eyre::eyre!("official child identity missing"))?;
+            ensure!(
+                official.targets == child.targets
+                    && official.observed_cache.bytes == child.bytes
+                    && official.observed_cache.sha256 == child.sha256
+                    && official.official_artifact_url == child.official_url
+                    && official.official_checksum.coordinate == child.coordinate
+                    && official.official_checksum.url == child.official_checksum_url
+                    && official.official_checksum.http_status == 200
+                    && official.official_checksum.checksum_sha256 == child.sha256
+                    && valid_sha256(&official.official_checksum.checksum_body_sha256)
+                    && official.official_checksum.matches
+                    && official.official_checksum.redirect_location.is_empty()
+                    && !official.official_checksum.observed_at.is_empty(),
+                "child SHA-256 does not match exact official publisher proof"
+            );
+        }
     }
     Ok(())
+}
+
+#[cfg(test)]
+fn validate_document(document: &SupplementDocument, proof: &OfficialProof) -> Result<()> {
+    validate_pinned_document(document, Some(proof))
 }
 
 fn bound_target(

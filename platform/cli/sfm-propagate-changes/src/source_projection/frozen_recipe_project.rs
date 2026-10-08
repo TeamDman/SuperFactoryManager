@@ -8,12 +8,14 @@
 
 use super::catalog_owned_project::CatalogOwnedProject;
 use super::catalog_owned_project::CatalogOwnedProjectReceipt;
+use super::core_catalog::read_bounded_catalog_input;
 use super::prepared_dependency_inputs::PreparedDependencyInputs;
 use super::prepared_dependency_inputs::PreparedDependencyReceipt;
 use super::provenance::sha256;
+use super::released_native_inputs::BUILD_CONFIGURATION_PATH;
 use super::released_native_inputs::ReleasedNativeReceipt;
 use super::released_native_inputs::ReleasedNativeRequest;
-use super::released_native_inputs::review_released_native_inputs;
+use super::released_native_inputs::review_released_native_inputs_from_configuration;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -22,8 +24,10 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+#[cfg(test)]
 const REVIEW: &str =
     include_str!("../../../../../docs/tasks/sfm-core-released-native-adapter-review.json");
+#[cfg(test)]
 const REVIEW_SHA256: &str =
     "sha256:8b927a2b978715a6fc6ae1d0fd828a8a46b729a41a43a54897ca5e6cac313e21";
 const MAX_REVIEW_BYTES: usize = 512 * 1024;
@@ -195,6 +199,12 @@ impl FrozenRecipeProject {
     pub fn recheck(&self, refresh: bool) -> Result<()> {
         refuse_refresh(refresh)?;
         self.project.recheck()?;
+        let configuration =
+            read_bounded_catalog_input(self.project.repo_root(), BUILD_CONFIGURATION_PATH)?;
+        ensure!(
+            sha256(&configuration) == self.receipt.released_inputs.recipe_review_sha256,
+            "released-native build configuration changed after preparation"
+        );
         ensure!(
             self.project.receipt() == &self.receipt.ownership,
             "frozen recipe lost its checked catalog ownership receipt"
@@ -255,7 +265,14 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     ) -> Result<BTreeMap<usize, Vec<u8>>>,
 ) -> Result<FrozenRecipeProject> {
     refuse_refresh(refresh)?;
-    let recipe = selected_recipe(recipe_id)?;
+    let configuration_bytes =
+        read_bounded_catalog_input(project.repo_root(), BUILD_CONFIGURATION_PATH)?;
+    let configuration = std::str::from_utf8(&configuration_bytes)?;
+    let recipe = recipe_index_from_configuration(configuration)?
+        .targets
+        .into_iter()
+        .find(|recipe| recipe.recipe_id == recipe_id)
+        .ok_or_else(|| eyre::eyre!("unknown explicit frozen native recipe: {recipe_id}"))?;
     let owner = project.receipt();
     ensure!(
         owner.target_id == recipe.target
@@ -296,7 +313,8 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
         role_bindings.insert(witness.path.clone(), binding(&input, bytes));
         role_bytes.insert(witness.path.clone(), bytes.to_vec());
     }
-    let reviewed = review_released_native_inputs(
+    let reviewed = review_released_native_inputs_from_configuration(
+        configuration,
         &ReleasedNativeRequest {
             target_id: &recipe.target,
             minecraft_version: &recipe.minecraft_version,
@@ -420,15 +438,15 @@ struct Platform {
     java_major: u16,
 }
 
-fn recipe_index() -> Result<RecipeIndex> {
+fn recipe_index_from_configuration(configuration: &str) -> Result<RecipeIndex> {
     ensure!(
-        REVIEW.len() <= MAX_REVIEW_BYTES && sha256(REVIEW.as_bytes()) == REVIEW_SHA256,
-        "frozen recipe index bytes are changed or exceed their bounded limit"
+        configuration.len() <= MAX_REVIEW_BYTES,
+        "recipe configuration exceeds its bounded limit"
     );
     let index: RecipeIndex =
-        facet_json::from_str(REVIEW).wrap_err("cannot parse frozen recipe source index")?;
+        facet_json::from_str(configuration).wrap_err("cannot parse recipe configuration")?;
     ensure!(
-        index.schema == "sfm:core_released_native_adapter_review@1" && index.targets.len() == 10,
+        index.schema == "sfm:released_native_build_configuration@1" && index.targets.len() == 10,
         "frozen recipe index has an unexpected schema or target count"
     );
     let mut ids = BTreeSet::new();
@@ -451,6 +469,19 @@ fn recipe_index() -> Result<RecipeIndex> {
     Ok(index)
 }
 
+#[cfg(test)]
+fn recipe_index() -> Result<RecipeIndex> {
+    ensure!(
+        sha256(REVIEW.as_bytes()) == REVIEW_SHA256,
+        "historical fixture changed"
+    );
+    recipe_index_from_configuration(&REVIEW.replace(
+        "sfm:core_released_native_adapter_review@1",
+        "sfm:released_native_build_configuration@1",
+    ))
+}
+
+#[cfg(test)]
 fn selected_recipe(recipe_id: &str) -> Result<FrozenRecipeIndexRow> {
     recipe_index()?
         .targets
@@ -531,6 +562,13 @@ mod tests {
                 &wanted,
             )?;
         let mut fixture = Fixture::new();
+        let configuration_path = fixture.repository().join(BUILD_CONFIGURATION_PATH);
+        fs::create_dir_all(
+            configuration_path
+                .parent()
+                .expect("configuration has a parent"),
+        )?;
+        fs::copy(repo.join(BUILD_CONFIGURATION_PATH), &configuration_path)?;
         for source_path in std::iter::once(recipe.source_lock.path.as_str()).chain(
             recipe
                 .role_input_hashes
