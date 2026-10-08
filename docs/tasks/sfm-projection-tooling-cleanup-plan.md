@@ -1,7 +1,35 @@
 # Fast, checkout-directed source projection
 
-Plan status: Active. Branch: `main`. Last updated: 2026-10-08.
+Plan status: Complete. Branch: `main`. Last updated: 2026-10-08.
 Starting checkpoint: `bc71d79d0` (clean worktree).
+
+## Final outcome
+
+The cleanup is implemented, committed locally and installed. Two parallel workers
+completed the fresh CableBlock/PrintingPressBlock pilot, including verification
+and selected disk manifestation, in 57.640 seconds. This used existing agents;
+the earlier cold-start pilot missed at 81.219 seconds and remains recorded below.
+All four pilot files pass their 20 pinned oracle contexts. The final full-tree
+dry-run matched 29,544 outputs with no changes or removals.
+
+The broad gate completed across its initial run, the repaired fixture rerun and
+the remaining shards. Its partition covers 1,660 library test entries (existing
+opt-in ignored tests were not enabled); all four integration targets passed
+70 tests. The dedicated promotion fixture passed in 247.68 seconds. Binary/doc
+tests and the final default-feature build passed. Clippy and the all-features
+build passed before the final test-only fixture repair; formatting was rerun.
+There are no unresolved test failures. This was not one uninterrupted green run.
+
+The installed executable is revision `3de9f3629`, SHA-256
+`d47b428fac36fa5b17d4c89252d75bdfb404efca39dcee65652dcd9416d26a59`.
+Its compact 20-context smoke check passed. No user installation or Minecraft
+restart is required. No dependencies changed, nothing was pushed, and no game
+process was stopped. The final scope audit found only the four pilot templates
+and their affected Java projections changed. C1-C9 are satisfied by the evidence
+below; full-tree I/O and broad release fixtures remain slower than worker checks.
+
+Sections below retain chronological implementation notes. Their older pending
+statements are superseded by the completion evidence and this final outcome.
 
 ## Updating this plan
 
@@ -280,7 +308,7 @@ CLI install, cleanup commits and the timed pilot remain pending.
 
 ## [x] 4 Run the timed parallel pilot
 
-After the report-size repair, a fresh pair completed in **57.640 seconds**:
+After the report-size repair, a fresh pair completed in 57.640 seconds:
 `CableBlock.java` and `PrintingPressBlock.java`. The same two agents received new
 file assignments in parallel. Timing started before first assignment at
 06:44:41.065 UTC and ended after the combined disk manifestation returned.
@@ -296,7 +324,7 @@ CableBlock contexts, returning 2,628 UTF-8 bytes. It retained complete checks an
 bounded candidate examples. Both the initial miss and this fresh pass remain
 recorded; no completed edit was replayed to manufacture a passing time.
 
-The two-agent pilot completed correctly in **81.219 seconds**, missing the
+The two-agent pilot completed correctly in 81.219 seconds, missing the
 60-second deadline by 21.219 seconds. Timing began before first dispatch at
 06:34:06.414 UTC and ended after the combined manifestation returned. Each agent
 edited only its assigned core template and verified all 20 historical oracles.
@@ -360,7 +388,7 @@ stores full commit IDs; worker assignments will retain those bindings unchanged.
 Discovery used the current all-features debug build for correctness only, not
 performance evidence. Operational timing awaits the default/release build.
 
-## [~] 5 Validate, install and checkpoint
+## [x] 5 Validate, install and checkpoint
 
 Current handoff: the final executable-input revision is `d34a9e620`. Installation
 completed successfully; the PATH executable reports that revision and SHA-256
