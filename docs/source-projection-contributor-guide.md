@@ -83,8 +83,15 @@ For contributor edits, follow the hydration PR procedure above before regenerati
 For an assigned Java file, the worker loop is read-only:
 
 ```powershell
-sfm-propagate-changes --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java
+sfm-propagate-changes --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java --summary
 ```
+
+Use `--summary` in worker assignments. It performs the same complete checks but
+returns the outcome, failed contexts and bounded whitespace examples. Successful
+contexts and pairwise code differences are omitted from this compact report.
+Examples are a sample, not an exhaustive edit list. Omit `--summary` when you
+need the complete evidence report. Do not print the complete report into a worker
+conversation merely to find its next whitespace edit.
 
 This renders the current template in memory and compares complete Java with
 the immutable commit/path bindings in `projection-oracles.json`. Exit 0 means

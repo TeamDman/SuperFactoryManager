@@ -7,7 +7,7 @@ mod authenticated_library_batch_integration_tests {
     use crate::source_projection::catalog_owned_project::recheck_observation;
     use crate::source_projection::catalog_owned_project::tests::Fixture;
     use crate::source_projection::core_inputs::CORE_ROOT;
-    use crate::source_projection::sync::MANIFEST_FILE;
+    use crate::source_projection::projection_catalog::CATALOG_PATH;
     use std::cell::Cell;
     use std::net::TcpListener;
     use std::rc::Rc;
@@ -306,7 +306,7 @@ mod authenticated_library_batch_integration_tests {
     enum Change {
         Authored,
         Generated,
-        Provenance,
+        Catalog,
         UnownedGeneratedSource,
     }
 
@@ -322,7 +322,7 @@ mod authenticated_library_batch_integration_tests {
                 .join(CORE_ROOT)
                 .join("src/main/java/Shared.java"),
             Change::Generated => fixture.plan.minecraft_dir.join("src/main/java/Shared.java"),
-            Change::Provenance => fixture.plan.minecraft_dir.join(MANIFEST_FILE),
+            Change::Catalog => fixture.owner.repository().join(CATALOG_PATH),
             Change::UnownedGeneratedSource => fixture
                 .plan
                 .minecraft_dir
@@ -344,7 +344,7 @@ mod authenticated_library_batch_integration_tests {
         assert_eq!(
             fs::read(&target)?,
             expected_changed,
-            "refusal must not repair source/provenance"
+            "refusal must not repair source/catalog"
         );
         for path in fixture.expected_paths() {
             assert_eq!(fs::read(path)?, fixture.payload);
@@ -363,8 +363,8 @@ mod authenticated_library_batch_integration_tests {
         change_before_publication(Change::Generated)
     }
     #[test]
-    fn changed_provenance_refuses_before_vector_or_cfg_publication() -> eyre::Result<()> {
-        change_before_publication(Change::Provenance)
+    fn changed_catalog_refuses_before_vector_or_cfg_publication() -> eyre::Result<()> {
+        change_before_publication(Change::Catalog)
     }
     #[test]
     fn extra_unowned_generated_source_refuses_before_vector_or_cfg_publication() -> eyre::Result<()>
@@ -406,10 +406,10 @@ mod authenticated_library_batch_integration_tests {
         let fixture = LibraryFixture::new(4)?;
         let context = fixture.context()?;
         let offline = OfflineClient::new()?;
-        let target = fixture.plan.minecraft_dir.join(MANIFEST_FILE);
+        let target = fixture.owner.repository().join(CATALOG_PATH);
         let (checks, _scope) = observe(move |number, _| {
             if number == 4 {
-                fs::write(&target, b"changed provenance before cfg write").unwrap();
+                fs::write(&target, b"changed catalog before cfg write").unwrap();
             }
         });
         let expected = resolve_current_minecraft_libraries(&context, &offline.client)?;

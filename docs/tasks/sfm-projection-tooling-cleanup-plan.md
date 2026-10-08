@@ -252,7 +252,32 @@ current reconciliation guidance and documented commit-catalog oracle identity.
 `git diff --check` passed. Full batch performance/correctness validation, current
 CLI install, cleanup commits and the timed pilot remain pending.
 
-## [ ] 4 Run the timed parallel pilot
+## [~] 4 Run the timed parallel pilot
+
+The two-agent pilot completed correctly in **81.219 seconds**, missing the
+60-second deadline by 21.219 seconds. Timing began before first dispatch at
+06:34:06.414 UTC and ended after the combined manifestation returned. Each agent
+edited only its assigned core template and verified all 20 historical oracles.
+Both files now have zero whitespace-candidate pairs. The coordinator manifested
+both files in one call: 8 outputs changed, 32 unchanged, across 20 projects.
+Independent post-checks again verified all 40 file/context combinations; the
+targeted dry-run reports 40 unchanged and no writes. Only these two Java output
+paths changed; dependency, catalog and oracle inputs are unchanged.
+
+Measured bottleneck: workers printed full pairwise JSON before selecting fields,
+producing 171,791 and 75,824 output tokens before truncation. Water's five tool
+calls totalled 7.1 seconds of wrapper time; Fancy's three totalled 4.0 seconds.
+Startup, model processing and reasoning were not separately instrumented; do not
+attribute the entire remaining duration to one of them. The combined manifestation
+shell took 1.408 seconds. The repair is a compact `verify --summary` worker report
+with unchanged full checks, failure details and bounded/deduplicated whitespace
+examples. Its tests and installed-output proof are pending. Do not rerun the
+already completed edits and claim that as a fresh successful timed pilot.
+
+Pilot Java checkpoint: `d22d1bd4f`. Compact-report fixtures passed 4/4 in 0.87s:
+bounded examples keep complete outcome counts, oracle failures retain exit 1,
+and comment/literal changes remain rejected. Installed compact-report proof is
+still pending. Worker guidance now explicitly includes `--summary`.
 
 Batch machinery tests passed 7/7 in 0.65s (50.09s compilation). A fresh default
 CLI build passed. Real read-only manifestation measured 1,802ms for one Java
@@ -294,6 +319,17 @@ Discovery used the current all-features debug build for correctness only, not
 performance evidence. Operational timing awaits the default/release build.
 
 ## [ ] 5 Validate, install and checkpoint
+
+Cleanup checkpoint: `c08914986` (local only). Its installer completed in 2m15s;
+the PATH executable reported that revision and SHA-256
+`02736beabc0ac190f86dabc6ccb7b4df46b79323faf5f9b9110e76932c6f63b4`.
+Installed one-file/all-20 dry-run took 515ms; an all-20 oracle check took 282ms.
+This executable ran the pilot; the subsequent compact-report change requires
+another final install. The consolidated gate later failed three native fixtures:
+two mutated retired manifests, and one omitted checkout-owned supplements.
+Fixtures now mutate the catalog and provide the unchanged pinned supplements.
+The engine rerun passed 232 tests, zero failures, 3 ignored in 91.56s. Remaining
+broad validation and compact-report verification are still required.
 
 The consolidated gate passed linting and its all-features build. Its CLI group
 passed 338 tests with zero failures in 444.15 seconds; native-build and remaining

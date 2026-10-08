@@ -45,6 +45,9 @@ pub struct SimplifyVerifyArgs {
     pub baseline_commit: Option<String>,
     #[facet(args::named, default = 16)]
     pub max_regions: usize,
+    /// Compact worker output: full checks, failures and bounded whitespace examples.
+    #[facet(args::named, default)]
+    pub summary: bool,
 }
 
 #[derive(Debug, Facet)]
@@ -86,6 +89,63 @@ struct Report {
     writes_performed: bool,
 }
 
+#[derive(Debug, Facet)]
+struct WorkerExample {
+    before_projection: String,
+    after_projection: String,
+    region: simplify::Region,
+}
+
+#[derive(Debug, Facet)]
+struct WorkerReport {
+    schema: String,
+    file: String,
+    all_oracles_verified: bool,
+    simplification_complete: bool,
+    contexts_checked: usize,
+    pairs_with_whitespace_candidates: usize,
+    failures: Vec<Verification>,
+    examples: Vec<WorkerExample>,
+    examples_are_sample: bool,
+    writes_performed: bool,
+}
+
+impl WorkerReport {
+    fn from_report(report: Report, limit: usize) -> Self {
+        let mut seen = BTreeSet::new();
+        let mut examples = Vec::new();
+        for pair in report.candidate_pairs {
+            for region in pair.comparison.whitespace_candidates {
+                if examples.len() < limit
+                    && seen.insert((region.before.text.clone(), region.after.text.clone()))
+                {
+                    examples.push(WorkerExample {
+                        before_projection: pair.before_projection.clone(),
+                        after_projection: pair.after_projection.clone(),
+                        region,
+                    });
+                }
+            }
+        }
+        Self {
+            schema: "sfm:source_simplify_worker@1".into(),
+            file: report.file,
+            all_oracles_verified: report.all_oracles_verified,
+            simplification_complete: report.simplification_complete,
+            contexts_checked: report.inputs.len(),
+            pairs_with_whitespace_candidates: report.pairs_with_whitespace_candidates,
+            failures: report
+                .inputs
+                .into_iter()
+                .filter(|row| !matches!(row.status.as_str(), "verified_java" | "verified_absent"))
+                .collect(),
+            examples,
+            examples_are_sample: true,
+            writes_performed: false,
+        }
+    }
+}
+
 pub(super) fn invoke(
     args: &SimplifyVerifyArgs,
     cancellation: &CancellationToken,
@@ -93,6 +153,12 @@ pub(super) fn invoke(
 ) -> Result<CliOutput> {
     let report = verify(args, cancellation, invocation_dir)?;
     let status = u8::from(!report.all_oracles_verified);
+    if args.summary {
+        return Ok(CliOutput::facet_with_status(
+            WorkerReport::from_report(report, args.max_regions),
+            status,
+        ));
+    }
     Ok(CliOutput::facet_with_status(report, status))
 }
 
@@ -363,12 +429,44 @@ fn oracle_location(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
-    use crate::source_projection::projection_catalog::CATALOG_PATH;
     use std::fs;
     use std::process::Command;
 
     const FILE: &str = "src/main/java/A.java";
+
+    #[test]
+    fn worker_examples_are_bounded_without_changing_full_check_outcomes() {
+        let before = simplify::parse("class A { }".into()).unwrap();
+        let after = simplify::parse("class A {\n}".into()).unwrap();
+        let report = Report {
+            schema: "fixture".into(),
+            scope: "fixture".into(),
+            file: FILE.into(),
+            catalog_sha256: String::new(),
+            feature_definitions_sha256: String::new(),
+            project_inputs_sha256: String::new(),
+            oracle_bindings_sha256: None,
+            all_oracles_verified: false,
+            simplification_complete: false,
+            pairs_with_whitespace_candidates: 2,
+            inputs: vec![],
+            candidate_pairs: (0..2)
+                .map(|index| Pair {
+                    before_projection: format!("before/{index}"),
+                    after_projection: format!("after/{index}"),
+                    comparison: simplify::compare(&before, &after),
+                })
+                .collect(),
+            writes_performed: false,
+        };
+        let compact = WorkerReport::from_report(report, 1);
+        assert!(!compact.all_oracles_verified);
+        assert!(!compact.simplification_complete);
+        assert_eq!(compact.pairs_with_whitespace_candidates, 2);
+        assert_eq!(compact.examples.len(), 1);
+        assert!(compact.examples_are_sample);
+        assert!(!compact.writes_performed);
+    }
 
     fn write(root: &Path, path: &str, bytes: &[u8]) {
         let path = root.join(path);
@@ -432,15 +530,22 @@ mod tests {
         git(root, &["add", "."]);
         git(root, &["commit", "--quiet", "-m", "baseline"]);
         let commit = git(root, &["rev-parse", "HEAD"]);
-        let args = SimplifyVerifyArgs {
+        let mut args = SimplifyVerifyArgs {
             repo_root: root.to_owned(),
             file: FILE.into(),
             projection: vec!["a".into()],
             baseline_commit: Some(commit.clone()),
             max_regions: 16,
+            summary: false,
         };
         let report = verify(&args, &CancellationToken::new(), root).unwrap();
         assert!(report.all_oracles_verified);
+        let compact =
+            WorkerReport::from_report(verify(&args, &CancellationToken::new(), root).unwrap(), 1);
+        assert!(compact.all_oracles_verified);
+        assert_eq!(compact.contexts_checked, 1);
+        assert!(compact.failures.is_empty());
+        assert!(facet_json::to_string(&compact).unwrap().len() < 2_000);
         let catalog_before = fs::read(root.join(CATALOG_PATH)).unwrap();
         write(
             root,
@@ -476,6 +581,7 @@ mod tests {
             &format!("{CORE_ROOT}/{FILE}"),
             b"class ChangedTemplate {}\n",
         );
+        args.summary = true;
         assert_eq!(
             invoke(&args, &CancellationToken::new(), root)
                 .unwrap()

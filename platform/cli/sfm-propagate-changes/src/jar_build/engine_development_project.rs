@@ -137,6 +137,16 @@ mod development_project_tests {
             ("26.1.2", "26.1.2", "26.1.2.72", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-4.json")),
         ];
         let mut fixture = Fixture::new();
+        let supplement_root = fixture.repository().join(
+            "platform/minecraft/core-liquid-template/build/supplements",
+        );
+        std::fs::create_dir_all(&supplement_root)?;
+        std::fs::write(supplement_root.join("nfrt-child-identities.json"), include_bytes!(
+            "../../../../minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json"
+        ))?;
+        std::fs::write(supplement_root.join("nfrt-source-library-identities.json"), include_bytes!(
+            "../../../../minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json"
+        ))?;
         for (index, (target, minecraft, loader, raw)) in cases.into_iter().enumerate() {
             fixture.set_project_file_for(target, "sfm-toolchain.lock.json", &format!("build/proof/{target}/lock.json"), raw, false)?;
             fixture.set_project_file_for(target, "gradle.properties", &format!("build/proof/{target}/gradle.properties"), format!("minecraft_version={minecraft}\nneo_version={loader}\nmod_version=4.34.0\n").as_bytes(), false)?;
