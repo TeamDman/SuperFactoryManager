@@ -291,10 +291,10 @@ public final class ClientProgramSigningScreen extends Screen {
         enableTexture();
 {% endcase %}
     }
+
 {% case minecraft_version %}
 {% when "1.19.2" %}
 {% when "1.19.4" %}
-
     @MCVersionDependentBehaviour
     private static void disableTexture() {
         // RenderSystem.disableTexture(); // 1.19.2

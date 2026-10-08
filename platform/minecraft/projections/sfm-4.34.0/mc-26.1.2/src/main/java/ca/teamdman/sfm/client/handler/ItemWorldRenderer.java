@@ -36,9 +36,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryUtil;
-
 import java.util.*;
-
 import static ca.teamdman.sfm.client.handler.NetworkPipeline.NETWORK_PIPELINE;
 
 /*
@@ -92,7 +90,6 @@ public class ItemWorldRenderer {
     private static final int capabilityColorLimitedView = ARGB.color(100, 0, 100, 255);
     private static final int cableColor = ARGB.color(100, 100, 255, 0);
     private static final int noNetworkErrorColor = ARGB.color(200, 255, 50, 50);
-
     private static final VBOCache vboCache = new VBOCache();
 
     // ByteBufferBuilder allocator shared for building mesh data each frame.
@@ -149,7 +146,10 @@ public class ItemWorldRenderer {
         return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
     }
 
-    private static @Nullable ItemStack getHeldItemOfType(LocalPlayer player, Class<?> itemClass) {
+    private static @Nullable ItemStack getHeldItemOfType(
+            LocalPlayer player,
+            Class<?> itemClass
+    ) {
         ItemStack mainHandItem = player.getMainHandItem();
         if (itemClass.isInstance(mainHandItem.getItem())) return mainHandItem;
         ItemStack offhandItem = player.getOffhandItem();
@@ -232,7 +232,14 @@ public class ItemWorldRenderer {
 
         var selectedPos = NetworkToolItem.getSelectedNetworkBlockPos(networkTool);
         if (cablePositions.isEmpty() && selectedPos != null) {
-            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, BlockPosSet.of(selectedPos), noNetworkErrorColor, event);
+            drawVbo(
+                    VBOKind.NETWORK_TOOL_CABLES,
+                    poseStack,
+                    camera,
+                    BlockPosSet.of(selectedPos),
+                    noNetworkErrorColor,
+                    event
+            );
         } else {
             drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, cablePositions, cableColor, event);
             drawVbo(VBOKind.NETWORK_TOOL_CAPABILITIES, poseStack, camera, capabilityPositions, capabilityColor, event);
@@ -453,7 +460,6 @@ public class ItemWorldRenderer {
      * </ul>
      */
     private static class VBOCache {
-
         private final EnumMap<VBOKind, VBOEntry> cache = new EnumMap<>(VBOKind.class);
         private int lastChangeCheckTick = -1;
 
@@ -469,8 +475,8 @@ public class ItemWorldRenderer {
             if (positions.isEmpty()) return null;
 
             @Nullable VBOEntry entry = cache.get(kind);
-            boolean shouldRebuild = (entry == null);
 
+            boolean shouldRebuild = (entry == null);
             // Throttle expensive equality checks to once per render tick.
             int currentTick = event.getLevelRenderer().getTicks();
             if (entry != null
@@ -487,7 +493,11 @@ public class ItemWorldRenderer {
 
                 BlockPos origin = getOrigin(positions);
                 MappableRingBuffer ringBuffer = createRingBuffer(positions, origin, r, g, b, a);
-                entry = new VBOEntry(new BlockPosSet(positions), origin, ringBuffer);
+                entry = new VBOEntry(
+                        new BlockPosSet(positions),
+                        origin,
+                        ringBuffer
+                );
                 cache.put(kind, entry);
             }
 
@@ -598,6 +608,7 @@ public class ItemWorldRenderer {
                 BlockPosSet positions,
                 BlockPos origin,
                 MappableRingBuffer ringBuffer
-        ) {}
+        ) {
+        }
     }
 }

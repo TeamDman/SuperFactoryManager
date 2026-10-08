@@ -74,7 +74,10 @@ public final class SFMFileExplorerWorkspace {
                 presentations,
                 recipeBacked);
 {% else %}
-        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(source, controller::open, presentations);
+        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(
+                source,
+                controller::open,
+                presentations);
 {% endcase %}
         controller.attachExplorer(explorer);
 {% case minecraft_version %}

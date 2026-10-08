@@ -37,7 +37,6 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 {% else %}
 {% endcase %}
-
 import java.util.List;
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
@@ -223,7 +222,8 @@ public final class SFMKeyBindingService {
                         () -> Minecraft.getInstance().screen == origin)).intents();
 {% else %}
         if (dispatchSuspended) return List.of();
-        List<SFMActionInvocationIntent> intents = engine.accept(event);
+        List<SFMActionInvocationIntent> intents = engine.accept(
+                event);
         intents.forEach(this::dispatch);
         return intents;
 {% endcase %}
@@ -359,7 +359,8 @@ public final class SFMKeyBindingService {
             SFMClientActionInvocationTrace.DynamicBindingProvenance provenance
     ) {
 {% else %}
-    private void dispatch(SFMActionInvocationIntent intent) {
+    private void dispatch(
+            SFMActionInvocationIntent intent) {
 {% endcase %}
         Minecraft minecraft = Minecraft.getInstance();
 {% case minecraft_version %}

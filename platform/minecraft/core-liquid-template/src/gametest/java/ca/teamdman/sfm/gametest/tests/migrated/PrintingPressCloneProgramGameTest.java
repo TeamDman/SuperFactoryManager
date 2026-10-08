@@ -28,7 +28,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 {% when '1.21', '1.21.1', '26.1.2' %}
 {% endcase %}
-
 import java.util.Objects;
 
 
@@ -108,7 +107,8 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Place paper
 {% endcase %}
@@ -129,7 +129,8 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Place form
 {% endcase %}
@@ -159,7 +160,8 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
 {% when '1.21', '1.21.1', '26.1.2' %}
         ItemStack form = FormItem.createFormFromReference(disk);
         player.setItemInHand(InteractionHand.MAIN_HAND, form);
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 {% endcase %}
 
 {% case minecraft_version %}
@@ -180,7 +182,8 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
         // Activate printing press
-        helper.useBlock(buttonPos, player);
+        helper.useBlock(buttonPos,
+                player);
 {% endcase %}
 
 {% case minecraft_version %}
@@ -206,7 +209,8 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
             );
 {% when '1.21', '1.21.1', '26.1.2' %}
             // Pull out result
-            helper.useBlock(printingPos, player);
+            helper.useBlock(printingPos,
+                    player);
 {% endcase %}
             ItemStack held = player.getMainHandItem();
 

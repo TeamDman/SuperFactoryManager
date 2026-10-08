@@ -229,7 +229,6 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
             int my,
             float partialTicks
     ) {
-
         if (logsScreen.shouldRebuildText()) {
             logsScreen.rebuildText();
         }
@@ -240,5 +239,4 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
         textRenderWidget.setSelected(this.textField.getSelected());
         textRenderWidget.render(pGuiGraphics, mx, my, partialTicks);
     }
-
 }

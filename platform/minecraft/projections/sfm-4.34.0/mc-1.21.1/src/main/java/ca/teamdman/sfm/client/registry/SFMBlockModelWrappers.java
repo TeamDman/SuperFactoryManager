@@ -16,7 +16,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.model.BakedModelWrapper;
-
 import java.util.Map;
 import java.util.function.Function;
 
@@ -57,7 +56,7 @@ public class SFMBlockModelWrappers {
                         SFMBlocks.TOUGH_FANCY_CABLE_FACADE,
                         FancyCableFacadeBlockModelWrapper::new
                 ),
-                };
+        };
 
         // Apply the model redirection for each relationship
         Map<ModelResourceLocation, BakedModel> models = event.getModels();

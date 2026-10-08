@@ -51,15 +51,17 @@ public class ExamplesScreen extends Screen {
 {% when '1.19.2', '1.19.4' %}
     public void render(
             PoseStack pPoseStack,
+{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
+    public void render(
+            GuiGraphics graphics,
+{% when '26.1.2' %}
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
+{% endcase %}
             int pMouseX,
             int pMouseY,
             float pPartialTick
     ) {
-{% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-    public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
-{% when '26.1.2' %}
-    public void extractRenderState(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
-{% endcase %}
 
         // Darken background
 {% case minecraft_version %}

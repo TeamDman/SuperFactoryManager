@@ -1,12 +1,13 @@
 package ca.teamdman.sfm.client.keybinding;
 
 import com.mojang.blaze3d.platform.InputConstants;
+
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 import org.lwjgl.glfw.GLFW;
+
 {% else %}
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.List;
 

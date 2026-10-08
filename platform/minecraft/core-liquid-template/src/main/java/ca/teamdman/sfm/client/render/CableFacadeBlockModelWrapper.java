@@ -49,7 +49,6 @@ import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import net.neoforged.neoforge.model.data.ModelData;
 {% endcase %}
-
 import java.util.List;
 
 {% case minecraft_version %}
@@ -90,7 +89,13 @@ public class CableFacadeBlockModelWrapper extends DelegateBlockStateModel {
     }
 
     @Override
-    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> parts) {
+    public void collectParts(
+            BlockAndTintGetter level,
+            BlockPos pos,
+            BlockState state,
+            RandomSource random,
+            List<BlockStateModelPart> parts
+    ) {
         ModelData modelData = level.getModelData(pos);
         BlockState mimicState = modelData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
 {% endcase %}
@@ -107,6 +112,7 @@ public class CableFacadeBlockModelWrapper extends DelegateBlockStateModel {
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         BlockState mimicState = extraData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
+
 {% when '26.1.2' %}
 {% endcase %}
         if (mimicState != null) {

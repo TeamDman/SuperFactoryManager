@@ -41,7 +41,12 @@ public class ExamplesScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int pMouseX, int pMouseY, float pPartialTick) {
+    public void render(
+            GuiGraphics graphics,
+            int pMouseX,
+            int pMouseY,
+            float pPartialTick
+    ) {
 
         // Darken background
         this.renderBackground(graphics);

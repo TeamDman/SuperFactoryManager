@@ -17,7 +17,6 @@ import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.BakedModelWrapper;
 import net.neoforged.neoforge.client.model.data.ModelData;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 
 public class CableFacadeBlockModelWrapper extends BakedModelWrapper<BakedModel> {
@@ -49,6 +48,7 @@ public class CableFacadeBlockModelWrapper extends BakedModelWrapper<BakedModel> 
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         BlockState mimicState = extraData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
+
         if (mimicState != null) {
             BlockRenderDispatcher blockRenderer = minecraft.getBlockRenderer();
             BakedModel mimicModel = blockRenderer.getBlockModel(mimicState);

@@ -129,7 +129,10 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
     ) {
         for (int i = 0; i < tankPositions.length; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-            helper.assertTrue(tank != null, "Tank " + i + " should exist (" + context + ")");
+            helper.assertTrue(
+                    tank != null,
+                    "Tank " + i + " should exist (" + context + ")"
+            );
             helper.assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")"

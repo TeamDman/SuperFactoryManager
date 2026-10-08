@@ -27,7 +27,6 @@ import java.util.Objects;
 })
 @SFMGameTest
 public class RegressionInputRetainBExpandedSharedGameTest extends SFMGameTestDefinition {
-
     @Override
     public String template() {
         return "7x3x3";

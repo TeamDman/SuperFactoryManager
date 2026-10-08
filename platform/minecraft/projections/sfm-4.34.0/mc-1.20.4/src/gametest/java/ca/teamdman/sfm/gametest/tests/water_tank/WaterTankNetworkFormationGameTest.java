@@ -112,7 +112,6 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
         WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
-
         helper.assertTrue(centerTank != null, "Center tank should exist");
         helper.assertTrue(northTank != null, "North tank should exist");
         helper.assertTrue(southTank != null, "South tank should exist");
@@ -128,7 +127,6 @@ public class WaterTankNetworkFormationGameTest extends SFMGameTestDefinition {
         southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
         eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
-
         helper.assertTrue(northTank != null, "North tank should still exist after removing center");
         helper.assertTrue(southTank != null, "South tank should still exist after removing center");
         helper.assertTrue(eastTank != null, "East tank should still exist after removing center");

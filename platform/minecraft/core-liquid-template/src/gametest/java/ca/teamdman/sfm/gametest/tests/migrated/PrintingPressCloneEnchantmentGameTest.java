@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
+
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 {% when '1.21', '1.21.1', '26.1.2' %}
@@ -75,7 +76,6 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
         Player player = helper.makeMockPlayer();
 {% when '1.21', '1.21.1', '26.1.2' %}
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-
 {% endcase %}
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SFMItems.EXPERIENCE_GOOP.get(), 10));
         BlockState pressState = helper.getBlockState(printingPos);
@@ -95,8 +95,8 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(printingPos, player);
-
+        helper.useBlock(printingPos,
+                player);
 {% endcase %}
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOOK));
 {% case minecraft_version %}
@@ -115,7 +115,8 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 {% endcase %}
 
         ItemStack reference = helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3)
@@ -138,7 +139,8 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 {% endcase %}
 
 {% case minecraft_version %}
@@ -159,7 +161,8 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
         // Activate printing press
-        helper.useBlock(buttonPos, player);
+        helper.useBlock(buttonPos,
+                player);
 {% endcase %}
 
         helper.runAfterDelay(
@@ -180,7 +183,8 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
                             )
                     );
 {% when '1.21', '1.21.1', '26.1.2' %}
-                    helper.useBlock(printingPos, player);
+                    helper.useBlock(printingPos,
+                            player);
 {% endcase %}
                     ItemStack held = player.getMainHandItem();
 

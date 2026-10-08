@@ -95,7 +95,6 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
             FallingAnvilRecipe recipe,
             IFocusGroup focuses
     ) {
-
         var anvil = List.of(
                 new ItemStack(Items.ANVIL),
                 new ItemStack(Items.CHIPPED_ANVIL),

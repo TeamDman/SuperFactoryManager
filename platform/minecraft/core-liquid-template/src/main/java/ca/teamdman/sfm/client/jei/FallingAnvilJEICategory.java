@@ -152,11 +152,6 @@ public class FallingAnvilJEICategory implements IRecipeCategory<FallingAnvilReci
             FallingAnvilRecipe recipe,
             IFocusGroup focuses
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-{% when '26.1.2' %}
-
-{% endcase %}
         var anvil = List.of(
                 new ItemStack(Items.ANVIL),
                 new ItemStack(Items.CHIPPED_ANVIL),

@@ -62,26 +62,29 @@ public class PrintingPressCloneEnchantmentGameTest extends SFMGameTestDefinition
 
         var printingPress = helper.getBlockEntity(printingPos, PrintingPressBlockEntity.class);
         Player player = helper.makeMockPlayer(GameType.SURVIVAL);
-
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SFMItems.EXPERIENCE_GOOP.get(), 10));
         BlockState pressState = helper.getBlockState(printingPos);
-        helper.useBlock(printingPos, player);
-
+        helper.useBlock(printingPos,
+                player);
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOOK));
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         ItemStack reference = helper.createEnchantmentEntry(Enchantments.SHARPNESS, 3)
                 .createEnchantedBook();
 
         player.setItemInHand(InteractionHand.MAIN_HAND, FormItem.createFormFromReference(reference));
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Activate printing press
-        helper.useBlock(buttonPos, player);
+        helper.useBlock(buttonPos,
+                player);
 
         helper.runAfterDelay(
                 5, () -> {
-                    helper.useBlock(printingPos, player);
+                    helper.useBlock(printingPos,
+                            player);
                     ItemStack held = player.getMainHandItem();
 
                     // Fail if result is not a clone of the enchantment

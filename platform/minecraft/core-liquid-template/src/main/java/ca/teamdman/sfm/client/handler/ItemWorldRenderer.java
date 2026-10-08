@@ -77,7 +77,6 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 import org.lwjgl.system.MemoryUtil;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 import java.util.Collection;
@@ -85,7 +84,6 @@ import java.util.EnumMap;
 import java.util.Map;
 {% when '26.1.2' %}
 import java.util.*;
-
 import static ca.teamdman.sfm.client.handler.NetworkPipeline.NETWORK_PIPELINE;
 {% endcase %}
 
@@ -187,7 +185,6 @@ public class ItemWorldRenderer {
     private static final int capabilityColorLimitedView = ARGB.color(100, 0, 100, 255);
     private static final int cableColor = ARGB.color(100, 100, 255, 0);
     private static final int noNetworkErrorColor = ARGB.color(200, 255, 50, 50);
-
 {% endcase %}
     private static final VBOCache vboCache = new VBOCache();
 
@@ -294,21 +291,16 @@ public class ItemWorldRenderer {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
         // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
-        return new BlockPos((int) Math.floor(x),(int) Math.floor(y),(int) Math.floor(z));
+        return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
 {% when '26.1.2' %}
         return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
 {% endcase %}
     }
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     private static @Nullable ItemStack getHeldItemOfType(
             LocalPlayer player,
             Class<?> itemClass
     ) {
-{% when '26.1.2' %}
-    private static @Nullable ItemStack getHeldItemOfType(LocalPlayer player, Class<?> itemClass) {
-{% endcase %}
         ItemStack mainHandItem = player.getMainHandItem();
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
@@ -340,11 +332,6 @@ public class ItemWorldRenderer {
             MultiBufferSource.BufferSource bufferSource,
             ItemStack labelGun
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         LabelGunItem.LabelGunViewMode viewMode = LabelGunItem.getViewMode(labelGun);
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
@@ -473,11 +460,6 @@ public class ItemWorldRenderer {
 {% endcase %}
     }
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
     private static void handleNetworkTool(
             RenderLevelStageEvent event,
             PoseStack poseStack,
@@ -514,7 +496,14 @@ public class ItemWorldRenderer {
                     event
             );
 {% when '26.1.2' %}
-            drawVbo(VBOKind.NETWORK_TOOL_CABLES, poseStack, camera, BlockPosSet.of(selectedPos), noNetworkErrorColor, event);
+            drawVbo(
+                    VBOKind.NETWORK_TOOL_CABLES,
+                    poseStack,
+                    camera,
+                    BlockPosSet.of(selectedPos),
+                    noNetworkErrorColor,
+                    event
+            );
 {% endcase %}
         } else {
 {% case minecraft_version %}
@@ -733,21 +722,11 @@ public class ItemWorldRenderer {
                     -font.width(label) / 2f,
                     0,
                     false,
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-                    true, poseStack.last().pose(),
-{% when '26.1.2' %}
                     true,
                     poseStack.last().pose(),
-{% endcase %}
                     mbs
             );
             poseStack.translate(0, font.lineHeight + 0.1, 0);
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         }
         poseStack.popPose();
     }
@@ -855,11 +834,6 @@ public class ItemWorldRenderer {
      */
 {% endcase %}
     private static class VBOCache {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-{% when '26.1.2' %}
-
-{% endcase %}
         private final EnumMap<VBOKind, VBOEntry> cache = new EnumMap<>(VBOKind.class);
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
@@ -887,12 +861,12 @@ public class ItemWorldRenderer {
 
 {% endcase %}
             @Nullable VBOEntry entry = cache.get(kind);
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 {% when '26.1.2' %}
             boolean shouldRebuild = (entry == null);
 {% endcase %}
-
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
             boolean shouldRebuild = entry == null;
@@ -905,8 +879,8 @@ public class ItemWorldRenderer {
             if (entry != null
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-                && event.getRenderTick() != lastChangeCheck
-                && !entry.positions.equals(positions)) {
+                    && event.getRenderTick() != lastChangeCheck
+                    && !entry.positions.equals(positions)) {
                 lastChangeCheck = event.getRenderTick();
 {% when '26.1.2' %}
                     && currentTick != lastChangeCheckTick
@@ -949,7 +923,11 @@ public class ItemWorldRenderer {
                 );
 {% when '26.1.2' %}
                 MappableRingBuffer ringBuffer = createRingBuffer(positions, origin, r, g, b, a);
-                entry = new VBOEntry(new BlockPosSet(positions), origin, ringBuffer);
+                entry = new VBOEntry(
+                        new BlockPosSet(positions),
+                        origin,
+                        ringBuffer
+                );
 {% endcase %}
                 cache.put(kind, entry);
             }
@@ -1148,7 +1126,8 @@ public class ItemWorldRenderer {
         }
 {% when '26.1.2' %}
                 MappableRingBuffer ringBuffer
-        ) {}
+        ) {
+        }
 {% endcase %}
     }
 }

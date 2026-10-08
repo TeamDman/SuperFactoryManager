@@ -45,14 +45,16 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BLACK_DYE, 23));
         // right click on printing press
         BlockState pressState = helper.getBlockState(pos);
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the ink was inserted
         helper.assertTrue(!printingPress.getInk().isEmpty(), "Ink was not inserted");
         helper.assertTrue(player.getMainHandItem().isEmpty(), "Ink was not taken from hand");
         // put book in player hand
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BOOK));
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the book was inserted
         helper.assertTrue(!printingPress.getPaper().isEmpty(), "Paper was not inserted");
         helper.assertTrue(player.getMainHandItem().isEmpty(), "Paper was not taken from hand");
@@ -60,7 +62,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         var form = FormItem.createFormFromReference(new ItemStack(Items.WRITTEN_BOOK));
         player.setItemInHand(InteractionHand.MAIN_HAND, form.copy());
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the form was inserted
         helper.assertTrue(!printingPress.getForm().isEmpty(), "Form was not inserted");
         helper.assertTrue(player.getMainHandItem().isEmpty(), "Form was not taken from hand");
@@ -68,7 +71,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         // pull out item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the paper was extracted
         helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not extracted");
         helper.assertTrue(!player.getMainHandItem().isEmpty(), "Paper was not given to player");
@@ -78,7 +82,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         // pull out an item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the form was extracted
         helper.assertTrue(printingPress.getForm().isEmpty(), "Form was not extracted");
         helper.assertTrue(!player.getMainHandItem().isEmpty(), "Form was not given to player");
@@ -86,7 +91,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         // pull out item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert the ink was extracted
         helper.assertTrue(printingPress.getInk().isEmpty(), "Ink was not extracted");
         helper.assertTrue(!player.getMainHandItem().isEmpty(), "Ink was not given to player");
@@ -95,7 +101,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
         // try to pull out another item
         player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         // right click on printing press
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
         // assert nothing was extracted
         helper.assertTrue(player.getMainHandItem().isEmpty(), "Nothing should have been extracted");
         helper.succeed();

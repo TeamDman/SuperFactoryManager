@@ -12,12 +12,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
+
 {% case minecraft_version %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2", "1.21" %}
 {% when "1.19.2", "1.19.4" %}
 import net.minecraft.resources.ResourceLocation;
-{% endcase %}
 
+{% endcase %}
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

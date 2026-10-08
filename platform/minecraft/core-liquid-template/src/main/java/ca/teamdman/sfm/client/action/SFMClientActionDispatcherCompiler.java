@@ -137,7 +137,9 @@ public final class SFMClientActionDispatcherCompiler {
 {% endif %}
                 historySuggestions);
 {% else %}
-        return new SFMClientActionCommandTree(dispatcher, actions);
+        return new SFMClientActionCommandTree(
+                dispatcher,
+                actions);
 {% endif %}
     }
 

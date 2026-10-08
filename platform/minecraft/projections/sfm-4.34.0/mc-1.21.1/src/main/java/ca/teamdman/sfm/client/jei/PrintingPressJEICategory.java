@@ -16,7 +16,6 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-
 import java.util.Arrays;
 
 public class PrintingPressJEICategory implements IRecipeCategory<PrintingPressRecipe> {

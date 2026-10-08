@@ -38,7 +38,8 @@ public final class OpenReplAction implements SFMClientAction<SFMClientActionCont
 {% endif %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% if features.terminal_legacy_open_actions %}
-        return OpenTerminalAction.open(target, SFMTerminalServiceFactory.createRepl());
+        return OpenTerminalAction.open(
+                target, SFMTerminalServiceFactory.createRepl());
 {% else %}
         context.getSource().sendFeedback(Component.literal("Opening Java REPL terminals is unavailable"));
         return 0;

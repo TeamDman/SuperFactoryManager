@@ -8,7 +8,6 @@ package ca.teamdman.sfm.client.examples;
 import net.minecraft.FieldsAreNonnullByDefault;
 import net.minecraft.MethodsReturnNonnullByDefault;
 {% when '26.1.2' %}
-
 import com.mojang.logging.annotations.FieldsAreNonnullByDefault;
 import com.mojang.logging.annotations.MethodsReturnNonnullByDefault;
 {% endcase %}

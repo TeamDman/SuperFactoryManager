@@ -90,7 +90,8 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
         // load the program
         manager.setProgram(program);
         String expectedEnergyDidNotMatch = "Program did not start running " + DiskItem.getErrors(manager.getDisk());
-        helper.assertTrue(manager.getState() == ManagerBlockEntity.State.RUNNING, expectedEnergyDidNotMatch);
+        helper.assertTrue(
+                manager.getState() == ManagerBlockEntity.State.RUNNING, expectedEnergyDidNotMatch);
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             // ensure all the source chests are full

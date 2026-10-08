@@ -65,7 +65,8 @@ public class ClientExportHelper {
             jsonObject.add("tags", tags);
 
             // Add the tooltip field (requires player)
-            String tooltip = stack.getTooltipLines(player, TooltipFlag.ADVANCED)
+            String tooltip = stack
+                    .getTooltipLines(player, TooltipFlag.ADVANCED)
                     .stream()
                     .map(Component::getString)
                     .reduce((line1, line2) -> line1 + "\n" + line2)

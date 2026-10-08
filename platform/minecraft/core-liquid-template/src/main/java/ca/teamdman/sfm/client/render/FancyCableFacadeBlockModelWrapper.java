@@ -47,7 +47,6 @@ import org.jetbrains.annotations.Nullable;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import net.neoforged.neoforge.model.data.ModelData;
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.List;
 

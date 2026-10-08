@@ -106,8 +106,10 @@ public final class SFMDeveloperActions {
 {% endif %}
 {% if features.developer_tools and features.legacy_comment_review_ui %}
     public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> COMMENT_REVIEW =
-            REGISTERER.register("developer/open_comment_review",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.COMMENT_REVIEW));
+            REGISTERER.register(
+                    "developer/open_comment_review",
+                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.COMMENT_REVIEW)
+            );
 
 {% endif %}
 {% endcase %}

@@ -74,13 +74,19 @@ public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<Pri
         var paper = blockEntity.getPaper();
         var dye = blockEntity.getInk();
         var form = blockEntity.getForm();
+
 {% when '26.1.2' %}
     public PrintingPressRenderState createRenderState() {
         return new PrintingPressRenderState();
     }
 
     @Override
-    public void submit(PrintingPressRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+    public void submit(
+            PrintingPressRenderState state,
+            PoseStack poseStack,
+            SubmitNodeCollector submitNodeCollector,
+            CameraRenderState camera
+    ) {
         int seed = (int) state.blockPos.asLong();
 
 {% endcase %}

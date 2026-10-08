@@ -32,7 +32,6 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
@@ -129,7 +128,7 @@ public class ItemWorldRenderer {
         if ((z % 1 == 0) && (zla < 0)) z -= 0.01;
 
         // @MCVersionDependentBehaviour, the double constructor doesn't exist in 1.19.4
-        return new BlockPos((int) Math.floor(x),(int) Math.floor(y),(int) Math.floor(z));
+        return new BlockPos((int) Math.floor(x), (int) Math.floor(y), (int) Math.floor(z));
     }
 
     private static @Nullable ItemStack getHeldItemOfType(
@@ -156,7 +155,6 @@ public class ItemWorldRenderer {
             MultiBufferSource.BufferSource bufferSource,
             ItemStack labelGun
     ) {
-
         LabelGunItem.LabelGunViewMode viewMode = LabelGunItem.getViewMode(labelGun);
 
         // Gather all label -> positions from the gun:
@@ -228,7 +226,6 @@ public class ItemWorldRenderer {
         bufferSource.endBatch();
         RenderSystem.enableDepthTest();
     }
-
 
     private static void handleNetworkTool(
             RenderLevelStageEvent event,
@@ -331,11 +328,11 @@ public class ItemWorldRenderer {
                     -font.width(label) / 2f,
                     0,
                     false,
-                    true, poseStack.last().pose(),
+                    true,
+                    poseStack.last().pose(),
                     mbs
             );
             poseStack.translate(0, font.lineHeight + 0.1, 0);
-
         }
         poseStack.popPose();
     }
@@ -439,8 +436,8 @@ public class ItemWorldRenderer {
 
             // only compare the entries every second since it's mildly expensive
             if (entry != null
-                && event.getRenderTick() != lastChangeCheck
-                && !entry.positions.equals(positions)) {
+                    && event.getRenderTick() != lastChangeCheck
+                    && !entry.positions.equals(positions)) {
                 lastChangeCheck = event.getRenderTick();
                 shouldRebuild = true;
             }

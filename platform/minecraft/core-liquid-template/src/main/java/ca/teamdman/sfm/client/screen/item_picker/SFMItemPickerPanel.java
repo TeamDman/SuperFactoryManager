@@ -226,13 +226,15 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
 {% if features.single_line_input %}
-    @Override public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+    @Override
+    public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
         if (!searchDragging || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         moveSearchCaret(x, true);
         return true;
     }
 
-    @Override public boolean mouseReleased(double x, double y, int button) {
+    @Override
+    public boolean mouseReleased(double x, double y, int button) {
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         boolean consumed = searchDragging;
         searchDragging = false;

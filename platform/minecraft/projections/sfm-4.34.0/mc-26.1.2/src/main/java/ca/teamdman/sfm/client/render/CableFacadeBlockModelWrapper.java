@@ -11,7 +11,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.DelegateBlockStateModel;
 import net.neoforged.neoforge.model.data.ModelData;
-
 import java.util.List;
 
 public class CableFacadeBlockModelWrapper extends DelegateBlockStateModel {
@@ -21,7 +20,13 @@ public class CableFacadeBlockModelWrapper extends DelegateBlockStateModel {
     }
 
     @Override
-    public void collectParts(BlockAndTintGetter level, BlockPos pos, BlockState state, RandomSource random, List<BlockStateModelPart> parts) {
+    public void collectParts(
+            BlockAndTintGetter level,
+            BlockPos pos,
+            BlockState state,
+            RandomSource random,
+            List<BlockStateModelPart> parts
+    ) {
         ModelData modelData = level.getModelData(pos);
         BlockState mimicState = modelData.get(IFacadeBlockEntity.FACADE_BLOCK_STATE_MODEL_PROPERTY);
 

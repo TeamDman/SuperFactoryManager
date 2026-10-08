@@ -104,7 +104,6 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
         WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
-
         helper.assertTrue(centerTank != null, "Center tank should exist");
         helper.assertTrue(northTank != null, "North tank should exist");
         helper.assertTrue(southTank != null, "South tank should exist");
@@ -120,14 +119,8 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
 
         // 4 active members in the network: capacity = 2^3 * 1000 = 8000
         int expectedCapacity = 8000;
-        helper.assertTrue(
-                centerTank.TANK.getCapacity() == expectedCapacity,
-                "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                northTank.TANK.getCapacity() == expectedCapacity,
-                "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity()
-        );
+        helper.assertTrue(centerTank.TANK.getCapacity() == expectedCapacity, "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity());
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacity, "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity());
 
         // Remove the center tank - this splits into 4 networks of 1 active tank each
         helper.setBlock(center, Blocks.AIR);
@@ -140,22 +133,10 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
 
         // Each network now has 1 active member: capacity = 2^0 * 1000 = 1000
         int expectedCapacityAfterSplit = 1000;
-        helper.assertTrue(
-                northTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                southTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                eastTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                westTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity()
-        );
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacityAfterSplit, "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity());
+        helper.assertTrue(southTank.TANK.getCapacity() == expectedCapacityAfterSplit, "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity());
+        helper.assertTrue(eastTank.TANK.getCapacity() == expectedCapacityAfterSplit, "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity());
+        helper.assertTrue(westTank.TANK.getCapacity() == expectedCapacityAfterSplit, "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity());
 
         // Restore center tank - networks should merge back
         helper.setBlock(center, SFMBlocks.WATER_TANK.get());
@@ -167,14 +148,8 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
             WaterTankBlockEntity northTankNew = helper.getBlockEntity(north, WaterTankBlockEntity.class);
 
             // Back to 4 active members (center is still inactive): capacity = 8000
-            helper.assertTrue(
-                    centerTankNew.TANK.getCapacity() == expectedCapacity,
-                    "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity()
-            );
-            helper.assertTrue(
-                    northTankNew.TANK.getCapacity() == expectedCapacity,
-                    "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity()
-            );
+            helper.assertTrue(centerTankNew.TANK.getCapacity() == expectedCapacity, "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity());
+            helper.assertTrue(northTankNew.TANK.getCapacity() == expectedCapacity, "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity());
 
             helper.succeed();
         });

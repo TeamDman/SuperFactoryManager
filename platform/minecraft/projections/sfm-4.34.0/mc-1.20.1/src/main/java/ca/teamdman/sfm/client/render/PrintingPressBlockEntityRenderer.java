@@ -29,6 +29,7 @@ public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<Pri
         var paper = blockEntity.getPaper();
         var dye = blockEntity.getInk();
         var form = blockEntity.getForm();
+
         poseStack.pushPose();
         poseStack.translate(0.5, 1, 0.6);
         rotate(poseStack);

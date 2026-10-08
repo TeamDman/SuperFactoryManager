@@ -202,7 +202,8 @@ public final class SFMKeyBindingEngine {
                     addState(nextStates, new MatchState(
                             nextStroke,
                             state.firstEvent,
-                            event.tick() + sequenceTimeoutTicks));
+                            event.tick() + sequenceTimeoutTicks
+                    ));
                 }
             }
             if (!nextStates.isEmpty()) {
@@ -231,7 +232,8 @@ public final class SFMKeyBindingEngine {
                 addState(states, new MatchState(
                         1,
                         event.sequenceNumber(),
-                        event.tick() + sequenceTimeoutTicks));
+                        event.tick() + sequenceTimeoutTicks
+                ));
                 bestViablePartialSpecificity = Math.min(
                         bestViablePartialSpecificity,
                         candidate.specificity);
@@ -259,7 +261,8 @@ public final class SFMKeyBindingEngine {
                     addState(nextStates, new MatchState(
                             1,
                             event.sequenceNumber(),
-                            event.tick() + sequenceTimeoutTicks));
+                            event.tick() + sequenceTimeoutTicks
+                    ));
                 }
                 if (!nextStates.isEmpty()) {
                     matches.put(binding.bindingId(), nextStates);
@@ -308,7 +311,9 @@ public final class SFMKeyBindingEngine {
 {% case minecraft_version %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2", "1.21" %}
 {% when "1.19.2", "1.19.4" %}
-    private static void addState(List<MatchState> states, MatchState state) {
+    private static void addState(
+            List<MatchState> states, MatchState state
+    ) {
         if (!states.contains(state)) states.add(state);
     }
 

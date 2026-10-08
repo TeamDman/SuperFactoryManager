@@ -6,7 +6,15 @@ import java.util.List;
 public interface SFMReviewCommentDataSource {
     enum Side { BEFORE, AFTER }
 {% if features.legacy_comment_review or features.legacy_repository_review %}
-    enum EvaluationStatus { RESOLVED_EXACTLY, RESOLVED_WITH_RELOCATION, AMBIGUOUS, NO_MATCH, INVALID_RULE, SCOPE_MISSING, CONTENT_CHANGED }
+    enum EvaluationStatus {
+        RESOLVED_EXACTLY,
+        RESOLVED_WITH_RELOCATION,
+        AMBIGUOUS,
+        NO_MATCH,
+        INVALID_RULE,
+        SCOPE_MISSING,
+        CONTENT_CHANGED
+    }
     enum StyleChannel { FOREGROUND, BACKGROUND, UNDERLINE, GUTTER }
 {% else %}
     enum EvaluationStatus {

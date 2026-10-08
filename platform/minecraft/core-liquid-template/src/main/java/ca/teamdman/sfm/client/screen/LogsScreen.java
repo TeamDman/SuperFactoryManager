@@ -36,7 +36,6 @@ import org.apache.logging.log4j.Level;
 {% when '26.1.2' %}
 import org.joml.Matrix3x2fStack;
 {% endcase %}
-
 import java.util.HashMap;
 import java.util.Map;
 

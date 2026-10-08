@@ -35,7 +35,12 @@ public class PrintingPressBlockEntityRenderer implements BlockEntityRenderer<Pri
     }
 
     @Override
-    public void submit(PrintingPressRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+    public void submit(
+            PrintingPressRenderState state,
+            PoseStack poseStack,
+            SubmitNodeCollector submitNodeCollector,
+            CameraRenderState camera
+    ) {
         int seed = (int) state.blockPos.asLong();
 
         poseStack.pushPose();

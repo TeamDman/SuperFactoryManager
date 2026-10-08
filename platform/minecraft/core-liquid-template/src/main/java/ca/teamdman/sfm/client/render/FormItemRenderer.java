@@ -193,10 +193,8 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
             poseStack.scale(0.5f, 0.5f, 0.5f);
             renderer.renderModelLists(baseModel, stack, packedLight, packedOverlay, poseStack, buffer);
 {% else %}
-
             poseStack.translate(-0.2f, 0.2f, 0.05f);
             poseStack.scale(0.6f, 0.6f, 0f);
-
             data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
 {% endcase %}
             poseStack.popPose();

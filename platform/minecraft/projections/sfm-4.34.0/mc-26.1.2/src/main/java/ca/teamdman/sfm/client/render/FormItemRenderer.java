@@ -44,10 +44,8 @@ public class FormItemRenderer implements SpecialModelRenderer<FormItemRenderer.D
             data.referenceState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
 
             poseStack.pushPose();
-
             poseStack.translate(-0.2f, 0.2f, 0.05f);
             poseStack.scale(0.6f, 0.6f, 0f);
-
             data.baseState.submit(poseStack, submitNodeCollector, lightCoords, overlayCoords, outlineColor);
             poseStack.popPose();
 

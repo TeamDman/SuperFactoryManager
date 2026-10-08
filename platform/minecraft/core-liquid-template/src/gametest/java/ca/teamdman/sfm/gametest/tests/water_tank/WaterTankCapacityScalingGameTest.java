@@ -128,15 +128,10 @@ public class WaterTankCapacityScalingGameTest extends SFMGameTestDefinition {
     ) {
         for (int i = 0; i < tankPositions.length; i++) {
             WaterTankBlockEntity tank = helper.getBlockEntity(tankPositions[i], WaterTankBlockEntity.class);
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
             helper.assertTrue(
                     tank != null,
                     "Tank " + i + " should exist (" + context + ")"
             );
-{% when '26.1.2' %}
-            helper.assertTrue(tank != null, "Tank " + i + " should exist (" + context + ")");
-{% endcase %}
             helper.assertTrue(
                     tank.TANK.getCapacity() == expectedCapacity,
                     "Tank " + i + " should have capacity " + expectedCapacity + " but had " + tank.TANK.getCapacity() + " (" + context + ")"

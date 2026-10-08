@@ -80,7 +80,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the ink was inserted
         helper.assertTrue(!printingPress.getInk().isEmpty(), "Ink was not inserted");
@@ -104,7 +105,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the book was inserted
         helper.assertTrue(!printingPress.getPaper().isEmpty(), "Paper was not inserted");
@@ -129,7 +131,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the form was inserted
         helper.assertTrue(!printingPress.getForm().isEmpty(), "Form was not inserted");
@@ -154,7 +157,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the paper was extracted
         helper.assertTrue(printingPress.getPaper().isEmpty(), "Paper was not extracted");
@@ -181,7 +185,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the form was extracted
         helper.assertTrue(printingPress.getForm().isEmpty(), "Form was not extracted");
@@ -206,7 +211,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert the ink was extracted
         helper.assertTrue(printingPress.getInk().isEmpty(), "Ink was not extracted");
@@ -232,7 +238,8 @@ public class PrintingPressInsertionExtractionGameTest extends SFMGameTestDefinit
                 )
         );
 {% when '1.21', '1.21.1', '26.1.2' %}
-        helper.useBlock(pos, player);
+        helper.useBlock(pos,
+                player);
 {% endcase %}
         // assert nothing was extracted
         helper.assertTrue(player.getMainHandItem().isEmpty(), "Nothing should have been extracted");

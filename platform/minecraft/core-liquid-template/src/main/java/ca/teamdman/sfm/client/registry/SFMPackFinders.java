@@ -134,7 +134,7 @@ public class SFMPackFinders {
                     Component.literal(CLASSIC_PACK_DISPLAY_NAME), // TODO: add to LocalizationKeys
                     false, // not required; user can enable/disable
                     (packId) -> packResources,
-        PackType.CLIENT_RESOURCES,
+                    PackType.CLIENT_RESOURCES,
                     Pack.Position.TOP, // prefer above mod_resources so it overrides
                     PackSource.BUILT_IN
             );

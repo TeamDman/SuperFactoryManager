@@ -18,7 +18,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DirectionalBlock;
-
 import java.util.Objects;
 
 
@@ -64,11 +63,13 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
 
         // Place ink
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.BLACK_DYE));
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Place paper
         player.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(SFMItems.DISK.get()));
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Place form
         var disk = new ItemStack(SFMItems.DISK.get());
@@ -80,15 +81,18 @@ public class PrintingPressCloneProgramGameTest extends SFMGameTestDefinition {
                 """.stripTrailing().stripIndent());
         ItemStack form = FormItem.createFormFromReference(disk);
         player.setItemInHand(InteractionHand.MAIN_HAND, form);
-        helper.useBlock(printingPos, player);
+        helper.useBlock(printingPos,
+                player);
 
         // Activate printing press
-        helper.useBlock(buttonPos, player);
+        helper.useBlock(buttonPos,
+                player);
 
         // Completion criteria
         helper.runAfterDelay(5, () -> {
             // Pull out result
-            helper.useBlock(printingPos, player);
+            helper.useBlock(printingPos,
+                    player);
             ItemStack held = player.getMainHandItem();
 
             // Fail if the result is not a perfect clone of the disk

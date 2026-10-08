@@ -33,18 +33,21 @@ public final class SFMItemIconRenderer {
     public record Inspection(SFMResolvedItemIcon resolved, boolean levelAvailable, String reason) {}
 
     /** Same decision used by rendering and contextual evidence; does not draw or acquire source data. */
-    public static Inspection inspect(Minecraft minecraft,SFMItemIcon icon) {
-        SFMResolvedItemIcon resolved=SFMItemIconResolver.resolve(icon);
-        String reason=resolved.usedFallback() ? "requested-item-unavailable" : "requested-item-available";
-        if (requiresTitleScreenFallback(minecraft,resolved)) {
-            reason="title-screen-custom-renderer-not-proven-level-independent";
-            resolved=SFMItemIconResolver.resolveFallback(icon);
-            if (requiresTitleScreenFallback(minecraft,resolved)) {
-                reason="title-screen-declared-fallback-also-unavailable";
-                resolved=SFMItemIconResolver.resolvePaper(icon);
+    public static Inspection inspect(
+            Minecraft minecraft,
+            SFMItemIcon icon
+    ) {
+        SFMResolvedItemIcon resolved = SFMItemIconResolver.resolve(icon);
+        String reason = resolved.usedFallback() ? "requested-item-unavailable" : "requested-item-available";
+        if (requiresTitleScreenFallback(minecraft, resolved)) {
+            reason = "title-screen-custom-renderer-not-proven-level-independent";
+            resolved = SFMItemIconResolver.resolveFallback(icon);
+            if (requiresTitleScreenFallback(minecraft, resolved)) {
+                reason = "title-screen-declared-fallback-also-unavailable";
+                resolved = SFMItemIconResolver.resolvePaper(icon);
             }
         }
-        return new Inspection(resolved,minecraft.level!=null,reason);
+        return new Inspection(resolved, minecraft.level != null, reason);
     }
 {% endif %}
 
@@ -53,7 +56,12 @@ public final class SFMItemIconRenderer {
 
 {% case minecraft_version %}
 {% when "1.19.2" %}
-    public static SFMResolvedItemIcon render(Minecraft minecraft, SFMItemIcon icon, int x, int y) {
+    public static SFMResolvedItemIcon render(
+            Minecraft minecraft,
+            SFMItemIcon icon,
+            int x,
+            int y
+    ) {
         return render(null, minecraft, icon, x, y);
     }
 
@@ -74,7 +82,7 @@ public final class SFMItemIconRenderer {
             int y
     ) {
 {% if features.item_icon_context_safety %}
-        SFMResolvedItemIcon resolved = inspect(minecraft,icon).resolved();
+        SFMResolvedItemIcon resolved = inspect(minecraft, icon).resolved();
 {% else %}
         SFMResolvedItemIcon resolved = SFMItemIconResolver.resolve(icon);
 {% endif %}
@@ -98,7 +106,13 @@ public final class SFMItemIconRenderer {
     }
 {% when "1.19.4" %}
     @MCVersionDependentBehaviour
-    public static SFMResolvedItemIcon render(PoseStack poseStack, Minecraft minecraft, SFMItemIcon icon, int x, int y) {
+    public static SFMResolvedItemIcon render(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            SFMItemIcon icon,
+            int x,
+            int y
+    ) {
 {% if features.item_icon_context_safety %}
         SFMResolvedItemIcon resolved = inspect(minecraft, icon).resolved();
 {% else %}
@@ -124,9 +138,21 @@ public final class SFMItemIconRenderer {
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
 {% case minecraft_version %}
 {% when "26.1.2" %}
-    public static SFMResolvedItemIcon render(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMItemIcon icon, int x, int y) {
+    public static SFMResolvedItemIcon render(
+            GuiGraphicsExtractor graphics,
+            Minecraft minecraft,
+            SFMItemIcon icon,
+            int x,
+            int y
+    ) {
 {% else %}
-    public static SFMResolvedItemIcon render(GuiGraphics graphics, Minecraft minecraft, SFMItemIcon icon, int x, int y) {
+    public static SFMResolvedItemIcon render(
+            GuiGraphics graphics,
+            Minecraft minecraft,
+            SFMItemIcon icon,
+            int x,
+            int y
+    ) {
 {% endcase %}
         SFMResolvedItemIcon resolved = SFMItemIconResolver.resolve(icon);
 {% case minecraft_version %}

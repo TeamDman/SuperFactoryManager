@@ -374,11 +374,6 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
             int my,
             float partialTicks
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         if (logsScreen.shouldRebuildText()) {
             logsScreen.rebuildText();
         }
@@ -396,9 +391,4 @@ class LogsScreenMultiLineEditBox extends MultiLineEditBox {
         textRenderWidget.extractRenderState(pGuiGraphics, mx, my, partialTicks);
 {% endcase %}
     }
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
 }

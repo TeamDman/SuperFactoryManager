@@ -41,7 +41,12 @@ public class ExamplesScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor graphics, int pMouseX, int pMouseY, float pPartialTick) {
+    public void extractRenderState(
+            GuiGraphicsExtractor graphics,
+            int pMouseX,
+            int pMouseY,
+            float pPartialTick
+    ) {
 
         // Darken background
         this.extractTransparentBackground(graphics);

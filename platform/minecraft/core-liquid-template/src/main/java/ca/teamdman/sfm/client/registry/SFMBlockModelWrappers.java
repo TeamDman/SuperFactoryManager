@@ -33,7 +33,6 @@ import net.neoforged.neoforge.client.model.BakedModelWrapper;
 {% when '26.1.2' %}
 import net.neoforged.neoforge.client.event.ModelEvent;
 {% endcase %}
-
 import java.util.Map;
 import java.util.function.Function;
 
@@ -84,12 +83,7 @@ public class SFMBlockModelWrappers {
                         SFMBlocks.TOUGH_FANCY_CABLE_FACADE,
                         FancyCableFacadeBlockModelWrapper::new
                 ),
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-                };
-{% when '26.1.2' %}
         };
-{% endcase %}
 
         // Apply the model redirection for each relationship
 {% case minecraft_version %}

@@ -108,11 +108,6 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         WaterTankBlockEntity southTank = helper.getBlockEntity(south, WaterTankBlockEntity.class);
         WaterTankBlockEntity eastTank = helper.getBlockEntity(east, WaterTankBlockEntity.class);
         WaterTankBlockEntity westTank = helper.getBlockEntity(west, WaterTankBlockEntity.class);
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
         helper.assertTrue(centerTank != null, "Center tank should exist");
         helper.assertTrue(northTank != null, "North tank should exist");
         helper.assertTrue(southTank != null, "South tank should exist");
@@ -130,14 +125,8 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         int expectedCapacity = 8000;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-        helper.assertTrue(
-                centerTank.TANK.getCapacity() == expectedCapacity,
-                "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                northTank.TANK.getCapacity() == expectedCapacity,
-                "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity()
-        );
+        helper.assertTrue(centerTank.TANK.getCapacity() == expectedCapacity, "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity());
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacity, "North tank should have capacity " + expectedCapacity + " but had " + northTank.TANK.getCapacity());
 {% when '26.1.2' %}
         String expectedEnergyDidNotMatch7 = "Center tank should have capacity " + expectedCapacity + " but had " + centerTank.TANK.getCapacity();
         helper.assertTrue(centerTank.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch7);
@@ -158,22 +147,10 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
         int expectedCapacityAfterSplit = 1000;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-        helper.assertTrue(
-                northTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                southTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                eastTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity()
-        );
-        helper.assertTrue(
-                westTank.TANK.getCapacity() == expectedCapacityAfterSplit,
-                "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity()
-        );
+        helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacityAfterSplit, "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity());
+        helper.assertTrue(southTank.TANK.getCapacity() == expectedCapacityAfterSplit, "South tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + southTank.TANK.getCapacity());
+        helper.assertTrue(eastTank.TANK.getCapacity() == expectedCapacityAfterSplit, "East tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + eastTank.TANK.getCapacity());
+        helper.assertTrue(westTank.TANK.getCapacity() == expectedCapacityAfterSplit, "West tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + westTank.TANK.getCapacity());
 {% when '26.1.2' %}
         String expectedEnergyDidNotMatch5 = "North tank should have capacity " + expectedCapacityAfterSplit + " after split but had " + northTank.TANK.getCapacity();
         helper.assertTrue(northTank.TANK.getCapacity() == expectedCapacityAfterSplit, expectedEnergyDidNotMatch5);
@@ -197,14 +174,8 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
             // Back to 4 active members (center is still inactive): capacity = 8000
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-            helper.assertTrue(
-                    centerTankNew.TANK.getCapacity() == expectedCapacity,
-                    "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity()
-            );
-            helper.assertTrue(
-                    northTankNew.TANK.getCapacity() == expectedCapacity,
-                    "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity()
-            );
+            helper.assertTrue(centerTankNew.TANK.getCapacity() == expectedCapacity, "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity());
+            helper.assertTrue(northTankNew.TANK.getCapacity() == expectedCapacity, "North tank should have capacity " + expectedCapacity + " after merge but had " + northTankNew.TANK.getCapacity());
 {% when '26.1.2' %}
             String expectedEnergyDidNotMatch1 = "Center tank should have capacity " + expectedCapacity + " after merge but had " + centerTankNew.TANK.getCapacity();
             helper.assertTrue(centerTankNew.TANK.getCapacity() == expectedCapacity, expectedEnergyDidNotMatch1);

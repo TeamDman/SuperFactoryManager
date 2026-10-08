@@ -34,6 +34,7 @@ import net.minecraft.resources.ResourceLocation;
 {% if features.command_palette %}
 {% if features.typed_command_palette %}
 {% else %}
+
 import org.simmetrics.StringDistance;
 import org.simmetrics.metrics.StringDistances;
 {% endif %}
@@ -1021,7 +1022,10 @@ public final class SFMClientActionCommandTree {
 {% endif %}
 {% if features.command_palette %}
 {% if features.typed_command_palette %}
-    private static float actionScore(String query, ActionSearchMetadata action) {
+    private static float actionScore(
+            String query,
+            ActionSearchMetadata action
+    ) {
         if (query.isBlank()) return 0;
         String[] candidates = {
                 action.id(),

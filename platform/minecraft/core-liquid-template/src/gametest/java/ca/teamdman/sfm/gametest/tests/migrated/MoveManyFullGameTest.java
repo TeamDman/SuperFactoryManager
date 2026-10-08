@@ -96,7 +96,8 @@ public class MoveManyFullGameTest extends SFMGameTestDefinition {
         );
 {% when '26.1.2' %}
         String expectedEnergyDidNotMatch = "Program did not start running " + DiskItem.getErrors(manager.getDisk());
-        helper.assertTrue(manager.getState() == ManagerBlockEntity.State.RUNNING, expectedEnergyDidNotMatch);
+        helper.assertTrue(
+                manager.getState() == ManagerBlockEntity.State.RUNNING, expectedEnergyDidNotMatch);
 {% endcase %}
 
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {

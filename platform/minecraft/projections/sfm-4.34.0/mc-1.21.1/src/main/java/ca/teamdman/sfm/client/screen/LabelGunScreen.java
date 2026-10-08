@@ -94,7 +94,6 @@ public class LabelGunScreen extends Screen {
             int mod1,
             int mod2
     ) {
-
         if (super.keyPressed(key, mod1, mod2)) return true;
         if (key != GLFW.GLFW_KEY_ENTER && key != GLFW.GLFW_KEY_KP_ENTER) return false;
         onDone();

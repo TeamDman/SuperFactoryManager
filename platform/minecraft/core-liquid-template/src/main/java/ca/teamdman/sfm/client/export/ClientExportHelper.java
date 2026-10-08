@@ -148,7 +148,8 @@ public class ClientExportHelper {
 {% case minecraft_version %}
 {% when '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
             // Add the tooltip field (requires player)
-            String tooltip = stack.getTooltipLines(player, TooltipFlag.ADVANCED)
+            String tooltip = stack
+                    .getTooltipLines(player, TooltipFlag.ADVANCED)
 {% when '1.21' %}
             // Add the tooltip field (requires player)
             String tooltip = stack
