@@ -1,7 +1,12 @@
 # Finish source simplification
 
-Plan status: Active. Branch: `main`. Updated: 2026-10-08.
+Plan status: Complete. Branch: `main`. Updated: 2026-10-08.
 Starting checkpoint: `8f06dcef8`. Use `[ ]`, `[~]`, `[x]` for task status.
+
+Outcome: 207 templates simplified and their projections manifested. The fresh
+full-tree audit reports zero candidates and zero failures. Current-source Rust
+validation passed, the updated CLI is installed, and all changes are committed
+locally without pushing. Other feature plans are unchanged by this goal.
 
 ## Requirements and intent audit
 
@@ -24,51 +29,47 @@ CableFacadeBlock.java and FancyCableFacadeBlock.java completed in 40.700 seconds
 from first dispatch through combined manifestation. Each worker changed only
 its assigned template. Each passed all 20 pinned contexts and reduced 36
 candidate pairs to zero. Manifestation changed four outputs and left 36
-unchanged. The installed CLI is revision `3de9f3629`; no Rust changes were needed.
+unchanged. This pilot used CLI revision `3de9f3629`; no Rust changes were needed
+for that batch.
 
 ## [x] 2 Audit and simplify with three workers
 
 The first three-worker batch (ToughCableBlock, ToughFancyCableBlock and
 ClientManagerBlock) passed all 60 pinned contexts and reached zero candidate
 pairs. Dispatch through manifestation took 72.958 seconds, including coordinator
-audit setup. Subsequent three-worker batches continue at the session limit.
-The first 31 templates and their affected outputs are committed at `59283c48a`.
-A further 45 templates, committed at `640dba853`, passed a coordinator check of all
-900 pinned contexts. Their selected manifestation changed 471 outputs and left
-259 unchanged, with no removals. A third batch of 36 templates passed all 720
-pinned contexts; manifestation changed 423 outputs and left 153 unchanged, with
-no removals. That brings the completed, manifested checkpoint to 112 templates.
-Further disjoint worker queues remain active.
-The next 42 completed templates passed 840 pinned-context checks. Selected
-manifestation changed 543 outputs and left 145 unchanged, without removals;
-the manifested checkpoint now covers 154 templates.
-A further 38 completed templates passed all 760 pinned-context checks and were
-manifested together. The manifested checkpoint now covers 192 templates;
-the last 14 files from this discovery queue are assigned to the three workers.
-Those 14 templates are now finished and passed all 280 coordinator context
-checks. All assigned work is complete; the fresh full-tree audit is running to
-establish the final candidate count rather than reusing an earlier snapshot.
-That audit completed in 283.08 seconds: 2,610 Java files, 881 conditional
-templates checked across 17,620 contexts, 1,729 directive-free identity inputs,
-no failures and one remaining candidate, `SFMSubscribeEvent.java` (100 pairs).
-Its final repair passed all 20 pinned contexts with both outcome flags true and
-zero remaining pairs. There are 207 edited templates in this goal's diff.
-An independent inventory review confirmed
-that all Java source-rule inputs are same-path physical files, there are no Java
-project-file overrides, and all 20 catalog contexts have matching pinned oracles.
+audit setup. Subsequent disjoint queues used three workers, the available session
+limit. Workers edited one assigned template at a time and verified in memory;
+the coordinator alone discovered candidates, manifested outputs and committed.
+All queues are finished: 207 edited templates and 1,108 changed tracked Java
+projections. Checkpoints preserve the batches:
+
+| Templates in batch | Local checkpoint |
+| --- | --- |
+| 31 | `59283c48a` |
+| 45 | `640dba853` |
+| 36 | `da4a46bbf` |
+| 42 | `cb8da2f48` |
+| 38 | `df471768d` |
+| 14 | `e0ab05c5a` |
+| 1 | `99cb5ef3d` |
+
+A fresh discovery audit caught the last missed candidate, `SFMSubscribeEvent.java`
+(100 pairs). Its repair passed all 20 pinned contexts with zero remaining pairs.
+The subsequent final audit is recorded in task 3, not inferred from worker queues.
+An independent inventory review confirmed that all Java source-rule inputs are
+same-path physical files, there are no Java project-file overrides, and all 20
+catalog contexts have matching pinned oracles.
 The identity shortcut certifies identical inter-context bytes, not historical
 oracle parity for untouched directive-free files.
 
 Initial full inventory: 2,610 Java files, including 889 Liquid templates and
 1,721 directive-free identity inputs. Metadata has no Java project-file
 overrides; identical copies cannot have inter-context whitespace differences.
-The updated full audit checked all 889 templates in 257.52 seconds, reporting
-176 candidate files (including failed inputs) and 13 verifier failures. This
-discovery snapshot predates subsequent worker edits; it is not a final burndown.
+An early discovery audit exposed 13 verifier failures rather than silently
+skipping unsupported inputs. These were historical physical line-ending
+differences in 12 files and Java 26 flexible-constructor syntax in one file.
 The scanner keeps CRLF line terminators outside line-comment tokens and admits
 preserved Unicode literal spellings only when they cannot change boundaries.
-Twelve remaining failures are historical CRLF/LF differences inside block
-comments or text blocks; the thirteenth is Java 26 flexible-constructor syntax.
 
 The comparator now recognizes only physical line-terminator equivalence inside
 block comments and text blocks. JLS 3.4 and 3.10.6 establish that CRLF/CR line
@@ -82,10 +83,10 @@ the complete adapted tree to parse without errors. Sixteen focused regressions
 pass, including the actual released constructor body, malformed-input rejection,
 and rejection of changed comment text, values, escapes and indentation. The new
 optimized CLI rechecked all 13 previously failing files successfully across
-their 260 pinned contexts. Four retain real whitespace candidates and return to
-the ordinary worker queue. WaterTankNetworkFormation and SFMPackFinders also
+their 260 pinned contexts; their remaining candidates were then repaired.
+WaterTankNetworkFormation and SFMPackFinders also
 passed their 40 contexts with zero pairs after comment-only EOL normalization.
-Current Clippy passes; broad validation and final installation remain pending.
+Current Clippy passes; task 3 records broad validation and final installation.
 The line-ending rule is grounded in the
 [Java language specification](https://docs.oracle.com/javase/specs/jls/se26/html/jls-3.html#jls-3.10.6);
 the constructor boundary follows
@@ -93,32 +94,59 @@ the constructor boundary follows
 The tree audit script emits bounded failure summaries; its initial version
 printed excessively large failure comparisons and was corrected.
 
-The coordinator discovers candidates, assigns disjoint single-file tasks and
-manifests completed batches. Workers use the compact command below, edit only
-their assigned template, and repeat until both outcome flags are true. They do
-not scan the tree or write projections. Record batch files, elapsed time and
-verification counts here. Keep independent files running concurrently up to
-the three-worker limit. Unsupported audit inputs must be investigated.
+The compact worker command retains complete checks while bounding its output:
 
 ```powershell
 sfm-propagate-changes.exe --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/block/CableFacadeBlock.java --summary
 ```
 
-## [~] 3 Certify and checkpoint the complete tree
+## [x] 3 Certify and checkpoint the complete tree
 
-The full-tree manifestation dry-run passed after the first 206 edited templates:
-all 29,544 outputs unchanged across 20 projects, no removals or writes, 198.55
-seconds. Final certification must follow the last candidate repair. Current-source
-Rust validation is running with four bounded test workers. The first installer
-attempt encountered the expected Windows executable lock because concurrent
-read-only checks held the release binary; retry after those handles are released.
+All final runtime checks used the installed executable after the last template
+edit, at source checkpoint `99cb5ef3d`:
 
-Run a fresh complete inventory audit after all edits. Require zero candidate
-files and no unexplained failures. Manifest affected outputs and confirm they
-match current templates. Commit reviewable batches locally. Tool installation
-is unnecessary if no executable sources or runtime inputs change; otherwise
-run the required Rust gate and installer after the last such edit. Record the
-final tool identity, audit coverage, validation and manual command here.
+| Check | Final evidence |
+| --- | --- |
+| Full Java inventory audit | 2,610 inputs: 881 conditional templates across 17,620 contexts and 1,729 identical directive-free inputs; zero candidates/failures, 248.73s |
+| Explicit changed-file oracle pass | All 207 edited templates across 4,140 pinned contexts; both outcome flags true and zero candidates, 74.25s |
+| Full manifestation dry-run | All 29,544 outputs current across 20 projects; zero changes/removals/writes, 53.53s |
+| Current-source Rust gate | `check-all.ps1 -TestWorkers 4` exited 0; dependency policy, formatting, Clippy, all-features build, 98 test shards, binary/doc checks and final default-feature build passed |
 
-No game process has been stopped or started. The testing boundary is complete
-rendered Java compared with pinned Git source, not Minecraft gameplay.
+The Rust partition covers 1,668 listed library entries and all four integration
+targets (70 integration tests passed). Existing opt-in ignored tests were not
+enabled or changed. The dedicated promotion fixture passed in 241.93s.
+This is a complete current-source gate, not a result borrowed from an older
+test binary. The changed-file pass also covers newly directive-free templates,
+which the full audit correctly treats as identical inter-context inputs.
+
+The final scope check found only the 207 core Java templates, their 1,108 tracked
+Java projections, the bounded audit script, the verifier/scanner implementation
+and this plan. Dependency declarations/locks, feature defaults, catalog entries,
+oracle pins and non-Java projected resources have no diff from `8f06dcef8`.
+
+### Operational readiness
+
+| Field | Result |
+| --- | --- |
+| Branch and source checkpoint | `main`, `99cb5ef3d`; the final documentation-only commit does not change executable inputs |
+| Tool changes | Java whitespace certification, bounded audit reporting and Java 26 constructor support |
+| Installer | `platform/cli/sfm-propagate-changes/install.ps1`, locked/offline; successful final run 1m58s |
+| Installed executable | PATH-resolved Cargo `bin/sfm-propagate-changes.exe`, revision `99cb5ef3d` |
+| SHA-256 | `439c45fa157ca14f249828de85b8a9dcd0a1e43b488fe09fea1fe2adf993d0b7` |
+| User must run installer | No; final hash/revision and 20-context smoke check reverified after validation |
+| Dependencies and acquisition | Frozen; no declarations/locks changed, no new dependency or reference clone, no cache rehydration needed |
+| Processes and locks | No game started/stopped; validation workers exited normally; installer executable lock resolved by waiting for our read-only checks, not killing processes |
+| Manual-only limitation or stretch item | None for this goal; Minecraft gameplay is not the certification boundary |
+
+Run this compact smoke check from the selected SFM checkout root. Both outcome
+flags should be true, with 20 contexts and zero remaining candidate pairs:
+
+```powershell
+sfm-propagate-changes.exe --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/event_bus/SFMSubscribeEvent.java --summary
+```
+
+The coordinator's full-tree check, not a per-file worker command, is:
+
+```powershell
+./platform/cli/sfm-propagate-changes/scripts/audit-simplify-tree.ps1
+```
