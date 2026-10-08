@@ -30,21 +30,17 @@ public @interface SFMSubscribeEvent {
 
     EventPriority priority() default EventPriority.NORMAL;
 
-{% if features.mod_event_filtering %}
     boolean receiveCanceled() default false;
 
+{% if features.mod_event_filtering %}
     /**
      * Optional dependency that must be loaded before this subscriber class is resolved.
      * This keeps handlers whose signatures reference an optional mod out of automatic discovery.
      */
     String requiredModId() default "";
 
-    // This is unused and idk what the modid param in the built-in event bus subscriber does so I'll leave until
-{% else %}
-    boolean receiveCanceled() default false;
-
-    // This is unused and idk what the modid param in the built-in event bus subscriber does so I'll leave until
 {% endif %}
+    // This is unused and idk what the modid param in the built-in event bus subscriber does so I'll leave until
     // I understand enough to safely remove it.
     @SuppressWarnings({"unused", "SpellCheckingInspection"})
     String modid() default SFM.MOD_ID;

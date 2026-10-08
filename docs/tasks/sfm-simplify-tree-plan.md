@@ -26,7 +26,7 @@ its assigned template. Each passed all 20 pinned contexts and reduced 36
 candidate pairs to zero. Manifestation changed four outputs and left 36
 unchanged. The installed CLI is revision `3de9f3629`; no Rust changes were needed.
 
-## [~] 2 Audit and simplify with three workers
+## [x] 2 Audit and simplify with three workers
 
 The first three-worker batch (ToughCableBlock, ToughFancyCableBlock and
 ClientManagerBlock) passed all 60 pinned contexts and reached zero candidate
@@ -48,6 +48,16 @@ the last 14 files from this discovery queue are assigned to the three workers.
 Those 14 templates are now finished and passed all 280 coordinator context
 checks. All assigned work is complete; the fresh full-tree audit is running to
 establish the final candidate count rather than reusing an earlier snapshot.
+That audit completed in 283.08 seconds: 2,610 Java files, 881 conditional
+templates checked across 17,620 contexts, 1,729 directive-free identity inputs,
+no failures and one remaining candidate, `SFMSubscribeEvent.java` (100 pairs).
+Its final repair passed all 20 pinned contexts with both outcome flags true and
+zero remaining pairs. There are 207 edited templates in this goal's diff.
+An independent inventory review confirmed
+that all Java source-rule inputs are same-path physical files, there are no Java
+project-file overrides, and all 20 catalog contexts have matching pinned oracles.
+The identity shortcut certifies identical inter-context bytes, not historical
+oracle parity for untouched directive-free files.
 
 Initial full inventory: 2,610 Java files, including 889 Liquid templates and
 1,721 directive-free identity inputs. Metadata has no Java project-file
@@ -94,7 +104,14 @@ the three-worker limit. Unsupported audit inputs must be investigated.
 sfm-propagate-changes.exe --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/block/CableFacadeBlock.java --summary
 ```
 
-## [ ] 3 Certify and checkpoint the complete tree
+## [~] 3 Certify and checkpoint the complete tree
+
+The full-tree manifestation dry-run passed after the first 206 edited templates:
+all 29,544 outputs unchanged across 20 projects, no removals or writes, 198.55
+seconds. Final certification must follow the last candidate repair. Current-source
+Rust validation is running with four bounded test workers. The first installer
+attempt encountered the expected Windows executable lock because concurrent
+read-only checks held the release binary; retry after those handles are released.
 
 Run a fresh complete inventory audit after all edits. Require zero candidate
 files and no unexplained failures. Manifest affected outputs and confirm they
