@@ -1,21 +1,21 @@
 <#
 .SYNOPSIS
-Run the Rust tests in separate, bounded test-harness processes.
+Run Rust tests with a bounded thread budget and separate integration processes.
 
 .DESCRIPTION
-Runs each library module, each integration target, and the large promotion
-fixture separately. Only source_projection is split by the immediate child
-modules discovered from Cargo's current library test list. The old
+The full gate runs the complete library once, then the integration binaries.
+Focused runs retain module selectors; source_projection is split by immediate
+children discovered from Cargo's current library test list. The old
 -Shard unit:source_projection selector runs all of those child shards; use
 -Shard unit:source_projection:core_inputs for one child. Other existing selectors
 such as -Shard unit:cli, -Shard integration:java_analysis_scenarios, and
 -Shard fixture retain their behavior. Ignored tests keep Cargo's default
 behavior and are not run.
 
--Workers 2 enables an event-driven pool for the explicitly reviewed read-only
-theme groups. All other groups retain exclusive execution. This standalone
-script defaults to one worker; check-all.ps1 defaults to two after the real
-three-group concurrency proof. Coverage and per-group test threads are unchanged.
+Each process owns its mutable temporary fixtures. Workers controls integration
+process concurrency; TestThreads controls each integration's libtest concurrency.
+The library uses their product. Use 1/1 for serial diagnostics. The timer
+reported at the end excludes compilation and artifact/partition discovery.
 
 PowerShell 7 or later (pwsh.exe), rg.exe, git.exe, and cargo.exe must be
 available to this process and its children.
@@ -26,7 +26,8 @@ configuration.
 [CmdletBinding()]
 param(
     [string]$Shard = 'all',
-    [ValidateRange(1, 4)][int]$Workers = 1
+    [ValidateRange(1, 64)][int]$Workers = [Math]::Min(4, [Environment]::ProcessorCount),
+    [ValidateRange(1, 256)][int]$TestThreads = [Math]::Max(1, [Math]::Floor([Environment]::ProcessorCount / $Workers))
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -132,11 +133,11 @@ function Assert-IntegrationTargets {
 }
 
 function Assert-LibraryPartition {
-    $listArgs = $commonCargoArgs + @('--lib', '--', '--list')
+    param([Parameter(Mandatory)][string]$Executable)
     # Keep test names for coverage and only a short tail for failure details.
     $names = [System.Collections.Generic.List[string]]::new()
     $tail = [System.Collections.Generic.Queue[string]]::new()
-    & cargo @listArgs 2>&1 | ForEach-Object {
+    & $Executable --list 2>&1 | ForEach-Object {
         $line = $_.ToString()
         if ($line -match $diskErrorPattern) {
             throw "Disk-space error while listing library tests: $line. Stop and wait for the user."
@@ -163,39 +164,6 @@ function Assert-LibraryPartition {
     return $plan
 }
 
-function Invoke-CargoShard {
-    param(
-        [string]$Name,
-        [string[]]$Arguments,
-        [int]$Index,
-        [int]$Total
-    )
-
-    Write-Host ("[{0}/{1}] {2}" -f $Index, $Total, $Name)
-    $state = [pscustomobject]@{
-        Summary = $null
-        Tail = [System.Collections.Generic.Queue[string]]::new()
-    }
-    & cargo @Arguments 2>&1 | ForEach-Object {
-        $line = $_.ToString()
-        if ($line -match $diskErrorPattern) {
-            throw "Disk-space error in $Name`: $line. Stop and wait for the user."
-        }
-        if ($line -match 'test result:') { $state.Summary = $line }
-        if ($state.Tail.Count -ge 40) { [void]$state.Tail.Dequeue() }
-        $state.Tail.Enqueue($line)
-    }
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        foreach ($line in $state.Tail) { Write-Host $line }
-        throw "$Name failed (exit $exitCode). No further shards will run."
-    }
-    if ($state.Summary) {
-        Write-Host "PASS $Name`: $($state.Summary)"
-    } else {
-        Write-Host "PASS $Name"
-    }
-}
 
 function Get-BoundedTestExecutables {
     # Build once, then execute Cargo's exact current all-feature artifacts.
@@ -262,13 +230,12 @@ try {
     $env:GIT_CONFIG_KEY_0 = 'safe.directory'
     $env:GIT_CONFIG_VALUE_0 = $repositoryRoot
 
-    if ($Shard -eq 'all' -or $Workers -gt 1) {
-        Assert-IntegrationTargets
-    }
+    Assert-IntegrationTargets
+    $executables = Get-BoundedTestExecutables
     $needsLibraryPlan = $Shard -eq 'all' -or $Shard -eq 'unit:source_projection' -or
         $Shard.StartsWith('unit:source_projection:', [System.StringComparison]::OrdinalIgnoreCase)
     if ($needsLibraryPlan) {
-        $plan = Assert-LibraryPartition
+        $plan = Assert-LibraryPartition -Executable $executables['lib']
         $libraryDescriptors = @($plan.Jobs)
     } else {
         # Keep focused non-source_projection jobs on the existing no-list path.
@@ -277,68 +244,81 @@ try {
     $selectedLibrary = @(Select-BoundedLibraryJobs -Jobs $libraryDescriptors -Shard $Shard)
     $jobs = [System.Collections.Generic.List[object]]::new()
     foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq 'module' })) {
-        $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor)
+        $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor -TestThreads $TestThreads)
         $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
     }
     foreach ($target in $integrationTargets) {
         $name = "integration:$target"
         if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
-        $cargoArgs = $commonCargoArgs + @('--test', $target, '--', '--test-threads=1')
+        $cargoArgs = $commonCargoArgs + @('--test', $target, '--', "--test-threads=$TestThreads")
         $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
     }
     foreach ($kind in @('standalone', 'fixture')) {
         foreach ($descriptor in @($selectedLibrary | Where-Object { $_.Kind -eq $kind })) {
-            $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor)
+            $cargoArgs = @(New-BoundedCargoLibraryArguments -CommonCargoArguments $commonCargoArgs -Job $descriptor -TestThreads $TestThreads)
             $jobs.Add([pscustomobject]@{ Name = $descriptor.Name; Arguments = $cargoArgs })
         }
     }
     if ($jobs.Count -eq 0) {
         throw "Unknown shard '$Shard'. Use all, fixture, unit:<module>, unit:source_projection:<listed-child>, or integration:<target>."
     }
-    if ($Workers -eq 1) {
-        for ($index = 0; $index -lt $jobs.Count; $index++) {
-            $job = $jobs[$index]
-            Invoke-CargoShard -Name $job.Name -Arguments $job.Arguments `
-                -Index ($index + 1) -Total $jobs.Count
+    # Tests use owned temporary repositories and child-command environment
+    # overrides; no tests change process-global cwd or environment. Shards
+    # remain separate processes to release accumulated allocator state.
+    $processJobs = @($jobs | ForEach-Object {
+        $key = if ($_.Name.StartsWith('integration:', [System.StringComparison]::Ordinal)) {
+            $_.Name
+        } else { 'lib' }
+        $separator = [array]::IndexOf([string[]]$_.Arguments, '--')
+        if ($separator -lt 0 -or $separator -ge $_.Arguments.Count - 1) {
+            throw "Missing libtest arguments for '$($_.Name)'."
         }
-    } else {
-        # Initial reviewed read-only group: fixture loads inspect catalog,
-        # source bytes and immutable Git blobs; mutation probes use local
-        # strings only. Everything else remains exclusive until reviewed.
-        $parallelNames = @(
-            'unit:source_projection:core_theme_keyboard_models_slice_tests',
-            'unit:source_projection:core_theme_preview_five_slice_tests',
-            'unit:source_projection:core_theme_preview_models_slice_tests'
-        )
-        $executables = Get-BoundedTestExecutables
-        $processJobs = @($jobs | ForEach-Object {
-            $key = if ($_.Name.StartsWith('integration:', [System.StringComparison]::Ordinal)) {
-                $_.Name
-            } else { 'lib' }
-            $separator = [array]::IndexOf([string[]]$_.Arguments, '--')
-            if ($separator -lt 0 -or $separator -ge $_.Arguments.Count - 1) {
-                throw "Missing libtest arguments for '$($_.Name)'."
+        $harnessArguments = @($_.Arguments[($separator + 1)..($_.Arguments.Count - 1)])
+        if ($key -eq 'lib') {
+            $library = [array]::IndexOf([string[]]$_.Arguments, '--lib')
+            if ($library -lt 0 -or $library + 1 -ge $separator) {
+                throw "Missing library filter for '$($_.Name)'."
             }
-            $harnessArguments = @($_.Arguments[($separator + 1)..($_.Arguments.Count - 1)])
-            if ($key -eq 'lib') {
-                $library = [array]::IndexOf([string[]]$_.Arguments, '--lib')
-                if ($library -lt 0 -or $library + 1 -ge $separator) {
-                    throw "Missing library filter for '$($_.Name)'."
-                }
-                $harnessArguments = @($_.Arguments[$library + 1]) + $harnessArguments
-            }
-            [pscustomobject]@{
-                Name = $_.Name
-                Executable = $executables[$key]
-                WorkingDirectory = $projectRoot
-                Arguments = $harnessArguments
-                ParallelSafe = $parallelNames -ccontains $_.Name
-            }
-        })
-        $receipts = @(Invoke-BoundedProcessPool -Jobs $processJobs -Workers $Workers)
-        if ($receipts.Count -ne $jobs.Count) { throw 'Process pool omitted test shards.' }
+            $harnessArguments = @($_.Arguments[$library + 1]) + $harnessArguments
+        }
+        [pscustomobject]@{
+            Name = $_.Name
+            Executable = $executables[$key]
+            WorkingDirectory = $projectRoot
+            Arguments = $harnessArguments
+            ParallelSafe = $true
+        }
+    })
+    if ($Shard -eq 'all') {
+        # Run the complete library once. The previous per-module processes each
+        # paid seconds of startup/shutdown even for zero-duration tests. Keep
+        # integrations separate (their own binaries), after the library releases
+        # its memory. Focused module selectors remain available for diagnosis.
+        $processJobs = @([pscustomobject]@{
+            Name = 'library:all'
+            Executable = $executables['lib']
+            WorkingDirectory = $projectRoot
+            Arguments = @("--test-threads=$($Workers * $TestThreads)")
+            ParallelSafe = $false
+        }) + @($processJobs | Where-Object { $_.Name.StartsWith('integration:') })
     }
-    Write-Host "PASS: $($jobs.Count) test shards completed."
+    $testClock = [System.Diagnostics.Stopwatch]::StartNew()
+    $receipts = @(Invoke-BoundedProcessPool -Jobs $processJobs -Workers $Workers)
+    $testClock.Stop()
+    if ($receipts.Count -gt 0) {
+        $timingPath = Join-Path (Split-Path -Parent $receipts[0].DiagnosticPath) 'timings.json'
+        [pscustomobject]@{
+            ExecutionSeconds = $testClock.Elapsed.TotalSeconds
+            Workers = $Workers
+            TestThreads = $TestThreads
+            Shards = $receipts
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $timingPath
+        Write-Host "Machine-readable timings: $timingPath"
+    }
+    Write-Host ("Post-compilation test execution: {0:N3}s; workers={1}, threads per shard={2}" -f $testClock.Elapsed.TotalSeconds, $Workers, $TestThreads)
+    $receipts | Sort-Object Seconds -Descending | Select-Object -First 10 Name, Seconds | Format-Table | Out-Host
+    if ($receipts.Count -ne $processJobs.Count) { throw 'Process pool omitted test shards.' }
+    Write-Host "PASS: $($processJobs.Count) test processes completed."
 } finally {
     foreach ($key in $savedEnvironment.Keys) {
         [System.Environment]::SetEnvironmentVariable(

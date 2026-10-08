@@ -209,6 +209,10 @@ mod authenticated_library_batch_cache_tests {
                     Err(error) => return Err(error.into()),
                 }
             };
+            // Windows can retain the listener's nonblocking mode on accept.
+            // A read timeout does not restore blocking mode; racing the client's
+            // first bytes otherwise fails with WSAEWOULDBLOCK under load.
+            stream.set_nonblocking(false)?;
             stream.set_read_timeout(Some(Duration::from_secs(3)))?;
             stream.set_write_timeout(Some(Duration::from_secs(3)))?;
             let mut request = [0_u8; 4096];

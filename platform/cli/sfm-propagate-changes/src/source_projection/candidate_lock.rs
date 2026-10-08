@@ -194,6 +194,7 @@ impl SourceCandidateLock {
     ///
     /// Fails on a changed Git definition, incomplete root mapping, changed
     /// provenance/output/JAR bytes, unsafe paths or wrong Gradle metadata.
+    #[tracing::instrument(level = "info", skip_all, name = "candidate_verify")]
     pub fn verify_in(
         &self,
         repository_root: &Path,
@@ -289,22 +290,39 @@ impl SourceCandidateLock {
         })
     }
 
+    #[tracing::instrument(level = "info", skip_all, name = "candidate_repository_inputs")]
     fn verify_repository_inputs(&self, root: &Path) -> Result<SourceProjectionManifest> {
+        let mut repository = gix::open_opts(
+            root,
+            gix::open::Options::isolated()
+                .strict_config(true)
+                .config_overrides(["gitoxide.objects.noReplace=true"]),
+        )?;
+        let _ = repository.clear_namespace();
+        ensure!(
+            repository
+                .workdir()
+                .map(fs::canonicalize)
+                .transpose()?
+                .as_deref()
+                == Some(root),
+            "candidate lock repository root must be the Git worktree root"
+        );
         let source_bytes = read_regular(root, SOURCE_MANIFEST)?;
         ensure!(
             sha256(&source_bytes) == self.source_manifest_sha256,
             "current source-projection definition differs from candidate lock"
         );
-        ensure_committed_current_file(root, SOURCE_MANIFEST, &source_bytes)?;
+        ensure_committed_current_file(&repository, SOURCE_MANIFEST, &source_bytes)?;
         ensure!(
-            git_file_at_commit(root, &self.source_commit, SOURCE_MANIFEST)? == source_bytes,
+            git_file_at_commit(&repository, &self.source_commit, SOURCE_MANIFEST)? == source_bytes,
             "source commit does not contain the locked source-projection definition"
         );
         let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&source_bytes)?)?;
         let root_properties = read_regular(root, ROOT_GRADLE_PROPERTIES)?;
-        ensure_committed_current_file(root, ROOT_GRADLE_PROPERTIES, &root_properties)?;
+        ensure_committed_current_file(&repository, ROOT_GRADLE_PROPERTIES, &root_properties)?;
         ensure!(
-            git_file_at_commit(root, &self.source_commit, ROOT_GRADLE_PROPERTIES)?
+            git_file_at_commit(&repository, &self.source_commit, ROOT_GRADLE_PROPERTIES)?
                 == root_properties,
             "source commit does not contain the locked release Gradle properties"
         );
@@ -324,7 +342,11 @@ impl SourceCandidateLock {
             sha256(&evidence) == self.compatibility_evidence_sha256,
             "compatibility evidence differs from candidate lock"
         );
-        ensure_committed_current_file(root, &self.compatibility_evidence_relative_path, &evidence)?;
+        ensure_committed_current_file(
+            &repository,
+            &self.compatibility_evidence_relative_path,
+            &evidence,
+        )?;
         Ok(manifest)
     }
 }
@@ -530,6 +552,7 @@ fn gradle_property<'a>(content: &'a str, name: &str) -> Result<&'a str> {
     Ok(values[0])
 }
 
+#[tracing::instrument(level = "info", skip_all, name = "candidate_authored_checkout")]
 fn ensure_authored_checkout(
     root: &Path,
     source_commit: &str,
@@ -677,62 +700,42 @@ fn git_output(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-fn git_file_at_commit(root: &Path, commit: &str, path: &str) -> Result<Vec<u8>> {
-    let top = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .wrap_err("cannot inspect candidate-lock Git repository")?;
-    ensure!(
-        top.status.success(),
-        "candidate lock root is not a Git worktree"
-    );
-    ensure!(
-        fs::canonicalize(String::from_utf8(top.stdout)?.trim())? == root,
-        "candidate lock repository root must be the Git worktree root"
-    );
-    let kind = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["cat-file", "-t", commit])
-        .output()
-        .wrap_err("cannot inspect candidate-lock source commit")?;
-    ensure!(
-        kind.status.success() && kind.stdout == b"commit\n",
-        "source candidate lock must name an available Git commit"
-    );
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["show", &format!("{commit}:{path}")])
-        .output()
-        .wrap_err("cannot read candidate-lock source commit")?;
-    ensure!(
-        output.status.success(),
-        "source commit or its projection definition is unavailable"
-    );
-    Ok(output.stdout)
+#[tracing::instrument(level = "info", skip_all, name = "candidate_git_blob")]
+fn git_file_at_commit(repository: &gix::Repository, commit: &str, path: &str) -> Result<Vec<u8>> {
+    let id = if commit == "HEAD" {
+        repository.head_id()?.detach()
+    } else {
+        gix::ObjectId::from_hex(commit.as_bytes())?
+    };
+    let tree = repository.find_object(id)?.try_into_commit()?.tree()?;
+    let entry = tree
+        .lookup_entry_by_path(path)?
+        .ok_or_else(|| eyre::eyre!("source commit or its projection definition is unavailable"))?;
+    Ok(entry.object()?.try_into_blob()?.data.clone())
 }
 
-fn ensure_committed_current_file(root: &Path, path: &str, bytes: &[u8]) -> Result<()> {
-    let staged = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["diff", "--cached", "--quiet", "HEAD", "--", path])
-        .status()
-        .wrap_err("cannot inspect staged candidate-lock input")?;
+fn ensure_committed_current_file(
+    repository: &gix::Repository,
+    path: &str,
+    bytes: &[u8],
+) -> Result<()> {
+    let tree = repository.head_commit()?.tree()?;
+    let head_entry = tree
+        .lookup_entry_by_path(path)?
+        .ok_or_else(|| eyre::eyre!("candidate-lock input '{path}' is absent from HEAD"))?;
+    let index = repository.index()?;
+    let entry = index.entry_by_path_and_stage(path.into(), gix::index::entry::Stage::Unconflicted);
     ensure!(
-        staged.success(),
+        entry.is_some_and(|entry| entry.id == head_entry.object_id()
+            && entry.mode.bits() == u32::from(head_entry.mode().value())),
         "candidate-lock input '{path}' differs from HEAD in Git index"
     );
     ensure!(
-        git_file_at_commit(root, "HEAD", path)? == bytes,
+        git_file_at_commit(repository, "HEAD", path)? == bytes,
         "candidate-lock input '{path}' differs from HEAD"
     );
     Ok(())
 }
-
 fn expected_production_task(target: &str) -> Result<&'static str> {
     Ok(match target {
         "1.19.2" | "1.19.4" | "1.20" | "1.20.1" => "reobfJar",
@@ -903,7 +906,52 @@ pub(crate) mod tests {
 
     impl Fixture {
         pub(crate) fn new() -> Self {
-            Self::new_with_version("4.35.0", false)
+            // Cache immutable seed bytes, never a mutable repository or live
+            // TempDir. Each caller still owns independent files and Git state.
+            static SEED: std::sync::OnceLock<(BTreeMap<PathBuf, Vec<u8>>, SourceCandidateLock)> =
+                std::sync::OnceLock::new();
+            let (files, lock) = SEED.get_or_init(|| {
+                let seed = Self::new_with_version("4.35.0", false);
+                let files = WalkDir::new(seed._temp.path())
+                    .into_iter()
+                    .map(|entry| entry.unwrap())
+                    .filter(|entry| entry.file_type().is_file())
+                    .map(|entry| {
+                        (
+                            entry
+                                .path()
+                                .strip_prefix(seed._temp.path())
+                                .unwrap()
+                                .to_owned(),
+                            fs::read(entry.path()).unwrap(),
+                        )
+                    })
+                    .collect();
+                (files, seed.lock.clone())
+            });
+            let temp = tempfile::tempdir().unwrap();
+            for (path, bytes) in files {
+                let output = temp.path().join(path);
+                fs::create_dir_all(output.parent().unwrap()).unwrap();
+                fs::write(output, bytes).unwrap();
+            }
+            let repo = temp.path().join("repo");
+            let roots = lock
+                .targets
+                .iter()
+                .map(|target| {
+                    (
+                        target.target_id.clone(),
+                        temp.path().join("candidates").join(&target.target_id),
+                    )
+                })
+                .collect();
+            Self {
+                _temp: temp,
+                repo,
+                roots,
+                lock: lock.clone(),
+            }
         }
 
         fn new_with_version(mod_version: &str, include_refmap: bool) -> Self {
@@ -946,6 +994,7 @@ pub(crate) mod tests {
             fixture
         }
 
+        #[tracing::instrument(level = "info", skip_all, name = "candidate_fixture_build")]
         fn new_with_source_version_and_lockfile(
             mod_version: &str,
             source_version: &str,
@@ -1333,6 +1382,34 @@ pub(crate) mod tests {
             .invoke_in(&CancellationToken::new(), &self.repo)?;
             Ok(())
         }
+    }
+
+    /// Opt-in capture of the same fixture and verifier exercised by package tests.
+    /// Run alone with SFM_ENABLE_TRACY_LAYER=1 and SFM_TEST_LOG_FILE set.
+    #[test]
+    #[ignore = "manual tracing capture; the normal suite already covers this workflow"]
+    fn profile_candidate_workflow() {
+        crate::logging::init_logging(
+            &crate::logging::LoggingConfig::new(
+                tracing::level_filters::LevelFilter::INFO,
+                std::env::var_os("SFM_TEST_LOG_FILE").map(PathBuf::from),
+            ),
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        let fixture = Fixture::new();
+        fixture.verify().unwrap();
+    }
+
+    #[test]
+    fn cached_seed_retains_independent_worktrees_and_indexes() {
+        let first = Fixture::new();
+        let second = Fixture::new();
+        fs::write(first.repo.join("docs/compatibility.md"), "edited").unwrap();
+        git(&first.repo, &["add", "docs/compatibility.md"]);
+        assert!(first.verify().is_err());
+        second.verify().unwrap();
+        assert_ne!(first.repo, second.repo);
     }
 
     fn git(repo: &Path, args: &[&str]) -> String {

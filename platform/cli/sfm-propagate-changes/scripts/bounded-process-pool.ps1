@@ -4,7 +4,7 @@ function Invoke-BoundedProcessPool {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][object[]]$Jobs,
-        [ValidateRange(1, 4)][int]$Workers = 2,
+        [ValidateRange(1, 64)][int]$Workers = 2,
         [scriptblock]$OnStarted,
         [string]$DiagnosticDirectory
     )
@@ -127,7 +127,7 @@ function Invoke-BoundedProcessPool {
                         DiagnosticPath = $item.DiagnosticPath
                     }
                     $completed.Add($receipt)
-                    Write-Host "PASS $($receipt.Name): $($receipt.Summary)"
+                    Write-Host ("PASS {0}: {1} (process wall {2:N3}s)" -f $receipt.Name, $receipt.Summary, $receipt.Seconds)
                     [void]$active.Remove($item)
                     $item.Process.Dispose()
                     $item.DiagnosticWriter.Dispose()

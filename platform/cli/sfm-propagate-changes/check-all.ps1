@@ -1,5 +1,6 @@
 param(
-    [ValidateRange(1, 4)][int]$TestWorkers = 2
+    [ValidateRange(1, 64)][int]$TestWorkers = [Math]::Min(4, [Environment]::ProcessorCount),
+    [ValidateRange(1, 256)][int]$TestThreads = [Math]::Max(1, [Math]::Floor([Environment]::ProcessorCount / $TestWorkers))
 )
 
 # Cargo feature variants share the target/debug CLI path. During a full gate,
@@ -49,10 +50,10 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 Write-Host -ForegroundColor Yellow "Running bounded library and integration tests..."
 # All feature code remains enabled; the unit allocator is deliberately not
 # profiled. The runner verifies exact-once library coverage and uses a fresh
-# process per module (per immediate child for source_projection), integration
-# target and dedicated fixture.
+# library process and then separate concurrent integration binaries. Focused
+# module selectors remain available without imposing their startup cost on all.
 try {
-    & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1') -Workers $TestWorkers
+    & (Join-Path $PSScriptRoot 'scripts/test-bounded.ps1') -Workers $TestWorkers -TestThreads $TestThreads
 } catch {
     Write-Error $_
     exit 1

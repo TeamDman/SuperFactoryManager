@@ -219,12 +219,13 @@ function New-BoundedCargoLibraryArguments {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string[]]$CommonCargoArguments,
-        [Parameter(Mandatory)]$Job
+        [Parameter(Mandatory)]$Job,
+        [ValidateRange(1, 256)][int]$TestThreads = 1
     )
 
     $arguments = @($CommonCargoArguments) + @('--lib', $Job.Filter, '--')
     if ($Job.Exact) { $arguments += '--exact' }
-    $arguments += '--test-threads=1'
+    $arguments += "--test-threads=$TestThreads"
     foreach ($skip in $Job.Skips) { $arguments += @('--skip', $skip) }
     $arguments
 }

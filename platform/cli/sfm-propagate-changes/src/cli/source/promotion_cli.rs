@@ -1599,6 +1599,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "historical real-tag legacy promotion rehearsal; synthetic immutable-promotion tests cover the default machinery gate"]
     fn real_pinned_tag_inputs_flow_through_fictional_ten_target_immutable_apply() {
         const VERSION: &str = "9.99.99-fixture";
         const PRESET: &str = "released-9.99.99-fixture";

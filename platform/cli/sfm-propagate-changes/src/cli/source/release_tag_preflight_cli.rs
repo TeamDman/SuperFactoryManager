@@ -1055,14 +1055,16 @@ mod tests {
 
     #[test]
     fn git_probes_ignore_inherited_git_identity_and_disable_optional_writes() {
-        let fixture = Fixture::new();
-        let other = Fixture::new();
-        let other_git_dir = other.repo().join(".git").display().to_string();
+        let fixture = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        git(fixture.path(), &["init", "-q"]);
+        git(other.path(), &["init", "-q"]);
+        let other_git_dir = other.path().join(".git").display().to_string();
         let mut command = sanitized_git_command(
-            fixture.repo(),
+            fixture.path(),
             &[
                 ("GIT_DIR", &other_git_dir),
-                ("GIT_WORK_TREE", &other.repo().display().to_string()),
+                ("GIT_WORK_TREE", &other.path().display().to_string()),
             ],
         );
         let configured: Vec<_> = command.get_envs().collect();
@@ -1088,7 +1090,7 @@ mod tests {
         assert!(output.status.success());
         assert_eq!(
             checked_directory(Path::new(String::from_utf8(output.stdout).unwrap().trim())).unwrap(),
-            checked_directory(fixture.repo()).unwrap()
+            checked_directory(fixture.path()).unwrap()
         );
     }
 }

@@ -190,6 +190,14 @@ Invoke-SyntheticCase 'Cargo wire retains all features, default ignores and seria
     }
 }
 
+Invoke-SyntheticCase 'thread budget reaches libtest without changing coverage' {
+    $job = (New-SyntheticPlan).Jobs[0]
+    $wire = @(New-BoundedCargoLibraryArguments -CommonCargoArguments @('test') -Job $job -TestThreads 8)
+    Assert-True ($wire -contains '--test-threads=8') 'Requested thread budget was lost.'
+    Assert-True (-not ($wire -contains '--test-threads=1')) 'Serial flag overrides the requested budget.'
+    Assert-Equal $job.Filter $wire[2] 'Concurrency changed the selected test filter.'
+}
+
 Invoke-SyntheticCase 'ignored names remain in coverage, not omitted by the plan' {
     $ignoredName = 'source_projection::tests::intentionally_ignored_case'
     $plan = New-SyntheticPlan -Names ($baseNames + @($ignoredName))
