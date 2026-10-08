@@ -16,7 +16,6 @@ import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.joml.Matrix4f;
-
 import java.util.ArrayList;
 import java.util.List;
 

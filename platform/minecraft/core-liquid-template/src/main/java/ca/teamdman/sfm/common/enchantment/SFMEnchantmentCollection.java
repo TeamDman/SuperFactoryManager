@@ -27,12 +27,13 @@ import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 {% endcase %}
 import org.jetbrains.annotations.NotNull;
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
 {% when '1.21', '1.21.1', '26.1.2' %}
 import org.jetbrains.annotations.Nullable;
-{% endcase %}
 
+{% endcase %}
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
 import java.util.*;

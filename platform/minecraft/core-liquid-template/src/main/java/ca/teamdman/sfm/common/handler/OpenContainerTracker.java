@@ -9,7 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 {% endcase %}
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;

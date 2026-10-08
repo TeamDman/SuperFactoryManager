@@ -130,7 +130,6 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
                     }
                     return new LabelPositionHolder(immutableLabelPositionHolder);
                 }
-
         );
     }
 

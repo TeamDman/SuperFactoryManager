@@ -13,7 +13,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -43,7 +42,6 @@ public class FormItem extends Item {
         return ItemStack.of(stack.getOrCreateTag().getCompound("reference"));
     }
 
-
     @MCVersionDependentBehaviour
     public static ItemStack getCopiedReferenceFromForm(ItemStack stack) {
         // Before data components, we always receive a copied value from this function.
@@ -72,5 +70,4 @@ public class FormItem extends Item {
             }
         }
     }
-
 }

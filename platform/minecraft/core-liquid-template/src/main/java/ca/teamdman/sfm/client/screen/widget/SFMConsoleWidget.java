@@ -219,11 +219,21 @@ public final class SFMConsoleWidget {
                 SFMScissorStack.pop();
             }
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-            enableScissor(contentLeft, contentTop, contentWidth, contentHeight);
+            enableScissor(
+                    contentLeft,
+                    contentTop,
+                    contentWidth,
+                    contentHeight
+            );
             renderLines(graphics, contentLeft, contentTop);
             RenderSystem.disableScissor();
 {% when "26.1.2" %}
-            graphics.enableScissor(contentLeft, contentTop, contentLeft + contentWidth, contentTop + contentHeight);
+            graphics.enableScissor(
+                    contentLeft,
+                    contentTop,
+                    contentLeft + contentWidth,
+                    contentTop + contentHeight
+            );
             renderLines(graphics, contentLeft, contentTop);
             graphics.disableScissor();
 {% endcase %}

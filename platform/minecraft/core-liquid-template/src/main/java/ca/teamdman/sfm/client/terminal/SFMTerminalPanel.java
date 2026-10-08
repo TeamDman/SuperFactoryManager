@@ -366,9 +366,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 null);
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% if features.terminal_remote or features.terminal_vox_runtime %}
-        this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
+        this(
+                new SFMTerminalClient(service),
+                service instanceof SFMTerminalRemoteService remote ? remote : null);
 {% else %}
-        this(new SFMTerminalClient(service));
+        this(
+                new SFMTerminalClient(service));
 {% endif %}
 {% endcase %}
     }
@@ -822,7 +825,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 {% endif %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% if features.terminal_remote or features.terminal_vox_runtime %}
-    private SFMTerminalPanel(SFMTerminalClient client, SFMTerminalRemoteService remoteService) {
+    private SFMTerminalPanel(
+            SFMTerminalClient client,
+            SFMTerminalRemoteService remoteService
+    ) {
         this.client = client;
         this.remoteService = remoteService;
         scrollback.appendAll(List.of(

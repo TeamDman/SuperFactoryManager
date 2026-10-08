@@ -16,11 +16,6 @@ import org.jetbrains.annotations.Nullable;
 /// See {@link SFMBlockCapabilityProvider} for more information.
 /// This is the fallback provider for the "built-in" behaviour provided by the modding framework.
 public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider<Object> {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
-{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
     @Override
     public boolean matchesCapabilityKind(SFMBlockCapabilityKind<?> capabilityKind) {
         return true;

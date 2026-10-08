@@ -163,5 +163,4 @@ public class SFMEventListenerMethod<T extends Event> {
         }
         return busType;
     }
-
 }

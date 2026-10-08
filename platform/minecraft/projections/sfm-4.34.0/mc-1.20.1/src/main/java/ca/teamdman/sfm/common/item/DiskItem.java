@@ -315,5 +315,4 @@ public class DiskItem extends Item {
             lines.add(DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
         }
     }
-
 }

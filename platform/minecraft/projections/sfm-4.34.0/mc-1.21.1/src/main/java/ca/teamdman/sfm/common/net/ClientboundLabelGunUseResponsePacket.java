@@ -43,7 +43,6 @@ public record ClientboundLabelGunUseResponsePacket(
         @Override
         public ClientboundLabelGunUseResponsePacket decode(RegistryFriendlyByteBuf friendlyByteBuf) {
             return new ClientboundLabelGunUseResponsePacket(friendlyByteBuf.readEnum(Behaviour.class));
-
         }
 
         @Override

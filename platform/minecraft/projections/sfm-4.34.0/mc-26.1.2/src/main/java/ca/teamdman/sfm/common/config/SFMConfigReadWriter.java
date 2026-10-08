@@ -190,6 +190,7 @@ public class SFMConfigReadWriter {
     }
 
     public static @Nullable String getConfigToml(ModConfigSpec configSpec) {
+
         Path configPath = SFMConfigTracker.getPathForConfig(configSpec);
         if (configPath == null) {
             SFM.LOGGER.error("Failed to get config path when trying to get config TOML contents");

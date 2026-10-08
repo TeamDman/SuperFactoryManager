@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class DiskItem extends Item {
-
     @SFMLocalizationDatagen
     public static final LocalizationEntry DISK_EDIT_IN_HAND_TOOLTIP = new LocalizationEntry(
             "gui.sfm.disk.tooltip.edit_in_hand",
@@ -172,11 +171,12 @@ public class DiskItem extends Item {
     ) {
 
         stack.set(
-                SFMDataComponents.PROGRAM_ERRORS, errors
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_ERRORS,
+                        errors
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
     }
 
     public static List<Component> getWarnings(ItemStack stack) {
@@ -206,11 +206,12 @@ public class DiskItem extends Item {
     ) {
 
         stack.set(
-                SFMDataComponents.PROGRAM_WARNINGS, warnings
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_WARNINGS,
+                        warnings
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
     }
 
     public static void setProgramName(
@@ -294,5 +295,4 @@ public class DiskItem extends Item {
             lines.add(DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
         }
     }
-
 }

@@ -149,7 +149,10 @@ public class SFMConfigReadWriter {
             Method fireEvent = ModConfig.class.getDeclaredMethod("fireEvent", IConfigEvent.class);
             fireEvent.setAccessible(true);
             IConfigEvent event = Bindings.getConfigConfiguration().get().reloading().apply(modConfig);
-            fireEvent.invoke(modConfig, event);
+            fireEvent.invoke(
+                    modConfig,
+                    event
+            );
         } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             SFM.LOGGER.warn("Failed to fire changed event for {}", modConfig.getFileName(), e);
             return false;
@@ -170,6 +173,7 @@ public class SFMConfigReadWriter {
     }
 
     public static @Nullable String getConfigToml(ModConfigSpec configSpec) {
+
         Path configPath = SFMConfigTracker.getPathForConfig(configSpec);
         if (configPath == null) {
             SFM.LOGGER.error("Failed to get config path when trying to get config TOML contents");

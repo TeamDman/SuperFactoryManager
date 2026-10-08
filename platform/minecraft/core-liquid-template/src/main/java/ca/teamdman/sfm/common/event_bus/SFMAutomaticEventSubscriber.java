@@ -1,13 +1,10 @@
 package ca.teamdman.sfm.common.event_bus;
 
+import ca.teamdman.sfm.SFM;
 {% if features.mod_event_filtering %}
-import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.compat.SFMModCompat;
-import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
-{% else %}
-import ca.teamdman.sfm.SFM;
-import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 {% endif %}
+import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 {% case minecraft_version %}
@@ -41,19 +38,15 @@ public class SFMAutomaticEventSubscriber {
                         sides.add(SFMDist.DEDICATED_SERVER);
                     }
 
-{% if features.mod_event_filtering %}
                     return sides.contains(SFMDist.current());
                 })
+{% if features.mod_event_filtering %}
                 .filter(annotationData -> {
                     String requiredModId = annotationData.getString("requiredModId", "");
                     return requiredModId.isEmpty() || SFMModCompat.isModLoaded(requiredModId);
                 })
-                .forEach(SFMAutomaticEventSubscriber::tryRegisterAnnotatedMethod);
-{% else %}
-                    return sides.contains(SFMDist.current());
-                })
-                .forEach(SFMAutomaticEventSubscriber::tryRegisterAnnotatedMethod);
 {% endif %}
+                .forEach(SFMAutomaticEventSubscriber::tryRegisterAnnotatedMethod);
     }
 
     /// Discover an annotated method and register it.

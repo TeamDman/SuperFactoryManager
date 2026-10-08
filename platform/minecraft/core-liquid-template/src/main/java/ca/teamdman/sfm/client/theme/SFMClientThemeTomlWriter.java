@@ -8,7 +8,6 @@ import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRuleCodec;
 import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewExpression;
 {% endif %}
 {% endcase %}
-
 import java.util.Comparator;
 import java.util.Map;
 

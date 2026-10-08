@@ -62,7 +62,6 @@ import org.jetbrains.annotations.Nullable;
 {% else %}
 import org.jspecify.annotations.NonNull;
 {% endcase %}
-
 import java.util.Comparator;
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
@@ -186,7 +185,6 @@ public class LabelGunItem extends Item implements TooltipProvider {
             stack.getOrCreateTag().putString("sfm:active_label", label);
 {% else %}
             stack.set(SFMDataComponents.ACTIVE_LABEL, label);
-
 {% endcase %}
         }
     }
@@ -426,6 +424,7 @@ public class LabelGunItem extends Item implements TooltipProvider {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 {% else %}
+
         var stack = player.getItemInHand(hand);
         if (level.isClientSide()) {
             SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);

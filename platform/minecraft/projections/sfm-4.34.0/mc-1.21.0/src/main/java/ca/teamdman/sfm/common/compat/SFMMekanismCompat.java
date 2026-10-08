@@ -91,7 +91,11 @@ public class SFMMekanismCompat {
     }
 
     @MCVersionDependentBehaviour
-    public static Set<Direction> getSides(ConfigInfo config, ISideConfiguration facing, Predicate<DataType> condition) {
+    public static Set<Direction> getSides(
+            ConfigInfo config,
+            ISideConfiguration facing,
+            Predicate<DataType> condition
+    ) {
 
 
         Set<Direction> rtn = EnumSet.noneOf(Direction.class);

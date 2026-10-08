@@ -89,7 +89,6 @@ public class NetworkToolItem extends Item {
     );
 
     public NetworkToolItem() {
-
         super(new Item.Properties().stacksTo(1).tab(SFMCreativeTabs.MAIN));
     }
 
@@ -192,7 +191,6 @@ public class NetworkToolItem extends Item {
     }
 
     public static boolean getOverlayEnabled(ItemStack stack) {
-
         return getOverlayMode(stack) != NetworkToolOverlayMode.HIDDEN;
     }
 
@@ -227,14 +225,12 @@ public class NetworkToolItem extends Item {
             ItemStack stack,
             BlockPos pos
     ) {
-
         setOverlayMode(stack, NetworkToolOverlayMode.SHOW_SELECTED_NETWORK);
         stack.getOrCreateTag().put("sfm:selected_network_block_pos", NbtUtils.writeBlockPos(pos));
     }
 
     @Nullable
     public static BlockPos getSelectedNetworkBlockPos(ItemStack stack) {
-
         return stack.getOrCreateTag().contains("sfm:selected_network_block_pos")
                ? NbtUtils.readBlockPos(stack.getOrCreateTag().getCompound("sfm:selected_network_block_pos"))
                : null;

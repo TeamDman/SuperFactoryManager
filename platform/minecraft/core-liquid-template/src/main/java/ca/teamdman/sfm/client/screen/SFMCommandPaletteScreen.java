@@ -4,7 +4,6 @@ package ca.teamdman.sfm.client.screen;
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
 {% when "1.21", "1.21.1", "26.1.2" %}
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
-
 {% endcase %}
 import ca.teamdman.sfm.SFM;
 {% if features.typed_command_palette %}
@@ -315,14 +314,12 @@ public final class SFMCommandPaletteScreen extends Screen {
     private static final ResourceLocation FOCUS_ACTION_ID = new ResourceLocation(SFM.MOD_ID, "focus");
     private static final ResourceLocation COPY_ACTION_ID = new ResourceLocation(SFM.MOD_ID, "clipboard/copy/action");
 {% endif %}
-
     private static @Nullable SFMCommandPaletteScreen ACTIVE;
 {% if features.typed_command_palette %}
 {% if features.document_history %}
     private static final AtomicLong NEXT_HISTORY_SESSION = new AtomicLong();
 {% endif %}
 {% endif %}
-
     private final SFMClientActionContext actionContext;
     private final boolean pushed;
     private final String initialQuery;
@@ -588,10 +585,14 @@ public final class SFMCommandPaletteScreen extends Screen {
                     "palette-open-replace-query"
             );
 {% else %}
-            palette.input.setValue(initialQuery);
+            palette.input.setValue(
+                    initialQuery
+            );
 {% endif %}
 {% else %}
-            palette.input.setValue(initialQuery);
+            palette.input.setValue(
+                    initialQuery
+            );
 {% endif %}
             palette.setFocused(palette.input);
             return;
@@ -1633,9 +1634,11 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
+        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD),
+                left + 10, top + 12, text, false);
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        SFMFontUtils.draw(graphics, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
+        SFMFontUtils.draw(graphics, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD),
+                left + 10, top + 12, text, false);
 {% endcase %}
 {% endif %}
         Component guidance = insertedRequiredArgumentSeparator
@@ -1677,9 +1680,25 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-            SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, muted, false);
+            SFMFontUtils.draw(
+                    poseStack,
+                    this.font,
+                    EMPTY_RESULTS.getComponent(),
+                    left + 10,
+                    top + 72,
+                    muted,
+                    false
+            );
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-            SFMFontUtils.draw(graphics, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, muted, false);
+            SFMFontUtils.draw(
+                    graphics,
+                    this.font,
+                    EMPTY_RESULTS.getComponent(),
+                    left + 10,
+                    top + 72,
+                    muted,
+                    false
+            );
 {% endcase %}
 {% endif %}
         } else {
@@ -1704,14 +1723,16 @@ public final class SFMCommandPaletteScreen extends Screen {
                 if (suggestionIndex >= suggestions.size()) break;
                 int y = top + 72 + i * SUGGESTION_ROW_HEIGHT;
                 if (suggestionIndex == selectedSuggestion) {
-                    fill(poseStack, left + 6, y - 2, right - 6, y + 14, theme.colour(SFMColourRole.PANEL_SELECTION));
+                    fill(poseStack, left + 6, y - 2, right - 6, y + 14,
+                            theme.colour(SFMColourRole.PANEL_SELECTION));
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
             for (int i = 0; i < visibleSuggestions; i++) {
                 int suggestionIndex = firstVisibleSuggestion + i;
                 if (suggestionIndex >= suggestions.size()) break;
                 int y = top + 72 + i * SUGGESTION_ROW_HEIGHT;
                 if (suggestionIndex == selectedSuggestion) {
-                    graphics.fill(left + 6, y - 2, right - 6, y + 14, theme.colour(SFMColourRole.PANEL_SELECTION));
+                    graphics.fill(left + 6, y - 2, right - 6, y + 14,
+                            theme.colour(SFMColourRole.PANEL_SELECTION));
 {% endcase %}
 {% endif %}
                 }
@@ -1733,10 +1754,12 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left), textX, y, text, false);
+                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left),
+                        textX, y, text, false);
                 renderBindingSummary(poseStack, suggestion, right, y);
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-                SFMFontUtils.draw(graphics, this.font, truncateSuggestion(suggestion, textX - left), textX, y, text, false);
+                SFMFontUtils.draw(graphics, this.font, truncateSuggestion(suggestion, textX - left),
+                        textX, y, text, false);
                 renderBindingSummary(graphics, suggestion, right, y);
 {% endcase %}
 {% endif %}
@@ -1912,7 +1935,11 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
 {% if features.typed_command_palette %}
-    private void renderSuggestionTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+    private void renderSuggestionTooltip(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY
+    ) {
         SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
         SFMVerticalListViewport.Bounds rows = suggestionRowBounds(scrollbar.visible());
         OptionalInt row = suggestionViewport.rowAt(
@@ -1929,18 +1956,30 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderActionIconTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+    private void renderActionIconTooltip(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY
+    ) {
         int firstY = panelTop() + 68;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
         int suggestionIndex = firstVisibleSuggestion + visibleIndex;
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderActionIconTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderActionIconTooltip(
+            GuiGraphics graphics,
+            int mouseX,
+            int mouseY
+    ) {
         int firstY = panelTop() + 68;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
         int suggestionIndex = firstVisibleSuggestion + visibleIndex;
 {% when "26.1.2" %}
-    private void renderActionIconTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderActionIconTooltip(
+            GuiGraphicsExtractor graphics,
+            int mouseX,
+            int mouseY
+    ) {
         int firstY = panelTop() + 68;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
         int suggestionIndex = firstVisibleSuggestion + visibleIndex;
@@ -2092,14 +2131,29 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderBindingSummary(PoseStack poseStack, Suggestion suggestion, int right, int y) {
+    private void renderBindingSummary(
+            PoseStack poseStack,
+            Suggestion suggestion,
+            int right,
+            int y
+    ) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderBindingSummary(GuiGraphics graphics, Suggestion suggestion, int right, int y) {
+    private void renderBindingSummary(
+            GuiGraphics graphics,
+            Suggestion suggestion,
+            int right,
+            int y
+    ) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
 {% when "26.1.2" %}
-    private void renderBindingSummary(GuiGraphicsExtractor graphics, Suggestion suggestion, int right, int y) {
+    private void renderBindingSummary(
+            GuiGraphicsExtractor graphics,
+            Suggestion suggestion,
+            int right,
+            int y
+    ) {
         Optional<Identifier> actionId = suggestionActionId(suggestion);
 {% endcase %}
 {% endif %}
@@ -2155,7 +2209,11 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderActionDetailsTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+    private void renderActionDetailsTooltip(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY
+    ) {
         int right = panelLeft() + panelWidth();
         int firstY = panelTop() + 70;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
@@ -2165,7 +2223,11 @@ public final class SFMCommandPaletteScreen extends Screen {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
-    private void renderActionDetailsTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
+    private void renderActionDetailsTooltip(
+            GuiGraphics graphics,
+            int mouseX,
+            int mouseY
+    ) {
         int right = panelLeft() + panelWidth();
         int firstY = panelTop() + 70;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
@@ -2174,7 +2236,11 @@ public final class SFMCommandPaletteScreen extends Screen {
                 || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()) return;
         Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
 {% when "26.1.2" %}
-    private void renderActionDetailsTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+    private void renderActionDetailsTooltip(
+            GuiGraphicsExtractor graphics,
+            int mouseX,
+            int mouseY
+    ) {
         int right = panelLeft() + panelWidth();
         int firstY = panelTop() + 70;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
@@ -2237,7 +2303,10 @@ public final class SFMCommandPaletteScreen extends Screen {
         String rendered = SFMTextSummary.fitLine(displayText, availableWidth, this.font::width);
         return new SuggestionTextPresentation(rendered, availableWidth, !rendered.equals(displayText));
 {% else %}
-    private String truncateSuggestion(Suggestion suggestion, int leftInset) {
+    private String truncateSuggestion(
+            Suggestion suggestion,
+            int leftInset
+    ) {
         return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150 - leftInset));
 {% endif %}
     }
@@ -3213,10 +3282,14 @@ public final class SFMCommandPaletteScreen extends Screen {
                     "palette-required-argument-separator"
             );
 {% else %}
-            this.input.setValue(prepared);
+            this.input.setValue(
+                    prepared
+            );
 {% endif %}
 {% else %}
-            this.input.setValue(prepared);
+            this.input.setValue(
+                    prepared
+            );
 {% endif %}
             this.insertedRequiredArgumentSeparator = true;
 {% case minecraft_version %}
@@ -3311,16 +3384,22 @@ public final class SFMCommandPaletteScreen extends Screen {
                 "automation-execute-command"
         );
 {% else %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
 {% endif %}
         this.input.moveCursorToEnd();
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
         this.input.moveCursorToEnd();
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
         this.input.moveCursorToEnd(false);
 {% endcase %}
 {% endif %}
@@ -3509,7 +3588,9 @@ public final class SFMCommandPaletteScreen extends Screen {
                 "automation-set-input"
         );
 {% else %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
 {% endif %}
         this.input.moveCursorToEnd();
     }
@@ -3580,10 +3661,14 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
         this.input.moveCursorToEnd();
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        this.input.setValue(command);
+        this.input.setValue(
+                command
+        );
         this.input.moveCursorToEnd(false);
 {% endcase %}
 {% endif %}
@@ -3630,16 +3715,22 @@ public final class SFMCommandPaletteScreen extends Screen {
                 "palette-reset-after-command"
         );
 {% else %}
-        this.input.setValue(DEFAULT_QUERY);
+        this.input.setValue(
+                DEFAULT_QUERY
+        );
 {% endif %}
         this.input.moveCursorToEnd();
 {% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
-        this.input.setValue(DEFAULT_QUERY);
+        this.input.setValue(
+                DEFAULT_QUERY
+        );
         this.input.moveCursorToEnd();
 {% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        this.input.setValue(DEFAULT_QUERY);
+        this.input.setValue(
+                DEFAULT_QUERY
+        );
         this.input.moveCursorToEnd(false);
 {% endcase %}
 {% endif %}

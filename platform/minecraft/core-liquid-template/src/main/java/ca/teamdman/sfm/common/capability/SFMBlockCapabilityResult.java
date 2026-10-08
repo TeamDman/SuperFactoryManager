@@ -143,9 +143,9 @@ public record SFMBlockCapabilityResult<CAP>(
         // We MUST avoid it getting garbage collected by CapabilityListenerHolder
         this.listeners.add(listener);
 {% endcase %}
-
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
+
         inner.addListener(inner -> listener.accept(SFMBlockCapabilityResult.this));
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 {% endcase %}

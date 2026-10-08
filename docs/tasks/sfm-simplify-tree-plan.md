@@ -39,6 +39,9 @@ A further 45 templates, committed at `640dba853`, passed a coordinator check of 
 pinned contexts; manifestation changed 423 outputs and left 153 unchanged, with
 no removals. That brings the completed, manifested checkpoint to 112 templates.
 Further disjoint worker queues remain active.
+The next 42 completed templates passed 840 pinned-context checks. Selected
+manifestation changed 543 outputs and left 145 unchanged, without removals;
+the manifested checkpoint now covers 154 templates.
 
 Initial full inventory: 2,610 Java files, including 889 Liquid templates and
 1,721 directive-free identity inputs. Metadata has no Java project-file

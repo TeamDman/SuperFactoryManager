@@ -146,8 +146,4 @@ public class SFMTitleScreenDevScreenChooserScreen extends Screen {
         return 76 + (SFMTitleScreenDevScreen.values().length + 1) * 26;
 {% endif %}
     }
-{% case minecraft_version %}
-{% when "26.1.2" %}
-
-{% endcase %}
 }

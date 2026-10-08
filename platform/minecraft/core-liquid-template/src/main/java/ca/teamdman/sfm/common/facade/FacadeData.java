@@ -106,8 +106,12 @@ public record FacadeData(
 {% case minecraft_version %}
 {% when '1.19.2' %}
     @MCVersionDependentBehaviour
-    private static BlockState readBlockState(CompoundTag tag) {
-        return NbtUtils.readBlockState(tag);
+    private static BlockState readBlockState(
+            CompoundTag tag
+    ) {
+        return NbtUtils.readBlockState(
+                tag
+        );
     }
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     @MCVersionDependentBehaviour

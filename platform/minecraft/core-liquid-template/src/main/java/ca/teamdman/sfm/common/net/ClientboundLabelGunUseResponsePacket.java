@@ -57,11 +57,6 @@ public record ClientboundLabelGunUseResponsePacket(
         public ClientboundLabelGunUseResponsePacket decode(RegistryFriendlyByteBuf friendlyByteBuf) {
 {% endcase %}
             return new ClientboundLabelGunUseResponsePacket(friendlyByteBuf.readEnum(Behaviour.class));
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-{% when '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
         }
 
         @Override

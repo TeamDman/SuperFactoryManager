@@ -34,7 +34,6 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
-
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.function.Consumer;
@@ -140,7 +139,6 @@ public class LabelGunItem extends Item implements TooltipProvider {
         } else {
             LabelPositionHolder.from(stack).addReferencedLabel(label).save(stack);
             stack.set(SFMDataComponents.ACTIVE_LABEL, label);
-
         }
     }
 
@@ -258,6 +256,7 @@ public class LabelGunItem extends Item implements TooltipProvider {
             Player player,
             InteractionHand hand
     ) {
+
         var stack = player.getItemInHand(hand);
         if (level.isClientSide()) {
             SFMScreenChangeHelpers.showLabelGunScreen(stack, hand);

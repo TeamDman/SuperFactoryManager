@@ -32,7 +32,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -138,7 +137,6 @@ public class LabelGunItem extends Item {
         } else {
             LabelPositionHolder.from(stack).addReferencedLabel(label).save(stack);
             stack.set(SFMDataComponents.ACTIVE_LABEL, label);
-
         }
     }
 

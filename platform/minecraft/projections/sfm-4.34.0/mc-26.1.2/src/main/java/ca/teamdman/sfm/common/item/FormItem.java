@@ -13,7 +13,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipProvider;
-
 import java.util.function.Consumer;
 
 public class FormItem extends Item implements TooltipProvider {
@@ -61,7 +60,12 @@ public class FormItem extends Item implements TooltipProvider {
     }
 
     @Override
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
         var reference = components.getOrDefault(SFMDataComponents.FORM_REFERENCE.get(), ca.teamdman.sfm.common.component.ItemStackBox.EMPTY).stack();
         if (!reference.isEmpty()) {
             for (Component component : reference.getTooltipLines(context, null, flag)) {

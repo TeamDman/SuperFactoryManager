@@ -44,7 +44,6 @@ import net.minecraft.util.Mth;
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 import org.joml.Matrix4f;
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -134,13 +133,12 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
     ) {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
         PoseStack pPoseStack = pGuiGraphics.pose();
-
 {% when '26.1.2' %}
 {% endcase %}
+
         frame++;
 
         if (styledTextContentLines.isEmpty()) {

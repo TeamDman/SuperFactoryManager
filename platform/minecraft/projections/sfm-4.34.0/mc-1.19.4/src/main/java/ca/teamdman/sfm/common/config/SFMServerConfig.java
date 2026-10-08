@@ -6,7 +6,6 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-
 import java.util.List;
 
 public class SFMServerConfig {

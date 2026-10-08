@@ -10,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-
 import java.util.List;
 
 public class PrintingPressBlockItem extends BlockItem {
@@ -35,5 +34,4 @@ public class PrintingPressBlockItem extends BlockItem {
         super.appendHoverText(pStack, pContext, pTooltipComponents, pTooltipFlag);
         pTooltipComponents.add(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
     }
-
 }

@@ -266,7 +266,9 @@ public class FallingAnvilHandler {
                     enchantments
             );
 {% when '1.21', '1.21.1', '26.1.2' %}
-            long shardsForEnchantments = getShardCountForEnchantments(enchantments);
+            long shardsForEnchantments = getShardCountForEnchantments(
+                    enchantments
+            );
 {% endcase %}
 
             // Determine the total number of shards based on the stack size

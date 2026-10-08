@@ -8,7 +8,6 @@ import ca.teamdman.sfm.client.theme.preview.*;
 import com.electronwill.nightconfig.toml.TomlFormat;
 {% endif %}
 {% endcase %}
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -96,6 +95,7 @@ public final class SFMClientThemeService {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 {% if features.theme_preview_rules %}
+
     public static Optional<SFMItemstackPreviewThemeTarget> activeAuthority() {
         Authority captured=authority;
         return captured==null ? Optional.empty() : Optional.of(captured.target());

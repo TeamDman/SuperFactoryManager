@@ -12,7 +12,11 @@ public record SFMTerminalFrame(
         SFMTerminalFrameMetadata metadata,
         String streamIdentity) {
 {% else %}
-public record SFMTerminalFrame(long sequence, boolean full, boolean png, byte[] payload) {
+public record SFMTerminalFrame(
+        long sequence,
+        boolean full,
+        boolean png,
+        byte[] payload) {
 {% endif %}
     public SFMTerminalFrame {
         payload = payload == null ? new byte[0] : Arrays.copyOf(payload, payload.length);

@@ -42,7 +42,6 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DiskItem extends Item implements TooltipProvider {
-
     @SFMLocalizationDatagen
     public static final LocalizationEntry DISK_EDIT_IN_HAND_TOOLTIP = new LocalizationEntry(
             "gui.sfm.disk.tooltip.edit_in_hand",
@@ -175,11 +174,12 @@ public class DiskItem extends Item implements TooltipProvider {
     ) {
 
         stack.set(
-                SFMDataComponents.PROGRAM_ERRORS.get(), errors
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_ERRORS.get(),
+                        errors
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
     }
 
     public static List<Component> getWarnings(DataComponentGetter components) {
@@ -209,11 +209,12 @@ public class DiskItem extends Item implements TooltipProvider {
     ) {
 
         stack.set(
-                SFMDataComponents.PROGRAM_WARNINGS, warnings
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_WARNINGS,
+                        warnings
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
     }
 
     public static void setProgramName(
@@ -265,7 +266,13 @@ public class DiskItem extends Item implements TooltipProvider {
     }
 
     @Override
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
+
         String program = components.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
         if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
             consumer.accept(SFMItemUtils.getRainbow(DiskItem.getProgramName(components).length()));
@@ -289,9 +296,7 @@ public class DiskItem extends Item implements TooltipProvider {
             }
         }
         if (!program.isEmpty()) {
-            consumer.accept(
-                    DiskItem.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
-            );
+            consumer.accept(DiskItem.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
         }
     }
 }

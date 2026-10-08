@@ -170,7 +170,12 @@ public final class SFMClientThemeLoader {
                             diagnostics
                     )
 {% else %}
-                    parseIcon(entry.getValue(), "icons.actions.\"" + entry.getKey() + "\"", entry.getKey(), diagnostics)
+                    parseIcon(
+                            entry.getValue(),
+                            "icons.actions.\"" + entry.getKey() + "\"",
+                            entry.getKey(),
+                            diagnostics
+                    )
 {% endcase %}
                             .ifPresent(icon -> actionIcons.put(actionId, icon));
                 } catch (RuntimeException e) {

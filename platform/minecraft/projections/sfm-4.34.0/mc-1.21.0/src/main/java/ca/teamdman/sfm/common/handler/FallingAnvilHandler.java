@@ -246,7 +246,9 @@ public class FallingAnvilHandler {
             );
 
             // Determine how many shards the book is worth
-            long shardsForEnchantments = getShardCountForEnchantments(enchantments);
+            long shardsForEnchantments = getShardCountForEnchantments(
+                    enchantments
+            );
 
             // Determine the total number of shards based on the stack size
             long shardsToSpawn = (long) stack.getCount() * shardsForEnchantments;

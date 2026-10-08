@@ -25,12 +25,11 @@ import net.neoforged.neoforge.common.util.NonNullConsumer;
 import net.neoforged.neoforge.capabilities.ICapabilityInvalidationListener;
 {% endcase %}
 import org.jetbrains.annotations.Nullable;
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
-
 {% when '1.20.2' %}
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
 /// See {@link net.neoforged.neoforge.capabilities.BlockCapability} and {@link net.neoforged.neoforge.capabilities.BlockCapabilityCache}
 {% endcase %}
 public class SFMBlockCapabilityCacheForLevel {

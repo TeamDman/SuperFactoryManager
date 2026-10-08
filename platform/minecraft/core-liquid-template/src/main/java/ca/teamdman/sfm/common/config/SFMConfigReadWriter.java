@@ -221,7 +221,10 @@ public class SFMConfigReadWriter {
             Method fireEvent = ModConfig.class.getDeclaredMethod("fireEvent", IConfigEvent.class);
             fireEvent.setAccessible(true);
             IConfigEvent event = Bindings.getConfigConfiguration().get().reloading().apply(modConfig);
-            fireEvent.invoke(modConfig, event);
+            fireEvent.invoke(
+                    modConfig,
+                    event
+            );
         } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             SFM.LOGGER.warn("Failed to fire changed event for {}", modConfig.getFileName(), e);
 {% when '1.21', '1.21.1', '26.1.2' %}
@@ -260,10 +263,10 @@ public class SFMConfigReadWriter {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
     public static @Nullable String getConfigToml(ForgeConfigSpec configSpec) {
-
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
     public static @Nullable String getConfigToml(ModConfigSpec configSpec) {
 {% endcase %}
+
         Path configPath = SFMConfigTracker.getPathForConfig(configSpec);
         if (configPath == null) {
             SFM.LOGGER.error("Failed to get config path when trying to get config TOML contents");

@@ -7,14 +7,11 @@ import ca.teamdman.sfml.program_builder.ProgramBuilder;
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
-
-import java.util.List;
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
-
-import java.util.List;
 {% endcase %}
+import java.util.List;
 
 public class SFMServerConfig {
 {% case minecraft_version %}

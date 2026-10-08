@@ -532,7 +532,9 @@ public final class SFMWorkspaceLayout {
                         entry.getKey(),
                         persistentPanelMetadata.getOrDefault(entry.getKey(), SFMWorkspacePanelMetadata.ordinary())))
 {% else %}
-                .map(entry -> new PanelEntry(entry.getValue(), entry.getKey()))
+                .map(entry -> new PanelEntry(
+                        entry.getValue(),
+                        entry.getKey()))
 {% endif %}
                 .sorted(java.util.Comparator.comparingLong(entry -> entry.id().value()))
                 .toList();
@@ -2143,7 +2145,9 @@ public final class SFMWorkspaceLayout {
             this(id, panel, SFMWorkspacePanelMetadata.ordinary());
         }
 {% else %}
-    public record PanelEntry(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+    public record PanelEntry(
+            SFMWorkspacePanelId id,
+            SFMScreenPanel panel) {
 {% endif %}
     }
 
@@ -2170,7 +2174,8 @@ public final class SFMWorkspaceLayout {
             return new StackNode(stack.children().stream()
                     .map(child -> materialize(child, ids, metadata, nextId)).toList(), stack.active());
 {% else %}
-            return new StackNode(stack.children().stream().map(child -> materialize(child, ids, nextId)).toList(), stack.active());
+            return new StackNode(stack.children().stream()
+                    .map(child -> materialize(child, ids, nextId)).toList(), stack.active());
 {% endif %}
         }
         LinearSpec linear = (LinearSpec) spec;
@@ -2256,7 +2261,9 @@ public final class SFMWorkspaceLayout {
             this(id, panel, SFMWorkspacePanelMetadata.ordinary());
         }
 {% else %}
-    private record PanelNode(SFMWorkspacePanelId id, SFMScreenPanel panel) implements Node {
+    private record PanelNode(
+            SFMWorkspacePanelId id,
+            SFMScreenPanel panel) implements Node {
 {% endif %}
     }
 

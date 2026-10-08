@@ -54,23 +54,12 @@ public interface SFMBlockCapabilityProvider<CAP> {
             LevelAccessor level,
             BlockPos pos,
             BlockState state,
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
-            @Nullable
-            BlockEntity blockEntity,
-{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
             @Nullable BlockEntity blockEntity,
-{% endcase %}
             @Nullable Direction direction
     );
 
     ///  Higher priority providers are checked first. The Default priority is 0.
     default int priority() {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
-{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
         return 0;
     }
 {% case minecraft_version %}

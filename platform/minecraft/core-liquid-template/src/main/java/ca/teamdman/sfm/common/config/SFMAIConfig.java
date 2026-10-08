@@ -4,7 +4,6 @@ package ca.teamdman.sfm.common.config;
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
 import net.minecraftforge.common.ForgeConfigSpec;
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-
 import net.neoforged.neoforge.common.ModConfigSpec;
 {% endcase %}
 

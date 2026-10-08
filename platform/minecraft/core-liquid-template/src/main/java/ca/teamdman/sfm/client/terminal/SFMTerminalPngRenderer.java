@@ -41,10 +41,6 @@ import net.minecraft.resources.Identifier;
 {% endcase %}
 {% endcase %}
 import org.lwjgl.system.MemoryUtil;
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-
-{% endcase %}
 import java.io.IOException;
 import java.nio.ByteBuffer;
 {% case minecraft_version %}
@@ -79,7 +75,6 @@ final class SFMTerminalPngRenderer {
     private static final int MIN_ENCODED_BUFFER_CAPACITY = 4 * 1024;
     private static final int MAX_ENCODED_PNG_BYTES = 64 * 1024 * 1024;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
     private final ResourceLocation textureLocation = new ResourceLocation(

@@ -57,7 +57,8 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
     public static LabelPositionHolder from(ItemStack stack) {
         // TODO: make this return an immutable copy instead of mutably borrowing the cache entry
         return CACHE.computeIfAbsent(
-                stack, s -> {
+                stack,
+                s -> {
                     var tag = stack.getOrCreateTag().getCompound("sfm:labels");
                     return deserialize(tag);
                 }

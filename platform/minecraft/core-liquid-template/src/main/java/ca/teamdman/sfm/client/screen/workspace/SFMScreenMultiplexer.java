@@ -312,7 +312,6 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_focus_tracking %}
     private static final int MAX_FOCUS_HISTORY_ENTRIES = 32;
 {% endif %}
-
     private final @Nullable Screen previousScreen;
     private final SFMWorkspaceLayout layout;
     private final @Nullable SFMWorkspacePanelGroup panelGroup;
@@ -471,7 +470,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 ? SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)))
                 : SFMWorkspaceLayout.group(SFMWorkspaceLayout.vertical(SFMWorkspaceLayout.panel(first), SFMWorkspaceLayout.panel(second)));
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
-            multiplexer.openToSide(multiplexer.layout.focusedPanel(), side, panel);
+            multiplexer.openToSide(
+                    multiplexer.layout.focusedPanel(), side, panel);
             return;
         }
         SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(origin, tree));
@@ -488,7 +488,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             @Nullable SFMPanelReopenRecipe reopenRecipe
     ) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
-            multiplexer.openToSide(multiplexer.layout.focusedPanel(), side, panel, reopenRecipe);
+            multiplexer.openToSide(
+                    multiplexer.layout.focusedPanel(), side, panel, reopenRecipe);
             return;
         }
         SFMScreenPanel previous = new SFMPreviousScreenPanel(origin);

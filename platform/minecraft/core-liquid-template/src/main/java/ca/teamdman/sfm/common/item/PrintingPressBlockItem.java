@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 {% when '26.1.2' %}
 import net.minecraft.world.item.component.TooltipProvider;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 import java.util.List;
@@ -77,7 +76,6 @@ public class PrintingPressBlockItem extends BlockItem implements TooltipProvider
             List<Component> pTooltip,
             TooltipFlag pFlag
     ) {
-
         super.appendHoverText(pStack, pLevel, pTooltip, pFlag);
         pTooltip.add(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
 {% when '1.21', '1.21.1' %}
@@ -90,15 +88,13 @@ public class PrintingPressBlockItem extends BlockItem implements TooltipProvider
         super.appendHoverText(pStack, pContext, pTooltipComponents, pTooltipFlag);
         pTooltipComponents.add(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
 {% when '26.1.2' %}
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
-        consumer.accept(
-                PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
-        );
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
+        consumer.accept(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
 {% endcase %}
     }
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
 }

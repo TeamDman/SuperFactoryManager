@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.screens.Screen;
+
 import net.minecraft.client.input.KeyEvent;
 import org.joml.Matrix3x2fStack;
 import org.lwjgl.glfw.GLFW;

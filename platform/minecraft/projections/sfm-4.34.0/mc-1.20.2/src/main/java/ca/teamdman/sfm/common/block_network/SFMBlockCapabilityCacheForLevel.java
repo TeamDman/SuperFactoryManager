@@ -14,6 +14,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.neoforged.neoforge.common.util.NonNullConsumer;
 import org.jetbrains.annotations.Nullable;
+
 public class SFMBlockCapabilityCacheForLevel {
     // Position => Capability => Direction => CapabilityResult/LazyOptional
     // We don't use an EnumMap here for Direction because we need to support the null key

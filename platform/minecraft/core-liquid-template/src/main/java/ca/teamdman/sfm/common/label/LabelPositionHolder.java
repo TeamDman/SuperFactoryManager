@@ -162,7 +162,8 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
         return CACHE.computeIfAbsent(
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
-                stack, s -> {
+                stack,
+                s -> {
                     var tag = stack.getOrCreateTag().getCompound("sfm:labels");
                     return deserialize(tag);
                 }
@@ -175,7 +176,6 @@ public record LabelPositionHolder(Map<String, BlockPosSet> labels) {
                     }
                     return new LabelPositionHolder(immutableLabelPositionHolder);
                 }
-
 {% when "26.1.2" %}
                 stack,
                 s -> from((DataComponentGetter) stack)

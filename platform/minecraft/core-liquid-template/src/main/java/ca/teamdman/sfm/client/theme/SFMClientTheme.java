@@ -3,7 +3,6 @@ package ca.teamdman.sfm.client.theme;
 {% case minecraft_version %}
 {% when "1.21", "1.21.1", "26.1.2" %}
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
-
 {% endcase %}
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 {% if features.theme_preview_rules %}
@@ -15,7 +14,6 @@ import net.minecraft.resources.Identifier;
 {% else %}
 import net.minecraft.resources.ResourceLocation;
 {% endcase %}
-
 {% if features.theme_file_icon_matching %}
 import java.util.ArrayList;
 {% endif %}

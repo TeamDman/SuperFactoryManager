@@ -68,7 +68,6 @@ public record SFMBlockCapabilityResult<CAP>(
         // Ensure the listener object lives as long as this result object by tracking a strong reference
         // We MUST avoid it getting garbage collected by CapabilityListenerHolder
         this.listeners.add(listener);
-
     }
 
 }

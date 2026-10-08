@@ -346,7 +346,6 @@ public final class SFMClientRegistrations {
 {% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-
         bus.addListener((FMLClientSetupEvent event) -> {
 {% if features.multiplayer_packets %}
             SFMMultiplayerClientRuntime.initialize();

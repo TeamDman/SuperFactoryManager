@@ -12,7 +12,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 
 public class PrintingPressBlockItem extends BlockItem {
@@ -34,9 +33,7 @@ public class PrintingPressBlockItem extends BlockItem {
             List<Component> pTooltip,
             TooltipFlag pFlag
     ) {
-
         super.appendHoverText(pStack, pLevel, pTooltip, pFlag);
         pTooltip.add(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
     }
-
 }

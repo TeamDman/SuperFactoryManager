@@ -11,7 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-
 import java.util.List;
 
 public class FormItem extends Item {
@@ -66,5 +65,4 @@ public class FormItem extends Item {
             pTooltipComponents.addAll(reference.getTooltipLines(pContext, null, pTooltipFlag));
         }
     }
-
 }

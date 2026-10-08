@@ -220,5 +220,4 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             }
         }
     }
-
 }

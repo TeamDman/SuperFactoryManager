@@ -49,7 +49,6 @@ public interface SFMBlockCapabilityProvider<CAP> {
 
     ///  Higher priority providers are checked first. The Default priority is 0.
     default int priority() {
-
         return 0;
     }
 

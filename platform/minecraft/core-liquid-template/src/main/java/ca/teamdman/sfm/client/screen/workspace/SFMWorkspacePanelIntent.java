@@ -27,7 +27,10 @@ public sealed interface SFMWorkspacePanelIntent {
 {% endif %}
     ) implements SFMWorkspacePanelIntent {
 {% else %}
-    record OpenToSide(SFMWorkspaceSide side, SFMScreenPanel panel) implements SFMWorkspacePanelIntent {
+    record OpenToSide(
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel
+    ) implements SFMWorkspacePanelIntent {
 {% endif %}
         public OpenToSide {
             Objects.requireNonNull(side);
@@ -79,7 +82,9 @@ public sealed interface SFMWorkspacePanelIntent {
 {% endif %}
     ) implements SFMWorkspacePanelIntent {
 {% else %}
-    record OpenAsTab(SFMScreenPanel panel) implements SFMWorkspacePanelIntent {
+    record OpenAsTab(
+            SFMScreenPanel panel
+    ) implements SFMWorkspacePanelIntent {
 {% endif %}
         public OpenAsTab {
             Objects.requireNonNull(panel);

@@ -14,7 +14,6 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import org.jetbrains.annotations.Nullable;
-
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -72,5 +71,4 @@ public class FormItem extends Item {
             }
         }
     }
-
 }

@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 /// See {@link SFMBlockCapabilityProvider} for more information.
 /// This is the fallback provider for the "built-in" behaviour provided by the modding framework.
 public class BlockEntityCapabilityProvider implements SFMBlockCapabilityProvider<Object> {
-
     @Override
     public boolean matchesCapabilityKind(SFMBlockCapabilityKind<?> capabilityKind) {
         return true;

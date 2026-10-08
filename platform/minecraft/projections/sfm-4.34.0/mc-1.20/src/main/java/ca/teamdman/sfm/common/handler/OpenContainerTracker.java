@@ -5,7 +5,6 @@ import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;

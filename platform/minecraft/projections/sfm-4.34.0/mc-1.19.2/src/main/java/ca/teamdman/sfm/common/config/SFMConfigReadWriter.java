@@ -151,7 +151,10 @@ public class SFMConfigReadWriter {
             Method fireEvent = ModConfig.class.getDeclaredMethod("fireEvent", IConfigEvent.class);
             fireEvent.setAccessible(true);
             IConfigEvent event = Bindings.getConfigConfiguration().get().reloading().apply(modConfig);
-            fireEvent.invoke(modConfig, event);
+            fireEvent.invoke(
+                    modConfig,
+                    event
+            );
         } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             SFM.LOGGER.warn("Failed to fire changed event for {}", modConfig.getFileName(), e);
             return false;

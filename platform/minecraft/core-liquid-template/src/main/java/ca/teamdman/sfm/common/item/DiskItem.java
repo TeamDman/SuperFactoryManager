@@ -96,14 +96,10 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 public class DiskItem extends Item {
-{% when "1.21", "1.21.1" %}
-public class DiskItem extends Item {
-
 {% when "26.1.2" %}
 public class DiskItem extends Item implements TooltipProvider {
-
 {% endcase %}
     @SFMLocalizationDatagen
     public static final LocalizationEntry DISK_EDIT_IN_HAND_TOOLTIP = new LocalizationEntry(
@@ -357,18 +353,20 @@ public class DiskItem extends Item implements TooltipProvider {
                 );
 {% when "1.21", "1.21.1" %}
         stack.set(
-                SFMDataComponents.PROGRAM_ERRORS, errors
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_ERRORS,
+                        errors
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
 {% when "26.1.2" %}
         stack.set(
-                SFMDataComponents.PROGRAM_ERRORS.get(), errors
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_ERRORS.get(),
+                        errors
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
 {% endcase %}
     }
 
@@ -432,11 +430,12 @@ public class DiskItem extends Item implements TooltipProvider {
                 );
 {% when "1.21", "1.21.1", "26.1.2" %}
         stack.set(
-                SFMDataComponents.PROGRAM_WARNINGS, warnings
-                        .stream()
-                        .map(MutableComponent::create)
-                        .collect(Collectors.toList())
-        );
+                        SFMDataComponents.PROGRAM_WARNINGS,
+                        warnings
+                                .stream()
+                                .map(MutableComponent::create)
+                                .collect(Collectors.toList())
+                );
 {% endcase %}
     }
 
@@ -590,7 +589,13 @@ public class DiskItem extends Item implements TooltipProvider {
 
         String program = DiskItem.getProgramString(stack);
 {% when "26.1.2" %}
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
+
         String program = components.getOrDefault(SFMDataComponents.PROGRAM_STRING.get(), "");
 {% endcase %}
 {% case minecraft_version %}
@@ -674,14 +679,8 @@ public class DiskItem extends Item implements TooltipProvider {
             lines.add(DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
 {% when "26.1.2" %}
         if (!program.isEmpty()) {
-            consumer.accept(
-                    DiskItem.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
-            );
+            consumer.accept(DiskItem.DISK_EDIT_IN_HAND_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
 {% endcase %}
         }
     }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
-{% endcase %}
 }

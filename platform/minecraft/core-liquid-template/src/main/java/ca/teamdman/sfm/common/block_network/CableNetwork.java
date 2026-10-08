@@ -246,9 +246,4 @@ public class CableNetwork extends BlockNetwork<Level, Unit> {
             }
         }
     }
-{% case minecraft_version %}
-{% when "26.1.2" %}
-{% else %}
-
-{% endcase %}
 }

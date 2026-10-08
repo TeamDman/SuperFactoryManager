@@ -119,8 +119,11 @@ public class SFMButtonBuilder {
     }
 
     @MCVersionDependentBehaviour
-    public SFMButtonBuilder setTooltipSupplier(Screen screen, Font font,
-                                               java.util.function.Supplier<Component> tooltip) {
+    public SFMButtonBuilder setTooltipSupplier(
+            Screen screen,
+            Font font,
+            java.util.function.Supplier<Component> tooltip
+    ) {
         this.tooltip = (btn, pose, mx, my) -> screen.renderTooltip(
                 pose,
                 font.split(tooltip.get(), Math.max(screen.width / 2 - 43, 170)
@@ -143,8 +146,11 @@ public class SFMButtonBuilder {
     }
 
     @SuppressWarnings("unused")
-    public SFMButtonBuilder setTooltipSupplier(Screen screen, Font font,
-                                               Supplier<Component> tooltip) {
+    public SFMButtonBuilder setTooltipSupplier(
+            Screen screen,
+            Font font,
+            Supplier<Component> tooltip
+    ) {
         this.tooltip = tooltip;
 {% else %}
         this.tooltip = Tooltip.create(tooltip);

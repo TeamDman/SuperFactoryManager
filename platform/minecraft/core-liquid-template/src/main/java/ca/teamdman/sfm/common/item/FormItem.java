@@ -41,7 +41,6 @@ import org.jetbrains.annotations.Nullable;
 {% else %}
 import net.minecraft.world.item.component.TooltipProvider;
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
 import java.util.List;
@@ -141,7 +140,6 @@ public class FormItem extends Item implements TooltipProvider {
     }
 
 {% endif %}
-
 {% when "1.20.3", "1.20.4" %}
 {% if features.form_readonly_access %}
     /**
@@ -232,7 +230,12 @@ public class FormItem extends Item implements TooltipProvider {
         if (!reference.isEmpty()) {
             pTooltipComponents.addAll(reference.getTooltipLines(pContext, null, pTooltipFlag));
 {% else %}
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
         var reference = components.getOrDefault(SFMDataComponents.FORM_REFERENCE.get(), ca.teamdman.sfm.common.component.ItemStackBox.EMPTY).stack();
         if (!reference.isEmpty()) {
             for (Component component : reference.getTooltipLines(context, null, flag)) {
@@ -241,9 +244,4 @@ public class FormItem extends Item implements TooltipProvider {
 {% endcase %}
         }
     }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
-{% else %}
-{% endcase %}
 }

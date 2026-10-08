@@ -12,7 +12,6 @@ import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -86,6 +85,7 @@ public class SFMMultiLineTextRenderWidget implements Renderable {
             int pMouseY,
             float pPartialTick
     ) {
+
         frame++;
 
         if (styledTextContentLines.isEmpty()) {

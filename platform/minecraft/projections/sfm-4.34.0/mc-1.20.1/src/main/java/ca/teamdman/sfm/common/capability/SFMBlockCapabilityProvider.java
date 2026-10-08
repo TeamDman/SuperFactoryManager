@@ -35,8 +35,7 @@ public interface SFMBlockCapabilityProvider<CAP> {
             LevelAccessor level,
             BlockPos pos,
             BlockState state,
-            @Nullable
-            BlockEntity blockEntity,
+            @Nullable BlockEntity blockEntity,
             @Nullable Direction direction
     );
 

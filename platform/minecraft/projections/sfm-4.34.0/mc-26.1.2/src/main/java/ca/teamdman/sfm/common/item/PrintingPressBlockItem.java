@@ -11,7 +11,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.TooltipProvider;
-
 import java.util.function.Consumer;
 
 public class PrintingPressBlockItem extends BlockItem implements TooltipProvider {
@@ -27,9 +26,12 @@ public class PrintingPressBlockItem extends BlockItem implements TooltipProvider
     }
 
     @Override
-    public void addToTooltip(TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
-        consumer.accept(
-                PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY)
-        );
+    public void addToTooltip(
+            TooltipContext context,
+            Consumer<Component> consumer,
+            TooltipFlag flag,
+            DataComponentGetter components
+    ) {
+        consumer.accept(PRINTING_PRESS_TOOLTIP.getComponent().withStyle(ChatFormatting.GRAY));
     }
 }

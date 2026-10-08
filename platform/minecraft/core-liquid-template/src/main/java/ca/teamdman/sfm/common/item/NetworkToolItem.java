@@ -142,7 +142,6 @@ public class NetworkToolItem extends Item implements TooltipProvider {
 {% case minecraft_version %}
 {% when '1.19.2' %}
     public NetworkToolItem() {
-
         super(new Item.Properties().stacksTo(1).tab(SFMCreativeTabs.MAIN));
 {% when '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     public NetworkToolItem() {
@@ -309,11 +308,6 @@ public class NetworkToolItem extends Item implements TooltipProvider {
     }
 
     public static boolean getOverlayEnabled(ItemStack stack) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-
-{% when '1.21', '1.21.1', '26.1.2' %}
-{% endcase %}
         return getOverlayMode(stack) != NetworkToolOverlayMode.HIDDEN;
     }
 
@@ -353,11 +347,6 @@ public class NetworkToolItem extends Item implements TooltipProvider {
             ItemStack stack,
             BlockPos pos
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-
-{% when '1.21', '1.21.1', '26.1.2' %}
-{% endcase %}
         setOverlayMode(stack, NetworkToolOverlayMode.SHOW_SELECTED_NETWORK);
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
@@ -371,7 +360,6 @@ public class NetworkToolItem extends Item implements TooltipProvider {
     public static BlockPos getSelectedNetworkBlockPos(ItemStack stack) {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-
         return stack.getOrCreateTag().contains("sfm:selected_network_block_pos")
                ? NbtUtils.readBlockPos(stack.getOrCreateTag().getCompound("sfm:selected_network_block_pos"))
                : null;

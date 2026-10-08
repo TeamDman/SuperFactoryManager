@@ -17,7 +17,6 @@ import net.minecraft.world.level.Level;
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3" %}
 import net.minecraftforge.common.util.LazyOptional;
-
 import javax.annotation.Nonnull;
 {% when "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -73,6 +72,5 @@ public final class SFMNetworkPeripheralProvider implements IBlockCapabilityProvi
         if (CableNetworkManager.getOrRegisterNetworkFromCablePosition(level, pos).isEmpty()) return null;
         return new SFMNetworkPeripheral(level, pos.immutable());
     }
-
 {% endcase %}
 }
