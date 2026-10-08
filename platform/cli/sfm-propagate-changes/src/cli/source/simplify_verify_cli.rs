@@ -97,7 +97,10 @@ struct WorkerExample {
 }
 
 #[derive(Debug, Facet)]
-#[expect(clippy::struct_excessive_bools, reason = "Independent report facts preserve the full verifier's outcomes and explicitly describe sampled, read-only output")]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Independent report facts preserve the full verifier's outcomes and explicitly describe sampled, read-only output"
+)]
 struct WorkerReport {
     schema: String,
     file: String,

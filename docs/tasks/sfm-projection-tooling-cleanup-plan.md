@@ -32,7 +32,15 @@ Adversarial review retained runtime oracle checking, shared batch context and th
 complete pilot timing boundary. Older conversation details are summarized in the
 previous plan; they are not claimed as freshly verified implementation facts.
 
-## [~] 1 Remove historical coupling
+## [x] 1 Remove historical coupling
+
+Completion evidence: checkpoint `c08914986` removes production document embeds
+and 116 historical source-golden modules. Native fixtures exercise selected-
+checkout configuration and unchanged artifact identities. The installed release
+executable's compiler dependency file contains no `docs/tasks`, `docs/reports`
+or generation-history manifest inputs. Historical documents remain test evidence,
+not production compile-time dependencies. Intermediate notes below record the
+migration and resolved fixture issues.
 
 Production includes currently bind released-native recipes, NFRT contracts and
 child identities, and a one-time seed validator to historical documents. Inspect
@@ -116,7 +124,15 @@ It exposed unused wave-specific capture exports, which were then removed with
 their now-unreferenced helper module. Do not claim the new configuration fixtures
 or broad gate have passed yet. Some shared fixture cleanup remains.
 
-## [~] 2 Implement selected manifestation with shared context
+## [x] 2 Implement selected manifestation with shared context
+
+Completion evidence: six manifestation fixtures and seven destination-policy
+fixtures pass. Optimized runtime proves one-to-all in 515ms; both pilots exercise
+two-to-all writes, leaving unselected output paths unchanged. After both pilots,
+the full-tree dry-run matched all 29,544 outputs across 20 projects, with zero
+changes/removals and no writes. It took 162.979 seconds alongside the broad test
+gate; full-tree filesystem work remains expensive and is outside worker loops.
+Selection shares catalog loading, inventory, bounded reads and parsed templates.
 
 Entry: `cli/source/core_project_cli.rs`; input selection/rendering:
 `source_projection/core_inputs.rs`. Load catalog/configuration once, select
@@ -134,7 +150,17 @@ templates do not cache context-dependent output. Added small selector/cache test
 Current library check passed (session 25763, 34.14 seconds) after fixing a selector integration error.
 Runtime, Figue optional-value parsing and performance proofs remain pending.
 
-## [~] 3 Replace provenance bookkeeping
+## [x] 3 Replace provenance bookkeeping
+
+Completion evidence: all 20 current catalog roots no longer have history
+manifests. Named generation, build preflight, trace, symbol discovery and
+simplification use current catalog/source/output state rather than those files.
+Small fixtures cover staged, unstaged and untracked edits, scoped/bare overrides,
+ignored development output and excluded output removal. Contributor guidance
+requires hydration PRs before merge. Historical non-catalog `source legacy`
+snapshot/release tooling retains its separate legacy format; its authoring entry
+points reject catalog repositories before writing. It is not a fallback for the
+current generator and cannot recreate current catalog history manifests.
 
 Entry: `source_projection/sync.rs` and its consumers. Remove last-generated-hash
 ownership manifests and the reconcile workflow once their consumers are replaced.
@@ -334,7 +360,7 @@ stores full commit IDs; worker assignments will retain those bindings unchanged.
 Discovery used the current all-features debug build for correctness only, not
 performance evidence. Operational timing awaits the default/release build.
 
-## [ ] 5 Validate, install and checkpoint
+## [~] 5 Validate, install and checkpoint
 
 Cleanup checkpoint: `c08914986` (local only). Its installer completed in 2m15s;
 the PATH executable reported that revision and SHA-256
