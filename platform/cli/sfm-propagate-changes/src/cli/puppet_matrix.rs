@@ -68,12 +68,29 @@ struct PuppetMatrixManifest {
     targets: Vec<PuppetMatrixTarget>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "kebab-case")]
+#[repr(u8)]
+enum PuppetMatrixResult {
+    Succeeded,
+    Failed,
+}
+
+impl PuppetMatrixResult {
+    const fn label(self) -> &'static str {
+        match self {
+            Self::Succeeded => "succeeded",
+            Self::Failed => "failed",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Facet)]
 struct PuppetMatrixTarget {
     branch: String,
     #[facet(rename = "minecraftVersion")]
     minecraft_version: String,
-    result: String,
+    result: PuppetMatrixResult,
     #[facet(rename = "sourceArtifactRoot")]
     source_artifact_root: String,
     #[facet(rename = "sourceManifest")]
@@ -194,7 +211,7 @@ impl PuppetMatrixArgs {
 
         let failures = matrix_targets
             .iter()
-            .filter(|target| target.result != "succeeded")
+            .filter(|target| target.result != PuppetMatrixResult::Succeeded)
             .count();
         if failures > 0 {
             eyre::bail!(
@@ -343,7 +360,7 @@ fn collect_target_preview(
     Ok(PuppetMatrixTarget {
         branch: target.branch.to_string(),
         minecraft_version: source_manifest.minecraft_version,
-        result: "succeeded".to_string(),
+        result: PuppetMatrixResult::Succeeded,
         source_artifact_root: source_artifact_root.display().to_string(),
         source_manifest: Some(portable_path(
             &PathBuf::from(target.branch.as_str()).join("preview-manifest.json"),
@@ -399,7 +416,7 @@ fn copy_target_preview(
     target: &PuppetMatrixTarget,
     source_target: &WorktreeTarget,
 ) -> eyre::Result<()> {
-    if target.result != "succeeded" {
+    if target.result != PuppetMatrixResult::Succeeded {
         return Ok(());
     }
     let source_artifact_root =
@@ -497,7 +514,7 @@ fn failed_target(target: &WorktreeTarget, error: String) -> PuppetMatrixTarget {
             .mc_version
             .as_ref()
             .map_or_else(|| "<unknown>".to_string(), ToString::to_string),
-        result: "failed".to_string(),
+        result: PuppetMatrixResult::Failed,
         source_artifact_root: source_artifact_root.display().to_string(),
         source_manifest: None,
         diagnostic_log_exists: diagnostic_log.is_file(),
@@ -601,7 +618,7 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
     }
     html.push_str("</tr></thead><tbody>");
     for target in &manifest.targets {
-        let result_class = if target.result == "succeeded" {
+        let result_class = if target.result == PuppetMatrixResult::Succeeded {
             ""
         } else {
             " class=\"failed\""
@@ -611,7 +628,7 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
             "<tr><th>{}</th><td{}>{}",
             html_escape(&target.branch),
             result_class,
-            html_escape(&target.result)
+            html_escape(target.result.label())
         );
         if let Some(error) = target.error.as_deref() {
             let _ = write!(html, "<br><code>{}</code>", html_escape(error));
@@ -707,6 +724,7 @@ fn html_escape(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::PuppetMatrixManifest;
+    use super::PuppetMatrixResult;
     use super::collect_target_preview;
     use super::copy_target_preview;
     use super::failed_target;
@@ -723,6 +741,32 @@ mod tests {
     use std::fs;
     use std::path::Path;
     use tempfile::tempdir;
+
+    #[test]
+    fn puppet_matrix_result_json_spellings_round_trip() {
+        for (result, spelling) in [
+            (PuppetMatrixResult::Succeeded, "succeeded"),
+            (PuppetMatrixResult::Failed, "failed"),
+        ] {
+            let json = format!("\"{spelling}\"");
+            assert_eq!(
+                facet_json::to_string(&result).expect("serialize result"),
+                json
+            );
+            assert_eq!(
+                facet_json::from_str::<PuppetMatrixResult>(&json).expect("deserialize result"),
+                result
+            );
+            assert_eq!(result.label(), spelling);
+        }
+    }
+
+    #[test]
+    fn puppet_matrix_result_rejects_unknown_json_variants() {
+        for json in ["\"pending\"", "\"Succeeded\"", "\"\""] {
+            assert!(facet_json::from_str::<PuppetMatrixResult>(json).is_err());
+        }
+    }
 
     #[test]
     fn collector_copies_validated_preview_and_renders_figure_grid() {

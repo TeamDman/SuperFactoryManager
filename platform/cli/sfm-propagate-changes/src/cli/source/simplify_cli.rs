@@ -51,6 +51,14 @@ pub struct SimplifyScanArgs {
     pub max_regions: usize,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "snake_case")]
+#[repr(u8)]
+enum ProjectionParseStatus {
+    Unparsed,
+    ParsedManifestedJava,
+}
+
 #[derive(Debug, Facet)]
 struct ProjectionInput {
     projection: String,
@@ -60,7 +68,7 @@ struct ProjectionInput {
     context_identity: String,
     path: String,
     source_sha256: Option<String>,
-    status: String,
+    status: ProjectionParseStatus,
     diagnostic: Option<String>,
 }
 
@@ -184,13 +192,13 @@ fn scan(
             context_identity,
             path: format!("{project}/{}", args.file),
             source_sha256: None,
-            status: "unparsed".into(),
+            status: ProjectionParseStatus::Unparsed,
             diagnostic: None,
         };
         let loaded = load_java(&catalog, &mut input, &mut cache);
         match loaded {
             Ok(value) => {
-                input.status = "parsed_manifested_java".into();
+                input.status = ProjectionParseStatus::ParsedManifestedJava;
                 parsed.push(Some(value));
             }
             Err(error) => {
@@ -280,6 +288,24 @@ mod tests {
     use crate::source_projection::projection_catalog::CATALOG_PATH;
     const FILE: &str = "src/main/java/A.java";
 
+    #[test]
+    fn parse_status_preserves_wire_names_and_rejects_unknown_values() {
+        for (status, wire) in [
+            (ProjectionParseStatus::Unparsed, "\"unparsed\""),
+            (
+                ProjectionParseStatus::ParsedManifestedJava,
+                "\"parsed_manifested_java\"",
+            ),
+        ] {
+            assert_eq!(facet_json::to_string(&status).unwrap(), wire);
+            assert_eq!(
+                facet_json::from_str::<ProjectionParseStatus>(wire).unwrap(),
+                status
+            );
+        }
+        assert!(facet_json::from_str::<ProjectionParseStatus>("\"unknown\"").is_err());
+    }
+
     fn fixture() -> (tempfile::TempDir, SimplifyScanArgs) {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path();
@@ -315,10 +341,16 @@ mod tests {
         .unwrap();
         let report = scan(&args, &CancellationToken::new(), temp.path()).unwrap();
         assert!(report.all_inputs_parsed);
+        assert!(
+            report
+                .inputs
+                .iter()
+                .all(|input| input.status == ProjectionParseStatus::ParsedManifestedJava)
+        );
         assert_eq!(report.parsed_pair_count, 1);
         assert_eq!(
             report.pairs[0].comparison.as_ref().unwrap().classification,
-            "whitespace_only"
+            simplify::ComparisonClassification::WhitespaceOnly
         );
         assert!(!report.writes_performed && !report.core_freshness_checked);
         assert_eq!(
@@ -342,13 +374,14 @@ mod tests {
         assert_eq!(report.parsed_pair_count, 1);
         assert_eq!(
             report.pairs[0].comparison.as_ref().unwrap().classification,
-            "code_or_comment_change"
+            simplify::ComparisonClassification::CodeOrCommentChange
         );
         assert!(!report.core_freshness_checked);
         fs::remove_file(root.join(FILE)).unwrap();
         let report = scan(&args, &CancellationToken::new(), temp.path()).unwrap();
         assert!(!report.all_inputs_parsed);
         assert_eq!(report.parsed_pair_count, 0);
+        assert_eq!(report.inputs[0].status, ProjectionParseStatus::Unparsed);
         assert!(report.inputs[0].diagnostic.is_some());
     }
 

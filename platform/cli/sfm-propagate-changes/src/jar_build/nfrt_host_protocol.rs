@@ -41,12 +41,22 @@ pub(crate) fn read_frame(input: &mut impl BufRead) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "snake_case")]
+#[repr(u8)]
+pub(crate) enum NfrtHostOperation {
+    Graph,
+    Seal,
+    Tool,
+    Complete,
+}
+
 #[derive(Clone, Debug, Facet, PartialEq)]
 pub(crate) struct NfrtHostRequest {
     schema: String,
     contract_identity: String,
     sequence: u64,
-    pub(crate) operation: String,
+    pub(crate) operation: NfrtHostOperation,
     pub(crate) payload: String,
 }
 
@@ -61,7 +71,7 @@ struct NfrtHostResponse<'a> {
     schema: &'a str,
     contract_identity: &'a str,
     sequence: u64,
-    operation: &'a str,
+    operation: NfrtHostOperation,
     payload: &'a str,
 }
 
@@ -113,10 +123,11 @@ impl NfrtHostProtocol {
             "Foreign or replayed host request"
         );
         ensure!(
-            match request.operation.as_str() {
-                "graph" => !self.graph_ready,
-                "seal" | "tool" | "complete" => self.graph_ready,
-                _ => false,
+            match request.operation {
+                NfrtHostOperation::Graph => !self.graph_ready,
+                NfrtHostOperation::Seal | NfrtHostOperation::Tool | NfrtHostOperation::Complete => {
+                    self.graph_ready
+                }
             },
             "Invalid host operation or ordering"
         );
@@ -140,7 +151,7 @@ impl NfrtHostProtocol {
             schema: "sfm:nfrt_host_response@1",
             contract_identity: &self.contract_identity,
             sequence: request.sequence,
-            operation: &request.operation,
+            operation: request.operation,
             payload,
         };
         let bytes = facet_json::to_string(&response)?;
@@ -151,10 +162,10 @@ impl NfrtHostProtocol {
         output.flush()?;
         self.failed = false;
         self.sequence = request.sequence;
-        if request.operation == "graph" {
+        if request.operation == NfrtHostOperation::Graph {
             self.graph_ready = true;
         }
-        if request.operation == "complete" {
+        if request.operation == NfrtHostOperation::Complete {
             self.complete = true;
         }
         self.pending = None;
@@ -221,7 +232,11 @@ mod tests {
         );
         let mut protocol = NfrtHostProtocol::new(identity())?;
         let result = (|| -> Result<()> {
-            for expected in ["graph", "seal", "complete"] {
+            for expected in [
+                NfrtHostOperation::Graph,
+                NfrtHostOperation::Seal,
+                NfrtHostOperation::Complete,
+            ] {
                 let request = protocol.read_request(&mut reader)?;
                 ensure!(
                     request.operation == expected && request.payload == "{\"fixture\":true}",
@@ -245,24 +260,66 @@ mod tests {
     fn identity() -> String {
         format!("sha256:{}", "0".repeat(64))
     }
-    fn wire(sequence: u64, operation: &str) -> Vec<u8> {
+    fn wire(sequence: u64, operation: NfrtHostOperation) -> Vec<u8> {
         let request = NfrtHostRequest {
             schema: "sfm:nfrt_host_request@1".to_owned(),
             contract_identity: identity(),
             sequence,
-            operation: operation.to_owned(),
+            operation,
             payload: "{}".to_owned(),
         };
         format!("{}\n", facet_json::to_string(&request).unwrap()).into_bytes()
     }
 
     #[test]
+    fn operations_roundtrip_with_exact_lowercase_wire_spelling() -> Result<()> {
+        for (operation, spelling) in [
+            (NfrtHostOperation::Graph, "graph"),
+            (NfrtHostOperation::Seal, "seal"),
+            (NfrtHostOperation::Tool, "tool"),
+            (NfrtHostOperation::Complete, "complete"),
+        ] {
+            let json = format!("\"{spelling}\"");
+            assert_eq!(facet_json::to_string(&operation)?, json);
+            assert_eq!(facet_json::from_str::<NfrtHostOperation>(&json)?, operation);
+        }
+        for json in ["\"unknown\"", "\"Graph\"", "\"GRAPH\"", "null", "1"] {
+            assert!(facet_json::from_str::<NfrtHostOperation>(json).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn typed_requests_roundtrip_and_responses_echo_every_operation() -> Result<()> {
+        let mut protocol = NfrtHostProtocol::new(identity())?;
+        for (sequence, operation, spelling) in [
+            (1, NfrtHostOperation::Graph, "graph"),
+            (2, NfrtHostOperation::Seal, "seal"),
+            (3, NfrtHostOperation::Tool, "tool"),
+            (4, NfrtHostOperation::Complete, "complete"),
+        ] {
+            let bytes = wire(sequence, operation);
+            let raw = std::str::from_utf8(&bytes)?;
+            let request = protocol.read_request(&mut Cursor::new(bytes.as_slice()))?;
+            assert_eq!(request.operation, operation);
+            assert_eq!(facet_json::from_str::<NfrtHostRequest>(raw)?, request);
+            let operation_field = format!("\"operation\":\"{spelling}\"");
+            assert!(raw.contains(&operation_field));
+            assert_eq!(format!("{}\n", facet_json::to_string(&request)?), raw);
+            let mut response = Vec::new();
+            protocol.reply(&mut response, &request, "{\"accepted\":true}")?;
+            assert!(std::str::from_utf8(&response)?.contains(&operation_field));
+        }
+        Ok(())
+    }
+
+    #[test]
     fn request_lifecycle_requires_exact_acknowledgements() -> Result<()> {
         let mut protocol = NfrtHostProtocol::new(identity())?;
-        let request = protocol.read_request(&mut Cursor::new(wire(1, "graph")))?;
+        let request = protocol.read_request(&mut Cursor::new(wire(1, NfrtHostOperation::Graph)))?;
         ensure!(
             protocol
-                .read_request(&mut Cursor::new(wire(2, "seal")))
+                .read_request(&mut Cursor::new(wire(2, NfrtHostOperation::Seal)))
                 .is_err(),
             "Pending request was bypassed"
         );
@@ -275,15 +332,16 @@ mod tests {
         protocol.reply(&mut Vec::new(), &request, "{}")?;
         ensure!(
             protocol
-                .read_request(&mut Cursor::new(wire(1, "seal")))
+                .read_request(&mut Cursor::new(wire(1, NfrtHostOperation::Seal)))
                 .is_err(),
             "Replay accepted"
         );
-        let request = protocol.read_request(&mut Cursor::new(wire(2, "complete")))?;
+        let request =
+            protocol.read_request(&mut Cursor::new(wire(2, NfrtHostOperation::Complete)))?;
         protocol.reply(&mut Vec::new(), &request, "{}")?;
         ensure!(
             protocol
-                .read_request(&mut Cursor::new(wire(3, "seal")))
+                .read_request(&mut Cursor::new(wire(3, NfrtHostOperation::Seal)))
                 .is_err(),
             "Completed host reopened"
         );
@@ -297,8 +355,16 @@ mod tests {
             b"\n".to_vec(),
             b"{}".to_vec(),
             b"\xff\n".to_vec(),
-            wire(1, "seal"),
-            wire(1, "unknown"),
+            wire(1, NfrtHostOperation::Seal),
+            wire(1, NfrtHostOperation::Tool),
+            wire(1, NfrtHostOperation::Complete),
+            format!(
+                concat!(
+                    r#"{{"schema":"sfm:nfrt_host_request@1","contract_identity":"{}","sequence":1,"operation":"unknown","payload":"{{}}"}}"#,
+                    "\n"
+                ),
+                identity()
+            ).into_bytes(),
             vec![b'x'; MAX_FRAME_BYTES + 1],
         ] {
             ensure!(

@@ -48,9 +48,18 @@ pub(crate) struct Region {
     pub after: Snippet,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "snake_case")]
+#[repr(u8)]
+pub(crate) enum ComparisonClassification {
+    Exact,
+    WhitespaceOnly,
+    CodeOrCommentChange,
+}
+
 #[derive(Debug, Facet)]
 pub(crate) struct Comparison {
-    pub classification: String,
+    pub classification: ComparisonClassification,
     pub whitespace_gap_count: usize,
     pub structurally_unmatched_gap_count: usize,
     pub whitespace_candidates: Vec<Region>,
@@ -300,14 +309,14 @@ pub(crate) fn compare(before: &ParsedJava, after: &ParsedJava) -> Comparison {
         .map(|a| &a.key)
         .eq(after.atoms.iter().map(|a| &a.key));
     let classification = if before.source == after.source {
-        "exact"
+        ComparisonClassification::Exact
     } else if equal_tokens && before.shape == after.shape {
-        "whitespace_only"
+        ComparisonClassification::WhitespaceOnly
     } else {
-        "code_or_comment_change"
+        ComparisonClassification::CodeOrCommentChange
     };
     let mut result = Comparison {
-        classification: classification.into(),
+        classification,
         whitespace_gap_count: 0,
         structurally_unmatched_gap_count: 0,
         whitespace_candidates: Vec::new(),
@@ -382,6 +391,29 @@ fn equal_run(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn classification_preserves_wire_names_and_rejects_unknown_values() {
+        for (classification, wire) in [
+            (ComparisonClassification::Exact, "\"exact\""),
+            (
+                ComparisonClassification::WhitespaceOnly,
+                "\"whitespace_only\"",
+            ),
+            (
+                ComparisonClassification::CodeOrCommentChange,
+                "\"code_or_comment_change\"",
+            ),
+        ] {
+            assert_eq!(facet_json::to_string(&classification).unwrap(), wire);
+            assert_eq!(
+                facet_json::from_str::<ComparisonClassification>(wire).unwrap(),
+                classification
+            );
+        }
+        assert!(facet_json::from_str::<ComparisonClassification>("\"unknown\"").is_err());
+    }
+
     fn comparison(a: &str, b: &str) -> Comparison {
         compare(&parse(a.into()).unwrap(), &parse(b.into()).unwrap())
     }
@@ -389,12 +421,15 @@ mod tests {
     #[test]
     fn whitespace_only_requires_complete_token_and_structure_equality() {
         let result = comparison("class A { int x; }", "\nclass A{\n int x;\n}\n");
-        assert_eq!(result.classification, "whitespace_only");
+        assert_eq!(
+            result.classification,
+            ComparisonClassification::WhitespaceOnly
+        );
         assert!(result.whitespace_gap_count > 0);
         assert_eq!(result.changed_token_region_count, 0);
         assert_eq!(
             comparison("class A {}", "class A {}").classification,
-            "exact"
+            ComparisonClassification::Exact
         );
     }
 
@@ -421,7 +456,7 @@ mod tests {
         ] {
             assert_eq!(
                 comparison(a, b).classification,
-                "code_or_comment_change",
+                ComparisonClassification::CodeOrCommentChange,
                 "{a}"
             );
         }
@@ -435,7 +470,7 @@ mod tests {
                 "class A { // keep\n int x; }"
             )
             .classification,
-            "whitespace_only"
+            ComparisonClassification::WhitespaceOnly
         );
         assert_eq!(
             comparison(
@@ -443,7 +478,7 @@ mod tests {
                 "class A { // changed\n int x; }"
             )
             .classification,
-            "code_or_comment_change"
+            ComparisonClassification::CodeOrCommentChange
         );
         assert_eq!(
             comparison(
@@ -451,7 +486,7 @@ mod tests {
                 "class A { /* keep\n text */ }"
             )
             .classification,
-            "whitespace_only"
+            ComparisonClassification::WhitespaceOnly
         );
         assert_eq!(
             comparison(
@@ -459,7 +494,7 @@ mod tests {
                 "class A { /* keep\n changed */ }"
             )
             .classification,
-            "code_or_comment_change"
+            ComparisonClassification::CodeOrCommentChange
         );
     }
 
@@ -467,7 +502,10 @@ mod tests {
     fn text_block_physical_line_endings_are_equivalent_but_contents_are_exact() {
         let before = "class A { String s = \"\"\"\r\n  keep\\r\r\n  text\r\n  \"\"\"; }";
         let after = before.replace("\r\n", "\n");
-        assert_eq!(comparison(before, &after).classification, "whitespace_only");
+        assert_eq!(
+            comparison(before, &after).classification,
+            ComparisonClassification::WhitespaceOnly
+        );
         for changed in [
             after.replace("keep", "changed"),
             after.replace("\\r", "\\n"),
@@ -475,7 +513,7 @@ mod tests {
         ] {
             assert_eq!(
                 comparison(before, &changed).classification,
-                "code_or_comment_change"
+                ComparisonClassification::CodeOrCommentChange
             );
         }
         assert_eq!(
@@ -484,7 +522,7 @@ mod tests {
                 r#"class A { String s = "keep\n"; }"#
             )
             .classification,
-            "code_or_comment_change"
+            ComparisonClassification::CodeOrCommentChange
         );
     }
 
@@ -492,10 +530,13 @@ mod tests {
     fn safe_unicode_literal_spelling_is_preserved_without_translating_source() {
         let before = r#"class A { String s = "\u00a7\\u00"; }"#;
         let after = r#"class A {  String s = "\u00a7\\u00"; }"#;
-        assert_eq!(comparison(before, after).classification, "whitespace_only");
+        assert_eq!(
+            comparison(before, after).classification,
+            ComparisonClassification::WhitespaceOnly
+        );
         assert_eq!(
             comparison(before, &after.replace("00a7", "00a8")).classification,
-            "code_or_comment_change"
+            ComparisonClassification::CodeOrCommentChange
         );
         for source in [
             r#"class A { String s = "\u000a"; }"#,
@@ -511,7 +552,10 @@ mod tests {
     fn flexible_constructor_comparison_keeps_original_tokens_and_structure() {
         let before = "class A { A() { int x = 1; this(x); done(); } }";
         let after = "class A { A() {\n int x = 1;\n this( x );\n done(); } }";
-        assert_eq!(comparison(before, after).classification, "whitespace_only");
+        assert_eq!(
+            comparison(before, after).classification,
+            ComparisonClassification::WhitespaceOnly
+        );
         for changed in [
             after.replace("this", "super"),
             after.replace("1", "2"),
@@ -520,7 +564,7 @@ mod tests {
         ] {
             assert_eq!(
                 comparison(before, &changed).classification,
-                "code_or_comment_change"
+                ComparisonClassification::CodeOrCommentChange
             );
         }
         assert!(parse("class A { A() { if (yes) { this(1); } } }".into()).is_err());
@@ -532,7 +576,10 @@ mod tests {
             "import a.X; class A { A() {\n\n run(); } }",
             "import b.Y; class A { A() {\n run(); } }",
         );
-        assert_eq!(result.classification, "code_or_comment_change");
+        assert_eq!(
+            result.classification,
+            ComparisonClassification::CodeOrCommentChange
+        );
         assert!(result.changed_token_region_count > 0);
         assert!(
             result
@@ -548,7 +595,10 @@ mod tests {
             "class ManagerBlock { void onRemove() {\n\n        if (!state.is(newState.getBlock())) {\n            if (level.getBlockEntity(pos) instanceof Container container) {\n                Containers.dropContents(level, pos, container);\n                level.updateNeighbourForOutputSignal(pos, this);\n            }\n            CableNetworkManager.onCableRemoved(level, pos);\n            super.onRemove(state, level, pos, newState, isMoving);\n        }\n    }\n}",
             "class ManagerBlock { void affectNeighborsAfterRemoval() {\n\n        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);\n        level.updateNeighbourForOutputSignal(pos, this);\n        CableNetworkManager.onCableRemoved(level, pos);\n    }\n}",
         );
-        assert_eq!(result.classification, "code_or_comment_change");
+        assert_eq!(
+            result.classification,
+            ComparisonClassification::CodeOrCommentChange
+        );
         assert_eq!(result.whitespace_gap_count, 0);
         assert!(result.structurally_unmatched_gap_count > 0);
     }
@@ -566,7 +616,10 @@ mod tests {
             ),
         ] {
             let result = comparison(a, b);
-            assert_eq!(result.classification, "code_or_comment_change");
+            assert_eq!(
+                result.classification,
+                ComparisonClassification::CodeOrCommentChange
+            );
             assert_eq!(result.whitespace_gap_count, 0);
             assert!(result.structurally_unmatched_gap_count > 0);
         }
@@ -578,7 +631,10 @@ mod tests {
             "class A { void f() { if (x) {\n        run();\n    } } }",
             "class A { void f() { if (x) {\n    run();\n} } }",
         );
-        assert_eq!(result.classification, "whitespace_only");
+        assert_eq!(
+            result.classification,
+            ComparisonClassification::WhitespaceOnly
+        );
         assert!(result.whitespace_gap_count > 0);
         assert_eq!(result.structurally_unmatched_gap_count, 0);
     }

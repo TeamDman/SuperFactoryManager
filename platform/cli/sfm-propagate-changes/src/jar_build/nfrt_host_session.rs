@@ -6,6 +6,7 @@
 
 use super::nfrt_child_tool::NfrtChildCommand;
 use super::nfrt_child_tool::prepare_child_command;
+use super::nfrt_host_protocol::NfrtHostOperation;
 use super::nfrt_host_protocol::NfrtHostRequest;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use crate::source_projection::nfrt_held_producer::NfrtHeldProducer;
@@ -134,7 +135,7 @@ impl<'a> NfrtHostSession<'a> {
     ) -> Result<String> {
         cancellation.bail_if_cancelled()?;
         ensure!(
-            request.operation == "tool"
+            request.operation == NfrtHostOperation::Tool
                 && request.contract_identity() == self.store.contract_identity(),
             "Foreign child-tool request"
         );
@@ -158,10 +159,10 @@ impl<'a> NfrtHostSession<'a> {
             "Host request belongs to another owned invocation"
         );
         self.project.recheck_source()?;
-        match request.operation.as_str() {
-            "graph" => self.accept_graph(&request.payload),
-            "seal" => self.seal(&request.payload),
-            "complete" => {
+        match request.operation {
+            NfrtHostOperation::Graph => self.accept_graph(&request.payload),
+            NfrtHostOperation::Seal => self.seal(&request.payload),
+            NfrtHostOperation::Complete => {
                 #[derive(Facet)]
                 struct PreparationComplete {
                     phase: String,
@@ -216,7 +217,7 @@ impl<'a> NfrtHostSession<'a> {
                 self.finished = true;
                 Ok(reply)
             }
-            _ => eyre::bail!("Host operation has no integrated handler"),
+            NfrtHostOperation::Tool => eyre::bail!("Host operation has no integrated handler"),
         }
     }
 

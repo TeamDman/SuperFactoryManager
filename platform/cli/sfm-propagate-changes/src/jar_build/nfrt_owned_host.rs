@@ -3,6 +3,7 @@
 //! The source/recipe acquisition and public CLI route are separate callers.
 
 use super::nfrt_child_process::OwnedChild;
+use super::nfrt_host_protocol::NfrtHostOperation;
 use super::nfrt_host_protocol::NfrtHostProtocol;
 use super::nfrt_host_protocol::read_frame;
 use super::nfrt_host_session::NfrtHostSession;
@@ -207,13 +208,13 @@ pub(crate) fn with_owned_compiler_inputs<T>(
                     }
                 };
                 let request = protocol.read_request(&mut Cursor::new(frame))?;
-                let reply = if request.operation == "tool" {
+                let reply = if request.operation == NfrtHostOperation::Tool {
                     session.execute_tool(&request, sdk, cancellation)?
                 } else {
                     session.handle(&request)?
                 };
                 protocol.reply(&mut writer, &request, &reply)?;
-                if request.operation == "complete" {
+                if request.operation == NfrtHostOperation::Complete {
                     return Ok(());
                 }
             }

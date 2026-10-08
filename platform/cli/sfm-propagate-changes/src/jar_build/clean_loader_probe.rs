@@ -108,7 +108,7 @@ impl CleanLoaderProbeCommand {
             invocation: std::env::args().collect(),
             operating_system: std::env::consts::OS.to_string(),
             architecture: std::env::consts::ARCH.to_string(),
-            status: "planned".to_string(),
+            status: CleanLoaderProbeStatus::Planned,
             release_jar: release_jar.display().to_string(),
             expected_release_sha256: normalize_sha256(&options.expected_release_sha256)?,
             release_sha256,
@@ -212,7 +212,7 @@ impl CleanLoaderProbeCommand {
             false,
         )?;
         if !install_result.status.success() || install_result.timed_out {
-            report.status = "installer-failed".to_string();
+            report.status = CleanLoaderProbeStatus::InstallerFailed;
             report.exit_code = install_result.status.code();
             report.timed_out = install_result.timed_out;
             write_report_and_manifest(options.report_json.as_deref(), &report)?;
@@ -237,7 +237,7 @@ impl CleanLoaderProbeCommand {
             &inspection.nested_sha256,
         )?;
         if !report.direct_nested_classpath_entries.is_empty() {
-            report.status = "isolation-failed".to_string();
+            report.status = CleanLoaderProbeStatus::IsolationFailed;
             write_report_and_manifest(options.report_json.as_deref(), &report)?;
             eyre::bail!(
                 "Production launch plan directly references nested artifact(s): {}",
@@ -245,7 +245,7 @@ impl CleanLoaderProbeCommand {
             );
         }
         if !report.loose_nested_artifact_copies.is_empty() {
-            report.status = "isolation-failed".to_string();
+            report.status = CleanLoaderProbeStatus::IsolationFailed;
             write_report_and_manifest(options.report_json.as_deref(), &report)?;
             eyre::bail!(
                 "Clean instance contains loose copies of nested artifact bytes: {}",
@@ -288,12 +288,12 @@ impl CleanLoaderProbeCommand {
             report.required_class_evidence.len(),
             options.required_nested_classes.len(),
         ) {
-            "passed".to_string()
+            CleanLoaderProbeStatus::Passed
         } else {
-            "launch-failed".to_string()
+            CleanLoaderProbeStatus::LaunchFailed
         };
         write_report_and_manifest(options.report_json.as_deref(), &report)?;
-        if report.status != "passed" {
+        if report.status != CleanLoaderProbeStatus::Passed {
             eyre::bail!(
                 "Clean production Forge proof incomplete (exit_success={}, timed_out={}, marker={}, locator_count={}, class_evidence={}/{}). See {}",
                 launch_result.status.success(),
@@ -409,6 +409,17 @@ struct JarJarVersion {
     artifact_version: String,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "kebab-case")]
+#[repr(u8)]
+enum CleanLoaderProbeStatus {
+    Planned,
+    InstallerFailed,
+    IsolationFailed,
+    Passed,
+    LaunchFailed,
+}
+
 #[derive(Clone, Debug, Facet)]
 struct CleanLoaderProbeReport {
     schema_version: u8,
@@ -417,7 +428,7 @@ struct CleanLoaderProbeReport {
     invocation: Vec<String>,
     operating_system: String,
     architecture: String,
-    status: String,
+    status: CleanLoaderProbeStatus,
     release_jar: String,
     expected_release_sha256: String,
     release_sha256: String,
@@ -1187,6 +1198,34 @@ mod tests {
     use super::*;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn clean_loader_probe_status_json_spellings_round_trip() {
+        for (status, spelling) in [
+            (CleanLoaderProbeStatus::Planned, "planned"),
+            (CleanLoaderProbeStatus::InstallerFailed, "installer-failed"),
+            (CleanLoaderProbeStatus::IsolationFailed, "isolation-failed"),
+            (CleanLoaderProbeStatus::Passed, "passed"),
+            (CleanLoaderProbeStatus::LaunchFailed, "launch-failed"),
+        ] {
+            let json = format!("\"{spelling}\"");
+            assert_eq!(
+                facet_json::to_string(&status).expect("serialize status"),
+                json
+            );
+            assert_eq!(
+                facet_json::from_str::<CleanLoaderProbeStatus>(&json).expect("deserialize status"),
+                status
+            );
+        }
+    }
+
+    #[test]
+    fn clean_loader_probe_status_rejects_unknown_json_variants() {
+        for json in ["\"unknown\"", "\"installer_failed\"", "\"Passed\"", "\"\""] {
+            assert!(facet_json::from_str::<CleanLoaderProbeStatus>(json).is_err());
+        }
+    }
 
     #[test]
     fn launch_plan_rejects_direct_nested_library_entry() {

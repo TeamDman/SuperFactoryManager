@@ -19,6 +19,7 @@ use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::render_java_source;
 use crate::source_projection::simplify::Comparison;
+use crate::source_projection::simplify::ComparisonClassification;
 use crate::source_projection::simplify::ParsedJava;
 use crate::source_projection::simplify::{self};
 use eyre::Result;
@@ -50,6 +51,25 @@ pub struct SimplifyVerifyArgs {
     pub summary: bool,
 }
 
+#[derive(Clone, Copy, Debug, Eq, Facet, PartialEq)]
+#[facet(rename_all = "snake_case")]
+#[repr(u8)]
+enum VerificationStatus {
+    Unverified,
+    VerifiedJava,
+    VerifiedAbsent,
+    NonWhitespaceChange,
+}
+
+impl VerificationStatus {
+    fn is_verified(self) -> bool {
+        match self {
+            Self::VerifiedJava | Self::VerifiedAbsent => true,
+            Self::Unverified | Self::NonWhitespaceChange => false,
+        }
+    }
+}
+
 #[derive(Debug, Facet)]
 struct Verification {
     projection: String,
@@ -60,7 +80,7 @@ struct Verification {
     template_path: Option<String>,
     template_sha256: Option<String>,
     rendered_sha256: Option<String>,
-    status: String,
+    status: VerificationStatus,
     comparison: Option<Comparison>,
     diagnostic: Option<String>,
 }
@@ -141,7 +161,7 @@ impl WorkerReport {
             failures: report
                 .inputs
                 .into_iter()
-                .filter(|row| !matches!(row.status.as_str(), "verified_java" | "verified_absent"))
+                .filter(|row| !row.status.is_verified())
                 .collect(),
             examples,
             examples_are_sample: true,
@@ -275,7 +295,7 @@ fn verify(
             template_path: None,
             template_sha256: None,
             rendered_sha256: None,
-            status: "unverified".into(),
+            status: VerificationStatus::Unverified,
             comparison: None,
             diagnostic: None,
         };
@@ -289,7 +309,7 @@ fn verify(
                     oracle.is_none(),
                     "template omits a file present in the oracle"
                 );
-                row.status = "verified_absent".into();
+                row.status = VerificationStatus::VerifiedAbsent;
                 return Ok(None);
             };
             let oracle =
@@ -316,15 +336,14 @@ fn verify(
             let before = cached_parse(&mut cache, oracle_text.to_owned())?;
             let after = cached_parse(&mut cache, rendered)?;
             let mut comparison = simplify::compare(&before, &after);
-            row.status = if matches!(
-                comparison.classification.as_str(),
-                "exact" | "whitespace_only"
-            ) {
-                "verified_java"
-            } else {
-                "non_whitespace_change"
-            }
-            .into();
+            row.status = match comparison.classification {
+                ComparisonClassification::Exact | ComparisonClassification::WhitespaceOnly => {
+                    VerificationStatus::VerifiedJava
+                }
+                ComparisonClassification::CodeOrCommentChange => {
+                    VerificationStatus::NonWhitespaceChange
+                }
+            };
             trim_regions(&mut comparison, args.max_regions);
             row.comparison = Some(comparison);
             Ok(Some(after))
@@ -355,9 +374,7 @@ fn verify(
             }
         }
     }
-    let all_oracles_verified = inputs
-        .iter()
-        .all(|row| matches!(row.status.as_str(), "verified_java" | "verified_absent"));
+    let all_oracles_verified = inputs.iter().all(|row| row.status.is_verified());
     Ok(Report {
         schema: "sfm:source_simplify_verify@1".into(),
         scope: "read_only_in_memory_java_whitespace_certificate_not_semantic_equivalence".into(),
@@ -438,6 +455,32 @@ mod tests {
     use std::process::Command;
 
     const FILE: &str = "src/main/java/A.java";
+
+    #[test]
+    fn verification_status_preserves_wire_names_and_outcomes() {
+        for (status, wire, verified) in [
+            (VerificationStatus::Unverified, "\"unverified\"", false),
+            (VerificationStatus::VerifiedJava, "\"verified_java\"", true),
+            (
+                VerificationStatus::VerifiedAbsent,
+                "\"verified_absent\"",
+                true,
+            ),
+            (
+                VerificationStatus::NonWhitespaceChange,
+                "\"non_whitespace_change\"",
+                false,
+            ),
+        ] {
+            assert_eq!(facet_json::to_string(&status).unwrap(), wire);
+            assert_eq!(
+                facet_json::from_str::<VerificationStatus>(wire).unwrap(),
+                status
+            );
+            assert_eq!(status.is_verified(), verified);
+        }
+        assert!(facet_json::from_str::<VerificationStatus>("\"unknown\"").is_err());
+    }
 
     #[test]
     fn worker_examples_are_bounded_without_changing_full_check_outcomes() {
@@ -545,6 +588,7 @@ mod tests {
         };
         let report = verify(&args, &CancellationToken::new(), root).unwrap();
         assert!(report.all_oracles_verified);
+        assert_eq!(report.inputs[0].status, VerificationStatus::VerifiedJava);
         let compact =
             WorkerReport::from_report(verify(&args, &CancellationToken::new(), root).unwrap(), 1);
         assert!(compact.all_oracles_verified);
@@ -567,7 +611,7 @@ mod tests {
         write(root, CATALOG_PATH, &catalog_before);
         assert_eq!(
             report.inputs[0].comparison.as_ref().unwrap().classification,
-            "whitespace_only"
+            ComparisonClassification::WhitespaceOnly
         );
         write(root, &format!("{prefix}/{FILE}"), b"class ChangedDisk {}\n");
         git(root, &["add", "."]);
@@ -585,6 +629,11 @@ mod tests {
             root,
             &format!("{CORE_ROOT}/{FILE}"),
             b"class ChangedTemplate {}\n",
+        );
+        let report = verify(&args, &CancellationToken::new(), root).unwrap();
+        assert_eq!(
+            report.inputs[0].status,
+            VerificationStatus::NonWhitespaceChange
         );
         args.summary = true;
         assert_eq!(
@@ -616,6 +665,7 @@ mod tests {
         );
         let report = verify(&historical, &CancellationToken::new(), root).unwrap();
         assert!(!report.all_oracles_verified);
+        assert_eq!(report.inputs[0].status, VerificationStatus::Unverified);
         assert!(
             report.inputs[0]
                 .diagnostic
@@ -623,6 +673,21 @@ mod tests {
                 .unwrap()
                 .contains("absent from pinned oracle")
         );
+        let mut metadata: CoreProjectInputs = facet_json::from_str(
+            std::str::from_utf8(&fs::read(root.join(CORE_METADATA_PATH)).unwrap()).unwrap(),
+        )
+        .unwrap();
+        metadata
+            .source_rules
+            .insert(historical.file.clone(), vec![]);
+        write(
+            root,
+            CORE_METADATA_PATH,
+            facet_json::to_string(&metadata).unwrap().as_bytes(),
+        );
+        let report = verify(&historical, &CancellationToken::new(), root).unwrap();
+        assert!(report.all_oracles_verified);
+        assert_eq!(report.inputs[0].status, VerificationStatus::VerifiedAbsent);
     }
 
     #[test]
@@ -649,7 +714,7 @@ mod tests {
         ] {
             assert_eq!(
                 simplify::compare(&before, &simplify::parse(source.into()).unwrap()).classification,
-                "code_or_comment_change"
+                ComparisonClassification::CodeOrCommentChange
             );
         }
         assert_eq!(
@@ -658,7 +723,7 @@ mod tests {
                 &simplify::parse("class A {\n String x = \"one\"; /*keep*/\n }".into()).unwrap()
             )
             .classification,
-            "whitespace_only"
+            ComparisonClassification::WhitespaceOnly
         );
     }
 }
