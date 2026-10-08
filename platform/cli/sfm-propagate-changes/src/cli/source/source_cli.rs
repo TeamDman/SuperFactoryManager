@@ -1902,6 +1902,70 @@ pub(super) mod tests {
         String,
         SourceFrozenInventoryMatrixPreviewArgs,
     ) {
+        // The authored repository is identical for every test. Snapshot only
+        // immutable bytes, including its ordinary (not linked-worktree) .git.
+        // Each invocation gets independent objects, refs, index and worktree.
+        static SEED: std::sync::OnceLock<(BTreeMap<PathBuf, Vec<u8>>, String)> =
+            std::sync::OnceLock::new();
+        let (files, commit) = SEED.get_or_init(|| {
+            let (seed, commit, _) = frozen_matrix_fixture_uncached();
+            let files = walkdir::WalkDir::new(seed.path())
+                .into_iter()
+                .map(|entry| entry.unwrap())
+                .filter(|entry| entry.file_type().is_file())
+                .map(|entry| {
+                    (
+                        entry.path().strip_prefix(seed.path()).unwrap().to_owned(),
+                        fs::read(entry.path()).unwrap(),
+                    )
+                })
+                .collect();
+            (files, commit)
+        });
+        let temp = tempfile::tempdir().unwrap();
+        for (path, bytes) in files {
+            let destination = temp.path().join(path);
+            fs::create_dir_all(destination.parent().unwrap()).unwrap();
+            fs::write(destination, bytes).unwrap();
+        }
+        let args = SourceFrozenInventoryMatrixPreviewArgs {
+            repo_root: fs::canonicalize(temp.path()).unwrap(),
+            source_commit: commit.clone(),
+            release_mod_version: "9.99.99-fixture".to_owned(),
+            manifest: None,
+            selection: FROZEN_MATRIX_TARGETS
+                .into_iter()
+                .map(|id| format!("{id}=current-development-head-{id}"))
+                .collect(),
+        };
+        (temp, commit.clone(), args)
+    }
+
+    #[test]
+    fn frozen_matrix_seed_copies_keep_indexes_and_sources_independent() {
+        let (first, first_commit, _) = frozen_matrix_fixture();
+        let (second, second_commit, _) = frozen_matrix_fixture();
+        assert_eq!(first_commit, second_commit);
+        let index_before = fs::read(second.path().join(".git/index")).unwrap();
+        let source = "platform/minecraft/src/main/java/example/Proof.java";
+        let source_before = fs::read(second.path().join(source)).unwrap();
+        fs::write(first.path().join(source), "changed").unwrap();
+        fs::write(first.path().join(".git/index"), "changed index").unwrap();
+        assert_eq!(fs::read(second.path().join(source)).unwrap(), source_before);
+        assert_eq!(
+            fs::read(second.path().join(".git/index")).unwrap(),
+            index_before
+        );
+        let repository = gix::open_opts(second.path(), gix::open::Options::isolated()).unwrap();
+        assert_eq!(repository.head_id().unwrap().to_string(), second_commit);
+        repository.index().unwrap();
+    }
+
+    fn frozen_matrix_fixture_uncached() -> (
+        tempfile::TempDir,
+        String,
+        SourceFrozenInventoryMatrixPreviewArgs,
+    ) {
         let temp = tempfile::tempdir().unwrap();
         let root = fs::canonicalize(temp.path()).unwrap();
         git_test(&root, &["init", "--quiet"]);

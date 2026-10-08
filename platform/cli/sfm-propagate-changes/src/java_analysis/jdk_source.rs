@@ -371,6 +371,9 @@ impl JdkSourceDomain {
         source_cache_root: &Path,
         java_home: Option<&Path>,
     ) -> eyre::Result<Self> {
+        if let Some(fixture) = super::current_scenario_fixture() {
+            return Self::from_scenario_tree(java_release, &fixture.jdk_source_tree);
+        }
         Self::resolve_generated_project_with_java_selection(
             java_release,
             project_root,
@@ -1155,6 +1158,37 @@ mod tests {
     use std::io::Write as _;
     use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn generated_project_uses_scoped_jdk_without_host_selection() {
+        let temporary = tempfile::tempdir().unwrap();
+        let tree = temporary.path().join("jdk");
+        let source = tree.join("java.base/java/lang/Object.java");
+        std::fs::create_dir_all(source.parent().unwrap()).unwrap();
+        std::fs::write(source, "package java.lang; public class Object {}").unwrap();
+        crate::java_analysis::with_java_analysis_scenario_fixture(
+            crate::java_analysis::JavaAnalysisScenarioFixture {
+                jdk_source_tree: tree,
+                cache_home: crate::paths::CacheHome(temporary.path().join("cache")),
+                decompiler_runtime_identity: "fixture".to_owned(),
+            },
+            || {
+                // No project lockfile or installed JDK is needed in this scope.
+                let domain = JdkSourceDomain::resolve_generated_project(
+                    "17",
+                    &temporary.path().join("missing-project"),
+                    &temporary.path().join("missing-sdk-cache"),
+                    &temporary.path().join("missing-source-cache"),
+                    None,
+                )
+                .unwrap();
+                assert!(!domain.source_entries("java.lang.Object").is_empty());
+                assert!(!temporary.path().join("cache").exists());
+                assert!(!temporary.path().join("missing-sdk-cache").exists());
+                assert!(!temporary.path().join("missing-source-cache").exists());
+            },
+        );
+    }
 
     fn context() -> JavaAnalysisContextOutput {
         JavaAnalysisContextOutput {

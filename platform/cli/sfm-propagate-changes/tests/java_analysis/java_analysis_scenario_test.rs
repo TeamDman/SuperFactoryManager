@@ -46,8 +46,6 @@ use std::fs;
 use std::io::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command;
-use std::process::ExitStatus;
 
 const EXPECTED_FILE: &str = "output-expected.json";
 const ACTUAL_FILE: &str = "output-actual.json";
@@ -982,20 +980,35 @@ fn verify_snapshot_git_policy_paths(actual_path: &Path, expected_path: &Path) ->
 }
 
 /// Snapshot policy belongs to this scenario run, not every CLI invocation.
-/// Load the index once and ask Git's ignore engine about all paths in one batch.
+/// Load the index and gix ignore stack once for the complete batch.
 fn verify_snapshot_git_policy_batch(paths: &[(PathBuf, PathBuf)]) -> eyre::Result<()> {
     use gix::bstr::ByteSlice as _;
-    use std::process::Stdio;
 
     let Some((first, _)) = paths.first() else {
         return Ok(());
     };
-    let repository_root = git_repository_root(
+    let mut permissions = gix::open::Permissions::isolated();
+    permissions.config = gix::open::permissions::Config::all();
+    permissions.config.env = false;
+    // Do not spawn Git to discover its installation configuration.
+    permissions.config.git_binary = false;
+    permissions.env.home = gix::sec::Permission::Allow;
+    permissions.env.xdg_config_home = gix::sec::Permission::Allow;
+    let options = gix::open::Options::default().permissions(permissions);
+    let repository: gix::Repository = gix::ThreadSafeRepository::discover_opts(
         first
             .parent()
             .ok_or_else(|| eyre::eyre!("actual snapshot has no parent"))?,
-    )?;
-    let repository = gix::open_opts(&repository_root, gix::open::Options::isolated())?;
+        Default::default(),
+        gix::sec::trust::Mapping {
+            full: options.clone(),
+            reduced: options,
+        },
+    )?
+    .into();
+    let repository_root = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("snapshot policy requires a Git worktree"))?;
     let index = repository.index()?;
     let tracked = index
         .entries()
@@ -1011,55 +1024,25 @@ fn verify_snapshot_git_policy_batch(paths: &[(PathBuf, PathBuf)]) -> eyre::Resul
             ))
         })
         .collect::<eyre::Result<Vec<_>>>()?;
-    let input = relative
-        .iter()
-        .flat_map(|(actual, expected)| [actual, expected])
-        .flat_map(|path| path.as_bytes().iter().copied().chain([0]))
-        .collect::<Vec<_>>();
-    let mut child = Command::new("git")
-        .args(["check-ignore", "--no-index", "--stdin", "-z"])
-        .current_dir(&repository_root)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()?;
-    let mut stdin = child.stdin.take().expect("piped stdin");
-    let output = std::thread::scope(|scope| -> eyre::Result<_> {
-        let writer = scope.spawn(move || stdin.write_all(&input));
-        let output = child.wait_with_output()?;
-        writer.join().expect("snapshot policy input thread")?;
-        Ok(output)
-    })?;
-    if output.status.code() != Some(1) {
-        require_git_success(output.status, &output.stderr, "Git snapshot ignore batch")?;
-    }
-    let ignored = output
-        .stdout
-        .split(|byte| *byte == 0)
-        .filter(|path| !path.is_empty())
-        .collect::<BTreeSet<_>>();
+    // Match --no-index: deleted ignore files must not reappear from the index.
+    let empty_index = gix::index::State::new(repository.object_hash());
+    let mut excludes = repository.excludes(
+        &empty_index,
+        None,
+        gix::worktree::stack::state::ignore::Source::WorktreeThenIdMappingIfNotSkipped,
+    )?;
     for (actual, expected) in relative {
         if tracked.contains(actual.as_bytes()) {
             bail!("refusing to overwrite tracked actual snapshot: {actual}");
         }
-        if !ignored.contains(actual.as_bytes()) {
+        if !excludes.at_path(&actual, None)?.is_excluded() {
             bail!("refusing to write non-ignored actual snapshot: {actual}");
         }
-        if ignored.contains(expected.as_bytes()) {
+        if excludes.at_path(&expected, None)?.is_excluded() {
             bail!("expected snapshot must not be ignored: {expected}");
         }
     }
     Ok(())
-}
-fn git_repository_root(cwd: &Path) -> eyre::Result<PathBuf> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--show-toplevel"])
-        .current_dir(cwd)
-        .output()
-        .wrap_err("failed to run git rev-parse without a shell")?;
-    require_git_success(output.status, &output.stderr, "git rev-parse")?;
-    let root = String::from_utf8(output.stdout).wrap_err("git root was not UTF-8")?;
-    Ok(PathBuf::from(root.trim()))
 }
 
 fn repository_relative_path(repository_root: &Path, path: &Path) -> eyre::Result<String> {
@@ -1071,16 +1054,6 @@ fn repository_relative_path(repository_root: &Path, path: &Path) -> eyre::Result
         )
     })?;
     Ok(relative.to_string_lossy().replace('\\', "/"))
-}
-
-fn require_git_success(status: ExitStatus, stderr: &[u8], operation: &str) -> eyre::Result<()> {
-    if status.success() {
-        return Ok(());
-    }
-    bail!(
-        "{operation} failed with {status}: {}",
-        String::from_utf8_lossy(stderr).trim()
-    )
 }
 
 fn write_atomically(path: &Path, contents: &[u8]) -> eyre::Result<()> {

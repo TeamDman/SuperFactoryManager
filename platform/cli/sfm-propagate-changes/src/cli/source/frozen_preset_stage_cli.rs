@@ -400,8 +400,7 @@ fn apply_plan(
         );
     }
     ensure!(
-        git_stdout(root, &["rev-parse", "HEAD"])?
-            == format!("{}\n", plan.report.source_commit).as_bytes(),
+        candidate_repository(root)?.head_id()?.to_string() == plan.report.source_commit,
         "candidate HEAD changed during staging"
     );
     ensure!(
@@ -413,8 +412,7 @@ fn apply_plan(
 
 fn ensure_candidate_quiescent(root: &Path, plan: &StagePlan) -> Result<()> {
     ensure!(
-        git_stdout(root, &["rev-parse", "HEAD"])?
-            == format!("{}\n", plan.report.source_commit).as_bytes(),
+        candidate_repository(root)?.head_id()?.to_string() == plan.report.source_commit,
         "candidate HEAD changed during staging"
     );
     ensure!(
@@ -471,14 +469,8 @@ fn ensure_candidate_quiescent(root: &Path, plan: &StagePlan) -> Result<()> {
 }
 
 fn ensure_clean_candidate(root: &Path, commit: &str) -> Result<()> {
-    let top = git_stdout(root, &["rev-parse", "--show-toplevel"])?;
-    let top = String::from_utf8(top)?;
     ensure!(
-        fs::canonicalize(top.trim())? == root,
-        "candidate root must be the Git worktree top level"
-    );
-    ensure!(
-        git_stdout(root, &["rev-parse", "HEAD"])? == format!("{commit}\n").as_bytes(),
+        candidate_repository(root)?.head_id()?.to_string() == commit,
         "candidate HEAD differs from reviewed authored commit A"
     );
     ensure_unconcealed_index(root)?;
@@ -500,18 +492,31 @@ fn ensure_clean_candidate(root: &Path, commit: &str) -> Result<()> {
     Ok(())
 }
 
-fn ensure_unconcealed_index(root: &Path) -> Result<()> {
-    let index = git_stdout(root, &["ls-files", "--cached", "-v", "-z"])?;
+fn candidate_repository(root: &Path) -> Result<gix::Repository> {
+    let repository = gix::open_opts(root, gix::open::Options::isolated())?;
+    let workdir = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("candidate requires a Git worktree"))?;
     ensure!(
-        index.is_empty() || index.last() == Some(&0),
-        "candidate Git index is malformed"
+        fs::canonicalize(workdir)? == fs::canonicalize(root)?,
+        "candidate root must be the Git worktree top level"
     );
-    for entry in index
-        .split(|byte| *byte == 0)
-        .filter(|entry| !entry.is_empty())
-    {
+    Ok(repository)
+}
+
+fn ensure_unconcealed_index(root: &Path) -> Result<()> {
+    use gix::index::entry::Flags;
+    use gix::index::entry::Stage;
+    // Reopen for each transaction checkpoint so concurrent index replacements
+    // cannot be hidden by a retained in-memory index.
+    let repository = candidate_repository(root)?;
+    let index = repository.index_or_empty()?;
+    for entry in index.entries() {
         ensure!(
-            entry.len() >= 3 && entry[0] == b'H' && entry[1] == b' ',
+            entry.stage() == Stage::Unconflicted
+                && !entry
+                    .flags
+                    .intersects(Flags::ASSUME_VALID | Flags::SKIP_WORKTREE),
             "candidate Git index has a concealed or non-normal tracked entry"
         );
     }
@@ -649,6 +654,24 @@ mod tests {
             String::from_utf8_lossy(&output.stderr)
         );
         String::from_utf8(output.stdout).unwrap().trim().to_owned()
+    }
+
+    #[test]
+    fn index_check_observes_concealed_flags_changed_between_checkpoints() {
+        let root = tempfile::tempdir().unwrap();
+        gix::init(root.path()).unwrap();
+        fs::write(root.path().join("tracked"), "original").unwrap();
+        git(root.path(), &["add", "--", "tracked"]);
+        ensure_unconcealed_index(root.path()).unwrap();
+        for (enable, disable) in [
+            ("--assume-unchanged", "--no-assume-unchanged"),
+            ("--skip-worktree", "--no-skip-worktree"),
+        ] {
+            git(root.path(), &["update-index", enable, "--", "tracked"]);
+            assert!(ensure_unconcealed_index(root.path()).is_err());
+            git(root.path(), &["update-index", disable, "--", "tracked"]);
+            ensure_unconcealed_index(root.path()).unwrap();
+        }
     }
 
     fn fixture() -> Fixture {

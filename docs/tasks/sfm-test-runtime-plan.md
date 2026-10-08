@@ -38,6 +38,34 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
+Latest completed gate: 137.151 seconds after compilation, with 1,664 active
+library tests and all 70 integration tests passing. The staging HEAD/index
+subprocess replacement preserves all 11 focused staging tests, including a new
+index-flag mutation regression, but did not improve full-suite time. Java
+scenario snapshot policy now uses gix without Git subprocesses (15 tests pass).
+
+Current focus: generated-project JDK resolution ignored the thread-scoped
+scenario fixture although branch resolution honoured it. The fix and regression
+passed focused validation. The regression supplies no real project or SDK and
+resolves only the scoped source tree without creating SDK/source caches (0.02 s).
+All five generated-project symbol tests pass in 0.09 s in isolation. The initial
+new regression used the wrong synthetic JDK layout; adding its required
+`java.base/` module directory corrected that fixture. Measure the complete suite;
+do not claim the one-minute goal from these isolated results.
+
+The corrected-fixture complete test phase passed in **125.786 s** (1,665 active
+library tests, 21 explicitly ignored, all 70 integration tests). Library process
+wall time was 116.513 s and Java integration 8.963 s. This removes accidental host
+JDK work but is not the under-minute solution. The next investigation must focus
+on the remaining full-suite bottlenecks, especially repeated status/fixture work.
+
+The frozen-matrix fixture now builds one immutable repository seed per process
+and copies bytes into separate temporary repositories. Its isolation regression
+proves source/index mutation in one copy does not affect another. Seven matrix
+tests pass in 5.04 s and all eleven staging tests in 12.05 s (isolated runs).
+Current-source production Clippy passed before this test-only seed change.
+The seed change still needs a full-suite measurement; no under-minute claim.
+
 Tracy captures summarized with teamy-profiler measured candidate blob reads at
 735.886 ms before, 21.657 ms after gix (five reads). The same cold fixture/verify
 test fell from 2.10 s to 1.38 s, before seed reuse. Structured logs were captured.
