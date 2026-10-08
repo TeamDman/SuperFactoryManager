@@ -86,6 +86,11 @@ fn java_analysis_scenarios() -> eyre::Result<()> {
         !scenarios.is_empty(),
         "at least one Java analysis scenario is required"
     );
+    let snapshots = scenarios
+        .iter()
+        .map(|scenario| (scenario.join(ACTUAL_FILE), scenario.join(EXPECTED_FILE)))
+        .collect::<Vec<_>>();
+    verify_snapshot_git_policy_batch(&snapshots)?;
     let mut failures = Vec::new();
     for scenario in scenarios {
         if let Err(error) = run_scenario(&scenario) {
@@ -470,7 +475,6 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
         .wrap_err_with(|| format!("failed to read {}", command_path.display()))?;
     let argv = tokenize_restricted_powershell_command(&command)
         .wrap_err_with(|| format!("invalid command in {}", command_path.display()))?;
-    verify_snapshot_git_policy(scenario)?;
 
     let before = scenario_files(scenario)?;
     let cache_directory = tempfile::tempdir()?;
@@ -973,41 +977,80 @@ fn tokenize_restricted_powershell_command(command: &str) -> eyre::Result<Vec<Str
     Ok(tokens)
 }
 
-fn verify_snapshot_git_policy(scenario: &Path) -> eyre::Result<()> {
-    verify_snapshot_git_policy_paths(&scenario.join(ACTUAL_FILE), &scenario.join(EXPECTED_FILE))
+fn verify_snapshot_git_policy_paths(actual_path: &Path, expected_path: &Path) -> eyre::Result<()> {
+    verify_snapshot_git_policy_batch(&[(actual_path.to_owned(), expected_path.to_owned())])
 }
 
-fn verify_snapshot_git_policy_paths(actual_path: &Path, expected_path: &Path) -> eyre::Result<()> {
-    let repository_root =
-        git_repository_root(actual_path.parent().ok_or_else(|| {
-            eyre::eyre!("actual snapshot has no parent: {}", actual_path.display())
-        })?)?;
-    let actual = repository_relative_path(&repository_root, actual_path)?;
-    let expected = repository_relative_path(&repository_root, expected_path)?;
-    if git_predicate(
-        &repository_root,
-        &["ls-files", "--error-unmatch", "--"],
-        &actual,
-    )? {
-        bail!("refusing to overwrite tracked actual snapshot: {actual}");
+/// Snapshot policy belongs to this scenario run, not every CLI invocation.
+/// Load the index once and ask Git's ignore engine about all paths in one batch.
+fn verify_snapshot_git_policy_batch(paths: &[(PathBuf, PathBuf)]) -> eyre::Result<()> {
+    use gix::bstr::ByteSlice as _;
+    use std::process::Stdio;
+
+    let Some((first, _)) = paths.first() else {
+        return Ok(());
+    };
+    let repository_root = git_repository_root(
+        first
+            .parent()
+            .ok_or_else(|| eyre::eyre!("actual snapshot has no parent"))?,
+    )?;
+    let repository = gix::open_opts(&repository_root, gix::open::Options::isolated())?;
+    let index = repository.index()?;
+    let tracked = index
+        .entries()
+        .iter()
+        .map(|entry| entry.path(&index).as_bytes())
+        .collect::<BTreeSet<_>>();
+    let relative = paths
+        .iter()
+        .map(|(actual, expected)| {
+            Ok((
+                repository_relative_path(&repository_root, actual)?,
+                repository_relative_path(&repository_root, expected)?,
+            ))
+        })
+        .collect::<eyre::Result<Vec<_>>>()?;
+    let input = relative
+        .iter()
+        .flat_map(|(actual, expected)| [actual, expected])
+        .flat_map(|path| path.as_bytes().iter().copied().chain([0]))
+        .collect::<Vec<_>>();
+    let mut child = Command::new("git")
+        .args(["check-ignore", "--no-index", "--stdin", "-z"])
+        .current_dir(&repository_root)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
+    let mut stdin = child.stdin.take().expect("piped stdin");
+    let output = std::thread::scope(|scope| -> eyre::Result<_> {
+        let writer = scope.spawn(move || stdin.write_all(&input));
+        let output = child.wait_with_output()?;
+        writer.join().expect("snapshot policy input thread")?;
+        Ok(output)
+    })?;
+    if output.status.code() != Some(1) {
+        require_git_success(output.status, &output.stderr, "Git snapshot ignore batch")?;
     }
-    if !git_predicate(
-        &repository_root,
-        &["check-ignore", "--quiet", "--no-index", "--"],
-        &actual,
-    )? {
-        bail!("refusing to write non-ignored actual snapshot: {actual}");
-    }
-    if git_predicate(
-        &repository_root,
-        &["check-ignore", "--quiet", "--no-index", "--"],
-        &expected,
-    )? {
-        bail!("expected snapshot must not be ignored: {expected}");
+    let ignored = output
+        .stdout
+        .split(|byte| *byte == 0)
+        .filter(|path| !path.is_empty())
+        .collect::<BTreeSet<_>>();
+    for (actual, expected) in relative {
+        if tracked.contains(actual.as_bytes()) {
+            bail!("refusing to overwrite tracked actual snapshot: {actual}");
+        }
+        if !ignored.contains(actual.as_bytes()) {
+            bail!("refusing to write non-ignored actual snapshot: {actual}");
+        }
+        if ignored.contains(expected.as_bytes()) {
+            bail!("expected snapshot must not be ignored: {expected}");
+        }
     }
     Ok(())
 }
-
 fn git_repository_root(cwd: &Path) -> eyre::Result<PathBuf> {
     let output = Command::new("git")
         .args(["rev-parse", "--show-toplevel"])
@@ -1028,23 +1071,6 @@ fn repository_relative_path(repository_root: &Path, path: &Path) -> eyre::Result
         )
     })?;
     Ok(relative.to_string_lossy().replace('\\', "/"))
-}
-
-fn git_predicate(cwd: &Path, arguments: &[&str], path: &str) -> eyre::Result<bool> {
-    let output = Command::new("git")
-        .args(arguments)
-        .arg(path)
-        .current_dir(cwd)
-        .output()
-        .wrap_err("failed to query Git snapshot policy without a shell")?;
-    if output.status.success() {
-        return Ok(true);
-    }
-    if output.status.code() == Some(1) {
-        return Ok(false);
-    }
-    require_git_success(output.status, &output.stderr, "Git snapshot policy query")?;
-    unreachable!("non-success Git predicate status should have returned an error")
 }
 
 fn require_git_success(status: ExitStatus, stderr: &[u8], operation: &str) -> eyre::Result<()> {

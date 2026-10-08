@@ -1,6 +1,7 @@
 //! Test-only release project inputs from the actual selector and collector.
 //! No Git fallback, generated-output reads, writes or dependency acquisition.
 
+#[tracing::instrument(name = "frozen_recipe.fixture_roles", skip_all, fields(target))]
 pub(super) fn release_project_role_outputs(
     repository: &std::path::Path,
     target: &str,

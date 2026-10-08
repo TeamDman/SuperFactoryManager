@@ -53,16 +53,13 @@ pub mod toolchain_lockfile_schema;
 pub(crate) mod toolchain_lockfile_write;
 pub mod worktree;
 
-// Allocation profiling is a production diagnostic, not a unit-test allocator.
-// The Tracy wrapper starts its client on the first allocation and retains
-// allocation/callstack events without a collecting profiler. A long libtest
-// process can therefore exhaust memory solely from instrumentation. Keep the
-// all-feature production build profiled, but run behavioral unit tests with
-// Rust's ordinary allocator; this does not remove any tested feature code.
-#[cfg(all(feature = "tracy_memory", not(test)))]
+// Allocator policy belongs to each executable. In particular, enabling a
+// diagnostic feature on this library must not instrument every allocation in
+// downstream integration-test executables. Unit tests use the application's
+// normal allocator, including its behavior under parallel allocation load.
+#[cfg(test)]
 #[global_allocator]
-static TRACY_ALLOCATOR: tracy_client::ProfiledAllocator<std::alloc::System> =
-    tracy_client::ProfiledAllocator::new(std::alloc::System, 100);
+static TEST_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use crate::cli::Cli;
 use chrono::DateTime;

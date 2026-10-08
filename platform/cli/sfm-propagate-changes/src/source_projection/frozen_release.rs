@@ -11,8 +11,7 @@ use super::manifest::FrozenSourceBinding;
 use super::project_layout::append_project_name_override;
 use super::promotion::validate_relative_path;
 use super::provenance::sha256;
-use super::release_baseline::frozen_git_command;
-use super::release_baseline::read_pinned_blob_with_mode_hardened;
+use super::release_baseline::PinnedBlobReader;
 use super::sync::ProjectedArtifact;
 use eyre::Result;
 use eyre::WrapErr;
@@ -87,6 +86,7 @@ pub fn project_frozen_artifacts(
     context: &ProjectionContext,
 ) -> Result<(BTreeMap<String, ProjectedArtifact>, FrozenSourceInventory)> {
     let inventory = read_inventory(repo_root, binding, source_commit, context)?;
+    let reader = PinnedBlobReader::open(repo_root)?;
     let mut artifacts = BTreeMap::new();
     for (output_path, file) in &inventory.files {
         let relative = file
@@ -95,8 +95,7 @@ pub fn project_frozen_artifacts(
             .ok_or_else(|| {
                 eyre::eyre!("frozen input '{output_path}' is outside Minecraft sources")
             })?;
-        let bytes = read_pinned_blob_with_mode_hardened(
-            repo_root,
+        let bytes = reader.read(
             source_commit,
             relative,
             &file.blob_oid,
@@ -188,25 +187,24 @@ fn read_inventory(
 }
 
 pub(crate) fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
-    let top = frozen_git_command(root)
-        .args(["rev-parse", "--show-toplevel"])
-        .output()
-        .wrap_err("cannot inspect frozen source Git repository")?;
+    let options =
+        gix::open::Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]);
+    let mut repository =
+        gix::open_opts(root, options).wrap_err("cannot inspect frozen source Git repository")?;
+    let _ = repository.clear_namespace();
+    let top = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("frozen source root is not a Git worktree"))?;
     ensure!(
-        top.status.success(),
-        "frozen source root is not a Git worktree"
-    );
-    let top = String::from_utf8(top.stdout).wrap_err("Git root is not UTF-8")?;
-    ensure!(
-        fs::canonicalize(top.trim())? == root,
+        fs::canonicalize(top)? == root,
         "frozen source repository root must be the Git worktree root"
     );
-    let kind = frozen_git_command(root)
-        .args(["cat-file", "-t", source_commit])
-        .output()
-        .wrap_err("cannot inspect frozen source commit")?;
+    let id = gix::ObjectId::from_hex(source_commit.as_bytes())?;
+    let header = repository
+        .find_header(id)
+        .wrap_err("frozen source must name an available Git commit")?;
     ensure!(
-        kind.status.success() && kind.stdout == b"commit\n",
+        header.kind() == gix::objs::Kind::Commit,
         "frozen source must name an available Git commit"
     );
     Ok(())

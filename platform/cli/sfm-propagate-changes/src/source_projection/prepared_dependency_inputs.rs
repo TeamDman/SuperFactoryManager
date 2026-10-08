@@ -127,6 +127,7 @@ impl PreparedDependencyInputs {
     /// Rejects refresh first, unavailable/ambiguous identities, incomplete
     /// original-row bindings, unverified weak pins and changed source evidence.
     /// No source-lock writer or acquisition route is exposed.
+    #[tracing::instrument(name = "prepared_dependencies.from_released", skip_all)]
     pub fn from_released(released: ReleasedNativeInputs, refresh: bool) -> Result<Self> {
         refuse_refresh(refresh)?;
         let source_receipt = released.receipt();

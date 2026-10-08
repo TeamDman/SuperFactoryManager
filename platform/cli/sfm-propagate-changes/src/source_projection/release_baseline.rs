@@ -772,112 +772,96 @@ pub fn read_pinned_blob_with_mode(
     expected_sha256: &str,
     expected_mode: Option<&str>,
 ) -> Result<Vec<u8>> {
-    read_pinned_blob_with_mode_via(
-        repository_root,
+    PinnedBlobReader::open(repository_root)?.read(
         tag_commit,
         project_relative_path,
         expected_oid,
         expected_sha256,
         expected_mode,
-        git_stdout,
     )
 }
 
-/// The same pinned-blob checks with frozen-release Git isolation. Legacy tag
-/// imports keep their existing read path; only the future frozen route uses
-/// the exact-root safe-directory scope and ignores inherited Git overrides.
-pub(crate) fn read_pinned_blob_with_mode_hardened(
-    repository_root: &Path,
-    tag_commit: &str,
-    project_relative_path: &str,
-    expected_oid: &str,
-    expected_sha256: &str,
-    expected_mode: Option<&str>,
-) -> Result<Vec<u8>> {
-    read_pinned_blob_with_mode_via(
-        repository_root,
-        tag_commit,
-        project_relative_path,
-        expected_oid,
-        expected_sha256,
-        expected_mode,
-        frozen_git_stdout,
-    )
+/// One raw object database per replay, without subprocesses, filters, inherited
+/// Git overrides or replacement refs. Each read still verifies all pinned data.
+pub(crate) struct PinnedBlobReader {
+    repository: gix::Repository,
 }
 
-fn read_pinned_blob_with_mode_via(
-    repository_root: &Path,
-    tag_commit: &str,
-    project_relative_path: &str,
-    expected_oid: &str,
-    expected_sha256: &str,
-    expected_mode: Option<&str>,
-    git: fn(&Path, &[&str]) -> Result<Vec<u8>>,
-) -> Result<Vec<u8>> {
-    validate_sha1(tag_commit, "tag commit")?;
-    validate_sha1(expected_oid, "release blob ID")?;
-    validate_project_relative_path(project_relative_path)?;
-    ensure!(
-        expected_sha256.len() == 71
-            && expected_sha256.starts_with("sha256:")
-            && expected_sha256[7..]
-                .bytes()
-                .all(|byte| byte.is_ascii_hexdigit()),
-        "expected release SHA-256 is invalid"
-    );
-    let full_path = format!("platform/minecraft/{project_relative_path}");
-    let tree = git(
-        repository_root,
-        &["ls-tree", "-z", tag_commit, "--", &full_path],
-    )?;
-    let mut exact = None;
-    for record in tree
-        .split(|byte| *byte == 0)
-        .filter(|record| !record.is_empty())
-    {
-        let entry = parse_tree_entry(record)?;
-        if entry.path == full_path {
+impl PinnedBlobReader {
+    pub(crate) fn open(root: &Path) -> Result<Self> {
+        let options = gix::open::Options::isolated().config_overrides([
+            "gitoxide.objects.noReplace=true",
+            "gitoxide.objects.allocLimit=134217728",
+        ]);
+        let mut repository = gix::open_opts(root, options)?;
+        let _ = repository.clear_namespace();
+        Ok(Self { repository })
+    }
+
+    #[tracing::instrument(name = "release.read_pinned_blob", skip_all)]
+    pub(crate) fn read(
+        &self,
+        tag_commit: &str,
+        project_relative_path: &str,
+        expected_oid: &str,
+        expected_sha256: &str,
+        expected_mode: Option<&str>,
+    ) -> Result<Vec<u8>> {
+        validate_sha1(tag_commit, "tag commit")?;
+        validate_sha1(expected_oid, "release blob ID")?;
+        validate_project_relative_path(project_relative_path)?;
+        ensure!(
+            expected_sha256.len() == 71
+                && expected_sha256.starts_with("sha256:")
+                && expected_sha256[7..]
+                    .bytes()
+                    .all(|byte| byte.is_ascii_hexdigit()),
+            "expected release SHA-256 is invalid"
+        );
+        let full_path = format!("platform/minecraft/{project_relative_path}");
+        let commit = self
+            .repository
+            .find_commit(gix::ObjectId::from_hex(tag_commit.as_bytes())?)?;
+        let tree = commit.tree()?;
+        let exact = tree.lookup_entry_by_path(&full_path)?.ok_or_else(|| {
+            eyre::eyre!(
+                "tag commit {tag_commit} does not contain exact path '{project_relative_path}'"
+            )
+        })?;
+        let mode = format!("{:o}", exact.mode().value());
+        ensure!(
+            matches!(mode.as_str(), "100644" | "100755"),
+            "tagged path '{project_relative_path}' is not a regular Git blob"
+        );
+        if let Some(expected) = expected_mode {
             ensure!(
-                exact.replace(entry).is_none(),
-                "duplicate Git tree path '{full_path}'"
+                mode == expected,
+                "pinned path '{project_relative_path}' has Git mode {mode}, expected {expected}"
             );
         }
-    }
-    let exact = exact.ok_or_else(|| {
-        eyre::eyre!("tag commit {tag_commit} does not contain exact path '{project_relative_path}'")
-    })?;
-    ensure!(
-        exact.kind == "blob" && matches!(exact.mode.as_str(), "100644" | "100755"),
-        "tagged path '{project_relative_path}' is not a regular Git blob"
-    );
-    if let Some(mode) = expected_mode {
         ensure!(
-            exact.mode == mode,
-            "pinned path '{project_relative_path}' has Git mode {}, expected {mode}",
-            exact.mode
+            exact.object_id().to_string() == expected_oid,
+            "tagged path '{project_relative_path}' has blob {}, expected {expected_oid}",
+            exact.object_id()
         );
+        let header = self.repository.find_header(exact.object_id())?;
+        ensure!(
+            header.kind() == gix::objs::Kind::Blob,
+            "pinned object is not a blob"
+        );
+        let size = header.size();
+        ensure!(size <= MAX_BLOB_BYTES, "pinned blob is too large");
+        let bytes = self.repository.find_blob(exact.object_id())?.take_data();
+        ensure!(
+            bytes.len() as u64 == size,
+            "pinned blob size changed while reading"
+        );
+        ensure!(
+            sha256_hex(&bytes) == expected_sha256,
+            "pinned blob SHA-256 mismatch for '{project_relative_path}'"
+        );
+        Ok(bytes)
     }
-    ensure!(
-        exact.oid == expected_oid,
-        "tagged path '{project_relative_path}' has blob {}, expected {expected_oid}",
-        exact.oid
-    );
-    let size = String::from_utf8(git(repository_root, &["cat-file", "-s", expected_oid])?)
-        .wrap_err("pinned blob size is not UTF-8")?
-        .trim()
-        .parse::<u64>()
-        .wrap_err("invalid pinned blob size")?;
-    ensure!(size <= MAX_BLOB_BYTES, "pinned blob is too large");
-    let bytes = git(repository_root, &["cat-file", "blob", expected_oid])?;
-    ensure!(
-        bytes.len() as u64 == size,
-        "pinned blob size changed while reading"
-    );
-    ensure!(
-        sha256_hex(&bytes) == expected_sha256,
-        "pinned blob SHA-256 mismatch for '{project_relative_path}'"
-    );
-    Ok(bytes)
 }
 
 /// Compare all ten immutable 4.34.0 tag trees to the current primary sources.
@@ -1311,20 +1295,6 @@ pub(crate) fn frozen_git_command(root: &Path) -> Command {
     command
 }
 
-fn frozen_git_stdout(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
-    let output = frozen_git_command(root)
-        .args(args)
-        .output()
-        .wrap_err_with(|| format!("cannot run frozen Git {}", args.join(" ")))?;
-    ensure!(
-        output.status.success(),
-        "frozen Git {} failed: {}",
-        args.join(" "),
-        String::from_utf8_lossy(&output.stderr).trim()
-    );
-    Ok(output.stdout)
-}
-
 pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     format!("sha256:{digest:x}")
@@ -1695,6 +1665,54 @@ mod tests {
         )
         .unwrap_err();
         assert!(format!("{error:?}").contains("SHA-256 mismatch"));
+    }
+
+    #[test]
+    fn reusable_pinned_reader_ignores_replace_refs_and_checks_mode() {
+        let (temp, spec, _) = fixture();
+        let root = temp.path();
+        let commit = spec.expected_commit;
+        let oid = git(
+            root,
+            &[
+                "rev-parse",
+                &format!("{commit}:platform/minecraft/src/same.txt"),
+            ],
+        );
+        fs::write(
+            root.join("platform/minecraft/src/same.txt"),
+            b"replacement\n",
+        )
+        .unwrap();
+        git(root, &["add", "."]);
+        git(root, &["commit", "-qm", "replacement"]);
+        let replacement = git(root, &["rev-parse", "HEAD"]);
+        git(root, &["replace", &commit, &replacement]);
+        let reader = PinnedBlobReader::open(root).unwrap();
+        for _ in 0..2 {
+            assert_eq!(
+                reader
+                    .read(
+                        &commit,
+                        "src/same.txt",
+                        &oid,
+                        &sha256_hex(b"same\n"),
+                        Some("100644")
+                    )
+                    .unwrap(),
+                b"same\n"
+            );
+        }
+        let error = reader
+            .read(
+                &commit,
+                "src/same.txt",
+                &oid,
+                &sha256_hex(b"same\n"),
+                Some("100755"),
+            )
+            .unwrap_err();
+        assert!(error.to_string().contains("Git mode"));
     }
 
     #[test]

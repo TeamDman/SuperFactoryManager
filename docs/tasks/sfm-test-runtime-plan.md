@@ -68,6 +68,50 @@ integration independently. Reduce repeated native-build/legacy fixture setup
 and remaining Git subprocess reads. Do not treat higher thread counts or moving
 active contract tests out of the gate as sufficient completion.
 
+## Follow-up investigation
+
+Per-test JSON timings (diagnostic libtest invocation, not a compiler change)
+showed the 32-thread library baseline at 246.891 s. The longest cases repeatedly
+prepare ten or twenty contexts, rather than testing one small operation. The
+first follow-up passed all 1,660 active library tests in 234.834 s; the legacy
+ten-root candidate test alone took 234.565 s. This is not the final measurement.
+
+The all-feature library previously imposed Tracy's allocation profiler on
+integration executables. Allocator selection now belongs to the CLI executable;
+unit tests use the normal application's existing mimalloc allocator. Java
+snapshot policy checks now read the Git index once with gix and batch ignore
+queries into one native Git call, instead of four processes per scenario.
+All 15 Java-analysis tests passed in 21.07 s, versus 32.110 s previously, although
+the follow-up overlapped the library run and is not an isolated comparison.
+
+A focused Tracy capture of frozen-recipe preparation took 2.25 s. It exposed
+22 metadata validations (374.697 ms self time), four parses (366.106 ms), three
+project rechecks (332.014 ms), and 328 selected-input reads. Fixture role updates
+are now batched into one metadata validation/write. Production recheck boundaries
+remain in place. Coarse spans and an explicitly ignored capture test retain a
+repeatable way to measure this workflow.
+
+Frozen replay was still launching three Git processes per file. It now opens
+one isolated gix reader per replay, retaining commit/path, file mode, object ID,
+128 MiB size bound and SHA-256 checks. Root/commit validation and release-tag
+preflight blob reads also use gix. A regression checks pinned reads despite
+replacement refs and verifies mode rejection. These latest changes are awaiting
+the full gate; do not treat compilation or earlier runs as their acceptance.
+
+The subsequent full gate's test phase passed in **158.700 s**: 1,661 active
+library tests (148.74 s), 20 explicitly ignored tests, and all 70 integration
+tests. Java analysis took 9.04 s without library contention. The extra active
+test covers the gix reader; the extra ignored test is a profiling-only duplicate.
+Formatting, Clippy, all-feature build, binary and doc tests also passed. The
+default-feature rebuild passed. The under-60-second objective remains
+open; the next target is repeated fixture input acquisition and validation,
+not more processes or less correctness coverage.
+
+The follow-up focused capture confirms fixture metadata validations fell from
+22 to 9. It took 2.55 s while the default-feature build was running, so this is
+operation-count evidence, not a clean latency comparison. Large real metadata
+parses and repeated selected-file checks still dominate its remaining work.
+
 Formatting, current-source all-feature Clippy, binary tests and doc tests also
 passed. Validation was completed in stages after repairing the socket fixture;
 it was not one uninterrupted check-all invocation. The initial all-feature

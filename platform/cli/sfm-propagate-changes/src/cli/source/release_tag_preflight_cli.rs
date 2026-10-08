@@ -8,6 +8,7 @@ use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::manifest::SourceProjectionManifest;
+use crate::source_projection::oracle_git::OracleGitRepository;
 use crate::source_projection::promotion::ensure_closed_destination_inputs;
 use crate::source_projection::promotion::validate_relative_path;
 use crate::source_projection::provenance::ProjectionProvenance;
@@ -251,11 +252,12 @@ fn ensure_selected_promoted_root(
     target: &ReleaseInventoryTarget,
     cancellation: &CancellationToken,
 ) -> Result<()> {
+    let git = OracleGitRepository::open(root)?;
     let definition_path = checked_file(root, SOURCE_DEFINITION)?;
     let definition = fs::read(definition_path)?;
     ensure!(
         sha256(&definition) == verified.inventory.source_manifest_sha256
-            && definition == git_revision_file(root, head, SOURCE_DEFINITION)?,
+            && definition == git_revision_file(&git, head, SOURCE_DEFINITION)?,
         "current source definition differs from package or reviewed release HEAD"
     );
     ensure_tracked_worktree_unchanged(root, SOURCE_DEFINITION)?;
@@ -275,7 +277,7 @@ fn ensure_selected_promoted_root(
     let manifest_bytes = fs::read(checked_file(root, &manifest_relative)?)?;
     ensure!(
         sha256(&manifest_bytes) == target.provenance_manifest_sha256
-            && manifest_bytes == git_revision_file(root, head, &manifest_relative)?,
+            && manifest_bytes == git_revision_file(&git, head, &manifest_relative)?,
         "selected checked-in provenance differs from package or reviewed release HEAD"
     );
     let provenance = ProjectionProvenance::from_json(std::str::from_utf8(&manifest_bytes)?)?;
@@ -289,7 +291,7 @@ fn ensure_selected_promoted_root(
             && provenance.files.contains_key("gradle.properties"),
         "selected checked-in provenance identity differs from verified package"
     );
-    ensure_committed_owned_root(root, head, &project_dir, &provenance, cancellation)?;
+    ensure_committed_owned_root(&git, head, &project_dir, &provenance, cancellation)?;
     ensure_closed_destination_inputs(&project_root, &provenance)?;
     for (relative, record) in &provenance.files {
         cancellation.bail_if_cancelled()?;
@@ -303,81 +305,40 @@ fn ensure_selected_promoted_root(
 }
 
 fn ensure_committed_owned_root(
-    root: &Path,
+    git: &OracleGitRepository,
     head: &str,
     project_dir: &str,
     provenance: &ProjectionProvenance,
     cancellation: &CancellationToken,
 ) -> Result<()> {
-    let mut expected = BTreeSet::from([format!("{project_dir}/{MANIFEST_FILE}")]);
-    for relative in provenance.files.keys() {
-        validate_relative_path(relative)?;
-        expected.insert(format!("{project_dir}/{relative}"));
-    }
-    let tree = git_bytes(root, &["ls-tree", "-r", "-z", head, "--", project_dir])?;
+    let expected = std::iter::once(MANIFEST_FILE.to_owned())
+        .chain(provenance.files.keys().cloned())
+        .collect::<BTreeSet<_>>();
+    // One tree walk reads immutable blobs directly; do not start one Git
+    // process per projected file after already enumerating the same tree.
+    let committed = git.files_at_commit(head, project_dir)?;
     ensure!(
-        tree.last() == Some(&0),
-        "selected release tree has no terminal NUL"
+        committed.keys().cloned().collect::<BTreeSet<_>>() == expected,
+        "selected release HEAD tree does not exactly match provenance-owned paths"
     );
-    let mut committed = BTreeSet::new();
-    let mut casefold = BTreeSet::new();
-    for entry in tree[..tree.len() - 1].split(|byte| *byte == 0) {
+    for (relative, file) in &committed {
         cancellation.bail_if_cancelled()?;
-        let separator = entry
-            .iter()
-            .position(|byte| *byte == b'\t')
-            .ok_or_else(|| eyre::eyre!("malformed selected release tree entry"))?;
-        let (metadata, path_with_tab) = entry.split_at(separator);
-        let path = &path_with_tab[1..];
-        let metadata = std::str::from_utf8(metadata)?;
-        let mut fields = metadata.split(' ');
-        let (Some(mode), Some(kind), Some(object), None) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
-        else {
-            eyre::bail!("malformed selected release tree metadata");
-        };
-        ensure!(
-            kind == "blob" && matches!(mode, "100644" | "100755"),
-            "selected release tree contains a non-regular owned input"
-        );
-        ensure!(
-            matches!(object.len(), 40 | 64) && object.bytes().all(|byte| byte.is_ascii_hexdigit()),
-            "selected release tree contains an invalid blob identity"
-        );
-        let path = std::str::from_utf8(path)?;
-        ensure!(
-            path.starts_with(&format!("{project_dir}/")),
-            "selected release tree escaped its project root"
-        );
-        let relative = &path[project_dir.len() + 1..];
         validate_relative_path(relative)?;
-        ensure!(
-            casefold.insert(path.to_lowercase()) && committed.insert(path.to_owned()),
-            "selected release tree has a duplicate or case-only input path"
-        );
         if relative == "gradlew" {
             ensure!(
-                mode == "100755",
+                file.mode == 0o100_755,
                 "selected release Gradle wrapper is not executable"
             );
         }
-    }
-    ensure!(
-        committed == expected,
-        "selected release HEAD tree does not exactly match provenance-owned paths"
-    );
-    for (relative, record) in &provenance.files {
-        cancellation.bail_if_cancelled()?;
-        let committed_path = format!("{project_dir}/{relative}");
-        let bytes = git_revision_file(root, head, &committed_path)?;
-        ensure!(
-            sha256(&bytes) == record.output_sha256,
-            "selected release HEAD blob differs from provenance at '{relative}'"
-        );
+        if let Some(record) = provenance.files.get(relative) {
+            ensure!(
+                sha256(&file.bytes) == record.output_sha256,
+                "selected release HEAD blob differs from provenance at '{relative}'"
+            );
+        }
     }
     Ok(())
 }
-
 fn inspect_local_tag(root: &Path, local_tag: &str, head: &str) -> Result<(String, Option<String>)> {
     let tag_ref = format!("refs/tags/{local_tag}");
     ensure!(
@@ -464,9 +425,12 @@ fn ensure_tracked_worktree_unchanged(root: &Path, relative: &str) -> Result<()> 
     Ok(())
 }
 
-fn git_revision_file(root: &Path, revision: &str, relative: &str) -> Result<Vec<u8>> {
+fn git_revision_file(git: &OracleGitRepository, revision: &str, relative: &str) -> Result<Vec<u8>> {
     validate_relative_path(relative)?;
-    git_bytes(root, &["show", &format!("{revision}:{relative}")])
+    Ok(git
+        .file_at_commit(revision, relative)?
+        .ok_or_else(|| eyre::eyre!("reviewed release file is absent: {relative}"))?
+        .bytes)
 }
 
 fn git_text(root: &Path, args: &[&str]) -> Result<String> {

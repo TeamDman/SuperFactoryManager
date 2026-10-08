@@ -210,6 +210,7 @@ impl CollectedCatalogProject {
     /// # Errors
     /// Rejects changed authored inputs, invalid root policy, unowned source
     /// files/reparse points, stale/conflicting outputs and changed provenance.
+    #[tracing::instrument(name = "catalog.check_current", skip_all)]
     pub fn check_current(self) -> Result<CatalogOwnedProject> {
         self.recheck_authored_snapshot()?;
         let project_root = catalog_projection_root(
@@ -277,6 +278,7 @@ impl CollectedCatalogProject {
         })
     }
 
+    #[tracing::instrument(name = "catalog.recheck_authored", skip_all)]
     fn recheck_authored_snapshot(&self) -> Result<()> {
         ensure!(
             self.loaded.catalog_sha256
@@ -409,6 +411,7 @@ impl CatalogOwnedProject {
     /// # Errors
     /// Rejects changed input bytes, catalog context, policy, source membership
     /// or provenance. This does not hold a filesystem lock across effects.
+    #[tracing::instrument(name = "catalog.recheck", skip_all)]
     pub fn recheck(&self) -> Result<()> {
         #[cfg(test)]
         recheck_observation::notify(self);
@@ -504,6 +507,7 @@ pub(crate) mod recheck_observation {
 /// # Errors
 /// Rejects invalid catalog/features/core metadata, unsafe selected input paths,
 /// oversized reads, invalid templates and incomplete standalone project inputs.
+#[tracing::instrument(name = "catalog.collect", skip_all, fields(projection_key))]
 pub fn collect_catalog_project(
     repo_root: &Path,
     invocation_dir: &Path,
@@ -1058,61 +1062,73 @@ pub(crate) mod tests {
             bytes: &[u8],
             template: bool,
         ) -> Result<()> {
+            self.set_project_files_for(target, [(output, input, bytes, template)])
+        }
+
+        /// Assemble a fixture transaction, validating and serializing its
+        /// metadata once rather than once per imported file.
+        pub(crate) fn set_project_files_for<'a>(
+            &mut self,
+            target: &str,
+            files: impl IntoIterator<Item = (&'a str, &'a str, &'a [u8], bool)>,
+        ) -> Result<()> {
             ensure!(
                 SUPPORTED_TARGETS.iter().any(|(id, _)| *id == target),
                 "fixture override has an unknown target"
             );
-            validate_projection_key(output)?;
-            validate_projection_key(input)?;
-            let reused_elsewhere = self
-                .metadata
-                .project_files
-                .values()
-                .flatten()
-                .any(|variant| {
-                    variant.input == input
-                        && (variant.when.targets.is_empty()
-                            || variant.when.targets.iter().any(|id| id != target))
-                });
-            if reused_elsewhere {
-                ensure!(
-                    fs::read(self.source(input))? == bytes,
-                    "fixture target override would change another target's authored bytes"
-                );
-            }
-            let variants = self
-                .metadata
-                .project_files
-                .entry(output.to_owned())
-                .or_default();
-            for variant in variants.iter_mut() {
-                ensure!(
-                    variant.when.all_features.is_empty()
-                        && variant.when.any_features.is_empty()
-                        && variant.when.none_features.is_empty(),
-                    "fixture override cannot rewrite a feature-dependent role"
-                );
-                if variant.when.targets.is_empty() {
-                    variant.when.targets = SUPPORTED_TARGETS
-                        .iter()
-                        .map(|(id, _)| (*id).to_owned())
-                        .collect();
+            for (output, input, bytes, template) in files {
+                validate_projection_key(output)?;
+                validate_projection_key(input)?;
+                let reused_elsewhere =
+                    self.metadata
+                        .project_files
+                        .values()
+                        .flatten()
+                        .any(|variant| {
+                            variant.input == input
+                                && (variant.when.targets.is_empty()
+                                    || variant.when.targets.iter().any(|id| id != target))
+                        });
+                if reused_elsewhere {
+                    ensure!(
+                        fs::read(self.source(input))? == bytes,
+                        "fixture target override would change another target's authored bytes"
+                    );
                 }
-                variant.when.targets.retain(|id| id != target);
+                let variants = self
+                    .metadata
+                    .project_files
+                    .entry(output.to_owned())
+                    .or_default();
+                for variant in variants.iter_mut() {
+                    ensure!(
+                        variant.when.all_features.is_empty()
+                            && variant.when.any_features.is_empty()
+                            && variant.when.none_features.is_empty(),
+                        "fixture override cannot rewrite a feature-dependent role"
+                    );
+                    if variant.when.targets.is_empty() {
+                        variant.when.targets = SUPPORTED_TARGETS
+                            .iter()
+                            .map(|(id, _)| (*id).to_owned())
+                            .collect();
+                    }
+                    variant.when.targets.retain(|id| id != target);
+                }
+                variants.retain(|variant| !variant.when.targets.is_empty());
+                Self::insert(
+                    &self.temp.path().join(CORE_ROOT),
+                    &mut self.metadata,
+                    output,
+                    input,
+                    bytes,
+                    InputPredicate {
+                        targets: vec![target.to_owned()],
+                        ..Default::default()
+                    },
+                    template,
+                );
             }
-            variants.retain(|variant| !variant.when.targets.is_empty());
-            Self::insert(
-                &self.temp.path().join(CORE_ROOT),
-                &mut self.metadata,
-                output,
-                input,
-                bytes,
-                InputPredicate {
-                    targets: vec![target.to_owned()],
-                    ..Default::default()
-                },
-                template,
-            );
             self.metadata
                 .validate(&BTreeSet::from(["review_toggle".to_owned()]))?;
             fs::write(

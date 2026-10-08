@@ -196,6 +196,7 @@ impl FrozenRecipeProject {
     /// Refuses refresh before filesystem checks, then rejects changed catalog,
     /// authored/generated membership, provenance, role bindings or lock bytes.
     /// It performs no synchronization, acquisition or cache mutation.
+    #[tracing::instrument(name = "frozen_recipe.recheck", skip_all)]
     pub fn recheck(&self, refresh: bool) -> Result<()> {
         refuse_refresh(refresh)?;
         self.project.recheck()?;
@@ -256,6 +257,7 @@ pub fn prepare_frozen_recipe_project(
 /// Load witnesses only after checked ownership, original lock and recipe roles
 /// have established the exact requirements. Returned bytes still pass the
 /// original frozen hash checks; this callback grants no replacement-pin policy.
+#[tracing::instrument(name = "frozen_recipe.prepare", skip_all, fields(recipe_id))]
 pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     project: CatalogOwnedProject,
     recipe_id: &str,
@@ -438,6 +440,7 @@ struct Platform {
     java_major: u16,
 }
 
+#[tracing::instrument(name = "frozen_recipe.parse_index", skip_all)]
 fn recipe_index_from_configuration(configuration: &str) -> Result<RecipeIndex> {
     ensure!(
         configuration.len() <= MAX_REVIEW_BYTES,
@@ -535,6 +538,7 @@ mod tests {
     // Reuse the shared isolated 20-context ownership fixture, then replace
     // only the selected target's lock and thirteen roles with frozen bytes.
     // Output names come from the real core selectors, not recipe path guesses.
+    #[tracing::instrument(name = "frozen_recipe.fixture", skip_all)]
     fn fixture_for(recipe: &FrozenRecipeIndexRow) -> Result<Fixture> {
         let repo = repository()?;
         let catalog = CoreCatalog::load(repo, repo)?;
@@ -569,6 +573,7 @@ mod tests {
                 .expect("configuration has a parent"),
         )?;
         fs::copy(repo.join(BUILD_CONFIGURATION_PATH), &configuration_path)?;
+        let mut roles = Vec::new();
         for source_path in std::iter::once(recipe.source_lock.path.as_str()).chain(
             recipe
                 .role_input_hashes
@@ -588,14 +593,14 @@ mod tests {
                 "frozen fixture role must have one real selected binding: {source_path}"
             );
             let bytes = &projected[source_path];
-            fixture.set_project_file_for(
-                &recipe.target,
-                selected[0].0,
+            roles.push((
+                selected[0].0.as_str(),
                 core_relative,
-                bytes,
+                bytes.as_slice(),
                 false,
-            )?;
+            ));
         }
+        fixture.set_project_files_for(&recipe.target, roles)?;
         Ok(fixture)
     }
 
@@ -643,6 +648,23 @@ mod tests {
                 Ok((relative, sha256(&fs::read(entry.path())?)))
             })
             .collect()
+    }
+
+    #[test]
+    #[ignore = "manual tracing capture; the normal suite covers preparation and rechecks"]
+    fn profile_frozen_recipe_preparation() -> Result<()> {
+        crate::logging::init_logging(
+            &crate::logging::LoggingConfig::new(
+                tracing::level_filters::LevelFilter::INFO,
+                std::env::var_os("SFM_TEST_LOG_FILE").map(std::path::PathBuf::from),
+            ),
+            &crate::cancellation::CancellationToken::new(),
+        )?;
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.publish(&key);
+        prepare(&fixture, &key, &recipe)?.recheck(false)
     }
 
     #[test]

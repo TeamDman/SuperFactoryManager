@@ -358,6 +358,7 @@ struct ExclusionWitness {
 /// # Errors
 /// Rejects unknown recipes, refresh, context/hash/pin mismatches, incomplete
 /// role evidence, ambiguous bindings and unavailable source provenance.
+#[tracing::instrument(name = "released_inputs.review", skip_all)]
 pub(crate) fn review_released_native_inputs_from_configuration(
     configuration: &str,
     request: &ReleasedNativeRequest<'_>,
@@ -456,6 +457,7 @@ pub fn prepare_released_native_inputs(
         .require_exact_bytes(exact_artifact_bytes)
 }
 
+#[tracing::instrument(name = "released_inputs.parse_configuration", skip_all)]
 fn parse_configuration(configuration: &str) -> Result<ReviewDocument> {
     ensure!(
         configuration.len() <= MAX_REVIEW_BYTES,
@@ -553,6 +555,7 @@ fn check_role_inputs(
     Ok(hashes)
 }
 
+#[tracing::instrument(name = "released_inputs.parse_lock", skip_all)]
 fn parse_bound_lock(recipe: &ReviewedRecipe, bytes: &[u8]) -> Result<ArtifactLockfileV2> {
     check_relative_path(&recipe.source_lock.path)?;
     ensure!(

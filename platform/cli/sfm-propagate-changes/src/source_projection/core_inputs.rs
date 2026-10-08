@@ -126,6 +126,7 @@ impl CoreProjectInputs {
     ///
     /// Rejects unsupported schemas, duplicate JSON fields/path keys, unknown
     /// fields/flags/targets, unsafe paths, and contradictory membership rules.
+    #[tracing::instrument(name = "core_inputs.parse", skip_all)]
     pub fn from_json(input: &str, registered_features: &BTreeSet<String>) -> Result<Self> {
         ensure!(
             input.len() as u64 <= MAX_CORE_METADATA_BYTES,
