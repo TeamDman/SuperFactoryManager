@@ -362,6 +362,28 @@ performance evidence. Operational timing awaits the default/release build.
 
 ## [~] 5 Validate, install and checkpoint
 
+Current handoff: the final executable-input revision is `d34a9e620`. Installation
+completed successfully; the PATH executable reports that revision and SHA-256
+`15924e5837e0e645ce0c5486e25d50db5fa928a450f1f5a40fca0fc7c66abeb2`.
+No manual installation is required. Its compact smoke check passed all 20 pinned
+CableBlock contexts, with zero remaining whitespace pairs and no writes:
+
+```powershell
+sfm-propagate-changes.exe --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/block/CableBlock.java --summary
+```
+
+Run that command from the selected SFM checkout. The broad gate's CLI group
+passed 339 tests and its native-build group passed 282 tests with 6 ignored.
+Neither group had failures. It later found one more isolated fixture missing
+checkout-owned `nfrt.json`; supplying that configuration made all three
+`nfrt_project_owner` tests pass (20.64 seconds). Only this test fixture changed.
+The remaining shards are being run without repeating already completed groups;
+this is not yet a full-gate pass. The final fixture checkpoint will be installed
+again so the executable's revision stays current.
+Local checkpoints are `c08914986` (cleanup), `d22d1bd4f` (first pilot),
+`1614ce8f2` and `b4b60b876` (compact reports), `837f011da` (second pilot), and
+`d34a9e620` (acceptance evidence). Nothing has been pushed.
+
 Cleanup checkpoint: `c08914986` (local only). Its installer completed in 2m15s;
 the PATH executable reported that revision and SHA-256
 `02736beabc0ac190f86dabc6ccb7b4df46b79323faf5f9b9110e76932c6f63b4`.

@@ -168,6 +168,14 @@ mod tests {
             ),
         ];
         let mut fixture = Fixture::new();
+        let configuration_root = fixture
+            .repository()
+            .join("platform/minecraft/build-configuration");
+        fs::create_dir_all(&configuration_root)?;
+        fs::write(
+            configuration_root.join("nfrt.json"),
+            include_bytes!("../../../../minecraft/build-configuration/nfrt.json"),
+        )?;
         let mut identities = std::collections::BTreeSet::new();
         let mut dependency_identities = std::collections::BTreeSet::new();
         for (index, (target, minecraft, loader, raw)) in cases.into_iter().enumerate() {
