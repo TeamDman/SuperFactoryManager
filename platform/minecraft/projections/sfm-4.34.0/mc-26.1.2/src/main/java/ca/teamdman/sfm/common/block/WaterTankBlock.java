@@ -91,11 +91,16 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
     @Override
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel pLevel, BlockPos pPos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel pLevel,
+            BlockPos pPos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, pLevel, pPos, movedByPiston);
         WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
     }
-
 
     @Override
     protected MapCodec<WaterTankBlock> codec() {

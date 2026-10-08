@@ -32,6 +32,7 @@ import java.util.function.Supplier;
 
 public class FancyCableBlock extends CableBlock implements IFacadableBlock, SimpleWaterloggedBlock {
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+
     public static final BooleanProperty NORTH = BooleanProperty.create("north");
 
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
@@ -110,6 +111,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext ctx) {
+
         FluidState fluid = ctx.getLevel().getFluidState(ctx.getClickedPos());
         BlockState base = defaultBlockState().setValue(WATERLOGGED, fluid.getType() == Fluids.WATER);
         return getState(base, ctx.getLevel(), ctx.getClickedPos());
@@ -124,6 +126,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
             @Nullable Orientation orientation,
             boolean isMoving
     ) {
+
         super.neighborChanged(state, level, pos, block, orientation, isMoving);
 
         level.setBlockAndUpdate(pos, getState(level.getBlockState(pos), level, pos));
@@ -151,6 +154,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
             BlockState neighbourState,
             RandomSource random
     ) {
+
         if (state.getValue(WATERLOGGED)) {
             ticks.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(level));
         }

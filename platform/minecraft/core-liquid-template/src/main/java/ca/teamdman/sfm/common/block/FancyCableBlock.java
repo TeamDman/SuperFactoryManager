@@ -46,11 +46,7 @@ import java.util.function.Supplier;
 
 public class FancyCableBlock extends CableBlock implements IFacadableBlock, SimpleWaterloggedBlock {
     public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
-{% when '26.1.2' %}
-{% endcase %}
     public static final BooleanProperty NORTH = BooleanProperty.create("north");
 
     public static final BooleanProperty SOUTH = BooleanProperty.create("south");
@@ -129,11 +125,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext ctx) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
-{% when '26.1.2' %}
-{% endcase %}
         FluidState fluid = ctx.getLevel().getFluidState(ctx.getClickedPos());
         BlockState base = defaultBlockState().setValue(WATERLOGGED, fluid.getType() == Fluids.WATER);
         return getState(base, ctx.getLevel(), ctx.getClickedPos());
@@ -158,9 +150,9 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
 {% endcase %}
             boolean isMoving
     ) {
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
         super.neighborChanged(state, level, pos, block, fromPos, isMoving);
 {% when '26.1.2' %}
         super.neighborChanged(state, level, pos, block, orientation, isMoving);
@@ -214,11 +206,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
             RandomSource random
 {% endcase %}
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
-{% when '26.1.2' %}
-{% endcase %}
         if (state.getValue(WATERLOGGED)) {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}

@@ -105,7 +105,6 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
         }
     }
 
-
     @Override
     public void appendHoverText(
             ItemStack pStack,

@@ -168,7 +168,13 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
             WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
         }
 {% when '26.1.2' %}
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel pLevel, BlockPos pPos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel pLevel,
+            BlockPos pPos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, pLevel, pPos, movedByPiston);
         WaterNetworkManager.onWaterTankBlockRemoved(pLevel, pPos);
 {% endcase %}
@@ -215,7 +221,6 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
 {% when '1.21', '1.21.1' %}
-
     @Override
     public void appendHoverText(
             ItemStack pStack,
@@ -238,7 +243,6 @@ public class WaterTankBlock extends BaseEntityBlock implements EntityBlock, Buck
     }
 
 {% when '26.1.2' %}
-
     @Override
     protected MapCodec<WaterTankBlock> codec() {
         throw new NotImplementedException("This isn't used until 1.20.5 apparently");
