@@ -355,6 +355,11 @@ impl Fixture {
         );
         for (path, bytes, digest) in PROVIDERS {
             let body = core.read_source(path)?;
+            let body = if path == PROVIDERS[0].0 {
+                super::core_buffer_manager_slice_tests::historical_manager_template(&body)?
+            } else {
+                body
+            };
             ensure!(
                 body.len() == bytes && sha256(&body) == digest && inventory.contains(path),
                 "existing authorization provider changed"

@@ -39,6 +39,34 @@ const ENTITY: &str = "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlo
 const CONTENTS: &str =
     "src/main/java/ca/teamdman/sfm/common/blockentity/BufferBlockEntityContents.java";
 const MANAGER: &str = "src/main/java/ca/teamdman/sfm/common/blockentity/ManagerBlockEntity.java";
+// Reconstruct only the three reviewed Liquid whitespace edits. The original
+// hash below still rejects every other template change, including comments.
+pub(super) fn historical_manager_template(current: &[u8]) -> Result<Vec<u8>> {
+    let mut source = std::str::from_utf8(current)?.to_owned();
+    let gap = "{% case minecraft_version %}\n{% when \"26.1.2\" %}\n\n{% else %}\n{% case minecraft_version %}\n{% when \"1.21\", \"1.21.0\", \"1.21.1\" %}\n\n{% else %}\n{% endcase %}\n{% endcase %}\n";
+    for marker in [
+        "    @Override\n    public ItemStack removeItem(",
+        "    @Override\n    protected AbstractContainerMenu createMenu(",
+    ] {
+        ensure!(
+            source.matches(marker).count() == 1,
+            "manager whitespace anchor changed"
+        );
+        source = source.replacen(marker, &format!("{gap}{marker}"), 1);
+    }
+    let marker = "    protected void saveAdditional(CompoundTag tag) {\n\n";
+    ensure!(
+        source.matches(marker).count() == 1,
+        "manager save anchor changed"
+    );
+    source = source.replacen(marker, "    protected void saveAdditional(CompoundTag tag) {\n{% endcase %}\n\n{% case minecraft_version %}\n{% when \"1.21\", \"1.21.0\", \"1.21.1\" %}\n{% else %}\n", 1);
+    ensure!(
+        sha256(source.as_bytes())
+            == "sha256:6496f23d64dcdb3825ecbb7ed3cbec1041958ca53947ed058b5954caffa03b93",
+        "manager historical template changed outside reviewed whitespace edits"
+    );
+    Ok(source.into_bytes())
+}
 const PATHS: [&str; 4] = [BLOCK, ENTITY, CONTENTS, MANAGER];
 const OWNERS: [&str; 4] = [
     "redstone_buffer_storage",
@@ -427,7 +455,17 @@ impl Fixture {
             .wrap_err("cannot parse bounded Buffer/Manager evidence")?;
         let sources = PATHS
             .into_iter()
-            .map(|path| Ok((path.to_owned(), shared.read_source(path)?)))
+            .map(|path| {
+                let bytes = shared.read_source(path)?;
+                Ok((
+                    path.to_owned(),
+                    if path == MANAGER {
+                        historical_manager_template(&bytes)?
+                    } else {
+                        bytes
+                    },
+                ))
+            })
             .collect::<Result<BTreeMap<_, _>>>()?;
         let blobs = read_git_blobs(
             &shared.repository,
@@ -658,10 +696,26 @@ impl Fixture {
                         .is_some_and(|input| input.input == path),
                 "shared class omitted or routed to historical input"
             );
-            rendered.insert(
-                path.to_owned(),
-                render_java_source(std::str::from_utf8(&self.sources[path])?, context)?,
-            );
+            let historical =
+                render_java_source(std::str::from_utf8(&self.sources[path])?, context)?;
+            if path == MANAGER {
+                let current = render_java_source(
+                    std::str::from_utf8(&self.shared.read_source(path)?)?,
+                    context,
+                )?;
+                let comparison = super::simplify::compare(
+                    &super::simplify::parse(historical.clone())?,
+                    &super::simplify::parse(current)?,
+                );
+                ensure!(
+                    matches!(
+                        comparison.classification.as_str(),
+                        "exact" | "whitespace_only"
+                    ),
+                    "current manager differs semantically from its historical rendering"
+                );
+            }
+            rendered.insert(path.to_owned(), historical);
         }
         // The bounded cohort is these four paths, not all other selected owner rules.
         Ok(rendered)
@@ -1130,6 +1184,7 @@ fn common_buffer_manager_body_edits_reach_three_api_eras_without_guard_or_proven
     let root = temp.path().join(CORE_ROOT);
     let mut edits = 0;
     for path in PATHS {
+        let original_current = fixture.shared.read_source(path)?;
         let source = std::str::from_utf8(&fixture.sources[path])?;
         let name = path
             .rsplit('/')
@@ -1177,7 +1232,7 @@ fn common_buffer_manager_body_edits_reach_three_api_eras_without_guard_or_proven
             assert_eq!(rendered, expected, "{target}: {path}");
             edits += 1;
         }
-        assert_eq!(fixture.shared.read_source(path)?, fixture.sources[path]);
+        assert_eq!(fixture.shared.read_source(path)?, original_current);
     }
     assert_eq!(edits, 12);
     Ok(())

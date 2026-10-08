@@ -189,5 +189,115 @@ uses CARGO_PROFILE_TEST_OPT_LEVEL=1. That gate reached unit:cli with 337 passed
 and one failure: the historical ItemResourceType witness assertion required
 the intentionally changed signature to remain byte-identical. The test now
 allows only the exact reviewed 26.1.2 signature layout replacement, retaining
-immutable witnesses and exact equality everywhere else. Targeted rerun pending;
+immutable witnesses and exact equality everywhere else. Targeted rerun passed
+(one test, zero failures, 1.24 seconds);
 full validation is not green. No further fan-out has started.
+
+### AST-context candidate filtering
+
+User requested implementation of the proposed nesting-aware discovery filter.
+Compare the ancestor-node kind chains at both ends of each differing whitespace
+gap. Suppress candidates when those contexts differ, including equal-depth
+nodes with different parent kinds. This is a conservative discovery heuristic,
+not proof that two subtrees mean the same thing. Keep the complete token-stream
+and full-tree oracle certificate unchanged.
+
+Implementation adds a suppressed-gap count and advances the discovery algorithm
+identifier to v2. Regression coverage includes the ManagerBlock removal-method
+example, deeper nesting, equal-depth different parents, and positive detection
+of whitespace drift with matching nesting. All eight simplifier tests passed
+(zero failures, 0.01 seconds after compilation). Installation completed.
+Installed CLI verification passed for all 20 ManagerBlock historical oracles
+in 378 ms: zero remaining candidate pairs (previously 36), no writes. The
+manifested scan checked 190 pairs and suppressed 60 structurally unmatched
+gaps under algorithm v2. No Java templates, generated projections or oracle
+pins changed. Installed executable SHA-256:
+`f4543461402c5291a7368860d01cac1c84842861d8bce5d7d38d15f234c61382`.
+
+The required full gate passed dependency policy, formatting and strict
+all-feature Clippy, and remains running at the build/test stages. Full-suite
+success is not yet established. User install required: no.
+
+## [x] 4 Repeat the two-worker pilot with nesting-aware discovery
+
+U9: user authorized another run with two subagents, one file each. Preserve
+U5-U7: workers validate only their owned file in memory against pinned Git
+oracles; coordinator selects work and performs the single post-batch sync.
+Intent audit: extracted the explicit two-worker scope, traced it to the owners
+below, and checked that neither tree-wide edits nor weakened oracle checks are
+implied. No additional feature or runtime changes are authorized by this batch.
+
+Owners: simplify_manager_entity owns ManagerBlockEntity.java (92 candidate
+pairs); simplify_printing_entity owns PrintingPressBlockEntity.java (132).
+Both start with all 20 historical oracle contexts passing. Workers are initially
+read-only while the preceding full gate reads the source tree. Coordinator has
+captured the two outputs and provenance manifest in each context (60 hashes).
+
+Acceptance: both workers report exact edits, remaining candidates and passing
+20-context `source simplify verify` results; the 60 output hashes remain
+unchanged until coordinator sync. After sync, generated bodies must match the
+certified in-memory render hashes. Do not force questionable candidates to zero.
+No production Rust changes, dependencies, oracle updates, automatic commits or
+pushes. Coordinator may update historical test expectations for the exact
+reviewed whitespace changes while retaining their original witnesses.
+
+Workers finished: ManagerBlockEntity 92 -> 0 candidate pairs (14 exact and six
+whitespace-only oracle comparisons); PrintingPressBlockEntity 132 -> 0. All 20
+contexts pass for each. Manager changes remove two blank-line-only Liquid cases
+and join a split guard around saveAdditional; PrintingPress changes only spacing,
+parameter layout and chain line breaks. Coordinator verified all 60 output and
+manifest hashes unchanged after workers finished, independently reran both
+certificates and captured all 40 in-memory render hashes before synchronization.
+
+The pre-batch full gate passed CLI, core slice and oracle groups but stopped at
+release_source_parity_test: its exact-byte expectation rejects the already
+reviewed ManagerBlock whitespace from the first pilot. Nine other tests in that
+group passed. This is not full-gate success. The test-only adjustment retains
+exact Git blob hashes and membership; only the five reviewed Java files may
+differ by the strict complete-token/full-AST whitespace certificate. All other
+paths retain exact normalized byte comparison. A negative test covers unknown
+paths and token/comment changes. The production exact oracle policy is unchanged.
+
+Manager's historical fixtures reconstruct exactly the three reviewed template
+edits, then check the original full source hash. Every existing Buffer/Manager
+render context also compares current rendering to reconstructed historical
+rendering with the strict certificate; partial-feature coverage is preserved.
+All 20 guarded syncs succeeded. All 40 generated Java bodies match the captured
+in-memory render hashes after removal of only the exact generated banner.
+Focused historical tests are compiling. An additional exploratory Clippy run
+with `--tests` failed on repository-wide test lint errors (1,700 lib-test
+diagnostics, including pre-existing dead code and assertion style); it is not
+the repository's standard production Clippy command and is not a passing gate.
+No unrelated lint repairs were attempted. Full-gate rerun remains required.
+
+First focused rerun: six Buffer/Manager tests passed; the common-edit no-write
+assertion incorrectly compared current source to reconstructed historical source.
+It now snapshots actual current bytes before the test and checks those same
+bytes afterward. The reviewed reverse transform and strict source hash remain
+unchanged. The three focused groups are rebuilding after this correction.
+The required `check-all.ps1 -TestWorkers 2` rerun is started with the same test
+optimization setting; it is waiting for Cargo's build lock while the focused
+compilation finishes. Neither run is yet passing completion evidence. Runtime
+CLI installation remains current because this batch changed only test Rust.
+
+Final checkpoint: the three focused groups passed (26 tests total). The required
+`check-all.ps1 -TestWorkers 2` completed successfully: all 213 test shards,
+binary/doc checks, dependency policy, formatting, standard strict all-feature
+Clippy, and the final operational CLI build passed. This supersedes the pending
+and failed validation states recorded above. The extra exploratory test-target
+Clippy invocation remains outside that successful standard gate.
+
+### Next cleanup direction (not implemented in this checkpoint)
+
+User requested a commit before further changes. Replace per-projection
+last-generated-hash bookkeeping, including `.sfm-source-projection-manifest.json`,
+with Git dirty-output protection. Support `--allow-dirty` without a selector
+for all selected outputs, or with a path selector for a scoped override; the
+proposed Figue representation is `Option<Option<T>>`. Preserve projection
+configuration and dependency locks; these are not generation-history manifests.
+
+Provide file-to-projection selection with shared context for batch manifestation.
+Keep oracle comparison as a runtime CLI check and small machinery fixtures as
+tests. Actively remove historical migration coupling from production inputs and
+tests. Contributor changes to generated sources require a hydration PR updating
+the core template before merge, rather than permanent provenance bookkeeping.

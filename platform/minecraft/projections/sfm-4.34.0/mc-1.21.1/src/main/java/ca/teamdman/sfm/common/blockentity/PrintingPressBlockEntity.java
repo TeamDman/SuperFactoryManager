@@ -60,7 +60,8 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         public boolean isItemValid(int slot, ItemStack stack) {
             if (getLevel() == null) return false;
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().ink().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().ink().test(stack));
         }
     };
 
@@ -81,11 +82,12 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         public boolean isItemValid(int slot, ItemStack stack) {
             if (getLevel() == null) return false;
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().paper().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().paper().test(stack));
         }
     };
-    public final CombinedInvWrapper INVENTORY = new CombinedInvWrapper(FORM, INK, PAPER);
 
+    public final CombinedInvWrapper INVENTORY = new CombinedInvWrapper(FORM, INK, PAPER);
 
     public PrintingPressBlockEntity(
             BlockPos pPos, BlockState pBlockState
@@ -102,7 +104,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
     public int size() {
         return INVENTORY.getSlots();
     }
-
 
     @Override
     protected void loadAdditional(
@@ -139,7 +140,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         PAPER.deserializeNBT(pRegistries, tag.getCompound("paper"));
         FORM.deserializeNBT(pRegistries, tag.getCompound("form"));
     }
-
 
     public ItemStack acceptStack(ItemStack stack) {
         ItemStack remainder;

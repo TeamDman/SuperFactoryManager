@@ -513,16 +513,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return ITEMS.get(slot);
     }
 
-{% case minecraft_version %}
-{% when "26.1.2" %}
-
-{% else %}
-{% case minecraft_version %}
-{% when "1.21", "1.21.0", "1.21.1" %}
-
-{% else %}
-{% endcase %}
-{% endcase %}
     @Override
     public ItemStack removeItem(
             int slot,
@@ -781,16 +771,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return MANAGER_CONTAINER.getComponent();
     }
 
-{% case minecraft_version %}
-{% when "26.1.2" %}
-
-{% else %}
-{% case minecraft_version %}
-{% when "1.21", "1.21.0", "1.21.1" %}
-
-{% else %}
-{% endcase %}
-{% endcase %}
     @Override
     protected AbstractContainerMenu createMenu(
             int windowId,
@@ -808,11 +788,7 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 {% else %}
     @Override
     protected void saveAdditional(CompoundTag tag) {
-{% endcase %}
 
-{% case minecraft_version %}
-{% when "1.21", "1.21.0", "1.21.1" %}
-{% else %}
         super.saveAdditional(tag);
         ContainerHelper.saveAllItems(tag, ITEMS);
     }

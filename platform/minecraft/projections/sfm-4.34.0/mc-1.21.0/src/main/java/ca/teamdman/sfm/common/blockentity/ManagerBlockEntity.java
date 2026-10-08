@@ -432,7 +432,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return ITEMS.get(slot);
     }
 
-
     @Override
     public ItemStack removeItem(
             int slot,
@@ -613,7 +612,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
         return MANAGER_CONTAINER.getComponent();
     }
 
-
     @Override
     protected AbstractContainerMenu createMenu(
             int windowId,
@@ -622,7 +620,6 @@ public class ManagerBlockEntity extends BaseContainerBlockEntity {
 
         return new ManagerContainerMenu(windowId, inv, this);
     }
-
 
     public enum State {
         NO_PROGRAM(

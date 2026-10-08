@@ -8,7 +8,7 @@ use std::ops::Range;
 use tree_sitter_patched_arborium::Node;
 use tree_sitter_patched_arborium::Parser;
 
-pub(crate) const ALGORITHM: &str = "sfm:manifested_java_whitespace@1";
+pub(crate) const ALGORITHM: &str = "sfm:manifested_java_whitespace@2";
 pub(crate) const MAX_SOURCE_BYTES: usize = 1024 * 1024;
 const MAX_ATOMS: usize = 100_000;
 const MAX_REGIONS: usize = 128;
@@ -16,6 +16,9 @@ const MAX_REGIONS: usize = 128;
 #[derive(Debug)]
 struct Atom {
     key: String,
+    // Ancestor kinds, not sibling indices or identifier spellings. This is a
+    // candidate-discovery guard, never an equivalence certificate.
+    ancestors: Vec<u16>,
     range: Range<usize>,
     start_line: usize,
     end_line: usize,
@@ -48,6 +51,7 @@ pub(crate) struct Region {
 pub(crate) struct Comparison {
     pub classification: String,
     pub whitespace_gap_count: usize,
+    pub structurally_unmatched_gap_count: usize,
     pub whitespace_candidates: Vec<Region>,
     pub changed_token_region_count: usize,
     pub changed_token_regions: Vec<Region>,
@@ -84,6 +88,7 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
     let mut atoms = Vec::new();
     atoms.push(Atom {
         key: "<BOF>".into(),
+        ancestors: Vec::new(),
         range: 0..0,
         start_line: 1,
         end_line: 1,
@@ -92,6 +97,7 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
     let last_line = source.bytes().filter(|byte| *byte == b'\n').count() + 1;
     atoms.push(Atom {
         key: "<EOF>".into(),
+        ancestors: Vec::new(),
         range: source.len()..source.len(),
         start_line: last_line,
         end_line: last_line,
@@ -133,6 +139,7 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
             let raw = &source[node.byte_range()];
             atoms.push(Atom {
                 key: format!("{}:{kind}{raw}", kind.len()),
+                ancestors: ancestor_kinds(node),
                 range: node.byte_range(),
                 start_line: node.start_position().row + 1,
                 end_line: node.end_position().row + 1,
@@ -145,6 +152,16 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
         }
     }
     Ok(())
+}
+
+fn ancestor_kinds(node: Node<'_>) -> Vec<u16> {
+    let mut kinds = Vec::new();
+    let mut parent = node.parent();
+    while let Some(node) = parent {
+        kinds.push(node.kind_id());
+        parent = node.parent();
+    }
+    kinds
 }
 
 fn snippet(parsed: &ParsedJava, range: Range<usize>, lines: (usize, usize)) -> Snippet {
@@ -210,6 +227,7 @@ pub(crate) fn compare(before: &ParsedJava, after: &ParsedJava) -> Comparison {
     let mut result = Comparison {
         classification: classification.into(),
         whitespace_gap_count: 0,
+        structurally_unmatched_gap_count: 0,
         whitespace_candidates: Vec::new(),
         changed_token_region_count: 0,
         changed_token_regions: Vec::new(),
@@ -255,6 +273,10 @@ fn equal_run(
         let a_gap = &before.source[a[0].range.end..a[1].range.start];
         let b_gap = &after.source[b[0].range.end..b[1].range.start];
         if a_gap == b_gap {
+            continue;
+        }
+        if a[0].ancestors != b[0].ancestors || a[1].ancestors != b[1].ancestors {
+            result.structurally_unmatched_gap_count += 1;
             continue;
         }
         result.whitespace_gap_count += 1;
@@ -337,6 +359,47 @@ mod tests {
                 .iter()
                 .any(|r| r.before.text.contains("\n\n"))
         );
+    }
+
+    #[test]
+    fn manager_removal_nesting_is_not_a_formatting_candidate() {
+        let result = comparison(
+            "class ManagerBlock { void onRemove() {\n\n        if (!state.is(newState.getBlock())) {\n            if (level.getBlockEntity(pos) instanceof Container container) {\n                Containers.dropContents(level, pos, container);\n                level.updateNeighbourForOutputSignal(pos, this);\n            }\n            CableNetworkManager.onCableRemoved(level, pos);\n            super.onRemove(state, level, pos, newState, isMoving);\n        }\n    }\n}",
+            "class ManagerBlock { void affectNeighborsAfterRemoval() {\n\n        super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);\n        level.updateNeighbourForOutputSignal(pos, this);\n        CableNetworkManager.onCableRemoved(level, pos);\n    }\n}",
+        );
+        assert_eq!(result.classification, "code_or_comment_change");
+        assert_eq!(result.whitespace_gap_count, 0);
+        assert!(result.structurally_unmatched_gap_count > 0);
+    }
+
+    #[test]
+    fn different_depth_and_equal_depth_different_parent_are_filtered() {
+        for (a, b) in [
+            (
+                "class A { void f() { if (x) {\n        run();\n    } } }",
+                "class A { void f() {\n    run();\n} }",
+            ),
+            (
+                "class A { void f() { if (x) {\n        run();\n    } } }",
+                "class A { void f() { while (x) {\n    run();\n} } }",
+            ),
+        ] {
+            let result = comparison(a, b);
+            assert_eq!(result.classification, "code_or_comment_change");
+            assert_eq!(result.whitespace_gap_count, 0);
+            assert!(result.structurally_unmatched_gap_count > 0);
+        }
+    }
+
+    #[test]
+    fn matching_nesting_still_reports_real_whitespace_drift() {
+        let result = comparison(
+            "class A { void f() { if (x) {\n        run();\n    } } }",
+            "class A { void f() { if (x) {\n    run();\n} } }",
+        );
+        assert_eq!(result.classification, "whitespace_only");
+        assert!(result.whitespace_gap_count > 0);
+        assert_eq!(result.structurally_unmatched_gap_count, 0);
     }
 
     #[test]

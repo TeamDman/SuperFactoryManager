@@ -60,6 +60,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
             return resource.is(SFMItems.FORM.get());
         }
     };
+
     private final ItemStackResourceHandler INK = new ItemStackResourceHandler() {
         private ItemStack item = ItemStack.EMPTY;
         @Override
@@ -82,6 +83,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
                     .anyMatch(r -> r.value().ink().test(resource.toStack()));
         }
     };
+
     private final ItemStackResourceHandler PAPER = new ItemStackResourceHandler() {
         private ItemStack item = ItemStack.EMPTY;
         @Override
@@ -166,7 +168,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         input.readChild("paper", PAPER);
         input.readChild("ink", INK);
     }
-
 
     public ItemStack acceptStack(ItemStack stack) {
         if (stack.isEmpty()) {

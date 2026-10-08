@@ -139,9 +139,9 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% endcase %}
         }
     };
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
     private final ItemStackHandler INK = new ItemStackHandler(1) {
 {% when '26.1.2' %}
     private final ItemStackResourceHandler INK = new ItemStackResourceHandler() {
@@ -176,10 +176,12 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.ink().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.ink().test(stack));
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().ink().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().ink().test(stack));
 {% when '26.1.2' %}
             RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
             return recipes
@@ -189,9 +191,9 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% endcase %}
         }
     };
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
     private final ItemStackHandler PAPER = new ItemStackHandler(1) {
 {% when '26.1.2' %}
     private final ItemStackResourceHandler PAPER = new ItemStackResourceHandler() {
@@ -236,10 +238,12 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1' %}
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.paper().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.paper().test(stack));
 {% when '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.value().paper().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.value().paper().test(stack));
 {% when '26.1.2' %}
             RecipeManager recipes = Objects.requireNonNull(getLevel().getServer()).getRecipeManager();
             return recipes
@@ -249,6 +253,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% endcase %}
         }
     };
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2' %}
     private final LazyOptional<IItemHandler> ITEMS_CAPABILITY = LazyOptional.of(() -> new CombinedInvWrapper(
@@ -258,9 +263,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
     ));
 {% when '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     public final CombinedInvWrapper INVENTORY = new CombinedInvWrapper(FORM, INK, PAPER);
-
 {% when '26.1.2' %}
-
     public final CombinedResourceHandler<ItemResource> INVENTORY = new CombinedResourceHandler<>(PAPER, FORM, INK);
 {% endcase %}
 
@@ -273,25 +276,32 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
     @Override
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-    public void load(CompoundTag tag) {
+    public void load(
+            CompoundTag tag
+    ) {
         super.load(tag);
         readItems(tag);
     }
 
-
     @Override
-    protected void saveAdditional(CompoundTag tag) {
+    protected void saveAdditional(
+            CompoundTag tag
+    ) {
         super.saveAdditional(tag);
         writeItems(tag);
     }
 
-    private void writeItems(CompoundTag tag) {
+    private void writeItems(
+            CompoundTag tag
+    ) {
         tag.put("form", FORM.serializeNBT());
         tag.put("paper", PAPER.serializeNBT());
         tag.put("ink", INK.serializeNBT());
     }
 
-    private void readItems(CompoundTag tag) {
+    private void readItems(
+            CompoundTag tag
+    ) {
         INK.deserializeNBT(tag.getCompound("ink"));
         PAPER.deserializeNBT(tag.getCompound("paper"));
         FORM.deserializeNBT(tag.getCompound("form"));
@@ -304,7 +314,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
     public int size() {
         return INVENTORY.getSlots();
     }
-
 
     @Override
     protected void loadAdditional(
@@ -328,6 +337,7 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         }
         return super.getCapability(cap, side);
     }
+
 {% when '1.20.3', '1.20.4' %}
 {% when '1.21', '1.21.1' %}
     @Override
@@ -338,13 +348,14 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         super.saveAdditional(pTag, pRegistries);
         writeItems(pTag, pRegistries);
     }
+
 {% when '26.1.2' %}
     @Override
     public int size() {
         return INVENTORY.size();
     }
-{% endcase %}
 
+{% endcase %}
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
 {% when '1.21', '1.21.1' %}
@@ -365,7 +376,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         PAPER.deserializeNBT(pRegistries, tag.getCompound("paper"));
         FORM.deserializeNBT(pRegistries, tag.getCompound("form"));
     }
-
 
 {% when '26.1.2' %}
     @Override
@@ -406,7 +416,6 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
         input.readChild("paper", PAPER);
         input.readChild("ink", INK);
     }
-
 
 {% endcase %}
     public ItemStack acceptStack(ItemStack stack) {
@@ -507,7 +516,10 @@ public class PrintingPressBlockEntity extends BlockEntity implements RecipeInput
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(
+            Connection net,
+            ClientboundBlockEntityDataPacket pkt
+    ) {
         super.onDataPacket(net, pkt);
         CompoundTag tag = pkt.getTag();
         if (tag != null)

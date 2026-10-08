@@ -65,7 +65,8 @@ public class PrintingPressBlockEntity extends BlockEntity implements NotContaine
         public boolean isItemValid(int slot, ItemStack stack) {
             if (getLevel() == null) return false;
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.ink().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.ink().test(stack));
         }
     };
 
@@ -86,9 +87,11 @@ public class PrintingPressBlockEntity extends BlockEntity implements NotContaine
         public boolean isItemValid(int slot, ItemStack stack) {
             if (getLevel() == null) return false;
             return getLevel().getRecipeManager()
-                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream().anyMatch(r -> r.paper().test(stack));
+                    .getAllRecipesFor(SFMRecipeTypes.PRINTING_PRESS.get()).stream()
+                    .anyMatch(r -> r.paper().test(stack));
         }
     };
+
     private final LazyOptional<IItemHandler> ITEMS_CAPABILITY = LazyOptional.of(() -> new CombinedInvWrapper(
             FORM,
             INK,
@@ -102,25 +105,32 @@ public class PrintingPressBlockEntity extends BlockEntity implements NotContaine
     }
 
     @Override
-    public void load(CompoundTag tag) {
+    public void load(
+            CompoundTag tag
+    ) {
         super.load(tag);
         readItems(tag);
     }
 
-
     @Override
-    protected void saveAdditional(CompoundTag tag) {
+    protected void saveAdditional(
+            CompoundTag tag
+    ) {
         super.saveAdditional(tag);
         writeItems(tag);
     }
 
-    private void writeItems(CompoundTag tag) {
+    private void writeItems(
+            CompoundTag tag
+    ) {
         tag.put("form", FORM.serializeNBT());
         tag.put("paper", PAPER.serializeNBT());
         tag.put("ink", INK.serializeNBT());
     }
 
-    private void readItems(CompoundTag tag) {
+    private void readItems(
+            CompoundTag tag
+    ) {
         INK.deserializeNBT(tag.getCompound("ink"));
         PAPER.deserializeNBT(tag.getCompound("paper"));
         FORM.deserializeNBT(tag.getCompound("form"));
@@ -183,7 +193,10 @@ public class PrintingPressBlockEntity extends BlockEntity implements NotContaine
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(
+            Connection net,
+            ClientboundBlockEntityDataPacket pkt
+    ) {
         super.onDataPacket(net, pkt);
         CompoundTag tag = pkt.getTag();
         if (tag != null)
