@@ -252,7 +252,23 @@ current reconciliation guidance and documented commit-catalog oracle identity.
 `git diff --check` passed. Full batch performance/correctness validation, current
 CLI install, cleanup commits and the timed pilot remain pending.
 
-## [~] 4 Run the timed parallel pilot
+## [x] 4 Run the timed parallel pilot
+
+After the report-size repair, a fresh pair completed in **57.640 seconds**:
+`CableBlock.java` and `PrintingPressBlock.java`. The same two agents received new
+file assignments in parallel. Timing started before first assignment at
+06:44:41.065 UTC and ended after the combined disk manifestation returned.
+No candidate edits were prepared before the timer. Both agents verified all 20
+pinned historical oracles and zero remaining whitespace-candidate pairs. The
+single manifestation changed 4 outputs and left 36 unchanged. Independent
+post-pilot verification again passed all 40 contexts; the disk dry-run found
+40 unchanged outputs. The successful measurement used already-running agents,
+not fresh agent startup. It proves this measured workflow, not a universal SLA.
+
+Installed compact reporting was checked before dispatch: 308ms for all 20
+CableBlock contexts, returning 2,628 UTF-8 bytes. It retained complete checks and
+bounded candidate examples. Both the initial miss and this fresh pass remain
+recorded; no completed edit was replayed to manufacture a passing time.
 
 The two-agent pilot completed correctly in **81.219 seconds**, missing the
 60-second deadline by 21.219 seconds. Timing began before first dispatch at

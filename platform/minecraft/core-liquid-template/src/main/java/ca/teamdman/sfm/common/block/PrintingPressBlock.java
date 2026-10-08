@@ -121,9 +121,9 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
             RandomSource random
     ) {
         if (!pLevel.isClientSide()
-                && neighbourPos.getY() == pPos.getY() + 1
-                && pLevel.getBlockState(neighbourPos).getBlock() == Blocks.PISTON_HEAD
-                && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
+            && neighbourPos.getY() == pPos.getY() + 1
+            && pLevel.getBlockState(neighbourPos).getBlock() == Blocks.PISTON_HEAD
+            && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
             blockEntity.performPrint();
         }
         return super.updateShape(state, pLevel, ticks, pPos, directionToNeighbour, neighbourPos, neighbourState, random);
@@ -248,15 +248,17 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
             super.onRemove(pState, pLevel, pPos, pNewState, pIsMoving);
         }
 {% when '26.1.2' %}
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
         Containers.updateNeighboursAfterDestroy(state, level, pos);
 {% endcase %}
     }
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
 
-{% when '26.1.2' %}
-{% endcase %}
 }

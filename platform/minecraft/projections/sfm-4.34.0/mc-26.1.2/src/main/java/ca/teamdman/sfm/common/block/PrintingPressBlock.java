@@ -74,9 +74,9 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
             RandomSource random
     ) {
         if (!pLevel.isClientSide()
-                && neighbourPos.getY() == pPos.getY() + 1
-                && pLevel.getBlockState(neighbourPos).getBlock() == Blocks.PISTON_HEAD
-                && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
+            && neighbourPos.getY() == pPos.getY() + 1
+            && pLevel.getBlockState(neighbourPos).getBlock() == Blocks.PISTON_HEAD
+            && pLevel.getBlockEntity(pPos) instanceof PrintingPressBlockEntity blockEntity) {
             blockEntity.performPrint();
         }
         return super.updateShape(state, pLevel, ticks, pPos, directionToNeighbour, neighbourPos, neighbourState, random);
@@ -123,8 +123,16 @@ public class PrintingPressBlock extends BaseEntityBlock implements EntityBlock {
     }
 
     @Override
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
         Containers.updateNeighboursAfterDestroy(state, level, pos);
     }
+
+
 }

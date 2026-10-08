@@ -93,7 +93,12 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
         // purges block entity
         super.onRemove(state, level, pos, newState, isMoving);
 {% when '26.1.2' %}
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
 {% endcase %}
 

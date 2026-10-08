@@ -55,7 +55,12 @@ public class CableBlock extends Block implements ICableBlock, IFacadableBlock {
     }
 
     @Override
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
 
 //        if (!(state.getBlock() instanceof ICableBlock)) {
