@@ -69,12 +69,6 @@ pub(crate) fn parse(source: String) -> Result<ParsedJava> {
         source.len() <= MAX_SOURCE_BYTES,
         "Java source exceeds 1 MiB"
     );
-    // Java translates these before tokenization. The selected tree-sitter
-    // grammar is not a javac Unicode-translation oracle; do not guess.
-    ensure!(
-        !source.contains("\\u"),
-        "Unicode escapes are not certified by this scanner"
-    );
     let mut parser = Parser::new();
     parser.set_language(&arborium_java::language().into())?;
     let tree = parser
@@ -136,11 +130,19 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
         || matches!(kind, "line_comment" | "block_comment")
     {
         if node.end_byte() > node.start_byte() {
-            let raw = &source[node.byte_range()];
+            let mut range = node.byte_range();
+            // Java line terminators are outside a // comment. This grammar
+            // includes CR in that node on CRLF lines; leave it in the gap so
+            // Windows/Unix line endings do not appear to change comment text.
+            if kind == "line_comment" && source[range.clone()].ends_with('\r') {
+                range.end -= 1;
+            }
+            let raw = &source[range.clone()];
+            validate_unicode_atom(kind, raw)?;
             atoms.push(Atom {
                 key: format!("{}:{kind}{raw}", kind.len()),
                 ancestors: ancestor_kinds(node),
-                range: node.byte_range(),
+                range,
                 start_line: node.start_position().row + 1,
                 end_line: node.end_position().row + 1,
             });
@@ -149,6 +151,52 @@ fn collect(node: Node<'_>, source: &str, depth: usize, atoms: &mut Vec<Atom>) ->
         let mut cursor = node.walk();
         for child in node.children(&mut cursor) {
             collect(child, source, depth + 1, atoms)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_unicode_atom(kind: &str, raw: &str) -> Result<()> {
+    if !raw.contains("\\u") {
+        return Ok(());
+    }
+    ensure!(
+        matches!(
+            kind,
+            "string_literal" | "character_literal" | "line_comment" | "block_comment"
+        ),
+        "Unicode escapes outside preserved literals/comments are not certified"
+    );
+    // JLS 3.3: only an eligible backslash starts an escape. Reject translated
+    // backslashes and lexical delimiters, so translation cannot change token
+    // boundaries or the eligibility of a later escape. Keep raw spelling exact.
+    let bytes = raw.as_bytes();
+    let mut index = 0;
+    let mut slashes = 0;
+    while index < bytes.len() {
+        if bytes[index] != b'\\' {
+            slashes = 0;
+            index += 1;
+            continue;
+        }
+        if slashes % 2 == 0 && bytes.get(index + 1) == Some(&b'u') {
+            let mut digits = index + 1;
+            while bytes.get(digits) == Some(&b'u') {
+                digits += 1;
+            }
+            let hex = raw
+                .get(digits..digits + 4)
+                .ok_or_else(|| eyre::eyre!("incomplete Unicode escape"))?;
+            let value = u16::from_str_radix(hex, 16)?;
+            ensure!(
+                !matches!(value, 0x0a | 0x0d | 0x22 | 0x27 | 0x2a | 0x2f | 0x5c),
+                "Unicode escape may change lexical boundaries"
+            );
+            index = digits + 4;
+            slashes = 0;
+        } else {
+            slashes += 1;
+            index += 1;
         }
     }
     Ok(())
@@ -342,6 +390,53 @@ mod tests {
                 "code_or_comment_change",
                 "{a}"
             );
+        }
+    }
+
+    #[test]
+    fn crlf_line_terminators_are_whitespace_but_comment_contents_remain_exact() {
+        assert_eq!(
+            comparison(
+                "class A { // keep\r\n int x; }",
+                "class A { // keep\n int x; }"
+            )
+            .classification,
+            "whitespace_only"
+        );
+        assert_eq!(
+            comparison(
+                "class A { // keep\r\n int x; }",
+                "class A { // changed\n int x; }"
+            )
+            .classification,
+            "code_or_comment_change"
+        );
+        assert_eq!(
+            comparison(
+                "class A { /* keep\r\n text */ }",
+                "class A { /* keep\n text */ }"
+            )
+            .classification,
+            "code_or_comment_change"
+        );
+    }
+
+    #[test]
+    fn safe_unicode_literal_spelling_is_preserved_without_translating_source() {
+        let before = r#"class A { String s = "\u00a7\\u00"; }"#;
+        let after = r#"class A {  String s = "\u00a7\\u00"; }"#;
+        assert_eq!(comparison(before, after).classification, "whitespace_only");
+        assert_eq!(
+            comparison(before, &after.replace("00a7", "00a8")).classification,
+            "code_or_comment_change"
+        );
+        for source in [
+            r#"class A { String s = "\u000a"; }"#,
+            r#"class A { String s = "\u005c"; }"#,
+            r#"class A { // \u000a int x;
+}"#,
+        ] {
+            assert!(parse(source.into()).is_err(), "{source}");
         }
     }
 
