@@ -1,6 +1,6 @@
 # Read-only simplification candidates from manifested Java
 
-Plan status: Active. Primary implementation: `main`. Updated: 7 October 2026.
+Plan status: Complete. Primary implementation: `main`. Updated: 7 October 2026.
 Starting checkpoint: `3f9f8ab01`. Intent audit: passed against the user's
 SFM.java whitespace example, manifested-projection correction and goal approval.
 
@@ -89,10 +89,10 @@ candidates in 54 pairs. No inputs were unverified.
 The released 1.21.1 versus 26.1.2 pair reports exactly one whitespace gap, at
 constructor line 34: `{\n\n        SFMEventBus` versus
 `{\n        SFMEventBus`. Whole-file tokens and syntax-tree shape match. This
-is the user's concrete example. Final installed-tool proof remains pending;
+is the user's concrete example. Task 3 records the final installed-tool proof;
 the all-features debug product is not used for operational timing.
 
-### [~] 3 Validate, install and document
+### [x] 3 Validate, install and document
 
 Run focused tests before `check-all.ps1 -TestWorkers 2`, with process-local
 `CARGO_PROFILE_TEST_OPT_LEVEL=1`. Install with `install.ps1`, verify PATH/hash/help
@@ -105,7 +105,37 @@ limits. With 2 workers and test optimization level 1, the full gate passed all
 213 test shards: 2,507 tests passed, none failed and 18 remained ignored. This
 includes 2,437 library tests and 70 integration tests. Binary and doc checks also
 passed. The final default-feature build passed and `check-all.ps1` exited 0.
-Installation, real scan timing and the final checkpoint remain pending.
+Implementation checkpoint: `cdbbd89c8df96091d2b77f3a9d1b9bec8770e671`.
+`install.ps1` completed its offline locked release build and replaced the Cargo
+bin executables. The PATH-resolved `sfm-propagate-changes.exe` reports revision
+`cdbbd89c8`, built 7 October 2026 at 20:59:06 -04:00. Installed SHA-256:
+`4e38a566ef4e1f57e0cfd471fdc55f40404daa997d4c2b69adfec80db63bf24e`.
+The installed location is the existing `CARGO_HOME/bin` directory; user install
+required: no. The installer also refreshed the package's `source-jar-absence`
+executable, as defined by the existing installer.
+
+Installed `source simplify scan --help` exposes the documented file, projection
+and region options. The documented all-context SFM.java command completed in
+633 ms in one measured run, including process launch and JSON capture. It
+verified all 20 inputs and 190 pairs, reproducing the earlier candidate counts
+and exact constructor blank-line evidence. This is an observed duration, not a
+timing assertion or general performance guarantee. Git status stayed clean after
+the scan. The final documentation receipt does not change executable inputs.
+
+Completion audit: complete-file parsing, exact literal/comment preservation,
+local candidates versus whole-file classifications, rejected unsafe/unsupported
+inputs, provenance identities, bounded reports and repeated projection selection
+are covered by the focused and full tests. Real installed output proves the
+SFM.java acceptance case. Commit inspection confirms no Minecraft input,
+projection, oracle policy, dependency declaration or lock changed. Documentation
+states the core-freshness and feature-combination limits. No automatic rewrite,
+formatter, publication or push was performed.
+
+All launched build, test and scan processes exited. No game, server or external
+helper was started or stopped. No disk-space error occurred. For manual use, run
+the command above from the repository root; existing manifested projects are the
+only required inputs. The next possible feature, applying reviewed simplification
+edits, needs a separate scope and is not part of this completed goal.
 
 ## Operational readiness
 
