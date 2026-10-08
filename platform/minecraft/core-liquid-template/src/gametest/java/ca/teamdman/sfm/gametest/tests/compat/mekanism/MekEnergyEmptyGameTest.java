@@ -57,17 +57,13 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
 {% when '1.21', '1.21.1' %}
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
         TileEntityEnergyCube left = helper.getAndPrepMekTile(leftPos);
-
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.getBlock());
         TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
-
 {% when '26.1.2' %}
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube left = helper.getAndPrepMekTile(leftPos);
-
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
-
 {% endcase %}
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
@@ -102,10 +98,12 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
                     right.getEnergy(0).equals(EnergyCubeTier.ULTIMATE.getMaxEnergy()),
                     "Contents did not arrive"
             );
-
 {% when '1.21', '1.21.1', '26.1.2' %}
             helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
-            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
+            helper.assertTrue(
+                    right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(),
+                    "Contents did not arrive"
+            );
 {% endcase %}
         });
     }

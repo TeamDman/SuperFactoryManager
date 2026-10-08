@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
 {% else %}
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.List;
 {% case minecraft_version %}
@@ -36,7 +35,8 @@ class SFMKeyBindingEngineTests {
 
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-    @Test void explorerSearchChordsAreScopedAndDoNotStealPaletteCancelOrTextEditorFind() {
+    @Test
+    void explorerSearchChordsAreScopedAndDoNotStealPaletteCancelOrTextEditorFind() {
         var defaults = SFMKeyBindingDefaults.definitions().toArray(SFMKeyBinding[]::new);
         var catalog = new SFMKeyboardUsageSituationCatalog(SFMKeyboardUsageSituations.builtIns());
         var find = SFMKeyboardUsageContextSnapshot.testing(catalog.ancestry(SFMKeyboardUsageSituations.EXPLORER_FIND)

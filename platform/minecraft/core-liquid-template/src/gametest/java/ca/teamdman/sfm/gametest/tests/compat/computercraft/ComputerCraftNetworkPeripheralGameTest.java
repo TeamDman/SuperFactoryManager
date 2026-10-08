@@ -75,7 +75,10 @@ public class ComputerCraftNetworkPeripheralGameTest extends SFMGameTestDefinitio
                 .getPeripheral(helper.getLevel(), helper.absolutePos(cablePos), Direction.NORTH)
                 .resolve()
                 .orElseThrow();
-        helper.assertTrue(SFMNetworkPeripheral.TYPE.equals(peripheral.getType()), "Unexpected cable peripheral type");
+        helper.assertTrue(
+                SFMNetworkPeripheral.TYPE.equals(peripheral.getType()),
+                "Unexpected cable peripheral type"
+        );
 {% when '1.20.4', '1.21', '1.21.1', '26.1.2' %}
         SFMNetworkPeripheral peripheral = (SFMNetworkPeripheral) Objects.requireNonNull(
                 helper.getLevel().getCapability(

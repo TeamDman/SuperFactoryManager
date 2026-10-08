@@ -12,7 +12,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 
-
 @SuppressWarnings({"DataFlowIssue", "RedundantSuppression"})
 @SFMGameTest
 public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {

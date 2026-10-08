@@ -15,7 +15,6 @@ import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.world.phys.AABB;
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +28,7 @@ public final class ActivePuppet {
     public final String worldId;
 
     public final Map<String, PuppetCaptureState> captures = new HashMap<>();
+
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 {% if features.workspace_panels %}
@@ -43,7 +43,6 @@ public final class ActivePuppet {
 {% endif %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
-
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 {% if features.workspace_panels %}

@@ -37,7 +37,6 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
-
 import java.util.Collection;
 import java.util.List;
 
@@ -179,6 +178,7 @@ public class SFMClientRunHarness {
         puppetWorldCreationStarted = true;
 
         Minecraft minecraft = Minecraft.getInstance();
+
         LevelSettings levelSettings = new LevelSettings(
                 PUPPET_WORLD_NAME,
                 GameType.CREATIVE,

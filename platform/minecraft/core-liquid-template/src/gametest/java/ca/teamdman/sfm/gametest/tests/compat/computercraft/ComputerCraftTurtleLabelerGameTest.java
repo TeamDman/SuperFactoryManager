@@ -264,10 +264,14 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     @MCVersionDependentBehaviour
 {% case minecraft_version %}
 {% when '1.19.2', '1.20' %}
-    private static ITurtleUpgrade findTurtleUpgrade(ItemStack itemStack) {
+    private static ITurtleUpgrade findTurtleUpgrade(
+            ItemStack itemStack
+    ) {
         return TurtleUpgrades.instance().get(itemStack);
 {% when '1.19.4', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21' %}
-    private static ITurtleUpgrade findTurtleUpgrade(ItemStack itemStack) {
+    private static ITurtleUpgrade findTurtleUpgrade(
+            ItemStack itemStack
+    ) {
         var upgradeData = TurtleUpgrades.instance().get(itemStack);
         return upgradeData == null ? null : upgradeData.upgrade();
 {% when '1.21.1', '26.1.2' %}
@@ -276,7 +280,6 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
             TurtleBlockEntity turtle,
             ItemStack itemStack
     ) {
-
         var upgradeData = TurtleUpgrades.instance().get(helper.getLevel().registryAccess(), itemStack);
         turtle.getAccess().setUpgrade(TurtleSide.LEFT, upgradeData);
         return upgradeData == null ? null : upgradeData.upgrade();

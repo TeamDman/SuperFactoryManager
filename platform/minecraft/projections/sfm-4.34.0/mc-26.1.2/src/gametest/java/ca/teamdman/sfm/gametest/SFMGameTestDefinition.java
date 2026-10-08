@@ -43,6 +43,7 @@ public abstract class SFMGameTestDefinition {
     }
 
     public void intoTestFunction(GameTestHelper helper) {
+
         String testName = this.testName();
             try {
                 this.run(new SFMGameTestHelper(helper));

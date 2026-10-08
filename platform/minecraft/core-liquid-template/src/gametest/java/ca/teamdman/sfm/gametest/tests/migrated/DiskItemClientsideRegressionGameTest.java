@@ -48,9 +48,7 @@ public class DiskItemClientsideRegressionGameTest extends SFMGameTestDefinition 
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
         stack.getItem().appendHoverText(stack, helper.getLevel(), new ArrayList<>(), TooltipFlag.Default.NORMAL);
 {% when '1.21', '1.21.1' %}
-        stack
-                .getItem()
-                .appendHoverText(stack, Item.TooltipContext.EMPTY, new ArrayList<>(), TooltipFlag.Default.NORMAL);
+        stack.getItem().appendHoverText(stack, Item.TooltipContext.EMPTY, new ArrayList<>(), TooltipFlag.Default.NORMAL);
 {% when '26.1.2' %}
         stack.getTooltipLines(Item.TooltipContext.EMPTY, null, TooltipFlag.Default.NORMAL);
 {% endcase %}

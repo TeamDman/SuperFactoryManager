@@ -47,21 +47,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (int i = 0; i < 10; i++) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(i, 2, 0))
                                )
                                .get() == net, "Line of ten should be on same network");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(i, 2, 0))
-                                   )
-                                   .get() == net, "Line of ten should be on same network"
-            );
-{% endcase %}
         }
 
         // the network should only contain those cables
@@ -83,21 +73,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (int i = 0; i < 5; i++) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(i, 2, 0))
                                )
                                .get() == net, "Row of five should be same network after splitting");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(i, 2, 0))
-                                   )
-                                   .get() == net, "Row of five should be same network after splitting"
-            );
-{% endcase %}
         }
         var old = net;
         net = CableNetworkManager
@@ -107,21 +87,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (int i = 6; i < 10; i++) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(i, 2, 0))
                                )
                                .get() == net, "Remaining row should be same network after splitting");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(i, 2, 0))
-                                   )
-                                   .get() == net, "Remaining row should be same network after splitting"
-            );
-{% endcase %}
         }
 
         // repair the cable
@@ -133,21 +103,11 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (int i = 0; i < 10; i++) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(i, 2, 0))
                                )
                                .get() == net, "Networks should merge to same network after repairing");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(i, 2, 0))
-                                   )
-                                   .get() == net, "Networks should merge to same network after repairing"
-            );
-{% endcase %}
         }
 
         // add cables in the corner
@@ -210,23 +170,12 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
                                )
                                .get()
                        == net, "Plus cables should all be on the same network");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
-                                   )
-                                   .get()
-                    == net, "Plus cables should all be on the same network"
-            );
-{% endcase %}
         }
 
         // break the block in the middle
@@ -238,13 +187,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                                    helper.getLevel(),
                                    helper.absolutePos(new BlockPos(15, 2, 15))
                            )
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                            .isEmpty(), "Network should not be present where the cable was removed from");
-{% when '26.1.2' %}
-                           .isEmpty(), "Network should not be present where the cable was removed from"
-        );
-{% endcase %}
         var networks = new ArrayList<CableNetwork>();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             networks.add(CableNetworkManager
@@ -264,7 +207,9 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
             );
 {% when '26.1.2' %}
             boolean success = networks.stream().filter(n -> n == network).count() == 1;
-            helper.assertTrue(success, "Broken plus networks should be distinct");
+            helper.assertTrue(success,
+                    "Broken plus networks should be distinct"
+            );
 {% endcase %}
         }
 
@@ -277,23 +222,12 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
                                        helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
                                )
                                .get()
                        == net, "Plus networks did not merge after repairing");
-{% when '26.1.2' %}
-                                   .getOrRegisterNetworkFromCablePosition(
-                                           helper.getLevel(),
-                                           helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
-                                   )
-                                   .get()
-                    == net, "Plus networks did not merge after repairing"
-            );
-{% endcase %}
         }
 
         // let's also test having cables in more than just a straight line
@@ -337,13 +271,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                                    helper.getLevel(),
                                    helper.absolutePos(new BlockPos(7, 2, 9))
                            )
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                            .isEmpty(), "Network should not be present where the cable was removed from");
-{% when '26.1.2' %}
-                           .isEmpty(), "Network should not be present where the cable was removed from"
-        );
-{% endcase %}
         // make sure new network of 10 is formed
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
@@ -398,13 +326,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
                                    helper.getLevel(),
                                    helper.absolutePos(new BlockPos(7, 2, 11))
                            )
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                            .get(), "New networks should be distinct");
-{% when '26.1.2' %}
-                           .get(), "New networks should be distinct"
-        );
-{% endcase %}
 
 
         helper.succeed();

@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 {% if features.workspace_panel_reopening %}
 import org.junit.jupiter.api.io.TempDir;
 {% endif %}
-
 {% if features.workspace_panel_reopening %}
 import java.nio.file.Files;
 import java.nio.file.Path;

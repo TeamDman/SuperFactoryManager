@@ -139,7 +139,7 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
                 outputSignPos,
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
         );
-        helper.setSignText(outputSignPos,        Component.literal("output"));
+        helper.setSignText(outputSignPos, Component.literal("output"));
 
         var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

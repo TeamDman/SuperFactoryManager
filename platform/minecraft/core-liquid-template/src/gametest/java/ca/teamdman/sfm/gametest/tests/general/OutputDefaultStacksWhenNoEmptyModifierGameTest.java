@@ -64,15 +64,10 @@ public class OutputDefaultStacksWhenNoEmptyModifierGameTest extends SFMGameTestD
                     // Source emptied
                     helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
                     // Destination slot 0 received all 20 (10 -> 30)
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                     helper.assertTrue(
                             rightChest.getStackInSlot(0).getCount() == 30,
                             "Dest slot 0 should be 30 after stacking"
                     );
-{% when '26.1.2' %}
-                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 30, "Dest slot 0 should be 30 after stacking");
-{% endcase %}
                     // Slot 1 remains empty
                     helper.assertTrue(rightChest.getStackInSlot(1).isEmpty(), "Dest slot 1 should remain empty");
                 }

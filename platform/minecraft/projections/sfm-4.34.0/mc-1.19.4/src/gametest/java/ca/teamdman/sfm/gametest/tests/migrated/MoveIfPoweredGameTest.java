@@ -14,7 +14,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 
 
-
 /**
  * Migrated from SFMIfStatementGameTests.move_if_powered
  */

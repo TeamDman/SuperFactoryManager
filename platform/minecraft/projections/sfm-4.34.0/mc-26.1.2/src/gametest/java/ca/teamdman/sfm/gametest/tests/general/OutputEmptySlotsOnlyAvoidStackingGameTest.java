@@ -70,7 +70,10 @@ public class OutputEmptySlotsOnlyAvoidStackingGameTest extends SFMGameTestDefini
                     // all 20 moved from left
                     helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
                     // destination slot 0 remains 10 (no stacking)
-                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "Destination slot 0 should remain 10");
+                    helper.assertTrue(
+                            rightChest.getStackInSlot(0).getCount() == 10,
+                            "Destination slot 0 should remain 10"
+                    );
                     // destination slot 1 received 20
                     helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 20, "Destination slot 1 should be 20");
                 }

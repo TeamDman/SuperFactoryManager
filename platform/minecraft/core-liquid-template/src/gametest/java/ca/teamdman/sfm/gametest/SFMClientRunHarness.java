@@ -121,7 +121,6 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 {% if features.client_automation_harness_annotations %}
 import org.jetbrains.annotations.Nullable;
 {% endif %}
-
 import java.util.Collection;
 import java.util.List;
 
@@ -612,11 +611,10 @@ public class SFMClientRunHarness {
                 .getOrCreateHolderOrThrow(WorldPresets.FLAT)
                 .value()
                 .createWorldGenSettings(0L, false, false);
-
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
-
 {% when "26.1.2" %}
 {% endcase %}
+
         LevelSettings levelSettings = new LevelSettings(
                 PUPPET_WORLD_NAME,
                 GameType.CREATIVE,

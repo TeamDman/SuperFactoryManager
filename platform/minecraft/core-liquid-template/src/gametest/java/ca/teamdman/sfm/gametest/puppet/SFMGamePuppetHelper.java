@@ -790,6 +790,7 @@ public final class SFMGamePuppetHelper {
     }
 {% endif %}
 {% if features.legacy_comment_review_ui and features.command_palette %}
+
     public void applyReviewCommentFixtureCommand(String command) {
         add(new ApplyReviewCommentFixturePuppetAction(command));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

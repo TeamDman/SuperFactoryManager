@@ -149,8 +149,6 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                             // For UP/DOWN facing observers, these should return null (fix for #445)
                             if (facing == Direction.UP || facing == Direction.DOWN) {
                                 helper.assertTrue(
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                         resolved == null,
                                         "Side."
                                         + side
@@ -158,53 +156,27 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                                         + facing
                                         + " facing observer, got "
                                         + resolved
-{% when '26.1.2' %}
-                                        resolved == null, "Side."
-                                                          + side
-                                                          + " should resolve to null for "
-                                                          + facing
-                                                          + " facing observer, got "
-                                                          + resolved
-{% endcase %}
                                 );
                             } else {
                                 helper.assertTrue(
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                         resolved != null,
                                         "Side."
                                         + side
                                         + " should resolve to a direction for "
                                         + facing
                                         + " facing observer, but got null"
-{% when '26.1.2' %}
-                                        resolved != null, "Side."
-                                                          + side
-                                                          + " should resolve to a direction for "
-                                                          + facing
-                                                          + " facing observer, but got null"
-{% endcase %}
                                 );
                             }
                         }
                         case FRONT, BACK -> {
                             // FRONT and BACK should always resolve since they don't involve rotation
                             helper.assertTrue(
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                                     resolved != null,
                                     "Side."
                                     + side
                                     + " should resolve for "
                                     + facing
                                     + " facing observer, but got null"
-{% when '26.1.2' %}
-                                    resolved != null, "Side."
-                                                      + side
-                                                      + " should resolve for "
-                                                      + facing
-                                                      + " facing observer, but got null"
-{% endcase %}
                             );
                             if (side == Side.FRONT) {
                                 helper.assertTrue(

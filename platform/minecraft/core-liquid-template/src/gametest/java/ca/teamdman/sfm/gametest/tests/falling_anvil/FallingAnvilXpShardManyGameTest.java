@@ -36,7 +36,6 @@ import net.neoforged.neoforge.transfer.item.ItemResource;
 import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 {% endcase %}
-
 import java.util.EnumMap;
 
 

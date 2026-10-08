@@ -77,7 +77,6 @@ public class MekEnergyFullGameTest extends SFMGameTestDefinition {
                     right.getEnergy(0).equals(EnergyCubeTier.ULTIMATE.getMaxEnergy()),
                     "Contents did not arrive"
             );
-
         });
     }
 }

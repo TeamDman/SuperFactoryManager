@@ -46,10 +46,8 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
         // set up the world
         helper.setBlock(leftPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube left = helper.getAndPrepMekTile(leftPos);
-
         helper.setBlock(rightPos, MekanismBlocks.ULTIMATE_ENERGY_CUBE.get());
         TileEntityEnergyCube right = helper.getAndPrepMekTile(rightPos);
-
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
 
@@ -72,7 +70,10 @@ public class MekEnergyEmptyGameTest extends SFMGameTestDefinition {
         right.setEnergy(0, 0);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
-            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
+            helper.assertTrue(
+                    right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(),
+                    "Contents did not arrive"
+            );
         });
     }
 }

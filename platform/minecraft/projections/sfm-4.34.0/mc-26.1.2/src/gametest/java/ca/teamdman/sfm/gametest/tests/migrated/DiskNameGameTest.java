@@ -70,7 +70,10 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
             helper.assertTrue(disk.getComponentsPatch().getPatch(DataComponents.ITEM_NAME) == null, "program name should be empty for disk 2");
             helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
             helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
-            helper.assertTrue(disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()), "display name should be default for disk 2");
+            helper.assertTrue(
+                    disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()),
+                    "display name should be default for disk 2"
+            );
         }
         helper.succeed();
     }

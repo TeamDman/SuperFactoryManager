@@ -48,6 +48,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Rotation;
 {% if features.developer_world_gametest_lifecycle %}
+
 import net.minecraftforge.event.TickEvent;
 import org.jetbrains.annotations.Nullable;
 {% endif %}

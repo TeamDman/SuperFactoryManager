@@ -32,16 +32,30 @@ The first three-worker batch (ToughCableBlock, ToughFancyCableBlock and
 ClientManagerBlock) passed all 60 pinned contexts and reached zero candidate
 pairs. Dispatch through manifestation took 72.958 seconds, including coordinator
 audit setup. Subsequent three-worker batches continue at the session limit.
-Seventeen templates have been edited and their affected outputs manifested.
+The first 31 templates and their affected outputs are committed at `59283c48a`.
+A further 45 completed templates passed an independent coordinator check of all
+900 pinned contexts. Their selected manifestation changed 471 outputs and left
+259 unchanged, with no removals. Further disjoint worker queues remain active.
 
 Initial full inventory: 2,610 Java files, including 889 Liquid templates and
 1,721 directive-free identity inputs. Metadata has no Java project-file
 overrides; identical copies cannot have inter-context whitespace differences.
-The initial audit found around 200 candidate files and existing verifier
-limitations. The scanner now keeps CRLF line terminators outside line-comment
-tokens and admits preserved Unicode literal spellings only when they cannot
-change lexical boundaries. Ten focused regression tests pass, including actual
-comment/literal mutation rejection. Broad validation and updated CLI pending.
+The updated full audit checked all 889 templates in 257.52 seconds, reporting
+176 candidate files (including failed inputs) and 13 verifier failures. This
+discovery snapshot predates subsequent worker edits; it is not a final burndown.
+The scanner keeps CRLF line terminators outside line-comment tokens and admits
+preserved Unicode literal spellings only when they cannot change boundaries.
+Twelve remaining failures are historical CRLF/LF differences inside block
+comments or text blocks; the thirteenth is Java 26 flexible-constructor syntax.
+
+The comparator now recognizes only physical line-terminator equivalence inside
+block comments and text blocks. JLS 3.4 and 3.10.6 establish that CRLF/CR line
+terminators, including text-block normalization before indentation/escape
+processing, do not change the text-block value. Comment text, literal content,
+escapes and text-block indentation remain exact; source is not rewritten before
+parsing. Eleven focused regressions pass, including rejection of changed comment
+text, literal values, escapes and indentation. Java 26 support, broader current-
+source validation and final tool installation remain pending.
 The tree audit script emits bounded failure summaries; its initial version
 printed excessively large failure comparisons and was corrected.
 

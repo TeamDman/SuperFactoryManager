@@ -27,7 +27,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 {% when '26.1.2' %}
 {% endcase %}
-
 import java.util.ArrayList;
 import java.util.Objects;
 

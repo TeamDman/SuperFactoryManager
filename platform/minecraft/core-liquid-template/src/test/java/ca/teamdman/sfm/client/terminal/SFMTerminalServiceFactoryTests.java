@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 {% endif %}
 import static org.junit.jupiter.api.Assertions.assertThrows;
 {% if features.runtime_resource_cleanup %}
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 {% endif %}
 
@@ -14,6 +15,7 @@ import java.net.InetAddress;
 {% endif %}
 import java.net.InetSocketAddress;
 {% if features.runtime_resource_cleanup %}
+
 import java.net.ServerSocket;
 import java.time.Duration;
 {% endif %}

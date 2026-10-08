@@ -104,7 +104,10 @@ public class FallingAnvilXpShardGameTest extends SFMGameTestDefinition {
             );
 {% when '26.1.2' %}
             String expectedEnergyDidNotMatch = "conversion produced non-shard items: " + String.join(", ", unexpectedItems);
-            helper.assertTrue(unexpectedItems.isEmpty(), expectedEnergyDidNotMatch);
+            helper.assertTrue(
+                    unexpectedItems.isEmpty(),
+                    expectedEnergyDidNotMatch
+            );
 {% endcase %}
 
             long actualShardTotal = found.stream().mapToLong(item -> item.getItem().getCount()).sum();

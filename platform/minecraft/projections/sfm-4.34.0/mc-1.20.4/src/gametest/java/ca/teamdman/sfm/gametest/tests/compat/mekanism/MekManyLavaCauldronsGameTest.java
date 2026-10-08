@@ -15,7 +15,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.fluids.FluidStack;
-
 import java.util.ArrayList;
 import java.util.Objects;
 

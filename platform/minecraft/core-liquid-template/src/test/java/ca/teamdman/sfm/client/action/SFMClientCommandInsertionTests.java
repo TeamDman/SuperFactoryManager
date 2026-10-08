@@ -23,7 +23,6 @@ import java.util.Map;
 {% if features.typed_command_palette %}
 import java.util.OptionalInt;
 {% endif %}
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 {% if features.typed_command_palette %}
 import static org.junit.jupiter.api.Assertions.assertTrue;

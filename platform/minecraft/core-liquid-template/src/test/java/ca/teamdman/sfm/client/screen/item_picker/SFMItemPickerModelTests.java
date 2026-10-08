@@ -179,7 +179,8 @@ public class SFMItemPickerModelTests {
     }
 
 {% if features.single_line_input %}
-    @Test public void panelSearchUsesSharedEditingAndGridKeepsDirectionalNavigation() {
+    @Test
+    public void panelSearchUsesSharedEditingAndGridKeepsDirectionalNavigation() {
         var panel = new SFMItemPickerPanel(ITEMS, new SFMItemIcon(id("minecraft:chest"), PAPER, "Chest"),
                 ignored -> {}, () -> {});
         panel.setQueryForAutomation("minecraft:chest");

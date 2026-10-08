@@ -71,6 +71,7 @@ public abstract class SFMGameTestDefinition {
         String batchName = this.batchName();
 {% when "26.1.2" %}
     public void intoTestFunction(GameTestHelper helper) {
+
 {% endcase %}
         String testName = this.testName();
 {% case minecraft_version %}

@@ -14,7 +14,8 @@ class SFMColorInputPanelInputTests {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 {% if features.single_line_input %}
-    @Test void hexFieldUsesSelectionReplacementHomeEndAndUndo() {
+    @Test
+    void hexFieldUsesSelectionReplacementHomeEndAndUndo() {
         var panel = new SFMColorInputPanel(new SFMArgbColor(0xFF3366CC), List.of(), ignored -> {}, () -> {});
         panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0);
         panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0); // HEX

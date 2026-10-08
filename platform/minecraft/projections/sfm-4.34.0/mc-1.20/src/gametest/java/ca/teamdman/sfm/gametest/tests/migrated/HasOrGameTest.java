@@ -14,7 +14,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 
-
 /**
  * Migrated from SFMIfStatementGameTests.has_or
  */

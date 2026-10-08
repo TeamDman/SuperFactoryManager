@@ -33,7 +33,6 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.TickEvent;
-
 import java.util.Collection;
 import java.util.List;
 

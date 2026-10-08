@@ -73,7 +73,10 @@ public class MekChemtankInfusionSomeGameTest extends SFMGameTestDefinition {
         rightTank.getChemicalTank().setStack(new ChemicalStack(MekanismChemicals.REDSTONE.get(), 1_000_000L));
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
-            helper.assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 2_000_000L, "Contents did not arrive");
+            helper.assertTrue(
+                    rightTank.getChemicalTank().getStack().getAmount() == 2_000_000L,
+                    "Contents did not arrive"
+            );
         });
     }
 }

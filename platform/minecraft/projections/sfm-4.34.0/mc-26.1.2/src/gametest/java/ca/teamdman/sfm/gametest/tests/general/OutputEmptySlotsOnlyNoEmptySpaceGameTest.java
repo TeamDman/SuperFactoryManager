@@ -73,7 +73,10 @@ public class OutputEmptySlotsOnlyNoEmptySpaceGameTest extends SFMGameTestDefinit
                     helper.assertTrue(rightChest.getStackInSlot(2).getCount() == 1, "Dest slot 2 should be unchanged");
                     helper.assertTrue(rightChest.getStackInSlot(3).getCount() == 1, "Dest slot 3 should be unchanged");
                     helper.assertTrue(rightChest.getStackInSlot(4).getCount() == 1, "Dest slot 4 should be unchanged");
-                    helper.assertTrue(rightChest.getStackInSlot(10).getCount() == 1, "Dest slot 10 should be unchanged");
+                    helper.assertTrue(
+                            rightChest.getStackInSlot(10).getCount() == 1,
+                            "Dest slot 10 should be unchanged"
+                    );
                 }
         );
     }

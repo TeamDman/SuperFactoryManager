@@ -101,13 +101,18 @@ public class MekEnergyFullGameTest extends SFMGameTestDefinition {
                     right.getEnergy(0).equals(EnergyCubeTier.ULTIMATE.getMaxEnergy()),
                     "Contents did not arrive"
             );
-
 {% when '1.21', '1.21.1' %}
             );
-            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive");
+            helper.assertTrue(
+                    right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(),
+                    "Contents did not arrive"
+            );
 {% when '26.1.2' %}
             , helper.getTick());
-            helper.assertTrue(right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(), "Contents did not arrive", helper.getTick());
+            helper.assertTrue(
+                    right.getEnergy(0) == EnergyCubeTier.ULTIMATE.getMaxEnergy(),
+                    "Contents did not arrive", helper.getTick()
+            );
 {% endcase %}
         });
     }

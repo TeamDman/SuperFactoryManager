@@ -14,7 +14,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.fluids.FluidStack;
-
 import java.util.ArrayList;
 import java.util.Objects;
 

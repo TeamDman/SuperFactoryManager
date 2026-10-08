@@ -40,11 +40,6 @@ import java.util.List;
 
 
 
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-{% when '1.21', '1.21.1', '26.1.2' %}
-
-{% endcase %}
 /**
  * Migrated from SFMMekanismCompatGameTests.mek_induction
  */
@@ -210,11 +205,6 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
                     success,
                     "Expected energy did not match"
             );
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
-
-{% when '1.21', '1.21.1', '26.1.2' %}
-{% endcase %}
         });
     }
 }

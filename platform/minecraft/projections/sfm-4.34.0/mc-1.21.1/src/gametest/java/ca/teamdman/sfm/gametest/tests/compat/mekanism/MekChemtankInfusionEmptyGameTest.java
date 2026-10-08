@@ -73,7 +73,10 @@ public class MekChemtankInfusionEmptyGameTest extends SFMGameTestDefinition {
         rightTank.getChemicalTank().setStack(ChemicalStack.EMPTY);
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
-            helper.assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 1_000_000L, "Contents did not arrive");
+            helper.assertTrue(
+                    rightTank.getChemicalTank().getStack().getAmount() == 1_000_000L,
+                    "Contents did not arrive"
+            );
         });
     }
 }

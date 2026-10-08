@@ -11,12 +11,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HopperBlock;
 import net.minecraft.world.level.block.entity.HopperBlockEntity;
 
-
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
-
-{% when '26.1.2' %}
-{% endcase %}
 @SuppressWarnings({"DataFlowIssue", "RedundantSuppression"})
 @SFMGameTest
 public class TunnelledManagerHopperGameTest extends SFMGameTestDefinition {

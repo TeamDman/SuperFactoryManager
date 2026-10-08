@@ -94,10 +94,11 @@ public abstract class SFMTestBuilder {
                         expectedStack,
                         actualStack
                 );
-                helper.assertTrue(success, String.format(
-                                        "Expected %s in chest %s slot %d, but found %s",
-                                        expectedStack, name, i, actualStack
-                                )
+                helper.assertTrue(success,
+                        String.format(
+                                "Expected %s in chest %s slot %d, but found %s",
+                                expectedStack, name, i, actualStack
+                        )
 {% endcase %}
                 );
             }

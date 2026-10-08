@@ -112,10 +112,16 @@ public class MekChemtankInfusionSomeGameTest extends SFMGameTestDefinition {
             );
 {% when '1.21.1' %}
             helper.assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
-            helper.assertTrue(rightTank.getChemicalTank().getStack().getAmount() == 2_000_000L, "Contents did not arrive");
+            helper.assertTrue(
+                    rightTank.getChemicalTank().getStack().getAmount() == 2_000_000L,
+                    "Contents did not arrive"
+            );
 {% when '26.1.2' %}
             helper.assertTrue(leftTank.getChemicalTank().getStack().isEmpty(), "Contents did not depart");
-            helper.assertTrue(rightTank.getChemicalTank().getStack().amount() == 2_000_000L, "Contents did not arrive");
+            helper.assertTrue(
+                    rightTank.getChemicalTank().getStack().amount() == 2_000_000L,
+                    "Contents did not arrive"
+            );
 {% endcase %}
         });
     }

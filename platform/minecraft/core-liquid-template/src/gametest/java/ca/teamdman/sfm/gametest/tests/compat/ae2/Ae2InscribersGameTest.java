@@ -143,26 +143,18 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
         );
         helper.setSignText(inputSignPos, Component.literal("input"));
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21' %}
 
-        BlockPos outputSignPos = resultsPos.offset(0, 1, 0);
-{% when '1.21.1' %}
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
         BlockPos outputSignPos = resultsPos.offset(0, 1, 0);
 {% when '26.1.2' %}
-
         BlockPos outputSignPos = resultsPos.offset(0, 0, 0);
 {% endcase %}
         helper.setBlock(
                 outputSignPos,
                 Blocks.OAK_SIGN.defaultBlockState().setValue(StandingSignBlock.ROTATION, 8)
         );
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21' %}
-        helper.setSignText(outputSignPos,        Component.literal("output"));
-{% when '1.21.1', '26.1.2' %}
         helper.setSignText(outputSignPos, Component.literal("output"));
-{% endcase %}
 
         var manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

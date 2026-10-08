@@ -35,7 +35,6 @@ import net.minecraft.world.level.levelgen.presets.WorldPresets;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent;
-
 import java.util.Collection;
 import java.util.List;
 

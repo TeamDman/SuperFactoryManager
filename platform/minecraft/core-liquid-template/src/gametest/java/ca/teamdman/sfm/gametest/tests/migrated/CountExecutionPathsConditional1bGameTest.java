@@ -94,13 +94,8 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
 {% endcase %}
                         .equals(GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
                                         .key()
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '26.1.2' %}
                                         .get()), "expected output without matching input warning"
         );
-{% when '1.21', '1.21.1' %}
-                                        .get()), "expected output without matching input warning");
-{% endcase %}
         helper.succeed();
     }
 

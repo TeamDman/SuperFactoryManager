@@ -79,7 +79,8 @@ public class CountExecutionPathsConditional1bGameTest extends SFMGameTestDefinit
                 ).getKey()
                         .equals(GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL // should be unused input
                                         .key()
-                                        .get()), "expected output without matching input warning");
+                                        .get()), "expected output without matching input warning"
+        );
         helper.succeed();
     }
 

@@ -78,15 +78,10 @@ public class DiskNameGameTest extends SFMGameTestDefinition {
 {% endcase %}
             helper.assertTrue(DiskItem.getWarnings(disk).isEmpty(), "there should be no warnings on disk 2");
             helper.assertTrue(DiskItem.getErrors(disk).isEmpty(), "there should be no errors on disk 2");
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
             helper.assertTrue(
                     disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()),
                     "display name should be default for disk 2"
             );
-{% when '26.1.2' %}
-            helper.assertTrue(disk.getHoverName().contains(DiskItem.DISK_ITEM.getComponent()), "display name should be default for disk 2");
-{% endcase %}
         }
         helper.succeed();
     }

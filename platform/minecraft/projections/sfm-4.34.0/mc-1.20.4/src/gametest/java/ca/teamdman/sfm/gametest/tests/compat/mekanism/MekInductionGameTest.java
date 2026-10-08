@@ -120,7 +120,6 @@ public class MekInductionGameTest extends SFMGameTestDefinition {
                     success,
                     "Expected energy did not match"
             );
-
         });
     }
 }

@@ -40,13 +40,8 @@ public class MekEnergySomeGameTest extends SFMGameTestDefinition {
 
 
     @Override
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
     public void run(SFMGameTestHelper helper) {
         // designate positions
-{% when '1.21', '1.21.1', '26.1.2' %}
-    public void run(SFMGameTestHelper helper) {        // designate positions
-{% endcase %}
         var leftPos = new BlockPos(2, 2, 0);
         var rightPos = new BlockPos(0, 2, 0);
         var managerPos = new BlockPos(1, 2, 0);
@@ -100,7 +95,6 @@ public class MekEnergySomeGameTest extends SFMGameTestDefinition {
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4' %}
             helper.assertTrue(left.getEnergy(0).equals(FloatingLong.ZERO), "Contents did not depart");
             helper.assertTrue(right.getEnergy(0).equals(FloatingLong.create(2_000)), "Contents did not arrive");
-
 {% when '1.21', '1.21.1', '26.1.2' %}
             helper.assertTrue(left.getEnergy(0) == 0, "Contents did not depart");
             helper.assertTrue(right.getEnergy(0) == 2_000, "Contents did not arrive");

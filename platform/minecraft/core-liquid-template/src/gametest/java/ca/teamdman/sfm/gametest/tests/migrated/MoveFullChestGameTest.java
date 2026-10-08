@@ -75,7 +75,9 @@ public class MoveFullChestGameTest extends SFMGameTestDefinition {
             );
 {% when '26.1.2' %}
             boolean success = IntStream.range(0, leftChest.getSlots()).allMatch(slot -> leftChest.getStackInSlot(slot).isEmpty());
-            helper.assertTrue(success, "Dirt did not leave");
+            helper.assertTrue(success,
+                    "Dirt did not leave"
+            );
 {% endcase %}
             int count = rightChest.getSlots() * 64;
             int total = 0;

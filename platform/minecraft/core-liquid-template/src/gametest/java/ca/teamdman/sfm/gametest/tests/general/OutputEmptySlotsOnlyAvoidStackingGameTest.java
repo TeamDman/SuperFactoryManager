@@ -69,15 +69,10 @@ public class OutputEmptySlotsOnlyAvoidStackingGameTest extends SFMGameTestDefini
                     // all 20 moved from left
                     helper.assertTrue(leftChest.getStackInSlot(0).isEmpty(), "Source not emptied");
                     // destination slot 0 remains 10 (no stacking)
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
                     helper.assertTrue(
                             rightChest.getStackInSlot(0).getCount() == 10,
                             "Destination slot 0 should remain 10"
                     );
-{% when '26.1.2' %}
-                    helper.assertTrue(rightChest.getStackInSlot(0).getCount() == 10, "Destination slot 0 should remain 10");
-{% endcase %}
                     // destination slot 1 received 20
                     helper.assertTrue(rightChest.getStackInSlot(1).getCount() == 20, "Destination slot 1 should be 20");
                 }

@@ -118,31 +118,34 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
                             // For UP/DOWN facing observers, these should return null (fix for #445)
                             if (facing == Direction.UP || facing == Direction.DOWN) {
                                 helper.assertTrue(
-                                        resolved == null, "Side."
-                                                          + side
-                                                          + " should resolve to null for "
-                                                          + facing
-                                                          + " facing observer, got "
-                                                          + resolved
+                                        resolved == null,
+                                        "Side."
+                                        + side
+                                        + " should resolve to null for "
+                                        + facing
+                                        + " facing observer, got "
+                                        + resolved
                                 );
                             } else {
                                 helper.assertTrue(
-                                        resolved != null, "Side."
-                                                          + side
-                                                          + " should resolve to a direction for "
-                                                          + facing
-                                                          + " facing observer, but got null"
+                                        resolved != null,
+                                        "Side."
+                                        + side
+                                        + " should resolve to a direction for "
+                                        + facing
+                                        + " facing observer, but got null"
                                 );
                             }
                         }
                         case FRONT, BACK -> {
                             // FRONT and BACK should always resolve since they don't involve rotation
                             helper.assertTrue(
-                                    resolved != null, "Side."
-                                                      + side
-                                                      + " should resolve for "
-                                                      + facing
-                                                      + " facing observer, but got null"
+                                    resolved != null,
+                                    "Side."
+                                    + side
+                                    + " should resolve for "
+                                    + facing
+                                    + " facing observer, but got null"
                             );
                             if (side == Side.FRONT) {
                                 helper.assertTrue(

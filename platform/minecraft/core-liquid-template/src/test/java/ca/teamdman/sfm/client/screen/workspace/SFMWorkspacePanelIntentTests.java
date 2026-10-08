@@ -88,8 +88,7 @@ class SFMWorkspacePanelIntentTests {
                         layout,
                         opened.inserted(),
                         new SFMWorkspacePanelIntent.Close()
-                ).result()
-        );
+                ).result());
     }
 {% else %}
 
@@ -106,8 +105,7 @@ class SFMWorkspacePanelIntentTests {
                         layout,
                         source,
                         new SFMWorkspacePanelIntent.OpenAsTab(new SFMTestScreenPanel("tab"))
-                ).result()
-        );
+                ).result());
         SFMWorkspacePanelIntentDispatcher.Outcome opened = SFMWorkspacePanelIntentDispatcher.apply(
                 layout,
                 source,
@@ -132,8 +130,7 @@ class SFMWorkspacePanelIntentTests {
                         layout,
                         opened.inserted(),
                         new SFMWorkspacePanelIntent.Close()
-                ).result()
-        );
+                ).result());
     }
 {% endif %}
 {% if features.workspace_stack_controls %}

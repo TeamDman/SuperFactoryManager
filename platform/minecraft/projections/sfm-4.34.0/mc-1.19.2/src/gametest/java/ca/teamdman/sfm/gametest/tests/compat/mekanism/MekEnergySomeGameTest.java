@@ -71,7 +71,6 @@ public class MekEnergySomeGameTest extends SFMGameTestDefinition {
         helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
             helper.assertTrue(left.getEnergy(0).equals(FloatingLong.ZERO), "Contents did not depart");
             helper.assertTrue(right.getEnergy(0).equals(FloatingLong.create(2_000)), "Contents did not arrive");
-
         });
     }
 }

@@ -100,11 +100,6 @@ public class FallingAnvilDisenchantGameTest extends SFMGameTestDefinition {
             Vec3 itemSpawnPos,
             int bookCount
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '26.1.2' %}
-{% when '1.21', '1.21.1' %}
-
-{% endcase %}
         int remaining = bookCount;
         while (remaining > 0) {
             int toSpawn = Math.min(remaining, 64);

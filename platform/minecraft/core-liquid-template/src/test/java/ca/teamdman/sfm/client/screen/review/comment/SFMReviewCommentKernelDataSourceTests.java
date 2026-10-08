@@ -27,7 +27,6 @@ import java.util.List;
 {% else %}
 import java.util.Optional;
 {% endif %}
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 {% if features.legacy_comment_review %}
 {% else %}
