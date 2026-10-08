@@ -737,9 +737,21 @@ mod tests {
                 crate::source_projection::legacy_test_fixture::read(repo, &witness_path).unwrap(),
             )
             .unwrap();
+            // Keep historical witnesses immutable; allow only the reviewed
+            // 26.1.2 signature layout change, not arbitrary normalization.
+            let mut expected = normalize_source(&witness);
+            if entry.minecraft_version == "26.1.2" {
+                let signature = "public boolean isValid(int index, ItemResource resource) {";
+                assert_eq!(expected.matches(signature).count(), 1);
+                expected = expected.replacen(
+                    signature,
+                    "public boolean isValid(\n                    int index,\n                    ItemResource resource\n            ) {",
+                    1,
+                );
+            }
             assert_eq!(
                 normalize_source(&report.rendered_content),
-                normalize_source(&witness),
+                expected,
                 "core template differs from test-only release witness for `{key}`"
             );
             assert!(report.source_path.starts_with(CORE_ROOT));

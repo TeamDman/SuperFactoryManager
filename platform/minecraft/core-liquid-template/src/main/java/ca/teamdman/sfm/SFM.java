@@ -107,11 +107,9 @@ public class SFM {
         var bus = FMLJavaModLoadingContext
                 .get()
                 .getModEventBus();
-{% when "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20.4", "1.21", "1.21.1", "26.1.2" %}
     public SFM(IEventBus bus) {
 
-{% when "26.1.2" %}
-    public SFM(IEventBus bus) {
 {% endcase %}
         SFMEventBus.MOD_BUS = bus;
 
@@ -133,6 +131,7 @@ public class SFM {
 {% if features.computercraft %}
 {% case minecraft_version %}
 {% when "1.20", "1.20.1", "1.20.4" %}
+
         registerComputerCraftTurtleUpgrades();
 {% endcase %}
 {% endif %}
@@ -144,6 +143,7 @@ public class SFM {
 {% if features.computercraft %}
 {% case minecraft_version %}
 {% when "1.20", "1.20.1", "1.20.4" %}
+
         registerComputerCraftTurtleUpgrades();
 {% endcase %}
 {% endif %}
@@ -190,12 +190,6 @@ public class SFM {
 
         SFMConfig.register(ModLoadingContext.get());
 
-{% if features.canvas_text_editor or features.client_actions or features.client_manager_gui or features.client_overlay_scenes or features.client_program_consent or features.client_program_reads or features.command_history or features.context_actions or features.developer_tools or features.document_history or features.explorer_compaction or features.explorer_search or features.file_explorer or features.icon_rules or features.java_symbols or features.keyboard_profiles or features.manager_editor_actions or features.multiplayer_packets or features.packet_actions or features.registry_explorer or features.release_review or features.review_sessions or features.route_comparison or features.spatial_coverage or features.tooltip_mode_override or features.touch_display_terminal_mount or features.trajectory_panels or features.workspace_counterfactuals or features.workspace_lifecycle or features.workspace_panels %}
-{% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
-
-{% endcase %}
-{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3" %}
 {% if features.canvas_text_editor or features.client_actions or features.client_manager_gui or features.client_overlay_scenes or features.client_program_consent or features.client_program_reads or features.command_history or features.context_actions or features.developer_tools or features.document_history or features.explorer_compaction or features.explorer_search or features.file_explorer or features.icon_rules or features.java_symbols or features.keyboard_profiles or features.manager_editor_actions or features.multiplayer_packets or features.packet_actions or features.registry_explorer or features.release_review or features.review_sessions or features.route_comparison or features.spatial_coverage or features.tooltip_mode_override or features.touch_display_terminal_mount or features.trajectory_panels or features.workspace_counterfactuals or features.workspace_lifecycle or features.workspace_panels %}

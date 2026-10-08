@@ -287,6 +287,63 @@ impl OracleGitRepository {
         self.files_at_commit_filtered(commit, prefix, |_| true)
     }
 
+    /// Read one pinned path without inventorying sibling subtrees.
+    ///
+    /// # Errors
+    /// Rejects unsafe paths, unsupported modes and unavailable or oversized objects.
+    /// An absent path returns `None`; a corrupt object never means absence.
+    pub fn file_at_commit(&self, commit: &str, path: &str) -> Result<Option<GitFile>> {
+        validate_prefix(path)?;
+        ensure!(
+            !path.is_empty() && path.len() <= MAX_PATH_BYTES,
+            "invalid oracle file path"
+        );
+        let revision = self.resolve_commit(commit)?;
+        let mut current = ObjectId::from_hex(revision.tree.as_bytes())?;
+        let components = path.split('/').collect::<Vec<_>>();
+        ensure!(
+            components.len() <= MAX_TREE_DEPTH,
+            "oracle path exceeds depth limit"
+        );
+        for (index, component) in components.iter().enumerate() {
+            self.checked_header(current, Kind::Tree, MAX_METADATA_BYTES)?;
+            let tree = self.repository.find_tree(current)?;
+            let mut names = BTreeSet::new();
+            let mut found = None;
+            for entry in tree.iter() {
+                let entry = entry?;
+                let name = checked_name(entry.filename().as_bytes())?;
+                ensure!(
+                    names.insert(name.to_uppercase()) && names.len() <= MAX_TREE_ENTRIES,
+                    "invalid/colliding oracle tree names"
+                );
+                if name == *component {
+                    found = Some((entry.object_id(), u32::from(entry.mode().value())));
+                }
+            }
+            let Some((oid, mode)) = found else {
+                return Ok(None);
+            };
+            if index + 1 == components.len() {
+                ensure!(
+                    matches!(mode, 0o100_644 | 0o100_755),
+                    "unsupported oracle file mode {mode:o}"
+                );
+                let size = self.checked_header(oid, Kind::Blob, MAX_BLOB_BYTES)?;
+                let mut blob = self.repository.find_blob(oid)?;
+                ensure!(blob.data.len() as u64 == size, "oracle blob size changed");
+                return Ok(Some(GitFile {
+                    oid: oid.to_string(),
+                    mode,
+                    bytes: blob.take_data(),
+                }));
+            }
+            ensure!(mode == 0o040_000, "oracle path includes a non-directory");
+            current = oid;
+        }
+        unreachable!("nonempty path returns at its last component")
+    }
+
     /// Apply the caller's declared project scope before loading any blobs.
     /// `include` sees prefix-relative leaf paths, including unsupported modes so
     /// in-scope symlinks/gitlinks fail. Traversed tree names must always be safe.
@@ -745,6 +802,61 @@ mod tests {
         fn reader(&self) -> OracleGitRepository {
             OracleGitRepository::open(self.temp.path()).unwrap()
         }
+    }
+
+    #[test]
+    fn direct_file_read_is_pinned_and_does_not_walk_unrelated_subtrees() {
+        let fixture = Fixture::new();
+        let blob = fixture.object("blob", b"class Example {}\n");
+        let nested = fixture.tree(&[(0o100644, b"Example.java", &blob)]);
+        let missing = "1111111111111111111111111111111111111111";
+        let root = fixture.tree(&[
+            (0o040000, b"src", &nested),
+            (0o040000, b"unrelated", missing),
+        ]);
+        let commit = fixture.commit(&root);
+        let reader = fixture.reader();
+        assert_eq!(
+            reader
+                .file_at_commit(&commit, "src/Example.java")
+                .unwrap()
+                .unwrap()
+                .bytes,
+            b"class Example {}\n"
+        );
+        assert!(
+            reader
+                .file_at_commit(&commit, "src/Missing.java")
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            reader
+                .file_at_commit(&commit, "absent/Missing.java")
+                .unwrap()
+                .is_none()
+        );
+        assert!(
+            reader
+                .file_at_commit(&commit, "unrelated/Missing.java")
+                .is_err()
+        );
+        for path in ["", "../src/Example.java", "src/Example.java/child"] {
+            assert!(reader.file_at_commit(&commit, path).is_err());
+        }
+        assert!(reader.file_at_commit("HEAD", "src/Example.java").is_err());
+    }
+
+    #[test]
+    fn direct_file_read_rejects_symlinks_and_missing_blobs() {
+        let fixture = Fixture::new();
+        let blob = fixture.object("blob", b"somewhere");
+        let missing = "1111111111111111111111111111111111111111";
+        let root = fixture.tree(&[(0o120000, b"link", &blob), (0o100644, b"missing", missing)]);
+        let commit = fixture.commit(&root);
+        let reader = fixture.reader();
+        assert!(reader.file_at_commit(&commit, "link").is_err());
+        assert!(reader.file_at_commit(&commit, "missing").is_err());
     }
 
     #[test]

@@ -32,6 +32,7 @@ public class SFM {
     );
 
     public SFM(IEventBus bus) {
+
         SFMEventBus.MOD_BUS = bus;
 
         SFMBlocks.register(bus);

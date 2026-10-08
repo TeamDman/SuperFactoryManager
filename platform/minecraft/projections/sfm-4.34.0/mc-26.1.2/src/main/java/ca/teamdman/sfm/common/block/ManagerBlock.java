@@ -42,6 +42,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     );
 
     public ManagerBlock(BlockBehaviour.Properties properties) {
+
         super(properties
                       .destroyTime(2)
                       .sound(SoundType.METAL));
@@ -65,6 +66,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             @Nullable Orientation orientation,
             boolean isMoving
     ) {
+
         if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
         if (!(level instanceof ServerLevel)) return;
         { // check redstone for triggers
@@ -113,7 +115,13 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
     }
 
     @Override
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
         level.updateNeighbourForOutputSignal(pos, this);
         CableNetworkManager.onCableRemoved(level, pos);

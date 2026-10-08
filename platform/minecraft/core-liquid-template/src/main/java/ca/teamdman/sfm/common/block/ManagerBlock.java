@@ -79,9 +79,11 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
     public ManagerBlock() {
 
-        super(BlockBehaviour.Properties.of()
+        super(BlockBehaviour.Properties
+                      .of()
 {% when '26.1.2' %}
     public ManagerBlock(BlockBehaviour.Properties properties) {
+
         super(properties
 {% endcase %}
                       .destroyTime(2)
@@ -102,6 +104,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
 {% when '1.20.3' %}
     @Override
     protected MapCodec<WaterTankBlock> codec() {
+
         throw new NotImplementedException("This isn't used until 1.20.5 apparently");
     }
 
@@ -128,11 +131,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             boolean isMoving
 {% endcase %}
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
 
-{% when '26.1.2' %}
-{% endcase %}
         if (!(level.getBlockEntity(pos) instanceof ManagerBlockEntity mgr)) return;
         if (!(level instanceof ServerLevel)) return;
         { // check redstone for triggers
@@ -152,11 +151,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockPos pos,
             BlockState state
     ) {
-{% case minecraft_version %}
-{% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3' %}
-{% when '1.20.4', '1.21', '1.21.1', '26.1.2' %}
 
-{% endcase %}
         return SFMBlockEntities.MANAGER.get().create(pos, state);
     }
 
@@ -230,7 +225,13 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             super.onRemove(state, level, pos, newState, isMoving);
         }
 {% when '26.1.2' %}
-    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
+    protected void affectNeighborsAfterRemoval(
+            BlockState state,
+            ServerLevel level,
+            BlockPos pos,
+            boolean movedByPiston
+    ) {
+
         super.affectNeighborsAfterRemoval(state, level, pos, movedByPiston);
         level.updateNeighbourForOutputSignal(pos, this);
         CableNetworkManager.onCableRemoved(level, pos);

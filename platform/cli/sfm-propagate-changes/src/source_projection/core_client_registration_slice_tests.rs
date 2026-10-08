@@ -1053,11 +1053,19 @@ impl Fixture {
             input.input == path && !selected.omitted_paths.contains(path),
             "client source gained alternate input"
         );
-        let bytes = self.core.read_source(path)?;
+        let bytes = self.historical_source(path)?;
         verify_template(path, &bytes)?;
         Ok(Some(
             render_java_source(std::str::from_utf8(&bytes)?, context)?.into_bytes(),
         ))
+    }
+    fn historical_source(&self, path: &str) -> Result<Vec<u8>> {
+        let bytes = self.core.read_source(path)?;
+        if path == MAIN {
+            restore_constructor_baseline(&bytes)
+        } else {
+            Ok(bytes)
+        }
     }
     fn full(&self, path: &str, target: &str) -> Result<String> {
         let oid = witness(path, &format!("dev/{target}"))?
@@ -1534,7 +1542,7 @@ fn client_entrypoint_common_edit_reaches_ten_targets_in_isolated_core() -> Resul
     let core = temp.path().join(super::core_inputs::CORE_ROOT);
     let destination = core.join(MAIN);
     fs::create_dir_all(destination.parent().expect("fixed parent"))?;
-    let original = fixture.core.read_source(MAIN)?;
+    let original = fixture.historical_source(MAIN)?;
     let mut edited = original.clone();
     edited.extend_from_slice(b"// isolated common mod entrypoint edit\n");
     fs::write(&destination, &edited)?;
@@ -1557,7 +1565,7 @@ fn client_entrypoint_common_edit_reaches_ten_targets_in_isolated_core() -> Resul
         expected.extend_from_slice(b"// isolated common mod entrypoint edit\n");
         assert_eq!(actual.as_bytes(), expected);
     }
-    assert_eq!(fixture.core.read_source(MAIN)?, original);
+    assert_eq!(fixture.historical_source(MAIN)?, original);
     Ok(())
 }
 
@@ -1565,7 +1573,7 @@ fn client_entrypoint_common_edit_reaches_ten_targets_in_isolated_core() -> Resul
 fn client_registry_unknown_owner_whole_class_gate_or_raw_mutation_refuses() -> Result<()> {
     let fixture = Fixture::load()?;
     for path in [MAIN, CLIENT] {
-        let mut bytes = fixture.core.read_source(path)?;
+        let mut bytes = fixture.historical_source(path)?;
         bytes.push(b' ');
         assert!(verify_template(path, &bytes).is_err());
     }
@@ -1597,7 +1605,7 @@ fn client_registry_unknown_owner_whole_class_gate_or_raw_mutation_refuses() -> R
     );
     assert!(validate_membership(&metadata).is_err());
     for path in [MAIN, CLIENT] {
-        let bytes = fixture.core.read_source(path)?;
+        let bytes = fixture.historical_source(path)?;
         let mut context = fixture.context("1.19.2", &[])?;
         context.features.remove("client_program_reads");
         assert!(render_java_source(std::str::from_utf8(&bytes)?, &context).is_err());
@@ -1687,5 +1695,131 @@ fn client_current_contract_preserves_entry_only_render_and_explicit_omission_wit
             }
         }
     }
+    Ok(())
+}
+
+// Keep immutable historical checks exact without freezing current authored
+// whitespace. This is test-only and accepts the reviewed whitespace mutations;
+// verify_template still checks the complete original hash after reversing it.
+const BASELINE_CONSTRUCTOR: &str = concat!(
+    "{% when \"1.20.4\", \"1.21\", \"1.21.1\" %}\n",
+    "    public SFM(IEventBus bus) {\n\n",
+    "{% when \"26.1.2\" %}\n",
+    "    public SFM(IEventBus bus) {\n",
+    "{% endcase %}"
+);
+const NORMALIZED_CONSTRUCTOR: &str = concat!(
+    "{% when \"1.20.4\", \"1.21\", \"1.21.1\", \"26.1.2\" %}\n",
+    "    public SFM(IEventBus bus) {\n\n",
+    "{% endcase %}"
+);
+
+fn restore_constructor_baseline(bytes: &[u8]) -> Result<Vec<u8>> {
+    let source = std::str::from_utf8(bytes)?;
+    ensure!(
+        source.matches(NORMALIZED_CONSTRUCTOR).count() == 1,
+        "expected exactly one approved normalized constructor branch"
+    );
+    let historical = source.replacen(NORMALIZED_CONSTRUCTOR, BASELINE_CONSTRUCTOR, 1);
+    let cc = "{% when \"1.20\", \"1.20.1\", \"1.20.4\" %}\n";
+    let normalized_cc = format!("{cc}\n        registerComputerCraftTurtleUpgrades();");
+    ensure!(
+        historical.matches(&normalized_cc).count() == 2,
+        "expected two normalized CC branches"
+    );
+    let historical = historical.replace(
+        &normalized_cc,
+        &format!("{cc}        registerComputerCraftTurtleUpgrades();"),
+    );
+    let condition = source
+        .lines()
+        .find(|line| line.starts_with("{% if features.canvas_text_editor or "))
+        .ok_or_else(|| eyre::eyre!("missing client feature guard"))?;
+    let anchor = "        SFMConfig.register(ModLoadingContext.get());\n\n";
+    ensure!(
+        historical.matches(anchor).count() == 1,
+        "expected one config anchor"
+    );
+    let historical = historical.replacen(anchor, &format!("{anchor}{condition}\n{{% case minecraft_version %}}\n{{% when \"1.20\", \"1.20.1\", \"1.20.2\", \"1.20.3\", \"1.20.4\" %}}\n\n{{% endcase %}}\n{{% endif %}}\n"), 1);
+    verify_template(MAIN, historical.as_bytes())?;
+    Ok(historical.into_bytes())
+}
+
+#[test]
+fn normalized_constructor_preserves_twenty_complete_java_renders() -> Result<()> {
+    let core = CoreTestFixture::load()?;
+    let catalog = super::core_catalog::CoreCatalog::load(&core.repository, &core.repository)?;
+    let current = core.read_source(MAIN)?;
+    let historical = restore_constructor_baseline(&current)?;
+    let mut changed = Vec::new();
+    for key in catalog.catalog.0.keys() {
+        let context = catalog.context(key)?;
+        let before = render_java_source(std::str::from_utf8(&historical)?, &context)?;
+        let after = render_java_source(std::str::from_utf8(&current)?, &context)?;
+        let comparison = super::simplify::compare(
+            &super::simplify::parse(before.clone())?,
+            &super::simplify::parse(after.clone())?,
+        );
+        let mut expected = before.clone();
+        if context.minecraft_version == "26.1.2" {
+            let needle = "    public SFM(IEventBus bus) {\n        SFMEventBus";
+            assert_eq!(before.matches(needle).count(), 1);
+            expected = expected.replacen(
+                needle,
+                "    public SFM(IEventBus bus) {\n\n        SFMEventBus",
+                1,
+            );
+        }
+        if key.starts_with("sfm-dev/") {
+            expected = expected.replace(
+                "SFMConfig.register(ModLoadingContext.get());\n\n\n",
+                "SFMConfig.register(ModLoadingContext.get());\n\n",
+            ).replace(
+                "SFMCreativeTabs.register(bus);\n        registerComputerCraftTurtleUpgrades();",
+                "SFMCreativeTabs.register(bus);\n\n        registerComputerCraftTurtleUpgrades();",
+            );
+        }
+        assert_eq!(after, expected, "unexpected output change for {key}");
+        if before != after {
+            assert_eq!(comparison.classification, "whitespace_only");
+            assert!(comparison.whitespace_gap_count > 0);
+            assert_eq!(comparison.changed_token_region_count, 0);
+            changed.push(key.as_str());
+        } else {
+            assert_eq!(before, after, "unexpected output change for {key}");
+            assert_eq!(comparison.classification, "exact");
+        }
+    }
+    assert_eq!(catalog.catalog.0.len(), 20);
+    assert_eq!(
+        changed,
+        [
+            "sfm-4.34.0/mc-26.1.2",
+            "sfm-dev/mc-1.20",
+            "sfm-dev/mc-1.20.1",
+            "sfm-dev/mc-1.20.2",
+            "sfm-dev/mc-1.20.3",
+            "sfm-dev/mc-1.20.4",
+            "sfm-dev/mc-26.1.2",
+        ]
+    );
+    Ok(())
+}
+
+#[test]
+fn constructor_baseline_restore_rejects_unreviewed_mutations() -> Result<()> {
+    let core = CoreTestFixture::load()?;
+    let source = core.read_source(MAIN)?;
+    let mut mutated = source.clone();
+    mutated.extend_from_slice(b"// unrelated change\n");
+    assert!(restore_constructor_baseline(&mutated).is_err());
+    let duplicate = format!(
+        "{}\n{NORMALIZED_CONSTRUCTOR}",
+        std::str::from_utf8(&source)?
+    );
+    assert!(restore_constructor_baseline(duplicate.as_bytes()).is_err());
+    let changed = std::str::from_utf8(&source)?
+        .replace("SFMEventBus.MOD_BUS = bus;", "SFMEventBus.MOD_BUS = null;");
+    assert!(restore_constructor_baseline(changed.as_bytes()).is_err());
     Ok(())
 }

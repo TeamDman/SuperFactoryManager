@@ -2987,7 +2987,7 @@
     },
     "src/main/java/ca/teamdman/sfm/SFM.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/SFM.java",
-      "source_sha256": "sha256:ca54cff14668e28ac0ad872f1b94e25068bf2b5dd23e4556e328eee99c773d45",
+      "source_sha256": "sha256:e6df9819d75c3c053ae6d4bfea304881369d63a3bf51edcf702fd302c65e0478",
       "overlay": null,
       "output_sha256": "sha256:80c8aa980872bf7dceff936d26c64c56b5fed1f4c220e6a2f7f989388aea1bb4"
     },
@@ -3683,9 +3683,9 @@
     },
     "src/main/java/ca/teamdman/sfm/common/block/ManagerBlock.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/ManagerBlock.java",
-      "source_sha256": "sha256:2e18174cdd5640ed1d9a81c7b93d33c8e1ef8ae5061c30c56aafaebaafd72633",
+      "source_sha256": "sha256:412a97cdb89b633e20c8cf5915fbc894a3aa7d59112e425a7560e3143dc710cb",
       "overlay": null,
-      "output_sha256": "sha256:f8e3919e4a97c7fe92b74a43997a5a93a5269995dcd50e445d2dab97a7c3dba7"
+      "output_sha256": "sha256:60b6a6ac52a47657cc052224803a295226d6431b5dea6dfa78f0114c2050a1e7"
     },
     "src/main/java/ca/teamdman/sfm/common/block/PrintingPressBlock.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/PrintingPressBlock.java",
@@ -5147,7 +5147,7 @@
     },
     "src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
-      "source_sha256": "sha256:6eeb9bbad2e815ac3ba7df21e0d4b8a69545b654bb7c871e94955bff458b04e6",
+      "source_sha256": "sha256:65994f8510d2976fdd944e2518956f9b7ecd1881d50f1ec706fcdac58171e6bd",
       "overlay": null,
       "output_sha256": "sha256:faac8733e577c57f58ae8d73698f7dc0f1e999b7ca89c57a7d8124bb8fddcca8"
     },

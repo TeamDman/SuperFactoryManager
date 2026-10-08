@@ -89,6 +89,7 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             BlockPos pos,
             BlockState state
     ) {
+
         return SFMBlockEntities.MANAGER.get().create(pos, state);
     }
 

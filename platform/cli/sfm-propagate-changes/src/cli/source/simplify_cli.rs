@@ -35,6 +35,8 @@ pub struct SimplifyArgs {
 pub enum SimplifyCommand {
     /// Scan one complete manifested Java file across selected catalog contexts.
     Scan(SimplifyScanArgs),
+    /// Render one template in memory and certify it against pinned Git oracles.
+    Verify(super::simplify_verify_cli::SimplifyVerifyArgs),
 }
 
 #[derive(Debug, Facet)]
@@ -106,6 +108,9 @@ impl SimplifyArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         match self.command {
+            SimplifyCommand::Verify(args) => {
+                super::simplify_verify_cli::invoke(&args, cancellation, invocation_dir)
+            }
             SimplifyCommand::Scan(args) => {
                 Ok(CliOutput::facet(scan(&args, cancellation, invocation_dir)?))
             }
@@ -113,7 +118,7 @@ impl SimplifyArgs {
     }
 }
 
-fn read(root: &Path, relative: &str, max: usize) -> Result<Vec<u8>> {
+pub(super) fn read(root: &Path, relative: &str, max: usize) -> Result<Vec<u8>> {
     let path = checked_file(root, relative)?;
     let file = fs::File::open(path)?;
     ensure!(

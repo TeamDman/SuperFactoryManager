@@ -3035,9 +3035,9 @@
     },
     "src/main/java/ca/teamdman/sfm/SFM.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/SFM.java",
-      "source_sha256": "sha256:ca54cff14668e28ac0ad872f1b94e25068bf2b5dd23e4556e328eee99c773d45",
+      "source_sha256": "sha256:e6df9819d75c3c053ae6d4bfea304881369d63a3bf51edcf702fd302c65e0478",
       "overlay": null,
-      "output_sha256": "sha256:5458ccc3477b7f95876509369770a709ff6c9218134bbb4709baee75c0917d55"
+      "output_sha256": "sha256:80c8aa980872bf7dceff936d26c64c56b5fed1f4c220e6a2f7f989388aea1bb4"
     },
     "src/main/java/ca/teamdman/sfm/SFMPerformanceTweaks.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/SFMPerformanceTweaks.java",
@@ -3761,9 +3761,9 @@
     },
     "src/main/java/ca/teamdman/sfm/common/block/ManagerBlock.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/ManagerBlock.java",
-      "source_sha256": "sha256:2e18174cdd5640ed1d9a81c7b93d33c8e1ef8ae5061c30c56aafaebaafd72633",
+      "source_sha256": "sha256:412a97cdb89b633e20c8cf5915fbc894a3aa7d59112e425a7560e3143dc710cb",
       "overlay": null,
-      "output_sha256": "sha256:ad5ccb8d88e931a8de0f97bab12831b3f0e58f6a95e1bc2a23e8a205644beae8"
+      "output_sha256": "sha256:381d8840db87c808581b57467bffc80f6301b950c780fafa25f43371dd8ffaa0"
     },
     "src/main/java/ca/teamdman/sfm/common/block/PrintingPressBlock.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/block/PrintingPressBlock.java",
@@ -5219,9 +5219,9 @@
     },
     "src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java",
-      "source_sha256": "sha256:6eeb9bbad2e815ac3ba7df21e0d4b8a69545b654bb7c871e94955bff458b04e6",
+      "source_sha256": "sha256:65994f8510d2976fdd944e2518956f9b7ecd1881d50f1ec706fcdac58171e6bd",
       "overlay": null,
-      "output_sha256": "sha256:bc448053c32286736f24e34124b7bd518e929856616187ed32e9f0767f53d584"
+      "output_sha256": "sha256:11c20259d9c55afb6ab3b5cb3fd6ef30c5de8b47d14f378aa6ceba8b623cdfdb"
     },
     "src/main/java/ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java": {
       "source_path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/resourcetype/RedstoneResourceType.java",

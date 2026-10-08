@@ -15,6 +15,7 @@ mod release_provider_plan_cli;
 mod release_tag_preflight_cli;
 mod release_target_plan_cli;
 mod simplify_cli;
+mod simplify_verify_cli;
 mod source_cli;
 mod source_trace_cli;
 

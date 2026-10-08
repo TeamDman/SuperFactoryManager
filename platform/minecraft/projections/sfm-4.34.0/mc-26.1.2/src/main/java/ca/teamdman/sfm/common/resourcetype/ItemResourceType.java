@@ -45,7 +45,10 @@ public class ItemResourceType extends RegistryBackedResourceType<ItemStack, Item
     public ResourceHandler<ItemResource> createHandlerForBufferBlock(BufferBlockEntityContents contents) {
         return new ItemStacksResourceHandler(contents.tier.numSlots) {
             @Override
-            public boolean isValid(int index, ItemResource resource) {
+            public boolean isValid(
+                    int index,
+                    ItemResource resource
+            ) {
                 boolean isValid = (this.getAmountAsInt(0) == 0) || contents.isEmpty();
                 if (isValid) {
                     contents.lastUsedResource = BufferBlock.ContainedResource.Item;

@@ -59,6 +59,41 @@ For a contributor edit, keep the edited generated file intact. Apply the intende
 
 ## Find whitespace-only simplification candidates
 
+For an assigned Java file, the worker loop is read-only:
+
+```powershell
+sfm-propagate-changes --output-format json source simplify verify --repo-root . --file src/main/java/ca/teamdman/sfm/common/resourcetype/ItemResourceType.java
+```
+
+This renders the current template in memory and compares complete Java with
+the immutable commit/path bindings in `projection-oracles.json`. Exit 0 means
+all selected oracle comparisons passed (exact or whitespace-only); it does not
+mean all candidate gaps were eliminated. Inspect `all_oracles_verified`,
+`pairs_with_whitespace_candidates`, `simplification_complete`, and diagnostics.
+Candidate gaps can be alignment artifacts between genuinely different methods.
+Never distort formatting merely to force their count to zero.
+
+For a custom projection already committed in Git, supply `--projection KEY`
+and `--baseline-commit FULL_COMMIT_SHA`. Its committed projection provenance
+must match the selected context. Branch movement and on-disk projection edits
+do not move the pinned oracle. Missing objects, unsupported Java and semantic
+changes are not certified. This checks selected contexts, not every possible
+feature combination or general program equivalence.
+
+Workers edit only their assigned core file; they neither discover global work
+nor synchronize outputs. The coordinator captures the oracle identities before
+fan-out, collects per-file evidence, and synchronizes projections after the
+batch. This command does not require on-disk projections to be current.
+
+The exact migration checkpoint is tagged
+`source-projection-exact-baseline-2026-10-07`. Subsequent normalization is tracked
+in the [whitespace normalization plan](tasks/sfm-whitespace-normalization-plan.md).
+The SFM.java batch merges a duplicate constructor branch and normalizes
+registration spacing, including removing a whitespace-only Liquid conditional.
+Seven projection cells intentionally differ from the historical oracle. Its pins and exact
+comparison policy remain unchanged; the earlier all-green migration evidence
+describes the tagged baseline, not normalized HEAD.
+
 Scan complete generated Java before deciding which Liquid branches to combine:
 
 ```powershell
