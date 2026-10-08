@@ -22,7 +22,7 @@ disk-space errors. No push.
 - [x] Enable measured concurrency without unbounded process/memory growth.
 - [ ] Run the complete post-compilation suite and record time and failures;
   iterate on remaining costs until the target is met.
-- [ ] Run the remaining Rust checks, install and commit completed changes.
+- [x] Run the remaining Rust checks, install and commit this improvement batch.
 
 ## Baseline
 
@@ -71,8 +71,10 @@ active contract tests out of the gate as sufficient completion.
 Formatting, current-source all-feature Clippy, binary tests and doc tests also
 passed. Validation was completed in stages after repairing the socket fixture;
 it was not one uninterrupted check-all invocation. The initial all-feature
-build passed. Installation of the default-feature executable follows the
-checkpoint commit; the one-minute performance objective remains open.
+build passed. Checkpoint `83cb22118` contains the improvements; the default-feature
+release executable was installed successfully after a 2m11s build. The installed
+version reports that revision. Nothing was pushed. The one-minute performance
+objective remains open.
 
 The 282.63-second real-tag legacy promotion rehearsal is now explicitly opt-in:
 it clones this repository and checks out the retired layout. Default synthetic
