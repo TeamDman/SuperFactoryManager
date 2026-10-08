@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "platform/cli/sfm-propagate-changes/Cargo.toml",
+        "platform/cli/sfm/Cargo.toml"
+    ]
+}
