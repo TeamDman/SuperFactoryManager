@@ -771,19 +771,20 @@ pub(crate) mod tests {
     }
     impl Fixture {
         pub(crate) fn new() -> Self {
+            Self::new_selected(None)
+        }
+
+        pub(crate) fn new_for_target(target: &str) -> Self {
+            assert!(SUPPORTED_TARGETS.iter().any(|(id, _)| *id == target));
+            Self::new_selected(Some(target))
+        }
+
+        fn new_selected(selected_target: Option<&str>) -> Self {
             let temp = tempfile::Builder::new()
                 .prefix("sfm owned project fixture ")
                 .tempdir()
                 .unwrap();
-            assert!(
-                Command::new("git")
-                    .arg("-C")
-                    .arg(temp.path())
-                    .args(["init", "--quiet"])
-                    .status()
-                    .unwrap()
-                    .success()
-            );
+            gix::init(temp.path()).unwrap();
             fs::write(
                 temp.path().join(".gitignore"),
                 "/platform/minecraft/projections/scratch/\n",
@@ -828,6 +829,9 @@ pub(crate) mod tests {
                 project_files: BTreeMap::new(),
             };
             for (slot, (target, actual)) in SUPPORTED_TARGETS.iter().enumerate() {
+                if selected_target.is_some_and(|selected| selected != *target) {
+                    continue;
+                }
                 let loader = if matches!(*target, "1.19.2" | "1.19.4" | "1.20") {
                     "forge"
                 } else {

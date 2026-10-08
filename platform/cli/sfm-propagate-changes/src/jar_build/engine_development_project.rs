@@ -127,6 +127,20 @@ mod development_project_tests {
 
     #[cfg(windows)]
     #[test]
+    #[ignore = "manual tracing capture; the normal matrix test covers this workflow"]
+    fn profile_development_matrix() -> eyre::Result<()> {
+        crate::logging::init_logging(
+            &crate::logging::LoggingConfig::new(
+                tracing::level_filters::LevelFilter::INFO,
+                std::env::var_os("SFM_TEST_LOG_FILE").map(std::path::PathBuf::from),
+            ),
+            &crate::cancellation::CancellationToken::new(),
+        )?;
+        six_neoform_development_targets_enter_their_own_checked_native_identity()
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn six_neoform_development_targets_enter_their_own_checked_native_identity() -> eyre::Result<()> {
         let cases: [(&str, &str, &str, &[u8]); 6] = [
             ("1.20.2", "1.20.2", "20.2.86", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-4.json")),

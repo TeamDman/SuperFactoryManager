@@ -15,15 +15,20 @@ use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
+#[cfg(test)]
 use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+#[cfg(test)]
 use std::process::Command;
+#[cfg(test)]
 use std::process::Output;
+#[cfg(test)]
 use std::process::Stdio;
 
 const MAX_POLICY_PATH_BYTES: usize = 8 * 1024 * 1024;
+#[cfg(test)]
 const MAX_GIT_OUTPUT_BYTES: usize = 16 * 1024 * 1024;
 
 /// Derive a safe exact root and enforce its catalog-selected Git policy.
@@ -56,7 +61,7 @@ pub(crate) fn catalog_projection_roots(
     selections: &[(&str, &BTreeMap<String, ProjectedArtifact>)],
 ) -> Result<BTreeMap<String, PathBuf>> {
     let root = checked_directory(repo_root)?;
-    ensure_git_worktree_root(&root)?;
+    let repository = policy_repository(&root)?;
     // This boundary validates layout, not feature registration. The catalog
     // loader owns support/prerequisite checks against its actual registry.
     let features = catalog
@@ -103,43 +108,42 @@ pub(crate) fn catalog_projection_roots(
         destinations.insert(key.to_owned(), destination);
     }
     if !development_roots.is_empty() {
-        let mut args = vec!["ls-files", "--cached", "-z", "--"];
-        args.extend(development_roots.iter().map(String::as_str));
-        let tracked = git_query(&root, &args, None)?;
+        use gix::bstr::ByteSlice as _;
+        let index = repository.index_or_empty()?;
         ensure!(
-            tracked.status.success(),
-            "cannot inspect tracked development outputs"
-        );
-        let tracked = nul_paths(&tracked.stdout)?;
-        ensure!(
-            tracked.is_empty(),
+            !index.entries().iter().any(|entry| {
+                let path = entry.path(&index).as_bytes();
+                development_roots.iter().any(|root| {
+                    path == root.as_bytes()
+                        || path
+                            .strip_prefix(root.as_bytes())
+                            .is_some_and(|tail| tail.starts_with(b"/"))
+                })
+            }),
             "selected development projection contains tracked files; move or review them before generation"
         );
     }
 
-    let mut input = Vec::new();
+    let mut path_bytes = 0;
+    // check-ignore --no-index reads working-tree ignore files, not deleted
+    // .gitignore blobs retained in the index. Use an empty mapping for parity.
+    let empty_index = gix::index::State::new(repository.object_hash());
+    let mut excludes = repository.excludes(
+        &empty_index,
+        None,
+        gix::worktree::stack::state::ignore::Source::WorktreeThenIdMappingIfNotSkipped,
+    )?;
+    let mut ignored = BTreeSet::new();
     for path in &policy_paths {
-        input.extend_from_slice(path.as_bytes());
-        input.push(0);
+        path_bytes += path.len() + 1;
         ensure!(
-            input.len() <= MAX_POLICY_PATH_BYTES,
+            path_bytes <= MAX_POLICY_PATH_BYTES,
             "catalog destination policy paths exceed the {MAX_POLICY_PATH_BYTES}-byte limit"
         );
+        if excludes.at_path(path, None)?.is_excluded() {
+            ignored.insert(path.clone());
+        }
     }
-    let ignored = git_query(
-        &root,
-        &["check-ignore", "--no-index", "--stdin", "-z"],
-        Some(input),
-    )?;
-    ensure!(
-        matches!(ignored.status.code(), Some(0 | 1)),
-        "cannot inspect catalog destination ignore policy"
-    );
-    let ignored = nul_paths(&ignored.stdout)?;
-    ensure!(
-        ignored.is_subset(&policy_paths),
-        "Git ignore result contains an unrequested path"
-    );
     for (key, (environment, paths)) in policies {
         match environment {
             ProjectionEnvironment::Dev => ensure!(
@@ -202,20 +206,28 @@ fn inspect_destination_chain(root: &Path, relative: &Path) -> Result<()> {
     Ok(())
 }
 
-fn ensure_git_worktree_root(root: &Path) -> Result<()> {
-    let output = git_query(root, &["rev-parse", "--show-toplevel"], None)?;
+#[tracing::instrument(name = "catalog.git_policy_open", skip_all)]
+fn policy_repository(root: &Path) -> Result<gix::Repository> {
+    // Preserve user/system ignore configuration, but never inherit repository,
+    // index, namespace or object-database redirection through GIT_* variables.
+    let mut permissions = gix::open::Permissions::isolated();
+    permissions.config = gix::open::permissions::Config::all();
+    permissions.config.env = false;
+    permissions.config.git_binary = true;
+    permissions.env.home = gix::sec::Permission::Allow;
+    permissions.env.xdg_config_home = gix::sec::Permission::Allow;
+    let repository = gix::open_opts(root, gix::open::Options::default().permissions(permissions))?;
+    let reported = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("catalog generation requires a Git worktree"))?;
     ensure!(
-        output.status.success(),
-        "catalog generation requires a Git worktree"
-    );
-    let reported = String::from_utf8(output.stdout).wrap_err("Git worktree root is not UTF-8")?;
-    ensure!(
-        fs::canonicalize(reported.trim())? == root,
+        fs::canonicalize(reported)? == root,
         "catalog repository must be the Git worktree root"
     );
-    Ok(())
+    Ok(repository)
 }
 
+#[cfg(test)]
 fn git_query(root: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<Output> {
     let mut command = Command::new("git");
     command
@@ -279,25 +291,6 @@ fn git_query(root: &Path, args: &[&str], input: Option<Vec<u8>>) -> Result<Outpu
         String::from_utf8_lossy(&output.stderr).trim()
     );
     Ok(output)
-}
-
-fn nul_paths(bytes: &[u8]) -> Result<BTreeSet<String>> {
-    if bytes.is_empty() {
-        return Ok(BTreeSet::new());
-    }
-    ensure!(
-        bytes.last() == Some(&0),
-        "Git path response has no terminal NUL"
-    );
-    let mut paths = BTreeSet::new();
-    for path in bytes[..bytes.len() - 1].split(|byte| *byte == 0) {
-        let path = std::str::from_utf8(path).wrap_err("Git policy path is not UTF-8")?;
-        ensure!(
-            !path.is_empty() && paths.insert(path.to_owned()),
-            "Git policy response contains an empty or duplicate path"
-        );
-    }
-    Ok(paths)
 }
 
 fn is_reparse(metadata: &fs::Metadata) -> bool {
@@ -433,6 +426,66 @@ mod tests {
         assert!(fixture.root("sfm-dev/custom").is_err());
         fixture.ignore("/platform/minecraft/projections/release-looking/custom/\n");
         fixture.root("sfm-dev/custom").unwrap();
+    }
+
+    #[test]
+    fn gix_ignore_policy_matches_git_and_does_not_resurrect_deleted_ignore_files() {
+        let fixture = Fixture::new();
+        let prefix = "platform/minecraft/projections/sfm-dev/custom";
+        let paths =
+            format!("{prefix}/src/main/java/Example.java\0{prefix}/sfm-projection-ignore-probe\0");
+        for rules in [
+            "",
+            "*.java\n",
+            "*.java\n!**/Example.java\n",
+            "/platform/minecraft/projections/sfm-dev/custom/\n",
+        ] {
+            fixture.ignore(rules);
+            let native = git_query(
+                fixture.temp.path(),
+                &["check-ignore", "--no-index", "--stdin", "-z"],
+                Some(paths.as_bytes().to_vec()),
+            )
+            .unwrap();
+            assert_eq!(
+                fixture.root("sfm-dev/custom").is_ok(),
+                native.stdout.is_empty(),
+                "{rules:?}"
+            );
+        }
+        assert!(
+            git_query(fixture.temp.path(), &["add", "--", ".gitignore"], None)
+                .unwrap()
+                .status
+                .success()
+        );
+        fs::remove_file(fixture.temp.path().join(".gitignore")).unwrap();
+        fixture.root("sfm-dev/custom").unwrap();
+        assert!(fixture.root("release-looking/custom").is_err());
+    }
+
+    #[test]
+    fn gix_policy_reads_info_excludes_and_configured_exclude_file() {
+        let fixture = Fixture::new();
+        let rules = "/platform/minecraft/projections/sfm-dev/custom/\n";
+        let info = fixture.temp.path().join(".git/info/exclude");
+        fs::write(&info, rules).unwrap();
+        assert!(fixture.root("sfm-dev/custom").is_err());
+        fs::write(info, "").unwrap();
+        fixture.root("sfm-dev/custom").unwrap();
+        let global = fixture.temp.path().join("configured-ignore");
+        fs::write(&global, rules).unwrap();
+        assert!(
+            git_query(
+                fixture.temp.path(),
+                &["config", "core.excludesFile", global.to_str().unwrap()],
+                None
+            )
+            .unwrap()
+            .status
+            .success()
+        );
+        assert!(fixture.root("sfm-dev/custom").is_err());
     }
 
     #[test]

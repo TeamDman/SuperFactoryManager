@@ -133,7 +133,7 @@ mod named_forge_compile_cohort_tests {
         )?;
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;
         let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;
-        let mut fixture = Fixture::new();
+        let mut fixture = Fixture::new_for_target(target);
         let configuration = crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
         let destination = fixture.repository().join(configuration);
         fs::create_dir_all(destination.parent().unwrap())?;
@@ -142,6 +142,7 @@ mod named_forge_compile_cohort_tests {
             &checked_file(repository, &recipe.source_lock.path)?,
             1024 * 1024,
         )?;
+        let mut roles = Vec::new();
         for source_path in std::iter::once(recipe.source_lock.path.as_str())
             .chain(recipe.role_input_hashes.iter().map(|row| row.path.as_str()))
         {
@@ -158,8 +159,10 @@ mod named_forge_compile_cohort_tests {
                 "frozen fixture role must be one exact-copy selected input"
             );
             let bytes = read_bounded(&checked_file(repository, source_path)?, 1024 * 1024)?;
-            fixture.set_project_file_for(target, selected[0].0, core_relative, &bytes, false)?;
+            roles.push((selected[0].0.clone(), core_relative.to_owned(), bytes, false));
         }
+        fixture.set_project_files_for(target, roles.iter().map(|(output, input, bytes, template)|
+            (output.as_str(), input.as_str(), bytes.as_slice(), *template)))?;
         let slot = SUPPORTED_TARGETS
             .iter()
             .position(|(candidate, _)| *candidate == target)

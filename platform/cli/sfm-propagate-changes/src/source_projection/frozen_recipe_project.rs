@@ -560,12 +560,13 @@ mod tests {
             )
             .collect();
         let projected =
-            super::super::core_release_project_role_fixtures::release_project_role_outputs(
+            super::super::core_release_project_role_fixtures::release_project_role_outputs_selected(
                 repo,
-                &recipe.target,
+                &context,
+                &selection,
                 &wanted,
             )?;
-        let mut fixture = Fixture::new();
+        let mut fixture = Fixture::new_for_target(&recipe.target);
         let configuration_path = fixture.repository().join(BUILD_CONFIGURATION_PATH);
         fs::create_dir_all(
             configuration_path
@@ -669,76 +670,93 @@ mod tests {
 
     #[test]
     fn twenty_owned_contexts_bind_exact_frozen_inputs_without_writes() -> Result<()> {
+        use rayon::prelude::*;
+        let results = recipe_index()?
+            .targets
+            .into_par_iter()
+            .map(|recipe| -> Result<_> {
+                let mut prepared_contexts = 0;
+                let mut weak_refusals = 0;
+                let mut identities = BTreeSet::new();
+                let fixture = fixture_for(&recipe)?;
+                for environment in ["release", "dev"] {
+                    let key = Fixture::key(slot(&recipe)?, environment);
+                    let root = fixture.publish(&key);
+                    let before = snapshot(&root)?;
+                    let result = prepare(&fixture, &key, &recipe);
+                    if recipe.target == "26.1.2" {
+                        let error = result.unwrap_err().to_string();
+                        assert!(
+                            error.contains("released native identity unresolved"),
+                            "{error}"
+                        );
+                        assert!(
+                            error.contains("blake3:fa5d96536fb3195b1a113d1d9e30695927d76378"),
+                            "{error}"
+                        );
+                        weak_refusals += 1;
+                    } else {
+                        let prepared = result?;
+                        let receipt = prepared.receipt();
+                        assert_eq!(receipt.ownership.projection_key, key);
+                        assert_eq!(receipt.ownership.target_id, recipe.target);
+                        assert_eq!(
+                            receipt.ownership.minecraft_version,
+                            recipe.minecraft_version
+                        );
+                        assert_eq!(receipt.role_bindings.len(), ROLE_INPUT_COUNT);
+                        assert_eq!(receipt.compiler_release, recipe.platform.java_major);
+                        assert_eq!(receipt.jdk_identity, None);
+                        assert_eq!(receipt.native_compilation, "not_performed");
+                        assert_eq!(receipt.native_execution, "not_performed");
+                        assert!(receipt.immutable_source_lock);
+                        assert!(!receipt.prepared_inputs.live_pom_discovery);
+                        if recipe.target == "1.19.4" {
+                            assert_eq!(
+                                receipt.released_inputs.loader_coordinate,
+                                "net.minecraftforge:forge:1.19.4-45.0.9"
+                            );
+                            assert!(
+                                prepared
+                                    .dependencies()
+                                    .coordinate("net.minecraftforge:forge:1.19.4-45.0.42", false)
+                                    .is_err()
+                            );
+                        }
+                        assert_eq!(
+                            prepared.dependencies().raw_source_lock_bytes(),
+                            fs::read(root.join(LOCK_OUTPUT))?
+                        );
+                        assert!(identities.insert(receipt.preparation_identity()?));
+                        assert!(
+                            !root
+                                .join(receipt.preparation_cache_relative_path()?)
+                                .exists()
+                        );
+                        assert!(!root.join("build").exists());
+                        let portable = receipt.to_json()?;
+                        assert!(portable.contains("sfm:frozen_recipe_project@1"));
+                        assert!(
+                            !portable
+                                .contains(&fixture.repository().to_string_lossy().into_owned())
+                        );
+                        prepared.recheck(false)?;
+                        prepared_contexts += 1;
+                    }
+                    assert_eq!(snapshot(&root)?, before);
+                    assert!(!root.join("build").exists());
+                }
+                Ok((prepared_contexts, weak_refusals, identities))
+            })
+            .collect::<Result<Vec<_>>>()?;
         let mut prepared_contexts = 0;
         let mut weak_refusals = 0;
         let mut identities = BTreeSet::new();
-        for recipe in recipe_index()?.targets {
-            let fixture = fixture_for(&recipe)?;
-            for environment in ["release", "dev"] {
-                let key = Fixture::key(slot(&recipe)?, environment);
-                let root = fixture.publish(&key);
-                let before = snapshot(&root)?;
-                let result = prepare(&fixture, &key, &recipe);
-                if recipe.target == "26.1.2" {
-                    let error = result.unwrap_err().to_string();
-                    assert!(
-                        error.contains("released native identity unresolved"),
-                        "{error}"
-                    );
-                    assert!(
-                        error.contains("blake3:fa5d96536fb3195b1a113d1d9e30695927d76378"),
-                        "{error}"
-                    );
-                    weak_refusals += 1;
-                } else {
-                    let prepared = result?;
-                    let receipt = prepared.receipt();
-                    assert_eq!(receipt.ownership.projection_key, key);
-                    assert_eq!(receipt.ownership.target_id, recipe.target);
-                    assert_eq!(
-                        receipt.ownership.minecraft_version,
-                        recipe.minecraft_version
-                    );
-                    assert_eq!(receipt.role_bindings.len(), ROLE_INPUT_COUNT);
-                    assert_eq!(receipt.compiler_release, recipe.platform.java_major);
-                    assert_eq!(receipt.jdk_identity, None);
-                    assert_eq!(receipt.native_compilation, "not_performed");
-                    assert_eq!(receipt.native_execution, "not_performed");
-                    assert!(receipt.immutable_source_lock);
-                    assert!(!receipt.prepared_inputs.live_pom_discovery);
-                    if recipe.target == "1.19.4" {
-                        assert_eq!(
-                            receipt.released_inputs.loader_coordinate,
-                            "net.minecraftforge:forge:1.19.4-45.0.9"
-                        );
-                        assert!(
-                            prepared
-                                .dependencies()
-                                .coordinate("net.minecraftforge:forge:1.19.4-45.0.42", false)
-                                .is_err()
-                        );
-                    }
-                    assert_eq!(
-                        prepared.dependencies().raw_source_lock_bytes(),
-                        fs::read(root.join(LOCK_OUTPUT))?
-                    );
-                    assert!(identities.insert(receipt.preparation_identity()?));
-                    assert!(
-                        !root
-                            .join(receipt.preparation_cache_relative_path()?)
-                            .exists()
-                    );
-                    assert!(!root.join("build").exists());
-                    let portable = receipt.to_json()?;
-                    assert!(portable.contains("sfm:frozen_recipe_project@1"));
-                    assert!(
-                        !portable.contains(&fixture.repository().to_string_lossy().into_owned())
-                    );
-                    prepared.recheck(false)?;
-                    prepared_contexts += 1;
-                }
-                assert_eq!(snapshot(&root)?, before);
-                assert!(!root.join("build").exists());
+        for (prepared, weak, target_identities) in results {
+            prepared_contexts += prepared;
+            weak_refusals += weak;
+            for identity in target_identities {
+                assert!(identities.insert(identity));
             }
         }
         assert_eq!((prepared_contexts, weak_refusals), (18, 2));

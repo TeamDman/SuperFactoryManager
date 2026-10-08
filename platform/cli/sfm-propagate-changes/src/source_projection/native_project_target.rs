@@ -304,6 +304,7 @@ pub(crate) fn validate_collected_native_profile(
     Ok(())
 }
 
+#[tracing::instrument(name = "native_target.selected_profile", skip_all)]
 fn selected_profile(
     artifacts: &BTreeMap<String, ProjectedArtifact>,
     identity: &CatalogProjectionIdentity,

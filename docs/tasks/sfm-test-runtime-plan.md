@@ -112,6 +112,41 @@ The follow-up focused capture confirms fixture metadata validations fell from
 operation-count evidence, not a clean latency comparison. Large real metadata
 parses and repeated selected-file checks still dominate its remaining work.
 
+Checkpoint `31def7adf` commits the green 158.700 s gate and is installed on PATH.
+Nothing was pushed. The next test-only pass narrowed role acquisition to requested
+inputs, added single-target fixtures, used gix for fixture initialization, and
+parallelized two independent context matrices without removing aggregate checks.
+All 1,661 library tests passed, but execution remained 153.015 s. This did not
+improve the overall time meaningfully, so it is not the performance solution.
+
+The new ranking identified a production bottleneck missed by the initial capture:
+`catalog_projection_root` repeats native Git worktree, index and ignore queries
+on every retained-project recheck. The next change replaces these with gix while
+retaining system/user ignore configuration and excluding environment-based Git
+redirection. Tests compare ignore results to native Git, including negation,
+deleted-but-indexed ignore files, info/exclude and configured excludes. This
+change is still under validation. The existing dependency feature set already
+includes gix excludes; no dependency or lockfile change is required.
+
+The gix policy replacement passed nine focused tests in 0.60 s. The focused
+preparation capture fell to 1.21 s (seven metadata validations, three parses).
+The next complete test phase passed in **123.576 s**: 1,663 active library tests
+(113.22 s), 20 explicit ignored tests, and all 70 integration tests. Formatting,
+Clippy, all-feature build, binary and doc tests passed. This is another real
+reduction, but still above the objective. A live sample from the preceding run
+showed 292 CPU-seconds over 60 elapsed seconds at 32 test threads; evaluate a
+higher bounded concurrency budget after the current default rebuild completes.
+
+The default rebuild passed. Increasing concurrency to 128 test threads made the
+library slower (126.99 s) and exposed one unavailable review-capture result.
+Its diagnostic was missing, so timeout is a hypothesis, not a confirmed cause.
+The same test passed alone in 4.69 s; the assertion now prints its diagnostic.
+Keep the green 32-thread configuration. A direct Tracy capture of the six-target
+native preparation matrix took 4.88 s alone: 60 catalog rechecks consumed 1.735 s
+of self time, while 30 native profile selections consumed 0.443 s. Contention
+and repeated fixture/process work remain targets; do not infer that profile
+parsing dominates from the earlier contended matrix duration.
+
 Formatting, current-source all-feature Clippy, binary tests and doc tests also
 passed. Validation was completed in stages after repairing the socket fixture;
 it was not one uninterrupted check-all invocation. The initial all-feature

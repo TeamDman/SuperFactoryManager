@@ -1458,7 +1458,7 @@ pub(super) mod tests {
             &catalog.context(&format!("sfm-4.34.0/mc-{target}"))?,
             &BTreeSet::new(),
         )?;
-        let mut fixture = Fixture::new();
+        let mut fixture = Fixture::new_for_target(target);
         for filename in [
             "nfrt-child-identities.json",
             "nfrt-source-library-identities.json",
@@ -1482,6 +1482,7 @@ pub(super) mod tests {
             repository.join(BUILD_CONFIGURATION_PATH),
             &nfrt_configuration_path,
         )?;
+        let mut roles = Vec::new();
         for input in std::iter::once(&recipe.source_lock).chain(recipe.role_input_hashes.iter()) {
             let source = input
                 .path
@@ -1497,14 +1498,19 @@ pub(super) mod tests {
                 "fixture role must have one selected output: {}",
                 input.path
             );
-            fixture.set_project_file_for(
-                target,
-                selected[0].0,
-                source,
-                &read_bounded(&checked_file(repository, &input.path)?, 1024 * 1024)?,
+            roles.push((
+                selected[0].0.clone(),
+                source.to_owned(),
+                read_bounded(&checked_file(repository, &input.path)?, 1024 * 1024)?,
                 selected[0].1.template,
-            )?;
+            ));
         }
+        fixture.set_project_files_for(
+            target,
+            roles.iter().map(|(output, input, bytes, template)| {
+                (output.as_str(), input.as_str(), bytes.as_slice(), *template)
+            }),
+        )?;
         let slot = SUPPORTED_TARGETS
             .iter()
             .position(|(id, _)| *id == target)
@@ -1760,90 +1766,108 @@ pub(super) mod tests {
 
     #[test]
     fn five_recipe_ten_context_preparations_keep_order_raw_locks_and_main_refusal() -> Result<()> {
-        let mut contexts = BTreeSet::new();
-        for target in ["1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1"] {
-            for environment in ["release", "dev"] {
-                let (_fixture, project) = project_fixture(target, environment)?;
-                let original_raw = project.dependencies().raw_source_lock_bytes().to_vec();
-                let supplement = NfrtChildIdentitySupplement::from_prepared(
-                    Arc::clone(project.dependencies()),
-                    false,
-                )?;
-                let plan = NfrtExportPlan::prepare(
-                    &project,
-                    &supplement,
-                    &selected_java(21),
-                    b"fixture-executable",
-                    "fresh-fixture",
-                    false,
-                )?;
-                let receipt = plan.declaration();
-                ensure!(
-                    receipt.environment == environment
-                        && receipt.target_id == target
-                        && receipt.ordered_dependency_rows == project.dependencies().dependencies()
-                        && receipt.ordered_runtime_roots == project.dependencies().runtime_roots()
-                        && receipt
-                            .functions
-                            .iter()
-                            .map(|value| value.node.as_str())
-                            .collect::<Vec<_>>()
-                            == [
-                                "decompile",
-                                "merge",
-                                "rename",
-                                "mergeMappings",
-                                "bundleExtractJar"
-                            ]
-                        && receipt.fresh_work_root_required
-                        && !receipt.native_execution_enabled
-                        && !receipt.os_filesystem_attested
-                        && plan.parent_coordinates.len() == 3,
-                    "export declaration altered context/order or execution boundary"
-                );
-                ensure!(
-                    contexts.insert(receipt.preparation_identity.clone()),
-                    "context identity reused"
-                );
-                for classifier in ["sources", "universal"] {
-                    let coordinate = format!(
-                        "{}:{classifier}",
-                        project.receipt().released_inputs.loader_coordinate
-                    );
-                    let expected = project.dependencies().coordinate(&coordinate, false)?;
-                    let selected = plan
-                        .originals
-                        .iter()
-                        .filter(|(key, _)| key == &format!("original/{coordinate}"))
-                        .collect::<Vec<_>>();
-                    ensure!(
-                        selected.len() == 1
-                            && selected[0].1.original_content_hash()
-                                == expected.original_content_hash(),
-                        "userdev archive omitted, duplicated or detached from original pin"
-                    );
-                }
-                ensure!(
-                    plan.export_supplied_bytes(&project, &BTreeMap::new(), &BTreeMap::new(), false)
-                        .is_err(),
-                    "missing byte batch accepted"
-                );
-                ensure!(
-                    NfrtExportPlan::prepare(
+        use rayon::prelude::*;
+        let results = ["1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1"]
+            .into_par_iter()
+            .map(|target| -> Result<_> {
+                let mut contexts = BTreeSet::new();
+                for environment in ["release", "dev"] {
+                    let (_fixture, project) = project_fixture(target, environment)?;
+                    let original_raw = project.dependencies().raw_source_lock_bytes().to_vec();
+                    let supplement = NfrtChildIdentitySupplement::from_prepared(
+                        Arc::clone(project.dependencies()),
+                        false,
+                    )?;
+                    let plan = NfrtExportPlan::prepare(
                         &project,
                         &supplement,
                         &selected_java(21),
                         b"fixture-executable",
-                        "fresh",
-                        true
-                    )
-                    .is_err(),
-                    "refresh accepted"
-                );
-                ensure!(
-                    project.dependencies().raw_source_lock_bytes() == original_raw,
-                    "exporter mutated original lock"
-                );
+                        "fresh-fixture",
+                        false,
+                    )?;
+                    let receipt = plan.declaration();
+                    ensure!(
+                        receipt.environment == environment
+                            && receipt.target_id == target
+                            && receipt.ordered_dependency_rows
+                                == project.dependencies().dependencies()
+                            && receipt.ordered_runtime_roots
+                                == project.dependencies().runtime_roots()
+                            && receipt
+                                .functions
+                                .iter()
+                                .map(|value| value.node.as_str())
+                                .collect::<Vec<_>>()
+                                == [
+                                    "decompile",
+                                    "merge",
+                                    "rename",
+                                    "mergeMappings",
+                                    "bundleExtractJar"
+                                ]
+                            && receipt.fresh_work_root_required
+                            && !receipt.native_execution_enabled
+                            && !receipt.os_filesystem_attested
+                            && plan.parent_coordinates.len() == 3,
+                        "export declaration altered context/order or execution boundary"
+                    );
+                    ensure!(
+                        contexts.insert(receipt.preparation_identity.clone()),
+                        "context identity reused"
+                    );
+                    for classifier in ["sources", "universal"] {
+                        let coordinate = format!(
+                            "{}:{classifier}",
+                            project.receipt().released_inputs.loader_coordinate
+                        );
+                        let expected = project.dependencies().coordinate(&coordinate, false)?;
+                        let selected = plan
+                            .originals
+                            .iter()
+                            .filter(|(key, _)| key == &format!("original/{coordinate}"))
+                            .collect::<Vec<_>>();
+                        ensure!(
+                            selected.len() == 1
+                                && selected[0].1.original_content_hash()
+                                    == expected.original_content_hash(),
+                            "userdev archive omitted, duplicated or detached from original pin"
+                        );
+                    }
+                    ensure!(
+                        plan.export_supplied_bytes(
+                            &project,
+                            &BTreeMap::new(),
+                            &BTreeMap::new(),
+                            false
+                        )
+                        .is_err(),
+                        "missing byte batch accepted"
+                    );
+                    ensure!(
+                        NfrtExportPlan::prepare(
+                            &project,
+                            &supplement,
+                            &selected_java(21),
+                            b"fixture-executable",
+                            "fresh",
+                            true
+                        )
+                        .is_err(),
+                        "refresh accepted"
+                    );
+                    ensure!(
+                        project.dependencies().raw_source_lock_bytes() == original_raw,
+                        "exporter mutated original lock"
+                    );
+                }
+                Ok(contexts)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let mut contexts = BTreeSet::new();
+        for target_contexts in results {
+            for identity in target_contexts {
+                ensure!(contexts.insert(identity), "context identity reused");
             }
         }
         ensure!(contexts.len() == 10, "context matrix changed");

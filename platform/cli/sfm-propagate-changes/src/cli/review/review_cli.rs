@@ -1824,7 +1824,11 @@ mod tests {
         std::fs::copy(&path, &copied).unwrap();
         let relationships =
             inspect_repository_relationships(&nested, &copied, &review.repository_bindings);
-        assert_eq!(relationships[0].capture_scope_matches, Some(true));
+        assert_eq!(
+            relationships[0].capture_scope_matches,
+            Some(true),
+            "{relationships:?}"
+        );
         assert!(
             relationships[0]
                 .working_tree

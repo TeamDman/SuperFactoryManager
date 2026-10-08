@@ -10,13 +10,9 @@ pub(super) fn release_project_role_outputs(
     use super::candidate_lock::checked_file;
     use super::core_catalog::CoreCatalog;
     use super::core_inputs::CORE_METADATA_PATH;
-    use super::core_inputs::CORE_ROOT;
     use super::core_inputs::CoreProjectInputs;
-    use super::core_inputs::collect_core_artifacts;
     use super::core_inputs::select_core_inputs;
     use super::core_slice_test_support::read_bounded;
-    use eyre::ensure;
-    use std::collections::BTreeMap;
     use std::collections::BTreeSet;
 
     let catalog = CoreCatalog::load(repository, repository)?;
@@ -28,16 +24,39 @@ pub(super) fn release_project_role_outputs(
         )?)?,
         &catalog.registered_features,
     )?;
-    // An empty Java/resource inventory selects only the declared project files.
-    // The collector still validates the complete standalone project boundary.
+    // Select against the real metadata, but acquire only the roles this
+    // fixture needs. Unrelated project files are not fixture dependencies.
     let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;
-    let artifacts = collect_core_artifacts(&repository.join(CORE_ROOT), &selection, &context)?;
+    release_project_role_outputs_selected(repository, &context, &selection, wanted)
+}
+
+pub(super) fn release_project_role_outputs_selected(
+    repository: &std::path::Path,
+    context: &super::context::ProjectionContext,
+    selection: &super::core_inputs::CoreSelection,
+    wanted: &std::collections::BTreeSet<String>,
+) -> eyre::Result<std::collections::BTreeMap<String, Vec<u8>>> {
+    use super::candidate_lock::checked_file;
+    use super::core_inputs::CORE_ROOT;
+    use super::core_inputs::MAX_CORE_FILE_BYTES;
+    use super::core_inputs::render_core_input;
+    use super::core_inputs::validate_collection_selection;
+    use super::core_slice_test_support::read_bounded;
+    use eyre::ensure;
+    use std::collections::BTreeMap;
+
+    validate_collection_selection(selection, context)?;
     let mut outputs = BTreeMap::new();
-    for (output, artifact) in artifacts {
-        if !wanted.contains(&artifact.source_path) {
+    for (output, selected) in &selection.inputs {
+        let source_path = format!("{CORE_ROOT}/{}", selected.input);
+        if !wanted.contains(&source_path) {
             continue;
         }
-        let selected = &selection.inputs[&output];
+        let bytes = read_bounded(
+            &checked_file(repository, &source_path)?,
+            MAX_CORE_FILE_BYTES,
+        )?;
+        let artifact = render_core_input(output, selected, bytes, context)?;
         if selected.template {
             ensure!(
                 ["main", "test", "gametest"].into_iter().any(|source_set| {
@@ -45,7 +64,7 @@ pub(super) fn release_project_role_outputs(
                         "gradle/source-excludes/{}/{source_set}-java.txt",
                         context.minecraft_version
                     );
-                    output == expected
+                    output == &expected
                         && ["standard", "shared"].into_iter().any(|layout| {
                             artifact.source_path == format!("{CORE_ROOT}/build/{layout}/{expected}")
                         })
