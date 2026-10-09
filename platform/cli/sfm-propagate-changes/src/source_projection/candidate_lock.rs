@@ -900,12 +900,20 @@ pub(crate) mod tests {
     }
 
     impl FixtureSeed {
+        #[tracing::instrument(name = "candidate_fixture_materialize", skip_all)]
         pub(crate) fn materialize(&self) -> Fixture {
             let temp = tempfile::tempdir().unwrap();
+            create_fixture_directories(temp.path(), self.files.keys());
             for (path, (bytes, permissions)) in &self.files {
                 let output = temp.path().join(path);
-                fs::create_dir_all(output.parent().unwrap()).unwrap();
                 fs::write(&output, bytes).unwrap();
+                // Fresh Windows files already have the writable attribute.
+                // Preserve readonly objects without another syscall per file.
+                #[cfg(windows)]
+                if permissions.readonly() {
+                    fs::set_permissions(output, permissions.clone()).unwrap();
+                }
+                #[cfg(not(windows))]
                 fs::set_permissions(output, permissions.clone()).unwrap();
             }
             let repo = temp.path().join("repo");
@@ -929,8 +937,21 @@ pub(crate) mod tests {
         }
     }
 
+    fn create_fixture_directories<'a>(root: &Path, files: impl Iterator<Item = &'a PathBuf>) {
+        let directories = files
+            .filter_map(|path| path.parent())
+            .collect::<BTreeSet<_>>();
+        for directory in directories {
+            fs::create_dir_all(root.join(directory)).unwrap();
+        }
+    }
+
     impl Fixture {
         pub(crate) fn snapshot(&self) -> FixtureSeed {
+            // This is an owned temporary fixture, never a contributor checkout.
+            // Pack once before copying so each independent repo needs two pack
+            // files instead of recreating dozens of loose-object directories.
+            git(&self.repo, &["repack", "-a", "-d", "-q"]);
             let files = WalkDir::new(self._temp.path())
                 .into_iter()
                 .map(|entry| entry.unwrap())
@@ -985,6 +1006,7 @@ pub(crate) mod tests {
                 std::sync::OnceLock::new();
             let (files, lock) = SEED.get_or_init(|| {
                 let seed = Self::new_with_version("4.35.0", false);
+                git(&seed.repo, &["repack", "-a", "-d", "-q"]);
                 let files = WalkDir::new(seed._temp.path())
                     .into_iter()
                     .map(|entry| entry.unwrap())
@@ -1003,9 +1025,9 @@ pub(crate) mod tests {
                 (files, seed.lock.clone())
             });
             let temp = tempfile::tempdir().unwrap();
+            create_fixture_directories(temp.path(), files.keys());
             for (path, bytes) in files {
                 let output = temp.path().join(path);
-                fs::create_dir_all(output.parent().unwrap()).unwrap();
                 fs::write(output, bytes).unwrap();
             }
             let repo = temp.path().join("repo");
@@ -1472,6 +1494,26 @@ pub(crate) mod tests {
         .unwrap();
         let fixture = Fixture::new();
         fixture.verify().unwrap();
+        let seed = fixture.snapshot();
+        let directories = seed
+            .files
+            .keys()
+            .filter_map(|path| path.parent())
+            .collect::<BTreeSet<_>>();
+        let object_files = seed
+            .files
+            .keys()
+            .filter(|path| path.starts_with("repo/.git/objects"))
+            .count();
+        eprintln!(
+            "fixture files={} parent_directories={} git_object_files={object_files}",
+            seed.files.len(),
+            directories.len()
+        );
+        for _ in 0..8 {
+            let copy = seed.materialize();
+            std::hint::black_box(&copy);
+        }
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # CLI test runtime
 
-Status: in progress, 2026-10-08. Starting commit: `05fa0d5a6`.
+Status: performance target verified; final checkpoint/install pending, 2026-10-09. Starting commit: `05fa0d5a6`.
 
 ## Contract
 
@@ -20,7 +20,7 @@ disk-space errors. No push.
 - [x] Reduce oversized environment-isolation fixture to two empty Git repos;
   cache candidate seed bytes while copying independent files/indexes per test.
 - [x] Enable measured concurrency without unbounded process/memory growth.
-- [ ] Run the complete post-compilation suite and record time and failures;
+- [x] Run the complete post-compilation suite and record time and failures;
   iterate on remaining costs until the target is met.
 - [x] Run the remaining Rust checks, install and commit this improvement batch.
 
@@ -38,10 +38,45 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
-Latest complete gate: **68.343 s**, 1,682 active library tests and 70 integration
+Latest complete gate: **58.785 s**; independent complete repeat: **59.049 s**.
+Both passed 1,683 library tests and 106 integration tests with no failures.
+The 22 previously ignored entries remain unchanged. The integration count grew
+by exposing the same 36 Java scenarios as individual harness tests, not by
+adding or removing scenarios. Directory/registration equality and the shared
+snapshot policy check guard coverage. Each scenario retains its private cache,
+thread-local context and original assertions.
+
+Commands: `check-all.ps1 -TestWorkers 4 -TestThreads 8`, followed by
+`scripts/test-bounded.ps1 -Workers 4 -TestThreads 8`. These match this host's
+default 32-thread library budget. Timings include the complete library and all
+four integration binaries, excluding compilation and artifact discovery.
+Binary/doc harnesses contain no tests. Formatting, Clippy, all-feature build,
+binary/doc harnesses and the final default-feature build all passed. These are
+measured results, not a guarantee under arbitrary machine load; the margin is
+less than two seconds. Final commit/install verification remains pending.
+
+Fixture profiling identified repeated directory creation and loose-object
+copies. Private seed repositories are now packed once; each test still receives
+independent files, index and refs. Deduplicated parent creation and avoiding
+redundant Windows writable-attribute calls reduced eight materializations from
+1.027 s to 0.656 s of traced self-time. The full gate after this was 65.246 s.
+Parallelizing the formerly serial Java scenario loop then reduced its integration
+phase from about 8.6 s to 4.17/4.29 s in the complete runs (2.16 s alone).
+
+The preceding complete gate was **66.683 s**. This batch also replaces the remaining release
+preflight committed-tree Git diff with gix object/mode comparison. It descends
+only along the generated-root exclusion and preserves authored changes and mode
+checks. Thirteen focused tests pass, including added/deleted generated trees,
+authored changes and file/directory replacement. Full formatting, Clippy, build,
+binary/doc tests and default-feature build pass.
+
+A 64-library-thread experiment on the preceding checkpoint passed at 69.666 s,
+slower than the 32-thread baseline; defaults remain unchanged.
+
+Installed checkpoint `507ead6eb`: **68.343 s**, 1,682 active library tests and 70 integration
 tests, all passing (library process 59.487 s, slowest integration 8.628 s).
 The preceding bounded run was 68.317 s. Formatting, Clippy, all-feature build,
-bin/doc tests and default-feature build pass. Checkpoint/install are next.
+bin/doc tests and default-feature build pass. PATH revision was verified.
 
 Tracy isolated candidate verification showed `candidate_authored_checkout`
 at 236.6 ms self-time. Replacing five native Git probes with gix HEAD/index
@@ -54,8 +89,7 @@ process; every caller still reads and renders requested role bytes afresh. This
 alone measured 71.490 s versus 71.247 s before, not a demonstrated throughput
 gain. Do not infer further cache benefits without evidence.
 
-Next: profile remaining multi-target preparation/promotion work. The complete
-suite still exceeds one minute; the library-only result is not completion.
+The results below are earlier checkpoints, not the current completion evidence.
 
 Fresh per-test timing identified two scheduling tests scanning the real developer
 cache through the example `minimal_plan_for_paths` fixture. Both now override

@@ -79,29 +79,98 @@ struct JavaInteractionMapScenarioSummary {
 
 #[test]
 fn java_analysis_scenarios() -> eyre::Result<()> {
+    verify_all_scenario_policies()
+}
+
+fn verify_all_scenario_policies() -> eyre::Result<()> {
+    static POLICY: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
+    POLICY
+        .get_or_init(|| check_scenario_inventory().map_err(|error| format!("{error:#}")))
+        .as_ref()
+        .map_err(|error| eyre::eyre!("{error}"))?;
+    Ok(())
+}
+
+fn check_scenario_inventory() -> eyre::Result<()> {
     let scenarios = scenario_directories()?;
-    assert!(
-        !scenarios.is_empty(),
-        "at least one Java analysis scenario is required"
+    let discovered = scenarios
+        .iter()
+        .map(|path| path.file_name().unwrap().to_str().unwrap())
+        .collect::<BTreeSet<_>>();
+    let registered = scenario_cases::NAMES
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        registered.len(),
+        scenario_cases::NAMES.len(),
+        "duplicate scenario registration"
+    );
+    assert_eq!(
+        discovered, registered,
+        "every scenario directory must have a harness test"
     );
     let snapshots = scenarios
         .iter()
         .map(|scenario| (scenario.join(ACTUAL_FILE), scenario.join(EXPECTED_FILE)))
         .collect::<Vec<_>>();
-    verify_snapshot_git_policy_batch(&snapshots)?;
-    let mut failures = Vec::new();
-    for scenario in scenarios {
-        if let Err(error) = run_scenario(&scenario) {
-            failures.push(format!("{}:\n{error:#}", scenario.display()));
-        }
+    verify_snapshot_git_policy_batch(&snapshots)
+}
+
+mod scenario_cases {
+    use super::*;
+
+    macro_rules! cases {
+        ($($name:ident),+ $(,)?) => {
+            pub(super) const NAMES: &[&str] = &[$(stringify!($name)),+];
+            $(#[test]
+            fn $name() -> eyre::Result<()> {
+                verify_all_scenario_policies()?;
+                let scenario = Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("tests/java_analysis/scenarios").join(stringify!($name));
+                run_scenario(&scenario)
+            })+
+        };
     }
-    if !failures.is_empty() {
-        bail!(
-            "Java analysis scenario failures:\n\n{}",
-            failures.join("\n\n")
-        );
-    }
-    Ok(())
+
+    cases!(
+        ambiguous_duplicate_type,
+        classpath_isolation,
+        definition_at_position_ambiguous_type,
+        definition_at_position_annotation,
+        definition_at_position_constructor,
+        definition_at_position_declaration_self,
+        definition_at_position_duplicate_root_authority,
+        definition_at_position_field,
+        definition_at_position_import_subject,
+        definition_at_position_imported_type,
+        definition_at_position_jdk_object,
+        definition_at_position_jdk_string,
+        definition_at_position_jdk_string_builder,
+        definition_at_position_local,
+        definition_at_position_method,
+        definition_at_position_no_symbol,
+        definition_at_position_parameter,
+        definition_at_position_qualified_static_member,
+        definition_at_position_qualified_static_owner,
+        definition_at_position_unicode_crlf,
+        definition_at_position_varargs_constructor,
+        field_usages,
+        imported_type_usages,
+        method_reference_usages,
+        nested_class_definition,
+        overloaded_method_descriptor_usages,
+        source_set_visibility,
+        symbol_list_glob,
+        symbol_rename_unsupported,
+        type_definition,
+        usage_at_position_duplicate_root_authority_alias,
+        usage_at_position_many,
+        usage_at_position_one,
+        usage_at_position_partial_index,
+        usage_at_position_zero,
+        zero_match,
+    );
 }
 
 #[test]

@@ -19,6 +19,7 @@ use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
 use figue as args;
+use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
@@ -221,18 +222,21 @@ fn ensure_reviewed_release_checkout(
     // including any outside the known projection directories. It may reject
     // unrelated release-note edits made after packaging.
     ensure!(
-        git_bool(
-            root,
-            &[
-                "diff",
-                "--no-ext-diff",
-                "--quiet",
-                package_source_commit,
-                &head,
-                "--",
-                ".",
-                ":(exclude)platform/minecraft/mc-version",
-            ],
+        trees_equal_except(
+            &repository,
+            Some(
+                repository
+                    .find_commit(gix::ObjectId::from_hex(package_source_commit.as_bytes())?)?
+                    .tree_id()?
+                    .detach()
+            ),
+            Some(
+                repository
+                    .find_commit(gix::ObjectId::from_hex(head.as_bytes())?)?
+                    .tree_id()?
+                    .detach()
+            ),
+            &[b"platform", b"minecraft", b"mc-version"],
         )?,
         "committed non-generated files changed since package source commit"
     );
@@ -468,17 +472,66 @@ fn git_bytes(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-fn git_bool(root: &Path, args: &[&str]) -> Result<bool> {
-    let output = git_output(root, args)?;
-    match output.status.code() {
-        Some(0) => Ok(true),
-        Some(1) => Ok(false),
-        _ => eyre::bail!(
-            "git {:?} failed: {}",
-            args,
-            String::from_utf8_lossy(&output.stderr).trim()
-        ),
+/// Compare committed identities, descending only along the excluded path.
+/// Unchanged subtrees are constant-time; modes are part of the identity.
+fn trees_equal_except(
+    repository: &gix::Repository,
+    before: Option<gix::ObjectId>,
+    after: Option<gix::ObjectId>,
+    excluded: &[&[u8]],
+) -> Result<bool> {
+    if before == after {
+        return Ok(true);
     }
+    let entries = |id: Option<gix::ObjectId>| -> Result<BTreeMap<Vec<u8>, (u32, gix::ObjectId)>> {
+        let mut entries = BTreeMap::new();
+        if let Some(id) = id {
+            for entry in repository.find_tree(id)?.iter() {
+                let entry = entry?;
+                ensure!(
+                    entries
+                        .insert(
+                            entry.filename().to_vec(),
+                            (u32::from(entry.mode().value()), entry.object_id())
+                        )
+                        .is_none(),
+                    "duplicate committed tree entry"
+                );
+            }
+        }
+        Ok(entries)
+    };
+    let before = entries(before)?;
+    let after = entries(after)?;
+    for name in before.keys().chain(after.keys()).collect::<BTreeSet<_>>() {
+        let old = before.get(name);
+        let new = after.get(name);
+        if old == new {
+            continue;
+        }
+        if excluded.first().copied() != Some(name.as_slice()) {
+            return Ok(false);
+        }
+        if excluded.len() == 1 {
+            continue;
+        }
+        if old
+            .into_iter()
+            .chain(new)
+            .any(|(mode, _)| *mode != 0o040_000)
+        {
+            return Ok(false);
+        }
+        if !trees_equal_except(
+            repository,
+            old.map(|(_, id)| *id),
+            new.map(|(_, id)| *id),
+            &excluded[1..],
+        )? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn git_output(root: &Path, args: &[&str]) -> Result<Output> {
@@ -578,6 +631,54 @@ mod tests {
         let missing = gix::ObjectId::from_hex(b"1111111111111111111111111111111111111111").unwrap();
         assert!(commit_is_ancestor(&repo, missing, merged).is_err());
         assert!(commit_is_ancestor(&repo, base, missing).is_err());
+    }
+
+    #[test]
+    fn committed_tree_comparison_excludes_only_the_generated_subtree() {
+        use gix::objs::tree::EntryKind;
+        let temp = tempfile::tempdir().unwrap();
+        let repo = gix::init_bare(temp.path()).unwrap();
+        let a = repo.write_blob(b"a").unwrap().detach();
+        let b = repo.write_blob(b"b").unwrap().detach();
+        let tree = |entries: &[(&str, EntryKind, gix::ObjectId)]| {
+            let mut entries = entries
+                .iter()
+                .map(|(name, mode, oid)| gix::objs::tree::Entry {
+                    mode: (*mode).into(),
+                    filename: (*name).into(),
+                    oid: *oid,
+                })
+                .collect::<Vec<_>>();
+            entries.sort();
+            repo.write_object(gix::objs::Tree { entries })
+                .unwrap()
+                .detach()
+        };
+        let wrap = |generated, authored, mode| {
+            let minecraft = tree(&[
+                ("authored", mode, authored),
+                ("mc-version", EntryKind::Tree, generated),
+            ]);
+            let platform = tree(&[("minecraft", EntryKind::Tree, minecraft)]);
+            tree(&[("platform", EntryKind::Tree, platform)])
+        };
+        let generated_a = tree(&[("file", EntryKind::Blob, a)]);
+        let generated_b = tree(&[("file", EntryKind::Blob, b)]);
+        let original = wrap(generated_a, a, EntryKind::Blob);
+        let excluded: &[&[u8]] = &[b"platform", b"minecraft", b"mc-version"];
+        let equal =
+            |other| trees_equal_except(&repo, Some(original), Some(other), excluded).unwrap();
+        assert!(equal(original));
+        assert!(equal(wrap(generated_b, a, EntryKind::Blob)));
+        assert!(!equal(wrap(generated_a, b, EntryKind::Blob)));
+        assert!(!equal(wrap(generated_a, a, EntryKind::BlobExecutable)));
+        assert!(!equal(tree(&[("platform", EntryKind::Blob, a)])));
+        assert!(!trees_equal_except(&repo, Some(original), None, excluded).unwrap());
+        let only_generated = tree(&[("mc-version", EntryKind::Tree, generated_a)]);
+        let only_generated = tree(&[("minecraft", EntryKind::Tree, only_generated)]);
+        let only_generated = tree(&[("platform", EntryKind::Tree, only_generated)]);
+        assert!(trees_equal_except(&repo, None, Some(only_generated), excluded).unwrap());
+        assert!(trees_equal_except(&repo, Some(only_generated), None, excluded).unwrap());
     }
 
     fn packaged_candidate() -> (Fixture, ReleaseTagPreflightArgs) {

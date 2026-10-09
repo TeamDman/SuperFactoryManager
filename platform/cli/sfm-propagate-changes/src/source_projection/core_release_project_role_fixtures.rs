@@ -76,7 +76,6 @@ pub(super) fn release_project_role_outputs_selected(
     use super::core_inputs::validate_collection_selection;
     use super::core_slice_test_support::read_bounded;
     use eyre::ensure;
-    use std::collections::BTreeMap;
 
     validate_collection_selection(selection, context)?;
     let mut outputs = BTreeMap::new();
