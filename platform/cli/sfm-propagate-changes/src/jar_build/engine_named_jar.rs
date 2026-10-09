@@ -80,6 +80,9 @@ fn validate_named_jar_project(
 }
 
 fn validate_named_native_build_target(plan: &BuildPlan, target: BuildTarget) -> eyre::Result<()> {
+    if target == BuildTarget::Run && plan.identity.development_target().is_some() {
+        return ensure_projection_client_plan(plan);
+    }
     require_named_native_target(plan.identity.is_catalog_owned(), target)?;
     let Some(project) = plan.named_project() else {
         return Ok(());

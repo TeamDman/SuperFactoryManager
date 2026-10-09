@@ -197,7 +197,10 @@ pub(crate) fn normalize_game_puppet_game_test(
     Ok(Some(normalized.to_string()))
 }
 
-fn validate_viewport(width: Option<u16>, height: Option<u16>) -> eyre::Result<(u16, u16)> {
+pub(super) fn validate_viewport(
+    width: Option<u16>,
+    height: Option<u16>,
+) -> eyre::Result<(u16, u16)> {
     const DEFAULT_WIDTH: u16 = 1280;
     const DEFAULT_HEIGHT: u16 = 720;
     const MIN_DIMENSION: u16 = 320;

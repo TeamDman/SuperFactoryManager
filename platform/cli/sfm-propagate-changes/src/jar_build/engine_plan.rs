@@ -291,7 +291,11 @@ fn create_plan_for_project(
 
         let java = {
             let jdk_resolution = if target.is_catalog_owned() {
-                let home = options.java_home.as_deref().ok_or_else(|| {
+                let discovered = if target.development_target().is_some() && options.java_home.is_none() {
+                    crate::jdk::resolve_java_for_lockfile(None, jdk_pins.as_deref(), required_java,
+                        &common_cache_dir.join("jbrsdk"), false)?.home
+                } else { None };
+                let home = options.java_home.as_deref().or(discovered.as_deref()).ok_or_else(|| {
                     eyre::eyre!("named compile requires an explicit checked SDK home")
                 })?;
                 resolve_named_java_with_verified_spelling(

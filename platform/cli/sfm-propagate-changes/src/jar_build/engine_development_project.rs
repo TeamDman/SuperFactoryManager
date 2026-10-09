@@ -53,6 +53,56 @@ fn prepare_development_identity(
     })
 }
 
+#[expect(clippy::too_many_arguments, reason = "Native client adapter keeps launch and planning controls explicit")]
+pub(crate) fn invoke_development_client(
+    project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
+    profile: &str,
+    java_home: Option<PathBuf>,
+    explain_rebuild: bool,
+    wait_for_build_lock: bool,
+    dry_run: bool,
+    kind: RunKind,
+    run_options: &RunOptions,
+    cancellation: &CancellationToken,
+) -> eyre::Result<()> {
+    let identity = prepare_development_identity(project, profile)?;
+    let planning = NativePlanningOptions {
+        mode: BuildMode::Build, java_home, refresh: false,
+        allow_local_artifact_cache: false, artifact_sources: Vec::new(),
+        require_portable_artifacts: true,
+    };
+    let plan = create_plan_for_project(&planning, &identity, cancellation)?;
+    ensure_projection_client_plan(&plan)?;
+    if run_options.client_hotswap_port.is_some() {
+        crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
+    }
+    let path = build_cache_lock_path(&plan);
+    let label = format!("{} client cache", plan.target_label());
+    let lock = if wait_for_build_lock {
+        ArtifactLock::acquire(&path, label)?
+    } else {
+        ArtifactLock::try_acquire(&path, label)?
+            .ok_or_else(|| eyre::eyre!("projection client cache is already locked"))?
+    };
+    plan.recheck_named_inputs()?;
+    plan.recheck_named_sdk()?;
+    write_last_plan_output(&plan)?;
+    execute_build(&plan, explain_rebuild, BuildTarget::Run, cancellation)?;
+    plan.recheck_named_inputs()?;
+    plan.recheck_named_sdk()?;
+    if releases_build_cache_lock_before_launch(kind, run_options) {
+        drop(lock);
+    }
+    execute_run(&plan, kind, run_options, dry_run, cancellation)
+}
+
+fn ensure_projection_client_plan(plan: &BuildPlan) -> eyre::Result<()> {
+    eyre::ensure!(plan.identity.development_target().is_some(), "client launch requires a development projection");
+    ensure_forge_gradle_execution_supported(plan)?;
+    plan.recheck_named_inputs()?;
+    plan.recheck_named_sdk()
+}
+
 pub(crate) fn invoke_development_project(
     project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,

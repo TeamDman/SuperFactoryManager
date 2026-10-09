@@ -65,6 +65,32 @@ sfm-propagate-changes --output-format json source project jar --repo-root . --pr
 
 These are separate alternatives, not two required steps. Release builds check existing generated outputs; synchronize them first if the check reports missing or stale files. Development builds can regenerate their declared ignored destination. Keep contributor edits in tracked release projections or authored templates, not disposable development outputs. Neither command launches Minecraft or runs GameTests. Inspect the returned build receipt rather than treating a preflight receipt as compilation evidence.
 
+### Launch a development client
+
+From the repository root:
+
+```powershell
+sfm-propagate-changes run client --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run client --projection sfm-dev/mc-1.19.2 --smoke
+```
+
+`run client` requires an exact projection key. The former `--branch` option is
+removed, not aliased. Use `--repo-root` to select another checkout. Otherwise,
+the command discovers the current Git root. The selected development catalog
+entry supplies the generated sources and dependency profile. The command uses
+the native Rust build pipeline and resolves its approved JDK automatically;
+`--java-home` remains available for an explicit compatible SDK.
+
+Runtime files and saves live under the selected projection's run directory.
+Existing saves in version-branch checkouts are not moved or reused. Development
+source outputs remain disposable; edit the core templates.
+
+This route currently admits Forge userdev development projections. NeoForm
+application launch and release-projection launch are not supported by this
+command. It fails rather than falling back to a version branch or Gradle.
+Other build and server commands have separate selectors; this change removes
+the branch selector specifically from `run client`.
+
 ### Review one feature at a time
 
 The current feature registry is `platform/minecraft/core-liquid-template/feature-definitions.json`. It declares supported targets and prerequisites. `project-inputs.json` in the same directory controls selected source, resource and build-file membership. Liquid conditions control the contents of selected text files. Disabling a feature must remove its registrations and references as well as its implementation.

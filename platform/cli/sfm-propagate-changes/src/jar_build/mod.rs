@@ -77,6 +77,7 @@ pub(crate) use engine::Repository;
 pub(crate) use engine::SourceBuildProvenance;
 pub(crate) use engine::SourceGitProvenance;
 pub(crate) use engine::WeakArtifactValidation;
+pub(crate) use engine::invoke_development_client;
 pub(crate) use engine::invoke_development_project;
 pub(crate) use engine::invoke_named_compile;
 pub(crate) use engine::invoke_named_jar;

@@ -207,23 +207,41 @@ mod tests {
     #[test]
     fn parses_top_level_run_clis() {
         assert_run_cli(&["run", "compile", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "client", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--text-editor"]);
-        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--input-diag"]);
+        assert_run_cli(&["run", "client", "--projection", "sfm-dev/mc-1.19.2"]);
         assert_run_cli(&[
             "run",
             "client",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
+            "--text-editor",
+        ]);
+        assert_run_cli(&[
+            "run",
+            "client",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
+            "--input-diag",
+        ]);
+        assert_run_cli(&[
+            "run",
+            "client",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--title-screen",
             "input-diag",
         ]);
-        assert_run_cli(&["run", "client", "--branch", "1.19.2", "--smoke"]);
         assert_run_cli(&[
             "run",
             "client",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
+            "--smoke",
+        ]);
+        assert_run_cli(&[
+            "run",
+            "client",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--puppet",
             "game_test_orbit_capture",
             "--game-test",
@@ -272,11 +290,12 @@ mod tests {
             ],
         ];
         for command in commands {
-            let command = command
-                .iter()
-                .copied()
-                .chain(["--branch", "1.19.2"])
-                .collect::<Vec<_>>();
+            let selector = if command.starts_with(&["run", "client"]) {
+                ["--projection", "sfm-dev/mc-1.19.2"]
+            } else {
+                ["--branch", "1.19.2"]
+            };
+            let command = command.iter().copied().chain(selector).collect::<Vec<_>>();
             let cli = figue::from_slice::<Cli>(&command)
                 .into_result()
                 .expect("explicit control CLI source root should parse")
@@ -1542,7 +1561,6 @@ mod tests {
     fn branch_is_required_for_commands_that_accept_branch() {
         let commands = [
             &["run", "compile"][..],
-            &["run", "client"],
             &["client", "launch"],
             &["jar", "plan"],
             &["jar", "build"],
@@ -1575,6 +1593,31 @@ mod tests {
                 "expected {command:?} to require --branch"
             );
         }
+    }
+
+    #[test]
+    fn client_launch_requires_projection_and_rejects_branch() {
+        assert!(figue::from_slice::<Cli>(&["run", "client"]).is_err());
+        assert!(figue::from_slice::<Cli>(&["run", "client", "--branch", "1.19.2"]).is_err());
+        assert!(
+            figue::from_slice::<Cli>(&[
+                "run",
+                "client",
+                "--projection",
+                "sfm-dev/mc-1.19.2",
+                "--branch",
+                "1.19.2"
+            ])
+            .is_err()
+        );
+        assert_run_cli(&[
+            "run",
+            "client",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
+            "--repo-root",
+            ".",
+        ]);
     }
 
     #[test]

@@ -620,7 +620,9 @@ fn execute_run(
     dry_run: bool,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
-    plan.require_legacy_branch()?;
+    if plan.identity.is_catalog_owned() {
+        ensure_projection_client_plan(plan)?;
+    }
     cancellation_token.bail_if_cancelled()?;
     if matches!(kind, RunKind::Test) {
         return execute_junit_tests(
@@ -2898,7 +2900,8 @@ fn run_launch_command(
     log_path: &Path,
     timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
-    plan.require_legacy_branch()?;
+    plan.recheck_named_inputs()?;
+    plan.recheck_named_sdk()?;
     cancellation_token.bail_if_cancelled()?;
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
@@ -2923,8 +2926,8 @@ fn run_launch_command(
         .stderr
         .take()
         .ok_or_else(|| eyre::eyre!("Failed to capture launch stderr"))?;
-    let stdout_branch = plan.require_legacy_branch()?.clone();
-    let stderr_branch = plan.require_legacy_branch()?.clone();
+    let stdout_branch = plan.target_label();
+    let stderr_branch = plan.target_label();
     let stdout_launch_log = launch_log.clone();
     let stderr_launch_log = launch_log.clone();
     let stdout_thread = thread::spawn(move || {
@@ -3809,6 +3812,8 @@ pub(crate) struct GamePuppetPreviewCamera {
 #[derive(Debug, Facet)]
 pub(crate) struct GamePuppetPreviewManifest {
     pub(crate) branch: String,
+    #[facet(default)]
+    pub(crate) projection: Option<String>,
     #[facet(rename = "minecraftVersion")]
     pub(crate) minecraft_version: String,
     #[facet(rename = "puppetSelection")]
@@ -3951,7 +3956,7 @@ fn publish_game_puppet_preview_artifacts(
     run_options: &RunOptions,
     launch_output: &str,
 ) -> eyre::Result<PathBuf> {
-    plan.require_legacy_branch()?;
+    plan.recheck_named_inputs()?;
     let staging_dir = working_dir.join("screenshots");
     if !staging_dir.is_dir() {
         eyre::bail!(
@@ -4679,9 +4684,10 @@ fn render_game_puppet_preview_manifest(
     terminal_artifacts: &[GamePuppetPreviewTerminalArtifact],
     data_artifacts: &[GamePuppetPreviewDataArtifact],
 ) -> eyre::Result<String> {
-    plan.require_legacy_branch()?;
+    plan.recheck_named_inputs()?;
     let manifest = GamePuppetPreviewManifest {
-        branch: plan.require_legacy_branch()?.as_ref().to_string(),
+        branch: plan.identity.legacy_branch().map_or_else(String::new, |branch| branch.as_str().to_owned()),
+        projection: plan.identity.development_target().map(|target| target.receipt.projection_key.clone()),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
         game_test: run_options.game_puppet_game_test.clone(),
@@ -4749,7 +4755,7 @@ fn render_game_puppet_preview_manifest(
 fn game_puppet_preview_source_identity(
     plan: &BuildPlan,
 ) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
-    plan.require_legacy_branch()?;
+    plan.recheck_named_inputs()?;
     let worktree = plan.repository_root().display().to_string();
     let git_revision = crate::git_read::head_revision(plan.repository_root())
         .unwrap_or_else(|_| "unavailable".to_string());
@@ -5332,6 +5338,7 @@ mod game_puppet_preview_tests {
         let hash = ContentHash::from_bytes(b"preview", ContentHashAlgorithm::Blake3);
         let manifest = GamePuppetPreviewManifest {
             branch: "1.19.2".to_string(),
+            projection: None,
             minecraft_version: "1.19.2".to_string(),
             puppet_selection: "move_1_stack_direct_walkthrough".to_string(),
             game_test: None,

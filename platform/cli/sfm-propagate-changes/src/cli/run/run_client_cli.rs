@@ -1,8 +1,5 @@
 use crate::cancellation::CancellationToken;
-use crate::cli::jar::JarBuildOptionsArgs;
-use crate::jar_build::BuildMode;
 use crate::jar_build::ClientTitleScreen;
-use crate::jar_build::RunCommand;
 use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
@@ -18,7 +15,7 @@ use std::path::PathBuf;
 pub struct RunClientArgs {
     /// Build and launch options.
     #[facet(flatten)]
-    pub options: JarBuildOptionsArgs,
+    pub options: ProjectionClientOptions,
     /// SFM checkout containing platform/cli/sfm to build with its existing lockfile. Also enables the worker in an interactive client.
     #[facet(default, args::named)]
     pub control_cli_source_root: Option<PathBuf>,
@@ -63,6 +60,72 @@ pub struct RunClientArgs {
     pub keep_open: Option<Option<String>>,
 }
 
+/// Native launch selection. A projection is never interpreted as a Git branch.
+#[derive(Facet, Debug, Clone)]
+pub struct ProjectionClientOptions {
+    /// Exact projection key from projections.json.
+    #[facet(args::named)]
+    pub projection: String,
+    /// Repository containing the core templates; defaults to the current Git root.
+    #[facet(default, args::named)]
+    pub repo_root: Option<PathBuf>,
+    /// Explicit compatible JDK; otherwise resolve the selected projection's SDK.
+    #[facet(default, args::named)]
+    pub java_home: Option<PathBuf>,
+    /// Explain native build cache decisions.
+    #[facet(default, args::named)]
+    pub explain_rebuild: bool,
+    /// Prepare the native launch without starting Minecraft.
+    #[facet(default, args::named)]
+    pub dry_run: bool,
+    /// Wait for this projection's build cache lock.
+    #[facet(default, args::named)]
+    pub wait_for_build_lock: bool,
+}
+
+impl ProjectionClientOptions {
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Owned CLI launch boundary matches the run adapters and retains cancellation for the synchronous launch lifetime"
+    )]
+    fn invoke(
+        self,
+        kind: RunKind,
+        run_options: RunOptions,
+        cancellation: CancellationToken,
+    ) -> eyre::Result<()> {
+        let invocation_dir = std::env::current_dir()?;
+        let root = match self.repo_root {
+            Some(path) => path,
+            None => gix::discover(&invocation_dir)?
+                .workdir()
+                .ok_or_else(|| eyre::eyre!("client launch requires a repository worktree"))?
+                .to_owned(),
+        };
+        let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+            &root,
+            &invocation_dir,
+            &self.projection,
+        )?;
+        let profile = crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
+        crate::source_projection::native_project_target::validate_collected_native_profile(
+            &collected, profile,
+        )?;
+        let checked = collected.prepare_development()?;
+        crate::jar_build::invoke_development_client(
+            checked,
+            profile,
+            self.java_home,
+            self.explain_rebuild,
+            self.wait_for_build_lock,
+            self.dry_run,
+            kind,
+            &run_options,
+            &cancellation,
+        )
+    }
+}
+
 impl RunClientArgs {
     /// # Errors
     ///
@@ -93,17 +156,26 @@ impl RunClientArgs {
             if text_editor || input_diag || title_screen.is_some() || solo {
                 eyre::bail!("--puppet cannot be combined with interactive client flags.");
             }
-            return super::invoke_game_puppet_with_hotswap(
-                options,
-                &puppet,
-                game_test,
-                width,
-                height,
-                "declared",
-                mute,
-                keep_open,
-                client_hotswap_port,
-                control_cli_source_root,
+            let puppet = puppet.trim();
+            eyre::ensure!(!puppet.is_empty(), "puppet selector must not be empty");
+            let (preview_width, preview_height) =
+                super::run_game_test_preview_cli::validate_viewport(width, height)?;
+            return options.invoke(
+                RunKind::GameTestPreview,
+                RunOptions {
+                    game_puppet_filter: Some(puppet.to_owned()),
+                    game_puppet_game_test: super::normalize_game_puppet_game_test(game_test)?,
+                    game_puppet_keep_open: crate::jar_build::GamePuppetKeepOpen::from_cli(
+                        keep_open,
+                    )?,
+                    game_puppet_viewport_selection: "declared".to_owned(),
+                    game_puppet_mute: mute,
+                    preview_width,
+                    preview_height,
+                    client_hotswap_port,
+                    control_cli_source_root,
+                    ..RunOptions::default()
+                },
                 cancellation_token,
             );
         }
@@ -121,16 +193,14 @@ impl RunClientArgs {
             {
                 eyre::bail!("--smoke cannot be combined with interactive or puppet-only flags.");
             }
-            return RunCommand::with_run_options(
-                options.into_options(BuildMode::Build)?,
+            return options.invoke(
                 RunKind::ClientSmoke,
                 RunOptions {
                     client_solo: solo,
                     ..RunOptions::default()
                 },
                 cancellation_token,
-            )
-            .invoke();
+            );
         }
         if width.is_some()
             || height.is_some()
@@ -143,8 +213,7 @@ impl RunClientArgs {
             );
         }
         let title_screen = resolve_title_screen(title_screen, text_editor, input_diag)?;
-        RunCommand::with_run_options(
-            options.into_options(BuildMode::Build)?,
+        options.invoke(
             RunKind::Client,
             RunOptions {
                 client_title_screen: title_screen,
@@ -155,7 +224,6 @@ impl RunClientArgs {
             },
             cancellation_token,
         )
-        .invoke()
     }
 }
 
