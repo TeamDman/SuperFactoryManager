@@ -4,6 +4,23 @@
 
 This tool is responsible for executing the git merge commands that apply changes to later versions of Minecraft.
 
+## Build and run projections
+
+From the SFM repository root:
+
+```pwsh
+sfm-propagate-changes source list --repo-root .
+sfm-propagate-changes run client --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run compile --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes jar build --projection sfm-4.34.0/mc-1.19.2
+sfm-propagate-changes game-test list --projection sfm-dev/mc-1.19.2
+```
+
+Shared build, run, test and puppet commands require `--projection`, with no
+`--branch` alias. Add `--repo-root` when targeting another checkout.
+See the [projection contributor guide](../../../docs/source-projection-contributor-guide.md)
+for hotswap, feature combinations and generated-source ownership.
+
 ## File hashes
 
 Use the built-in helper instead of installing a separate hashing executable:
@@ -37,7 +54,8 @@ For the complete acquisition, cache, and no-fetch source-search guide, see
 
 The maintained dependency intent and generated resolution checks live together in each branch's
 `platform/minecraft/sfm-toolchain.lock.json`. Use an explicit `--branch <Minecraft version>` for
-dependency, source, and run commands. Work on the oldest supported branch first; use the tool's
+dependency commands. Build, run and test commands instead require a catalog
+projection (see below). Work on the oldest supported branch first for dependency maintenance; use the tool's
 Git propagation workflow only after that branch's gates pass.
 
 Gradle is a compatibility consumer of this schema v3 lockfile. The Gradle scripts project locked

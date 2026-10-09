@@ -112,7 +112,7 @@ const DOWNLOAD_RETRY_ATTEMPTS: usize = 3;
     level = "info",
     skip_all,
     fields(
-        branch = %options.branch,
+        selection = ?options.selection,
         mode = ?options.mode,
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
@@ -127,6 +127,13 @@ pub(crate) fn invoke_build(
     options: &BuildOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    if matches!(options.selection, super::BuildSelection::Projection { .. }) {
+        return invoke_projection_operation(
+            options,
+            ProjectionOperation::Build,
+            cancellation_token,
+        );
+    }
     cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
@@ -152,7 +159,7 @@ pub(crate) fn invoke_build(
     level = "info",
     skip_all,
     fields(
-        branch = %options.branch,
+        selection = ?options.selection,
         kind = kind.command_name(),
         refresh = options.refresh,
         explain_rebuild = options.explain_rebuild,
@@ -169,6 +176,13 @@ pub(crate) fn invoke_run(
     run_options: &RunOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    if matches!(options.selection, super::BuildSelection::Projection { .. }) {
+        return invoke_projection_operation(
+            options,
+            ProjectionOperation::Run(kind, run_options),
+            cancellation_token,
+        );
+    }
     cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
@@ -198,6 +212,13 @@ pub(crate) fn invoke_source_catalog(
     query: &SourceCatalogQuery,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    if matches!(options.selection, super::BuildSelection::Projection { .. }) {
+        return invoke_projection_operation(
+            options,
+            ProjectionOperation::Catalog(query),
+            cancellation_token,
+        );
+    }
     cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
@@ -224,7 +245,7 @@ pub(crate) fn invoke_project_source_catalog(
     level = "info",
     skip_all,
     fields(
-        branch = %options.branch,
+        selection = ?options.selection,
         action = ?test_options.action,
         filter = test_options.filter.as_deref().unwrap_or(""),
         no_capture = test_options.no_capture,
@@ -242,6 +263,13 @@ pub(crate) fn invoke_run_test(
     test_options: &RunTestOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    if matches!(options.selection, super::BuildSelection::Projection { .. }) {
+        return invoke_projection_operation(
+            options,
+            ProjectionOperation::Test(test_options),
+            cancellation_token,
+        );
+    }
     cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(options)?;
     cancellation_token.bail_if_cancelled()?;
@@ -266,7 +294,7 @@ pub(crate) fn invoke_run_test(
     level = "info",
     skip_all,
     fields(
-        branch = %options.build.branch,
+        selection = ?options.build.selection,
         layout = %options.layout,
         refresh = options.build.refresh,
         explain_rebuild = options.build.explain_rebuild,
@@ -670,11 +698,10 @@ fn execute_run_target(
     }
     if run_options.game_test_bisect.is_some() {
         execute_game_test_bisect(
-            &plan,
+            &ExecutionContext::new(&plan, cancellation_token.clone())?,
             kind,
             run_options,
             options.dry_run,
-            cancellation_token,
         )?;
     } else {
         execute_run(
@@ -2282,6 +2309,7 @@ include!("engine_named_jar.rs");
 include!("engine_catalog_release_packaging.rs");
 include!("engine_named_sdk_launch.rs");
 include!("engine_plan.rs");
+include!("engine_projection_operation.rs");
 include!("engine_run.rs");
 include!("engine_execute.rs");
 include!("engine_specialsource_launch.rs");

@@ -82,8 +82,10 @@ For a compact PowerShell listing:
     Select-Object projection_key, minecraft_version, environment
 ```
 
-`run client` requires an exact projection key. The former `--branch` option is
-removed, not aliased. Use `--repo-root` to select another checkout. Otherwise,
+`jar build/plan`, `run`, `test`, `game-test` and `puppet` commands require
+`--projection`. Use an exact catalog key or a quoted glob such as `'sfm-dev/*'`.
+Hotswap and artifact lookup require exactly one match. The former `--branch`
+option is removed, not aliased. Use `--repo-root` to select another checkout. Otherwise,
 the command discovers the current Git root. The selected catalog entry supplies
 the generated sources. Development entries use their dependency profile;
 previous-release entries retain their original pinned dependency recipe. The command uses
@@ -99,8 +101,31 @@ ownership of its prepared inputs through launch; its held-input adapter currentl
 requires Windows. Release outputs must match
 their templates; the launch command does not overwrite contributor edits.
 It never falls back to a version branch or Gradle.
-Other build and server commands have separate selectors; this change removes
-the branch selector specifically from `run client`.
+Genuine Git branch operations keep their branch selectors. Dependency editing,
+publishing and managed-installation commands are separate from this cutover.
+
+### Compile, test and hotswap a projection
+
+Run these from the repository root:
+
+```powershell
+sfm-propagate-changes jar build --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run compile --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes test list --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes test run --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes game-test list --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run server --projection sfm-dev/mc-1.19.2
+sfm-propagate-changes run data --projection sfm-dev/mc-1.19.2
+```
+
+For hotswap, start `run client --projection sfm-dev/mc-1.19.2 --hotswap`.
+Edit the core templates, then run
+`run hotswap --projection sfm-dev/mc-1.19.2` in another terminal.
+Compilation and class lookup use the selected projection's completed build plan.
+The client must expose the matching JDWP port; use `--port` for a non-default port.
+
+Puppet artifact directories and matrix entries are keyed by projection, so two
+feature combinations for the same Minecraft version do not share captures.
 
 `--dry-run` prepares the complete runtime without opening Minecraft. It still
 compiles sources and acquires missing pinned inputs. `--smoke` requires the

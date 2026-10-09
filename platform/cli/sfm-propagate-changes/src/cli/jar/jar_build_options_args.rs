@@ -1,6 +1,6 @@
-use crate::cli::jar::BranchSelector;
 use crate::jar_build::BuildMode;
 use crate::jar_build::BuildOptions;
+use crate::jar_build::BuildSelection;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::Parallelism;
 use facet::Facet;
@@ -14,9 +14,13 @@ use std::path::PathBuf;
     reason = "This type is a thin CLI flag container; each bool maps directly to a named flag."
 )]
 pub struct JarBuildOptionsArgs {
-    /// Branch selector to build.
+    /// Projection key or glob from projections.json.
     #[facet(args::named)]
-    pub branch: BranchSelector,
+    pub projection: String,
+
+    /// Repository containing the core templates; defaults to the current Git root.
+    #[facet(default, args::named)]
+    pub repo_root: Option<PathBuf>,
 
     /// Ignore reusable SFM-owned cache state and recompute resolved metadata.
     #[facet(default = false, args::named)]
@@ -58,7 +62,7 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub parallel: Option<Option<usize>>,
 
-    /// Wait for another SFM build/run using the same branch build cache instead of failing fast.
+    /// Wait for another SFM build/run using the same projection cache instead of failing fast.
     #[facet(default = false, args::named)]
     pub wait_for_build_lock: bool,
 }
@@ -66,7 +70,10 @@ pub struct JarBuildOptionsArgs {
 impl JarBuildOptionsArgs {
     pub(crate) fn into_options(self, mode: BuildMode) -> eyre::Result<BuildOptions> {
         Ok(BuildOptions {
-            branch: self.branch.into_query()?,
+            selection: BuildSelection::Projection {
+                selector: self.projection,
+                repo_root: self.repo_root,
+            },
             refresh: self.refresh,
             explain_rebuild: self.explain_rebuild,
             plan_json: self.plan_json,

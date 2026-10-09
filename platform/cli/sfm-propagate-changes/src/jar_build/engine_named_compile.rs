@@ -646,12 +646,6 @@ impl BuildPlan {
         }
     }
 
-    fn require_legacy_branch(&self) -> eyre::Result<&BranchName> {
-        self.identity.legacy_branch().ok_or_else(|| eyre::eyre!(
-            "catalog-owned target currently supports native Compile only; branch launch/JUnit/puppet paths are not authorized"
-        ))
-    }
-
     fn recheck_named_inputs(&self) -> eyre::Result<()> {
         self.identity.recheck()
     }

@@ -1,6 +1,4 @@
-use crate::branch_targets::select_single_worktree_target;
-use crate::cli::jar::BranchSelector;
-use crate::jar_build::game_puppet_preview_artifact_root;
+use crate::jar_build::projection_preview_artifact_root;
 use crate::terminal_output::stdout_line;
 use eyre::Context;
 use facet::Facet;
@@ -27,30 +25,41 @@ pub enum PuppetArtifactsCommand {
 
 #[derive(Facet, Debug)]
 pub struct PuppetArtifactsPathArgs {
-    /// Branch selector that must identify exactly one worktree with existing preview artifacts.
+    /// Projection selector that must identify exactly one project with existing preview artifacts.
     #[facet(args::named)]
-    pub branch: BranchSelector,
+    pub projection: String,
+    #[facet(default, args::named)]
+    pub repo_root: Option<PathBuf>,
 }
 
 #[derive(Facet, Debug)]
 pub struct PuppetArtifactsOpenArgs {
-    /// Branch selector that must identify exactly one worktree with existing preview artifacts.
+    /// Projection selector that must identify exactly one project with existing preview artifacts.
     #[facet(args::named)]
-    pub branch: BranchSelector,
+    pub projection: String,
+    #[facet(default, args::named)]
+    pub repo_root: Option<PathBuf>,
 }
 
 impl PuppetArtifactsArgs {
     /// # Errors
     ///
-    /// Returns an error if the branch does not select exactly one worktree, or
-    /// if that worktree has no complete preview artifact root.
+    /// Returns an error if the projection does not select exactly one project, or
+    /// if that project has no complete preview artifact root.
     pub fn invoke(self) -> eyre::Result<()> {
         match self.command {
-            PuppetArtifactsCommand::Path(args) => {
-                stdout_line(resolve_existing_preview_artifact_root(args.branch)?.display())
-            }
+            PuppetArtifactsCommand::Path(args) => stdout_line(
+                resolve_existing_preview_artifact_root(
+                    &args.projection,
+                    args.repo_root.as_deref(),
+                )?
+                .display(),
+            ),
             PuppetArtifactsCommand::Open(args) => {
-                let artifact_root = resolve_existing_preview_artifact_root(args.branch)?;
+                let artifact_root = resolve_existing_preview_artifact_root(
+                    &args.projection,
+                    args.repo_root.as_deref(),
+                )?;
                 open::that(&artifact_root).wrap_err_with(|| {
                     format!(
                         "Failed to open game-puppet preview artifacts at {}",
@@ -62,12 +71,20 @@ impl PuppetArtifactsArgs {
     }
 }
 
-fn resolve_existing_preview_artifact_root(branch: BranchSelector) -> eyre::Result<PathBuf> {
-    let selector = branch.to_string();
-    let query = branch.into_query()?;
-    let target = select_single_worktree_target(&query)?;
-    let artifact_root = game_puppet_preview_artifact_root(target.worktree_path.as_path());
-    require_complete_preview_artifact_root(&artifact_root, &selector)?;
+fn resolve_existing_preview_artifact_root(
+    selector: &str,
+    repo_root: Option<&Path>,
+) -> eyre::Result<PathBuf> {
+    let (root, keys) =
+        crate::jar_build::projection_selection::select_projections(repo_root, selector)?;
+    eyre::ensure!(
+        keys.len() == 1,
+        "artifact lookup requires exactly one projection"
+    );
+    let artifact_root = projection_preview_artifact_root(
+        &root.join("platform/minecraft/projections").join(&keys[0]),
+    );
+    require_complete_preview_artifact_root(&artifact_root, selector)?;
     Ok(artifact_root)
 }
 
@@ -77,7 +94,7 @@ fn require_complete_preview_artifact_root(
 ) -> eyre::Result<()> {
     if !artifact_root.is_dir() {
         eyre::bail!(
-            "No game-puppet preview artifacts exist for --branch '{selector}' at {}. Run `puppet run <puppet> --branch {selector}` first.",
+            "No game-puppet preview artifacts exist for --projection '{selector}' at {}. Run `puppet run <puppet> --projection {selector}` first.",
             artifact_root.display()
         );
     }
@@ -85,7 +102,7 @@ fn require_complete_preview_artifact_root(
     let manifest = artifact_root.join("preview-manifest.json");
     if !manifest.is_file() {
         eyre::bail!(
-            "Game-puppet preview artifacts for --branch '{selector}' are incomplete: {} is missing.",
+            "Game-puppet preview artifacts for --projection '{selector}' are incomplete: {} is missing.",
             manifest.display()
         );
     }
@@ -95,18 +112,18 @@ fn require_complete_preview_artifact_root(
 #[cfg(test)]
 mod tests {
     use super::require_complete_preview_artifact_root;
-    use crate::jar_build::game_puppet_preview_artifact_root;
+    use crate::jar_build::projection_preview_artifact_root;
     use std::fs;
     use tempfile::tempdir;
 
     #[test]
     fn preview_artifact_root_uses_the_run_pipeline_location() {
-        let worktree = tempdir().expect("temporary worktree");
+        let project = tempdir().expect("temporary project");
         assert_eq!(
-            game_puppet_preview_artifact_root(worktree.path()),
-            worktree
+            projection_preview_artifact_root(project.path()),
+            project
                 .path()
-                .join("platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview")
+                .join("build/sfm-toolchain/artifacts/game-test-preview")
         );
     }
 

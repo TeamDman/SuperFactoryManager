@@ -3817,7 +3817,7 @@ fn minimal_plan_for_paths() -> BuildPlan {
 
 fn test_build_options(parallelism: Parallelism) -> BuildOptions {
     BuildOptions {
-        branch: BranchQuery::default(),
+        selection: super::super::BuildSelection::Worktree(BranchQuery::default()),
         refresh: false,
         explain_rebuild: false,
         plan_json: None,

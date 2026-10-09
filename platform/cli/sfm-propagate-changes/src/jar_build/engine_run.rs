@@ -380,12 +380,13 @@ fn run_state_dir(plan: &BuildPlan, kind: RunKind) -> PathBuf {
     reason = "The bisection loop is easier to audit when the target/subset/complement flow stays together."
 )]
 fn execute_game_test_bisect(
-    plan: &BuildPlan,
+    context: &ExecutionContext<'_>,
     kind: RunKind,
     run_options: &RunOptions,
     dry_run: bool,
-    cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    let plan = context.plan;
+    let cancellation_token = &context.cancellation_token;
     if !matches!(kind, RunKind::GameTestServer) {
         eyre::bail!("Game-test bisection is only supported for runGameTestServer.");
     }
@@ -415,7 +416,7 @@ fn execute_game_test_bisect(
     let baseline_selection =
         initial_game_test_bisect_selection(&target, run_options.game_test_filter.as_deref());
     let baseline = run_game_test_bisect_attempt(
-        plan,
+        context,
         kind,
         run_options,
         baseline_selection.as_deref(),
@@ -446,7 +447,7 @@ fn execute_game_test_bisect(
 
     let target_only_selection = exact_game_test_selection(&target, &[]);
     let target_only = run_game_test_bisect_attempt(
-        plan,
+        context,
         kind,
         run_options,
         Some(&target_only_selection),
@@ -500,7 +501,7 @@ fn execute_game_test_bisect(
             }
             let selection = exact_game_test_selection(&target, subset);
             let attempt = run_game_test_bisect_attempt(
-                plan,
+                context,
                 kind,
                 run_options,
                 Some(&selection),
@@ -537,7 +538,7 @@ fn execute_game_test_bisect(
             }
             let selection = exact_game_test_selection(&target, &complement);
             let attempt = run_game_test_bisect_attempt(
-                plan,
+                context,
                 kind,
                 run_options,
                 Some(&selection),
@@ -1062,10 +1063,6 @@ const JUNIT_EVENT_PREFIX: &str = "SFM_JUNIT\t";
 const JUNIT_EVENT_RUNNER_MAIN_CLASS: &str = "dev.teamdman.sfm.toolchain.SfmJUnitRunner";
 const JUNIT_EVENT_RUNNER_SOURCE: &str = include_str!("junit_event_runner.java");
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "JUnit execution mirrors the run setup flow while avoiding Gradle."
-)]
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -1084,9 +1081,22 @@ fn execute_junit_tests(
     test_options: &RunTestOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
-    plan.require_legacy_branch()?;
     cancellation_token.bail_if_cancelled()?;
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
+    execute_junit_tests_with_context(&context, dry_run, test_options)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "JUnit execution mirrors the run setup flow while avoiding Gradle."
+)]
+fn execute_junit_tests_with_context(
+    context: &ExecutionContext<'_>,
+    dry_run: bool,
+    test_options: &RunTestOptions,
+) -> eyre::Result<()> {
+    let plan = context.plan;
+    plan.recheck_named_inputs()?;
     let project_root = plan.cache_dir.join("project");
     let classes_dir = project_root.join("classes");
     let staged_resources_dir = project_root.join("staged-resources");
@@ -1120,11 +1130,11 @@ fn execute_junit_tests(
     )?;
     context.bail_if_cancelled()?;
 
-    let antlr_classpath = resolve_antlr_classpath(&context, &locked_resolver)?;
+    let antlr_classpath = resolve_antlr_classpath(context, &locked_resolver)?;
     let base_classpath =
-        resolve_project_compile_classpath(&context, &locked_resolver, &antlr_classpath)?;
+        resolve_project_compile_classpath(context, &locked_resolver, &antlr_classpath)?;
     let test_compile_dependencies =
-        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Compile)?;
+        resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Compile)?;
     context.bail_if_cancelled()?;
 
     let mut test_compile_classpath = base_classpath.clone();
@@ -1134,7 +1144,7 @@ fn execute_junit_tests(
     let mut upstream_fingerprint_paths = vec![classes_dir.clone(), staged_resources_dir.clone()];
     upstream_fingerprint_paths.extend(test_compile_classpath.iter().cloned());
     let upstream_fingerprint = input_fingerprint(
-        &context,
+        context,
         "javac-test-upstream",
         &upstream_fingerprint_paths,
         &[
@@ -1147,7 +1157,7 @@ fn execute_junit_tests(
     let started = Instant::now();
     tracing::info!("Build node compile-test: start");
     compile_optional_java_source_set(
-        &context,
+        context,
         "test",
         &test_compile_classpath,
         &classes_dir,
@@ -1155,7 +1165,7 @@ fn execute_junit_tests(
         &upstream_fingerprint,
     )
     .wrap_err("Failed to compile test source set")?;
-    stage_optional_resource_source_set(&context, "test", &test_resources_dir, &[])
+    stage_optional_resource_source_set(context, "test", &test_resources_dir, &[])
         .wrap_err("Failed to stage test resources")?;
     tracing::info!(
         "Build node compile-test: done in {} ms",
@@ -1178,8 +1188,8 @@ fn execute_junit_tests(
     }
 
     let test_runtime_dependencies =
-        resolve_test_dependency_classpath(&context, &test_resolver, TestClasspathKind::Runtime)?;
-    let console_launcher = resolve_junit_console_standalone(&context, &test_resolver)?.cache_path;
+        resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Runtime)?;
+    let console_launcher = resolve_junit_console_standalone(context, &test_resolver)?.cache_path;
     context.bail_if_cancelled()?;
 
     // The transformed compile jar intentionally omits vanilla resources. Plain
@@ -1187,7 +1197,7 @@ fn execute_junit_tests(
     // formats its first translated error, even without a Minecraft client.
     // Reuse the locked resource-only runtime jar, never the obfuscated client
     // jar (which would introduce a competing set of Minecraft classes).
-    let minecraft_resources = ensure_client_extra_jar(&context)?;
+    let minecraft_resources = ensure_client_extra_jar(context)?;
     let test_runtime_classpath = build_junit_runtime_classpath(
         &project_root,
         minecraft_resources,
@@ -1199,7 +1209,7 @@ fn execute_junit_tests(
 
     let runtime_classpath_file = run_state_dir.join("testRuntimeClasspath.txt");
     write_classpath_file(&runtime_classpath_file, &test_runtime_classpath)?;
-    let runner_classes_dir = compile_junit_event_runner(&context, &console_launcher)?;
+    let runner_classes_dir = compile_junit_event_runner(context, &console_launcher)?;
     let argfile = run_state_dir.join("junit.java.args");
     let test_source_root = plan.minecraft_dir.join("src").join("test").join("java");
     write_junit_runner_argfile(
@@ -2469,7 +2479,7 @@ fn apply_client_title_screen_property(
     reason = "The attempt runner carries explicit bisect context for clear trace/log labels."
 )]
 fn run_game_test_bisect_attempt(
-    plan: &BuildPlan,
+    context: &ExecutionContext<'_>,
     kind: RunKind,
     base_run_options: &RunOptions,
     selection: Option<&str>,
@@ -2478,6 +2488,8 @@ fn run_game_test_bisect_attempt(
     run_count: &mut usize,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<GameTestBisectAttempt> {
+    let plan = context.plan;
+    cancellation_token.bail_if_cancelled()?;
     *run_count += 1;
     let run_number = *run_count;
     let attempt_options = RunOptions {
@@ -2490,7 +2502,7 @@ fn run_game_test_bisect_attempt(
         selection.unwrap_or("(all SFM game tests)")
     );
 
-    let launch_result = execute_run(plan, kind, &attempt_options, false, cancellation_token);
+    let launch_result = execute_run_with_context(context, kind, &attempt_options, false);
     let launch_error = launch_result
         .as_ref()
         .err()
@@ -3977,7 +3989,11 @@ fn publish_game_puppet_preview_artifacts(
             staging_dir.display()
         );
     }
-    let artifact_root = game_puppet_preview_artifact_root(plan.repository_root());
+    let artifact_root = if plan.identity.is_catalog_owned() {
+        super::projection_preview_artifact_root(&plan.minecraft_dir)
+    } else {
+        game_puppet_preview_artifact_root(plan.repository_root())
+    };
     fs::create_dir_all(&artifact_root)
         .wrap_err_with(|| format!("Failed to create {}", artifact_root.display()))?;
     let (_preview_run_id, preview_run_root) = create_game_puppet_preview_run_root(

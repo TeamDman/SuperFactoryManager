@@ -1,6 +1,47 @@
 # Native projection client launch
 
-Status: all-projection launch extension complete, 9 October 2026.
+Status: shared build/run/test cutover active, 9 October 2026.
+
+## Shared command cutover
+
+The next user request extends projection selection to the shared build/run/test
+surfaces, including hotswap. There must be no CLI `--branch` alternative on
+these commands. Genuine Git branch operations remain unchanged.
+
+Intent audit: extracted shared build, run, tests, hotswap and full rejection of
+legacy selection; mapped them to the tasks below; checked that internal cache,
+discovery and artifact selection must migrate too, not just argument spelling.
+Publishing, managed installations and dependency-edit commands remain separate.
+
+### [x] Unify shared selection and execution
+
+Shared arguments now select exact catalog keys or globs, with no branch alias.
+The executor retains checked release/development ownership and held NeoForm
+inputs through Java tests and GameTest bisection. Hotswap reads its classes and
+SDK from the completed projection build plan. Hotswap-enabled clients release
+the build lock before launch. Puppet matrices use schema 2 with projection keys;
+preview roots and diagnostic logs are separate for each projection.
+
+Migrate jar build/plan, compile/server/data, Java tests, GameTest discovery and
+execution, puppet discovery/execution/matrices/artifacts, and hotswap. Retain
+projection ownership through NeoForm and JUnit. Hotswap must compile into and
+read the selected projection cache, including while its client is running.
+Use exact keys or explicit catalog globs; reject unmatched selectors.
+
+### [~] Verify and install the shared cutover
+
+The Rust library and integration phase passed: 1,800 active tests, 22 ignored,
+68.156 seconds after compilation. New tests cover 21 parser forms, reject
+legacy flags, resolve exact/glob keys, read hotswap cache identity and keep
+same-version feature captures separate. Bin/doc tests passed. The final
+default-feature build and runtime checks are pending; PATH still has the
+previous client-only cutover. One earlier gate failed on an obsolete
+stop-after parser fixture using `jar build --branch`; it is corrected.
+
+Parser tests must accept projections and reject branches on every migrated
+surface. Check representative compile/test/server/datagen preparation, source
+discovery, artifact isolation and hotswap. Run check-all, install the final
+CLI, and record precisely which runtime checks ran. Dependencies stay frozen.
 
 ## Expanded acceptance contract
 

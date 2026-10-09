@@ -91,7 +91,7 @@ pub enum Command {
     Modrinth(super::modrinth::ModrinthArgs),
     /// Jar directory and release artifact related commands
     Jar(super::jar::JarArgs),
-    /// Build and launch Forge userdev run configs
+    /// Build and launch catalog projections with their native loader
     Run(super::run::RunArgs),
     /// Discover and run SFM `GameTests`
     GameTest(super::game_test::GameTestArgs),
@@ -205,8 +205,52 @@ mod tests {
     }
 
     #[test]
+    fn shared_build_run_test_surfaces_require_projection_and_reject_branch() {
+        let surfaces: &[&[&str]] = &[
+            &["jar", "build"],
+            &["jar", "plan"],
+            &["run", "compile"],
+            &["run", "client"],
+            &["run", "server"],
+            &["run", "data"],
+            &["run", "hotswap"],
+            &["test", "run"],
+            &["test", "list"],
+            &["test", "show", "example"],
+            &["test", "run", "list"],
+            &["game-test", "list"],
+            &["game-test", "show", "example"],
+            &["game-test", "run-client"],
+            &["game-test", "run-server"],
+            &["puppet", "list"],
+            &["puppet", "show", "example"],
+            &["puppet", "run", "example"],
+            &["puppet", "matrix", "example"],
+            &["puppet", "artifacts", "path"],
+            &["puppet", "artifacts", "open"],
+        ];
+        for surface in surfaces {
+            let mut args = surface.to_vec();
+            assert!(
+                figue::from_slice::<Cli>(&args).into_result().is_err(),
+                "{surface:?}"
+            );
+            args.extend(["--projection", "sfm-dev/mc-1.19.2"]);
+            assert!(
+                figue::from_slice::<Cli>(&args).into_result().is_ok(),
+                "{surface:?}"
+            );
+            args.extend(["--branch", "1.19.2"]);
+            assert!(
+                figue::from_slice::<Cli>(&args).into_result().is_err(),
+                "{surface:?}"
+            );
+        }
+    }
+
+    #[test]
     fn parses_top_level_run_clis() {
-        assert_run_cli(&["run", "compile", "--branch", "1.19.2"]);
+        assert_run_cli(&["run", "compile", "--projection", "sfm-dev/mc-1.19.2"]);
         assert_run_cli(&["run", "client", "--projection", "sfm-dev/mc-1.19.2"]);
         assert_run_cli(&[
             "run",
@@ -247,8 +291,8 @@ mod tests {
             "--game-test",
             "sfm:move_1_stack_direct",
         ]);
-        assert_run_cli(&["run", "server", "--branch", "1.19.2"]);
-        assert_run_cli(&["run", "data", "--branch", "1.19.2"]);
+        assert_run_cli(&["run", "server", "--projection", "sfm-dev/mc-1.19.2"]);
+        assert_run_cli(&["run", "data", "--projection", "sfm-dev/mc-1.19.2"]);
     }
 
     #[test]
@@ -293,7 +337,7 @@ mod tests {
             let selector = if command.starts_with(&["run", "client"]) {
                 ["--projection", "sfm-dev/mc-1.19.2"]
             } else {
-                ["--branch", "1.19.2"]
+                ["--projection", "sfm-dev/mc-1.19.2"]
             };
             let command = command.iter().copied().chain(selector).collect::<Vec<_>>();
             let cli = figue::from_slice::<Cli>(&command)
@@ -370,8 +414,8 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "test",
             "run",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--filter",
             "lavaSearch",
             "--no-capture",
@@ -399,8 +443,8 @@ mod tests {
         let game_test_server = figue::from_slice::<Cli>(&[
             "game-test",
             "run-server",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--filter",
             "wither_aggro_*",
         ])
@@ -419,8 +463,8 @@ mod tests {
         let client_puppet = figue::from_slice::<Cli>(&[
             "game-test",
             "run-client",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--filter",
             "sfm:wither_aggro_*,sfm:tough_cable_*",
         ])
@@ -442,8 +486,8 @@ mod tests {
         let game_test_preview = figue::from_slice::<Cli>(&[
             "puppet",
             "run",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "game_test_orbit_capture",
             "--game-test",
             "sfm:move_1_stack_direct",
@@ -472,8 +516,8 @@ mod tests {
         let default_muted_puppet = figue::from_slice::<Cli>(&[
             "puppet",
             "run",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "title_screen_capture",
         ])
         .into_result()
@@ -486,11 +530,16 @@ mod tests {
             command => panic!("expected puppet run command, got {command:?}"),
         }
 
-        let puppet_artifacts_path =
-            figue::from_slice::<Cli>(&["puppet", "artifacts", "path", "--branch", "1.19.2"])
-                .into_result()
-                .expect("puppet artifact path arguments should parse")
-                .get_silent();
+        let puppet_artifacts_path = figue::from_slice::<Cli>(&[
+            "puppet",
+            "artifacts",
+            "path",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
+        ])
+        .into_result()
+        .expect("puppet artifact path arguments should parse")
+        .get_silent();
         match puppet_artifacts_path.command {
             Command::Puppet(crate::cli::puppet::PuppetArgs {
                 command:
@@ -501,7 +550,7 @@ mod tests {
                         },
                     ),
             }) => {
-                assert_eq!(args.branch.to_string(), "1.19.2");
+                assert_eq!(args.projection.to_string(), "sfm-dev/mc-1.19.2");
             }
             command => panic!("expected puppet artifacts path command, got {command:?}"),
         }
@@ -510,8 +559,8 @@ mod tests {
             "puppet",
             "matrix",
             "move_1_stack_direct_walkthrough",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--parallel",
             "1",
         ])
@@ -528,7 +577,7 @@ mod tests {
                     ),
             }) => {
                 assert_eq!(puppet, "move_1_stack_direct_walkthrough");
-                assert_eq!(options.branch.to_string(), "1.19.2");
+                assert_eq!(options.projection.to_string(), "sfm-dev/mc-1.19.2");
                 assert_eq!(options.parallel, Some(Some(1)));
             }
             command => panic!("expected puppet matrix command, got {command:?}"),
@@ -540,7 +589,7 @@ mod tests {
         let bare = figue::from_slice::<Cli>(&[
             "game-test",
             "run-client",
-            "--branch",
+            "--projection",
             "core",
             "--keep-open",
         ])
@@ -564,7 +613,7 @@ mod tests {
         let valued = figue::from_slice::<Cli>(&[
             "game-test",
             "run-client",
-            "--branch",
+            "--projection",
             "core",
             "--keep-open",
             "5m",
@@ -591,7 +640,7 @@ mod tests {
         let numeric_seconds = figue::from_slice::<Cli>(&[
             "game-test",
             "run-client",
-            "--branch",
+            "--projection",
             "core",
             "--keep-open",
             "90",
@@ -618,8 +667,8 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "game-test",
             "run-server",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--filter",
             "sfm:*",
             "bisect",
@@ -694,8 +743,8 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "jar",
             "build",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--dry-run",
             "--artifact-source",
             "G:/Programming/Repos/Mekanism",
@@ -714,7 +763,9 @@ mod tests {
                     .into_options(BuildMode::Build)
                     .expect("branch query should parse");
                 assert!(options.dry_run);
-                assert_eq!(options.branch.to_string(), "1.19.2");
+                assert!(
+                    matches!(options.selection, crate::jar_build::BuildSelection::Projection { ref selector, .. } if selector == "sfm-dev/mc-1.19.2")
+                );
                 assert_eq!(options.error_action, ErrorAction::Bail);
                 assert_eq!(options.artifact_sources.len(), 2);
                 assert_eq!(
@@ -736,7 +787,7 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "jar",
             "build",
-            "--branch",
+            "--projection",
             "core",
             "--parallel",
             "4",
@@ -763,7 +814,7 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "game-test",
             "run-server",
-            "--branch",
+            "--projection",
             "core",
             "--parallel",
             "--dry-run",
@@ -794,7 +845,7 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "run",
             "compile",
-            "--branch",
+            "--projection",
             "core",
             "--wait-for-build-lock",
         ])
@@ -973,7 +1024,7 @@ mod tests {
     #[test]
     fn rejects_zero_parallelism() {
         let cli =
-            figue::from_slice::<Cli>(&["jar", "build", "--branch", "core", "--parallel", "0"])
+            figue::from_slice::<Cli>(&["jar", "build", "--projection", "core", "--parallel", "0"])
                 .into_result()
                 .expect("zero parallel syntax should parse before domain validation")
                 .get_silent();
@@ -995,7 +1046,7 @@ mod tests {
         let cli = figue::from_slice::<Cli>(&[
             "jar",
             "build",
-            "--branch",
+            "--projection",
             "core",
             "--error-action",
             "continue",
@@ -1047,7 +1098,7 @@ mod tests {
             figue::from_slice::<Cli>(&[
                 "jar",
                 "build",
-                "--branch",
+                "--projection",
                 "core",
                 "--error-action",
                 "explode",
@@ -1560,10 +1611,7 @@ mod tests {
     #[test]
     fn branch_is_required_for_commands_that_accept_branch() {
         let commands = [
-            &["run", "compile"][..],
-            &["client", "launch"],
-            &["jar", "plan"],
-            &["jar", "build"],
+            &["client", "launch"][..],
             &["jar", "compare"],
             &["jar", "audit-artifacts"],
             &["dependency", "migrate"],
@@ -1847,10 +1895,10 @@ mod tests {
             "jar",
             "build",
             "--dry-run",
-            "--branch",
-            "1.19.2",
+            "--projection",
+            "sfm-dev/mc-1.19.2",
             "--stop-after",
-            "create_plan_for_target{branch=1.19.2}",
+            "create_plan_for_project",
         ])
         .into_result()
         .expect("jar build with stop-after should parse")
@@ -1858,7 +1906,7 @@ mod tests {
         let logging = cli.logging_config().expect("logging config should build");
         assert_eq!(
             logging.stop_after.as_deref(),
-            Some("create_plan_for_target{branch=1.19.2}")
+            Some("create_plan_for_project")
         );
     }
 

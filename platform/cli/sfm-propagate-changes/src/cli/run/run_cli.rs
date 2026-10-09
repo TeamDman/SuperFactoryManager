@@ -24,7 +24,7 @@ impl RunArgs {
     }
 }
 
-/// Build Rust-owned project outputs and launch a Forge userdev run config.
+/// Build and run catalog projections with their native loader.
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum RunCommand {
@@ -32,9 +32,9 @@ pub enum RunCommand {
     Compile(RunCompileArgs),
     /// Launch a development or release projection with its native loader
     Client(RunClientArgs),
-    /// Launch the Forge server userdev run config
+    /// Launch the projection's server run config
     Server(RunServerArgs),
-    /// Launch the Forge datagen userdev run config
+    /// Launch the projection's datagen run config
     Data(RunDataArgs),
     /// Compile changed classes and hotswap them into a running JDWP-enabled client
     Hotswap(RunHotswapArgs),

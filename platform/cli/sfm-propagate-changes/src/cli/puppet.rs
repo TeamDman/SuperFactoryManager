@@ -31,7 +31,7 @@ pub enum PuppetCommand {
     Show(PuppetShowArgs),
     /// Locate or open existing game-puppet preview artifacts.
     Artifacts(PuppetArtifactsArgs),
-    /// Run selected puppets across branches and collect a durable preview matrix.
+    /// Run selected puppets across projections and collect a durable preview matrix.
     Matrix(PuppetMatrixArgs),
 }
 
@@ -68,14 +68,14 @@ pub struct PuppetRunArgs {
 
 #[derive(Facet, Debug)]
 pub struct PuppetCatalogArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
 }
 
 #[derive(Facet, Debug)]
 pub struct PuppetShowArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
     /// Canonical `sfm:<name>` puppet id.

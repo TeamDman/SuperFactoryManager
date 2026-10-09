@@ -1,7 +1,4 @@
-use crate::branch_targets::WorktreeTarget;
-use crate::branch_targets::select_required_worktree_targets;
 use crate::cancellation::CancellationToken;
-use crate::cli::jar::BranchSelector;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::cli::run::invoke_game_puppet;
 use crate::cli::run::normalize_game_puppet_game_test;
@@ -10,10 +7,10 @@ use crate::jar_build::GamePuppetPreviewManifest;
 use crate::jar_build::GamePuppetPreviewVariantObservation;
 use crate::jar_build::GamePuppetPreviewViewportCrop;
 use crate::jar_build::Parallelism;
-use crate::jar_build::game_puppet_preview_artifact_root;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::jar_build::png_dimensions;
+use crate::jar_build::projection_preview_artifact_root;
 use crate::terminal_output::stdout_line;
 use chrono::Local;
 use eyre::Context;
@@ -26,10 +23,16 @@ use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 
-/// Run a game puppet on multiple version worktrees and collect validated copies.
+struct ProjectionMatrixSelection {
+    projection: String,
+    project_root: PathBuf,
+    mc_version: Option<String>,
+}
+
+/// Run a game puppet on multiple version projects and collect validated copies.
 #[derive(Facet, Debug)]
 pub struct PuppetMatrixArgs {
-    /// Build and launch options. The branch selector may choose multiple core version worktrees.
+    /// Build and launch options. The projection selector may choose multiple core version projects.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
     /// SFM checkout containing platform/cli/sfm to build with its existing lockfile for every target.
@@ -47,7 +50,7 @@ pub struct PuppetMatrixArgs {
     /// Window height used for native screenshot captures.
     #[facet(default, args::named)]
     pub height: Option<u16>,
-    /// Viewport variants per branch target: declared, preferred, or WIDTHxHEIGHT@auto|SCALE.
+    /// Viewport variants per projection target: declared, preferred, or WIDTHxHEIGHT@auto|SCALE.
     #[facet(default = "declared", args::named)]
     pub variant: String,
     /// Mute Minecraft audio during each puppet run by default. Use `--no-mute` to hear it.
@@ -87,7 +90,7 @@ impl PuppetMatrixResult {
 
 #[derive(Clone, Debug, Facet)]
 struct PuppetMatrixTarget {
-    branch: String,
+    projection: String,
     #[facet(rename = "minecraftVersion")]
     minecraft_version: String,
     result: PuppetMatrixResult,
@@ -135,7 +138,7 @@ impl PuppetMatrixArgs {
     pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<()> {
         if self.options.plan_json.is_some() {
             eyre::bail!(
-                "puppet matrix does not support --plan-json because it launches one exact branch per matrix target"
+                "puppet matrix does not support --plan-json because it launches one exact projection per matrix target"
             );
         }
         if self.options.dry_run {
@@ -145,16 +148,19 @@ impl PuppetMatrixArgs {
         }
         validate_calibrated_parallelism(Parallelism::from_cli(self.options.parallel)?)?;
 
-        let requested_selector = self.options.branch.clone();
-        let query = requested_selector.into_query()?;
-        let mut targets = select_required_worktree_targets(&query)?;
-        if let Some(feature_target) = targets.iter().find(|target| !target.core) {
-            eyre::bail!(
-                "puppet matrix only accepts normal Minecraft version branches; '{}' is a feature worktree",
-                feature_target.branch
-            );
-        }
-        targets.sort_by(|left, right| left.mc_version.cmp(&right.mc_version));
+        let (root, keys) = crate::jar_build::projection_selection::select_projections(
+            self.options.repo_root.as_deref(),
+            &self.options.projection,
+        )?;
+        let catalog = crate::source_projection::core_catalog::CoreCatalog::load(&root, &root)?;
+        let targets = keys
+            .into_iter()
+            .map(|key| ProjectionMatrixSelection {
+                mc_version: Some(catalog.catalog.0[&key].minecraft_version.clone()),
+                project_root: root.join("platform/minecraft/projections").join(&key),
+                projection: key,
+            })
+            .collect::<Vec<_>>();
 
         let expected_selection = self.puppet.trim().to_string();
         if expected_selection.is_empty() {
@@ -238,7 +244,7 @@ fn validate_calibrated_parallelism(parallel: Parallelism) -> eyre::Result<()> {
 )]
 fn run_matrix_target(
     template_options: &JarBuildOptionsArgs,
-    target: &WorktreeTarget,
+    target: &ProjectionMatrixSelection,
     puppet_selection: &str,
     game_test: Option<String>,
     width: Option<u16>,
@@ -250,7 +256,7 @@ fn run_matrix_target(
     cancellation_token: CancellationToken,
 ) -> eyre::Result<PuppetMatrixTarget> {
     let mut target_options = template_options.clone();
-    target_options.branch = BranchSelector(target.branch.to_string());
+    target_options.projection.clone_from(&target.projection);
     target_options.parallel = None;
     target_options.error_action = ErrorAction::Bail;
     target_options.plan_json = None;
@@ -270,11 +276,11 @@ fn run_matrix_target(
 }
 
 fn collect_target_preview(
-    target: &WorktreeTarget,
+    target: &ProjectionMatrixSelection,
     expected_selection: &str,
     expected_game_test: Option<&str>,
 ) -> eyre::Result<PuppetMatrixTarget> {
-    let source_artifact_root = game_puppet_preview_artifact_root(target.worktree_path.as_path());
+    let source_artifact_root = projection_preview_artifact_root(target.project_root.as_path());
     let source_manifest_path = source_artifact_root.join("preview-manifest.json");
     let source_manifest_text = fs::read_to_string(&source_manifest_path)
         .wrap_err_with(|| format!("Failed to read {}", source_manifest_path.display()))?;
@@ -292,8 +298,8 @@ fn collect_target_preview(
     for capture in &source_manifest.captures {
         if capture.figure == 0 || !used_figures.insert((capture.figure, capture.variant.clone())) {
             eyre::bail!(
-                "Preview manifest for branch '{}' has duplicate or zero figure {}",
-                target.branch,
+                "Preview manifest for projection '{}' has duplicate or zero figure {}",
+                target.projection,
                 capture.figure
             );
         }
@@ -334,7 +340,7 @@ fn collect_target_preview(
         }
 
         let matrix_relative_path =
-            PathBuf::from(target.branch.as_str()).join(&source_relative_path);
+            PathBuf::from(target.projection.as_str()).join(&source_relative_path);
         validated.push(PuppetMatrixCapture {
             puppet: capture.puppet.clone(),
             figure: capture.figure,
@@ -352,18 +358,18 @@ fn collect_target_preview(
     }
     if validated.is_empty() {
         eyre::bail!(
-            "Preview manifest for branch '{}' has no captures",
-            target.branch
+            "Preview manifest for projection '{}' has no captures",
+            target.projection
         );
     }
 
     Ok(PuppetMatrixTarget {
-        branch: target.branch.to_string(),
+        projection: target.projection.clone(),
         minecraft_version: source_manifest.minecraft_version,
         result: PuppetMatrixResult::Succeeded,
         source_artifact_root: source_artifact_root.display().to_string(),
         source_manifest: Some(portable_path(
-            &PathBuf::from(target.branch.as_str()).join("preview-manifest.json"),
+            &PathBuf::from(target.projection.as_str()).join("preview-manifest.json"),
         )),
         diagnostic_log: target_diagnostic_log(target).display().to_string(),
         diagnostic_log_exists: target_diagnostic_log(target).is_file(),
@@ -414,18 +420,18 @@ fn validate_captioned_preview_geometry(
 fn copy_target_preview(
     matrix_root: &Path,
     target: &PuppetMatrixTarget,
-    source_target: &WorktreeTarget,
+    source_target: &ProjectionMatrixSelection,
 ) -> eyre::Result<()> {
     if target.result != PuppetMatrixResult::Succeeded {
         return Ok(());
     }
     let source_artifact_root =
-        game_puppet_preview_artifact_root(source_target.worktree_path.as_path());
-    let destination_root = matrix_root.join(&target.branch);
+        projection_preview_artifact_root(source_target.project_root.as_path());
+    let destination_root = matrix_root.join(&target.projection);
     if destination_root.exists() {
         eyre::bail!(
-            "Matrix destination already exists for branch '{}': {}",
-            target.branch,
+            "Matrix destination already exists for projection '{}': {}",
+            target.projection,
             destination_root.display()
         );
     }
@@ -468,20 +474,26 @@ fn copy_target_preview(
 }
 
 fn validate_source_manifest(
-    target: &WorktreeTarget,
+    target: &ProjectionMatrixSelection,
     manifest: &GamePuppetPreviewManifest,
     expected_selection: &str,
     expected_game_test: Option<&str>,
 ) -> eyre::Result<()> {
-    if manifest.branch != target.branch.as_str() {
+    if manifest.projection.as_deref() != Some(target.projection.as_str()) {
         eyre::bail!(
-            "Preview manifest branch '{}' does not match selected target '{}'",
-            manifest.branch,
-            target.branch
+            "Preview manifest projection '{}' does not match selected target '{}'",
+            manifest
+                .projection
+                .as_deref()
+                .unwrap_or("<missing projection>"),
+            target.projection
         );
     }
     let Some(expected_version) = target.mc_version.as_ref() else {
-        eyre::bail!("Matrix target '{}' has no Minecraft version", target.branch);
+        eyre::bail!(
+            "Matrix target '{}' has no Minecraft version",
+            target.projection
+        );
     };
     if manifest.minecraft_version != expected_version.as_str() {
         eyre::bail!(
@@ -505,11 +517,11 @@ fn validate_source_manifest(
     Ok(())
 }
 
-fn failed_target(target: &WorktreeTarget, error: String) -> PuppetMatrixTarget {
-    let source_artifact_root = game_puppet_preview_artifact_root(target.worktree_path.as_path());
+fn failed_target(target: &ProjectionMatrixSelection, error: String) -> PuppetMatrixTarget {
+    let source_artifact_root = projection_preview_artifact_root(target.project_root.as_path());
     let diagnostic_log = target_diagnostic_log(target);
     PuppetMatrixTarget {
-        branch: target.branch.to_string(),
+        projection: target.projection.clone(),
         minecraft_version: target
             .mc_version
             .as_ref()
@@ -524,8 +536,11 @@ fn failed_target(target: &WorktreeTarget, error: String) -> PuppetMatrixTarget {
     }
 }
 
-fn create_matrix_root(anchor: &WorktreeTarget, puppet_selection: &str) -> eyre::Result<PathBuf> {
-    let preview_root = game_puppet_preview_artifact_root(anchor.worktree_path.as_path());
+fn create_matrix_root(
+    anchor: &ProjectionMatrixSelection,
+    puppet_selection: &str,
+) -> eyre::Result<PathBuf> {
+    let preview_root = projection_preview_artifact_root(anchor.project_root.as_path());
     let artifacts_root = preview_root.parent().ok_or_else(|| {
         eyre::eyre!(
             "Preview artifact root has no parent: {}",
@@ -570,7 +585,7 @@ fn write_matrix_outputs(
     targets: &[PuppetMatrixTarget],
 ) -> eyre::Result<PathBuf> {
     let manifest = PuppetMatrixManifest {
-        schema_version: 1,
+        schema_version: 2,
         created_at: Local::now().to_rfc3339(),
         puppet_selection: puppet_selection.to_string(),
         game_test,
@@ -626,7 +641,7 @@ fn render_matrix_index(manifest: &PuppetMatrixManifest) -> String {
         let _ = write!(
             html,
             "<tr><th>{}</th><td{}>{}",
-            html_escape(&target.branch),
+            html_escape(&target.projection),
             result_class,
             html_escape(target.result.label())
         );
@@ -681,11 +696,8 @@ fn safe_preview_relative_path(value: &str) -> eyre::Result<PathBuf> {
     Ok(path.to_path_buf())
 }
 
-fn target_diagnostic_log(target: &WorktreeTarget) -> PathBuf {
-    target
-        .worktree_path
-        .as_path()
-        .join("platform/minecraft/build/sfm-toolchain/run/runGameTestPreview/console.log")
+fn target_diagnostic_log(target: &ProjectionMatrixSelection) -> PathBuf {
+    projection_preview_artifact_root(&target.project_root).join("console.log")
 }
 
 fn safe_matrix_name(value: &str) -> String {
@@ -723,6 +735,7 @@ fn html_escape(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::ProjectionMatrixSelection;
     use super::PuppetMatrixManifest;
     use super::PuppetMatrixResult;
     use super::collect_target_preview;
@@ -731,13 +744,9 @@ mod tests {
     use super::render_matrix_index;
     use super::safe_preview_relative_path;
     use super::write_matrix_outputs;
-    use crate::branch_targets::BranchName;
-    use crate::branch_targets::MinecraftVersion;
-    use crate::branch_targets::WorktreePath;
-    use crate::branch_targets::WorktreeTarget;
-    use crate::jar_build::game_puppet_preview_artifact_root;
     use crate::jar_build::hash::ContentHash;
     use crate::jar_build::hash::ContentHashAlgorithm;
+    use crate::jar_build::projection_preview_artifact_root;
     use std::fs;
     use std::path::Path;
     use tempfile::tempdir;
@@ -770,8 +779,8 @@ mod tests {
 
     #[test]
     fn collector_copies_validated_preview_and_renders_figure_grid() {
-        let worktree = tempdir().expect("temporary worktree");
-        let target = target(worktree.path(), "1.19.2");
+        let project = tempdir().expect("temporary project");
+        let target = target(project.path(), "1.19.2");
         write_preview(&target, true);
         let matrix = tempdir().expect("temporary matrix");
 
@@ -787,7 +796,7 @@ mod tests {
         );
 
         let index = render_matrix_index(&PuppetMatrixManifest {
-            schema_version: 1,
+            schema_version: 2,
             created_at: "2026-07-15T00:00:00Z".to_string(),
             puppet_selection: "move_1_stack_direct_walkthrough".to_string(),
             game_test: None,
@@ -799,8 +808,8 @@ mod tests {
 
     #[test]
     fn invalid_target_does_not_delete_completed_matrix_entries() {
-        let completed_worktree = tempdir().expect("completed worktree");
-        let completed = target(completed_worktree.path(), "1.19.2");
+        let completed_project = tempdir().expect("completed project");
+        let completed = target(completed_project.path(), "1.19.2");
         write_preview(&completed, true);
         let matrix = tempdir().expect("temporary matrix");
         let completed_target =
@@ -809,8 +818,8 @@ mod tests {
         copy_target_preview(matrix.path(), &completed_target, &completed)
             .expect("completed preview should copy");
 
-        let invalid_worktree = tempdir().expect("invalid worktree");
-        let invalid = target(invalid_worktree.path(), "1.19.4");
+        let invalid_project = tempdir().expect("invalid project");
+        let invalid = target(invalid_project.path(), "1.19.4");
         write_preview(&invalid, false);
         let error = collect_target_preview(&invalid, "move_1_stack_direct_walkthrough", None)
             .expect_err("invalid PNG should fail validation");
@@ -825,7 +834,7 @@ mod tests {
         .expect("matrix should retain completed and failed target records");
         let manifest = fs::read_to_string(matrix.path().join("matrix-manifest.json"))
             .expect("read matrix manifest");
-        assert!(manifest.contains("\"branch\": \"1.19.4\""));
+        assert!(manifest.contains("\"projection\": \"1.19.4\""));
         assert!(manifest.contains("\"result\": \"failed\""));
         assert!(
             matrix
@@ -843,15 +852,36 @@ mod tests {
     }
 
     #[test]
-    fn collector_rejects_a_source_manifest_for_the_wrong_branch() {
-        let worktree = tempdir().expect("temporary worktree");
-        let target = target(worktree.path(), "1.19.2");
+    fn matrix_keeps_same_version_feature_contexts_separate() {
+        let projects = tempdir().unwrap();
+        let matrix = tempdir().unwrap();
+        for key in ["sfm-dev/mc-1.19.2", "sfm-custom/mc-1.19.2"] {
+            let mut selected = target(&projects.path().join(key), key);
+            selected.mc_version = Some("1.19.2".to_owned());
+            write_preview(&selected, true);
+            let preview =
+                collect_target_preview(&selected, "move_1_stack_direct_walkthrough", None).unwrap();
+            copy_target_preview(matrix.path(), &preview, &selected).unwrap();
+            assert!(
+                matrix
+                    .path()
+                    .join(key)
+                    .join("preview-manifest.json")
+                    .is_file()
+            );
+        }
+    }
+
+    #[test]
+    fn collector_rejects_a_source_manifest_for_the_wrong_projection() {
+        let project = tempdir().expect("temporary project");
+        let target = target(project.path(), "1.19.2");
         write_preview(&target, true);
-        let manifest_path = game_puppet_preview_artifact_root(target.worktree_path.as_path())
+        let manifest_path = projection_preview_artifact_root(target.project_root.as_path())
             .join("preview-manifest.json");
         let mismatched = fs::read_to_string(&manifest_path)
             .expect("read fixture manifest")
-            .replace("\"branch\": \"1.19.2\"", "\"branch\": \"1.19.4\"");
+            .replace("\"projection\": \"1.19.2\"", "\"projection\": \"1.19.4\"");
         fs::write(&manifest_path, mismatched).expect("write mismatched fixture manifest");
 
         let error = collect_target_preview(&target, "move_1_stack_direct_walkthrough", None)
@@ -859,17 +889,16 @@ mod tests {
         assert!(error.to_string().contains("does not match selected target"));
     }
 
-    fn target(root: &Path, branch: &str) -> WorktreeTarget {
-        WorktreeTarget {
-            branch: BranchName::from(branch),
-            worktree_path: WorktreePath::from(root.to_path_buf()),
-            core: true,
-            mc_version: Some(MinecraftVersion::parse(branch).expect("version fixture")),
+    fn target(root: &Path, projection: &str) -> ProjectionMatrixSelection {
+        ProjectionMatrixSelection {
+            projection: projection.to_owned(),
+            project_root: root.to_path_buf(),
+            mc_version: Some(projection.to_owned()),
         }
     }
 
-    fn write_preview(target: &WorktreeTarget, valid_png: bool) {
-        let artifact_root = game_puppet_preview_artifact_root(target.worktree_path.as_path());
+    fn write_preview(target: &ProjectionMatrixSelection, valid_png: bool) {
+        let artifact_root = projection_preview_artifact_root(target.project_root.as_path());
         let relative_path = Path::new("move_1_stack_direct_walkthrough/figure_01_overview.png");
         let capture_path = artifact_root.join(relative_path);
         fs::create_dir_all(capture_path.parent().expect("capture parent"))
@@ -883,7 +912,8 @@ mod tests {
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
         let manifest = format!(
             r#"{{
-  "branch": "{}",
+  "branch": "",
+  "projection": "{}",
   "minecraftVersion": "{}",
   "puppetSelection": "move_1_stack_direct_walkthrough",
   "gameTest": null,
@@ -902,7 +932,7 @@ mod tests {
     "hudHidden": true
   }}]
 }}"#,
-            target.branch,
+            target.projection,
             target.mc_version.as_ref().expect("version fixture")
         );
         fs::write(artifact_root.join("preview-manifest.json"), manifest)

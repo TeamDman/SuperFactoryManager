@@ -1,4 +1,3 @@
-use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
@@ -41,6 +40,12 @@ impl RunHotswapArgs {
     ///
     /// Returns an error if compilation fails, the helper cannot be built, or JDWP redefinition fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        let (root, keys) = crate::jar_build::projection_selection::select_projections(
+            self.options.repo_root.as_deref(),
+            &self.options.projection,
+        )?;
+        eyre::ensure!(keys.len() == 1, "hotswap requires exactly one projection");
+        let minecraft_dir = root.join("platform/minecraft/projections").join(&keys[0]);
         let build_options = self.options.clone().into_options(BuildMode::Build)?;
         let temporary_plan_dir =
             tempfile::tempdir().wrap_err("Failed to create a temporary hotswap plan directory")?;
@@ -61,25 +66,19 @@ impl RunHotswapArgs {
         )
         .invoke()?;
 
-        let target = select_single_worktree_target(&build_options.branch)?;
-        let minecraft_dir = target
-            .worktree_path
-            .as_path()
-            .join("platform")
-            .join("minecraft");
-        let project_classes_dir = minecraft_dir
-            .join("build")
-            .join("sfm-toolchain")
-            .join("project");
+        let cache: HotswapCachePlan = facet_json::from_str(&fs::read_to_string(&plan_path)?)?;
+        let project_classes_dir = cache.cache_dir.join("project");
         let classes_dirs = client_hotswap_class_directories(&project_classes_dir)?;
 
-        let helper_classes_dir = minecraft_dir
-            .join("build")
-            .join("sfm-toolchain")
+        let helper_classes_dir = cache
+            .cache_dir
             .join("run")
             .join("hotswap-helper")
             .join("classes");
         let java = selected_java_from_build_plan(&plan_path, &minecraft_dir)?;
+        if build_options.dry_run {
+            return Ok(());
+        }
         compile_hotswap_helper(&java, &helper_classes_dir)?;
         let class_selector = self
             .class_name
@@ -95,6 +94,12 @@ impl RunHotswapArgs {
             &classes_dirs,
         )
     }
+}
+
+#[derive(Facet)]
+struct HotswapCachePlan {
+    #[facet(proxy = JsonPath)]
+    cache_dir: PathBuf,
 }
 
 #[derive(Facet)]
@@ -256,9 +261,23 @@ fn run_hotswap_helper(
 
 #[cfg(test)]
 mod tests {
+    use super::HotswapCachePlan;
     use super::client_hotswap_class_directories;
     use super::selected_java_from_build_plan;
     use std::fs;
+
+    #[test]
+    fn hotswap_reads_the_native_projection_cache_from_the_completed_plan() {
+        let plan: HotswapCachePlan = facet_json::from_str(
+            r#"{"cache_dir":"project/build/sfm-toolchain/native-project/context-key","unrelated":true}"#,
+        ).unwrap();
+        assert_eq!(
+            plan.cache_dir.join("project"),
+            std::path::PathBuf::from(
+                "project/build/sfm-toolchain/native-project/context-key/project"
+            )
+        );
+    }
 
     #[test]
     fn hotswap_uses_java_selected_by_completed_build_for_each_runtime_line() {

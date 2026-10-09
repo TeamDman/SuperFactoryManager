@@ -30,14 +30,14 @@ pub enum TestCommand {
 
 #[derive(Facet, Debug)]
 pub struct TestCatalogArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
 }
 
 #[derive(Facet, Debug)]
 pub struct TestShowArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
     /// Canonical `package.Class#method` test id.

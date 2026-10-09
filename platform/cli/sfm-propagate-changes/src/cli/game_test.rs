@@ -33,14 +33,14 @@ pub enum GameTestCommand {
 
 #[derive(Facet, Debug)]
 pub struct GameTestCatalogArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
 }
 
 #[derive(Facet, Debug)]
 pub struct GameTestShowArgs {
-    /// Branch selector to inspect.
+    /// Projection selection to inspect.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
     /// Canonical SFM test id or dynamic generator id.

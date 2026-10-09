@@ -10,7 +10,7 @@ use std::path::PathBuf;
     reason = "This type carries normalized CLI flags into the build engine."
 )]
 pub struct BuildOptions {
-    pub branch: BranchQuery,
+    pub selection: BuildSelection,
     pub refresh: bool,
     pub explain_rebuild: bool,
     pub plan_json: Option<PathBuf>,
@@ -23,4 +23,26 @@ pub struct BuildOptions {
     pub parallelism: Parallelism,
     pub wait_for_build_lock: bool,
     pub mode: BuildMode,
+}
+
+/// Build identity is separate from Git operations. Worktrees remain an internal
+/// adapter for existing callers; the shared CLI accepts projections only.
+#[derive(Clone, Debug)]
+pub enum BuildSelection {
+    Worktree(BranchQuery),
+    Projection {
+        selector: String,
+        repo_root: Option<PathBuf>,
+    },
+}
+
+impl BuildOptions {
+    pub(crate) fn worktree_query(&self) -> eyre::Result<&BranchQuery> {
+        match &self.selection {
+            BuildSelection::Worktree(query) => Ok(query),
+            BuildSelection::Projection { .. } => {
+                eyre::bail!("projection cannot be resolved as a Git branch")
+            }
+        }
+    }
 }

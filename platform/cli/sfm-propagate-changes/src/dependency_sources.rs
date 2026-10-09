@@ -8,7 +8,6 @@ use crate::cli::dependency::DependencySourceArgs;
 use crate::cli::dependency::DependencySourceCommand;
 use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
-use crate::cli::jar::JarBuildOptionsArgs;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
 use crate::jar_build::BuildMode;
@@ -492,8 +491,8 @@ fn acquire_platform_sources(
     branch: BranchSelector,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
-    let build = JarBuildOptionsArgs {
-        branch,
+    let build = crate::jar_build::BuildOptions {
+        selection: crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
         refresh: false,
         explain_rebuild: false,
         plan_json: None,
@@ -503,10 +502,10 @@ fn acquire_platform_sources(
         artifact_sources: Vec::new(),
         require_portable_artifacts: false,
         error_action: ErrorAction::default(),
-        parallel: None,
+        parallelism: crate::jar_build::Parallelism::Sequential,
         wait_for_build_lock: false,
-    }
-    .into_options(BuildMode::Build)?;
+        mode: BuildMode::Build,
+    };
     SourceOutputCommand::new(
         SourceOutputOptions {
             build,

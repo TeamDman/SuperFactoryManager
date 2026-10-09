@@ -60,76 +60,22 @@ pub struct RunClientArgs {
     pub keep_open: Option<Option<String>>,
 }
 
-/// Native launch selection. A projection is never interpreted as a Git branch.
-#[derive(Facet, Debug, Clone)]
-pub struct ProjectionClientOptions {
-    /// Exact projection key from projections.json.
-    #[facet(args::named)]
-    pub projection: String,
-    /// Repository containing the core templates; defaults to the current Git root.
-    #[facet(default, args::named)]
-    pub repo_root: Option<PathBuf>,
-    /// Explicit compatible JDK; otherwise resolve the selected projection's SDK.
-    #[facet(default, args::named)]
-    pub java_home: Option<PathBuf>,
-    /// Explain native build cache decisions.
-    #[facet(default, args::named)]
-    pub explain_rebuild: bool,
-    /// Prepare the native launch without starting Minecraft.
-    #[facet(default, args::named)]
-    pub dry_run: bool,
-    /// Wait for this projection's build cache lock.
-    #[facet(default, args::named)]
-    pub wait_for_build_lock: bool,
-}
+type ProjectionClientOptions = crate::cli::jar::JarBuildOptionsArgs;
 
 impl ProjectionClientOptions {
-    #[expect(
-        clippy::needless_pass_by_value,
-        reason = "Owned CLI launch boundary matches the run adapters and retains cancellation for the synchronous launch lifetime"
-    )]
     fn invoke(
         self,
         kind: RunKind,
         run_options: RunOptions,
         cancellation: CancellationToken,
     ) -> eyre::Result<()> {
-        let invocation_dir = std::env::current_dir()?;
-        let root = match self.repo_root {
-            Some(path) => path,
-            None => gix::discover(&invocation_dir)?
-                .workdir()
-                .ok_or_else(|| eyre::eyre!("client launch requires a repository worktree"))?
-                .to_owned(),
-        };
-        let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
-            &root,
-            &invocation_dir,
-            &self.projection,
-        )?;
-        let profile = crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
-        let checked = match collected.environment() {
-            crate::source_projection::projection_catalog::ProjectionEnvironment::Dev => {
-                crate::source_projection::native_project_target::validate_collected_native_profile(
-                    &collected, profile,
-                )?;
-                collected.prepare_development()?
-            }
-            crate::source_projection::projection_catalog::ProjectionEnvironment::Release => {
-                collected.check_current()?
-            }
-        };
-        crate::jar_build::invoke_projection_client(
-            checked,
-            profile,
-            self.java_home,
-            self.explain_rebuild,
-            self.wait_for_build_lock,
-            self.dry_run,
+        crate::jar_build::RunCommand::with_run_options(
+            self.into_options(crate::jar_build::BuildMode::Build)?,
             kind,
-            &run_options,
-            &cancellation,
+            run_options,
+            cancellation,
         )
+        .invoke()
     }
 }
 

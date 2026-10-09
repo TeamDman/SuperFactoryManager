@@ -53,67 +53,7 @@ fn prepare_development_identity(
     })
 }
 
-#[expect(clippy::too_many_arguments, reason = "Native client adapter keeps launch and planning controls explicit")]
-pub(crate) fn invoke_projection_client(
-    project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
-    profile: &str,
-    java_home: Option<PathBuf>,
-    explain_rebuild: bool,
-    wait_for_build_lock: bool,
-    dry_run: bool,
-    kind: RunKind,
-    run_options: &RunOptions,
-    cancellation: &CancellationToken,
-) -> eyre::Result<()> {
-    ensure_projection_smoke_supported(kind, project.receipt().files.contains_key(
-        "src/main/java/ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.java"
-    ))?;
-    let identity = match project.receipt().environment {
-        crate::source_projection::projection_catalog::ProjectionEnvironment::Dev =>
-            prepare_development_identity(project, profile)?,
-        crate::source_projection::projection_catalog::ProjectionEnvironment::Release => {
-            let recipe = format!("sfm:released-native-inputs/4.34.0/{}@1", project.receipt().target_id);
-            let frozen = prepare_named_frozen_recipe_project(project, &recipe)?;
-            validate_first_named_compile(&frozen)?;
-            BuildProjectIdentity::Catalog { frozen: Arc::new(frozen) }
-        }
-    };
-    let planning = NativePlanningOptions {
-        mode: BuildMode::Build, java_home, refresh: false,
-        allow_local_artifact_cache: false, artifact_sources: Vec::new(),
-        require_portable_artifacts: true,
-    };
-    let plan = create_plan_for_project(&planning, &identity, cancellation)?;
-    ensure_projection_client_plan(&plan)?;
-    if run_options.client_hotswap_port.is_some() {
-        crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
-    }
-    let path = build_cache_lock_path(&plan);
-    let label = format!("{} client cache", plan.target_label());
-    let lock = if wait_for_build_lock {
-        ArtifactLock::acquire(&path, label)?
-    } else {
-        ArtifactLock::try_acquire(&path, label)?
-            .ok_or_else(|| eyre::eyre!("projection client cache is already locked"))?
-    };
-    plan.recheck_named_inputs()?;
-    plan.recheck_named_sdk()?;
-    write_last_plan_output(&plan)?;
-    if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        let context = ExecutionContext::new(&plan, cancellation.clone())?;
-        return with_named_neoform_context(&context, |consumer| {
-            execute_project_build(consumer, BuildTarget::Run, Instant::now())?;
-            execute_run_with_context(consumer, kind, run_options, dry_run)
-        });
-    }
-    execute_build(&plan, explain_rebuild, BuildTarget::Run, cancellation)?;
-    plan.recheck_named_inputs()?;
-    plan.recheck_named_sdk()?;
-    if releases_build_cache_lock_before_launch(kind, run_options) {
-        drop(lock);
-    }
-    execute_run(&plan, kind, run_options, dry_run, cancellation)
-}
+
 
 fn ensure_projection_client_plan(plan: &BuildPlan) -> eyre::Result<()> {
     eyre::ensure!(plan.identity.is_catalog_owned(), "client launch requires a catalog projection");

@@ -1,5 +1,5 @@
 fn resolve_build_targets(options: &BuildOptions) -> eyre::Result<Vec<WorktreeTarget>> {
-    select_required_worktree_targets(&options.branch)
+    select_required_worktree_targets(options.worktree_query()?)
 }
 
 fn common_toolchain_cache_dir() -> PathBuf {
@@ -10,7 +10,7 @@ fn common_toolchain_cache_dir() -> PathBuf {
     level = "info",
     skip_all,
     fields(
-        branch = %options.branch,
+        selection = ?options.selection,
         target = %target.branch,
         refresh = options.refresh,
         allow_local_artifact_cache = options.allow_local_artifact_cache,
