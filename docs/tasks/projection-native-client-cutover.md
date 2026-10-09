@@ -1,6 +1,6 @@
 # Native projection client launch
 
-Status: all-projection launch extension active, 9 October 2026.
+Status: all-projection launch extension complete, 9 October 2026.
 
 ## Expanded acceptance contract
 
@@ -20,14 +20,27 @@ traceability maps each to the work below; omission review confirms neither
 compilation nor a single 1.19.2 startup satisfies all-version launch support.
 Dependencies stay frozen. Stop if disk space runs out. No new goal was requested.
 
-### [~] Complete native launch ownership
+### [x] Complete native launch ownership
+
+Implemented in `784bf74ce`; command-help wording corrected in `5e298a3d0`.
+The NeoForm compiler-input callback now encloses runtime preparation and launch.
+Release selection checks current generated files and uses its original recipe;
+development selection retains automatic preparation. No lockfiles changed.
 
 Extend the existing catalog launch adapter and `engine_run.rs`. NeoForm runtime
 preparation must consume its held class JAR inside the owning callback, not an
 unchecked copied path. Release projections must retain their selected original
 dependency recipe. Add focused tests for target admission and selection.
 
-### [ ] Validate and install all-projection launching
+### [x] Validate and install all-projection launching
+
+All 20 catalog entries passed complete runtime preparation. The three launcher
+representatives below booted and exited normally. The final
+`check-all.ps1 -TestWorkers 4 -TestThreads 8` gate passed: 1,796 active tests,
+22 ignored, 67.595 seconds of post-compilation test execution. Formatting,
+Clippy, all-feature build, bin/doc tests and the final default-feature build
+also passed. The earlier capture deadline failure did not recur without
+competing platform builds.
 
 Run the Rust gate and complete runtime preparation across the 10-target
 dev/release matrix. Boot representatives of the Forge, initial NeoForm and
@@ -36,34 +49,40 @@ separately; preparation is not a claim of a successful boot. Earlier 1.19.2
 evidence is only foundation. Verify
 `source list`, update contributor instructions and install the final CLI.
 
-Current evidence (extension not yet installed):
+Completed launch evidence:
 
 | Minecraft key | Release runtime preparation | Dev runtime preparation | Actual startup evidence |
 | --- | --- | --- | --- |
 | 1.19.2 | Passed | Passed previously | Dev title screen; release first client tick |
 | 1.19.4 | Passed | Passed | Not boot-tested separately |
-| 1.20 | Pending | In progress | Not boot-tested separately |
-| 1.20.1 | Pending | Pending | Not boot-tested separately |
+| 1.20 | Passed | Passed | Not boot-tested separately |
+| 1.20.1 | Passed | Passed | Not boot-tested separately |
 | 1.20.2 | Passed | Passed | Dev rendering initialized |
-| 1.20.3 | In progress | Passed | Not boot-tested separately |
-| 1.20.4 | Pending | Pending | Not boot-tested separately |
+| 1.20.3 | Passed | Passed | Not boot-tested separately |
+| 1.20.4 | Passed | Passed | Not boot-tested separately |
 | 1.21.0 | Passed | Passed | Not boot-tested separately |
-| 1.21.1 | Pending | In progress | Not boot-tested separately |
-| 26.1.2 | Pending | Passed | Dev rendering initialized |
+| 1.21.1 | Passed | Passed | Not boot-tested separately |
+| 26.1.2 | Passed | Passed | Dev rendering initialized |
 
 The three test clients opened during this extension (release 1.19.2, dev 1.20.2
 and dev 26.1.2) were closed normally; each launch command exited 0. Preparation
 uses `run client --projection <key> --dry-run` and includes source compilation,
 runtime JARs, classpaths, assets and launch arguments, without opening a window.
 
-The existing `source list --repo-root .` command returned all 20 keys. The
-extension's first Rust run passed 1,795 active tests (22 ignored), test phase
-81.387 seconds. Final validation must include subsequent smoke-hook admission
-and release preview identity adjustments. No dependency declarations changed.
-The subsequent final-source suite passed 1,689 library tests but one unrelated
-working-tree capture test exceeded its observation deadline under concurrent
-platform-build load. Rerun the gate without competing builds; do not change
-the deadline or count that run as passing.
+The existing `source list --repo-root .` command returned all 20 keys. The final
+gate includes smoke-hook admission and release preview identity adjustments.
+No dependency declarations changed. An earlier suite run hit a working-tree
+capture deadline while platform builds competed for resources; that run was
+not counted as passing, and no deadline was relaxed.
+
+The repository installer completed after `5e298a3d0`. The PATH executable
+reports that revision and SHA-256
+`34A0E453FFB90F6E3BCCDB073A644AED6BC7277B20572ABD0907AD55BE56B225`.
+Its help names development and release projections. Removed branch selection
+and smoke mode on a historical source without the harness both fail clearly.
+User installation required: no. The installed tool is current. All matrix
+builds and test clients started for this extension have exited; none was left
+running. Runtime data remains local and ignored, without deleting any saves.
 
 ## Contract
 
