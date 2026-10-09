@@ -30,7 +30,7 @@ impl RunArgs {
 pub enum RunCommand {
     /// Compile all Java source sets without launching userdev or tests
     Compile(RunCompileArgs),
-    /// Launch the Forge client userdev run config
+    /// Launch a development or release projection with its native loader
     Client(RunClientArgs),
     /// Launch the Forge server userdev run config
     Server(RunServerArgs),

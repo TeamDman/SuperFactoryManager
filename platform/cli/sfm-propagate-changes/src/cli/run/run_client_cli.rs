@@ -6,7 +6,7 @@ use facet::Facet;
 use figue as args;
 use std::path::PathBuf;
 
-/// Arguments for launching the Forge client userdev run config.
+/// Arguments for launching the selected projection's native client runtime.
 #[derive(Facet, Debug, Clone)]
 #[expect(
     clippy::struct_excessive_bools,
