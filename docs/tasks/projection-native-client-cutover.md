@@ -1,6 +1,6 @@
 # Native projection client launch
 
-Status: shared build/run/test cutover active, 9 October 2026.
+Status: shared build/run/test cutover implemented and installed, 9 October 2026.
 
 ## Shared command cutover
 
@@ -28,15 +28,38 @@ projection ownership through NeoForm and JUnit. Hotswap must compile into and
 read the selected projection cache, including while its client is running.
 Use exact keys or explicit catalog globs; reject unmatched selectors.
 
-### [~] Verify and install the shared cutover
+### [x] Verify and install the shared cutover
 
 The Rust library and integration phase passed: 1,800 active tests, 22 ignored,
 68.156 seconds after compilation. New tests cover 21 parser forms, reject
 legacy flags, resolve exact/glob keys, read hotswap cache identity and keep
-same-version feature captures separate. Bin/doc tests passed. The final
-default-feature build and runtime checks are pending; PATH still has the
-previous client-only cutover. One earlier gate failed on an obsolete
+same-version feature captures separate. Bin/doc tests, Clippy and the final
+default-feature build passed. One earlier gate failed on an obsolete
 stop-after parser fixture using `jar build --branch`; it is corrected.
+
+Implementation commit: `d45acac6b`. The installer completed, and PATH reports
+that revision with SHA-256
+`9A3924B2BD68AE36E90729880F898B16F97712AB5B10B4D6D61C9638399C15A3`.
+User installation required: no. No dependency locks or Java sources changed.
+
+Runtime checks for this shared cutover:
+
+| Check | Result |
+| --- | --- |
+| Build plans, all 10 release and 10 dev projections | Resolved; the initial combined run encountered our concurrent compile lock after writing 11 successful plans; the dev-only retry with lock waiting passed all 10 |
+| Dev 1.19.2 compile | Passed main, GameTest, datagen and test source compilation |
+| Dev 1.19.2 discovery | GameTest source lookup passed; Java test listing returned 2,532 entries |
+| Dev 1.19.2 `SFMValueDoubleTests` | Six passed, zero failed |
+| Dev 1.19.2 `sfm:move_1_stack_direct` | Real GameTest server passed one required test and exited 0 |
+| Dev 1.19.2 live hotswap | Installed CLI redefined `ca.teamdman.sfm.SFM` in the launched projection client; exited 0 |
+| Dev 1.20.2 datagen preparation | Compiled and prepared native NeoForm runtime and launch arguments; dry run, no datagen JVM launched |
+| Dev 26.1.2 server preparation | Compiled and prepared native NeoForm runtime and launch arguments; dry run, no server JVM launched |
+| Release 1.19.2 JAR build | Compilation passed; packaging refused an existing output under its existing no-overwrite policy. Artifact retained; this rebuild is not counted as passing |
+
+The hotswap client was closed normally. All verification commands finished;
+no test client was left running by this shared-cutover verification. Live
+hotswap and gameplay were not independently exercised on every version.
+The release packaging no-overwrite limitation remains a separate follow-up.
 
 Parser tests must accept projections and reject branches on every migrated
 surface. Check representative compile/test/server/datagen preparation, source
