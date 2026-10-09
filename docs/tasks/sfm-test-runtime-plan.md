@@ -38,9 +38,41 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
-Latest complete gate: **72.289 s**, 1,682 active library tests and 70
+Latest complete gate: **68.343 s**, 1,682 active library tests and 70 integration
+tests, all passing (library process 59.487 s, slowest integration 8.628 s).
+The preceding bounded run was 68.317 s. Formatting, Clippy, all-feature build,
+bin/doc tests and default-feature build pass. Checkpoint/install are next.
+
+Tracy isolated candidate verification showed `candidate_authored_checkout`
+at 236.6 ms self-time. Replacing five native Git probes with gix HEAD/index
+reads and one path-scoped native status reduced it to 58.0 ms. Status retains
+staged, unstaged and untracked checks; selected-input membership still walks
+the selected trees. Existing full candidate and release regressions pass.
+
+Test-only release role selectors now load/validate checkout metadata once per
+process; every caller still reads and renders requested role bytes afresh. This
+alone measured 71.490 s versus 71.247 s before, not a demonstrated throughput
+gain. Do not infer further cache benefits without evidence.
+
+Next: profile remaining multi-target preparation/promotion work. The complete
+suite still exceeds one minute; the library-only result is not completion.
+
+Fresh per-test timing identified two scheduling tests scanning the real developer
+cache through the example `minimal_plan_for_paths` fixture. Both now override
+their diagnostic paths with private temporary roots. The ordering test uses a
+bounded channel wait rather than a sleep and checks its own fixture log warnings.
+Both tests pass together in 0.01 s. That correction alone did not materially
+improve full throughput: its complete gate passed at 73.123 s.
+
+Lockfile-only prepared/released dependency tests also rendered project role
+inputs and discarded them. They now use a separate raw-lock helper; full role
+tests retain the original setup and all assertions. The 71.247 s measurement
+includes this change. Next measure repeated catalog/metadata parsing in the
+remaining full role fixture calls; avoid assuming the latest bottleneck is Git.
+
+Committed and installed checkpoint `119b6e38c`: **72.289 s**, 1,682 active library tests and 70
 integration tests, all passing. Formatting, Clippy, all-feature build, bin/doc
-tests and final default-feature build passed as well. Commit/install are next;
+tests and final default-feature build passed as well. PATH revision verified;
 the one-minute requirement remains unfulfilled.
 
 Earlier bounded run in this batch: **78.933 s**, 1,682 active library tests and 70

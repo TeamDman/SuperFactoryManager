@@ -1110,7 +1110,6 @@ mod tests {
             1024 * 1024,
         )?;
         let roles = super::super::core_release_project_role_fixtures::release_project_role_outputs(
-            repository,
             &recipe.target,
             &recipe
                 .role_input_hashes

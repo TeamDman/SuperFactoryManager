@@ -2864,11 +2864,20 @@ fn write_unique_temp_file_uses_artifact_sibling() {
 
 #[test]
 fn parallel_targets_return_plans_in_input_order() {
+    let fixture = tempfile::tempdir().unwrap();
+    let first_root = fixture.path().join("first");
+    let second_root = fixture.path().join("second");
+    for root in [&first_root, &second_root] {
+        fs::create_dir_all(root.join("cache")).unwrap();
+        fs::write(root.join("cache/console.log"), b"1 warning\n").unwrap();
+    }
+    let (second_finished, await_second) = std::sync::mpsc::sync_channel(1);
+    let await_second = std::sync::Mutex::new(await_second);
     let options = test_build_options(Parallelism::Parallel { limit: 2 });
     let cancellation_token = test_cancellation_token();
     let targets = vec![
-        test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
-        test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
+        test_worktree_target("1.19.2", first_root.to_str().unwrap()),
+        test_worktree_target("1.20.1", second_root.to_str().unwrap()),
     ];
 
     let summary = execute_targets_parallel(
@@ -2878,15 +2887,24 @@ fn parallel_targets_return_plans_in_input_order() {
         2,
         &cancellation_token,
         |_options, target, _cancellation_token| {
-            if target.branch.as_ref() == "1.19.2" {
-                thread::sleep(Duration::from_millis(25));
-            }
             let mut plan = minimal_plan_for_paths();
+            // Report generation scans this directory. Never inherit the
+            // serialization fixture's example developer-cache path.
+            plan.cache_dir = target.worktree_path.join("cache");
             plan.branch_name = Some(target.branch.clone());
             plan.identity = BuildProjectIdentity::Worktree {
                 branch: target.branch.clone(),
                 root: target.worktree_path.as_path().to_path_buf(),
             };
+            if target.branch.as_ref() == "1.19.2" {
+                await_second
+                    .lock()
+                    .unwrap()
+                    .recv_timeout(Duration::from_secs(10))
+                    .expect("second target must prepare its plan before the first returns");
+            } else {
+                second_finished.send(()).unwrap();
+            }
             Ok(plan)
         },
     )
@@ -2898,14 +2916,17 @@ fn parallel_targets_return_plans_in_input_order() {
         .map(|plan| plan.branch_name.as_ref().expect("legacy branch").as_ref())
         .collect::<Vec<_>>();
     assert_eq!(branches, vec!["1.19.2", "1.20.1"]);
+    assert_eq!(summary.reports.len(), 2);
+    assert!(summary.reports.iter().all(|report| report.warning_count == 1));
 }
 
 #[test]
 fn parallel_targets_stop_starting_after_cancellation() {
+    let fixture = tempfile::tempdir().unwrap();
     let options = test_build_options(Parallelism::Parallel { limit: 1 });
     let targets = vec![
-        test_worktree_target("1.19.2", "D:/tmp/1.19.2"),
-        test_worktree_target("1.20.1", "D:/tmp/1.20.1"),
+        test_worktree_target("1.19.2", fixture.path().join("first").to_str().unwrap()),
+        test_worktree_target("1.20.1", fixture.path().join("second").to_str().unwrap()),
     ];
     let started = Arc::new(AtomicUsize::new(0));
     let cancellation_token = CancellationToken::new();
@@ -2920,6 +2941,7 @@ fn parallel_targets_stop_starting_after_cancellation() {
         move |_options, target, _cancellation_token| {
             execute_started.fetch_add(1, AtomicOrdering::Relaxed);
             let mut plan = minimal_plan_for_paths();
+            plan.cache_dir = target.worktree_path.join("cache");
             plan.branch_name = Some(target.branch.clone());
             plan.identity = BuildProjectIdentity::Worktree {
                 branch: target.branch.clone(),

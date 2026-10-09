@@ -726,11 +726,15 @@ mod tests {
             .ok_or_else(|| eyre::eyre!("fixture target missing"))
     }
 
-    fn fixture(recipe: &Recipe) -> Result<Fixture> {
-        let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+    fn fixture_repository() -> Result<&'static Path> {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
             .ancestors()
             .nth(3)
-            .ok_or_else(|| eyre::eyre!("CLI crate must be below repository"))?;
+            .ok_or_else(|| eyre::eyre!("CLI crate must be below repository"))
+    }
+
+    fn fixture_lock_bytes(recipe: &Recipe) -> Result<Vec<u8>> {
+        let repository = fixture_repository()?;
         let raw = read_bounded(
             &checked_file(repository, &recipe.source_lock.path)?,
             1024 * 1024,
@@ -740,9 +744,13 @@ mod tests {
                 && sha256(&raw) == format!("sha256:{}", recipe.source_lock.sha256),
             "fixture raw lock changed"
         );
+        Ok(raw)
+    }
+
+    fn fixture(recipe: &Recipe) -> Result<Fixture> {
+        let raw = fixture_lock_bytes(recipe)?;
         let inputs =
             super::super::core_release_project_role_fixtures::release_project_role_outputs(
-                repository,
                 &recipe.target,
                 &recipe
                     .role_input_hashes
@@ -773,7 +781,7 @@ mod tests {
     }
 
     fn lock(recipe: &Recipe) -> Result<ArtifactLockfileV2> {
-        let (raw, _) = fixture(recipe)?;
+        let raw = fixture_lock_bytes(recipe)?;
         let ToolchainLockfileDocument::V2 { lockfile: lock, .. } =
             parse_document(std::str::from_utf8(&raw)?)?
         else {
@@ -833,7 +841,7 @@ mod tests {
                 continue;
             }
             let inputs = prepared(&recipe.target)?;
-            let (raw, _) = fixture(&recipe)?;
+            let raw = fixture_lock_bytes(&recipe)?;
             let original = lock(&recipe)?;
             inputs.verify_source_lock_bytes(&raw, false)?;
             ensure!(

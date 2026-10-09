@@ -559,56 +559,36 @@ fn ensure_authored_checkout(
     manifest: &SourceProjectionManifest,
     preset_id: &str,
 ) -> Result<()> {
-    let head = git_output(root, &["rev-parse", "HEAD"])?;
+    let repository = gix::open_opts(root, gix::open::Options::isolated())?;
+    let head = repository.head_commit()?.id.to_string();
     ensure!(
-        String::from_utf8(head)?.trim() == source_commit,
+        head == source_commit,
         "candidate source commit must be the authored checkout HEAD"
     );
-    for arguments in [
-        ["diff", "--quiet", "HEAD", "--", "platform/minecraft"].as_slice(),
-        [
-            "diff",
-            "--cached",
-            "--quiet",
-            "HEAD",
-            "--",
-            "platform/minecraft",
-        ]
-        .as_slice(),
-    ] {
-        let output = Command::new("git")
-            .arg("-C")
-            .arg(root)
-            .args(arguments)
-            .output()?;
-        ensure!(
-            output.status.success(),
-            "authored platform/minecraft inputs differ from source commit"
-        );
-    }
+    // One status snapshot covers both index/worktree differences and untracked
+    // inputs. Keep native Git's ignore and worktree semantics at this boundary.
     ensure!(
         git_output(
             root,
             &[
-                "ls-files",
-                "-z",
-                "--others",
-                "--exclude-standard",
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
                 "--",
                 "platform/minecraft"
             ]
         )?
         .is_empty(),
-        "authored platform/minecraft tree contains untracked inputs"
+        "authored platform/minecraft inputs differ from source commit or contain untracked inputs"
     );
-    let tracked = git_output(
-        root,
-        &["ls-files", "-z", "--cached", "--", "platform/minecraft"],
-    )?
-    .split(|byte| *byte == 0)
-    .filter(|path| !path.is_empty())
-    .map(|path| String::from_utf8(path.to_vec()))
-    .collect::<std::result::Result<BTreeSet<_>, _>>()?;
+    let index = repository.index()?;
+    let tracked = index
+        .entries()
+        .iter()
+        .map(|entry| entry.path(&index))
+        .filter(|path| path.starts_with(b"platform/minecraft/"))
+        .map(|path| String::from_utf8(path.to_vec()))
+        .collect::<std::result::Result<BTreeSet<_>, _>>()?;
     let preset = manifest.preset(preset_id)?;
     let mut selected_roots = BTreeSet::from([
         "platform/minecraft/src".to_owned(),

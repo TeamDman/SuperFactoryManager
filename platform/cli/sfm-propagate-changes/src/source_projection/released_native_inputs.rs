@@ -1110,18 +1110,24 @@ mod tests {
 
     type Fixture = (Vec<u8>, BTreeMap<String, Vec<u8>>);
 
-    fn fixture(recipe: &ReviewedRecipe) -> Result<Fixture> {
-        let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
+    fn fixture_repository() -> Result<&'static Path> {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
             .ancestors()
             .nth(3)
-            .ok_or_else(|| eyre::eyre!("CLI crate must be below repository"))?;
-        let lock = read_bounded(
-            &checked_file(repository, &recipe.source_lock.path)?,
+            .ok_or_else(|| eyre::eyre!("CLI crate must be below repository"))
+    }
+
+    fn fixture_lock_bytes(recipe: &ReviewedRecipe) -> Result<Vec<u8>> {
+        read_bounded(
+            &checked_file(fixture_repository()?, &recipe.source_lock.path)?,
             MAX_LOCK_BYTES as u64,
-        )?;
+        )
+    }
+
+    fn fixture(recipe: &ReviewedRecipe) -> Result<Fixture> {
+        let lock = fixture_lock_bytes(recipe)?;
         let inputs =
             super::super::core_release_project_role_fixtures::release_project_role_outputs(
-                repository,
                 &recipe.target,
                 &recipe
                     .role_input_hashes
@@ -1383,7 +1389,7 @@ mod tests {
     fn absent_and_ambiguous_artifacts_have_precise_errors() -> Result<()> {
         let document = frozen_review()?;
         let recipe = &document.targets[0];
-        let (raw, _) = fixture(recipe)?;
+        let raw = fixture_lock_bytes(recipe)?;
         let role = &recipe.recorded_dependency_roles[0];
         let mut lock = parse_bound_lock(recipe, &raw)?;
         lock.artifacts
