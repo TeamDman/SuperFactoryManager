@@ -108,11 +108,18 @@ impl ProjectionClientOptions {
             &self.projection,
         )?;
         let profile = crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE;
-        crate::source_projection::native_project_target::validate_collected_native_profile(
-            &collected, profile,
-        )?;
-        let checked = collected.prepare_development()?;
-        crate::jar_build::invoke_development_client(
+        let checked = match collected.environment() {
+            crate::source_projection::projection_catalog::ProjectionEnvironment::Dev => {
+                crate::source_projection::native_project_target::validate_collected_native_profile(
+                    &collected, profile,
+                )?;
+                collected.prepare_development()?
+            }
+            crate::source_projection::projection_catalog::ProjectionEnvironment::Release => {
+                collected.check_current()?
+            }
+        };
+        crate::jar_build::invoke_projection_client(
             checked,
             profile,
             self.java_home,

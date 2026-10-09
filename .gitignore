@@ -48,6 +48,8 @@ eclipse
 # Exact local development-minus-echo acceptance projection.
 /platform/minecraft/projections/sfm-review/no-echo/mc-1.19.2/
 platform/minecraft/run/
+# Each catalog projection owns its local runtime data and saves.
+/platform/minecraft/projections/**/run/
 runClient
 runClientSmoke
 runData

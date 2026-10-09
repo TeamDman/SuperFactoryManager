@@ -65,19 +65,28 @@ sfm-propagate-changes --output-format json source project jar --repo-root . --pr
 
 These are separate alternatives, not two required steps. Release builds check existing generated outputs; synchronize them first if the check reports missing or stale files. Development builds can regenerate their declared ignored destination. Keep contributor edits in tracked release projections or authored templates, not disposable development outputs. Neither command launches Minecraft or runs GameTests. Inspect the returned build receipt rather than treating a preflight receipt as compilation evidence.
 
-### Launch a development client
+### List projections and launch a client
 
 From the repository root:
 
 ```powershell
+sfm-propagate-changes --output-format json source list --repo-root .
 sfm-propagate-changes run client --projection sfm-dev/mc-1.19.2
-sfm-propagate-changes run client --projection sfm-dev/mc-1.19.2 --smoke
+sfm-propagate-changes run client --projection sfm-4.34.0/mc-1.19.2
+```
+
+For a compact PowerShell listing:
+
+```powershell
+(sfm-propagate-changes --output-format json source list --repo-root . | ConvertFrom-Json).projections |
+    Select-Object projection_key, minecraft_version, environment
 ```
 
 `run client` requires an exact projection key. The former `--branch` option is
 removed, not aliased. Use `--repo-root` to select another checkout. Otherwise,
-the command discovers the current Git root. The selected development catalog
-entry supplies the generated sources and dependency profile. The command uses
+the command discovers the current Git root. The selected catalog entry supplies
+the generated sources. Development entries use their dependency profile;
+previous-release entries retain their original pinned dependency recipe. The command uses
 the native Rust build pipeline and resolves its approved JDK automatically;
 `--java-home` remains available for an explicit compatible SDK.
 
@@ -85,11 +94,20 @@ Runtime files and saves live under the selected projection's run directory.
 Existing saves in version-branch checkouts are not moved or reused. Development
 source outputs remain disposable; edit the core templates.
 
-This route currently admits Forge userdev development projections. NeoForm
-application launch and release-projection launch are not supported by this
-command. It fails rather than falling back to a version branch or Gradle.
+The native route handles Forge and NeoForm runtime preparation. NeoForm retains
+ownership of its prepared inputs through launch; its held-input adapter currently
+requires Windows. Release outputs must match
+their templates; the launch command does not overwrite contributor edits.
+It never falls back to a version branch or Gradle.
 Other build and server commands have separate selectors; this change removes
 the branch selector specifically from `run client`.
+
+`--dry-run` prepares the complete runtime without opening Minecraft. It still
+compiles sources and acquires missing pinned inputs. `--smoke` requires the
+smoke harness in the selected projection. Historical releases without that
+harness support ordinary launching, not that readiness test. Consult the
+[launch validation plan](tasks/projection-native-client-cutover.md) for tested
+targets and pending checks.
 
 ### Review one feature at a time
 

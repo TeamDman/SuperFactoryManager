@@ -1,6 +1,69 @@
 # Native projection client launch
 
-Status: client selector cutover installed and verified, 9 October 2026.
+Status: all-projection launch extension active, 9 October 2026.
+
+## Expanded acceptance contract
+
+The 9 October follow-up explicitly rejects stopping at Forge development
+launches. The remaining scope is native client launch for all 10 Minecraft
+targets, for both development and previous-release catalog entries. Keep the
+projection selector mandatory, with no branch or Gradle fallback.
+
+| ID | User requirement | Implementation and proof |
+| --- | --- | --- |
+| L1 | Launch every supported dev projection, including NeoForm | Preserve held NeoForm inputs through runtime preparation; target launch matrix |
+| L2 | Launch previous-release projections from Liquid-selected sources | Select checked release inputs, retain immutable locks and generated-file protection |
+| L3 | Discover available projections in the CLI | Verify and document `source list --repo-root .` |
+
+Intent audit: extraction captured dev, release and discovery separately;
+traceability maps each to the work below; omission review confirms neither
+compilation nor a single 1.19.2 startup satisfies all-version launch support.
+Dependencies stay frozen. Stop if disk space runs out. No new goal was requested.
+
+### [~] Complete native launch ownership
+
+Extend the existing catalog launch adapter and `engine_run.rs`. NeoForm runtime
+preparation must consume its held class JAR inside the owning callback, not an
+unchecked copied path. Release projections must retain their selected original
+dependency recipe. Add focused tests for target admission and selection.
+
+### [ ] Validate and install all-projection launching
+
+Run the Rust gate and complete runtime preparation across the 10-target
+dev/release matrix. Boot representatives of the Forge, initial NeoForm and
+newest split-runtime launcher families. Record preparation and startup outcomes
+separately; preparation is not a claim of a successful boot. Earlier 1.19.2
+evidence is only foundation. Verify
+`source list`, update contributor instructions and install the final CLI.
+
+Current evidence (extension not yet installed):
+
+| Minecraft key | Release runtime preparation | Dev runtime preparation | Actual startup evidence |
+| --- | --- | --- | --- |
+| 1.19.2 | Passed | Passed previously | Dev title screen; release first client tick |
+| 1.19.4 | Passed | Passed | Not boot-tested separately |
+| 1.20 | Pending | In progress | Not boot-tested separately |
+| 1.20.1 | Pending | Pending | Not boot-tested separately |
+| 1.20.2 | Passed | Passed | Dev rendering initialized |
+| 1.20.3 | In progress | Passed | Not boot-tested separately |
+| 1.20.4 | Pending | Pending | Not boot-tested separately |
+| 1.21.0 | Passed | Passed | Not boot-tested separately |
+| 1.21.1 | Pending | In progress | Not boot-tested separately |
+| 26.1.2 | Pending | Passed | Dev rendering initialized |
+
+The three test clients opened during this extension (release 1.19.2, dev 1.20.2
+and dev 26.1.2) were closed normally; each launch command exited 0. Preparation
+uses `run client --projection <key> --dry-run` and includes source compilation,
+runtime JARs, classpaths, assets and launch arguments, without opening a window.
+
+The existing `source list --repo-root .` command returned all 20 keys. The
+extension's first Rust run passed 1,795 active tests (22 ignored), test phase
+81.387 seconds. Final validation must include subsequent smoke-hook admission
+and release preview identity adjustments. No dependency declarations changed.
+The subsequent final-source suite passed 1,689 library tests but one unrelated
+working-tree capture test exceeded its observation deadline under concurrent
+platform-build load. Rerun the gate without competing builds; do not change
+the deadline or count that run as passing.
 
 ## Contract
 
@@ -54,7 +117,7 @@ remain enabled. Runtime files and saves use the selected projection's run
 directory rather than a version checkout. Preview evidence includes the
 projection identity instead of inventing a branch identity.
 
-The current named NeoForm executor has compilation support but a separate
-application-launch boundary. Do not claim all-version runtime verification from
-a 1.19.2 smoke test. Record unsupported routes explicitly rather than launching
-another projection or the old branch.
+The extension now retains the NeoForm owner through runtime preparation and
+launch. Its held-input adapter currently requires Windows. The validation
+matrix above distinguishes complete runtime preparation from actual boots;
+neither is a claim that every gameplay feature has been tested.

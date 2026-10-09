@@ -598,10 +598,6 @@ fn execute_game_test_bisect(
     Ok(())
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "Run launch orchestration intentionally mirrors Forge userdev config shape."
-)]
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -634,7 +630,24 @@ fn execute_run(
     }
 
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
-    let run_config = read_forge_run_config(&context, kind)?;
+    execute_run_with_context(&context, kind, run_options, dry_run)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "Run launch orchestration intentionally mirrors Forge userdev config shape."
+)]
+fn execute_run_with_context(
+    context: &ExecutionContext<'_>,
+    kind: RunKind,
+    run_options: &RunOptions,
+    dry_run: bool,
+) -> eyre::Result<()> {
+    let plan = context.plan;
+    if plan.identity.is_catalog_owned() {
+        ensure_projection_client_plan(plan)?;
+    }
+    let run_config = read_forge_run_config(context, kind)?;
     context.bail_if_cancelled()?;
     if run_config.main.is_empty() {
         eyre::bail!(
@@ -679,9 +692,9 @@ fn execute_run(
         plan.lockfile.clone(),
         context.cancellation_token.clone(),
     )?;
-    let modules = resolve_forge_userdev_modules(&context, &resolver)?;
+    let modules = resolve_forge_userdev_modules(context, &resolver)?;
     context.bail_if_cancelled()?;
-    let launch_classpath = resolve_run_classpath(&context, &resolver, kind, run_options)?;
+    let launch_classpath = resolve_run_classpath(context, &resolver, kind, run_options)?;
     context.bail_if_cancelled()?;
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
@@ -689,13 +702,13 @@ fn execute_run(
     write_classpath_file(&minecraft_classpath_file, &launch_classpath.legacy)?;
 
     let assets = if run_config_requires_assets(&run_config) {
-        Some(prepare_minecraft_assets(&context)?)
+        Some(prepare_minecraft_assets(context)?)
     } else {
         None
     };
     context.bail_if_cancelled()?;
 
-    let source_roots = run_source_roots(&context, kind, run_options)?;
+    let source_roots = run_source_roots(context, kind, run_options)?;
     let mcp_mappings = run_mcp_mappings(plan);
     let module_path = join_classpath(&modules);
     let minecraft_classpath_file_text = minecraft_classpath_file.display().to_string();
@@ -728,7 +741,7 @@ fn execute_run(
     );
     properties.insert("mixin.env.remapRefMap".to_string(), "true".to_string());
     if plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
-        let refmap_remapping_file = ensure_run_refmap_remapping_file(&context)?;
+        let refmap_remapping_file = ensure_run_refmap_remapping_file(context)?;
         properties.insert(
             "mixin.env.refMapRemappingFile".to_string(),
             refmap_remapping_file.display().to_string(),
@@ -739,7 +752,7 @@ fn execute_run(
         );
     }
     if kind.enables_game_tests() {
-        let game_test_property = game_test_namespace_property(&context)?;
+        let game_test_property = game_test_namespace_property(context)?;
         properties.insert(
             game_test_property,
             required_property(&plan.properties, "mod_id")?.to_string(),
@@ -814,7 +827,7 @@ fn execute_run(
         .chain(modules.iter().cloned())
         .collect::<Vec<_>>();
     if launch_main.starts_with("net.neoforged.fml.startup.") {
-        java_classpath_inputs.extend(run_source_root_paths(&context, kind, run_options)?);
+        java_classpath_inputs.extend(run_source_root_paths(context, kind, run_options)?);
     }
     let java_classpath = dedup_paths_preserve_order(java_classpath_inputs);
     let mut java_args = Vec::new();
@@ -4687,7 +4700,7 @@ fn render_game_puppet_preview_manifest(
     plan.recheck_named_inputs()?;
     let manifest = GamePuppetPreviewManifest {
         branch: plan.identity.legacy_branch().map_or_else(String::new, |branch| branch.as_str().to_owned()),
-        projection: plan.identity.development_target().map(|target| target.receipt.projection_key.clone()),
+        projection: plan.identity.is_catalog_owned().then(|| plan.target_label()),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
         game_test: run_options.game_puppet_game_test.clone(),

@@ -157,6 +157,10 @@ impl CatalogOwnedInput<'_> {
 }
 
 impl CollectedCatalogProject {
+    pub(crate) fn environment(&self) -> ProjectionEnvironment {
+        self.identity.environment
+    }
+
     /// Apply the existing guarded development transaction using collected bytes.
     /// Release callers must use `check_current` instead. Fresh input checks bind
     /// profile validation, generation and returned ownership to one snapshot.

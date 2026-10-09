@@ -1621,6 +1621,19 @@ mod tests {
     }
 
     #[test]
+    fn client_launch_accepts_release_and_development_projection_keys() {
+        for family in ["sfm-4.34.0", "sfm-dev"] {
+            for version in [
+                "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0",
+                "1.21.1", "26.1.2",
+            ] {
+                let key = format!("{family}/mc-{version}");
+                assert_run_cli(&["run", "client", "--projection", &key]);
+            }
+        }
+    }
+
+    #[test]
     fn obsolete_source_commands_are_rejected() {
         assert!(figue::from_slice::<Cli>(&["jar", "sources", "--branch", "1.19.2"]).is_err());
         assert!(figue::from_slice::<Cli>(&["source", "audit", "--branch", "1.19.2"]).is_err());

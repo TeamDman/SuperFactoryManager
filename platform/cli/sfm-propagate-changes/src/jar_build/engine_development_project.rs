@@ -54,7 +54,7 @@ fn prepare_development_identity(
 }
 
 #[expect(clippy::too_many_arguments, reason = "Native client adapter keeps launch and planning controls explicit")]
-pub(crate) fn invoke_development_client(
+pub(crate) fn invoke_projection_client(
     project: crate::source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
     java_home: Option<PathBuf>,
@@ -65,7 +65,19 @@ pub(crate) fn invoke_development_client(
     run_options: &RunOptions,
     cancellation: &CancellationToken,
 ) -> eyre::Result<()> {
-    let identity = prepare_development_identity(project, profile)?;
+    ensure_projection_smoke_supported(kind, project.receipt().files.contains_key(
+        "src/main/java/ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.java"
+    ))?;
+    let identity = match project.receipt().environment {
+        crate::source_projection::projection_catalog::ProjectionEnvironment::Dev =>
+            prepare_development_identity(project, profile)?,
+        crate::source_projection::projection_catalog::ProjectionEnvironment::Release => {
+            let recipe = format!("sfm:released-native-inputs/4.34.0/{}@1", project.receipt().target_id);
+            let frozen = prepare_named_frozen_recipe_project(project, &recipe)?;
+            validate_first_named_compile(&frozen)?;
+            BuildProjectIdentity::Catalog { frozen: Arc::new(frozen) }
+        }
+    };
     let planning = NativePlanningOptions {
         mode: BuildMode::Build, java_home, refresh: false,
         allow_local_artifact_cache: false, artifact_sources: Vec::new(),
@@ -87,6 +99,13 @@ pub(crate) fn invoke_development_client(
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
     write_last_plan_output(&plan)?;
+    if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+        let context = ExecutionContext::new(&plan, cancellation.clone())?;
+        return with_named_neoform_context(&context, |consumer| {
+            execute_project_build(consumer, BuildTarget::Run, Instant::now())?;
+            execute_run_with_context(consumer, kind, run_options, dry_run)
+        });
+    }
     execute_build(&plan, explain_rebuild, BuildTarget::Run, cancellation)?;
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
@@ -97,10 +116,32 @@ pub(crate) fn invoke_development_client(
 }
 
 fn ensure_projection_client_plan(plan: &BuildPlan) -> eyre::Result<()> {
-    eyre::ensure!(plan.identity.development_target().is_some(), "client launch requires a development projection");
-    ensure_forge_gradle_execution_supported(plan)?;
+    eyre::ensure!(plan.identity.is_catalog_owned(), "client launch requires a catalog projection");
+    if plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
+        ensure_forge_gradle_execution_supported(plan)?;
+    }
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()
+}
+
+fn ensure_projection_smoke_supported(kind: RunKind, has_harness: bool) -> eyre::Result<()> {
+    eyre::ensure!(
+        !matches!(kind, RunKind::ClientSmoke) || has_harness,
+        "--smoke requires the smoke harness in the selected projection; launch this projection without --smoke"
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod projection_client_launch_tests {
+    use super::*;
+
+    #[test]
+    fn historical_clients_need_no_smoke_hook_but_smoke_mode_does() {
+        assert!(ensure_projection_smoke_supported(RunKind::Client, false).is_ok());
+        assert!(ensure_projection_smoke_supported(RunKind::ClientSmoke, false).is_err());
+        assert!(ensure_projection_smoke_supported(RunKind::ClientSmoke, true).is_ok());
+    }
 }
 
 pub(crate) fn invoke_development_project(

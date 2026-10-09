@@ -388,6 +388,14 @@ fn execute_named_neoform_compile(
     target: BuildTarget,
     started: Instant,
 ) -> eyre::Result<()> {
+    with_named_neoform_context(context, |consumer| execute_project_build(consumer, target, started))
+}
+
+#[cfg(windows)]
+fn with_named_neoform_context<T>(
+    context: &ExecutionContext<'_>,
+    consume: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
+) -> eyre::Result<T> {
     let source = NeoformCompileSource::from_plan(context.plan)?;
     let project = source.owner();
     let prepared = acquire_named_neoform_inputs(context, &source)?;
@@ -418,9 +426,17 @@ fn execute_named_neoform_compile(
             let mut consumer =
                 ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
             consumer.held_neoform_compile_jar = Some(normal);
-            execute_project_build(&consumer, target, started)
+            consume(&consumer)
         },
     )
+}
+
+#[cfg(not(windows))]
+fn with_named_neoform_context<T>(
+    _: &ExecutionContext<'_>,
+    _: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
+) -> eyre::Result<T> {
+    eyre::bail!("named NeoForm launch requires the Windows held-input adapter")
 }
 
 #[cfg(not(windows))]

@@ -291,7 +291,7 @@ fn create_plan_for_project(
 
         let java = {
             let jdk_resolution = if target.is_catalog_owned() {
-                let discovered = if target.development_target().is_some() && options.java_home.is_none() {
+                let discovered = if options.java_home.is_none() {
                     crate::jdk::resolve_java_for_lockfile(None, jdk_pins.as_deref(), required_java,
                         &common_cache_dir.join("jbrsdk"), false)?.home
                 } else { None };
