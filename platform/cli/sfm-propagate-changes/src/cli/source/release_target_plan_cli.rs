@@ -1,8 +1,8 @@
 //! Join one selected target's local release state with verified provider intent.
 //!
-//! This is a read-only handoff. It rechecks the complete ten-JAR package in
-//! both existing preflights, requires their identities to agree, and never
-//! creates a tag or contacts a provider. Keep the package and worktree quiet
+//! This is a read-only handoff. One invocation-local verification of the
+//! complete ten-JAR package feeds both preflights. Their identities must agree;
+//! neither creates a tag nor contacts a provider. Keep package and worktree quiet
 //! during the checks; neither preflight pins open file handles against hostile
 //! concurrent replacement.
 
@@ -95,8 +95,11 @@ impl ReleaseTargetPlanArgs {
         cancellation: &CancellationToken,
     ) -> Result<ReleaseTargetPlanReport> {
         cancellation.bail_if_cancelled()?;
-        let ReviewedProviderPlan { report, changelog } =
-            self.provider_plan.clone().review_in(cancellation)?;
+        let ReviewedProviderPlan {
+            report,
+            changelog,
+            verified,
+        } = self.provider_plan.clone().review_in(cancellation)?;
         let exact_tag = format!("{}-{}", report.mod_version, self.target_id);
         ensure!(
             report.github.reviewed_tag == exact_tag,
@@ -115,7 +118,7 @@ impl ReleaseTargetPlanArgs {
             target_id: self.target_id,
             reviewed_release_commit: self.reviewed_release_commit,
         }
-        .preflight_in(cancellation)?;
+        .preflight_verified(verified, cancellation)?;
         ensure!(
             report.completion_manifest_sha256 == local.completion_manifest_sha256
                 && report.inventory_sha256 == local.inventory_sha256
@@ -243,6 +246,23 @@ pub(super) mod tests {
     }
 
     pub(in crate::cli::source) fn packaged_candidate() -> (Fixture, ReleaseTargetPlanArgs) {
+        use crate::source_projection::candidate_lock::tests::FixtureSeed;
+        static SEED: std::sync::OnceLock<(FixtureSeed, ReleaseTargetPlanArgs)> =
+            std::sync::OnceLock::new();
+        let (seed, args) = SEED.get_or_init(|| {
+            let (fixture, args) = build_packaged_candidate();
+            (fixture.snapshot(), args)
+        });
+        let fixture = seed.materialize();
+        let scratch = fixture.repo().parent().unwrap();
+        let mut args = args.clone();
+        args.repo_root = fixture.repo().to_path_buf();
+        args.provider_plan.package_root = scratch.join("package");
+        args.provider_plan.changelog_file = scratch.join("reviewed-changelog.md");
+        (fixture, args)
+    }
+
+    fn build_packaged_candidate() -> (Fixture, ReleaseTargetPlanArgs) {
         let fixture = Fixture::new();
         let scratch = fixture.repo().parent().unwrap();
         let lock = scratch.join("reviewed-candidate-lock.json");
@@ -307,6 +327,48 @@ pub(super) mod tests {
             reviewed_release_commit,
         };
         (fixture, args)
+    }
+
+    #[test]
+    fn packaged_seed_gives_parallel_callers_independent_files_and_git_state() {
+        let ((first, first_args), (second, second_args)) = std::thread::scope(|scope| {
+            let first = scope.spawn(packaged_candidate);
+            let second = scope.spawn(packaged_candidate);
+            (first.join().unwrap(), second.join().unwrap())
+        });
+        assert_ne!(first.repo(), second.repo());
+        assert_ne!(
+            first_args.provider_plan.package_root,
+            second_args.provider_plan.package_root
+        );
+        let manifest = "release-package.json";
+        let expected = fs::read(second_args.provider_plan.package_root.join(manifest)).unwrap();
+        fs::write(
+            first_args.provider_plan.package_root.join(manifest),
+            b"changed",
+        )
+        .unwrap();
+        fs::write(first.repo().join(".git/config"), b"changed").unwrap();
+        assert_eq!(
+            fs::read(second_args.provider_plan.package_root.join(manifest)).unwrap(),
+            expected
+        );
+        assert_ne!(
+            fs::read(second.repo().join(".git/config")).unwrap(),
+            b"changed"
+        );
+        drop(first);
+        assert!(
+            second_args
+                .provider_plan
+                .package_root
+                .join(manifest)
+                .is_file()
+        );
+        assert_eq!(
+            git(second.repo(), &["rev-parse", "HEAD"]),
+            second_args.reviewed_release_commit
+        );
     }
 
     #[test]

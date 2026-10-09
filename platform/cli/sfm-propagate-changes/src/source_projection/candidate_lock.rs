@@ -912,7 +912,68 @@ pub(crate) mod tests {
         lock: SourceCandidateLock,
     }
 
+    /// Immutable setup bytes only. Every materialization owns independent files,
+    /// index and refs; no verifier result or live repository is shared.
+    pub(crate) struct FixtureSeed {
+        files: BTreeMap<PathBuf, (Vec<u8>, fs::Permissions)>,
+        lock: SourceCandidateLock,
+    }
+
+    impl FixtureSeed {
+        pub(crate) fn materialize(&self) -> Fixture {
+            let temp = tempfile::tempdir().unwrap();
+            for (path, (bytes, permissions)) in &self.files {
+                let output = temp.path().join(path);
+                fs::create_dir_all(output.parent().unwrap()).unwrap();
+                fs::write(&output, bytes).unwrap();
+                fs::set_permissions(output, permissions.clone()).unwrap();
+            }
+            let repo = temp.path().join("repo");
+            let roots = self
+                .lock
+                .targets
+                .iter()
+                .map(|target| {
+                    (
+                        target.target_id.clone(),
+                        temp.path().join("candidates").join(&target.target_id),
+                    )
+                })
+                .collect();
+            Fixture {
+                _temp: temp,
+                repo,
+                roots,
+                lock: self.lock.clone(),
+            }
+        }
+    }
+
     impl Fixture {
+        pub(crate) fn snapshot(&self) -> FixtureSeed {
+            let files = WalkDir::new(self._temp.path())
+                .into_iter()
+                .map(|entry| entry.unwrap())
+                .filter(|entry| entry.file_type().is_file())
+                .map(|entry| {
+                    (
+                        entry
+                            .path()
+                            .strip_prefix(self._temp.path())
+                            .unwrap()
+                            .to_owned(),
+                        (
+                            fs::read(entry.path()).unwrap(),
+                            entry.metadata().unwrap().permissions(),
+                        ),
+                    )
+                })
+                .collect();
+            FixtureSeed {
+                files,
+                lock: self.lock.clone(),
+            }
+        }
         /// Edit this private fixture index once instead of spawning Git once
         /// per target. Never operates on a contributor's checkout.
         pub(crate) fn stage_executable_wrappers(&self, generated_root: &str) {

@@ -79,6 +79,7 @@ pub struct ReleaseModrinthRequestPreviewArgs {
 pub(super) struct ReviewedProviderPlan {
     pub(super) report: ReleaseProviderPlanReport,
     pub(super) changelog: String,
+    pub(super) verified: VerifiedReleasePackage,
 }
 
 #[derive(Debug, Facet)]
@@ -216,8 +217,12 @@ impl ReleaseProviderPlanArgs {
             "--reviewed-tag does not identify the verified package mod version"
         );
         let changelog = read_reviewed_changelog(&self.changelog_file, &self.changelog_sha256)?;
-        let report = ReleaseProviderPlanReport::from_verified(self, verified, &changelog)?;
-        Ok(ReviewedProviderPlan { report, changelog })
+        let report = ReleaseProviderPlanReport::from_verified(self, &verified, &changelog)?;
+        Ok(ReviewedProviderPlan {
+            report,
+            changelog,
+            verified,
+        })
     }
 }
 
@@ -235,8 +240,9 @@ impl ReleaseModrinthRequestPreviewArgs {
         self,
         cancellation: &CancellationToken,
     ) -> Result<ReleaseModrinthRequestPreviewReport> {
-        let ReviewedProviderPlan { report, changelog } =
-            self.provider_plan.review_in(cancellation)?;
+        let ReviewedProviderPlan {
+            report, changelog, ..
+        } = self.provider_plan.review_in(cancellation)?;
         let mut targets = Vec::with_capacity(report.target_count);
         for target in report.targets {
             cancellation.bail_if_cancelled()?;
@@ -319,7 +325,7 @@ pub(super) fn validate_modrinth_request_mapping(
 impl ReleaseProviderPlanReport {
     fn from_verified(
         args: ReleaseProviderPlanArgs,
-        verified: VerifiedReleasePackage,
+        verified: &VerifiedReleasePackage,
         changelog: &str,
     ) -> Result<Self> {
         let VerifiedReleasePackage {
@@ -332,7 +338,7 @@ impl ReleaseProviderPlanReport {
         // from the packaged filename. The extra marker check prevents a future
         // filename-based publisher from silently choosing a different version.
         let mut targets = Vec::with_capacity(manifest.targets.len());
-        for (source, packaged) in inventory.targets.into_iter().zip(manifest.targets) {
+        for (source, packaged) in inventory.targets.iter().zip(&manifest.targets) {
             validate_single_mc_marker(
                 &packaged.file_name,
                 &source.minecraft_version,
@@ -367,11 +373,11 @@ impl ReleaseProviderPlanReport {
                 &args.modrinth_project,
             );
             targets.push(ReleaseProviderTarget {
-                target_id: source.target_id,
+                target_id: source.target_id.clone(),
                 minecraft_version: source.minecraft_version.clone(),
-                package_loader: source.loader,
-                file_name: packaged.file_name,
-                sha256: packaged.sha256,
+                package_loader: source.loader.clone(),
+                file_name: packaged.file_name.clone(),
+                sha256: packaged.sha256.clone(),
                 display_name: modrinth_payload.name,
                 modrinth_version_number: modrinth_payload.version_number,
                 modrinth_game_versions: modrinth_payload.game_versions,
@@ -384,17 +390,17 @@ impl ReleaseProviderPlanReport {
         Ok(Self {
             schema: PLAN_SCHEMA.to_owned(),
             scope: PLAN_SCOPE.to_owned(),
-            completion_manifest_sha256,
-            inventory_sha256: manifest.inventory_sha256,
-            lock_sha256: manifest.lock_sha256,
-            package_source_commit: manifest.source_commit,
+            completion_manifest_sha256: completion_manifest_sha256.clone(),
+            inventory_sha256: manifest.inventory_sha256.clone(),
+            lock_sha256: manifest.lock_sha256.clone(),
+            package_source_commit: manifest.source_commit.clone(),
             reviewed_source_commit_matches_package: true,
             current_head_checked: false,
             tag_object_checked: false,
             remote_project_ownership_checked: false,
             curseforge_game_version_ids_checked: false,
             publication_authorized: false,
-            candidate_preset_id: manifest.candidate_preset_id,
+            candidate_preset_id: manifest.candidate_preset_id.clone(),
             mod_version: manifest.mod_version.clone(),
             changelog_sha256: args.changelog_sha256,
             changelog_utf8_bytes: changelog.len(),

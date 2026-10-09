@@ -541,16 +541,26 @@ mod tests {
     #[tracing::instrument(name = "frozen_recipe.fixture", skip_all)]
     fn fixture_for(recipe: &FrozenRecipeIndexRow) -> Result<Fixture> {
         let repo = repository()?;
-        let catalog = CoreCatalog::load(repo, repo)?;
-        let metadata = CoreProjectInputs::from_json(
-            std::str::from_utf8(&read_bounded(
-                &checked_file(repo, CORE_METADATA_PATH)?,
-                8 * 1024 * 1024,
-            )?)?,
-            &catalog.registered_features,
-        )?;
+        // Test setup reads the workspace catalog but mutates only the isolated
+        // fixture. Parse the shared immutable inputs once, not per scenario.
+        static INPUTS: std::sync::OnceLock<(CoreCatalog, CoreProjectInputs)> =
+            std::sync::OnceLock::new();
+        let (catalog, metadata) = INPUTS.get_or_init(|| {
+            let load = || -> Result<_> {
+                let catalog = CoreCatalog::load(repo, repo)?;
+                let metadata = CoreProjectInputs::from_json(
+                    std::str::from_utf8(&read_bounded(
+                        &checked_file(repo, CORE_METADATA_PATH)?,
+                        8 * 1024 * 1024,
+                    )?)?,
+                    &catalog.registered_features,
+                )?;
+                Ok((catalog, metadata))
+            };
+            load().expect("load immutable frozen recipe fixture inputs")
+        });
         let context = catalog.context(&format!("sfm-4.34.0/mc-{}", recipe.target))?;
-        let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;
+        let selection = select_core_inputs(metadata, &context, &BTreeSet::new())?;
         let wanted = std::iter::once(recipe.source_lock.path.clone())
             .chain(
                 recipe

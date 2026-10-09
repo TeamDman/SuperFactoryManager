@@ -96,10 +96,26 @@ impl ReleaseTagPreflightArgs {
         cancellation.bail_if_cancelled()?;
         ensure_commit(&self.reviewed_release_commit, "reviewed release commit")?;
         let verified = ReleasePackageVerifyArgs {
-            package_root: self.package_root,
-            completion_manifest_sha256: self.completion_manifest_sha256,
+            package_root: self.package_root.clone(),
+            completion_manifest_sha256: self.completion_manifest_sha256.clone(),
         }
         .verify_in(cancellation)?;
+        self.preflight_verified(verified, cancellation)
+    }
+
+    /// Consume this invocation's verified package observation. This does not
+    /// authorize reuse across invocations or promise an atomic disk snapshot.
+    pub(super) fn preflight_verified(
+        self,
+        verified: VerifiedReleasePackage,
+        cancellation: &CancellationToken,
+    ) -> Result<ReleaseTagPreflightReport> {
+        cancellation.bail_if_cancelled()?;
+        ensure_commit(&self.reviewed_release_commit, "reviewed release commit")?;
+        ensure!(
+            verified.completion_manifest_sha256 == self.completion_manifest_sha256,
+            "verified package differs from reviewed completion manifest"
+        );
         let target = verified
             .inventory
             .targets
@@ -194,9 +210,10 @@ fn ensure_reviewed_release_checkout(
         "reviewed release commit must follow the package source commit after promotion"
     );
     ensure!(
-        git_bool(
-            root,
-            &["merge-base", "--is-ancestor", package_source_commit, &head]
+        commit_is_ancestor(
+            &repository,
+            gix::ObjectId::from_hex(package_source_commit.as_bytes())?,
+            gix::ObjectId::from_hex(head.as_bytes())?,
         )?,
         "package source commit is not an ancestor of reviewed release commit"
     );
@@ -220,6 +237,23 @@ fn ensure_reviewed_release_checkout(
         "committed non-generated files changed since package source commit"
     );
     Ok(head)
+}
+
+fn commit_is_ancestor(
+    repository: &gix::Repository,
+    ancestor: gix::ObjectId,
+    descendant: gix::ObjectId,
+) -> Result<bool> {
+    // Validate both objects even when the ancestor is not reachable. Follow
+    // every parent (not just first-parent history), respecting shallow roots.
+    repository.find_commit(ancestor)?;
+    repository.find_commit(descendant)?;
+    for commit in repository.rev_walk([descendant]).all()? {
+        if commit?.id == ancestor {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn ensure_unconcealed_index(root: &Path) -> Result<()> {
@@ -267,7 +301,10 @@ fn ensure_selected_promoted_root(
             && definition == git_revision_file(&git, head, SOURCE_DEFINITION)?,
         "current source definition differs from package or reviewed release HEAD"
     );
-    ensure_tracked_worktree_unchanged(root, SOURCE_DEFINITION)?;
+    // The enclosing preflight checks the entire index/worktree before and
+    // after this read-only inspection, including concealed index flags.
+    // Per-path staged/unstaged Git diffs repeat that work without making the
+    // snapshot atomic. Exact committed bytes and modes are checked below.
     let definition = SourceProjectionManifest::from_json(std::str::from_utf8(&definition)?)?;
     let declared = definition.target(&target.target_id)?;
     let project_dir = format!("{GENERATED_ROOTS}/{}", target.target_id);
@@ -278,7 +315,6 @@ fn ensure_selected_promoted_root(
             && declared.loader == target.loader,
         "reviewed source definition differs from verified package target mapping"
     );
-    ensure_tracked_worktree_unchanged(root, &project_dir)?;
     let project_root = checked_directory(&root.join(&project_dir))?;
     let manifest_relative = format!("{project_dir}/{MANIFEST_FILE}");
     let manifest_bytes = fs::read(checked_file(root, &manifest_relative)?)?;
@@ -409,26 +445,6 @@ fn ensure_commit(value: &str, label: &str) -> Result<()> {
     Ok(())
 }
 
-fn ensure_tracked_worktree_unchanged(root: &Path, relative: &str) -> Result<()> {
-    ensure!(
-        git_bool(root, &["diff", "--no-ext-diff", "--quiet", "--", relative])?
-            && git_bool(
-                root,
-                &[
-                    "diff",
-                    "--no-ext-diff",
-                    "--cached",
-                    "--quiet",
-                    "HEAD",
-                    "--",
-                    relative
-                ]
-            )?,
-        "staged or unstaged checked-in release input differs from HEAD at '{relative}'"
-    );
-    Ok(())
-}
-
 fn git_revision_file(git: &OracleGitRepository, revision: &str, relative: &str) -> Result<Vec<u8>> {
     validate_relative_path(relative)?;
     Ok(git
@@ -527,7 +543,59 @@ mod tests {
         String::from_utf8(output.stdout).unwrap().trim().to_owned()
     }
 
+    #[test]
+    fn ancestry_follows_merge_parents_and_rejects_unrelated_or_missing_commits() {
+        let temp = tempfile::tempdir().unwrap();
+        let repo = gix::init_bare(temp.path()).unwrap();
+        let tree = repo
+            .write_object(gix::objs::Tree::default())
+            .unwrap()
+            .detach();
+        let commit = |message: &str, parents: &[gix::ObjectId]| {
+            let mut bytes = format!("tree {tree}\n");
+            for parent in parents {
+                bytes.push_str(&format!("parent {parent}\n"));
+            }
+            bytes.push_str(&format!(
+                "author Test <test@example.invalid> 1 +0000\ncommitter Test <test@example.invalid> 1 +0000\n\n{message}\n"
+            ));
+            repo.write_object(
+                gix::objs::CommitRef::from_bytes(bytes.as_bytes(), repo.object_hash()).unwrap(),
+            )
+            .unwrap()
+            .detach()
+        };
+        let base = commit("base", &[]);
+        let left = commit("left", &[base]);
+        let right = commit("right", &[base]);
+        let merged = commit("merge", &[left, right]);
+        let unrelated = commit("unrelated", &[]);
+        for ancestor in [base, left, right, merged] {
+            assert!(commit_is_ancestor(&repo, ancestor, merged).unwrap());
+        }
+        assert!(!commit_is_ancestor(&repo, unrelated, merged).unwrap());
+        assert!(!commit_is_ancestor(&repo, merged, base).unwrap());
+        let missing = gix::ObjectId::from_hex(b"1111111111111111111111111111111111111111").unwrap();
+        assert!(commit_is_ancestor(&repo, missing, merged).is_err());
+        assert!(commit_is_ancestor(&repo, base, missing).is_err());
+    }
+
     fn packaged_candidate() -> (Fixture, ReleaseTagPreflightArgs) {
+        use crate::source_projection::candidate_lock::tests::FixtureSeed;
+        static SEED: std::sync::OnceLock<(FixtureSeed, ReleaseTagPreflightArgs)> =
+            std::sync::OnceLock::new();
+        let (seed, args) = SEED.get_or_init(|| {
+            let (fixture, args) = build_packaged_candidate();
+            (fixture.snapshot(), args)
+        });
+        let fixture = seed.materialize();
+        let mut args = args.clone();
+        args.repo_root = fixture.repo().to_path_buf();
+        args.package_root = fixture.repo().parent().unwrap().join("package");
+        (fixture, args)
+    }
+
+    fn build_packaged_candidate() -> (Fixture, ReleaseTagPreflightArgs) {
         let fixture = Fixture::new();
         let scratch = fixture.repo().parent().unwrap();
         let lock = scratch.join("reviewed-candidate-lock.json");

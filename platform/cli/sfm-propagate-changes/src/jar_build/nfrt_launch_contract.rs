@@ -1445,16 +1445,26 @@ pub(super) mod tests {
             .ancestors()
             .nth(3)
             .ok_or_else(|| eyre::eyre!("fixture repository missing"))?;
-        let catalog = CoreCatalog::load(repository, repository)?;
-        let metadata = CoreProjectInputs::from_json(
-            std::str::from_utf8(&read_bounded(
-                &checked_file(repository, CORE_METADATA_PATH)?,
-                8 * 1024 * 1024,
-            )?)?,
-            &catalog.registered_features,
-        )?;
+        // Only immutable workspace setup is shared. Every caller still owns
+        // its temporary project, witness callback and production checks.
+        static INPUTS: std::sync::OnceLock<(CoreCatalog, CoreProjectInputs)> =
+            std::sync::OnceLock::new();
+        let (catalog, metadata) = INPUTS.get_or_init(|| {
+            let load = || -> Result<_> {
+                let catalog = CoreCatalog::load(repository, repository)?;
+                let metadata = CoreProjectInputs::from_json(
+                    std::str::from_utf8(&read_bounded(
+                        &checked_file(repository, CORE_METADATA_PATH)?,
+                        8 * 1024 * 1024,
+                    )?)?,
+                    &catalog.registered_features,
+                )?;
+                Ok((catalog, metadata))
+            };
+            load().expect("load immutable NeoForm fixture inputs")
+        });
         let selection = select_core_inputs(
-            &metadata,
+            metadata,
             &catalog.context(&format!("sfm-4.34.0/mc-{target}"))?,
             &BTreeSet::new(),
         )?;

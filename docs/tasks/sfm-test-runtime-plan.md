@@ -38,6 +38,95 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
+Latest complete gate: **72.289 s**, 1,682 active library tests and 70
+integration tests, all passing. Formatting, Clippy, all-feature build, bin/doc
+tests and final default-feature build passed as well. Commit/install are next;
+the one-minute requirement remains unfulfilled.
+
+Earlier bounded run in this batch: **78.933 s**, 1,682 active library tests and 70
+integration tests, all passing, with the same 22 ignored entries. Command:
+`scripts/test-bounded.ps1 -Workers 4 -TestThreads 8`. Library process: 70.337 s;
+slowest integration: 8.370 s. This is still above the 60-second requirement.
+Release tag preflight now uses gix revision traversal instead of spawning
+`git merge-base --is-ancestor`. Twelve focused tests pass in 6.18 s, including
+new merge-parent, unrelated-history and missing-object cases. No dependency
+or concurrency change. The preceding metadata-cache batch passed in 82.318 s;
+do not attribute all timing variation to this one subprocess removal.
+
+Target planning now shares one invocation-local verified package between provider
+review and local tag preflight, rather than reading and hashing all ten JARs
+twice. Standalone commands retain their own verification. Cross-invocation reuse
+is not introduced; selected upload bytes are still separately checked and owned.
+All 59 release CLI regressions pass in 16.13 s. The complete current test phase
+passes at **72.289 s**, with unchanged coverage and concurrency. This small
+timing difference is not sufficient to isolate this optimization's contribution.
+Next inspect remaining release-preflight Git subprocesses and repeated fixture
+preparation, using measurements rather than expanding caches speculatively.
+The preceding `check-all.ps1 -TestWorkers 4 -TestThreads 8` gate
+passed: dependency policy, formatting, Clippy, all-feature build, all tests,
+and final default-feature build. Its post-compilation test phase took
+**73.542 s** (library process 66.369 s, slowest integration 7.130 s), with the
+same coverage.
+
+### Earlier measurements (historical statuses, superseded above)
+
+The split ownership matrix passes the complete suite at **86.361 s** (1,681
+library and 70 integration tests). Its isolated speedup did not improve total
+throughput; do not expand serial-matrix partitioning on that assumption.
+The frozen-recipe and NeoForm test fixture builders now retain one parsed
+read-only workspace catalog/metadata snapshot, as the Forge fixture already
+does. Mutable temporary projects and production checks remain independent.
+Seventeen focused frozen-recipe tests pass in 4.64 s (one existing ignored
+profiling test); its full-suite timing was 82.318 s. The shared
+project-input metadata is approximately 1.2 MB. Further opportunities include
+repeated validation/selection of that immutable metadata, but need measurement.
+
+Generated inventory now checks each no-follow directory entry once, matching
+core-source discovery, rather than walking all ancestors per leaf. Authored
+metadata shares the invocation-local reader with selected inputs. All 21
+ownership regressions pass, including junction/case/size/mutation checks.
+The complete gate passes at **85.897 s** for 1,671 library and 70 integration
+tests. This does not establish a material full-suite improvement.
+
+Next experiment addresses scheduling: the twenty independent ownership
+contexts now run as ten per-target tests (both environments each), plus a
+test requiring exact coverage of `SUPPORTED_TARGETS`. No assertions or target
+cases were dropped; cross-projection isolation keeps its full fixture. The
+focused matrix passes in **1.48 s** at eight threads versus **6.92 s** for the
+serial per-target-fixture loop. Full-suite measurement is pending. Active
+library test count rises by ten to 1,681; this is partitioning, not extra
+version coverage. Installed tooling remains checkpoint `123793441`.
+
+Removed four per-path Git diff subprocesses from successful release tag
+preflight. Whole-worktree status and concealed-index checks still bracket the
+read-only inspection; selected committed bytes, modes and provenance are still
+checked. The removed staged/unstaged probes duplicated that enclosing contract.
+All 11 focused regressions pass in 6.44 s. The full bounded suite passes
+1,671 library and 70 integration tests in **86.415 s** (library 77.092 s
+process wall). Current changes still require the final complete gate and
+checkpoint/install; this remains above 60 s. No active tests or deadlines were
+removed. Next prioritize reducing repeated work in the ownership/build matrix,
+not increasing concurrency or broadening the fixture cache without evidence.
+
+Checkpoint `123793441` is committed and installed; the PATH CLI reports that
+revision. Subsequent test-only work caches completed tag/target-plan package
+setup as immutable fixture bytes, with independent files, Git indexes and refs
+per caller. A parallel-copy isolation regression was added. All six focused
+target-plan tests pass in 5.97 s. The full gate passes 1,671 active library and
+70 integration tests, but takes **95.164 s** (library process 86.050 s).
+This does not establish a speedup over the preceding 78.596 s run. Do not
+extend the fixture cache on that assumption. The bounded 64-library-thread
+run passes the same coverage in **82.652 s**, with unchanged deadlines and no
+default change. This also misses 60 s. Fresh 32-thread diagnostics pass all
+1,671 library tests in 82.075 s. Largest concurrent durations remain the
+twenty-context ownership matrix (29.57 s), changed-input tag preflight
+(27.27 s), transitional-loader Modrinth checks (26.96 s), and eight-context
+Forge JAR matrix (25.44 s). Cached setup has not removed the bottleneck.
+Next inspect repeated production validation/derivation inside these scenarios,
+especially retained immutable profile parsing and nested package verification;
+do not remove live-input checks around effects. Fixture caching remains an
+uncommitted experiment, not a demonstrated whole-suite optimization.
+
 Latest complete gate passes: formatting, production Clippy, all-feature and
 default builds, 1,670 active library tests, 70 integration tests, and bin/doc
 harnesses. Post-compilation execution is **78.596 s** (library 70.495 s process

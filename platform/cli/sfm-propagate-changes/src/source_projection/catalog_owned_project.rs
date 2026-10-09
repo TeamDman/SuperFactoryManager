@@ -7,10 +7,11 @@
 //! cache, JDK or acquisition capability is returned. Historical files are never read.
 
 use super::candidate_lock::checked_directory;
+#[cfg(not(windows))]
 use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::core_catalog::CoreCatalog;
-use super::core_catalog::read_bounded_catalog_input;
+use super::core_catalog::MAX_CATALOG_INPUT_BYTES;
 use super::core_features::FEATURE_DEFINITIONS_PATH;
 use super::core_inputs::BuildTargetMetadata;
 use super::core_inputs::CORE_METADATA_PATH;
@@ -285,18 +286,21 @@ impl CollectedCatalogProject {
 
     #[tracing::instrument(name = "catalog.recheck_authored", skip_all)]
     fn recheck_authored_snapshot(&self) -> Result<()> {
+        let mut reader = CheckedInputReader::default();
         ensure!(
             self.loaded.catalog_sha256
-                == sha256(&read_bounded_catalog_input(
+                == sha256(&reader.read(
                     &self.loaded.repo_root,
-                    CATALOG_PATH
+                    CATALOG_PATH,
+                    MAX_CATALOG_INPUT_BYTES
                 )?)
                 && self.loaded.feature_definitions_sha256
-                    == sha256(&read_bounded_catalog_input(
+                    == sha256(&reader.read(
                         &self.loaded.repo_root,
-                        FEATURE_DEFINITIONS_PATH
+                        FEATURE_DEFINITIONS_PATH,
+                        MAX_CATALOG_INPUT_BYTES
                     )?)
-                && read_checked(
+                && reader.read(
                     &self.loaded.repo_root,
                     CORE_METADATA_PATH,
                     MAX_CORE_METADATA_BYTES
@@ -305,7 +309,6 @@ impl CollectedCatalogProject {
             "catalog authored metadata or source inventory changed during collection"
         );
         let mut total = 0_u64;
-        let mut reader = CheckedInputReader::default();
         for artifact in self.artifacts.values() {
             let bytes = reader.read(
                 &self.loaded.repo_root,
@@ -594,49 +597,45 @@ fn inspect_generated_sources(
         source.starts_with(&project),
         "catalog source root escaped its project"
     );
-    let mut pending = vec![("src".to_owned(), source)];
     let mut paths = BTreeSet::new();
     let mut case_components = BTreeMap::new();
     let mut entries = 0_usize;
-    while let Some((parent, directory)) = pending.pop() {
-        for entry in fs::read_dir(&directory)? {
-            let entry = entry?;
-            entries = entries
-                .checked_add(1)
-                .ok_or_else(|| eyre::eyre!("catalog source entry counter overflow"))?;
+    // As with core-source discovery, enumerate top-down without following
+    // links and check each entry's fresh metadata once. Rewalking the complete
+    // ancestry per leaf does not make enumeration atomic. Selected file bytes
+    // are independently acquired through the guarded reader above.
+    for entry in walkdir::WalkDir::new(&source).follow_links(false) {
+        let entry = entry?;
+        if entry.path() == source {
+            continue;
+        }
+        entries = entries
+            .checked_add(1)
+            .ok_or_else(|| eyre::eyre!("catalog source entry counter overflow"))?;
+        ensure!(
+            entries <= MAX_SOURCE_ENTRIES,
+            "catalog generated source inventory exceeds its bounded entry limit"
+        );
+        let relative = portable_path(entry.path().strip_prefix(&project)?)?;
+        validate_projection_key(&relative)?;
+        let folded = relative.to_ascii_lowercase();
+        if let Some(previous) = case_components.insert(folded, relative.clone()) {
             ensure!(
-                entries <= MAX_SOURCE_ENTRIES,
-                "catalog generated source inventory exceeds its bounded entry limit"
+                previous == relative,
+                "catalog source inventory contains case-only aliases"
             );
-            let name = entry.file_name();
-            let name = name
-                .to_str()
-                .ok_or_else(|| eyre::eyre!("catalog source name is not UTF-8"))?;
-            let relative = format!("{parent}/{name}");
-            validate_projection_key(&relative)?;
-            let folded = relative.to_ascii_lowercase();
-            if let Some(previous) = case_components.insert(folded, relative.clone()) {
-                ensure!(
-                    previous == relative,
-                    "catalog source inventory contains case-only aliases"
-                );
-            }
-            let metadata = fs::symlink_metadata(entry.path())?;
-            if metadata.is_dir() {
-                let child = checked_directory(&entry.path())?;
-                ensure!(
-                    child.starts_with(&project),
-                    "catalog source directory escaped its project"
-                );
-                pending.push((relative, child));
-            } else {
-                ensure!(
-                    metadata.is_file(),
-                    "catalog source input is not a regular file: {relative}"
-                );
-                checked_file(&project, &relative)?;
-                ensure!(paths.insert(relative), "duplicate catalog source input");
-            }
+        }
+        let metadata = entry.metadata()?;
+        ensure!(
+            !super::candidate_lock::is_reparse(&metadata),
+            "catalog source input is a reparse point: {relative}"
+        );
+        if !metadata.is_dir() {
+            ensure!(
+                metadata.is_file(),
+                "catalog source input is not a regular file: {relative}"
+            );
+            ensure!(paths.insert(relative), "duplicate catalog source input");
         }
     }
     ensure!(
@@ -1191,61 +1190,88 @@ pub(crate) mod tests {
         }
     }
 
-    #[test]
-    fn all20_catalog_contexts_check_exact_schema2_bytes_without_native_interpretation() -> Result<()>
-    {
-        let fixture = Fixture::new();
+    fn check_catalog_contexts_for_target(slot: usize) -> Result<()> {
         let mut verified = 0;
-        for (slot, (target, actual)) in SUPPORTED_TARGETS.iter().enumerate() {
-            for environment in ["release", "dev"] {
-                let key = Fixture::key(slot, environment);
-                let collected = fixture.collect(&key)?;
-                assert_eq!(collected.identity().target_id, *target);
-                assert_eq!(collected.context().minecraft_version, *actual);
-                assert!(!collected.context().features["review_toggle"]);
-                let lock = LOCKS.iter().find(|row| row.0 == *target).unwrap().1;
-                assert_eq!(collected.output_bytes("sfm-toolchain.lock.json")?, lock);
-                assert!(collected.check_current().is_err());
-                assert!(!fixture.root(&key).exists());
-                let root = fixture.publish(&key);
-                let manifest_before = fs::read(root.join(JAVA))?;
-                let checked = fixture.collect(&key)?.check_current()?;
-                assert_eq!(checked.receipt().schema, RECEIPT_SCHEMA);
-                assert_eq!(checked.receipt().environment.as_str(), environment);
-                assert_eq!(checked.receipt().target_id, *target);
-                assert_eq!(checked.receipt().minecraft_version, *actual);
-                assert_eq!(
-                    checked.receipt().project_dir,
-                    format!("platform/minecraft/projections/{key}")
-                );
-                assert_eq!(checked.receipt().files.len(), 15);
-                assert_eq!(
-                    checked
-                        .selected_input("sfm-toolchain.lock.json")?
-                        .require_exact_copy()?,
-                    lock
-                );
-                assert_eq!(
-                    checked
-                        .selected_input("src/main/resources/fixture.bin")?
-                        .output_bytes(),
-                    &[0, 255, 13, 10]
-                );
-                checked.recheck()?;
-                assert_eq!(fs::read(root.join(JAVA))?, manifest_before);
-                assert!(!root.join("build").exists());
-                assert!(
-                    !fixture
-                        .temp
-                        .path()
-                        .join("platform/minecraft/build")
-                        .exists()
-                );
-                verified += 1;
-            }
+        let (target, actual) = &SUPPORTED_TARGETS[slot];
+        // Each case checks one target's release/dev interpretation. Keep
+        // unrelated versions out of its setup; the cross-projection tests
+        // below deliberately retain the full multi-target fixture.
+        let fixture = Fixture::new_for_target(target);
+        for environment in ["release", "dev"] {
+            let key = Fixture::key(slot, environment);
+            let collected = fixture.collect(&key)?;
+            assert_eq!(collected.identity().target_id, *target);
+            assert_eq!(collected.context().minecraft_version, *actual);
+            assert!(!collected.context().features["review_toggle"]);
+            let lock = LOCKS.iter().find(|row| row.0 == *target).unwrap().1;
+            assert_eq!(collected.output_bytes("sfm-toolchain.lock.json")?, lock);
+            assert!(collected.check_current().is_err());
+            assert!(!fixture.root(&key).exists());
+            let root = fixture.publish(&key);
+            let manifest_before = fs::read(root.join(JAVA))?;
+            let checked = fixture.collect(&key)?.check_current()?;
+            assert_eq!(checked.receipt().schema, RECEIPT_SCHEMA);
+            assert_eq!(checked.receipt().environment.as_str(), environment);
+            assert_eq!(checked.receipt().target_id, *target);
+            assert_eq!(checked.receipt().minecraft_version, *actual);
+            assert_eq!(
+                checked.receipt().project_dir,
+                format!("platform/minecraft/projections/{key}")
+            );
+            assert_eq!(checked.receipt().files.len(), 15);
+            assert_eq!(
+                checked
+                    .selected_input("sfm-toolchain.lock.json")?
+                    .require_exact_copy()?,
+                lock
+            );
+            assert_eq!(
+                checked
+                    .selected_input("src/main/resources/fixture.bin")?
+                    .output_bytes(),
+                &[0, 255, 13, 10]
+            );
+            checked.recheck()?;
+            assert_eq!(fs::read(root.join(JAVA))?, manifest_before);
+            assert!(!root.join("build").exists());
+            assert!(
+                !fixture
+                    .temp
+                    .path()
+                    .join("platform/minecraft/build")
+                    .exists()
+            );
+            verified += 1;
         }
-        assert_eq!(verified, 20);
+        assert_eq!(verified, 2);
         Ok(())
+    }
+
+    // Give libtest independent jobs instead of hiding twenty serial cases in
+    // one long-running test. Coverage stays explicit and checked against the
+    // complete supported-target list; cross-target isolation stays separate.
+    macro_rules! catalog_context_tests {
+        ($($name:ident: $slot:literal),+ $(,)?) => {
+            $(#[test]
+            fn $name() -> Result<()> { check_catalog_contexts_for_target($slot) })+
+
+            #[test]
+            fn catalog_context_matrix_covers_every_supported_target() {
+                assert_eq!(vec![$($slot),+], (0..SUPPORTED_TARGETS.len()).collect::<Vec<_>>());
+            }
+        };
+    }
+    catalog_context_tests! {
+        catalog_contexts_1_19_2: 0,
+        catalog_contexts_1_19_4: 1,
+        catalog_contexts_1_20: 2,
+        catalog_contexts_1_20_1: 3,
+        catalog_contexts_1_20_2: 4,
+        catalog_contexts_1_20_3: 5,
+        catalog_contexts_1_20_4: 6,
+        catalog_contexts_1_21: 7,
+        catalog_contexts_1_21_1: 8,
+        catalog_contexts_26_1_2: 9,
     }
 
     #[test]
