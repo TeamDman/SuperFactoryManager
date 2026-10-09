@@ -1283,7 +1283,7 @@ pub(crate) mod tests {
 
     #[test]
     fn unchanged_template_enabled_role_is_not_an_exact_copy_contract() -> Result<()> {
-        let mut fixture = Fixture::new();
+        let mut fixture = Fixture::new_for_target("1.19.2");
         let key = Fixture::key(0, "release");
         let input = "build/roles/unchanged-template.gradle";
         let output = "gradle/unchanged-template.gradle";
@@ -1309,7 +1309,7 @@ pub(crate) mod tests {
 
     #[test]
     fn selected_roles_refuse_ambiguous_authored_aliases_without_new_reads() -> Result<()> {
-        let fixture = Fixture::new();
+        let fixture = Fixture::new_for_target("1.19.2");
         let key = Fixture::key(0, "release");
         fixture.publish(&key);
         let mut checked = fixture.collect(&key)?.check_current()?;
@@ -1337,7 +1337,7 @@ pub(crate) mod tests {
             "src/unregistered/source.input",
             "src/gametest/resources/extra.txt",
         ] {
-            let fixture = Fixture::new();
+            let fixture = Fixture::new_for_target("1.19.2");
             let key = Fixture::key(0, "release");
             let root = fixture.publish(&key);
             let path = root.join(extra);
@@ -1359,7 +1359,7 @@ pub(crate) mod tests {
     #[test]
     fn retained_recheck_refuses_same_size_preserved_timestamp_content_edits() -> Result<()> {
         for authored in [true, false] {
-            let fixture = Fixture::new();
+            let fixture = Fixture::new_for_target("1.19.2");
             let key = Fixture::key(0, "dev");
             let root = fixture.publish(&key);
             let checked = fixture.collect(&key)?.check_current()?;
@@ -1392,7 +1392,7 @@ pub(crate) mod tests {
 
     #[test]
     fn retained_development_preparation_refreshes_ignored_disposable_outputs() -> Result<()> {
-        let fixture = Fixture::new();
+        let fixture = Fixture::new_for_target("1.19.2");
         let key = Fixture::key(0, "dev");
         let checked = fixture.collect(&key)?.prepare_development()?;
         checked.recheck()?;
@@ -1409,7 +1409,7 @@ pub(crate) mod tests {
     fn retained_development_preparation_refuses_release_and_changed_authored_input_before_writes()
     -> Result<()> {
         for environment in ["release", "dev"] {
-            let fixture = Fixture::new();
+            let fixture = Fixture::new_for_target("1.19.2");
             let key = Fixture::key(0, environment);
             let collected = fixture.collect(&key)?;
             let root = catalog_projection_root(
@@ -1440,7 +1440,7 @@ pub(crate) mod tests {
             CATALOG_PATH.to_owned(),
             format!("{CORE_ROOT}/{ROLE_INPUT}"),
         ] {
-            let fixture = Fixture::new();
+            let fixture = Fixture::new_for_target("1.19.2");
             let key = Fixture::key(0, "release");
             let root = fixture.publish(&key);
             let collected = fixture.collect(&key)?;

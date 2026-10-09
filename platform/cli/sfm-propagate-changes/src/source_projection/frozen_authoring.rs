@@ -23,7 +23,6 @@ use super::project_layout::append_project_name_override;
 use super::project_layout::validate_target_project;
 use super::promotion::validate_relative_path;
 use super::provenance::sha256;
-use super::release_baseline::frozen_git_command;
 use super::release_version::apply_release_mod_version;
 use super::selection::ProjectionSelection;
 use super::sync::ProjectedArtifact;
@@ -33,12 +32,8 @@ use eyre::ensure;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Stdio;
 
 const MAX_SOURCE_BLOB_BYTES: usize = 128 * 1024 * 1024;
 
@@ -557,116 +552,72 @@ struct GitTreeEntry {
 }
 
 fn read_tree_index(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTreeEntry>> {
-    let output = frozen_git_command(root)
-        .args(["ls-tree", "-r", "-z", commit, "--", "platform/minecraft"])
-        .output()
-        .wrap_err("cannot list authored Minecraft Git tree")?;
-    ensure!(
-        output.status.success(),
-        "cannot list authored Minecraft Git tree"
-    );
+    ensure!(is_lower_hex(commit, 40), "invalid authored Git commit ID");
+    let repository = gix::open_opts(
+        root,
+        gix::open::Options::isolated().config_overrides(["gitoxide.objects.noReplace=true"]),
+    )?;
+    let tree = repository
+        .find_commit(gix::hash::ObjectId::from_hex(commit.as_bytes())?)?
+        .tree()?;
     let mut entries = BTreeMap::new();
-    for record in output
-        .stdout
-        .split(|byte| *byte == 0)
-        .filter(|r| !r.is_empty())
-    {
-        let tab = record
-            .iter()
-            .position(|byte| *byte == b'\t')
-            .ok_or_else(|| eyre::eyre!("malformed authored Git tree entry"))?;
-        let (header, path_with_tab) = record.split_at(tab);
-        let path = &path_with_tab[1..];
-        let header = std::str::from_utf8(header)?;
-        let path = std::str::from_utf8(path)?;
-        let mut fields = header.split_whitespace();
-        let (Some(mode), Some(kind), Some(oid), None) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
-        else {
-            eyre::bail!("malformed authored Git tree identity");
-        };
-        if kind != "blob" || !matches!(mode, "100644" | "100755") {
-            continue;
+    let Some(selected) = tree.lookup_entry_by_path("platform/minecraft")? else {
+        return Ok(entries);
+    };
+    let mut pending = vec![("platform/minecraft".to_owned(), selected.object_id())];
+    while let Some((prefix, id)) = pending.pop() {
+        for entry in repository.find_tree(id)?.iter() {
+            let entry = entry?;
+            let path = format!("{prefix}/{}", std::str::from_utf8(entry.filename())?);
+            let mode = u32::from(entry.mode().value());
+            if mode == 0o040_000 {
+                pending.push((path, entry.object_id()));
+            } else if matches!(mode, 0o100_644 | 0o100_755) {
+                ensure!(
+                    entries
+                        .insert(
+                            path.clone(),
+                            GitTreeEntry {
+                                mode: format!("{mode:o}"),
+                                oid: entry.object_id().to_string(),
+                            }
+                        )
+                        .is_none(),
+                    "duplicate authored Git path '{path}'"
+                );
+            }
         }
-        ensure!(is_lower_hex(oid, 40), "invalid authored Git blob ID");
-        ensure!(
-            entries
-                .insert(
-                    path.to_owned(),
-                    GitTreeEntry {
-                        mode: mode.to_owned(),
-                        oid: oid.to_owned(),
-                    },
-                )
-                .is_none(),
-            "duplicate authored Git path '{path}'"
-        );
     }
     Ok(entries)
 }
 
 fn read_git_blobs(root: &Path, oids: &BTreeSet<String>) -> Result<BTreeMap<String, Vec<u8>>> {
-    let mut child = frozen_git_command(root)
-        .args(["cat-file", "--batch"])
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .wrap_err("cannot start authored Git blob reader")?;
-    let mut stdin = child.stdin.take().expect("piped Git stdin");
-    let mut stdout = BufReader::new(child.stdout.take().expect("piped Git stdout"));
-    let result = read_git_blob_batch(&mut stdin, &mut stdout, oids);
-    drop(stdin);
-    if result.is_err() {
-        let _ = child.kill();
-    }
-    let status = child.wait()?;
-    ensure!(
-        status.success() || result.is_err(),
-        "authored Git blob reader failed"
-    );
-    result
-}
-
-fn read_git_blob_batch(
-    stdin: &mut impl Write,
-    stdout: &mut impl BufRead,
-    oids: &BTreeSet<String>,
-) -> Result<BTreeMap<String, Vec<u8>>> {
+    let repository = gix::open_opts(
+        root,
+        gix::open::Options::isolated().config_overrides([
+            "gitoxide.objects.noReplace=true",
+            "gitoxide.objects.allocLimit=134217728",
+        ]),
+    )?;
     let mut blobs = BTreeMap::new();
     for oid in oids {
-        stdin.write_all(oid.as_bytes())?;
-        stdin.write_all(b"\n")?;
-        stdin.flush()?;
-        let mut header = String::new();
+        ensure!(is_lower_hex(oid, 40), "invalid authored Git blob ID");
+        let id = gix::hash::ObjectId::from_hex(oid.as_bytes())?;
+        let header = repository.find_header(id)?;
         ensure!(
-            stdout.read_line(&mut header)? != 0,
-            "authored Git blob reader ended early"
+            header.kind() == gix::objs::Kind::Blob,
+            "authored Git object is not a blob"
         );
-        let mut fields = header.split_whitespace();
-        let (Some(found_oid), Some("blob"), Some(size), None) =
-            (fields.next(), fields.next(), fields.next(), fields.next())
-        else {
-            eyre::bail!("authored Git object is not a blob");
-        };
         ensure!(
-            found_oid == oid,
-            "authored Git blob ID changed while reading"
-        );
-        let size = size.parse::<usize>()?;
-        ensure!(
-            size <= MAX_SOURCE_BLOB_BYTES,
+            header.size() <= MAX_SOURCE_BLOB_BYTES as u64,
             "authored Git blob is too large"
         );
-        let mut bytes = vec![0; size];
-        stdout.read_exact(&mut bytes)?;
-        let mut separator = [0];
-        stdout.read_exact(&mut separator)?;
+        let mut blob = repository.find_blob(id)?;
         ensure!(
-            separator == [b'\n'],
-            "malformed authored Git blob separator"
+            blob.data.len() as u64 == header.size(),
+            "authored Git blob size changed while reading"
         );
-        blobs.insert(oid.clone(), bytes);
+        blobs.insert(oid.clone(), blob.take_data());
     }
     Ok(blobs)
 }

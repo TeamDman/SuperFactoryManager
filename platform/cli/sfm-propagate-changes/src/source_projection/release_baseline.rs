@@ -27,7 +27,6 @@ use std::process::Command;
 use std::process::Stdio;
 use walkdir::WalkDir;
 
-const PROJECT_SOURCE_PREFIX: &str = "platform/minecraft/src/";
 const MAX_BLOB_BYTES: u64 = 128 * 1024 * 1024;
 const REPORT_SCHEMA: &str = "sfm:release-baseline-comparison@1";
 const GRADLE_IMPORT_SCHEMA: &str = "sfm:tagged-gradle-import@1";
@@ -454,28 +453,15 @@ pub(crate) fn collect_tagged_gradle_tree(
     root: &Path,
     commit: &str,
 ) -> Result<BTreeMap<String, GitTreeEntry>> {
-    let output = git_stdout(
-        root,
-        &["ls-tree", "-r", "-z", commit, "--", "platform/minecraft"],
-    )?;
+    let repository = super::oracle_git::OracleGitRepository::open(root)?;
+    let inventory =
+        repository.describe_at_commit_filtered(commit, "platform/minecraft", |path| {
+            GRADLE_ROOT_FILES.contains(&path) || path.starts_with("gradle/")
+        })?;
     let mut files = BTreeMap::new();
     let mut case = BTreeSet::new();
-    for record in output
-        .split(|byte| *byte == 0)
-        .filter(|record| !record.is_empty())
-    {
-        let entry = parse_tree_entry(record)?;
-        let Some(relative) = entry.path.strip_prefix("platform/minecraft/") else {
-            continue;
-        };
-        if !GRADLE_ROOT_FILES.contains(&relative) && !relative.starts_with("gradle/") {
-            continue;
-        }
-        validate_project_relative_path(relative)?;
-        ensure!(
-            entry.kind == "blob" && matches!(entry.mode.as_str(), "100644" | "100755"),
-            "unsupported tagged Gradle mode/type at '{relative}'"
-        );
+    for (relative, entry) in inventory.files {
+        validate_project_relative_path(&relative)?;
         validate_sha1(&entry.oid, "tagged Gradle blob ID")?;
         ensure!(
             case.insert(relative.to_ascii_lowercase()),
@@ -484,9 +470,9 @@ pub(crate) fn collect_tagged_gradle_tree(
         ensure!(
             files
                 .insert(
-                    relative.to_owned(),
+                    relative.clone(),
                     GitTreeEntry {
-                        mode: entry.mode,
+                        mode: format!("{:o}", entry.mode),
                         oid: entry.oid
                     }
                 )
@@ -1042,65 +1028,17 @@ pub(crate) struct GitTreeEntry {
     pub(crate) oid: String,
 }
 
-struct ParsedTreeEntry {
-    mode: String,
-    kind: String,
-    oid: String,
-    path: String,
-}
-
-fn parse_tree_entry(record: &[u8]) -> Result<ParsedTreeEntry> {
-    let tab = record
-        .iter()
-        .position(|byte| *byte == b'\t')
-        .ok_or_else(|| eyre::eyre!("malformed Git tree record"))?;
-    let (meta, path_with_tab) = record.split_at(tab);
-    let fields = meta.split(|byte| *byte == b' ').collect::<Vec<_>>();
-    ensure!(fields.len() == 3, "malformed Git tree metadata");
-    Ok(ParsedTreeEntry {
-        mode: std::str::from_utf8(fields[0])?.to_owned(),
-        kind: std::str::from_utf8(fields[1])?.to_owned(),
-        oid: std::str::from_utf8(fields[2])?.to_owned(),
-        path: std::str::from_utf8(&path_with_tab[1..])
-            .wrap_err("Git tree path is not UTF-8")?
-            .to_owned(),
-    })
-}
-
 pub(crate) fn collect_release_tree(
     root: &Path,
     commit: &str,
 ) -> Result<BTreeMap<String, GitTreeEntry>> {
-    let output = git_stdout(
-        root,
-        &[
-            "ls-tree",
-            "-r",
-            "-z",
-            "--full-tree",
-            commit,
-            "--",
-            "platform/minecraft/src",
-        ],
-    )?;
+    let repository = super::oracle_git::OracleGitRepository::open(root)?;
+    let inventory =
+        repository.describe_at_commit_filtered(commit, "platform/minecraft/src", |_| true)?;
     let mut result = BTreeMap::new();
     let mut case = BTreeSet::new();
-    for record in output
-        .split(|byte| *byte == 0)
-        .filter(|record| !record.is_empty())
-    {
-        let entry = parse_tree_entry(record)?;
-        ensure!(
-            entry.kind == "blob" && matches!(entry.mode.as_str(), "100644" | "100755"),
-            "unsupported release Git entry mode/type {}/{}",
-            entry.mode,
-            entry.kind
-        );
+    for (tail, entry) in inventory.files {
         validate_sha1(&entry.oid, "release blob ID")?;
-        let tail = entry
-            .path
-            .strip_prefix(PROJECT_SOURCE_PREFIX)
-            .ok_or_else(|| eyre::eyre!("release Git path is outside platform/minecraft/src"))?;
         let relative = format!("src/{tail}");
         validate_project_path(&relative)?;
         ensure!(
@@ -1112,7 +1050,7 @@ pub(crate) fn collect_release_tree(
                 .insert(
                     relative.clone(),
                     GitTreeEntry {
-                        mode: entry.mode,
+                        mode: format!("{:o}", entry.mode),
                         oid: entry.oid
                     }
                 )
@@ -1742,7 +1680,7 @@ mod tests {
         git(root, &["tag", "-f", "4.34.0-test"]);
         spec.expected_commit = git(root, &["rev-parse", "HEAD"]);
         let error = compare_tagged_baselines(root, &[spec]).unwrap_err();
-        assert!(format!("{error:?}").contains("unsupported release Git entry"));
+        assert!(format!("{error:?}").contains("Unsupported oracle mode"));
     }
 
     #[test]

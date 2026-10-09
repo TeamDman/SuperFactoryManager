@@ -38,6 +38,66 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
+The accumulated batch passed the complete `check-all.ps1` gate: formatting,
+production Clippy, all-feature/default builds, 1,668 active library tests,
+70 integration tests, and binary/doc harnesses. Test execution was **101.782 s**;
+the immutable Forge input sharing does not establish a whole-suite speedup.
+Checkpoint this batch and refresh the installed CLI. Continue on release
+preflight's remaining HEAD/index/tag subprocesses; the under-minute goal is open.
+
+The staged-index full run passes 1,668 library and 70 integration tests in
+**100.921 s**; it does not establish a total-time improvement over 97.031 s.
+A fresh per-test diagnostic run passes in 90.411 s and now puts named Forge JAR
+matrix (43.247 s), release Modrinth loader policy (41.176 s), local tag preflight
+(40.017 s), and catalog twenty-context matrix (38.169 s) at the top under load.
+Named Forge fixtures now parse their immutable authored catalog/metadata once
+per process; each writable temporary project remains independently constructed.
+All 18 named-Forge tests pass in 6.36 s. Validate and checkpoint this accumulated
+batch next; then profile/reduce the release-preflight subprocess work. Do not
+infer a whole-suite speedup from the focused fixture result.
+
+Promotion HEAD/blob gix reads reduce the normal complete test phase to
+**97.031 s**, all 1,667 active library and 70 integration tests passing.
+The subsequent staged-index replacement reads fresh index entries and HEAD
+tree entries at every checkpoint, comparing path/mode/object IDs without
+subprocesses. It preserves scope filtering and ignores intent-to-add placeholders
+like native `git diff --cached`; a direct Git parity regression proves those
+cases. All 49 promotion tests pass in 9.07 s, including transaction races and
+rollback. Full-suite timing for the index change is pending; dependencies and
+the default 32-thread budget are unchanged.
+
+The capture-fix normal test phase passes all 1,667 active library and 70
+integration tests in **111.305 s**. The next change replaces promotion's
+per-checkpoint HEAD and committed-file subprocess reads with isolated gix and
+the existing bounded oracle reader. It retains every checkpoint and the native
+index comparison. Promotion tests, including concurrent HEAD/index edits and
+rollback, must pass before measuring the next complete suite. This change was
+made after the preceding gate compiled its test executable and is not covered
+by that 111.305-second result.
+All 48 promotion tests pass in 11.59 s, including concurrent HEAD changes,
+staged edits, path replacement and rollback. Current-source full validation
+and a new complete timing remain pending before checkpoint/install.
+
+Current completed normal gate: **112.742 s**, 1,666 active library tests and
+70 integration tests pass (22 explicitly ignored). This includes the frozen
+authoring gix readers and smaller catalog fixtures. All check-all stages passed.
+
+The 128-thread reproduction now proves the capture failure is a deadline:
+both the copied-review assertion and direct capture freshness test reported
+`working-tree observation exceeded its deadline`. Discovery succeeded for the
+copied review; its five-second fallback was not responsible for this occurrence.
+The library finished in 112.64 s with 1,664 passing and two failing tests.
+Do not describe this as proven shared-state corruption or suppress the timeout.
+
+Repeated capture HEAD/pinned-object resolution now uses isolated gix reads,
+retaining the 20-second freshness deadline and double-observation checks.
+Arbitrary user revision expressions retain the native parser. Seven focused
+capture tests pass in 4.43 s, including Git-result parity and deterministic
+expired-budget rejection. The 128-thread stress rerun passes all 1,667 active
+library tests in 100.45 s (22 ignored), with the same deadlines. This is one
+successful stress run, not proof of immunity to arbitrary machine load. The
+under-minute objective remains unmet; the normal 32-thread default is unchanged.
+
 Latest completed gate: 137.151 seconds after compilation, with 1,664 active
 library tests and all 70 integration tests passing. The staging HEAD/index
 subprocess replacement preserves all 11 focused staging tests, including a new
@@ -65,6 +125,50 @@ proves source/index mutation in one copy does not affect another. Seven matrix
 tests pass in 5.04 s and all eleven staging tests in 12.05 s (isolated runs).
 Current-source production Clippy passed before this test-only seed change.
 The seed change still needs a full-suite measurement; no under-minute claim.
+
+The follow-up library timing run passes 1,666 tests in 111.269 s. Staging remains
+the largest individual cost (55.376 s under contention). Enabling gix's status
+feature needs new transitive lockfile entries and has been requested separately;
+approval is pending. Meanwhile release-source tree enumeration now uses the
+existing gix oracle reader instead of `git ls-tree`. All ten release-baseline
+tests pass in 2.21 s, including symlink rejection (the assertion now names the
+shared reader's diagnostic). This last change awaits broad validation.
+
+The eight-library-thread experiment passed the complete suite in 145.534 s
+(library 136.42 s), slower than 32 threads. Keep the existing 32-thread default;
+neither the eight-thread nor 128-thread experiment justifies a scheduling change.
+This full run also validates the gix release-tree replacement. Seven single-target
+catalog contract fixtures were then narrowed to their actual 1.19.2 target;
+all 19 catalog tests pass in 6.42 s, including the unchanged twenty-context matrix
+tests. These final fixture reductions still need whole-suite measurement.
+
+Tagged Gradle inventory now also uses the shared gix oracle reader; the obsolete
+`ls-tree` output parser was removed. Ten release-baseline tests pass in 2.22 s
+and seven frozen-matrix tests in 4.86 s. An experimental full test run uses
+process-local `CARGO_PROFILE_TEST_OPT_LEVEL=1`, `DEBUG_ASSERTIONS=true` and
+`OVERFLOW_CHECKS=true` (the latter two with the same `CARGO_PROFILE_TEST_` prefix).
+No default profile was changed. Compare complete coverage, correctness and
+post-compilation time before deciding whether this compilation/runtime tradeoff
+belongs in the normal test configuration. Dependency versions remain unchanged.
+
+The opt-level-1 experiment passed all 1,666 active library and 70 integration
+tests in 99.773 s after a 5m34s build. It does not meet the target; the default
+profile remains unchanged. Next fixture cleanup removes three Git processes per
+working-tree-review fixture: gix initializes the repository, and the test helper
+passes its synthetic author identity as command configuration instead of writing
+it with two extra subprocesses. All six focused working-tree review tests pass
+in 6.05 s under the unchanged default profile. The accumulated gix tree-reading
+and fixture-sizing changes now need the complete normal validation gate.
+
+Staging Tracy capture identified a missed subprocess loop inside frozen-authoring
+preview: each target used `ls-tree` and `cat-file --batch`. The outer fifteen
+staging Git queries cost only 0.708 s of an 8.08 s isolated test. Replacing the
+preview tree/blob readers with gix reduced the identical capture to 2.87 s;
+outer Git queries remain about 0.720 s. All eleven frozen-authoring tests pass
+(3.32 s), including replacement-ref and inherited-environment isolation. The
+profiling-only duplicate is explicitly ignored; the original test remains active.
+Full-gate validation follows; the preceding gate stopped on an implicit-clone
+Clippy error in the Gradle inventory conversion, now corrected.
 
 Tracy captures summarized with teamy-profiler measured candidate blob reads at
 735.886 ms before, 21.657 ms after gix (five reads). The same cold fixture/verify

@@ -26,6 +26,7 @@ use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+#[cfg(any(unix, test))]
 use std::process::Command;
 use walkdir::WalkDir;
 
@@ -1753,16 +1754,10 @@ fn read_required(path: &Path) -> Result<Vec<u8>> {
 }
 
 fn ensure_git_toplevel(root: &Path) -> Result<()> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["rev-parse", "--show-toplevel"])
-        .output()?;
-    ensure!(
-        output.status.success(),
-        "promotion repository is not a Git worktree"
-    );
-    let top = PathBuf::from(String::from_utf8(output.stdout)?.trim());
+    let repository = promotion_repository(root)?;
+    let top = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("promotion repository is not a Git worktree"))?;
     ensure!(
         fs::canonicalize(top)? == root,
         "promotion root must be the Git worktree root"
@@ -1771,16 +1766,11 @@ fn ensure_git_toplevel(root: &Path) -> Result<()> {
 }
 
 fn git_head_commit(root: &Path) -> Result<String> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args(["rev-parse", "HEAD"])
-        .output()?;
-    ensure!(
-        output.status.success(),
-        "promotion repository has no HEAD commit"
-    );
-    let commit = String::from_utf8(output.stdout)?.trim().to_owned();
+    let commit = promotion_repository(root)?
+        .head_commit()
+        .wrap_err("promotion repository has no HEAD commit")?
+        .id
+        .to_string();
     ensure!(
         commit.len() == 40 && commit.bytes().all(|ch| ch.is_ascii_hexdigit()),
         "invalid promotion base commit"
@@ -1788,35 +1778,82 @@ fn git_head_commit(root: &Path) -> Result<String> {
     Ok(commit)
 }
 
+fn promotion_repository(root: &Path) -> Result<gix::Repository> {
+    let mut repository = gix::open_opts(
+        root,
+        gix::open::Options::isolated().config_overrides([
+            "gitoxide.objects.noReplace=true",
+            "gitoxide.objects.allocLimit=67108864",
+        ]),
+    )?;
+    let _ = repository.clear_namespace();
+    Ok(repository)
+}
+
 fn ensure_index_matches_head(root: &Path, evidence_path: &str) -> Result<()> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .args([
-            "diff",
-            "--cached",
-            "--quiet",
-            "--exit-code",
-            "HEAD",
-            "--",
-            SOURCE_MANIFEST,
-            "platform/minecraft/mc-version/",
-        ])
-        .arg(evidence_path)
-        .output()?;
-    match output.status.code() {
-        Some(0) => {}
-        Some(1) => bail!(
-            "Git index differs from HEAD under the source definition, checked-in version roots or compatibility evidence; reconcile staged edits before promotion"
-        ),
-        _ => bail!(
-            "could not verify promotion Git index against HEAD: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ),
-    }
+    ensure!(
+        promotion_index_matches_head(root, evidence_path)?,
+        "Git index differs from HEAD under the source definition, checked-in version roots or compatibility evidence; reconcile staged edits before promotion"
+    );
     #[cfg(unix)]
     ensure_unstaged_executable_modes_match_index(root)?;
     Ok(())
+}
+
+fn promotion_index_matches_head(root: &Path, evidence_path: &str) -> Result<bool> {
+    // Never retain an index across transaction checkpoints: staged-only edits
+    // must be observed even when the worktree bytes have been restored.
+    let repository = promotion_repository(root)?;
+    let index = repository.index_or_empty()?;
+    let prefixes = [
+        SOURCE_MANIFEST.as_bytes(),
+        b"platform/minecraft/mc-version".as_slice(),
+        evidence_path.as_bytes(),
+    ];
+    let within = |path: &[u8], prefix: &[u8]| {
+        path == prefix
+            || path
+                .strip_prefix(prefix)
+                .is_some_and(|tail| tail.starts_with(b"/"))
+    };
+    let selected = |path: &[u8]| prefixes.iter().any(|prefix| within(path, prefix));
+    let mut staged = BTreeMap::new();
+    for entry in index.entries() {
+        let path: &[u8] = entry.path(&index);
+        if selected(path) {
+            if entry.stage() != gix::index::entry::Stage::Unconflicted {
+                return Ok(false);
+            }
+            if entry
+                .flags
+                .contains(gix::index::entry::Flags::INTENT_TO_ADD)
+            {
+                continue;
+            }
+            staged.insert(path.to_vec(), (entry.mode.bits(), entry.id));
+        }
+    }
+    let mut committed = BTreeMap::new();
+    let mut pending = vec![(Vec::new(), repository.head_commit()?.tree_id()?.detach())];
+    while let Some((parent, id)) = pending.pop() {
+        for entry in repository.find_tree(id)?.iter() {
+            let entry = entry?;
+            let mut path = parent.clone();
+            if !path.is_empty() {
+                path.push(b'/');
+            }
+            path.extend_from_slice(entry.filename());
+            let mode = u32::from(entry.mode().value());
+            if mode == 0o040_000 {
+                if selected(&path) || prefixes.iter().any(|prefix| within(prefix, &path)) {
+                    pending.push((path, entry.object_id()));
+                }
+            } else if selected(&path) {
+                committed.insert(path, (mode, entry.object_id()));
+            }
+        }
+    }
+    Ok(staged == committed)
 }
 
 #[cfg(unix)]
@@ -1851,18 +1888,13 @@ fn ensure_unstaged_executable_modes_match_index(root: &Path) -> Result<()> {
 }
 
 fn git_head_file(root: &Path, path: &str) -> Result<Vec<u8>> {
-    let output = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .arg("show")
-        .arg(format!("HEAD:{path}"))
-        .output()?;
-    ensure!(
-        output.status.success(),
-        "checked-in projection manifest '{path}' is not present at HEAD: {}",
-        String::from_utf8_lossy(&output.stderr).trim()
-    );
-    Ok(output.stdout)
+    let head = git_head_commit(root)?;
+    super::oracle_git::OracleGitRepository::open(root)?
+        .file_at_commit(&head, path)?
+        .map(|file| file.bytes)
+        .ok_or_else(|| {
+            eyre::eyre!("checked-in projection manifest '{path}' is not present at HEAD")
+        })
 }
 
 #[cfg(test)]
@@ -2175,6 +2207,59 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(stages.len(), 1);
         stages.into_iter().next().unwrap()
+    }
+
+    #[test]
+    fn staged_comparison_matches_git_for_scope_and_intent_to_add() {
+        let root = tempfile::tempdir().unwrap();
+        gix::init(root.path()).unwrap();
+        fs::write(root.path().join("baseline.txt"), "baseline").unwrap();
+        git(root.path(), &["add", "."]);
+        git(
+            root.path(),
+            &[
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "-qm",
+                "baseline",
+            ],
+        );
+        let check = |expected| {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(root.path())
+                .args([
+                    "diff",
+                    "--cached",
+                    "--quiet",
+                    "HEAD",
+                    "--",
+                    SOURCE_MANIFEST,
+                    "platform/minecraft/mc-version/",
+                    TEST_EVIDENCE_PATH,
+                ])
+                .output()
+                .unwrap();
+            assert!(matches!(output.status.code(), Some(0 | 1)));
+            assert_eq!(output.status.success(), expected);
+            assert_eq!(
+                promotion_index_matches_head(root.path(), TEST_EVIDENCE_PATH).unwrap(),
+                expected
+            );
+        };
+        check(true);
+        fs::write(root.path().join("outside.txt"), "outside scope").unwrap();
+        git(root.path(), &["add", "outside.txt"]);
+        check(true);
+        fs::create_dir_all(root.path().join("platform/minecraft")).unwrap();
+        fs::write(root.path().join(SOURCE_MANIFEST), "new source").unwrap();
+        git(root.path(), &["add", "--intent-to-add", SOURCE_MANIFEST]);
+        check(true);
+        git(root.path(), &["add", SOURCE_MANIFEST]);
+        check(false);
     }
 
     #[test]

@@ -123,16 +123,26 @@ mod named_forge_compile_cohort_tests {
             .ancestors()
             .nth(3)
             .ok_or_else(|| eyre::eyre!("CLI crate must be below repository"))?;
-        let catalog = CoreCatalog::load(repository, repository)?;
-        let metadata = CoreProjectInputs::from_json(
-            std::str::from_utf8(&read_bounded(
-                &checked_file(repository, CORE_METADATA_PATH)?,
-                8 * 1024 * 1024,
-            )?)?,
-            &catalog.registered_features,
-        )?;
+        // This test module only reads these authored inputs. Share their parsed
+        // snapshot, not any of the mutable temporary projects created below.
+        static INPUTS: std::sync::OnceLock<(CoreCatalog, CoreProjectInputs)> =
+            std::sync::OnceLock::new();
+        let (catalog, metadata) = INPUTS.get_or_init(|| {
+            let load = || -> eyre::Result<_> {
+                let catalog = CoreCatalog::load(repository, repository)?;
+                let metadata = CoreProjectInputs::from_json(
+                    std::str::from_utf8(&read_bounded(
+                        &checked_file(repository, CORE_METADATA_PATH)?,
+                        8 * 1024 * 1024,
+                    )?)?,
+                    &catalog.registered_features,
+                )?;
+                Ok((catalog, metadata))
+            };
+            load().expect("load immutable named Forge fixture inputs")
+        });
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;
-        let selection = select_core_inputs(&metadata, &context, &BTreeSet::new())?;
+        let selection = select_core_inputs(metadata, &context, &BTreeSet::new())?;
         let mut fixture = Fixture::new_for_target(target);
         let configuration = crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
         let destination = fixture.repository().join(configuration);

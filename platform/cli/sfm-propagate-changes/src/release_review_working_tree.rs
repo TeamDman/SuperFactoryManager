@@ -251,6 +251,35 @@ fn resolve(
     revision: &str,
     kind: &str,
 ) -> eyre::Result<String> {
+    budget.check()?;
+    // Observation passes repeatedly resolve HEAD and already-pinned commits.
+    // These local object reads must not spawn Git and two pipe-reader threads
+    // each time; under load that consumed the entire freshness-check budget.
+    if revision == "HEAD"
+        || (revision.len() == 40 && revision.bytes().all(|byte| byte.is_ascii_hexdigit()))
+    {
+        let repository = gix::open_opts(
+            root,
+            gix::open::Options::isolated().config_overrides([
+                "gitoxide.objects.noReplace=true",
+                "gitoxide.objects.allocLimit=67108864",
+            ]),
+        )?;
+        let object = if revision == "HEAD" {
+            repository.find_object(repository.head_commit()?.id)?
+        } else {
+            repository.find_object(gix::hash::ObjectId::from_hex(revision.as_bytes())?)?
+        };
+        let target = match kind {
+            "commit" => gix::objs::Kind::Commit,
+            "tree" => gix::objs::Kind::Tree,
+            _ => return Err(eyre!("unsupported capture revision kind: {kind}")),
+        };
+        let value = object.peel_to_kind(target)?.id.to_string();
+        budget.check()?;
+        return Ok(value);
+    }
+    // Arbitrary user revision expressions still use Git's revision parser.
     let reference = format!("{revision}^{{{kind}}}");
     let bytes = budget.git(
         root,
@@ -674,6 +703,12 @@ mod tests {
 
     fn git(root: &Path, args: &[&str]) -> Vec<u8> {
         let output = Command::new("git")
+            .args([
+                "-c",
+                "user.name=SFM capture test",
+                "-c",
+                "user.email=sfm-capture@example.invalid",
+            ])
             .arg("-C")
             .arg(root)
             .args(args)
@@ -690,12 +725,7 @@ mod tests {
 
     fn fixture() -> (tempfile::TempDir, WorkingTreeReviewConfig) {
         let root = tempfile::tempdir().unwrap();
-        git(root.path(), &["init", "--quiet"]);
-        git(root.path(), &["config", "user.name", "SFM capture test"]);
-        git(
-            root.path(),
-            &["config", "user.email", "sfm-capture@example.invalid"],
-        );
+        gix::init(root.path()).unwrap();
         std::fs::create_dir(root.path().join("src")).unwrap();
         for (name, text) in [
             ("A.java", "class A { int old; }\n"),
@@ -721,6 +751,33 @@ mod tests {
             review_evidence_path: "review.sfm-review.json".into(),
         };
         (root, config)
+    }
+
+    #[test]
+    fn local_revision_reads_match_git_and_keep_deadline_enforcement() {
+        let (root, _) = fixture();
+        let cancellation = CancellationToken::new();
+        let budget = CaptureBudget::new(&cancellation);
+        let head = resolve(&budget, root.path(), "HEAD", "commit").unwrap();
+        for revision in ["HEAD", head.as_str()] {
+            for kind in ["commit", "tree"] {
+                let expected = git(
+                    root.path(),
+                    &["rev-parse", &format!("{revision}^{{{kind}}}")],
+                );
+                assert_eq!(
+                    resolve(&budget, root.path(), revision, kind).unwrap(),
+                    std::str::from_utf8(&expected).unwrap().trim()
+                );
+            }
+        }
+        let expired = CaptureBudget::with_timeout(&cancellation, std::time::Duration::ZERO);
+        assert!(
+            resolve(&expired, root.path(), "HEAD", "commit")
+                .unwrap_err()
+                .to_string()
+                .contains("deadline")
+        );
     }
 
     #[test]

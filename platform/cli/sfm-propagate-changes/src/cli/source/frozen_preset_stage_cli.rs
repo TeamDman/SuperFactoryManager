@@ -101,6 +101,7 @@ impl FrozenPresetStageArgs {
         self.invoke_with_hook(cancellation, invocation_dir, None)
     }
 
+    #[tracing::instrument(name = "frozen_stage.invoke", skip_all)]
     fn invoke_with_hook(
         self,
         cancellation: &CancellationToken,
@@ -228,6 +229,7 @@ fn read_reviewed_preview(
     Ok((report, digest))
 }
 
+#[tracing::instrument(name = "frozen_stage.preflight", skip_all)]
 fn preflight_plan(
     candidate: &Path,
     authored: &Path,
@@ -334,6 +336,7 @@ fn preflight_plan(
     })
 }
 
+#[tracing::instrument(name = "frozen_stage.apply", skip_all)]
 fn apply_plan(
     root: &Path,
     plan: &mut StagePlan,
@@ -410,6 +413,7 @@ fn apply_plan(
     Ok(())
 }
 
+#[tracing::instrument(name = "frozen_stage.checkpoint", skip_all)]
 fn ensure_candidate_quiescent(root: &Path, plan: &StagePlan) -> Result<()> {
     ensure!(
         candidate_repository(root)?.head_id()?.to_string() == plan.report.source_commit,
@@ -523,6 +527,7 @@ fn ensure_unconcealed_index(root: &Path) -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(name = "frozen_stage.git_query", skip_all)]
 fn git_stdout(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     let output = frozen_git_command(root).args(args).output()?;
     ensure!(
@@ -674,6 +679,7 @@ mod tests {
         }
     }
 
+    #[tracing::instrument(name = "frozen_stage.fixture", skip_all)]
     fn fixture() -> Fixture {
         let (authored, commit, preview_args) = frozen_matrix_fixture();
         let preview = preview_args
@@ -776,6 +782,20 @@ mod tests {
         };
         assert!(args.apply);
         assert_eq!(args.preview_sha256, "sha256:reviewed");
+    }
+
+    #[test]
+    #[ignore = "profiling-only duplicate; run alone with a Tracy capture"]
+    fn profile_frozen_staging() {
+        crate::logging::init_logging(
+            &crate::logging::LoggingConfig::new(
+                tracing::level_filters::LevelFilter::INFO,
+                std::env::var_os("SFM_TEST_LOG_FILE").map(PathBuf::from),
+            ),
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        preflight_is_read_only_and_apply_stages_exact_eleven_paths_without_mutating_hardlink();
     }
 
     #[test]
