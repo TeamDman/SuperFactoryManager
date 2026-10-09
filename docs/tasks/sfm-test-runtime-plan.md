@@ -1,6 +1,6 @@
 # CLI test runtime
 
-Status: performance target verified; final checkpoint/install pending, 2026-10-09. Starting commit: `05fa0d5a6`.
+Status: complete, 2026-10-09. Starting commit: `05fa0d5a6`.
 
 ## Contract
 
@@ -53,7 +53,24 @@ four integration binaries, excluding compilation and artifact discovery.
 Binary/doc harnesses contain no tests. Formatting, Clippy, all-feature build,
 binary/doc harnesses and the final default-feature build all passed. These are
 measured results, not a guarantee under arbitrary machine load; the margin is
-less than two seconds. Final commit/install verification remains pending.
+less than two seconds.
+
+Final source checkpoint: `1fe07fe9c` on `main`. `install.ps1` completed using
+locked, offline dependencies; the PATH executable reports revision `1fe07fe9c`.
+Its SHA-256 is `8EFF6FEAC6B9BDA25B1E4F24816304D2CDCC0F0E05FF4EC4BF2A6680E34CC85B`.
+User install required: no. All owned gate, test and installer processes exited
+successfully; no game was started or stopped. No dependency declarations or
+lockfiles changed, no new repositories were acquired, and nothing was pushed.
+
+To repeat the measurement, run from `platform/cli/sfm-propagate-changes`:
+
+```powershell
+.\scripts\test-bounded.ps1 -Workers 4 -TestThreads 8
+```
+
+Expect all five test processes to pass. The runner prints the post-compilation
+elapsed time and the location of its machine-readable timing receipt. Compilation
+and artifact discovery are reported separately and excluded from that measurement.
 
 Fixture profiling identified repeated directory creation and loose-object
 copies. Private seed repositories are now packed once; each test still receives
