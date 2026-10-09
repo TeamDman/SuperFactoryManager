@@ -774,6 +774,10 @@ fn validate_lower_hex(value: &str, length: usize, label: &str) -> Result<()> {
 /// # Errors
 ///
 /// Rejects missing, relative, traversing or reparse-point paths.
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(name = "projection.checked_directory", level = "info", skip_all)
+)]
 pub(crate) fn checked_directory(path: &Path) -> Result<PathBuf> {
     ensure!(
         path.is_absolute(),
@@ -822,6 +826,10 @@ fn hash_regular(root: &Path, relative: &str) -> Result<String> {
 /// # Errors
 ///
 /// Rejects unsafe, missing, nonregular or reparse-point components.
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(name = "projection.checked_file", level = "info", skip_all)
+)]
 pub(crate) fn checked_file(root: &Path, relative: &str) -> Result<PathBuf> {
     validate_relative_path(relative)?;
     let parts = relative.split('/').collect::<Vec<_>>();
@@ -905,6 +913,30 @@ pub(crate) mod tests {
     }
 
     impl Fixture {
+        /// Edit this private fixture index once instead of spawning Git once
+        /// per target. Never operates on a contributor's checkout.
+        pub(crate) fn stage_executable_wrappers(&self, generated_root: &str) {
+            let repository = gix::open_opts(&self.repo, gix::open::Options::isolated()).unwrap();
+            let mut index = repository.open_index().unwrap();
+            let paths = self
+                .roots
+                .keys()
+                .map(|target| format!("{generated_root}/{target}/gradlew"))
+                .collect::<Vec<_>>();
+            let mut changed = 0;
+            for (entry, path) in index.entries_mut_with_paths() {
+                if paths.iter().any(|expected| path == expected.as_bytes()) {
+                    assert_eq!(entry.stage(), gix::index::entry::Stage::Unconflicted);
+                    entry.mode = gix::index::entry::Mode::FILE_EXECUTABLE;
+                    changed += 1;
+                }
+            }
+            assert_eq!(changed, paths.len(), "every wrapper must already be staged");
+            // Entry modes changed, so Git must rebuild its cached tree.
+            let _ = index.remove_tree();
+            index.write(gix::index::write::Options::default()).unwrap();
+        }
+
         pub(crate) fn new() -> Self {
             // Cache immutable seed bytes, never a mutable repository or live
             // TempDir. Each caller still owns independent files and Git state.

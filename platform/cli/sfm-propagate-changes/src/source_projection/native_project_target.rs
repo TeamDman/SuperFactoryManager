@@ -146,7 +146,8 @@ impl NativeProjectTarget {
             declared_profile == NATIVE_DEPENDENCY_PROFILE,
             "named native target requires the explicit rust-toolchain profile"
         );
-        project.recheck()?;
+        // Profile derivation consumes retained immutable bytes. Validate the
+        // live project once before returning, not on both sides of pure work.
         let profile = selected_profile(project.artifacts(), project.identity(), declared_profile)?;
         let target = target_from_checked(project, declared_profile, profile)?;
         project.recheck()?;
@@ -160,7 +161,6 @@ impl NativeProjectTarget {
             self.receipt.dependency_profile == NATIVE_DEPENDENCY_PROFILE,
             "retained native target lost its rust-toolchain profile"
         );
-        project.recheck()?;
         let profile = selected_profile(
             project.artifacts(),
             project.identity(),

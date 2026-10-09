@@ -234,17 +234,7 @@ pub(super) mod tests {
             fixture.repo(),
             &["add", "--", "platform/minecraft/mc-version"],
         );
-        for (target_id, _) in fixture.roots() {
-            git(
-                fixture.repo(),
-                &[
-                    "update-index",
-                    "--chmod=+x",
-                    "--",
-                    &format!("platform/minecraft/mc-version/{target_id}/gradlew"),
-                ],
-            );
-        }
+        fixture.stage_executable_wrappers("platform/minecraft/mc-version");
         git(
             fixture.repo(),
             &["commit", "-qm", "promote synthetic target plan fixture"],

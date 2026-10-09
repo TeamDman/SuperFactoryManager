@@ -38,6 +38,126 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
+Latest complete gate passes: formatting, production Clippy, all-feature and
+default builds, 1,670 active library tests, 70 integration tests, and bin/doc
+harnesses. Post-compilation execution is **78.596 s** (library 70.495 s process
+wall). This covers the validation consolidation and gix wrapper-index fixture
+changes described below. The 60-second goal remains unmet. No dependencies,
+active-test exclusions, deadlines or concurrency defaults changed. Checkpoint
+and install this batch before continuing release-fixture profiling.
+
+Current focus: repeated filesystem validation, not more concurrency. Tracy on
+the isolated six-target development matrix measured 1,968 checked-directory
+calls and 4,470 checked-file calls, together about 41% of measured time (5.63 s
+test duration). Repeated ancestor walks are the next optimization candidate;
+do not cache safety decisions across filesystem mutations.
+
+Removed the redundant `sync(Check)` output read pass from catalog ownership:
+the ownership verifier already performs bounded path-checked byte comparisons.
+Pure artifact/identity validation and before/after authored-source and generated
+inventory checks remain. All 19 ownership regressions pass in 7.68 s, including
+same-size edits, case aliases and junction rejection. The matrix recapture took
+5.91 s, so this is reduced duplicated work, not a demonstrated wall-time win.
+The normal test phase passed 1,668 active library and 70 integration tests in
+102.586 s. This covers the duplicate-read removal and gix release-preflight
+changes, not the subsequent reader below. No new dependency or timeout/concurrency
+change was made. Goal remains unmet.
+
+Next change under validation: `CheckedInputReader` reuses existing Windows
+`DirectoryLeases` for one catalog byte-comparison pass. It never caches file
+contents. Each leaf is opened no-follow, inspected and bounded; non-Windows
+retains per-read path validation. Tests added for observing edits/missing files,
+limits, ancestor replacement refusal and lease release between passes. This
+change was made after the preceding library test executable was compiled.
+Its 21 focused ownership tests pass in 6.51 s. The same matrix trace takes
+5.53 s, with checked-file calls reduced from 4,470 to 1,164. It also reveals
+7,386 new directory leases and 44,394 held-ancestor attribute queries; scope
+setup costs matter. The unchanged 1,968 checked-directory calls remain the
+largest self-time cost (1.204 s). Full current-source validation remains pending;
+The subsequent full gate stopped at a block-semicolon Clippy finding (fixed).
+
+Boundary audit took priority over faster per-path checking: removed entry
+whole-project checks from `NativeProjectTarget::from_checked_project`,
+`recheck_with_project`, and `DevelopmentNfrtDependencies::from_checked`.
+Their intervening work derives identities/indexes from retained bytes (plus
+read-only cache-path inspection); exit live-input checks remain, as do all
+acquisition/execution checkpoints. Fifty selected development tests pass in
+7.66 s (four existing ignored). Matrix profiling falls from 5.53 s to 4.19 s:
+catalog rechecks 60 to 24, checked directories 1,968 to 954, authored snapshot
+checks 144 to 72. This is an isolated result, not whole-suite acceptance.
+Next run the complete current-source gate; continue auditing duplicated
+validation boundaries before adding further per-directory optimizations.
+
+Latest gate's library/integration phase: 1,670 active library and 70 integration
+tests pass in 114.701 s (library 99.625 s process wall). No whole-suite speedup
+is established. Binary/doc/default-build stages are still pending completion.
+During this gate, a further unverified change consolidated entry/exit scans
+inside `CatalogOwnedProject::check_current` and `recheck`: selected output
+bytes are checked first, then authored bytes and exact generated membership
+once before returning. There are no writes between these observations. Do not
+claim the earlier gate covers this final edit; run a fresh focused build/test,
+inspect any changed diagnostic expectations, then measure before another gate.
+
+Fresh focused validation of that final edit passes all 21 ownership tests in
+6.48 s. The missing-source regression now requires the exact missing path and
+underlying NotFound error (the read rejects it before inventory enumeration),
+and retains no-repair assertions. Matrix recapture: 3.27 s, checked-directory
+calls 564, generated inventories 30 and authored snapshots 42. This compares
+with 4.19 s / 954 directories before lower-level consolidation and 5.63 s /
+1,968 directories before the boundary audit. The complete bounded test phase
+is now running against this source; do not infer full-suite timing from the
+isolated matrix. Prior full gate completed, but predates this final edit.
+
+The first whole-suite measurement after consolidation was interrupted: its
+process disappeared and log ended mid-test without a receipt. Do not count it.
+The unchanged-source rerun passes all 1,670 active library and 70 integration
+tests in **79.647 s** (library process 71.667 s). This is progress but still
+above 60 s. Unrelated host compiler activity was observed around these runs;
+do not attribute all timing variance to implementation changes. A fresh
+per-test timing run of the already-built library is collecting the remaining
+hot tests. Current-source formatting/Clippy and final checkpoint/install remain
+pending; no new dependency, skipped active test or relaxed timeout was used.
+
+Current per-test diagnostic passes 1,670 tests in 79.643 s (library only,
+JSON timing overhead/load differs). Longest under concurrency: changed-input
+release-tag preflight 30.16 s, transitional-loader Modrinth policy 27.36 s,
+absent/exact tag preflight 26.99 s, twenty-context catalog 25.98 s, four-recipe
+JAR matrix 25.17 s. Next target is release preparation: tag/Modrinth fixtures
+repeatedly verify/package complete candidates, and production release checks
+still contain native Git probes. Audit shared setup and operation boundaries;
+do not remove meaningful release-state assertions or widen dependency authority.
+
+Release-fixture optimization: both tag-preflight and target-plan promotion
+helpers launched Git once per wrapper to stage executable mode (ten processes
+per fixture). They now share `Fixture::stage_executable_wrappers`, opening the
+private index with gix, updating exact staged paths, discarding the tree cache
+and writing once. Native Git commits and subsequent production tree checks
+remain. Eleven tag-preflight tests pass in 8.78 s; thirteen target-plan/Modrinth
+tests pass in 6.53 s. Full current-source gate/checkpoint is next; no whole-suite
+speed claim for this latest fixture change yet.
+
+The opt-level-2 experiment passed all 1,668 active library and 70 integration
+tests in **97.291 s**, after **7m27s** compilation. It does not meet the target
+or justify changing the default profile. Debug assertions were verified enabled
+in the compiler command; overflow checks were explicitly requested through the
+Cargo profile environment. Other host Cargo work was observed, so this is not
+an isolated profile comparison. Defaults remain unchanged. The next measurement
+should distinguish filesystem/fixture costs from computation; do not continue
+tuning optimisation levels. Release-preflight changes still need the normal
+full validation gate before their next checkpoint.
+
+Checkpoint `7fdb5f990` is committed and installed; the PATH executable reports
+that revision. Nothing was pushed. Release preflight now uses fresh isolated
+gix reads for HEAD, common directory, index flags and tag identities, retaining
+the existing status/ancestry checks. All eleven focused tests pass in 9.70 s,
+including annotated tags, retargeting, corrupt refs, hidden flags and grafts.
+This latest change is not yet covered by a complete gate.
+
+A process-local test-profile experiment uses opt-level 2 with debug assertions
+and overflow checks explicitly enabled. No Cargo profile/default or dependency
+version was changed. Measure all active library and integration tests; do not
+adopt the compile/runtime tradeoff without whole-suite correctness and timing.
+
 The accumulated batch passed the complete `check-all.ps1` gate: formatting,
 production Clippy, all-feature/default builds, 1,668 active library tests,
 70 integration tests, and binary/doc harnesses. Test execution was **101.782 s**;

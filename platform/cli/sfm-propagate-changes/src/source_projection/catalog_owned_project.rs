@@ -32,6 +32,7 @@ use super::sync::CatalogProjectionIdentity;
 use super::sync::ProjectedArtifact;
 use super::sync::SyncMode;
 use super::sync::sync_catalog_projection;
+use super::sync::validate_catalog_artifacts;
 use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
@@ -212,20 +213,18 @@ impl CollectedCatalogProject {
     /// files/reparse points, stale/conflicting outputs and changed provenance.
     #[tracing::instrument(name = "catalog.check_current", skip_all)]
     pub fn check_current(self) -> Result<CatalogOwnedProject> {
-        self.recheck_authored_snapshot()?;
         let project_root = catalog_projection_root(
             &self.loaded.repo_root,
             &self.loaded.catalog,
             &self.identity.projection_key,
             &self.artifacts,
         )?;
-        let source_inventory = inspect_generated_sources(&project_root, &self.artifacts)?;
-        sync_catalog_projection(&project_root, &self.identity, &self.artifacts, SyncMode::Check)
-            .wrap_err("catalog ownership requires a current generated project; use the existing named source workflow")?;
+        self.validate_output_contract()?;
         let mut files = BTreeMap::new();
         let mut total = 0_u64;
+        let mut reader = CheckedInputReader::default();
         for (output, artifact) in &self.artifacts {
-            let actual = read_checked(&project_root, output, MAX_CORE_FILE_BYTES)?;
+            let actual = reader.read(&project_root, output, MAX_CORE_FILE_BYTES)?;
             add_budget(&mut total, actual.len())?;
             ensure!(
                 actual == artifact.output_bytes,
@@ -243,10 +242,7 @@ impl CollectedCatalogProject {
                 },
             );
         }
-        ensure!(
-            inspect_generated_sources(&project_root, &self.artifacts)? == source_inventory,
-            "catalog generated source inventory changed during check"
-        );
+        let source_inventory = inspect_generated_sources(&project_root, &self.artifacts)?;
         self.recheck_authored_snapshot()?;
         let receipt = CatalogOwnedProjectReceipt {
             schema: RECEIPT_SCHEMA.to_owned(),
@@ -278,6 +274,15 @@ impl CollectedCatalogProject {
         })
     }
 
+    // Ownership already performs bounded reads of every output below. Calling
+    // sync(Check) as well would read the entire generated project twice without
+    // establishing a lock or a stronger snapshot. Keep its pure contract checks,
+    // and let the ownership read pass verify the current bytes and path types.
+    fn validate_output_contract(&self) -> Result<()> {
+        validate_catalog_artifacts(&self.artifacts)?;
+        self.identity.validate()
+    }
+
     #[tracing::instrument(name = "catalog.recheck_authored", skip_all)]
     fn recheck_authored_snapshot(&self) -> Result<()> {
         ensure!(
@@ -300,8 +305,9 @@ impl CollectedCatalogProject {
             "catalog authored metadata or source inventory changed during collection"
         );
         let mut total = 0_u64;
+        let mut reader = CheckedInputReader::default();
         for artifact in self.artifacts.values() {
-            let bytes = read_checked(
+            let bytes = reader.read(
                 &self.loaded.repo_root,
                 &artifact.source_path,
                 MAX_CORE_FILE_BYTES,
@@ -418,7 +424,6 @@ impl CatalogOwnedProject {
         // Rendering is deterministic for these exact retained input bytes.
         // Re-read content and membership, never trust mtimes or skip effects'
         // rechecks, but do not parse/render the same full tree at every launch.
-        self.collected.recheck_authored_snapshot()?;
         let root = catalog_projection_root(
             self.repo_root(),
             &self.collected.loaded.catalog,
@@ -426,23 +431,20 @@ impl CatalogOwnedProject {
             &self.collected.artifacts,
         )?;
         ensure!(
-            checked_directory(&root)? == self.project_root
-                && inventory_digest(&inspect_generated_sources(&root, self.artifacts())?)?
-                    == self.receipt.generated_source_inventory_sha256,
-            "checked catalog project root or generated membership changed"
+            checked_directory(&root)? == self.project_root,
+            "checked catalog project root changed"
         );
-        sync_catalog_projection(
-            &root,
-            &self.collected.identity,
-            self.artifacts(),
-            SyncMode::Check,
-        )?;
+        self.collected.validate_output_contract()?;
+        let mut reader = CheckedInputReader::default();
         for (output, artifact) in self.artifacts() {
             ensure!(
-                read_checked(&root, output, MAX_CORE_FILE_BYTES)? == artifact.output_bytes,
+                reader.read(&root, output, MAX_CORE_FILE_BYTES)? == artifact.output_bytes,
                 "checked catalog generated output changed: {output}"
             );
         }
+        // This method has no filesystem writes or external callbacks between
+        // observations. Check authored content and membership once at exit;
+        // duplicate entry scans do not make the filesystem snapshot atomic.
         self.collected.recheck_authored_snapshot()?;
         ensure!(
             inventory_digest(&inspect_generated_sources(&root, self.artifacts())?)?
@@ -551,6 +553,10 @@ fn selected_template_mode(selection: &CoreSelection, output: &str) -> Result<boo
         .template)
 }
 
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(name = "catalog.generated_inventory", level = "info", skip_all)
+)]
 fn inspect_generated_sources(
     project_root: &Path,
     artifacts: &BTreeMap<String, ProjectedArtifact>,
@@ -653,21 +659,57 @@ fn add_budget(total: &mut u64, bytes: usize) -> Result<()> {
     );
     Ok(())
 }
+#[cfg_attr(
+    feature = "tracy",
+    tracing::instrument(name = "catalog.read_checked", level = "info", skip_all)
+)]
 fn read_checked(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
-    let path = checked_file(root, relative)?;
-    let file = fs::File::open(path)
-        .wrap_err_with(|| format!("cannot read catalog-owned input `{relative}`"))?;
-    ensure!(
-        file.metadata()?.len() <= limit,
-        "catalog-owned input exceeds byte limit: {relative}"
-    );
-    let mut bytes = Vec::new();
-    file.take(limit + 1).read_to_end(&mut bytes)?;
-    ensure!(
-        bytes.len() as u64 <= limit,
-        "catalog-owned input grew beyond byte limit: {relative}"
-    );
-    Ok(bytes)
+    CheckedInputReader::default().read(root, relative, limit)
+}
+
+/// One read pass shares held ancestry, never file contents or metadata across
+/// rechecks. On Windows the existing leases prevent rename/reparse swaps;
+/// other platforms retain the existing per-read path checks.
+#[derive(Default)]
+struct CheckedInputReader {
+    #[cfg(windows)]
+    directories: super::core_input_leases::DirectoryLeases,
+}
+
+impl CheckedInputReader {
+    fn read(&mut self, root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
+        #[cfg(windows)]
+        let path = self.directories.prepare(root, relative)?;
+        #[cfg(not(windows))]
+        let path = checked_file(root, relative)?;
+        let mut options = fs::OpenOptions::new();
+        options.read(true);
+        #[cfg(windows)]
+        let () = {
+            use std::os::windows::fs::OpenOptionsExt as _;
+            use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+            options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
+        };
+        let file = options
+            .open(path)
+            .wrap_err_with(|| format!("cannot read catalog-owned input `{relative}`"))?;
+        let metadata = file.metadata()?;
+        ensure!(
+            metadata.is_file() && !super::candidate_lock::is_reparse(&metadata),
+            "catalog-owned input is a reparse point or non-file: {relative}"
+        );
+        ensure!(
+            metadata.len() <= limit,
+            "catalog-owned input exceeds byte limit: {relative}"
+        );
+        let mut bytes = Vec::new();
+        file.take(limit + 1).read_to_end(&mut bytes)?;
+        ensure!(
+            bytes.len() as u64 <= limit,
+            "catalog-owned input grew beyond byte limit: {relative}"
+        );
+        Ok(bytes)
+    }
 }
 fn portable_path(path: &Path) -> Result<String> {
     path.components()
@@ -1357,6 +1399,41 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn checked_reader_observes_edits_and_enforces_limits_on_each_read() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let path = fixture.path().join("input");
+        fs::write(&path, b"before")?;
+        let mut reader = CheckedInputReader::default();
+        assert_eq!(reader.read(fixture.path(), "input", 6)?, b"before");
+        fs::write(&path, b"edited")?;
+        assert_eq!(reader.read(fixture.path(), "input", 6)?, b"edited");
+        assert!(reader.read(fixture.path(), "input", 5).is_err());
+        fs::remove_file(&path)?;
+        assert!(reader.read(fixture.path(), "input", 6).is_err());
+        assert!(reader.read(fixture.path(), "../escape", 6).is_err());
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn checked_reader_holds_ancestry_only_until_pass_ends() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let directory = fixture.path().join("nested");
+        fs::create_dir(&directory)?;
+        fs::write(directory.join("input"), b"old")?;
+        let mut reader = CheckedInputReader::default();
+        assert_eq!(reader.read(fixture.path(), "nested/input", 3)?, b"old");
+        let moved = fixture.path().join("moved");
+        assert!(fs::rename(&directory, &moved).is_err());
+        drop(reader);
+        fs::rename(&directory, moved)?;
+        fs::create_dir(&directory)?;
+        fs::write(directory.join("input"), b"new")?;
+        assert_eq!(read_checked(fixture.path(), "nested/input", 3)?, b"new");
+        Ok(())
+    }
+
+    #[test]
     fn retained_recheck_refuses_same_size_preserved_timestamp_content_edits() -> Result<()> {
         for authored in [true, false] {
             let fixture = Fixture::new_for_target("1.19.2");
@@ -1477,10 +1554,12 @@ pub(crate) mod tests {
         let root = fixture.publish(&key);
         fs::remove_file(root.join(JAVA))?;
         let error = fixture.collect(&key)?.check_current().unwrap_err();
+        assert!(error.to_string().contains(JAVA), "{error:?}");
         assert!(
-            error
-                .to_string()
-                .contains("missing or extra unowned source inputs")
+            error.chain().any(|cause| cause
+                .downcast_ref::<std::io::Error>()
+                .is_some_and(|cause| cause.kind() == std::io::ErrorKind::NotFound)),
+            "{error:?}"
         );
         assert!(!root.join(JAVA).exists());
         let fixture = Fixture::new();

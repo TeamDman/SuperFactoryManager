@@ -131,7 +131,7 @@ impl ReleaseTagPreflightArgs {
             "reviewed release worktree changed during local tag preflight"
         );
         ensure!(
-            git_text(&root, &["rev-parse", "HEAD"])? == head,
+            preflight_repository(&root)?.head_commit()?.id.to_string() == head,
             "current HEAD changed during local tag preflight"
         );
 
@@ -165,12 +165,15 @@ fn ensure_reviewed_release_checkout(
     reviewed_release_commit: &str,
     package_source_commit: &str,
 ) -> Result<String> {
-    let top = git_text(root, &["rev-parse", "--show-toplevel"])?;
+    let repository = preflight_repository(root)?;
+    let top = repository
+        .workdir()
+        .ok_or_else(|| eyre::eyre!("release repository has no worktree"))?;
     ensure!(
-        checked_directory(Path::new(&top))? == root,
+        checked_directory(top)? == root,
         "--repo-root must be the Git worktree root"
     );
-    let head = git_text(root, &["rev-parse", "HEAD"])?;
+    let head = repository.head_commit()?.id.to_string();
     ensure!(
         head == reviewed_release_commit,
         "current HEAD differs from --reviewed-release-commit"
@@ -180,13 +183,7 @@ fn ensure_reviewed_release_checkout(
         git_text(root, &["status", "--porcelain=v1", "--untracked-files=all"])?.is_empty(),
         "reviewed release worktree is not clean"
     );
-    let common_dir = git_text(root, &["rev-parse", "--git-common-dir"])?;
-    let common_dir = Path::new(&common_dir);
-    let common_dir = if common_dir.is_absolute() {
-        common_dir.to_path_buf()
-    } else {
-        root.join(common_dir)
-    };
+    let common_dir = repository.common_dir();
     ensure!(
         fs::symlink_metadata(common_dir.join("info/grafts"))
             .is_err_and(|error| error.kind() == std::io::ErrorKind::NotFound),
@@ -226,23 +223,33 @@ fn ensure_reviewed_release_checkout(
 }
 
 fn ensure_unconcealed_index(root: &Path) -> Result<()> {
-    let entries = git_bytes(root, &["ls-files", "--cached", "-v", "-z"])?;
-    ensure!(
-        entries.last() == Some(&0),
-        "reviewed release index has no terminal NUL"
-    );
-    for entry in entries[..entries.len() - 1].split(|byte| *byte == 0) {
+    use gix::index::entry::Flags;
+    use gix::index::entry::Stage;
+    let repository = preflight_repository(root)?;
+    let index = repository.index()?;
+    for entry in index.entries() {
+        let relative = std::str::from_utf8(entry.path(&index))?;
         ensure!(
-            entry.len() >= 3 && entry[1] == b' ',
-            "reviewed release index has a malformed tracked entry"
-        );
-        let relative = std::str::from_utf8(&entry[2..])?;
-        ensure!(
-            entry[0] == b'H',
+            entry.stage() == Stage::Unconflicted
+                && !entry
+                    .flags
+                    .intersects(Flags::ASSUME_VALID | Flags::SKIP_WORKTREE),
             "reviewed release index has a concealed or non-normal tracked entry '{relative}'"
         );
     }
     Ok(())
+}
+
+fn preflight_repository(root: &Path) -> Result<gix::Repository> {
+    let mut repository = gix::open_opts(
+        root,
+        gix::open::Options::isolated().config_overrides([
+            "gitoxide.objects.noReplace=true",
+            "gitoxide.objects.allocLimit=67108864",
+        ]),
+    )?;
+    let _ = repository.clear_namespace();
+    Ok(repository)
 }
 
 fn ensure_selected_promoted_root(
@@ -341,32 +348,30 @@ fn ensure_committed_owned_root(
 }
 fn inspect_local_tag(root: &Path, local_tag: &str, head: &str) -> Result<(String, Option<String>)> {
     let tag_ref = format!("refs/tags/{local_tag}");
-    ensure!(
-        git_output(root, &["check-ref-format", &tag_ref])?
-            .status
-            .success(),
-        "derived local tag has an invalid Git ref name"
-    );
-    let existence = git_output(root, &["show-ref", "--exists", &tag_ref])?;
-    match existence.status.code() {
-        Some(0) => {}
-        Some(2) => {
-            ensure!(
-                git_output(root, &["show-ref", "--exists", &tag_ref])?
-                    .status
-                    .code()
-                    == Some(2),
-                "local tag changed during preflight"
-            );
-            return Ok(("absent".to_owned(), None));
-        }
-        _ => eyre::bail!(
-            "cannot inspect local tag '{local_tag}': {}",
-            String::from_utf8_lossy(&existence.stderr).trim()
-        ),
-    }
-    let object = git_text(root, &["rev-parse", "--verify", &tag_ref])?;
+    let _: &gix::refs::FullNameRef = tag_ref
+        .as_str()
+        .try_into()
+        .wrap_err("derived local tag has an invalid Git ref name")?;
+    let Some(object) = local_tag_object(root, &tag_ref)? else {
+        ensure!(
+            local_tag_object(root, &tag_ref)?.is_none(),
+            "local tag changed during preflight"
+        );
+        return Ok(("absent".to_owned(), None));
+    };
     inspect_captured_local_tag(root, local_tag, head, object)
+}
+
+fn local_tag_object(root: &Path, tag_ref: &str) -> Result<Option<String>> {
+    let read = || -> Result<Option<String>> {
+        // Reopen on every observation, including the second absent/ref check.
+        let repository = preflight_repository(root)?;
+        repository
+            .try_find_reference(tag_ref)?
+            .map(|mut reference| Ok(reference.follow_to_object()?.to_string()))
+            .transpose()
+    };
+    read().wrap_err_with(|| format!("cannot inspect local tag '{tag_ref}'"))
 }
 
 fn inspect_captured_local_tag(
@@ -376,19 +381,18 @@ fn inspect_captured_local_tag(
     object: String,
 ) -> Result<(String, Option<String>)> {
     ensure_commit(&object, "local tag object")?;
-    let peeled = git_text(
-        root,
-        &["rev-parse", "--verify", &format!("{object}^{{commit}}")],
-    )?;
+    let peeled = preflight_repository(root)?
+        .find_object(gix::hash::ObjectId::from_hex(object.as_bytes())?)?
+        .peel_to_commit()?
+        .id
+        .to_string();
     ensure!(
         peeled == head,
         "local tag '{local_tag}' does not point to reviewed release commit"
     );
     ensure!(
-        git_text(
-            root,
-            &["rev-parse", "--verify", &format!("refs/tags/{local_tag}")]
-        )? == object,
+        local_tag_object(root, &format!("refs/tags/{local_tag}"))?.as_deref()
+            == Some(object.as_str()),
         "local tag '{local_tag}' changed during preflight"
     );
     Ok(("matches-reviewed-release-commit".to_owned(), Some(object)))
@@ -596,17 +600,7 @@ mod tests {
             fs::write(destination.join(MANIFEST_FILE), manifest_bytes).unwrap();
         }
         git(fixture.repo(), &["add", "--", GENERATED_ROOTS]);
-        for (target_id, _) in fixture.roots() {
-            git(
-                fixture.repo(),
-                &[
-                    "update-index",
-                    "--chmod=+x",
-                    "--",
-                    &format!("{GENERATED_ROOTS}/{target_id}/gradlew"),
-                ],
-            );
-        }
+        fixture.stage_executable_wrappers(GENERATED_ROOTS);
         git(
             fixture.repo(),
             &["commit", "-qm", "promote synthetic release"],

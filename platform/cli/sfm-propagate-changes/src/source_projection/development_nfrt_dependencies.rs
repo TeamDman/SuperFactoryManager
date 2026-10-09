@@ -68,7 +68,9 @@ impl DevelopmentNfrtDependencies {
             !refresh,
             "development NeoForm requests refuse refresh before effects"
         );
-        owner.recheck_source()?;
+        // Parse the retained lock and build in-memory indexes first. No effects
+        // occur here; the exit check below rejects changed live inputs before
+        // returning this request catalog.
         let selected = owner.project().selected_input("sfm-toolchain.lock.json")?;
         let raw_lock = selected.output_bytes().to_vec();
         let ToolchainLockfileDocument::V4(lock) = parse_document(std::str::from_utf8(&raw_lock)?)?

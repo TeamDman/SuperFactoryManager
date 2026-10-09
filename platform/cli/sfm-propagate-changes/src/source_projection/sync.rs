@@ -71,6 +71,11 @@ impl CatalogProjectionIdentity {
             context_identity: self.context_identity.clone(),
         }
     }
+
+    pub(crate) fn validate(&self) -> Result<()> {
+        self.owner()
+            .validate(&self.target_id, &self.minecraft_version)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -193,9 +198,7 @@ pub fn sync_catalog_projection(
     mode: SyncMode,
 ) -> Result<SyncReport> {
     validate_catalog_artifacts(artifacts)?;
-    identity
-        .owner()
-        .validate(&identity.target_id, &identity.minecraft_version)?;
+    identity.validate()?;
     let destination_root = absolute_root(destination_root)?;
     inspect_root(&destination_root)?;
     let mut report = SyncReport::default();
