@@ -38,7 +38,30 @@ projects, but repeated generation and process launches multiply across callers.
 
 ## Measurements and next gate
 
-Latest complete gate: **58.785 s**; independent complete repeat: **59.049 s**.
+### Follow-up Git subprocess audit
+
+The next user-requested batch replaced 12 subprocess call sites with gix:
+worktree discovery, merge-state and index-conflict reads, release-tag enumeration,
+source revision and provenance reads, and historical fixture blob reads.
+Native Git remains for status, mutation, transport, archive filtering and
+revision-expression workflows. This is not a claim that every remaining read
+has been converted. Tree/blob batch readers and review revision resolution still
+merit further review; the current dependency feature set lacks gix revision parsing.
+
+Four new tests cover packed tags, nested discovery, detached and unborn HEADs,
+unique unquoted conflict paths, corrupt indexes, and linked-worktree merge state.
+A truncated-index test exposed a panic in the pinned gix-index version; the
+new conflict reader rejects undersized indexes before decoding.
+
+The full follow-up gate passed 1,687 library and 106 integration tests in
+**63.323 s**. This exceeds the earlier timing target; do not represent the
+under-minute result as stable across runs. Formatting, Clippy, all-feature and
+default-feature builds, and the binary/doc harnesses also passed. Dependencies
+and existing ignored tests remain unchanged.
+
+### Original goal completion measurements
+
+Complete gate: **58.785 s**; independent complete repeat: **59.049 s**.
 Both passed 1,683 library tests and 106 integration tests with no failures.
 The 22 previously ignored entries remain unchanged. The integration count grew
 by exposing the same 36 Java scenarios as individual harness tests, not by

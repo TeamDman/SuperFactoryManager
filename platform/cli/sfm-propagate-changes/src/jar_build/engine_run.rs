@@ -4751,15 +4751,8 @@ fn game_puppet_preview_source_identity(
 ) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
     plan.require_legacy_branch()?;
     let worktree = plan.repository_root().display().to_string();
-    let git_revision = Command::new("git")
-        .args(["-C", worktree.as_str(), "rev-parse", "HEAD"])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "unavailable".to_string());
+    let git_revision = crate::git_read::head_revision(plan.repository_root())
+        .unwrap_or_else(|_| "unavailable".to_string());
     let working_tree_dirty = Command::new("git")
         .args([
             "-C",

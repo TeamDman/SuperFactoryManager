@@ -9,6 +9,7 @@ pub(crate) mod dependency_inventory;
 pub(crate) mod dependency_locked_sources;
 pub(crate) mod dependency_sources;
 mod file_identity;
+pub(crate) mod git_read;
 pub mod jar_build;
 pub mod java_analysis;
 pub(crate) mod java_source_catalog;

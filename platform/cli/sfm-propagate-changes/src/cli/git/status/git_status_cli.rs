@@ -18,25 +18,7 @@ use tracing::info;
 /// Get the git status for a worktree
 fn get_worktree_status(worktree: &Worktree, short: bool) -> eyre::Result<WorktreeStatus> {
     // Check if we're in a merge state
-    let merge_head = worktree.path.join(".git").join("MERGE_HEAD");
-    let is_merging = if merge_head.exists() {
-        true
-    } else {
-        // For worktrees, .git might be a file pointing to the real git dir
-        let output = Command::new("git")
-            .args(["rev-parse", "--git-dir"])
-            .current_dir(&worktree.path)
-            .output()
-            .wrap_err("Failed to get git dir")?;
-
-        let git_dir = PathBuf::from(String::from_utf8_lossy(&output.stdout).trim());
-        let merge_head = if git_dir.is_absolute() {
-            git_dir.join("MERGE_HEAD")
-        } else {
-            worktree.path.join(&git_dir).join("MERGE_HEAD")
-        };
-        merge_head.exists()
-    };
+    let is_merging = crate::git_read::is_merging(&worktree.path)?;
 
     // Get porcelain status for parsing
     let output = Command::new("git")

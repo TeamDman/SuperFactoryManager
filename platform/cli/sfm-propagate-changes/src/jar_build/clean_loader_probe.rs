@@ -1170,17 +1170,8 @@ fn write_report_and_manifest(
 
 fn source_commit() -> eyre::Result<String> {
     let source_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let value = Command::new("git")
-        .args(["-C"])
-        .arg(source_dir)
-        .args(["rev-parse", "HEAD"])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| env!("GIT_REVISION").to_string());
+    let value = crate::git_read::head_revision(source_dir)
+        .unwrap_or_else(|_| env!("GIT_REVISION").to_string());
     if !(7..=64).contains(&value.len())
         || !value
             .bytes()

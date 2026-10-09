@@ -1,10 +1,7 @@
 //! Common worktree utilities shared across commands.
 
 use crate::cli::repo_root::get_repo_root;
-use eyre::Context;
-use eyre::bail;
 use std::path::PathBuf;
-use std::process::Command;
 
 /// Represents a worktree with its path and branch name
 #[derive(Debug, Clone)]
@@ -13,48 +10,44 @@ pub struct Worktree {
     pub branch: String,
 }
 
-/// Parse the output of `git worktree list` to get all worktrees
+/// Read the main and linked worktrees with attached local branches.
 ///
 /// # Errors
 ///
-/// Returns an error if `git worktree list --porcelain` fails or its output cannot be parsed.
+/// Returns an error if repository or registered worktree metadata cannot be read.
 pub fn get_worktrees(repo_root: &PathBuf) -> eyre::Result<Vec<Worktree>> {
-    let output = Command::new("git")
-        .args(["worktree", "list", "--porcelain"])
-        .current_dir(repo_root)
-        .output()
-        .wrap_err("Failed to run git worktree list")?;
-
-    if !output.status.success() {
-        bail!(
-            "git worktree list failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let repository = gix::discover(repo_root)?;
     let mut worktrees = Vec::new();
-    let mut current_path: Option<PathBuf> = None;
-    let mut current_branch: Option<String> = None;
+    append_attached_worktree(&repository.main_repo()?, &mut worktrees)?;
+    let mut linked = Vec::new();
+    for proxy in repository.worktrees()? {
+        append_attached_worktree(
+            &proxy.into_repo_with_possibly_inaccessible_worktree()?,
+            &mut linked,
+        )?;
+    }
+    linked.sort_by(|a, b| a.path.cmp(&b.path));
+    worktrees.extend(linked);
+    Ok(worktrees)
+}
 
-    for line in stdout.lines() {
-        if let Some(path) = line.strip_prefix("worktree ") {
-            // Save previous worktree if complete
-            if let (Some(path), Some(branch)) = (current_path.take(), current_branch.take()) {
-                worktrees.push(Worktree { path, branch });
-            }
-            current_path = Some(PathBuf::from(path));
-        } else if let Some(branch_ref) = line.strip_prefix("branch refs/heads/") {
-            current_branch = Some(branch_ref.to_string());
+fn append_attached_worktree(
+    repository: &gix::Repository,
+    result: &mut Vec<Worktree>,
+) -> eyre::Result<()> {
+    if repository.is_bare() {
+        return Ok(());
+    }
+    if let (Some(path), Some(name)) = (repository.workdir(), repository.head_name()?) {
+        let name = std::str::from_utf8(name.as_bstr())?;
+        if let Some(branch) = name.strip_prefix("refs/heads/") {
+            result.push(Worktree {
+                path: path.to_owned(),
+                branch: branch.to_owned(),
+            });
         }
     }
-
-    // Don't forget the last one
-    if let (Some(path), Some(branch)) = (current_path, current_branch) {
-        worktrees.push(Worktree { path, branch });
-    }
-
-    Ok(worktrees)
+    Ok(())
 }
 
 /// Parse a Minecraft version string into comparable parts

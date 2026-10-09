@@ -95,31 +95,13 @@ fn is_ignored_generated_cache_entry(change: &str) -> bool {
 }
 
 /// Check if there are merge conflicts in a worktree
-fn has_merge_conflicts(path: &PathBuf) -> eyre::Result<bool> {
-    let output = Command::new("git")
-        .args(["diff", "--name-only", "--diff-filter=U"])
-        .current_dir(path)
-        .output()
-        .wrap_err("Failed to check for merge conflicts")?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(!stdout.trim().is_empty())
+fn has_merge_conflicts(path: &Path) -> eyre::Result<bool> {
+    Ok(!crate::git_read::conflicted_paths(path)?.is_empty())
 }
 
 /// Get the list of conflicted files in a worktree
-fn get_conflicted_files(path: &PathBuf) -> eyre::Result<Vec<String>> {
-    let output = Command::new("git")
-        .args(["diff", "--name-only", "--diff-filter=U"])
-        .current_dir(path)
-        .output()
-        .wrap_err("Failed to get conflicted files")?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    Ok(stdout
-        .lines()
-        .filter(|s| !s.is_empty())
-        .map(String::from)
-        .collect())
+fn get_conflicted_files(path: &Path) -> eyre::Result<Vec<String>> {
+    crate::git_read::conflicted_paths(path)
 }
 
 /// Get the list of staged files (changes to be committed) in a worktree
@@ -383,28 +365,8 @@ fn try_auto_resolve_keep_ours_conflicts(path: &PathBuf) -> eyre::Result<bool> {
 }
 
 /// Check if we're in the middle of a merge
-fn is_merging(path: &PathBuf) -> eyre::Result<bool> {
-    let merge_head = path.join(".git").join("MERGE_HEAD");
-    // For worktrees, .git might be a file pointing to the real git dir
-    if merge_head.exists() {
-        return Ok(true);
-    }
-
-    // Also check via git command
-    let output = Command::new("git")
-        .args(["rev-parse", "--git-dir"])
-        .current_dir(path)
-        .output()
-        .wrap_err("Failed to get git dir")?;
-
-    let git_dir = PathBuf::from(String::from_utf8_lossy(&output.stdout).trim());
-    let merge_head = if git_dir.is_absolute() {
-        git_dir.join("MERGE_HEAD")
-    } else {
-        path.join(&git_dir).join("MERGE_HEAD")
-    };
-
-    Ok(merge_head.exists())
+fn is_merging(path: &Path) -> eyre::Result<bool> {
+    crate::git_read::is_merging(path)
 }
 
 /// Result of checking if a merge would have conflicts

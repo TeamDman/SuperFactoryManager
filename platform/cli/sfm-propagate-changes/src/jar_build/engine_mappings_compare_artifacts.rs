@@ -1796,9 +1796,13 @@ fn plain_artifact(
 
 fn source_git_provenance(path: &Path) -> Option<SourceGitProvenance> {
     let working_dir = if path.is_dir() { path } else { path.parent()? };
-    let root = PathBuf::from(git_stdout(working_dir, ["rev-parse", "--show-toplevel"])?);
-    let commit = git_stdout(&root, ["rev-parse", "HEAD"])?;
-    let branch = git_stdout(&root, ["rev-parse", "--abbrev-ref", "HEAD"])?;
+    let repository = gix::discover(working_dir).ok()?;
+    let root = repository.workdir()?.to_path_buf();
+    let commit = repository.head_id().ok()?.to_string();
+    let branch = repository.head_name().ok()?.map_or_else(
+        || "HEAD".to_owned(),
+        |name| name.shorten().to_string(),
+    );
     let status = git_stdout(&root, ["status", "--porcelain"])?;
     let remote_url = git_stdout(&root, ["remote", "get-url", "origin"]);
     Some(SourceGitProvenance {

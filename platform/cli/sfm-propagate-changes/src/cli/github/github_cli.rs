@@ -462,23 +462,9 @@ fn select_release_tag(
 
 fn get_release_tags(repo_root: &Path, mod_version: &str) -> eyre::Result<Vec<ReleaseTag>> {
     let pattern = format!("{mod_version}-*");
-    let output = Command::new("git")
-        .args(["tag", "--list", &pattern])
-        .current_dir(repo_root)
-        .output()
-        .wrap_err("Failed to run git tag")?;
-
-    if !output.status.success() {
-        eyre::bail!(
-            "git tag failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-    }
-
     let prefix = format!("{mod_version}-");
     let mut tags = Vec::new();
-    for line in String::from_utf8_lossy(&output.stdout).lines() {
-        let tag = line.trim();
+    for tag in crate::git_read::tag_names(repo_root)? {
         let Some(mc_version) = tag.strip_prefix(&prefix) else {
             continue;
         };
@@ -486,7 +472,7 @@ fn get_release_tags(repo_root: &Path, mod_version: &str) -> eyre::Result<Vec<Rel
             continue;
         };
         tags.push(ReleaseTag {
-            tag: tag.to_string(),
+            tag: tag.clone(),
             mc_version: mc_version.to_string(),
             sort_key,
         });
