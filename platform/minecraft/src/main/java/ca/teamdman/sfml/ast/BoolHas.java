@@ -93,7 +93,8 @@ public record BoolHas(
                 labelAccess.sides(),
                 pos,
                 (direction, cap) -> resourceType.getStacksInSlots(cap, labelAccess.slots()).forEach(stack -> {
-                    if (this.resourceIdSet.getMatchingFromStack(stack) != null) {
+                    if (this.except.noneMatchStack(stack)
+                            && this.resourceIdSet.getMatchingFromStack(stack) != null) {
                         if (with.matchesStack(resourceType, stack)) {
                             long amount = resourceType.getAmount(stack);
                             invAccumulator.addAndGet(amount);
