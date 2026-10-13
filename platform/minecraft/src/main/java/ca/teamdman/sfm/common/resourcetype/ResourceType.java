@@ -8,11 +8,18 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.CapabilityConsumer;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
+import ca.teamdman.sfm.common.util.AtomicIdExtension;
+import ca.teamdman.sfm.common.util.FilterCachingUtils;
+import ca.teamdman.sfm.common.util.IFilterCacher;
 import ca.teamdman.sfml.ast.*;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Registry;
+import net.minecraft.data.BuiltinRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -153,10 +160,29 @@ public abstract class ResourceType<STACK, ITEM, CAP> {
             ResourceIdentifier<STACK, ITEM, CAP> resourceId,
             Object stack
     ) {
-
         if (!matchesStackType(stack)) return false;
+
         @SuppressWarnings("unchecked") STACK stack_ = (STACK) stack;
         if (isEmpty(stack_)) return false;
+
+        var pex = (IFilterCacher) resourceId;
+        var pred = pex.getPredicate();
+        if (pred == null) {
+            if (stack instanceof ItemStack) {
+                pred = FilterCachingUtils.makePredicate(resourceId, e -> resourceId.matchesResourceLocation(e.key().location()), Registry.ITEM.holders());
+                pex.setPredicate(pred);
+                FilterCachingUtils.registerExtension(pex);
+            } else if (stack instanceof FluidStack) {
+                pred = FilterCachingUtils.makePredicate(resourceId, e -> resourceId.matchesResourceLocation(e.key().location()), Registry.FLUID.holders());
+                pex.setPredicate(pred);
+                FilterCachingUtils.registerExtension(pex);
+            }
+        }
+
+        if (pred != null && stack instanceof AtomicIdExtension) {
+            return pred.test(((AtomicIdExtension) stack).sfm$getAtomicId());
+        }
+
         var stackId = getRegistryKeyForStack(stack_);
         return resourceId.matchesResourceLocation(stackId);
     }

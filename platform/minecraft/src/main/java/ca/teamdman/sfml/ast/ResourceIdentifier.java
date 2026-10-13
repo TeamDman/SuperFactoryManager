@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.program.RegexCache;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.util.IFilterCacher;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.ResourceLocationException;
@@ -13,13 +14,14 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.function.IntPredicate;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 // resourceTypeName resourceNamespace, resourceTypeName name, resource resourceNamespace, resource name
 // sfm:item:minecraft:stone
-public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCondensed {
+public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCondensed, IFilterCacher {
 
     public static final ResourceIdentifier<?, ?, ?> MATCH_ALL = new ResourceIdentifier<>(
             ".*",
@@ -33,6 +35,7 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
     private final Predicate<String> resourceNamespacePredicate;
     private final Predicate<String> resourceNamePredicate;
     private @Nullable ResourceType<STACK, ITEM, CAP> resourceTypeCache = null;
+    private @Nullable IntPredicate predicate;
 
     public ResourceIdentifier(
             String resourceTypeNamespace,
@@ -289,5 +292,16 @@ public class ResourceIdentifier<STACK, ITEM, CAP> implements ASTNode, ToStringCo
 
     public boolean usesRegex() {
         return RegexCache.isRegexPattern(resourceNamespace) || RegexCache.isRegexPattern(resourceName);
+    }
+
+    @Override
+    public void setPredicate(@Nullable IntPredicate predicate) {
+        this.predicate = predicate;
+    }
+
+    @Override
+    @Nullable
+    public IntPredicate getPredicate() {
+        return predicate;
     }
 }
