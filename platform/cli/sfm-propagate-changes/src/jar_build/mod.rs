@@ -13,7 +13,7 @@ mod build_options;
 mod clean_loader_probe;
 mod compare_command;
 mod compare_options;
-mod engine;
+pub(crate) mod engine;
 mod error_action;
 mod game_puppet_preview_artifact_root;
 pub(crate) use game_puppet_preview_artifact_root::projection_preview_artifact_root;

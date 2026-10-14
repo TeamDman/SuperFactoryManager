@@ -23,6 +23,7 @@ pub mod paths;
 pub(crate) mod payload_fetcher;
 pub mod prism;
 pub mod propagate;
+pub mod release_report;
 pub mod release_review_capture;
 mod release_review_capture_io;
 pub mod release_review_git;
@@ -42,6 +43,8 @@ pub mod sfm_path;
 pub mod source_archive;
 pub mod source_audit;
 pub mod source_cache;
+pub mod source_comparison;
+
 pub(crate) mod source_decompile;
 pub mod source_git;
 pub(crate) mod source_maven;

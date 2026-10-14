@@ -179,6 +179,7 @@ pub fn apply_explicit_inputs(
         let source_bytes = fs::read(&source_path)
             .wrap_err_with(|| format!("cannot read explicit source '{}'", source_path.display()))?;
         let mut artifact = ProjectedArtifact {
+            related_references: None,
             source_path: input_path.clone(),
             output_bytes: source_bytes.clone(),
             source_bytes,
@@ -351,6 +352,7 @@ fn collect_root(
         artifacts.insert(
             output_path.clone(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: output_path,
                 output_bytes: source_bytes.clone(),
                 source_bytes,

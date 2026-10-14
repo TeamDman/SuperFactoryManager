@@ -106,6 +106,7 @@ impl SyncIdentity<'_> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectedArtifact {
+    pub related_references: Option<super::reference_associations::ReferenceAssociations>,
     /// Canonical path relative to the selected primary or overlay source root.
     pub source_path: String,
     pub source_bytes: Vec<u8>,
@@ -354,6 +355,7 @@ fn desired_manifest(
         manifest.files.insert(
             path.clone(),
             ProjectedFileProvenance {
+                related_references: artifact.related_references.clone(),
                 source_path: artifact.source_path.clone(),
                 source_sha256: sha256(&artifact.source_bytes),
                 overlay: artifact.overlay.clone(),
@@ -1058,6 +1060,7 @@ mod tests {
 
     fn artifact(output: &str) -> ProjectedArtifact {
         ProjectedArtifact {
+            related_references: None,
             source_path: "src/main/java/Example.java".to_owned(),
             source_bytes: b"class Example {}\n".to_vec(),
             output_bytes: output.as_bytes().to_vec(),

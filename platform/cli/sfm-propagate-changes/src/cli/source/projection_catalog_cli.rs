@@ -197,7 +197,11 @@ fn render_report(args: &SourceRenderArgs, invocation_dir: &Path) -> Result<Sourc
     let project_inputs_sha256 = if java {
         None
     } else {
-        let bytes = read_bounded_catalog_input(&loaded.repo_root, CORE_METADATA_PATH)?;
+        let bytes = crate::source_projection::core_catalog::read_bounded_input(
+            &loaded.repo_root,
+            CORE_METADATA_PATH,
+            crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES,
+        )?;
         let metadata = CoreProjectInputs::from_json(
             std::str::from_utf8(&bytes).wrap_err("core project metadata is not UTF-8")?,
             &loaded.registered_features,
@@ -444,6 +448,7 @@ mod tests {
             source_rules: BTreeMap::from([(
                 "src/main/antlr/proof/Proof.g4".to_owned(),
                 vec![InputVariant {
+                    reference_template: None,
                     input: "src/main/antlr/proof/Proof.g4".to_owned(),
                     when: InputPredicate {
                         all_features: features.iter().map(|name| (*name).to_owned()).collect(),
@@ -520,6 +525,16 @@ mod tests {
         write_text_rule(&fixture, true, &[]);
         let mut args = fixture.render_args("dev/example");
         args.file = "src/main/antlr/proof/Proof.g4".to_owned();
+        let mut padded_metadata = fs::read(fixture.repo.join(CORE_METADATA_PATH)).unwrap();
+        padded_metadata.resize(usize::try_from(MAX_INPUT_BYTES + 1).unwrap(), b' ');
+        fixture.write(CORE_METADATA_PATH, &padded_metadata);
+        fixture.write(&format!("{CORE_ROOT}/{}", args.file), b"grammar Proof;\n");
+        assert_eq!(
+            render_report(&args, fixture.temp.path())
+                .unwrap()
+                .rendered_content,
+            "grammar Proof;\n"
+        );
         fixture.write(&format!("{CORE_ROOT}/{}", args.file), b"\xff");
         assert!(
             render_report(&args, fixture.temp.path())
@@ -531,7 +546,13 @@ mod tests {
         assert!(render_report(&args, fixture.temp.path()).is_err());
         fixture.write(
             CORE_METADATA_PATH,
-            &vec![b' '; usize::try_from(MAX_INPUT_BYTES + 1).unwrap()],
+            &vec![
+                b' ';
+                usize::try_from(
+                    crate::source_projection::core_inputs::MAX_CORE_METADATA_BYTES + 1
+                )
+                .unwrap()
+            ],
         );
         assert!(
             render_report(&args, fixture.temp.path())
@@ -707,7 +728,7 @@ mod tests {
     }
 
     #[test]
-    fn real_core_item_resource_type_renders_twenty_contexts_against_release_witnesses() {
+    fn real_core_item_resource_type_renders_catalog_contexts_against_release_witnesses() {
         let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
             .ancestors()
             .nth(3)
@@ -715,11 +736,30 @@ mod tests {
         let loaded = load_catalog(repo, repo).unwrap();
         assert_eq!(
             loaded.catalog.0.len(),
-            20,
-            "initial catalog must cover both contexts for all ten versions"
+            34,
+            "catalog must cover dev and both named releases for all ten versions plus the two retained issue610 controls and two separate visual harnesses"
         );
+        let mut contexts = BTreeMap::<String, usize>::new();
         let mut targets = BTreeMap::<String, BTreeSet<String>>::new();
         for (key, entry) in &loaded.catalog.0 {
+            let namespace = key.split_once('/').unwrap().0;
+            *contexts.entry(namespace.to_owned()).or_default() += 1;
+            if namespace == "sfm-4.35.0" {
+                assert_eq!(
+                    entry
+                        .features
+                        .iter()
+                        .map(String::as_str)
+                        .collect::<BTreeSet<_>>(),
+                    BTreeSet::from([
+                        "recipe_namespace",
+                        "release_version_4_35_0",
+                        "quantity_sensitive_extraction_progress"
+                    ])
+                );
+            } else if namespace == "sfm-4.34.0" {
+                assert!(entry.features.is_empty());
+            }
             let report = render_report(
                 &SourceRenderArgs {
                     repo_root: repo.to_path_buf(),
@@ -760,6 +800,19 @@ mod tests {
                 .or_default()
                 .insert(entry.environment.as_str().to_owned());
         }
+        assert_eq!(
+            contexts,
+            BTreeMap::from([
+                ("sfm-dev".to_owned(), 10),
+                ("sfm-4.34.0".to_owned(), 10),
+                ("sfm-4.35.0".to_owned(), 10),
+                ("sfm-4.34.0-issue610".to_owned(), 1),
+                ("sfm-4.35.0-issue610".to_owned(), 1),
+                ("sfm-4.34.0-issue610-visual".to_owned(), 1),
+                ("sfm-4.35.0-issue610-visual".to_owned(), 1)
+            ])
+        );
+        assert_eq!(contexts["sfm-dev"] + contexts["sfm-4.34.0"], 20);
         assert_eq!(targets.len(), 10);
         for (target, environments) in targets {
             assert_eq!(
@@ -773,5 +826,63 @@ mod tests {
     fn normalize_source(source: &str) -> String {
         let normalized = source.replace("\r\n", "\n");
         normalized.strip_prefix("// GENERATED by sfm-propagate-changes; edit the primary source or reconcile this file.\n").unwrap_or(&normalized).to_owned()
+    }
+}
+
+#[cfg(test)]
+mod changelog_order_tests {
+    use super::*;
+
+    #[test]
+    fn current_release_links_precede_version_history_and_feature_off_bytes_are_preserved() {
+        let repo = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .unwrap();
+        let loaded = LoadedCatalog::load(repo, repo).unwrap();
+        let file = "src/main/resources/assets/sfm/template_programs/changelog.sfml";
+        let source = std::fs::read_to_string(repo.join(CORE_ROOT).join(file)).unwrap();
+        for (key, _) in loaded
+            .catalog
+            .0
+            .iter()
+            .filter(|(key, _)| key.starts_with("sfm-4.35.0/"))
+        {
+            let rendered = render_report(
+                &SourceRenderArgs {
+                    repo_root: repo.to_path_buf(),
+                    projection: key.clone(),
+                    file: file.into(),
+                },
+                repo,
+            )
+            .unwrap();
+            let text = &rendered.rendered_content;
+            assert!(
+                text.find("https://discord.gg/5mbUY3mu6m").unwrap()
+                    < text.find("---- 4.35.0 ----").unwrap()
+            );
+            assert!(
+                text.find("https://github.com/sponsors/TeamDman").unwrap()
+                    < text.find("---- 4.35.0 ----").unwrap()
+            );
+            let mut baseline = loaded.context(key).unwrap();
+            baseline.features.insert("recipe_namespace".into(), false);
+            let links = source.find("-- SFM Discord:").unwrap();
+            let version = source.find("{% if features.recipe_namespace %}").unwrap();
+            let rest = source.find("{% case minecraft_version %}").unwrap();
+            let old_order = format!(
+                "{}{}{}{}",
+                &source[..links],
+                &source[version..rest],
+                &source[links..version],
+                &source[rest..]
+            );
+            assert_eq!(
+                render_java_source(&old_order, &baseline).unwrap(),
+                render_java_source(&source, &baseline).unwrap(),
+                "{key}"
+            );
+        }
     }
 }

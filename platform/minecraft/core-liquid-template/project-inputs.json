@@ -43,6 +43,1978 @@
     }
   },
   "source_rules": {
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Issue610EnergyEvidenceGamePuppet.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Issue610EnergyEvidenceGamePuppet.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java","when":{"targets":["1.21.1"],"all_features":["issue_610_progress_tests"],"any_features":[],"none_features":[]},"template":true}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610ResourceProgressGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610ResourceProgressGameTest.java","when":{"targets":["1.21.1"],"all_features":["issue_610_progress_tests"],"any_features":[],"none_features":[]},"template":true}],
+    "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java": [{"input": "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java", "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["recipe_namespace"], "any_features": [], "none_features": []}, "template": true}],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tough_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tough_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tough_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_fancy_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_manager_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/tunnelled_manager_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancement/recipes/misc/uncraft_tunnelled_manager.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tough_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tough_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tough_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_fancy_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_manager_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/tunnelled_manager_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/sfm/uncraft_tunnelled_manager.json": [
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancements/recipes/sfm/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tough_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/a73c2a6f6ce6b508458d35a67d6c6ebb217f30ced0794eaee3c04ab348c5a67d/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/5727f5789edb11f131644706496c1dffd0cf975e9a93686ffbd355b733468feb/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/a3d8a380ea09a6e1e65ff73767aa5493bd4e6418b8d72740e47e2158ce71c6f8/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/def4fd9859e92a1bbdaae8db9742fcb367ea15d1fe6b5f8109be42d08af53f39/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tough_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/2122a75f60e61e34c7ba0113f1497d0d745e51c6a2e67041ac76bd4b0fdf9555/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/e0a67254bc5c0a083005916cb0ba8320fff92c34e194c501e0c42579248604a4/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/5224bfc9fa21bac9bab20e3a41b11e146b1417186bb9cf3ee97342c730100ad8/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/ae4fb4174bccc13b0bf3f387cc04b666a1e612345b41a5d1eb8e7771f1b9f839/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tough_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/355295a84d8ff17e07ed459111cf608c5fa1d17f5e65794e1db2172e17b17df1/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/d09f6bff3bd8007481bd1f47c61134fa5a51e9a100da7d7e4db426faade65daf/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/8a62a5ec206c738ba29afd2a6e043a17fdf4768a850958a4de569bc12b4339ec/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/8db52a3287873725a1be20fb30130e97a6793596ac79ab885b3fe0c6ecbe9e7d/src/generated/resources/data/minecraft/advancements/recipes/misc/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/f84e1ebdc6d6b112a94c6d9b92fbed7ec82156bcff722ccda6db75b2a01af817/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/c84ae075abfe73a5049472f06df7695f6cb5dff8b56a7c5ffb5b8f2f1a473494/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/461f0f9eb07f6aba5fdda45267bc0844b20d6820ef44faed3e1e6271e56b289c/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/0033b989a4f34ee38bd0433e1a6ddf8902df9d86bd3e55abbebac551b96e6e11/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/1f7045cab5f426153a2b2ee006922b6ad415506720154f2e3f8e9ffd20e108e4/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/c9485d8d0da2235287bbc4038a36195d570b7fb5d2e91071b09f6be998377a4e/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/5ca1cb946575a800e2ed0e23fd08ba5c707aa5b2ce18f809b8898c4fc42cc816/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/708b14cb314093d85b3f62adec4b416486d39b4a7be196f721f675054e3d55b0/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/6e3105988b48bb5c16e7e9119a7df5993fceef122b933f3e284be6a697a480a9/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/48252a94237f036c3c43c132ecb08bc0ca8b5a6d9bb951475d743795319d53ff/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/a5a053ab483d7b0e01a6ea2bfaca65c7687344b6b1ad7026d9562dfa808cc700/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/f560eef3022ef9443fc52d26ac6e64a5835a7f0781c8b3e3f52ab8a6a6897208/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/5bc0f470ee4693903ed51fc3e98a0fef5cf0718e373650a948b8d7e7476cfb3a/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/52b791b24c08c5a32a085e825ac52eee0ff88a236ae9dcd1e1e09e96fca3ff31/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/a5d636a321bbdea65d15a9a83daedecd0833f28186b8956aefd7c3c5789f4074/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/2d29e9e9dc9447d4405e0545f2db0ec9cf38b8388946b0372e16d6e4e299d314/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_manager_horizontal.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/6ef30f758449bec1c98192417b0b544b8bbdc6d3b0b4694298ea099b86eb60e6/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/98317b85443d1b1bdc7a1d7298d6efa2cbca064daa67720eae2900d8a848e16a/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/ebfc3ed985929f6621ade5dfc46a1aac0edb82182f132860cfc378d0a13cca97/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/f2bde3414b635bf3df555d63028b6cf19528d71cb87b59617094952b5b91cdb2/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/tunnelled_manager_vertical.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/611dac518533a19f3cb2b6cbc4da00312d1b70795552d680de266de831515a3e/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/130e10d1883ec750afe27ad2bd92e16c441bdeee1b204e97c83a13250879f37d/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/78186a13674bbf0caf10f68b855f379b933ca487838b0cfdf099d893af526633/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/9a39cd688e94e1d9b1e9ed385ee688aae508bf0a30288bb06a9c61bc51cb99b6/src/generated/resources/data/minecraft/advancements/recipes/misc/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/advancements/recipes/misc/uncraft_tunnelled_manager.json": [
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/52a5d1995e653579a1450bada4bf0525c3caacdb0b8cd211593283be4056e3f8/src/generated/resources/data/minecraft/advancements/recipes/misc/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/daec69dc4e27905fdc1b23c1a928ff44ee52668f1a764df041c45d697395d83a/src/generated/resources/data/minecraft/advancements/recipes/misc/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/a86ee7daa61b0c15c34bcd133fe8d1390b62a05c1b12f7c66596b54b7263c036/src/generated/resources/data/minecraft/advancements/recipes/misc/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20",
+            "1.20.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/assets/versioned/ed962098fa8b791f537bc3721e5c118fa8277f22929fba6af91f1c63993ba823/src/generated/resources/data/minecraft/advancements/recipes/misc/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/disk_reset.json": [
+      {
+        "input": "assets/versioned/928dc01d1fa9374f639fb787c60a702a76bdd5f106532dc5562e7b9d173a6c62/src/generated/resources/data/minecraft/recipe/disk_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/d15ac51dd211d715b4ff312fc4875a48371abdf6da4748f228212ddc9c1d1762/src/generated/resources/data/minecraft/recipe/disk_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/label_gun_reset.json": [
+      {
+        "input": "assets/versioned/07ab4496bb62c1c18f05ef6aadc818404125cdd595ca4c6d84fdcdae9d3d6b1a/src/generated/resources/data/minecraft/recipe/label_gun_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/706cb69a5ae1e73fb99376aa843938d143c6cd70ccbeb49b7a8023095fa0367f/src/generated/resources/data/minecraft/recipe/label_gun_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tough_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/d0b28e2f2b8a43ef59fad1d5e18259df77ce92c6d48a61ecad0f78ff1ed4e4a2/src/generated/resources/data/minecraft/recipe/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/e4ae4c2dcfa9a4003cb4666a31491068646d4a9a2c0573914e923a94428e410e/src/generated/resources/data/minecraft/recipe/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tough_cable_vertical.json": [
+      {
+        "input": "assets/versioned/a77a75e263b47ca1b86065a42345d36b1e0419c2053176be29f51afec93224f7/src/generated/resources/data/minecraft/recipe/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/c71fc0e2175117cc471aaa0282b8e6dcc332fe07b63a51b5d350aa2e9eec6246/src/generated/resources/data/minecraft/recipe/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tough_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/c78ccc101563679af2656ed0baaa7056f661f65412de49f62506e1cb6c5d257a/src/generated/resources/data/minecraft/recipe/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/513461e978a4f5edef82010c00d81a6b5b3c1970ce9f657060e93a1e95734653/src/generated/resources/data/minecraft/recipe/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/bc78fbf52a2000c27890f21aed6c65e3d78dcbbdb8dc1e9437966e33b1eda9f5/src/generated/resources/data/minecraft/recipe/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/a29f2e00bb0934cbfe33ffe7972fac48ea91c4b15189f7e1840d187437601014/src/generated/resources/data/minecraft/recipe/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_cable_vertical.json": [
+      {
+        "input": "assets/versioned/e18f27b945ae4a0fbc89da134a385abccebdb3fb48edd6127d6145a7cd318920/src/generated/resources/data/minecraft/recipe/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/59fa407de68f702288f2fc560008dbb607936818ac126d5c81adf3600afe97d0/src/generated/resources/data/minecraft/recipe/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/3352b8a613a68357a2a54818069104ddbbfb14225acef111b543da5bbe9d5f77/src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/0a30f2c9f16918fd6994fcc2db07f2494dafc170aec70bddfb03139b0bdc1e43/src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_fancy_cable_vertical.json": [
+      {
+        "input": "assets/versioned/3eb3c59b6bce394da6d8e90660b7de6f0d611eea0b700e617f90a7bee657ceb5/src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/d1f1c6a10930380c48ff18be5408e34052e19fa58fd9dfae060908fcacbe3493/src/generated/resources/data/minecraft/recipe/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_manager_horizontal.json": [
+      {
+        "input": "assets/versioned/3fe13dac425731019d7dab148bc4699e4523be4b9d4be8201d4cc92552979c06/src/generated/resources/data/minecraft/recipe/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/afa639ac05ff5576767ff9d25f7a8f78f52f028667fffe67a592ebe8787eb902/src/generated/resources/data/minecraft/recipe/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/tunnelled_manager_vertical.json": [
+      {
+        "input": "assets/versioned/08e6a769e0536d0e447d9d617340421cef01bf26f7205254a685b7f6ce3f732e/src/generated/resources/data/minecraft/recipe/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/65184e07904f0ad642635191616db662ae2f3d41cf93f87e59829669ffeafa0a/src/generated/resources/data/minecraft/recipe/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipe/uncraft_tunnelled_manager.json": [
+      {
+        "input": "assets/versioned/2100c0cd7a0bbee920497526ee4aed1b38f367143fc774d24e4e4d4117edf336/src/generated/resources/data/minecraft/recipe/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/b0cda663f763b94a39f3124b5750c8895fcef3a3d2aa33b898b618930cf437e6/src/generated/resources/data/minecraft/recipe/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.21.0",
+            "1.21.1"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/disk_reset.json": [
+      {
+        "input": "assets/versioned/928dc01d1fa9374f639fb787c60a702a76bdd5f106532dc5562e7b9d173a6c62/src/generated/resources/data/minecraft/recipes/disk_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/d15ac51dd211d715b4ff312fc4875a48371abdf6da4748f228212ddc9c1d1762/src/generated/resources/data/minecraft/recipes/disk_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/label_gun_reset.json": [
+      {
+        "input": "assets/versioned/07ab4496bb62c1c18f05ef6aadc818404125cdd595ca4c6d84fdcdae9d3d6b1a/src/generated/resources/data/minecraft/recipes/label_gun_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/706cb69a5ae1e73fb99376aa843938d143c6cd70ccbeb49b7a8023095fa0367f/src/generated/resources/data/minecraft/recipes/label_gun_reset.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tough_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/d9156a3034d4a8f17249eb66edf6091402ec89888325a2a30c4151585de044a2/src/generated/resources/data/minecraft/recipes/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/f9daf31cc0e9f200c8a190958f62b20deccd45720bc35aace16376a0750371c5/src/generated/resources/data/minecraft/recipes/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/518a9119743e91358722cd67b3b49a1cd9e989abe476d5f769dd09ed1c67c087/src/generated/resources/data/minecraft/recipes/tough_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tough_cable_vertical.json": [
+      {
+        "input": "assets/versioned/01964df80035462b858ce6be426ec33a6ec65b47c9251809deecdcc038cd81ab/src/generated/resources/data/minecraft/recipes/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/4983d149f3c3488b28ab4e704c5310aa7a43485746683f350832167ba3d467f5/src/generated/resources/data/minecraft/recipes/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/45f3b2f9133eacef8902eba0eeb014ee49edcc9c1d082a8eacc7e9aef313a122/src/generated/resources/data/minecraft/recipes/tough_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tough_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/af32e0da2173fc35b47db8e945e637442d869ea69ece22c6e714efe21fcd86ab/src/generated/resources/data/minecraft/recipes/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/a6ec68f1cfc42b584e44b7d744c47d332756eaea05ad928488ad6d12d2aa0889/src/generated/resources/data/minecraft/recipes/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/4df773173c5b0804aee24265c746e78a4329f5414a11b5d71ea545a3c5bb15c4/src/generated/resources/data/minecraft/recipes/tough_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/2ef3d051c15fe68387221fcf523f2b5e9a135aee6056ffc3e06b0c00afee18f1/src/generated/resources/data/minecraft/recipes/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/65bc9c17df31282a4f92fd0c716f121fa285bb7d4ca45aa80f6e6be668980328/src/generated/resources/data/minecraft/recipes/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/8aa8efd2834012bd5716e04361c4acbb7c0e6fca77ce88f7dac5cf81ceacdfce/src/generated/resources/data/minecraft/recipes/tunnelled_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_cable_vertical.json": [
+      {
+        "input": "assets/versioned/e7b5b5f0dc02c963131f5f641323ad51ce45ac8520dbdd2031662a4c37ce39e0/src/generated/resources/data/minecraft/recipes/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/29f65465779acc1a312cf66849c0d9efbf525d74e8ee70355c368c948d362296/src/generated/resources/data/minecraft/recipes/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/dd56891872cd1b04af61e59d8583eb60aa79616ce2490e79b0e43f0594f80ba5/src/generated/resources/data/minecraft/recipes/tunnelled_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_fancy_cable_horizontal.json": [
+      {
+        "input": "assets/versioned/7103c0a1c5413515551d25856ea50b39f77ff19f64f40e8ad267fcd5d4d4affc/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/17973af353ef678d370c07275887d2590cae6c5c1deb58c2ce647a1368dccf3e/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/6f32ea8945d06f6e7dbdc2e38794f430b8aebe419dc30a0878d57761860b5e27/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_fancy_cable_vertical.json": [
+      {
+        "input": "assets/versioned/b8da591dbf05e2084f66692415b5aa585d6a1df89446c78a2cf640246a0ab7a5/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/99f9be9c4554cedc07e9a59fadbfd6a437dfc3006a559d61c66f284ceac16dc1/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/f17c9a799b185fc45f59d160bcdb8e70a82e1f3d2626b57041000476f2a92d1f/src/generated/resources/data/minecraft/recipes/tunnelled_fancy_cable_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_manager_horizontal.json": [
+      {
+        "input": "assets/versioned/6ab0c96eeefa7ba33db5715c029115453ae358c2f713efd878d1f4a6c2c2be1c/src/generated/resources/data/minecraft/recipes/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/ecba1b59b904bb8878a3f2663b8c3f5d7e3f757735c36f74e25a188b9d74101b/src/generated/resources/data/minecraft/recipes/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/af2e62b184667011cfdccf18c69ef5f8d5edb3c9683534fb3e78a20f1ee0970f/src/generated/resources/data/minecraft/recipes/tunnelled_manager_horizontal.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/tunnelled_manager_vertical.json": [
+      {
+        "input": "assets/versioned/7bf8c69c465cfedbe769d8d79406fc614270b412e5dafff504e31a0e51b2cdbf/src/generated/resources/data/minecraft/recipes/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/401223440cb3cf35248276502db05bfc1f3681ca760eeec9248dbdaf0d6ce530/src/generated/resources/data/minecraft/recipes/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/4095c345ad9de85028fde78114437d3e75b1c65e7e12941cfa8a971a6152cb52/src/generated/resources/data/minecraft/recipes/tunnelled_manager_vertical.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
+    "src/generated/resources/data/sfm/recipes/uncraft_tunnelled_manager.json": [
+      {
+        "input": "assets/versioned/49bbdb214c8ec5b3340dd5bf0846d79754be4bfcafa7784d43dcf4254191ad5b/src/generated/resources/data/minecraft/recipes/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/versioned/cacc07c83eb9bbf835e72309126f3fd3e6ee7ca85955df993cec0e6ff3df1aa0/src/generated/resources/data/minecraft/recipes/uncraft_tunnelled_manager.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptionedScreenshotComposer.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/PuppetCaptionedScreenshotComposer.java","when":{"targets":["26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]},"template":true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtStarvationGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtStarvationGameTestGenerator.java","when":{"targets":["1.21.1"],"all_features":["jdt_starvation_characterization_tests"],"any_features":[],"none_features":[]},"template":true}],
     "src/test/java/ca/teamdman/sfm/client/action/OpenReviewBundleActionTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/action/OpenReviewBundleActionTests.java","template":true,"when":{"targets":["1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["repository_review_bundle_actions","legacy_repository_review","client_theme","legacy_file_explorer"]}}],
@@ -8484,7 +10456,7 @@
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetViewportProfile.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetViewportProfile.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetViewportSelection.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetViewportSelection.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/SFMPuppetAction.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/SFMPuppetAction.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
-    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4"], "all_features": ["game_puppet_runtime"], "any_features": [], "none_features": []}}, {"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetPointer.java", "template": true, "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.java": [{"input":"src/main/java/ca/teamdman/sfm/client/handler/SFMClientSmokeRunHarness.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_smoke_harness"],"any_features":[],"none_features":[]}}],
     "src/main/java/ca/teamdman/sfm/common/command/SFMPacketPolicyCommand.java": [{"input":"src/main/java/ca/teamdman/sfm/common/command/SFMPacketPolicyCommand.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["multiplayer_packets"]}}],
     "src/main/java/ca/teamdman/sfm/common/util/SFMNativePaths.java": [{"input":"src/main/java/ca/teamdman/sfm/common/util/SFMNativePaths.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"any_features":["release_review","java_symbols"]}}],
@@ -20026,23 +21998,7 @@
         "template": true
       }
     ],
-    "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java",
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "game_puppet_runtime"
-          ],
-          "any_features": [],
-          "none_features": []
-        },
-        "template": true
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java": [{"input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java", "when": {"targets": ["1.19.2", "1.19.4"], "all_features": ["game_puppet_runtime"], "any_features": [], "none_features": []}, "template": true}, {"input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerInvoker.java", "template": true, "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/mixins/KeyboardHandlerMixin.java",
@@ -21224,7 +23180,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21240,7 +23198,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21256,7 +23216,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21272,7 +23234,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21286,7 +23250,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21300,7 +23266,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21316,7 +23284,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21332,7 +23302,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21348,7 +23320,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21364,7 +23338,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21380,7 +23356,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21396,7 +23374,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21412,7 +23392,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21426,7 +23408,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21440,7 +23424,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21454,7 +23440,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21468,7 +23456,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21482,7 +23472,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21496,7 +23488,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21510,7 +23504,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21524,7 +23520,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21538,7 +23536,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21552,7 +23552,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21566,7 +23568,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21580,7 +23584,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21594,7 +23600,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -21712,6 +23720,21 @@
           "none_features": []
         },
         "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/fancy_to_cable.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
       }
     ],
     "src/generated/resources/data/sfm/advancement/recipes/misc/manager.json": [
@@ -21791,6 +23814,21 @@
           "none_features": []
         },
         "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_fancy_to_fancy.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
       }
     ],
     "src/generated/resources/data/sfm/advancement/recipes/misc/tough_to_cable.json": [
@@ -21802,6 +23840,21 @@
             "1.21.1"
           ],
           "all_features": [],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_to_cable.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
           "any_features": [],
           "none_features": []
         },
@@ -22323,6 +24376,21 @@
           "none_features": []
         },
         "template": false
+      },
+      {
+        "input": "src/generated/resources/data/minecraft/recipe/fancy_to_cable.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
       }
     ],
     "src/generated/resources/data/sfm/recipe/tough_fancy_to_fancy.json": [
@@ -22338,6 +24406,21 @@
           "none_features": []
         },
         "template": false
+      },
+      {
+        "input": "src/generated/resources/data/minecraft/recipe/tough_fancy_to_fancy.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
       }
     ],
     "src/generated/resources/data/sfm/recipe/tough_to_cable.json": [
@@ -22349,6 +24432,21 @@
             "1.21.1"
           ],
           "all_features": [],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "src/generated/resources/data/minecraft/recipe/tough_to_cable.json",
+        "reference_template": "assets/features/recipe_namespace/path-issues.liquid",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "recipe_namespace"
+          ],
           "any_features": [],
           "none_features": []
         },
@@ -23178,7 +25276,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23190,7 +25290,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23203,7 +25305,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23216,7 +25320,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23230,7 +25336,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23242,7 +25350,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23255,7 +25365,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23268,7 +25380,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23282,7 +25396,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23294,7 +25410,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23307,7 +25425,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23320,7 +25440,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23334,7 +25456,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23346,7 +25470,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23359,7 +25485,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23372,7 +25500,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23387,7 +25517,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23400,7 +25532,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23412,7 +25546,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23424,7 +25560,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23438,7 +25576,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23451,7 +25591,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23463,7 +25605,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23476,7 +25620,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23491,7 +25637,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23504,7 +25652,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23516,7 +25666,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23528,7 +25680,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23542,7 +25696,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23555,7 +25711,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23568,7 +25726,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23580,7 +25740,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23595,7 +25757,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23607,7 +25771,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23619,7 +25785,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23632,7 +25800,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23647,7 +25817,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23659,7 +25831,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23672,7 +25846,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23684,7 +25860,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23699,7 +25877,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23711,7 +25891,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23725,7 +25907,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23738,7 +25922,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23753,7 +25939,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23765,7 +25953,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23780,7 +25970,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23792,7 +25984,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23807,7 +26001,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23819,7 +26015,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23834,7 +26032,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23846,7 +26046,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23861,7 +26063,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23873,7 +26077,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23887,7 +26093,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23900,7 +26108,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23915,7 +26125,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23927,7 +26139,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23942,7 +26156,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23954,7 +26170,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23968,7 +26186,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -23981,7 +26201,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -23995,7 +26217,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24008,7 +26232,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24027,7 +26253,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24039,7 +26267,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24053,7 +26283,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24070,7 +26302,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24087,7 +26321,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24099,7 +26335,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24112,7 +26350,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24126,7 +26366,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24139,7 +26381,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24154,7 +26398,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24171,7 +26417,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24183,7 +26431,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24196,7 +26446,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24211,7 +26463,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24226,7 +26480,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24238,7 +26494,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24255,7 +26513,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24268,7 +26528,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24280,7 +26542,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24297,7 +26561,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24310,7 +26576,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24322,7 +26590,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24337,7 +26607,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24352,7 +26624,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24364,7 +26638,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24378,7 +26654,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24391,7 +26669,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24406,7 +26686,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24421,7 +26703,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24433,7 +26717,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24448,7 +26734,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -24462,7 +26750,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       },
@@ -24479,7 +26769,9 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "recipe_namespace"
+          ]
         },
         "template": false
       }
@@ -26917,6 +29209,20 @@
     ],
     "src/main/resources/assets/sfm/lang/pt_br.json": [
       {
+        "input": "assets/features/release_version_4_35_0/localization/26.1.2/pt_br.json",
+        "when": {
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "targets": [
+            "26.1.2"
+          ],
+          "none_features": [],
+          "any_features": []
+        },
+        "template": false
+      },
+      {
         "input": "assets/versioned/7f048cd48437999f05c9a061744116d7b5bee9cff0743d918f21448f93166d55/src/main/resources/assets/sfm/lang/pt_br.json",
         "when": {
           "targets": [
@@ -26924,7 +29230,31 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "assets/features/release_version_4_35_0/localization/legacy/pt_br.json",
+        "when": {
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1"
+          ],
+          "none_features": [],
+          "any_features": []
         },
         "template": false
       },
@@ -26944,7 +29274,34 @@
           ],
           "all_features": [],
           "any_features": [],
-          "none_features": []
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      }
+    ],
+    "src/main/resources/assets/sfm/lang/fr_fr.json": [
+      {
+        "input": "assets/features/release_version_4_35_0/localization/fr_fr.json",
+        "when": {
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "targets": [
+            "1.19.2",
+            "1.19.4",
+            "1.20",
+            "1.20.1",
+            "1.20.2",
+            "1.20.3",
+            "1.20.4",
+            "1.21.0",
+            "1.21.1",
+            "26.1.2"
+          ],
+          "none_features": [],
+          "any_features": []
         },
         "template": false
       }
@@ -27925,7 +30282,322 @@
     "intellij-java-code-style.xml": [{"input":"build/shared/intellij-java-code-style.xml","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":[],"any_features":[],"none_features":[]},"template":false}],
     "Run-SelectedGameTests.ps1": [{"input":"build/shared/Run-SelectedGameTests.ps1","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":[],"any_features":[],"none_features":[]},"template":false}],
     "build.gradle": [{"input":"build/standard/build.gradle","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/features/locked_dependency_projection/build.gradle","when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
-    "gradle.properties": [{"input":"build/versions/1.19.2/gradle.properties","when":{"targets":["1.19.2"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.19.4/gradle.properties","when":{"targets":["1.19.4"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/versions/1.20.1/gradle.properties","when":{"targets":["1.20.1"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.20.2/gradle.properties","when":{"targets":["1.20.2"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.20.3/gradle.properties","when":{"targets":["1.20.3"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.20.4/gradle.properties","when":{"targets":["1.20.4"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.20/gradle.properties","when":{"targets":["1.20"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.21.0/gradle.properties","when":{"targets":["1.21.0"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/1.21.1/gradle.properties","when":{"targets":["1.21.1"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/versions/26.1.2/gradle.properties","when":{"targets":["26.1.2"],"all_features":[],"any_features":[],"none_features":[]},"template":false},{"input":"build/features/locked_dependency_projection/1.19.4/gradle.properties","when":{"targets":["1.19.4"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
+    "gradle.properties": [
+      {
+        "input": "build/versions/1.19.2/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.19.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "locked_dependency_projection",
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.20.1/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.1"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.20.2/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.20.3/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.3"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.20.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.4"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.20/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.21.0/gradle.properties",
+        "when": {
+          "targets": [
+            "1.21.0"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/1.21.1/gradle.properties",
+        "when": {
+          "targets": [
+            "1.21.1"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/versions/26.1.2/gradle.properties",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/locked_dependency_projection/1.19.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "locked_dependency_projection"
+          ],
+          "any_features": [],
+          "none_features": [
+            "release_version_4_35_0"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.19.2/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.2"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.19.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": [
+            "locked_dependency_projection"
+          ]
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.20.1/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.1"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.20.2/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.2"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.20.3/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.3"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.20.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20.4"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.20/gradle.properties",
+        "when": {
+          "targets": [
+            "1.20"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.21.0/gradle.properties",
+        "when": {
+          "targets": [
+            "1.21.0"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/1.21.1/gradle.properties",
+        "when": {
+          "targets": [
+            "1.21.1"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/versions/26.1.2/gradle.properties",
+        "when": {
+          "targets": [
+            "26.1.2"
+          ],
+          "all_features": [
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/release_version_4_35_0/features/locked_dependency_projection/1.19.4/gradle.properties",
+        "when": {
+          "targets": [
+            "1.19.4"
+          ],
+          "all_features": [
+            "locked_dependency_projection",
+            "release_version_4_35_0"
+          ],
+          "any_features": [],
+          "none_features": []
+        },
+        "template": false
+      }
+    ],
     "gradle/access-transformer/1.19.2/access-transformer.gradle": [
       {
         "input": "build/shared/gradle/access-transformer/1.19.2/access-transformer.gradle",

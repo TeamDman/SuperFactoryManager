@@ -39,18 +39,18 @@ $ErrorActionPreference = 'Stop'
 $diskErrorPattern = '(?i)no space left|not enough space|disk (?:is )?full|insufficient disk space|os error 112|0x80070070'
 
 $moduleRoots = @(
-    'artifact_lock', 'branch_targets', 'cancellation', 'cli', 'colour',
+    'artifact_lock', 'branch_targets', 'cancellation', 'cli', 'colour', 'container_build',
     'curseforge', 'dependency_classfile_stubs', 'dependency_inventory',
     'dependency_locked_sources', 'dependency_sources', 'file_identity', 'git_read', 'jar_build',
     'java_analysis', 'java_source_catalog', 'jdk', 'jdk_artifact_cache',
-    'logging', 'modrinth', 'propagate', 'release_review_capture',
+    'logging', 'modrinth', 'propagate', 'release_report', 'release_review_capture',
     'release_review_capture_io', 'release_review_git',
     'release_review_java_diff', 'release_review_ledger',
     'release_review_ledger_resolve', 'release_review_source_probe',
     'release_review_surface_v1', 'release_review_text_diff',
     'release_review_v1', 'release_review_working_tree',
     'review_session_v1', 'review_session_v2', 'source_archive',
-    'source_audit', 'source_cache', 'source_decompile', 'source_git',
+    'source_audit', 'source_cache', 'source_comparison', 'source_decompile', 'source_git',
     'source_maven', 'source_projection', 'source_provider',
     'syntax_highlight', 'toolchain_lockfile_schema',
     'toolchain_lockfile_write'

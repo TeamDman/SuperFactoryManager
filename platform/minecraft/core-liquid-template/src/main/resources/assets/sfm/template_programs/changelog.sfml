@@ -5,6 +5,21 @@ NAME "Changelog"
 -- https://github.com/sponsors/TeamDman
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
+{% if features.recipe_namespace %}
+
+---- 4.35.0 ----
+{% if features.release_version_4_35_0 %}
+-- Add French localization (#563) and missing Brazilian Portuguese entries (#627).
+{% endif %}
+-- Fix SFM recipe IDs and their advancement references using the minecraft namespace (#621, #527).
+-- Named crafting and reset recipes now use sfm: IDs. Recipe ingredients and results are unchanged.
+{% if features.quantity_sensitive_extraction_progress %}
+-- Keep later destinations receiving resources when a source refuses a small extraction request (#610).
+-- A quantized energy adapter may still leave a one-FE gap; larger transfers continue normally.
+{% endif %}
+-- Datapacks and commands referencing the old minecraft: IDs must switch to sfm: (#527, #621).
+-- Move recipe overrides to data/sfm; previously unlocked recipes with changed IDs may need unlocking again.
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2" %}
 {% if features.energy_starvation_characterization_tests or features.ae2_mekanism_bank_tests or features.canvas_text_editor or features.redstone_live_read or features.redstone_buffer_storage or features.release_review or features.tooltip_mode_override or features.buffer_image_persistence or features.client_program_actions or features.multiplayer_packets or features.client_program_signing or features.client_program_consent or features.packet_transport_private or features.touch_display or features.packet_values or features.terminal_keyboard_input or features.item_inspection or features.packet_computation or features.client_inbox or features.command_palette or features.workspace_panels or features.explorer_navigation or features.icon_rules or features.explorer_search or features.game_puppet_runtime or features.input_diagnostics_panel or features.trajectory_panels or features.document_history or features.java_symbols or features.terminal_local or features.terminal_vox_runtime or features.terminal_properties %}

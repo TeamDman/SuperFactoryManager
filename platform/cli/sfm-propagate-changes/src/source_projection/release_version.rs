@@ -124,6 +124,7 @@ mod tests {
         BTreeMap::from([(
             "gradle.properties".to_owned(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: "platform/minecraft/gradle.properties".to_owned(),
                 source_bytes: bytes.to_vec(),
                 output_bytes: bytes.to_vec(),

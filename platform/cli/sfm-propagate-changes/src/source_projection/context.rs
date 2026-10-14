@@ -33,7 +33,14 @@ pub struct ProjectionContext {
 /// Returns an error if Facet cannot reflect the context or if reflection
 /// produces a value other than strings, booleans, and nested objects.
 pub fn to_liquid_object(context: &ProjectionContext) -> Result<liquid::Object> {
-    let reflected = facet_value::to_value(context)
+    reflect_liquid_object(context)
+}
+
+/// Direct Facet shape/attribute reflection for typed Liquid object helpers.
+/// # Errors
+/// Rejects reflection failures and values outside strings, booleans and objects.
+pub fn reflect_liquid_object<'a, T: Facet<'a>>(value: &T) -> Result<liquid::Object> {
+    let reflected = facet_value::to_value(value)
         .map_err(|error| eyre!("could not reflect projection context: {error}"))?;
     match convert_value(&reflected, "context")? {
         LiquidValue::Object(object) => Ok(object),

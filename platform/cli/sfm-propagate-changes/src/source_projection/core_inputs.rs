@@ -76,6 +76,9 @@ pub struct BuildTargetMetadata {
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
 pub struct InputVariant {
+    /// Zero-output reference-only companion beside an exact membership/path rule.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub reference_template: Option<String>,
     /// Exact, portable path below core-liquid-template; never repository-root
     /// paths, globs, Git objects, or paths outside the core authoring boundary.
     pub input: String,
@@ -104,6 +107,7 @@ pub struct InputPredicate {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelectedCoreInput {
+    pub reference_template: Option<String>,
     pub input: String,
     pub template: bool,
 }
@@ -339,6 +343,7 @@ fn select_validated_core_inputs(
             selected.insert(
                 output.clone(),
                 SelectedCoreInput {
+                    reference_template: None,
                     input: output.clone(),
                     template: false,
                 },
@@ -360,6 +365,7 @@ fn select_validated_core_inputs(
                     .insert(
                         output.clone(),
                         SelectedCoreInput {
+                            reference_template: variant.reference_template.clone(),
                             input: variant.input.clone(),
                             template: variant.template
                         }
@@ -436,7 +442,10 @@ impl CoreInputSnapshot {
         let missing = selection
             .inputs
             .values()
-            .map(|selected| selected.input.as_str())
+            .flat_map(|selected| {
+                std::iter::once(selected.input.as_str())
+                    .chain(selected.reference_template.as_deref())
+            })
             .filter(|input| !self.files.contains_key(*input) && seen.insert(*input))
             .collect::<Vec<_>>();
         // At most sixty-four bounded file buffers are in flight (1 GiB), never
@@ -553,7 +562,14 @@ fn collect_core_artifacts_impl(
             }
         };
         total_bytes = add_to_budget(total_bytes, bytes.len() as u64)?;
-        let artifact = render_core_input(output, selected, bytes, context)?;
+        let mut artifact = render_core_input(output, selected, bytes, context)?;
+        attach_reference_template_with_snapshot(
+            &root,
+            selected,
+            context,
+            &mut artifact,
+            snapshot.as_deref_mut(),
+        )?;
         total_bytes = add_to_budget(total_bytes, artifact.output_bytes.len() as u64)?;
         ensure!(
             artifacts.insert(output.clone(), artifact).is_none(),
@@ -651,6 +667,7 @@ pub(super) fn render_core_input_with(
     );
     let java = is_java(output);
     let mut artifact = ProjectedArtifact {
+        related_references: None,
         source_path: format!("{CORE_ROOT}/{}", selected.input),
         output_bytes: bytes.clone(),
         source_bytes: bytes,
@@ -675,7 +692,70 @@ pub(super) fn render_core_input_with(
             artifact.output_bytes.extend_from_slice(rendered.as_bytes());
         }
     }
+    if java || selected.template {
+        let source = std::str::from_utf8(&artifact.source_bytes)?.trim_start_matches('\u{feff}');
+        artifact.related_references = Some(super::reference_annotations::associations(
+            source,
+            &artifact.source_path,
+            &artifact.source_bytes,
+            context,
+        )?);
+    }
     Ok(artifact)
+}
+
+#[cfg(test)]
+pub(super) fn attach_reference_template(
+    root: &Path,
+    selected: &SelectedCoreInput,
+    context: &ProjectionContext,
+    artifact: &mut ProjectedArtifact,
+) -> Result<()> {
+    attach_reference_template_with_snapshot(root, selected, context, artifact, None)
+}
+
+pub(super) fn attach_reference_template_with_snapshot(
+    root: &Path,
+    selected: &SelectedCoreInput,
+    context: &ProjectionContext,
+    artifact: &mut ProjectedArtifact,
+    snapshot: Option<&mut CoreInputSnapshot>,
+) -> Result<()> {
+    if let Some(path) = &selected.reference_template {
+        let raw = match snapshot {
+            Some(snapshot) => snapshot.read(root, path)?,
+            None => read_selected_input(root, path)?,
+        };
+        ensure!(raw.len() <= 64 * 1024, "reference companion exceeds 64 KiB");
+        let source = std::str::from_utf8(&raw)?;
+        ensure!(
+            super::render_java_source(source, context)?.is_empty(),
+            "reference companion must emit zero bytes"
+        );
+        let mut declarations = super::reference_annotations::associations(
+            source,
+            &format!("{CORE_ROOT}/{path}"),
+            &raw,
+            context,
+        )?;
+        if let Some(existing) = &artifact.related_references {
+            declarations
+                .references
+                .extend(existing.references.iter().cloned());
+            declarations.references.sort_unstable();
+            declarations.references.dedup();
+            let mut identities = BTreeSet::new();
+            declarations
+                .references
+                .retain(|reference| identities.insert(reference.identity()));
+            declarations.conditions.extend(existing.conditions.clone());
+            declarations
+                .declarations
+                .extend(existing.declarations.clone());
+        }
+        artifact.related_references = Some(declarations);
+    }
+    Ok(())
 }
 
 /// Resolve and render a complete standalone project from a checked core tree.
@@ -765,6 +845,10 @@ fn validate_variants<'a>(
 ) -> Result<()> {
     for variant in variants {
         validate_input_path(&variant.input)?;
+        if let Some(path) = &variant.reference_template {
+            validate_input_path(path)?;
+            inputs.insert(path);
+        }
         variant
             .when
             .validate(registered_features)
@@ -1152,6 +1236,7 @@ pub(super) mod tests {
 
     fn variant(input: &str) -> InputVariant {
         InputVariant {
+            reference_template: None,
             input: input.to_owned(),
             when: InputPredicate::default(),
             template: false,
@@ -1382,6 +1467,7 @@ pub(super) mod tests {
             selection.inputs.insert(
                 path.clone(),
                 SelectedCoreInput {
+                    reference_template: None,
                     input: path,
                     template: true,
                 },
@@ -1411,6 +1497,7 @@ pub(super) mod tests {
             (
                 "src/01Missing.java".into(),
                 SelectedCoreInput {
+                    reference_template: None,
                     input: "fragments/z-first-missing.java".into(),
                     template: true,
                 },
@@ -1418,6 +1505,7 @@ pub(super) mod tests {
             (
                 "src/02Missing.java".into(),
                 SelectedCoreInput {
+                    reference_template: None,
                     input: "fragments/a-second-missing.java".into(),
                     template: true,
                 },
@@ -1625,10 +1713,29 @@ pub(super) mod tests {
         release.preset = "sfm-dev/misleading-name".to_owned();
         release.projection_key = "sfm-dev/misleading-name".to_owned();
         let dev = context("1.19.2", false);
+        let release_files = fixture.prepare(&release).unwrap();
+        let dev_files = fixture.prepare(&dev).unwrap();
         assert_eq!(
-            fixture.prepare(&release).unwrap(),
-            fixture.prepare(&dev).unwrap()
+            release_files.keys().collect::<Vec<_>>(),
+            dev_files.keys().collect::<Vec<_>>()
         );
+        for (path, release_file) in release_files {
+            let mut dev_file = dev_files[&path].clone();
+            let mut release_file = release_file;
+            if let Some(references) = &release_file.related_references {
+                assert_eq!(references.projection_key, release.projection_key);
+                let dev_references = dev_file.related_references.as_ref().unwrap();
+                assert_eq!(dev_references.projection_key, dev.projection_key);
+                assert_ne!(references.context_sha256, dev_references.context_sha256);
+                assert_eq!(references.references, dev_references.references);
+            }
+            release_file.related_references = None;
+            dev_file.related_references = None;
+            assert_eq!(
+                release_file, dev_file,
+                "production bytes changed for {path}"
+            );
+        }
         for selector in ["environment", "preset", "projection_key"] {
             fixture.write("src/main/java/Shared.java", format!("{{% case   {selector} %}}\n{{% when \"dev\" %}}\nclass Forbidden {{}}\n{{% else %}}\nclass Other {{}}\n{{% endcase %}}\n").as_bytes());
             assert!(fixture.prepare(&dev).is_err(), "accepted {selector}");

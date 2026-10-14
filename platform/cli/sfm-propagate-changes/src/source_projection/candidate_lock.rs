@@ -1956,6 +1956,7 @@ pub(crate) mod tests {
         let owned = BTreeMap::from([(
             "examples/01.sfm".to_owned(),
             super::super::provenance::ProjectedFileProvenance {
+                related_references: None,
                 source_path: "examples/01.sfm".to_owned(),
                 source_sha256: sha256(b"example\n"),
                 overlay: Some("release-tag-examples".to_owned()),

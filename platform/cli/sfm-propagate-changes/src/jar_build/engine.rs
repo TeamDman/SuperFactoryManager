@@ -2320,3 +2320,71 @@ include!("engine_authenticated_library_batch_tests.rs");
 include!("engine_authenticated_library_cache_tests.rs");
 include!("engine_source_catalog.rs");
 include!("engine_mappings_compare_artifacts.rs");
+
+/// Reuse the existing normalized comparator for review, allowing expected changes.
+/// Raw archive hashes and metadata fingerprints remain separate from payloads.
+pub(crate) fn release_jar_comparison_json(
+    baseline: &Path,
+    candidate: &Path,
+) -> eyre::Result<String> {
+    fn physical(path: &Path) -> eyre::Result<(String, String)> {
+        eyre::ensure!(
+            fs::metadata(path)?.len() <= 128 * 1024 * 1024,
+            "JAR exceeds 128 MiB budget"
+        );
+        let bytes = fs::read(path)?;
+        let raw_hash = crate::source_projection::provenance::sha256(&bytes);
+        let mut archive = ZipArchive::new(Cursor::new(bytes))?;
+        eyre::ensure!(archive.len() <= 20000, "JAR exceeds entry budget");
+        let mut metadata = BTreeMap::new();
+        let mut expanded = 0_u64;
+        for index in 0..archive.len() {
+            let file = archive.by_index(index)?;
+            expanded = expanded
+                .checked_add(file.size())
+                .ok_or_else(|| eyre::eyre!("JAR size overflow"))?;
+            eyre::ensure!(
+                expanded <= 512 * 1024 * 1024,
+                "JAR exceeds expanded byte budget"
+            );
+            eyre::ensure!(
+                !metadata.contains_key(file.name()),
+                "duplicate JAR entry: {}",
+                file.name()
+            );
+            metadata.insert(
+                file.name().to_owned(),
+                format!(
+                    "{:?}|{:?}|{}|{}|{}|{:?}",
+                    file.last_modified(),
+                    file.compression(),
+                    file.compressed_size(),
+                    file.size(),
+                    file.crc32(),
+                    file.unix_mode()
+                ),
+            );
+        }
+        let metadata_bytes = facet_json::to_string(&metadata)?;
+        Ok((
+            raw_hash,
+            crate::source_projection::provenance::sha256(metadata_bytes.as_bytes()),
+        ))
+    }
+    let (baseline_sha, baseline_metadata_sha) = physical(baseline)?;
+    let (candidate_sha, candidate_metadata_sha) = physical(candidate)?;
+    let mut report = compare_jars(baseline, candidate, false)?;
+    report.gradle_jar = baseline
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("baseline needs file name"))?
+        .into();
+    report.rust_jar = candidate
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("candidate needs file name"))?
+        .into();
+    Ok(format!(
+        "Legacy comparator labels: gradle = baseline, rust = candidate.\nBaseline raw SHA256: {baseline_sha}\nCandidate raw SHA256: {candidate_sha}\nBaseline ZIP metadata fingerprint: {baseline_metadata_sha}\nCandidate ZIP metadata fingerprint: {candidate_metadata_sha}\nZIP metadata differs: {}\nZIP timestamps/compression/CRC/size/permissions are fingerprinted separately; payload comparison ignores ZIP metadata and only Implementation-Timestamp in the manifest. Class changes are byte changes, not proven behavioral changes.\n{}",
+        baseline_metadata_sha != candidate_metadata_sha,
+        facet_json::to_string_pretty(&report)?
+    ))
+}

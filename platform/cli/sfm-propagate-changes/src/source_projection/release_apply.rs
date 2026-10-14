@@ -299,6 +299,7 @@ fn apply_unchanged_sources(
             .ok_or_else(|| eyre::eyre!("release source `{path}` has no pinned Git blob OID"))?;
         let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
         let mut artifact = ProjectedArtifact {
+            related_references: None,
             // For an Unchanged release record, `src/...` is the logical source
             // path within the preset's pinned tag snapshot, not necessarily
             // today's primary worktree. The Git blob and source SHA-256 above
@@ -369,6 +370,7 @@ fn selected_unchanged_import(
         ),
     };
     let mut pinned = ProjectedArtifact {
+        related_references: None,
         source_path,
         source_bytes: bytes.clone(),
         output_bytes: bytes,
@@ -661,6 +663,7 @@ fn rendered_java_matches_pinned(
         return Ok(false);
     }
     let mut pinned = ProjectedArtifact {
+        related_references: None,
         source_path: format!("pinned-committed-tree/{path}"),
         source_bytes: pinned_source.to_vec(),
         output_bytes: pinned_source.to_vec(),
@@ -1081,6 +1084,7 @@ mod tests {
 
     fn artifact(path: &str, bytes: &[u8]) -> ProjectedArtifact {
         ProjectedArtifact {
+            related_references: None,
             source_path: path.to_owned(),
             source_bytes: bytes.to_vec(),
             output_bytes: bytes.to_vec(),
@@ -2550,6 +2554,7 @@ mod tests {
         before.files.insert(
             path.to_owned(),
             ProjectedFileProvenance {
+                related_references: None,
                 source_path: path.to_owned(),
                 source_sha256: sha256(&old_artifact.source_bytes),
                 overlay: None,
@@ -2575,6 +2580,7 @@ mod tests {
         after.files.insert(
             path.to_owned(),
             ProjectedFileProvenance {
+                related_references: None,
                 source_path: artifacts[path].source_path.clone(),
                 source_sha256: sha256(&artifacts[path].source_bytes),
                 overlay: artifacts[path].overlay.clone(),

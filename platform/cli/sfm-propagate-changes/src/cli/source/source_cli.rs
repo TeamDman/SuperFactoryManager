@@ -2602,6 +2602,7 @@ pub(super) mod tests {
         let mut artifacts = BTreeMap::from([(
             "gradle.properties".to_owned(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: "gradle.properties".to_owned(),
                 source_bytes: original.to_vec(),
                 output_bytes: original.to_vec(),
@@ -2629,6 +2630,7 @@ pub(super) mod tests {
             let mut artifacts = BTreeMap::from([(
                 "gradle.properties".to_owned(),
                 ProjectedArtifact {
+                    related_references: None,
                     source_path: "gradle.properties".to_owned(),
                     source_bytes: original.to_vec(),
                     output_bytes: original.to_vec(),
@@ -3354,6 +3356,7 @@ pub(super) mod tests {
         let canonical = "src/main/resources/assets/sfm/frozen.txt";
         let variant = "src/main/resources/assets/sfm/FROZEN.txt";
         let artifact = ProjectedArtifact {
+            related_references: None,
             source_path: "platform/minecraft/src/main/resources/assets/sfm/frozen.txt".to_owned(),
             source_bytes: b"frozen".to_vec(),
             output_bytes: b"frozen".to_vec(),

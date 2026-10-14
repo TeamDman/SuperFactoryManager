@@ -60,8 +60,8 @@ pub(crate) fn development_native_loader(target: &str, minecraft: &str) -> Result
         _ => eyre::bail!("development target has no captured native adapter"),
     };
     ensure!(
-        cfg!(windows) && minecraft == expected,
-        "development NeoForm target/version requires its exact Windows adapter"
+        cfg!(any(windows, target_os = "linux")) && minecraft == expected,
+        "development NeoForm target/version requires its exact Windows/Linux adapter"
     );
     Ok("neoforge")
 }
@@ -565,6 +565,7 @@ mod tests {
                 metadata.project_files.insert(
                     output.to_owned(),
                     vec![InputVariant {
+                        reference_template: None,
                         input,
                         when: InputPredicate::default(),
                         template: false,

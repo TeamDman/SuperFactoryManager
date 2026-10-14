@@ -15,6 +15,7 @@ pub(crate) enum ScannedSource<'a> {
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScannedTemplate {
+    pub(crate) references: Vec<super::source_reference::SourceReference>,
     pub(crate) skeleton: String,
     pub(crate) chunks: Vec<String>,
     pub(crate) referenced_conditions: BTreeMap<String, usize>,
@@ -52,6 +53,7 @@ impl ControlBlock {
 
 #[derive(Debug)]
 enum Directive<'a> {
+    Reference(super::source_reference::SourceReference),
     If(&'a str),
     Elsif(&'a str),
     Else,
@@ -127,6 +129,13 @@ fn push_directive(
     line: usize,
 ) -> eyre::Result<()> {
     match directive {
+        Directive::Reference(reference) => {
+            ensure_case_branch(blocks, line, "reference")?;
+            let index = template.references.len();
+            template.references.push(reference);
+            write!(template.skeleton, "{{{{ __sfm_reference_{index} }}}}")
+                .expect("writing to String cannot fail");
+        }
         Directive::If(condition) => {
             ensure_case_branch(blocks, line, "if")?;
             record_condition(template, condition, line);
@@ -255,6 +264,12 @@ fn parse_directive(line: &str, line_number: usize) -> eyre::Result<Directive<'_>
         .trim();
     let parts: Vec<&str> = body.split_whitespace().collect();
     match parts.as_slice() {
+        [kind @ ("issue" | "pr" | "discussion"), number] => Ok(Directive::Reference(
+            super::source_reference::SourceReference::parse(kind, None, number)?,
+        )),
+        [kind @ ("issue" | "pr" | "discussion"), scope, number] => Ok(Directive::Reference(
+            super::source_reference::SourceReference::parse(kind, Some(scope), number)?,
+        )),
         ["if", conditions @ ..] => {
             validate_condition_alternatives(conditions, line_number)?;
             let condition = body

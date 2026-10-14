@@ -221,6 +221,7 @@ pub fn seed_missing(
                     binding.projection
                 );
                 let mut artifact = ProjectedArtifact {
+                    related_references: None,
                     source_path: format!("{CORE_ROOT}/{input}"),
                     source_bytes: anchor.bytes.clone(),
                     output_bytes: anchor.bytes.clone(),
@@ -268,6 +269,7 @@ pub fn seed_missing(
         "Seed has no witnessed target membership"
     );
     let variant = InputVariant {
+        reference_template: None,
         input: input.clone(),
         template: false,
         when: InputPredicate {
@@ -684,6 +686,7 @@ mod tests {
     fn metadata_insert_preserves_other_bytes_and_handles_escaped_root_key() {
         let before = b"{\"schema_version\":1,\"source_rules\":{},\"project_\\u0066iles\":{\"existing\":[]},\"untouched\":\"literal project_files\"}";
         let variant = InputVariant {
+            reference_template: None,
             input: "build/shared/code.xml".into(),
             template: false,
             when: InputPredicate {
@@ -708,6 +711,7 @@ mod tests {
         let before = BTreeMap::new();
         let outputs = vec!["src/A.java".into()];
         let selected = SelectedCoreInput {
+            reference_template: None,
             input: "src/A.java".into(),
             template: false,
         };
@@ -748,6 +752,7 @@ mod tests {
         proposed.source_rules.insert(
             output.clone(),
             vec![InputVariant {
+                reference_template: None,
                 input: output.clone(),
                 template: false,
                 when: InputPredicate {

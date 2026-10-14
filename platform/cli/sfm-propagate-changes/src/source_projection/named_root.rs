@@ -343,6 +343,7 @@ mod tests {
             let files = BTreeMap::from([(
                 "src/main/java/Example.java".to_owned(),
                 ProjectedArtifact {
+                    related_references: None,
                     source_path: format!("{CORE_ROOT}/src/main/java/Example.java"),
                     source_bytes: b"class Example {}\n".to_vec(),
                     output_bytes: b"// generated\nclass Example {}\n".to_vec(),

@@ -1,4 +1,9 @@
 {
+  "issue_610_visual_evidence": {"supported_targets":["1.21.1"],"requires":["issue_610_progress_tests","game_puppet_runtime"]},
+  "quantity_sensitive_extraction_progress": {"supported_targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"requires":[]},
+  "issue_610_progress_tests": {"supported_targets":["1.21.1"],"requires":[]},
+  "recipe_namespace": {"supported_targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"requires":[]},
+  "release_version_4_35_0": {"supported_targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"requires":[]},
   "jdt_starvation_characterization_tests": {"supported_targets":["1.21.1"],"requires":[]},
   "minecraft_language_resource_tests": {"supported_targets":["1.19.2","1.19.4"],"requires":[]},
   "item_inspection_component_tooltips": {

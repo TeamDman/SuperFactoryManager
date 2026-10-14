@@ -291,6 +291,7 @@ fn collect_gradle_overlay(
         artifacts.insert(
             relative.clone(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: relative.clone(),
                 source_bytes: bytes.clone(),
                 output_bytes: bytes,
@@ -431,6 +432,7 @@ fn insert(
             .insert(
                 relative.to_owned(),
                 ProjectedArtifact {
+                    related_references: None,
                     source_path: relative.to_owned(),
                     source_bytes: bytes.clone(),
                     output_bytes: bytes,

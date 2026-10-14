@@ -252,6 +252,7 @@ pub fn collect_verified_development_project_fixtures(
         artifacts.insert(
             path.clone(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: path.clone(),
                 source_bytes: bytes.clone(),
                 output_bytes: bytes,
@@ -327,6 +328,7 @@ pub fn collect_pinned_release_examples(
         artifacts.insert(
             path.clone(),
             ProjectedArtifact {
+                related_references: None,
                 source_path: path.clone(),
                 source_bytes: bytes.clone(),
                 output_bytes: bytes,

@@ -2128,6 +2128,7 @@ mod tests {
     }
     fn artifact(bytes: &[u8]) -> ProjectedArtifact {
         ProjectedArtifact {
+            related_references: None,
             source_path: format!("{CORE_ROOT}/src/Example.java"),
             source_bytes: bytes.to_vec(),
             output_bytes: bytes.to_vec(),

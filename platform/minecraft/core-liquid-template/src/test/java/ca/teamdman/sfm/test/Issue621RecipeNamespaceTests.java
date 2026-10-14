@@ -1,0 +1,81 @@
+package ca.teamdman.sfm.test;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import org.junit.jupiter.api.Test;
+
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/** Resource-only regressions for #621/#527; no Minecraft runtime is required. */
+public class Issue621RecipeNamespaceTests {
+{% case minecraft_version %}
+{% when '1.21', '1.21.1', '26.1.2' %}
+    private static final String RECIPE_DIRECTORY = "recipe";
+{% else %}
+    private static final String RECIPE_DIRECTORY = "recipes";
+{% endcase %}
+{% case minecraft_version %}
+{% when '1.21', '1.21.1', '26.1.2' %}
+    private static final String ADVANCEMENT_DIRECTORY = "advancement";
+{% else %}
+    private static final String ADVANCEMENT_DIRECTORY = "advancements";
+{% endcase %}
+{% case minecraft_version %}
+{% when '1.19.2' %}
+    private static final String CATEGORY = "sfm";
+{% else %}
+    private static final String CATEGORY = "misc";
+{% endcase %}
+    private static final String[] MIGRATED_RECIPES = {
+        "disk_reset", "label_gun_reset", "tough_cable_horizontal", "tough_cable_vertical",
+        "tough_fancy_cable_horizontal", "tunnelled_cable_horizontal", "tunnelled_cable_vertical",
+        "tunnelled_fancy_cable_horizontal", "tunnelled_fancy_cable_vertical",
+        "tunnelled_manager_horizontal", "tunnelled_manager_vertical", "uncraft_tunnelled_manager"
+{% case minecraft_version %}
+{% when '26.1.2' %}
+        , "fancy_to_cable", "tough_to_cable", "tough_fancy_to_fancy"
+{% endcase %}
+    };
+
+    private static JsonObject resource(String path) throws Exception {
+        try (var stream = Issue621RecipeNamespaceTests.class.getResourceAsStream(path)) {
+            assertNotNull(stream, "Missing packaged resource " + path);
+            return JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+    }
+
+    @Test
+    public void issue621OwnedRecipesUseSfmNamespaceWithoutStaleVanillaCopies() throws Exception {
+        for (String name : MIGRATED_RECIPES) {
+            JsonObject recipe = resource("/data/sfm/" + RECIPE_DIRECTORY + "/" + name + ".json");
+            try (var stale = getClass().getResourceAsStream("/data/minecraft/" + RECIPE_DIRECTORY + "/" + name + ".json")) {
+                assertNull(stale, "Stale minecraft:" + name + " recipe is still packaged");
+            }
+            if (name.endsWith("_reset")) {
+                assertEquals("sfm:" + name, recipe.get("type").getAsString());
+            } else {
+                assertTrue(recipe.get("type").getAsString().startsWith("minecraft:"));
+            }
+        }
+    }
+
+    @Test
+    public void issue527AdvancementRewardsAndUnlockCriteriaReferToSfmRecipes() throws Exception {
+        for (String name : MIGRATED_RECIPES) {
+            if (name.endsWith("_reset")) continue; // Special reset recipes have no advancement.
+            String suffix = ADVANCEMENT_DIRECTORY + "/recipes/" + CATEGORY + "/" + name + ".json";
+            JsonObject advancement = resource("/data/sfm/" + suffix);
+            assertEquals("minecraft:recipes/root", advancement.get("parent").getAsString());
+            assertEquals("sfm:" + name, advancement.getAsJsonObject("rewards").getAsJsonArray("recipes").get(0).getAsString());
+            JsonObject criterion = advancement.getAsJsonObject("criteria").getAsJsonObject("has_the_recipe");
+            assertEquals("minecraft:recipe_unlocked", criterion.get("trigger").getAsString());
+            assertEquals("sfm:" + name, criterion.getAsJsonObject("conditions").get("recipe").getAsString());
+            try (var stale = getClass().getResourceAsStream("/data/minecraft/" + suffix)) {
+                assertNull(stale, "Stale minecraft advancement is still packaged: " + suffix);
+            }
+        }
+    }
+}

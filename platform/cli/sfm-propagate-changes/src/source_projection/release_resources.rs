@@ -137,6 +137,7 @@ mod tests {
 
     fn existing_artifact() -> ProjectedArtifact {
         ProjectedArtifact {
+            related_references: None,
             source_path: "src/main/resources/existing.json".to_owned(),
             source_bytes: b"existing".to_vec(),
             output_bytes: b"existing".to_vec(),

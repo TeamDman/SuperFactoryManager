@@ -1,10 +1,12 @@
 //! Public source commands use the authoritative Liquid catalog.
 
+use super::comparison_cli::SourceComparisonArgs;
 use super::core_project_cli::CoreProjectArgs;
 use super::oracle_cli::SourceOracleArgs;
 use super::projection_catalog_cli::SourceListArgs;
 use super::projection_catalog_cli::SourceRenderArgs;
 use super::projection_catalog_cli::SourceShowArgs;
+use super::release_report_cli::ReleaseReportArgs;
 use super::simplify_cli::SimplifyArgs;
 use super::source_cli::LegacySourceArgs;
 use super::source_trace_cli::SourceTraceArgs;
@@ -24,6 +26,12 @@ pub struct SourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum SourceCommand {
+    /// Prepare reusable comparison evidence, captured sides and the HTML viewer.
+    ComparePrepare(SourceComparisonArgs),
+    /// Query declared issue relevance for one file in an explicitly selected input.
+    References(super::references_cli::SourceReferencesArgs),
+    /// Assemble a local HTML release report from explicit evidence.
+    ReleaseReport(ReleaseReportArgs),
     /// Compare pinned Git oracles with current core-rendered projections.
     Oracle(SourceOracleArgs),
     /// Generate, check and build projects from the Liquid core.
@@ -53,6 +61,9 @@ impl SourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         match self.command {
+            SourceCommand::ComparePrepare(args) => args.invoke(cancellation),
+            SourceCommand::References(args) => args.invoke(cancellation),
+            SourceCommand::ReleaseReport(args) => args.invoke(cancellation),
             SourceCommand::Oracle(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::Project(args) => args.invoke_in(cancellation, invocation_dir),
             SourceCommand::List(args) => args.invoke_in(invocation_dir),

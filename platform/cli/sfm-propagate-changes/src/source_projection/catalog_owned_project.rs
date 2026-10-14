@@ -72,6 +72,8 @@ pub struct CatalogOwnedProjectReceipt {
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 pub struct CatalogOwnedFileReceipt {
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub related_references: Option<super::reference_associations::ReferenceAssociations>,
     pub authored_input: String,
     pub declared_template: bool,
     pub source_sha256: String,
@@ -238,6 +240,7 @@ impl CollectedCatalogProject {
             files.insert(
                 output.clone(),
                 CatalogOwnedFileReceipt {
+                    related_references: artifact.related_references.clone(),
                     authored_input: artifact.source_path.clone(),
                     declared_template: selected_template_mode(&self.selection, output)?,
                     source_sha256: sha256(&artifact.source_bytes),
@@ -314,6 +317,15 @@ impl CollectedCatalogProject {
         );
         let mut total = 0_u64;
         for artifact in self.artifacts.values() {
+            if let Some(issues) = &artifact.related_references {
+                for (path, digest) in &issues.declarations {
+                    let raw = reader.read(&self.loaded.repo_root, path, MAX_CORE_FILE_BYTES)?;
+                    ensure!(
+                        sha256(&raw) == *digest,
+                        "issue declaration source changed: {path}"
+                    );
+                }
+            }
             let bytes = reader.read(
                 &self.loaded.repo_root,
                 &artifact.source_path,
@@ -1042,6 +1054,7 @@ pub(crate) mod tests {
                 .entry(output.to_owned())
                 .or_default()
                 .push(InputVariant {
+                    reference_template: None,
                     input: input.to_owned(),
                     when,
                     template,

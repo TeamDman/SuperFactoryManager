@@ -71,6 +71,8 @@ impl CatalogProjectionOwner {
 #[derive(Debug, Facet)]
 #[facet(deny_unknown_fields)]
 pub struct ProjectedFileProvenance {
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub related_references: Option<super::reference_associations::ReferenceAssociations>,
     /// Logical path in the selected source snapshot. For a release-tag fallback,
     /// `src/...` belongs to the verified pinned tag, not necessarily the current
     /// primary worktree.
@@ -158,6 +160,11 @@ impl ProjectionProvenance {
                 "unsupported source projection manifest schema '{}'",
                 self.schema
             ),
+        }
+        for file in self.files.values() {
+            if let Some(references) = &file.related_references {
+                references.validate()?;
+            }
         }
         Ok(())
     }
@@ -282,6 +289,7 @@ mod tests {
         manifest.files.insert(
             "src/main/java/Example.java".to_owned(),
             ProjectedFileProvenance {
+                related_references: None,
                 source_path: "src/main/java/Example.java".to_owned(),
                 source_sha256: sha256(b"class Example {}\n"),
                 overlay: None,

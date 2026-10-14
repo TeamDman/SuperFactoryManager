@@ -1,0 +1,51 @@
+/* Viewport-centered reading; the contents rail never consumes the prose column. */
+.shell{width:calc(100% - 64px);max-width:none;padding:0;margin-inline:auto}
+.masthead,.hero,.site-footer{max-width:1100px;margin-inline:auto}
+.article-layout{display:block;position:relative}
+.article-layout>main{width:100%;min-width:0}
+.story>.reading{width:100%;max-width:750px;margin-inline:auto}
+.article-contents{position:fixed;top:24px;left:max(24px,calc((100vw - 750px)/2 - 218px));width:186px;max-height:calc(100dvh - 48px);overflow:auto;z-index:4;transition:opacity .12s ease}
+.article-contents.toc-yield{opacity:0;visibility:hidden;pointer-events:none}
+#in-game,#release-changes{width:100%;max-width:none}
+#in-game>p,#release-changes>p,#release-changes>h2,#in-game>.figure-heading{max-width:750px;margin-inline:auto}
+.comparison{width:100%;max-width:1600px;margin-inline:auto;gap:28px}
+.source-workbench,.explorer-workbench{width:100%;max-width:none;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(240px,24%) minmax(0,1fr)}
+.source-preview,.explorer-preview{overscroll-behavior:contain}
+.appendix{width:100%;min-width:0}
+.appendix-panel,.evidence,.source-preview,.explorer-preview{min-width:0}
+.evidence figure{max-width:1440px;margin-inline:auto}
+.evidence figure img{display:block;width:100%;height:auto}
+img[data-enlarge]{cursor:zoom-in}
+img[data-enlarge]:focus-visible{outline:4px solid #c38a30;outline-offset:4px}
+.capture-dialog{width:min(1600px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);padding:20px;border:1px solid #70877d;overscroll-behavior:contain}
+.capture-dialog img{width:auto;max-width:100%;max-height:calc(100dvh - 210px);height:auto;object-fit:contain;cursor:zoom-out}
+#capture-dialog-image{display:flex;justify-content:center;min-width:0}
+.capture-dialog p{max-width:1100px;margin-inline:auto}
+.capture-dialog .capture-hint{color:#bbd4c6;margin-top:12px}
+.capture-dialog button{margin-left:auto}
+html{scrollbar-gutter:stable}
+@media(max-width:1249px){
+ .article-contents{position:sticky;top:0;left:auto;width:auto;max-height:70dvh;background:var(--paper);border-bottom:1px solid var(--line);opacity:1;visibility:visible;pointer-events:auto}
+ .contents-menu>summary{display:block;padding:12px 0;font:650 15px/1.6 system-ui,sans-serif;cursor:pointer}
+ .article-nav{padding:10px 12px}
+ section[id]{scroll-margin-top:65px}
+}
+@media(max-width:800px){
+ .shell{width:calc(100% - 32px)}
+ .source-workbench,.explorer-workbench{grid-template-columns:minmax(0,1fr);grid-template-rows:200px minmax(0,1fr);height:650px}
+ .comparison{gap:20px}
+ .text-preview,.source-preview .static-diff{grid-template-columns:minmax(0,1fr)}
+ .text-preview pre{font-size:12px;padding:10px}
+ .capture-dialog{padding:12px;width:calc(100vw - 16px);max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
+ .capture-dialog img{max-height:calc(100dvh - 240px)}
+ .capture-dialog p{font-size:12px;line-height:1.4}
+}
+@media(prefers-reduced-motion:reduce){.article-contents{transition:none}}
+
+body:not(.js-ready) .article-contents{position:static;width:min(750px,100%);max-height:none;margin-inline:auto}
+.code-pair>div{min-width:0}.code-pair pre{max-width:100%}
+
+#reproduce{width:100%;max-width:none}#reproduce>.reading{width:100%;max-width:750px;margin-inline:auto}
+
+/* Capture cards follow their available width and preserve every native pixel. */
+.comparison .capture-frame{height:auto;max-height:none;overflow:visible}.comparison .capture-frame img{display:block;width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain}.comparison .initial-setup{overflow:visible}

@@ -617,6 +617,7 @@ fn membership_variants(
                 predicate.targets = version_targets.values().cloned().collect();
             }
             variants.push(InputVariant {
+                reference_template: None,
                 input: input.into(),
                 when: predicate,
                 template: true,

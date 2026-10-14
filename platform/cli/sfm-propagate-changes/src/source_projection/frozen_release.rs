@@ -103,6 +103,7 @@ pub fn project_frozen_artifacts(
             Some(&file.git_mode),
         )?;
         let mut artifact = ProjectedArtifact {
+            related_references: None,
             source_path: file.source_repo_path.clone(),
             source_bytes: bytes.clone(),
             output_bytes: bytes,
@@ -528,6 +529,7 @@ mod tests {
                 FrozenTransform::Copy
             };
             let mut artifact = ProjectedArtifact {
+                related_references: None,
                 source_path: source.clone(),
                 source_bytes: bytes.clone(),
                 output_bytes: bytes.clone(),

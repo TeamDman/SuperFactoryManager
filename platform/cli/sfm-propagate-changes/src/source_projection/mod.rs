@@ -22,6 +22,7 @@ pub mod frozen_authoring;
 pub mod frozen_recipe_project;
 pub mod frozen_release;
 pub mod inputs;
+pub mod localization_audit;
 pub mod manifest;
 pub(crate) mod manifestation;
 pub mod named_root;
@@ -48,6 +49,13 @@ pub mod project_layout;
 pub mod projection_catalog;
 pub mod promotion;
 pub mod provenance;
+#[cfg(test)]
+mod reference_annotation_tests;
+pub mod reference_annotations;
+pub mod reference_associations;
+#[cfg(test)]
+mod reference_query_tests;
+pub mod registry_metadata;
 pub mod release_apply;
 pub mod release_baseline;
 pub mod release_jar_absence;
@@ -57,6 +65,8 @@ pub mod released_native_inputs;
 pub mod selection;
 pub(crate) mod simplify;
 mod simplify_flexible_constructor;
+pub mod source_reference;
+pub mod source_reference_kind;
 pub mod sync;
 pub mod variant_consolidation;
 
@@ -111,6 +121,10 @@ impl PreparedSource {
     }
 
     fn render(&self, context: &ProjectionContext) -> Result<String> {
+        self.render_kind(context, false)
+    }
+
+    fn render_kind(&self, context: &ProjectionContext, references_only: bool) -> Result<String> {
         let Self::Template {
             scanned: template,
             compiled,
@@ -119,7 +133,11 @@ impl PreparedSource {
             let Self::Identity(source) = self else {
                 unreachable!()
             };
-            return Ok(source.clone());
+            return if references_only {
+                Ok(String::new())
+            } else {
+                registry_metadata::substitute(source)
+            };
         };
 
         for (condition, line) in &template.referenced_conditions {
@@ -142,7 +160,21 @@ impl PreparedSource {
         for (index, chunk) in template.chunks.iter().enumerate() {
             globals.insert(
                 format!("__sfm_chunk_{index}").into(),
-                liquid::model::Value::scalar(chunk.clone()),
+                liquid::model::Value::scalar(if references_only {
+                    String::new()
+                } else {
+                    registry_metadata::substitute(chunk)?
+                }),
+            );
+        }
+        for (index, reference) in template.references.iter().enumerate() {
+            globals.insert(
+                format!("__sfm_reference_{index}").into(),
+                liquid::model::Value::scalar(if references_only {
+                    facet_json::to_string(reference)? + "\n"
+                } else {
+                    String::new()
+                }),
             );
         }
         let rendered = compiled

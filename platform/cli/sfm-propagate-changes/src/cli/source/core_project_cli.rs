@@ -902,6 +902,7 @@ mod tests {
             metadata.project_files.insert(
                 output.to_owned(),
                 vec![InputVariant {
+                    reference_template: None,
                     input,
                     when: InputPredicate::default(),
                     template: false,

@@ -2172,6 +2172,7 @@ mod tests {
 
     fn provenance(path: &str, bytes: &[u8]) -> ProjectedFileProvenance {
         ProjectedFileProvenance {
+            related_references: None,
             source_path: path.to_owned(),
             source_sha256: sha256(bytes),
             overlay: None,

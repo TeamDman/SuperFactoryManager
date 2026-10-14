@@ -306,23 +306,24 @@ pub(crate) fn render_selected(
             })
             .cloned()
             .collect();
-        selection.inputs.retain(|_, input| {
-            let selected = matches_selector(files, &input.input);
-            if selected {
-                matched_files.insert(input.input.clone());
-            }
-            selected
-        });
+        retain_reference_inputs(&mut selection, files, &mut matched_files);
         validate_collection_selection_with_snapshot(&selection, &context, &mut snapshot)?;
         snapshot.preload(&core, &selection)?;
         let mut artifacts = BTreeMap::new();
         for (output, input) in &selection.inputs {
             cancellation.bail_if_cancelled()?;
             let bytes = snapshot.read(&core, &input.input)?;
-            let artifact =
+            let mut artifact =
                 render_core_input_with(output, input, bytes, &context, |source, context| {
                     template_cache.render(source, context)
                 })?;
+            super::core_inputs::attach_reference_template_with_snapshot(
+                &core,
+                input,
+                &context,
+                &mut artifact,
+                Some(&mut snapshot),
+            )?;
             artifacts.insert(output.clone(), artifact);
         }
         if selects_all(files) {
@@ -344,6 +345,29 @@ pub(crate) fn render_selected(
         .collect::<Vec<_>>();
     super::named_root::catalog_projection_roots(&loaded.repo_root, &loaded.catalog, &selected)?;
     Ok((loaded.repo_root, rendered))
+}
+
+fn retain_reference_inputs(
+    selection: &mut super::core_inputs::CoreSelection,
+    files: &[String],
+    matched_files: &mut BTreeSet<String>,
+) {
+    selection.inputs.retain(|_, input| {
+        let selected = matches_selector(files, &input.input)
+            || input
+                .reference_template
+                .as_deref()
+                .is_some_and(|path| matches_selector(files, path));
+        if selected {
+            matched_files.insert(input.input.clone());
+            if let Some(path) = &input.reference_template
+                && matches_selector(files, path)
+            {
+                matched_files.insert(path.clone());
+            }
+        }
+        selected
+    });
 }
 
 fn selects_all(selectors: &[String]) -> bool {
@@ -420,6 +444,7 @@ mod tests {
             artifacts: [(
                 "src/A.java".into(),
                 ProjectedArtifact {
+                    related_references: None,
                     source_path: format!("{CORE_ROOT}/src/A.java"),
                     source_bytes: b"next".to_vec(),
                     output_bytes: b"next".to_vec(),
@@ -547,6 +572,7 @@ mod tests {
             artifacts: [(
                 "src/A.java".into(),
                 ProjectedArtifact {
+                    related_references: None,
                     source_path: format!("{CORE_ROOT}/src/A.java"),
                     source_bytes: b"first".to_vec(),
                     output_bytes: b"first".to_vec(),

@@ -410,6 +410,7 @@ fn preview_frozen_inventory_and_artifacts(
         let entry = &tree[&input.source_repo_path];
         let bytes = blobs[&entry.oid].clone();
         let mut artifact = ProjectedArtifact {
+            related_references: None,
             source_path: input.source_repo_path.clone(),
             source_bytes: bytes.clone(),
             output_bytes: bytes.clone(),
@@ -897,6 +898,7 @@ mod tests {
             artifacts.insert(
                 output,
                 ProjectedArtifact {
+                    related_references: None,
                     // Logical provenance intentionally cannot locate the file.
                     source_path: "logical/import/path".to_owned(),
                     source_bytes: bytes.clone(),

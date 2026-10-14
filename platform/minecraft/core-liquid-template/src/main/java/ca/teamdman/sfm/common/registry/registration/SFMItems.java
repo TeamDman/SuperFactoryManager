@@ -139,14 +139,14 @@ public class SFMItems {
     );
 {% endcase %}
 
-    public static final SFMRegistryObject<Item, LabelGunItem> LABEL_GUN
+    public static final SFMRegistryObject<Item, LabelGunItem> @@sfm.registry.label_gun.java_field@@
 {% case minecraft_version %}
 {% when "1.19.2" %}
             = REGISTRY.register(
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
             = REGISTERER.register(
 {% endcase %}
-            "labelgun",
+            "@@sfm.registry.label_gun.registry_id@@",
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
             () -> new LabelGunItem(
@@ -220,14 +220,14 @@ public class SFMItems {
 
 {% endif %}
 {% endcase %}
-    public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
+    public static final SFMRegistryObject<Item, ExperienceShardItem> @@sfm.registry.experience_shard.java_field@@
 {% case minecraft_version %}
 {% when "1.19.2" %}
             = REGISTRY.register(
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
             = REGISTERER.register(
 {% endcase %}
-            "xp_shard",
+            "@@sfm.registry.experience_shard.registry_id@@",
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
             ExperienceShardItem::new
@@ -239,14 +239,14 @@ public class SFMItems {
 {% endcase %}
     );
 
-    public static final SFMRegistryObject<Item, ExperienceGoopItem> EXPERIENCE_GOOP
+    public static final SFMRegistryObject<Item, ExperienceGoopItem> @@sfm.registry.experience_goop.java_field@@
 {% case minecraft_version %}
 {% when "1.19.2" %}
             = REGISTRY.register(
 {% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
             = REGISTERER.register(
 {% endcase %}
-            "xp_goop",
+            "@@sfm.registry.experience_goop.registry_id@@",
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
             ExperienceGoopItem::new
