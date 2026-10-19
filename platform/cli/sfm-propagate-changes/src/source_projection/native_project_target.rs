@@ -146,16 +146,18 @@ impl NativeProjectTarget {
             declared_profile == NATIVE_DEPENDENCY_PROFILE,
             "named native target requires the explicit rust-toolchain profile"
         );
-        // Profile derivation consumes retained immutable bytes. Validate the
-        // live project once before returning, not on both sides of pure work.
+        // Profile derivation consumes retained immutable bytes. Independent
+        // callers validate the live project; CLI owners reuse their explicitly
+        // admitted invocation snapshot without another whole-tree read.
         let profile = selected_profile(project.artifacts(), project.identity(), declared_profile)?;
         let target = target_from_checked(project, declared_profile, profile)?;
-        project.recheck()?;
+        project.recheck_for_invocation()?;
         Ok(target)
     }
 
-    /// Reuse a retained owner, but freshly validate its exact input bytes.
-    /// This avoids collecting and rendering the same project at each launch.
+    /// Recheck the retained target identity and its owner's source policy.
+    /// Independent owners freshly validate bytes; CLI snapshots retain their
+    /// initial verification (or explicit opt-out) for this invocation.
     pub(crate) fn recheck_with_project(&self, project: &CatalogOwnedProject) -> Result<()> {
         ensure!(
             self.receipt.dependency_profile == NATIVE_DEPENDENCY_PROFILE,
@@ -168,7 +170,7 @@ impl NativeProjectTarget {
         )?;
         let current = target_from_checked(project, &self.receipt.dependency_profile, profile)?;
         ensure!(current == *self, "retained native project target changed");
-        project.recheck()?;
+        project.recheck_for_invocation()?;
         Ok(())
     }
 

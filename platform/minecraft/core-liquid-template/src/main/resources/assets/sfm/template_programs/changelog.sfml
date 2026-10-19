@@ -10,6 +10,11 @@ NAME "Changelog"
 ---- 4.35.0 ----
 {% if features.release_version_4_35_0 %}
 -- Add French localization (#563) and missing Brazilian Portuguese entries (#627).
+-- Add a client option to hide Label Gun push and pull success chat messages; enabled by default (#493).
+-- Remove invalid loot for the intentionally itemless Buffer block, avoiding missing-item warnings (#583).
+{% if targets.mc_1_20_3 or targets.mc_1_20_4 or targets.mc_1_21_0 or targets.mc_1_21_1 or targets.mc_26_1_2 %}
+-- Refresh cached tunnelled cable connections when the far provider changes (#620).
+{% endif %}
 {% endif %}
 -- Fix SFM recipe IDs and their advancement references using the minecraft namespace (#621, #527).
 -- Named crafting and reset recipes now use sfm: IDs. Recipe ingredients and results are unchanged.

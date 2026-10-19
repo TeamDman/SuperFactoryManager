@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "resource=chemical": {
+      "model": "sfm:block/buffer_chemical"
+    },
+    "resource=energy": {
+      "model": "sfm:block/buffer_energy"
+    },
+    "resource=fluid": {
+      "model": "sfm:block/buffer_fluid"
+    },
+    "resource=item": {
+      "model": "sfm:block/buffer_item"
+    },
+    "resource=redstone": {
+      "model": "sfm:block/buffer_redstone"
+    },
+    "resource=unknown": {
+      "model": "sfm:block/buffer_unknown"
+    }
+  }
+}

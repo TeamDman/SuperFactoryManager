@@ -1884,3 +1884,7 @@ pub(super) mod tests {
         Ok(())
     }
 }
+
+#[cfg(all(test, windows))]
+#[path = "local_dependency_contention_tests.rs"]
+mod local_dependency_contention_tests;

@@ -1,0 +1,7 @@
+
+:root{--review-mono:"Paper Mono",Consolas,ui-monospace,monospace}
+:root pre,:root code,:root kbd,:root samp,:root .review-paths p,:root .class-link,:root .source-sidebar a,:root .explorer-sidebar a{font-family:var(--review-mono)}
+:root pre code{font-family:inherit}
+:root .tree-controls,:root .tree-controls :is(button,input,select,label),:root .review-toolbar :is(button,input,select,label,textarea),:root .viewer-tabs button,:root .class-representation,:root #review-input,:root .review-summary,:root .editor-status,:root .class-badge,:root .archive-summary,:root .source-class-jumps :is(button,select),:root .archive-source-jumps button{font-family:var(--review-mono);font-size:12px;line-height:1.4}
+:root .review-row-actions button{font-family:var(--review-mono);font-size:15px;line-height:1.35}
+.font-license{max-width:1100px;margin:20px auto;padding:12px;font:12px/1.5 system-ui,sans-serif}.font-license pre{white-space:pre-wrap;overflow-wrap:anywhere}

@@ -735,10 +735,15 @@ mod tests {
 
     fn fixture_lock_bytes(recipe: &Recipe) -> Result<Vec<u8>> {
         let repository = fixture_repository()?;
-        let raw = read_bounded(
-            &checked_file(repository, &recipe.source_lock.path)?,
-            1024 * 1024,
-        )?;
+        // Keep the historical weak-identity fixture independent of production provenance updates.
+        let raw = if recipe.target == "26.1.2" {
+            include_bytes!("fixtures/released-2612-original-schema2.json").to_vec()
+        } else {
+            read_bounded(
+                &checked_file(repository, &recipe.source_lock.path)?,
+                1024 * 1024,
+            )?
+        };
         ensure!(
             raw.len() == recipe.source_lock.bytes
                 && sha256(&raw) == format!("sha256:{}", recipe.source_lock.sha256),

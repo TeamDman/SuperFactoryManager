@@ -1,0 +1,128 @@
+if (project.ext.has('sfmIdeaExcludesConfigured')) {
+    throw new GradleException("idea-excludes.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("idea-excludes.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmSourceExcludesConfigured')) {
+    throw new GradleException("idea-excludes.gradle requires source-excludes.gradle to be applied first")
+}
+
+ext.sfmIdeaExcludesConfigured = true
+
+def sfmIdeaSourceExcludes = [
+        [sourceRoot: file('src/main/java'), excludes: sfmSourceSetJavaExcludes.main],
+        [sourceRoot: file('src/test/java'), excludes: sfmSourceSetJavaExcludes.test],
+        [sourceRoot: file('src/gametest/java'), excludes: sfmSourceSetJavaExcludes.gametest]
+]
+
+def toIdeaProjectUrl = { File target ->
+    "file://\$PROJECT_DIR\$/${projectDir.toPath().relativize(target.toPath()).toString().replace(File.separatorChar, '/' as char)}"
+}
+
+def toIdeaCompilerExclude = { File sourceRoot, String pattern ->
+    def normalized = pattern.replace('\\', '/')
+    if (normalized.endsWith('/**')) {
+        return [
+                kind                 : 'directory',
+                file                 : file("${sourceRoot}/${normalized.substring(0, normalized.length() - 3)}"),
+                includeSubdirectories: 'true'
+        ]
+    }
+    if (!normalized.contains('*')) {
+        return [
+                kind: normalized.endsWith('.java') ? 'file' : 'directory',
+                file: file("${sourceRoot}/${normalized}")
+        ]
+    }
+    throw new GradleException("IDEA compiler excludes only support exact files or /** directories, got: ${pattern}")
+}
+
+def sfmIdeaCompilerExcludes = sfmIdeaSourceExcludes.collectMany { spec ->
+    spec.excludes.collect { pattern -> toIdeaCompilerExclude(spec.sourceRoot, pattern) }
+}
+
+def addIdeaCompilerExcludes = { Node compilerConfiguration ->
+    def excludeFromCompile = compilerConfiguration.excludeFromCompile
+            ? compilerConfiguration.excludeFromCompile[0]
+            : compilerConfiguration.appendNode('excludeFromCompile')
+    def existingExcludes = [] as Set
+    excludeFromCompile.children()
+            .findAll { it instanceof Node && it.attribute('url') != null }
+            .each { child ->
+                def key = "${child.name()}:${child.attribute('url')}"
+                if (!existingExcludes.add(key)) {
+                    excludeFromCompile.remove(child)
+                }
+            }
+
+    sfmIdeaCompilerExcludes.each { exclude ->
+        def url = toIdeaProjectUrl(exclude.file)
+        def key = "${exclude.kind}:${url}"
+        if (existingExcludes.add(key)) {
+            if (exclude.kind == 'directory') {
+                excludeFromCompile.appendNode('directory', [
+                        url                  : url,
+                        includeSubdirectories: exclude.includeSubdirectories ?: 'true'
+                ])
+            } else {
+                excludeFromCompile.appendNode('file', [url: url])
+            }
+        }
+    }
+}
+
+idea {
+    module {
+        // ForgeGradle source artifact lookups make IDEA Gradle sync repeatedly hit remote Maven repositories.
+        downloadSources = false
+        downloadJavadoc = false
+        excludeDirs += sfmIdeaCompilerExcludes
+                .findAll { it.kind == 'directory' }
+                .collect { it.file }
+    }
+    project {
+        ipr.withXml { provider ->
+            def projectNode = provider.asNode()
+            def compilerConfiguration = projectNode.component.find {
+                it instanceof Node && it.attribute('name') == 'CompilerConfiguration'
+            } ?: projectNode.appendNode('component', [name: 'CompilerConfiguration'])
+            addIdeaCompilerExcludes(compilerConfiguration)
+        }
+    }
+}
+
+tasks.register('syncIdeaCompilerExcludes') {
+    group = 'IDE'
+    description = 'Adds Gradle source excludes to IDEA compiler excludes for JPS builds.'
+    outputs.upToDateWhen { false }
+
+    doLast {
+        def compilerFile = file('.idea/compiler.xml')
+        compilerFile.parentFile.mkdirs()
+
+        Node projectNode
+        if (compilerFile.exists()) {
+            projectNode = new groovy.xml.XmlParser(false, false).parse(compilerFile)
+        } else {
+            projectNode = new Node(null, 'project', [version: '4'])
+        }
+
+        def compilerConfiguration = projectNode.component.find {
+            it instanceof Node && it.attribute('name') == 'CompilerConfiguration'
+        } ?: projectNode.appendNode('component', [name: 'CompilerConfiguration'])
+        addIdeaCompilerExcludes(compilerConfiguration)
+
+        compilerFile.setText(groovy.xml.XmlUtil.serialize(projectNode), 'UTF-8')
+    }
+}
+
+tasks.named('idea') {
+    finalizedBy tasks.named('syncIdeaCompilerExcludes')
+}
+
+tasks.matching { it.name == 'ideBeforeRun' }.configureEach {
+    dependsOn tasks.named('syncIdeaCompilerExcludes')
+}

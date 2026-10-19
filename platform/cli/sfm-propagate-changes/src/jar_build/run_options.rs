@@ -6,6 +6,9 @@ use std::time::Duration;
 
 #[derive(Clone, Debug, Default)]
 pub struct RunOptions {
+    pub runtime_slot: Option<u32>,
+    pub share_runtime: bool,
+    pub java_max_heap_mib: Option<super::JavaMaxHeapMib>,
     pub control_cli_source_root: Option<PathBuf>,
     pub game_test_filter: Option<String>,
     pub game_puppet_filter: Option<String>,

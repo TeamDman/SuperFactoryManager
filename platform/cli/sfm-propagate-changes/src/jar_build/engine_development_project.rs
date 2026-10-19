@@ -38,7 +38,10 @@ fn prepare_development_identity(
     );
     let target = NativeProjectTarget::from_checked_project(&project, profile)?;
     #[cfg(windows)]
-    if !matches!(project.receipt().target_id.as_str(), "1.19.2" | "1.19.4" | "1.20" | "1.20.1") {
+    if !matches!(
+        project.receipt().target_id.as_str(),
+        "1.19.2" | "1.19.4" | "1.20" | "1.20.1"
+    ) {
         // Validate the actual development profile/tool parents before planning effects.
         development_neoform_source(&project, profile)?;
     }
@@ -53,10 +56,11 @@ fn prepare_development_identity(
     })
 }
 
-
-
 fn ensure_projection_client_plan(plan: &BuildPlan) -> eyre::Result<()> {
-    eyre::ensure!(plan.identity.is_catalog_owned(), "client launch requires a catalog projection");
+    eyre::ensure!(
+        plan.identity.is_catalog_owned(),
+        "client launch requires a catalog projection"
+    );
     if plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
         ensure_forge_gradle_execution_supported(plan)?;
     }
@@ -91,13 +95,33 @@ pub(crate) fn invoke_development_project(
     package: bool,
     cancellation: &CancellationToken,
 ) -> eyre::Result<DevelopmentBuildReport> {
+    eyre::ensure!(
+        !package || options.cache_root.is_none(),
+        "--cache-root is supported by source project compile only"
+    );
     let identity = prepare_development_identity(project, profile)?;
     let preparation = identity
         .development_target()
         .ok_or_else(|| eyre::eyre!("development identity lost its profile receipt"))?
         .receipt
         .clone();
+    let derived_cache_root = options
+        .cache_root
+        .as_deref()
+        .map(|path| {
+            native_cache_root::NativeCacheRoot::acquire(
+                path,
+                identity.repository_root(),
+                &identity.minecraft_dir(),
+                &options.java_home,
+                cancellation,
+            )
+            .map(Arc::new)
+        })
+        .transpose()?;
     let planning = NativePlanningOptions {
+        output_name: None,
+        derived_cache_root,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,
@@ -172,29 +196,93 @@ mod development_project_tests {
 
     #[cfg(windows)]
     #[test]
-    fn six_neoform_development_targets_enter_their_own_checked_native_identity() -> eyre::Result<()> {
+    fn six_neoform_development_targets_enter_their_own_checked_native_identity() -> eyre::Result<()>
+    {
         let cases: [(&str, &str, &str, &[u8]); 6] = [
-            ("1.20.2", "1.20.2", "20.2.86", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-4.json")),
-            ("1.20.3", "1.20.3", "20.3.8-beta", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.20.3/schema-4.json")),
-            ("1.20.4", "1.20.4", "20.4.231", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.20.4/schema-4.json")),
-            ("1.21.0", "1.21", "21.0.143", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-4.json")),
-            ("1.21.1", "1.21.1", "21.1.206", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-4.json")),
-            ("26.1.2", "26.1.2", "26.1.2.72", include_bytes!("../../../../minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-4.json")),
+            (
+                "1.20.2",
+                "1.20.2",
+                "20.2.86",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/1.20.2/schema-4.json"
+                ),
+            ),
+            (
+                "1.20.3",
+                "1.20.3",
+                "20.3.8-beta",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/1.20.3/schema-4.json"
+                ),
+            ),
+            (
+                "1.20.4",
+                "1.20.4",
+                "20.4.231",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/1.20.4/schema-4.json"
+                ),
+            ),
+            (
+                "1.21.0",
+                "1.21",
+                "21.0.143",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/1.21.0/schema-4.json"
+                ),
+            ),
+            (
+                "1.21.1",
+                "1.21.1",
+                "21.1.206",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/1.21.1/schema-4.json"
+                ),
+            ),
+            (
+                "26.1.2",
+                "26.1.2",
+                "26.1.2.72",
+                include_bytes!(
+                    "../../../../minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-4.json"
+                ),
+            ),
         ];
         let mut fixture = Fixture::new();
-        let supplement_root = fixture.repository().join(
-            "platform/minecraft/core-liquid-template/build/supplements",
-        );
+        let supplement_root = fixture
+            .repository()
+            .join("platform/minecraft/core-liquid-template/build/supplements");
         std::fs::create_dir_all(&supplement_root)?;
-        std::fs::write(supplement_root.join("nfrt-child-identities.json"), include_bytes!(
-            "../../../../minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json"
-        ))?;
-        std::fs::write(supplement_root.join("nfrt-source-library-identities.json"), include_bytes!(
-            "../../../../minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json"
-        ))?;
+        std::fs::write(
+            supplement_root.join("nfrt-child-identities.json"),
+            include_bytes!(
+                "../../../../minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json"
+            ),
+        )?;
+        std::fs::write(
+            supplement_root.join("nfrt-source-library-identities.json"),
+            include_bytes!(
+                "../../../../minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json"
+            ),
+        )?;
         for (index, (target, minecraft, loader, raw)) in cases.into_iter().enumerate() {
-            fixture.set_project_file_for(target, "sfm-toolchain.lock.json", &format!("build/proof/{target}/lock.json"), raw, false)?;
-            fixture.set_project_file_for(target, "gradle.properties", &format!("build/proof/{target}/gradle.properties"), format!("minecraft_version={minecraft}\nneo_version={loader}\nmod_version=4.34.0\n").as_bytes(), false)?;
+            fixture.set_project_file_for(
+                target,
+                "sfm-toolchain.lock.json",
+                &format!("build/proof/{target}/lock.json"),
+                raw,
+                false,
+            )?;
+            fixture.set_project_file_for(
+                target,
+                "gradle.properties",
+                &format!("build/proof/{target}/gradle.properties"),
+                format!(
+                    "minecraft_version={minecraft}\nneo_version={loader}\nmod_version=4.34.0\n"
+                )
+                .as_bytes(),
+                false,
+            )?;
             let key = Fixture::key(index + 4, "dev");
             fixture.publish(&key);
             let project = fixture.collect(&key)?.check_current()?;
@@ -202,11 +290,30 @@ mod development_project_tests {
             identity.recheck()?;
             assert!(identity.named_project().is_none());
             assert!(identity.legacy_branch().is_none());
-            assert_eq!(identity.development_target().unwrap().receipt.minecraft_version, minecraft);
-            assert_eq!(identity.development_target().unwrap().receipt.lockfile_sha256, crate::source_projection::provenance::sha256(raw));
+            assert_eq!(
+                identity
+                    .development_target()
+                    .unwrap()
+                    .receipt
+                    .minecraft_version,
+                minecraft
+            );
+            assert_eq!(
+                identity
+                    .development_target()
+                    .unwrap()
+                    .receipt
+                    .lockfile_sha256,
+                crate::source_projection::provenance::sha256(raw)
+            );
             assert!(!identity.minecraft_dir().join("build").exists());
         }
-        assert!(crate::source_projection::native_project_target::development_native_loader("1.21.0", "1.21.0").is_err());
+        assert!(
+            crate::source_projection::native_project_target::development_native_loader(
+                "1.21.0", "1.21.0"
+            )
+            .is_err()
+        );
         Ok(())
     }
 
@@ -304,6 +411,59 @@ mod development_project_tests {
         assert!(!root.join("build").exists());
         fs::write(root.join("sfm-toolchain.lock.json"), b"{}")?;
         assert!(identity.recheck().is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn cli_development_snapshot_checks_once_and_keeps_normal_native_cache_identity()
+    -> eyre::Result<()> {
+        use crate::source_projection::catalog_owned_project::source_check_observation;
+        use std::cell::RefCell;
+        use std::rc::Rc;
+
+        let mut fixture = Fixture::new_for_target("1.19.2");
+        fixture.set_project_file_for(
+            "1.19.2",
+            "sfm-toolchain.lock.json",
+            "build/proof/dev-lock.json",
+            include_bytes!(
+                "../../../../minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.json"
+            ),
+            false,
+        )?;
+        let key = Fixture::key(0, "dev");
+        let mut previous_cache_identity = None;
+        for skip in [false, true] {
+            let checks = Rc::new(RefCell::new(Vec::new()));
+            let observed = Rc::clone(&checks);
+            let _observer =
+                source_check_observation::install(move |check| observed.borrow_mut().push(check));
+            let identity = checked_projection_identity(fixture.repository(), &key, skip)?;
+            for _ in 0..4 {
+                identity.recheck()?;
+            }
+            if let BuildProjectIdentity::Development { project, target } = &identity {
+                let mut changed = target.as_ref().clone();
+                changed.cache_identity.push('0');
+                assert!(changed.recheck_with_project(project).is_err());
+            }
+            assert_eq!(
+                *checks.borrow(),
+                if skip {
+                    vec![]
+                } else {
+                    vec!["check_current", "authored"]
+                }
+            );
+            let target = identity.development_target().unwrap();
+            if let Some(previous) = &previous_cache_identity {
+                assert_eq!(
+                    &target.cache_identity, previous,
+                    "source check policy must not isolate warm caches"
+                );
+            }
+            previous_cache_identity = Some(target.cache_identity.clone());
+        }
         Ok(())
     }
 

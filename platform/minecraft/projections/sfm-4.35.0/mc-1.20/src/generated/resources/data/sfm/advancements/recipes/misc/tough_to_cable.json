@@ -1,0 +1,35 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "sfm:tough_to_cable"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    },
+    "has_tough_cable": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "sfm:tough_cable"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_tough_cable",
+      "has_the_recipe"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "sfm:tough_to_cable"
+    ]
+  },
+  "sends_telemetry_event": false
+}

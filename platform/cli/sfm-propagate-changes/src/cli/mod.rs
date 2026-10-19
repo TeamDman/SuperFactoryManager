@@ -4,6 +4,7 @@ mod cli;
 #[cfg(test)]
 mod cli_to_args_tests;
 pub mod client;
+pub mod container;
 pub mod curseforge;
 pub mod dependency;
 pub mod game_test;
@@ -30,5 +31,6 @@ pub mod source;
 pub mod symbol;
 pub mod syntax;
 pub mod test;
+mod test_preflight_args;
 
 pub use cli::*;

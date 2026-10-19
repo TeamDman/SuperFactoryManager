@@ -1,0 +1,59 @@
+buildscript {
+    def sfmGradleProperties = new Properties()
+    def sfmGradlePropertiesFile = file('gradle.properties')
+    if (!sfmGradlePropertiesFile.isFile()) {
+        throw new GradleException("Missing Gradle properties file: ${sfmGradlePropertiesFile}")
+    }
+    sfmGradlePropertiesFile.withInputStream { sfmGradleProperties.load(it) }
+
+    def sfmPluginVersion = gradle.startParameter.projectProperties.get('minecraft_version')
+            ?: sfmGradleProperties.getProperty('minecraft_version')
+    if (!sfmPluginVersion) {
+        throw new GradleException("Missing minecraft_version Gradle property")
+    }
+    def sfmPluginClasspathFile = file("gradle/plugins/${sfmPluginVersion}/plugin-classpath.txt")
+    if (!sfmPluginClasspathFile.isFile()) {
+        throw new GradleException("Missing Gradle plugin classpath file: ${sfmPluginClasspathFile}")
+    }
+
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+    dependencies {
+        sfmPluginClasspathFile
+                .readLines('UTF-8')
+                .collect { it.trim() }
+                .findAll { it && !it.startsWith('#') }
+                .each { classpath it }
+    }
+}
+
+// temp reminder: avoid using --rerun-tasks while we are iterating on cleaning up the build.gradle
+// as it causes things to get decompiled again and it takes a long time
+
+apply from: "gradle/versioned-plugins.gradle"
+apply from: "gradle/java-compiler.gradle"
+apply from: "gradle/wrapper.gradle"
+apply from: "gradle/archive-name.gradle"
+apply from: "gradle/versioned-java-toolchain.gradle"
+apply from: "gradle/versioned-access-transformer.gradle"
+apply from: "gradle/source-excludes.gradle"
+apply from: "gradle/source-sets.gradle"
+apply from: "gradle/versioned-run-configurations.gradle"
+apply from: "gradle/idea-excludes.gradle"
+apply from: "gradle/versioned-configurations.gradle"
+apply from: "gradle/versioned-mixin.gradle"
+apply from: "gradle/repositories.gradle"
+apply from: "gradle/versioned-dependencies.gradle"
+apply from: "gradle/versioned-process-resources.gradle"
+apply from: "gradle/test.gradle"
+apply from: "gradle/jar-manifest.gradle"
+apply from: "gradle/jar-jar.gradle"
+apply from: "gradle/publishing.gradle"
+apply from: "gradle/java-compile-encoding.gradle"
+apply from: "gradle/generate-grammar-source.gradle"
+apply from: "gradle/idea-module-downloads.gradle"
+apply from: "gradle/custom-entrypoints.gradle"

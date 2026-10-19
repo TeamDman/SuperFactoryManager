@@ -584,7 +584,7 @@ fn collect_core_artifacts_impl(
     feature = "tracy",
     tracing::instrument(level = "info", skip_all, name = "oracle_validate_selection")
 )]
-pub(super) fn validate_collection_selection(
+pub(crate) fn validate_collection_selection(
     selection: &CoreSelection,
     context: &ProjectionContext,
 ) -> Result<()> {
@@ -643,7 +643,7 @@ pub(super) fn validate_collected_project(
 /// The shared single-input renderer. Incremental comparisons must use this
 /// implementation rather than a second Liquid/banner/selector pipeline.
 /// Callers still own complete selection, project and aggregate-budget checks.
-pub(super) fn render_core_input(
+pub(crate) fn render_core_input(
     output: &str,
     selected: &SelectedCoreInput,
     bytes: Vec<u8>,

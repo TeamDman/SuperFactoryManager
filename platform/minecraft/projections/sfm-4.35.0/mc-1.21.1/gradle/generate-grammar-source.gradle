@@ -1,0 +1,26 @@
+if (project.ext.has('sfmGenerateGrammarSourceConfigured')) {
+    throw new GradleException("generate-grammar-source.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("generate-grammar-source.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+ext.sfmGenerateGrammarSourceConfigured = true
+
+generateGrammarSource {
+    arguments = [
+            "-visitor",
+            "-Xexact-output-dir" // https://stackoverflow.com/a/79058733/11141271 fixes "can't find .tokens file" error for TomlParser.g4
+    ]
+    outputDirectory = file("${project.buildDir}/generated-src/antlr/main/ca/teamdman/langs")
+
+//    include 'sfml/SFML.g4'
+//    // Include the lexer first
+//    include 'toml/TomlLexer.g4'
+//    include 'toml/TomlParser.g4'
+}
+
+compileJava {
+    dependsOn generateGrammarSource
+}

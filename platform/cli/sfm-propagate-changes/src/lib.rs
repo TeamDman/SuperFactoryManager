@@ -3,6 +3,7 @@ pub mod branch_targets;
 pub mod cancellation;
 pub mod cli;
 pub mod colour;
+pub mod container_build;
 pub mod curseforge;
 pub(crate) mod dependency_classfile_stubs;
 pub(crate) mod dependency_inventory;
@@ -50,6 +51,7 @@ pub mod source_git;
 pub(crate) mod source_maven;
 pub mod source_projection;
 pub(crate) mod source_provider;
+mod startup_argv;
 pub mod state;
 pub mod syntax_highlight;
 pub mod terminal_output;
@@ -129,19 +131,21 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
     color_eyre::install()?;
     let cancellation_token = cancellation::install_ctrlc_handler()?;
 
+    let arguments = startup_argv::unicode_arguments(std::env::args_os())?;
+    let parse_arguments = arguments.iter().skip(1).cloned().collect::<Vec<_>>();
     let version = version();
 
     // Parse command line arguments using figue
     // unwrap() handles --help, --version, completions, and errors with proper exit codes
-    let cli: Cli = figue::Driver::new(
+    let parsed = figue::Driver::new(
         figue::builder::<Cli>()
             .expect("schema should be valid")
-            .cli(|c| c.args(std::env::args().skip(1)))
+            .cli(move |c| c.args(parse_arguments))
             .help(|h| h.version(version))
             .build(),
     )
-    .run()
-    .unwrap();
+    .run();
+    let cli: Cli = startup_argv::finish_parse(parsed)?;
 
     // Candidate-only staging must not let a global log path write elsewhere
     // before the command has checked its external checkout boundary.
@@ -149,6 +153,7 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
 
     // Initialize logging
     logging::init_logging(&cli.logging_config()?, &cancellation_token)?;
+    startup_argv::log::<Cli>(&arguments)?;
 
     #[cfg(windows)]
     {

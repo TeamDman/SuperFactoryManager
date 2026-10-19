@@ -33,7 +33,18 @@ final class SFMHostChannel {
 
     String contractIdentity() { return contractIdentity; }
 
-    synchronized String exchange(String operation, String payload) throws IOException {
+    String exchange(String operation, String payload) throws IOException {
+        // Entry-to-acquisition wall time includes scheduling and observer overhead.
+        // It is not a measurement of CPU time or proven monitor contention.
+        var monitorWait = SFMHostTiming.start("channel_monitor_wait", "");
+        synchronized (this) {
+            monitorWait.success(1, -1);
+            monitorWait.close();
+            return exchangeLocked(operation, payload);
+        }
+    }
+
+    private String exchangeLocked(String operation, String payload) throws IOException {
         if (complete || failed || sequence >= 4096 || payload == null
                 || !(operation.equals("graph") && !graphReady
                     || operation.equals("seal") && graphReady

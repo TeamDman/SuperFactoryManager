@@ -24,7 +24,11 @@ fn panel(id: &str, title: &str, note: &str, body: &str) -> Result<String> {
 pub(super) fn validate(article: &ReleaseReportArticle, doc: &ReleaseReportDocument) -> Result<()> {
     validate_sources(article, doc)?;
     validate_results(doc)?;
-    validate_images(article, doc)
+    validate_images(article, doc)?;
+    if article.profile.ends_with("@4") {
+        super::article_release_validation::validate(doc)?;
+    }
+    Ok(())
 }
 
 fn validate_sources(article: &ReleaseReportArticle, doc: &ReleaseReportDocument) -> Result<()> {
@@ -34,6 +38,7 @@ fn validate_sources(article: &ReleaseReportArticle, doc: &ReleaseReportDocument)
             "sfm-4.35-energy-candidate@1"
                 | "sfm-4.35-energy-candidate@2"
                 | "sfm-4.35-energy-candidate@3"
+                | "sfm-4.35-energy-candidate@4"
         ),
         "unsupported editorial article profile"
     );
@@ -124,12 +129,7 @@ fn validate_results(doc: &ReleaseReportDocument) -> Result<()> {
 fn validate_images(article: &ReleaseReportArticle, doc: &ReleaseReportDocument) -> Result<()> {
     ensure!(
         article.primary_images.len() == 2
-            && article.supporting_images.len()
-                == if article.profile.ends_with("@3") {
-                    7
-                } else {
-                    6
-                }
+            && article.supporting_images.len() == if has_initial_capture(article) { 7 } else { 6 }
             && article.historical_images.len()
                 == if article.profile.ends_with("@1") {
                     8
@@ -241,7 +241,7 @@ pub(super) fn render(
     doc: &ReleaseReportDocument,
     values: &[(&str, &str)],
     explorer: &str,
-    jar_records: &str,
+    _jar_records: &str,
     images: &[RenderedReportImage],
 ) -> Result<String> {
     validate(article, doc)?;
@@ -266,14 +266,16 @@ pub(super) fn render(
         .cloned()
         .collect();
     let mut archive_values = values.to_vec();
-    let _ = jar_records;
+    let appendix_records = super::article_appendix::render(doc)?;
     let artifact_table = artifact_summary(doc);
     let diffs = values
         .iter()
         .find(|(key, _)| *key == "diffs")
         .map_or("", |(_, v)| *v);
-    let (changes, supporting_sources) = super::source_explorer::render(doc, diffs);
     let correlations = super::correlation_render::render(doc)?;
+    let (changes, supporting_sources) =
+        super::source_explorer::render(doc, diffs, explorer, &correlations);
+    archive_values.push(("appendix_records", &appendix_records));
     archive_values.push(("artifact_table", &artifact_table));
     archive_values.push(("supporting_sources", &supporting_sources));
     archive_values.push(("correlations", &correlations));
@@ -283,9 +285,8 @@ pub(super) fn render(
     )?;
     let notice = "";
     let appendix = [
-        if article.profile.ends_with("@3") { initial_capture_evidence(doc)? } else { String::new() },
+        if has_initial_capture(article) { initial_capture_evidence(doc)? } else { String::new() },
         panel("supporting-captures", "Supporting views · source cube and idle first dropper", "These four views show the full source before the first transfer and the nearly full first dropper. The after-pass source and later-consumer views appear in the main story.", &group(&appendix_images)?)?,
-        panel("class-explorer-panel", "Optional class explorer · package tree and printed-view diffs", "All 8,186 class entries and 1,325 views are retained losslessly. Expand this panel to load the detailed explorer locally; equal printed views do not prove semantic equivalence.", explorer)?,
         panel("preserved-review-archive", "Verification · sources, tests and artifact identities", "Inspect selected sources and comparisons; download complete machine-readable evidence for independent verification.", &format!("{notice}{archive}"))?,
 
 
@@ -305,7 +306,7 @@ pub(super) fn render(
         versions.push_str("</span>");
     }
     let body = fragment(
-        include_str!("templates/article_body.liquid"),
+        article_body(article),
         &[
             ("program", &super::sfml::render(program.trim())),
             ("image_count", &doc.images.len().to_string()),
@@ -366,17 +367,21 @@ fn article_assets() -> (String, String) {
 }
 
 fn artifact_summary(doc: &ReleaseReportDocument) -> String {
-    let mut html = String::new();
-    for jar in &doc.jars {
-        html.push_str("<details class=\"artifact-identity\" id=\"");
-        html.push_str(&jar.id);
-        html.push_str("\"><summary>Minecraft ");
-        html.push_str(&escape(
-            &jar.id.trim_start_matches("jar-").replace('-', "."),
-        ));
-        html.push_str(" · published 4.34 baseline / native 4.35 candidate</summary><p>Source and class evidence are bound to both actual archives. Hashes, full ZIP comparisons and input identities are retained in the downloadable evidence.</p></details>");
+    if doc
+        .article
+        .as_ref()
+        .is_some_and(|article| article.profile.ends_with("@4"))
+    {
+        return format!(
+            "<p>{} paired archive records bind class evidence to the published 4.34 baseline and rebuilt 4.35 candidate. Source panels retain their own projection or pinned-tree input identities; baseline source rendering alone does not establish the historical compiler inputs. Exact records and receipts are available in the evidence ZIP.</p>",
+            doc.jars.len()
+        );
     }
-    html
+
+    format!(
+        "<p>{} paired archive records bind the source/class evidence to the published4.34 baseline and native4.35 candidate. Download the evidence ZIP for exact archive paths, hashes and verification details; current source rendering does not establish inclusion in those frozen JARs.</p>",
+        doc.jars.len()
+    )
 }
 
 fn primary_pair(
@@ -419,7 +424,7 @@ fn primary_pair(
             ("data", &rendered.data),
         ],
     )?;
-    if phase == "red" && article.profile.ends_with("@3") {
+    if phase == "red" && has_initial_capture(article) {
         let initial = images
             .iter()
             .find(|image| image.id == "issue610-red-dropper-initial-final")
@@ -474,4 +479,19 @@ fn primary_pair(
         )?);
     }
     Ok(pair)
+}
+
+fn has_initial_capture(article: &ReleaseReportArticle) -> bool {
+    matches!(
+        article.profile.as_str(),
+        "sfm-4.35-energy-candidate@3" | "sfm-4.35-energy-candidate@4"
+    )
+}
+
+fn article_body(article: &ReleaseReportArticle) -> &'static str {
+    if article.profile.ends_with("@4") {
+        include_str!("templates/article_rebuilt_body.liquid")
+    } else {
+        include_str!("templates/article_body.liquid")
+    }
 }

@@ -1,5 +1,13 @@
 package ca.teamdman.sfm.common.blockentity;
 
+{% if features.release_version_4_35_0 %}
+{% case minecraft_version %}
+{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+import ca.teamdman.sfm.common.capability.TunnelledBlockCapabilityRelay;
+import ca.teamdman.sfm.common.capability.TunnelledBlockCapabilityRelayOwner;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+{% endcase %}
+{% endif %}
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import net.minecraft.core.BlockPos;
 {% case minecraft_version %}
@@ -28,7 +36,29 @@ import net.neoforged.neoforge.model.data.ModelData;
 {% endcase %}
 import static ca.teamdman.sfm.common.blockentity.FancyCableFacadeBlockEntity.FACADE_DIRECTION;
 
+{% if features.release_version_4_35_0 %}
+{% case minecraft_version %}
+{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+@MCVersionDependentBehaviour
+public class TunnelledFancyCableFacadeBlockEntity extends CommonFacadeBlockEntity implements TunnelledBlockCapabilityRelayOwner {
+{% else %}
 public class TunnelledFancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
+{% endcase %}
+{% else %}
+public class TunnelledFancyCableFacadeBlockEntity extends CommonFacadeBlockEntity {
+{% endif %}
+{% if features.release_version_4_35_0 %}
+{% case minecraft_version %}
+{% when '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+    private final TunnelledBlockCapabilityRelay capabilityRelay = new TunnelledBlockCapabilityRelay(this);
+
+    @Override
+    public TunnelledBlockCapabilityRelay sfm$getCapabilityRelay() {
+        return capabilityRelay;
+    }
+
+{% endcase %}
+{% endif %}
     public TunnelledFancyCableFacadeBlockEntity(
             BlockPos blockPos,
             BlockState blockState

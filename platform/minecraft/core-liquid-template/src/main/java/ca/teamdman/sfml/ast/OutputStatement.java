@@ -121,8 +121,18 @@ public class OutputStatement implements IOStatement {
 
     @SFMLocalizationDatagen
     public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING = new LocalizationEntry(
+{% if features.quantity_sensitive_extraction_progress %}
+{% issue 610 %}
+            "log.sfm.statement.tick.io.move_to.extracted_nothing_for_quantity",
+{% else %}
             "log.sfm.statement.tick.io.move_to.extracted_nothing",
+{% endif %}
+{% if features.quantity_sensitive_extraction_progress %}
+{% issue 610 %}
+            "extracted nothing for this quantity, skipping this transfer"
+{% else %}
             "extracted nothing, marking this input slot as done"
+{% endif %}
     );
 
     @SFMLocalizationDatagen
@@ -317,9 +327,16 @@ public class OutputStatement implements IOStatement {
                 .debug(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED.get(extracted, source)));
 
         if (resourceType.isEmpty(extracted)) {
+{% if features.quantity_sensitive_extraction_progress %}
+{% issue 610 %}
+            // Refusing this quantity does not prove that larger requests cannot succeed.
+            // The destination iterator bounds attempts; isDone still detects exhausted inputs.
+            context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING.get()));
+{% else %}
             // this slot is insert-only; it reports a stack in the slot but refuses extraction
             context.getLogger().trace(x -> x.accept(LOG_PROGRAM_TICK_IO_STATEMENT_MOVE_TO_EXTRACTED_NOTHING.get()));
             source.setDone();
+{% endif %}
             return;
         }
 

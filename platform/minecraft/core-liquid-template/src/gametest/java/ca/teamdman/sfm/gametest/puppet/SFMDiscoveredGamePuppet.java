@@ -6,24 +6,19 @@ import java.lang.reflect.Method;
 public record SFMDiscoveredGamePuppet(
         String puppetName,
         Method method,
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
         SFMGamePuppetViewportProfile viewportProfile,
         int timeoutTicks
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        SFMGamePuppetViewportProfile viewportProfile
-{% endcase %}
+
 ) {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
     public SFMDiscoveredGamePuppet {
         if (timeoutTicks <= 0) {
             throw new IllegalArgumentException("Game puppet timeoutTicks must be positive");
         }
     }
 
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
+
     public void declare(SFMGamePuppetHelper helper) {
         try {
             method.invoke(null, helper);

@@ -371,19 +371,17 @@ struct GameTestBisectAttempt {
     saved_log: PathBuf,
 }
 
-fn run_state_dir(plan: &BuildPlan, kind: RunKind) -> PathBuf {
-    plan.cache_dir.join("run").join(kind.command_name())
-}
-
 #[expect(
     clippy::too_many_lines,
     reason = "The bisection loop is easier to audit when the target/subset/complement flow stays together."
 )]
 fn execute_game_test_bisect(
     context: &ExecutionContext<'_>,
+    snapshot: &BuildSnapshotReceipt,
     kind: RunKind,
     run_options: &RunOptions,
     dry_run: bool,
+    build_cache_lock: &mut Option<ArtifactLock>,
 ) -> eyre::Result<()> {
     let plan = context.plan;
     let cancellation_token = &context.cancellation_token;
@@ -417,6 +415,7 @@ fn execute_game_test_bisect(
         initial_game_test_bisect_selection(&target, run_options.game_test_filter.as_deref());
     let baseline = run_game_test_bisect_attempt(
         context,
+        snapshot,
         kind,
         run_options,
         baseline_selection.as_deref(),
@@ -424,6 +423,7 @@ fn execute_game_test_bisect(
         "baseline",
         &mut run_count,
         cancellation_token,
+        build_cache_lock,
     )?;
     if !baseline
         .selected_tests
@@ -448,6 +448,7 @@ fn execute_game_test_bisect(
     let target_only_selection = exact_game_test_selection(&target, &[]);
     let target_only = run_game_test_bisect_attempt(
         context,
+        snapshot,
         kind,
         run_options,
         Some(&target_only_selection),
@@ -455,6 +456,7 @@ fn execute_game_test_bisect(
         "target-only",
         &mut run_count,
         cancellation_token,
+        build_cache_lock,
     )?;
     if target_only.target_failed {
         eyre::bail!(
@@ -502,6 +504,7 @@ fn execute_game_test_bisect(
             let selection = exact_game_test_selection(&target, subset);
             let attempt = run_game_test_bisect_attempt(
                 context,
+                snapshot,
                 kind,
                 run_options,
                 Some(&selection),
@@ -509,6 +512,7 @@ fn execute_game_test_bisect(
                 &format!("subset-{}-of-{}", subset.len(), current.len()),
                 &mut run_count,
                 cancellation_token,
+                build_cache_lock,
             )?;
             if attempt.target_failed {
                 tracing::info!(
@@ -539,6 +543,7 @@ fn execute_game_test_bisect(
             let selection = exact_game_test_selection(&target, &complement);
             let attempt = run_game_test_bisect_attempt(
                 context,
+                snapshot,
                 kind,
                 run_options,
                 Some(&selection),
@@ -546,6 +551,7 @@ fn execute_game_test_bisect(
                 &format!("complement-{}-of-{}", complement.len(), current.len()),
                 &mut run_count,
                 cancellation_token,
+                build_cache_lock,
             )?;
             if attempt.target_failed {
                 tracing::info!(
@@ -574,7 +580,16 @@ fn execute_game_test_bisect(
         );
     }
 
-    write_game_test_bisect_result(plan, kind, &target, &current, run_count, stopped_by_budget)?;
+    write_game_test_bisect_result(
+        baseline
+            .saved_log
+            .parent()
+            .ok_or_else(|| eyre::eyre!("owned bisection log has no parent"))?,
+        &target,
+        &current,
+        run_count,
+        stopped_by_budget,
+    )?;
     if stopped_by_budget {
         tracing::warn!(
             "Stopped game-test bisection after {run_count} run(s) due to --max-runs. Current inducing set has {} test(s).",
@@ -612,26 +627,44 @@ fn execute_game_test_bisect(
 )]
 fn execute_run(
     plan: &BuildPlan,
+    snapshot: &BuildSnapshotReceipt,
     kind: RunKind,
     run_options: &RunOptions,
     dry_run: bool,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<()> {
+    build_cache_lock: &mut Option<ArtifactLock>,
+) -> eyre::Result<Option<PathBuf>> {
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;
     }
     cancellation_token.bail_if_cancelled()?;
     if matches!(kind, RunKind::Test) {
-        return execute_junit_tests(
+        execute_junit_tests(
             plan,
             dry_run,
             &RunTestOptions::default(),
             cancellation_token,
-        );
+        )?;
+        return Ok((!dry_run).then(|| {
+            plan.cache_dir
+                .join("run")
+                .join(kind.command_name())
+                .join("console.log")
+        }));
     }
 
     let context = ExecutionContext::new(plan, cancellation_token.clone())?;
-    execute_run_with_context(&context, kind, run_options, dry_run)
+    let mut owned_log = None;
+    execute_run_with_context(
+        &context,
+        snapshot,
+        kind,
+        run_options,
+        dry_run,
+        build_cache_lock,
+        &mut owned_log,
+    )?;
+    Ok(owned_log)
 }
 
 #[expect(
@@ -640,10 +673,14 @@ fn execute_run(
 )]
 fn execute_run_with_context(
     context: &ExecutionContext<'_>,
+    snapshot: &BuildSnapshotReceipt,
     kind: RunKind,
     run_options: &RunOptions,
     dry_run: bool,
+    build_cache_lock: &mut Option<ArtifactLock>,
+    owned_console_log: &mut Option<PathBuf>,
 ) -> eyre::Result<()> {
+    *owned_console_log = None;
     let plan = context.plan;
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;
@@ -657,20 +694,57 @@ fn execute_run_with_context(
         );
     }
     let launch_main = run_config.main.clone();
+    if dry_run {
+        snapshot.recheck()?;
+        tracing::info!(kind = kind.command_name(), snapshot = %snapshot.receipt_path().display(),
+            "Dry run verified the successful compile snapshot; no runtime slot or persistent game data was allocated");
+        return Ok(());
+    }
 
-    let run_state_dir = run_state_dir(plan, kind);
-    fs::create_dir_all(&run_state_dir)?;
-    let working_dir = plan.minecraft_dir.join(kind.working_dir_name());
-    fs::create_dir_all(&working_dir)?;
-    if matches!(kind, RunKind::GameTestServer) {
+    retain_launch_preparation_lock(context, build_cache_lock)?;
+    let roots = runtime_snapshot_roots(snapshot, kind, run_options);
+    let session = RuntimeSession::prepare(
+        snapshot,
+        kind.command_name(),
+        &roots,
+        run_options.client_hotswap_port,
+        run_options.runtime_slot,
+        run_options.share_runtime,
+    )?;
+    let run_state_dir = session.receipt.state_dir();
+    let working_dir = session.slot.data_dir.join(kind.working_dir_name());
+    super::build_snapshot_receipt::ensure_owned_directory(&session.slot.data_dir, &working_dir)?;
+    if !run_options.share_runtime && matches!(kind, RunKind::GameTestServer) {
         clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
     }
-    if matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
+    if !run_options.share_runtime
+        && matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview)
+    {
         clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
     }
-    let automation_options_path =
-        prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind, run_options)?;
-    let game_puppet_control_cli = prepare_game_puppet_control_cli(
+    let (is_development, selected_runtime_lease) = match &plan.identity {
+        BuildProjectIdentity::Development { project, .. } => (
+            true,
+            project.artifacts().contains_key(
+                "src/main/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnership.java",
+            ),
+        ),
+        _ => (false, false),
+    };
+    let runtime_owns_capture_options = preview_runtime_owns_capture_options(
+        kind,
+        plan.minecraft_version.as_str(),
+        is_development,
+        selected_runtime_lease,
+    );
+    let automation_options_path = prepare_client_automation_options(
+        &plan.minecraft_dir,
+        &working_dir,
+        kind,
+        run_options,
+        runtime_owns_capture_options,
+    )?;
+    let mut game_puppet_control_cli = prepare_game_puppet_control_cli(
         plan.repository_root(),
         kind,
         run_options.control_cli_source_root.as_deref(),
@@ -693,12 +767,39 @@ fn execute_run_with_context(
         plan.lockfile.clone(),
         context.cancellation_token.clone(),
     )?;
-    let modules = resolve_forge_userdev_modules(context, &resolver)?;
+    let mut modules = resolve_forge_userdev_modules(context, &resolver)?;
     context.bail_if_cancelled()?;
-    let launch_classpath = resolve_run_classpath(context, &resolver, kind, run_options)?;
+    let mut launch_classpath = resolve_run_classpath(context, &resolver, kind, run_options)?;
     context.bail_if_cancelled()?;
     let run_cache_artifact_paths = run_lockfile_cache_artifact_paths(&launch_classpath, &modules);
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
+    let mut captured_inputs = BTreeMap::new();
+    let mut copy_budget = (0, 0);
+    for path in launch_classpath
+        .legacy
+        .iter_mut()
+        .chain(&mut launch_classpath.userdev_mods)
+        .chain(&mut modules)
+    {
+        *path = capture_mutable_launch_input(
+            context,
+            &session.receipt.session_dir,
+            path,
+            &mut captured_inputs,
+            false,
+            &mut copy_budget,
+        )?;
+    }
+    if let Some(control) = &mut game_puppet_control_cli {
+        control.executable = capture_mutable_launch_input(
+            context,
+            &session.receipt.session_dir,
+            &control.executable,
+            &mut captured_inputs,
+            true,
+            &mut copy_budget,
+        )?;
+    }
     let minecraft_classpath_file = run_state_dir.join("minecraftClasspath.txt");
     write_classpath_file(&minecraft_classpath_file, &launch_classpath.legacy)?;
 
@@ -709,7 +810,7 @@ fn execute_run_with_context(
     };
     context.bail_if_cancelled()?;
 
-    let source_roots = run_source_roots(context, kind, run_options)?;
+    let source_roots = run_source_roots(context, &session)?;
     let mcp_mappings = run_mcp_mappings(plan);
     let module_path = join_classpath(&modules);
     let minecraft_classpath_file_text = minecraft_classpath_file.display().to_string();
@@ -733,6 +834,10 @@ fn execute_run_with_context(
 
     let mut properties = run_config.props.clone();
     properties.insert(
+        "sfm.runtimeSession".to_owned(),
+        session.receipt.session_id.clone(),
+    );
+    properties.insert(
         "forge.logging.markers".to_string(),
         "REGISTRIES".to_string(),
     );
@@ -742,7 +847,15 @@ fn execute_run_with_context(
     );
     properties.insert("mixin.env.remapRefMap".to_string(), "true".to_string());
     if plan.loader_toolchain.kind != LoaderToolchainKind::NeoGradleUserdev {
-        let refmap_remapping_file = ensure_run_refmap_remapping_file(context)?;
+        let refmap = ensure_run_refmap_remapping_file(context)?;
+        let refmap_remapping_file = capture_mutable_launch_input(
+            context,
+            &session.receipt.session_dir,
+            &refmap,
+            &mut captured_inputs,
+            false,
+            &mut copy_budget,
+        )?;
         properties.insert(
             "mixin.env.refMapRemappingFile".to_string(),
             refmap_remapping_file.display().to_string(),
@@ -768,6 +881,22 @@ fn execute_run_with_context(
     apply_game_puppet_game_test_property(&mut properties, kind, run_options);
     apply_game_puppet_viewport_selection_property(&mut properties, kind, run_options);
     apply_game_puppet_control_cli_property(&mut properties, kind, game_puppet_control_cli.as_ref());
+    if let Some(seconds) = std::env::var_os("SFM_CONTAINER_SESSION_SECONDS") {
+        eyre::ensure!(
+            super::container_control_cli::selected()?.is_some(),
+            "container session lifetime requires a pinned container control artifact"
+        );
+        let seconds: u32 = seconds
+            .to_str()
+            .ok_or_else(|| eyre::eyre!("non-Unicode session lifetime"))?
+            .parse()?;
+        eyre::ensure!(
+            (1..=28800).contains(&seconds),
+            "container session lifetime exceeds bounds"
+        );
+        properties.insert("sfm.managedSession.seconds".into(), seconds.to_string());
+    }
+
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -793,6 +922,13 @@ fn execute_run_with_context(
         "-XX:+AllowEnhancedClassRedefinition".to_string(),
         "-XX:+AllowRedefinitionToAddDeleteMethods".to_string(),
     ]);
+    if let Some(heap) = run_options.java_max_heap_mib {
+        jvm_args.push(heap.argument());
+        tracing::info!(
+            heap_mib = heap.mib(),
+            "selected explicit Minecraft JVM maximum heap"
+        );
+    }
     if matches!(kind, RunKind::Client | RunKind::GameTestPreview)
         && let Some(port) = run_options.client_hotswap_port
     {
@@ -828,7 +964,7 @@ fn execute_run_with_context(
         .chain(modules.iter().cloned())
         .collect::<Vec<_>>();
     if launch_main.starts_with("net.neoforged.fml.startup.") {
-        java_classpath_inputs.extend(run_source_root_paths(context, kind, run_options)?);
+        java_classpath_inputs.push(session.receipt.mod_root());
     }
     let java_classpath = dedup_paths_preserve_order(java_classpath_inputs);
     let mut java_args = Vec::new();
@@ -837,6 +973,25 @@ fn execute_run_with_context(
     java_args.push(launch_main);
     java_args.extend(program_args);
 
+    rewrite_owned_launch_values(
+        context,
+        &session.receipt.session_dir,
+        &mut java_args,
+        &mut env,
+        &mut captured_inputs,
+        &mut copy_budget,
+    )?;
+    fs::write(
+        run_state_dir.join("owned-launch-inputs.json"),
+        facet_json::to_string_pretty(
+            &captured_inputs
+                .iter()
+                .map(|(source, target)| {
+                    (source.display().to_string(), target.display().to_string())
+                })
+                .collect::<BTreeMap<_, _>>(),
+        )?,
+    )?;
     let argfile = run_state_dir.join("launch.java.args");
     fs::write(
         &argfile,
@@ -870,7 +1025,13 @@ fn execute_run_with_context(
         "run_setup_complete"
     );
 
+    // The prebuilt container launcher consumes these canonical public run inputs.
+    fs::write(
+        run_state_dir.join("launch.environment.json"),
+        facet_json::to_string_pretty(&env)?,
+    )?;
     let launch_log = run_state_dir.join("console.log");
+    *owned_console_log = Some(launch_log.clone());
     if dry_run {
         let mut run_outputs = vec![argfile.clone(), minecraft_classpath_file.clone()];
         if let Some(path) = automation_options_path {
@@ -893,20 +1054,23 @@ fn execute_run_with_context(
         );
         return Ok(());
     }
+    release_launch_preparation_lock(kind, run_options, build_cache_lock);
     let max_launch_attempts = run_max_launch_attempts(kind);
     let mut launch_output = None;
     for attempt in 1..=max_launch_attempts {
         context.bail_if_cancelled()?;
-        if matches!(kind, RunKind::GameTestServer) {
+        if !run_options.share_runtime && matches!(kind, RunKind::GameTestServer) {
             clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
             tracing::info!("Game-test server attempt {attempt}/{max_launch_attempts}");
         }
-        if matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview) {
+        if !run_options.share_runtime
+            && matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview)
+        {
             clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
         }
         let attempt_output = run_launch_command(
-            &context.cancellation_token,
-            plan,
+            context,
+            &session,
             &argfile,
             &working_dir,
             &env,
@@ -1096,7 +1260,15 @@ fn execute_junit_tests_with_context(
     test_options: &RunTestOptions,
 ) -> eyre::Result<()> {
     let plan = context.plan;
+    if !matches!(test_options.action, RunTestAction::Compile) {
+        plan.require_strict("JUnit execution outside the compile-only cache attempt")?;
+    }
     plan.recheck_named_inputs()?;
+    let prepared_junit = if matches!(test_options.action, RunTestAction::Compile) {
+        junit_inputs::prepare_for_compile_plan(plan, &context.cancellation_token)?
+    } else {
+        junit_inputs::prepare_for_plan(plan, &context.cancellation_token)?
+    };
     let project_root = plan.cache_dir.join("project");
     let classes_dir = project_root.join("classes");
     let staged_resources_dir = project_root.join("staged-resources");
@@ -1117,24 +1289,36 @@ fn execute_junit_tests_with_context(
         plan.lockfile.clone(),
         plan.lockfile.clone(),
         context.cancellation_token.clone(),
-    )?;
+    )?
+    .existing_only(plan.retained_inputs().is_some());
     let test_resolver = Resolver::new(
         plan.maven_cache_dir.clone(),
         plan.repositories.clone(),
         plan.refresh,
         plan.allow_local_artifact_cache,
         plan.artifact_sources.clone(),
-        None,
-        None,
+        plan.lockfile.clone(),
+        plan.lockfile.clone(),
         context.cancellation_token.clone(),
-    )?;
+    )?
+    .existing_only(plan.retained_inputs().is_some());
     context.bail_if_cancelled()?;
 
     let antlr_classpath = resolve_antlr_classpath(context, &locked_resolver)?;
     let base_classpath =
         resolve_project_compile_classpath(context, &locked_resolver, &antlr_classpath)?;
-    let test_compile_dependencies =
-        resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Compile)?;
+    if let Some(prepared) = &prepared_junit {
+        prepared.verify_base_classpath(&base_classpath)?;
+    }
+    let test_compile_dependencies = if let Some(prepared) = &prepared_junit {
+        fs::write(
+            run_state_dir.join("prepared-junit-inputs.json"),
+            facet_json::to_string_pretty(prepared)?,
+        )?;
+        prepared.classpath(true)?
+    } else {
+        resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Compile)?
+    };
     context.bail_if_cancelled()?;
 
     let mut test_compile_classpath = base_classpath.clone();
@@ -1156,6 +1340,9 @@ fn execute_junit_tests_with_context(
 
     let started = Instant::now();
     tracing::info!("Build node compile-test: start");
+    if let Some(prepared) = &prepared_junit {
+        prepared.recheck(plan, &context.cancellation_token)?;
+    }
     compile_optional_java_source_set(
         context,
         "test",
@@ -1163,6 +1350,7 @@ fn execute_junit_tests_with_context(
         &classes_dir,
         &test_classes_dir,
         &upstream_fingerprint,
+        prepared_junit.as_ref(),
     )
     .wrap_err("Failed to compile test source set")?;
     stage_optional_resource_source_set(context, "test", &test_resources_dir, &[])
@@ -1187,9 +1375,15 @@ fn execute_junit_tests_with_context(
         return Ok(());
     }
 
-    let test_runtime_dependencies =
-        resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Runtime)?;
-    let console_launcher = resolve_junit_console_standalone(context, &test_resolver)?.cache_path;
+    let (test_runtime_dependencies, console_launcher) = if let Some(prepared) = &prepared_junit {
+        prepared.recheck(plan, &context.cancellation_token)?;
+        (prepared.classpath(false)?, prepared.console()?)
+    } else {
+        (
+            resolve_test_dependency_classpath(context, &test_resolver, TestClasspathKind::Runtime)?,
+            resolve_junit_console_standalone(context, &test_resolver)?.cache_path,
+        )
+    };
     context.bail_if_cancelled()?;
 
     // The transformed compile jar intentionally omits vanilla resources. Plain
@@ -1209,7 +1403,8 @@ fn execute_junit_tests_with_context(
 
     let runtime_classpath_file = run_state_dir.join("testRuntimeClasspath.txt");
     write_classpath_file(&runtime_classpath_file, &test_runtime_classpath)?;
-    let runner_classes_dir = compile_junit_event_runner(context, &console_launcher)?;
+    let runner_classes_dir =
+        compile_junit_event_runner(context, &console_launcher, prepared_junit.as_ref())?;
     let argfile = run_state_dir.join("junit.java.args");
     let test_source_root = plan.minecraft_dir.join("src").join("test").join("java");
     write_junit_runner_argfile(
@@ -1222,6 +1417,10 @@ fn execute_junit_tests_with_context(
         test_options,
     )?;
 
+    let junit_launch_inputs = prepared_junit
+        .as_ref()
+        .map(|_| junit_inputs::LaunchInputs::capture(&run_state_dir))
+        .transpose()?;
     let mut extra_cache_paths = Vec::new();
     extra_cache_paths.extend(test_compile_dependencies);
     extra_cache_paths.extend(test_runtime_dependencies);
@@ -1258,6 +1457,12 @@ fn execute_junit_tests_with_context(
         return Ok(());
     }
 
+    if let Some(prepared) = &prepared_junit {
+        prepared.recheck(plan, &context.cancellation_token)?;
+    }
+    if let Some(launch_inputs) = &junit_launch_inputs {
+        launch_inputs.recheck(&run_state_dir)?;
+    }
     let mut command = Command::new(&plan.java.executable);
     command
         .arg(format!("@{}", argfile.display()))
@@ -1278,6 +1483,22 @@ fn execute_junit_tests_with_context(
         &output,
         started.elapsed().as_millis(),
     )?;
+    if let Some(prepared) = &prepared_junit {
+        prepared.recheck(plan, &context.cancellation_token)?;
+        let launch_inputs = junit_launch_inputs
+            .as_ref()
+            .expect("prepared launch inputs captured");
+        launch_inputs.recheck(&run_state_dir)?;
+        junit_inputs::write_execution_receipt(
+            prepared,
+            plan,
+            test_options,
+            &output,
+            report.summary_message(),
+            launch_inputs,
+            &run_state_dir.join("junit-dependency-execution.json"),
+        )?;
+    }
 
     context.write_node_state(
         "run-test",
@@ -1290,7 +1511,7 @@ fn execute_junit_tests_with_context(
             test_classes_dir,
             test_resources_dir,
         ],
-        if output.status.success() {
+        if output.status.success() && !report.has_failed_tests_or_containers() {
             "complete"
         } else {
             "failed"
@@ -1303,7 +1524,7 @@ fn execute_junit_tests_with_context(
             console_log.display()
         );
     }
-    if !output.status.success() {
+    if !output.status.success() || report.has_failed_tests_or_containers() {
         eyre::bail!(
             "runTest exited with {} ({}). See {}",
             output.status,
@@ -1325,6 +1546,7 @@ fn execute_junit_tests_with_context(
 fn compile_junit_event_runner(
     context: &ExecutionContext<'_>,
     console_launcher: &Path,
+    prepared_junit: Option<&junit_inputs::PreparedJunitInputs>,
 ) -> eyre::Result<PathBuf> {
     context.bail_if_cancelled()?;
     let runner_root = context.plan.cache_dir.join("junit-runner");
@@ -1370,6 +1592,9 @@ fn compile_junit_event_runner(
     }
 
     reset_cache_directory(&context.plan.cache_dir, &classes_dir)?;
+    if let Some(prepared) = prepared_junit {
+        prepared.recheck(context.plan, &context.cancellation_token)?;
+    }
     let mut command = Command::new(javac_executable(&context.plan.java));
     command.arg(format!("@{}", argfile.display()));
     let output = run_command_capture_output(
@@ -1539,17 +1764,7 @@ struct JunitFinishedTest {
     stack_trace: String,
 }
 
-#[derive(Clone, Debug, Default)]
-struct JunitSummary {
-    tests_found: u64,
-    tests_started: u64,
-    tests_succeeded: u64,
-    tests_failed: u64,
-    tests_skipped: u64,
-    tests_aborted: u64,
-    containers_found: u64,
-    containers_failed: u64,
-}
+use super::junit_summary::JunitSummary;
 
 #[derive(Clone, Debug)]
 enum JunitProtocolEvent {
@@ -1588,16 +1803,23 @@ struct JunitExecutionReport {
 }
 
 impl JunitExecutionReport {
+    fn has_failed_tests_or_containers(&self) -> bool {
+        self.summary
+            .as_ref()
+            .is_some_and(|s| s.tests_failed > 0 || s.containers_failed > 0)
+    }
     fn summary_message(&self) -> String {
         if let Some(summary) = self.summary.as_ref() {
             return format!(
-                "{} found, {} started, {} passed, {} failed, {} skipped, {} aborted",
+                "{} found, {} started, {} passed, {} failed, {} skipped, {} aborted; {} containers found, {} containers failed",
                 summary.tests_found,
                 summary.tests_started,
                 summary.tests_succeeded,
                 summary.tests_failed,
                 summary.tests_skipped,
-                summary.tests_aborted
+                summary.tests_aborted,
+                summary.containers_found,
+                summary.containers_failed
             );
         }
         if let Some(count) = self.list_count {
@@ -1752,12 +1974,15 @@ fn emit_junit_terminal_summary(
                 tracing::info!(
                     source,
                     process,
-                    "JUnit tests: {} passed, {} failed, {} skipped, {} aborted ({} found).",
+                    "JUnit tests: {} found, {} started, {} passed, {} failed, {} skipped, {} aborted; {} containers found, {} containers failed.",
+                    summary.tests_found,
+                    summary.tests_started,
                     summary.tests_succeeded,
                     summary.tests_failed,
                     summary.tests_skipped,
                     summary.tests_aborted,
-                    summary.tests_found
+                    summary.containers_found,
+                    summary.containers_failed
                 );
             }
         }
@@ -2007,6 +2232,23 @@ fn write_junit_event_log_line(log: &mut String, event: &JunitProtocolEvent) -> e
             }
         }
         JunitProtocolEvent::Summary(summary) => {
+            // Retain the canonical machine summary as well as its human rendering.
+            // Consumers must preserve started and failed-container counts exactly.
+            let fields = [
+                summary.tests_found,
+                summary.tests_started,
+                summary.tests_succeeded,
+                summary.tests_failed,
+                summary.tests_skipped,
+                summary.tests_aborted,
+                summary.containers_found,
+                summary.containers_failed,
+            ];
+            write!(log, "{JUNIT_EVENT_PREFIX}summary")?;
+            for count in fields {
+                write!(log, "\t{}", BASE64_STANDARD.encode(count.to_string()))?;
+            }
+            writeln!(log)?;
             writeln!(
                 log,
                 "summary: {} found, {} passed, {} failed, {} skipped, {} aborted",
@@ -2362,6 +2604,13 @@ fn prepare_game_puppet_control_cli(
     {
         return Ok(None);
     }
+    if let Some(executable) = super::container_control_cli::selected()? {
+        let source_root = source_root_override.map(Path::canonicalize).transpose()?;
+        return Ok(Some(GamePuppetControlCli {
+            executable,
+            source_root,
+        }));
+    }
     let requested_root = source_root_override.unwrap_or(worktree_path);
     eyre::ensure!(
         !requested_root.as_os_str().is_empty(),
@@ -2417,10 +2666,13 @@ fn prepare_game_puppet_control_cli(
     cancellation_token.bail_if_cancelled()?;
     if !output.status.success() {
         eyre::bail!(
-            "Failed to build SFM control CLI at {}: {}{}",
+            "Failed to build SFM control CLI at {}: {}{}\n\
+             This build uses --locked --offline. To restore missing pinned dependencies, run with network access:\n  {}\n\
+             Then retry the original command using the same CARGO_HOME.",
             manifest.display(),
             String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
+            String::from_utf8_lossy(&output.stderr),
+            control_cli_locked_fetch_command(&manifest),
         );
     }
     prepared.executable = prepared.executable.canonicalize().wrap_err_with(|| {
@@ -2430,6 +2682,15 @@ fn prepare_game_puppet_control_cli(
         )
     })?;
     Ok(Some(prepared))
+}
+
+fn control_cli_locked_fetch_command(manifest: &Path) -> String {
+    let manifest = manifest.display().to_string();
+    #[cfg(windows)]
+    let quoted = manifest.replace('\'', "''");
+    #[cfg(not(windows))]
+    let quoted = manifest.replace('\'', "'\"'\"'");
+    format!("cargo fetch --locked --manifest-path '{quoted}'")
 }
 
 fn apply_game_puppet_control_cli_property(
@@ -2480,6 +2741,7 @@ fn apply_client_title_screen_property(
 )]
 fn run_game_test_bisect_attempt(
     context: &ExecutionContext<'_>,
+    snapshot: &BuildSnapshotReceipt,
     kind: RunKind,
     base_run_options: &RunOptions,
     selection: Option<&str>,
@@ -2487,8 +2749,8 @@ fn run_game_test_bisect_attempt(
     label: &str,
     run_count: &mut usize,
     cancellation_token: &CancellationToken,
+    build_cache_lock: &mut Option<ArtifactLock>,
 ) -> eyre::Result<GameTestBisectAttempt> {
-    let plan = context.plan;
     cancellation_token.bail_if_cancelled()?;
     *run_count += 1;
     let run_number = *run_count;
@@ -2502,7 +2764,16 @@ fn run_game_test_bisect_attempt(
         selection.unwrap_or("(all SFM game tests)")
     );
 
-    let launch_result = execute_run_with_context(context, kind, &attempt_options, false);
+    let mut owned_log = None;
+    let launch_result = execute_run_with_context(
+        context,
+        snapshot,
+        kind,
+        &attempt_options,
+        false,
+        build_cache_lock,
+        &mut owned_log,
+    );
     let launch_error = launch_result
         .as_ref()
         .err()
@@ -2510,13 +2781,15 @@ fn run_game_test_bisect_attempt(
     if let Some(error) = launch_error.as_deref() {
         tracing::debug!("Game-test bisect run #{run_number} launch returned error: {error}");
     }
-    let console_log = run_state_dir(plan, kind).join("console.log");
-    let log_text = fs::read_to_string(&console_log).unwrap_or_else(|error| {
-        format!(
-            "Failed to read game-test bisect console log {}: {error}",
-            console_log.display()
+    let console_log = owned_log.ok_or_else(|| {
+        eyre::eyre!(
+            "Game-test bisect attempt has no owned console log: {}",
+            launch_error
+                .as_deref()
+                .unwrap_or("launch returned without a session log")
         )
-    });
+    })?;
+    let (log_text, saved_log) = read_owned_game_test_bisect_log(&console_log, run_number, label)?;
 
     let selected_tests = extract_sfm_game_test_names(&log_text);
     let failed_tests = extract_failed_gametest_names(&log_text);
@@ -2524,7 +2797,6 @@ fn run_game_test_bisect_attempt(
         .iter()
         .any(|test| game_test_name_matches(test, target))
         || log_text.contains(&format!("Test failed: {target}"));
-    let saved_log = save_game_test_bisect_attempt_log(plan, kind, run_number, label, &log_text)?;
 
     tracing::info!(
         "Game-test bisect run #{run_number}: target_failed={}, failed_tests={}, log={}",
@@ -2542,33 +2814,47 @@ fn run_game_test_bisect_attempt(
     })
 }
 
-fn save_game_test_bisect_attempt_log(
-    plan: &BuildPlan,
-    kind: RunKind,
+fn read_owned_game_test_bisect_log(
+    console_log: &Path,
     run_number: usize,
     label: &str,
-    log_text: &str,
-) -> eyre::Result<PathBuf> {
-    let dir = run_state_dir(plan, kind).join("bisect");
+) -> eyre::Result<(String, PathBuf)> {
+    let text = fs::read_to_string(console_log).wrap_err_with(|| {
+        format!(
+            "Cannot read owned game-test console {}",
+            console_log.display()
+        )
+    })?;
+    let dir = console_log
+        .parent()
+        .ok_or_else(|| eyre::eyre!("owned console has no parent"))?
+        .join("bisect");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!(
         "{run_number:03}-{}.log",
         sanitize_filename_component(label)
     ));
-    fs::write(&path, log_text).wrap_err_with(|| format!("Failed to write {}", path.display()))?;
-    Ok(path)
+    fs::write(&path, &text)?;
+    Ok((text, path))
+}
+
+fn publish_owned_preview_console(console_log: &Path, minecraft_dir: &Path) -> eyre::Result<()> {
+    if console_log.is_file() {
+        let artifacts = super::projection_preview_artifact_root(minecraft_dir);
+        fs::create_dir_all(&artifacts)?;
+        fs::copy(console_log, artifacts.join("console.log"))?;
+    }
+    Ok(())
 }
 
 fn write_game_test_bisect_result(
-    plan: &BuildPlan,
-    kind: RunKind,
+    dir: &Path,
     target: &str,
     inducing_tests: &[String],
     run_count: usize,
     stopped_by_budget: bool,
 ) -> eyre::Result<()> {
-    let dir = run_state_dir(plan, kind).join("bisect");
-    fs::create_dir_all(&dir)?;
+    fs::create_dir_all(dir)?;
     let path = dir.join("result.txt");
     let selection = exact_game_test_selection(target, inducing_tests);
     let mut result = String::new();
@@ -2832,11 +3118,26 @@ fn clean_client_automation_world(
     Ok(())
 }
 
+fn preview_runtime_owns_capture_options(
+    kind: RunKind,
+    minecraft_version: &str,
+    is_development: bool,
+    selected_runtime_lease: bool,
+) -> bool {
+    // The checked owner's selected class is gated by both game_puppet_runtime
+    // and client_automation_pause_restore; directory names cannot grant it.
+    matches!(kind, RunKind::GameTestPreview)
+        && minecraft_version == "1.19.2"
+        && is_development
+        && selected_runtime_lease
+}
+
 fn prepare_client_automation_options(
     minecraft_dir: &Path,
     working_dir: &Path,
     kind: RunKind,
     run_options: &RunOptions,
+    runtime_owns_capture_options: bool,
 ) -> eyre::Result<Option<PathBuf>> {
     if !matches!(
         kind,
@@ -2861,12 +3162,14 @@ fn prepare_client_automation_options(
     };
     let mut updated = set_minecraft_option(&existing, "onboardAccessibility", "false");
     updated = set_minecraft_option(&updated, "narrator", "0");
-    updated = set_minecraft_option(&updated, "pauseOnLostFocus", "false");
-    // Automation must measure the mod rather than compositor/driver policy for
-    // an unfocused preview window. Minecraft's dedicated automation run dirs
-    // are isolated from the contributor's normal client options.
-    updated = set_minecraft_option(&updated, "enableVsync", "false");
-    updated = set_minecraft_option(&updated, "maxFps", "260");
+    if !(matches!(kind, RunKind::GameTestPreview) && runtime_owns_capture_options) {
+        // Older automation runtimes still need their dedicated options prepared.
+        // The scoped preview lease instead captures these values before changing
+        // them in memory, so its completion/handoff restores the actual baseline.
+        updated = set_minecraft_option(&updated, "pauseOnLostFocus", "false");
+        updated = set_minecraft_option(&updated, "enableVsync", "false");
+        updated = set_minecraft_option(&updated, "maxFps", "260");
+    }
     updated = set_minecraft_option(&updated, "tutorialStep", "none");
     if matches!(kind, RunKind::GameTestPreview) {
         let master_volume = if run_options.game_puppet_mute {
@@ -2907,9 +3210,9 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
     level = "info",
     skip_all,
     fields(
-        branch = %plan.target_label(),
-        mc = %plan.minecraft_version,
-        java = %plan.java.executable.display(),
+        branch = %context.plan.target_label(),
+        mc = %context.plan.minecraft_version,
+        java = %context.plan.java.executable.display(),
         argfile = %argfile.display(),
         working_dir = %working_dir.display(),
         env_vars = env.len(),
@@ -2917,14 +3220,16 @@ fn set_minecraft_option(content: &str, key: &str, value: &str) -> String {
     )
 )]
 fn run_launch_command(
-    cancellation_token: &CancellationToken,
-    plan: &BuildPlan,
+    context: &ExecutionContext<'_>,
+    session: &RuntimeSession,
     argfile: &Path,
     working_dir: &Path,
     env: &BTreeMap<String, String>,
     log_path: &Path,
     timeout: Option<Duration>,
 ) -> eyre::Result<LaunchOutput> {
+    let plan = context.plan;
+    let cancellation_token = &context.cancellation_token;
     plan.recheck_named_inputs()?;
     plan.recheck_named_sdk()?;
     cancellation_token.bail_if_cancelled()?;
@@ -2933,15 +3238,9 @@ fn run_launch_command(
     }
     let output_mode = launch_output_mode();
     let launch_log = prepare_launch_log_file(output_mode, argfile, working_dir, log_path)?;
-    let mut child = Command::new(&plan.java.executable)
-        .arg(format!("@{}", argfile.display()))
-        .current_dir(working_dir)
-        .envs(env)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .wrap_err_with(|| format!("Failed to spawn {}", plan.java.executable.display()))?;
-    tracing::info!("minecraft_jvm_spawned");
+    // Preserve the source argfile; keep any short Windows copy until JVM exit.
+    let (mut child, _launch_argfile_copy) =
+        spawn_owned_session_child(session, &plan.java.executable, argfile, working_dir, env)?;
 
     let stdout = child
         .stdout
@@ -3025,6 +3324,39 @@ fn run_launch_command(
         timed_out,
         cancelled,
     })
+}
+
+fn spawn_owned_session_child(
+    session: &RuntimeSession,
+    java: &Path,
+    argfile: &Path,
+    working_dir: &Path,
+    env: &BTreeMap<String, String>,
+) -> eyre::Result<(std::process::Child, Option<tempfile::NamedTempFile>)> {
+    session.slot.record_spawn_pending()?;
+    let (mut child, launch_argfile_copy) =
+        match super::launch_argument_file::spawn(java, argfile, working_dir, env) {
+            Ok(owned) => owned,
+            Err(error) => {
+                if let Err(clear_error) = session.slot.clear_spawn_pending() {
+                    return Err(error
+                        .wrap_err(format!("Cannot clear failed-spawn intent: {clear_error:#}")));
+                }
+                return Err(error);
+            }
+        };
+    if let Err(error) = session.slot.record_child(child.id()) {
+        let _ = child.kill();
+        if child.wait().is_ok()
+            && let Err(clear_error) = session.slot.clear_spawn_pending()
+        {
+            return Err(error.wrap_err(format!(
+                "Child exited but spawn intent could not be cleared: {clear_error:#}"
+            )));
+        }
+        return Err(error.wrap_err("Cannot bind launched JVM to its persistent runtime slot"));
+    }
+    Ok((child, launch_argfile_copy))
 }
 
 fn launch_output_mode() -> LaunchOutputMode {
@@ -4715,8 +5047,14 @@ fn render_game_puppet_preview_manifest(
 ) -> eyre::Result<String> {
     plan.recheck_named_inputs()?;
     let manifest = GamePuppetPreviewManifest {
-        branch: plan.identity.legacy_branch().map_or_else(String::new, |branch| branch.as_str().to_owned()),
-        projection: plan.identity.is_catalog_owned().then(|| plan.target_label()),
+        branch: plan
+            .identity
+            .legacy_branch()
+            .map_or_else(String::new, |branch| branch.as_str().to_owned()),
+        projection: plan
+            .identity
+            .is_catalog_owned()
+            .then(|| plan.target_label()),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
         game_test: run_options.game_puppet_game_test.clone(),
@@ -4781,6 +5119,17 @@ fn render_game_puppet_preview_manifest(
     Ok(facet_json::to_string_pretty(&manifest)?)
 }
 
+// The named project keeps a canonical Windows root while Java paths use
+// Win32 spelling. Normalize both spellings without weakening containment.
+fn game_puppet_preview_relative_source_path<'a>(
+    root: &Path,
+    file: &'a Path,
+) -> eyre::Result<&'a Path> {
+    dunce::simplified(file)
+        .strip_prefix(dunce::simplified(root))
+        .wrap_err_with(|| format!("Preview source escaped worktree: {}", file.display()))
+}
+
 fn game_puppet_preview_source_identity(
     plan: &BuildPlan,
 ) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
@@ -4826,9 +5175,7 @@ fn game_puppet_preview_source_identity(
     files.dedup();
     let mut fingerprint_input = b"sfm-game-puppet-source-identity-v1\n".to_vec();
     for file in files {
-        let relative = file
-            .strip_prefix(plan.repository_root())
-            .wrap_err_with(|| format!("Preview source escaped worktree: {}", file.display()))?;
+        let relative = game_puppet_preview_relative_source_path(plan.repository_root(), &file)?;
         fingerprint_input
             .extend_from_slice(relative.to_string_lossy().replace('\\', "/").as_bytes());
         fingerprint_input.push(b'\n');
@@ -4993,6 +5340,7 @@ mod game_puppet_preview_tests {
     use super::apply_game_puppet_control_cli_property;
     use super::captioned_viewport_geometry;
     use super::client_automation_requires_control_cli;
+    use super::control_cli_locked_fetch_command;
     use super::create_game_puppet_preview_run_root;
     use super::game_puppet_control_cli_paths;
     use super::game_puppet_preview_artifact_file_name;
@@ -5019,6 +5367,22 @@ mod game_puppet_preview_tests {
         assert!(!is_safe_preview_name("../escape"));
         assert!(!is_safe_preview_name("not a capture"));
         assert!(!is_safe_preview_name("UPPERCASE"));
+    }
+
+    #[test]
+    fn control_cli_cache_recovery_command_quotes_the_selected_manifest() {
+        let manifest = Path::new("D:/SFM's worktree/$preserved/platform/cli/sfm/Cargo.toml");
+        let command = control_cli_locked_fetch_command(manifest);
+        #[cfg(windows)]
+        assert_eq!(
+            command,
+            "cargo fetch --locked --manifest-path 'D:/SFM''s worktree/$preserved/platform/cli/sfm/Cargo.toml'"
+        );
+        #[cfg(not(windows))]
+        assert_eq!(
+            command,
+            "cargo fetch --locked --manifest-path 'D:/SFM'\"'\"'s worktree/$preserved/platform/cli/sfm/Cargo.toml'"
+        );
     }
 
     #[test]
@@ -6138,17 +6502,13 @@ fn write_classpath_file(path: &Path, classpath: &[PathBuf]) -> eyre::Result<()> 
 
 fn run_source_roots(
     context: &ExecutionContext<'_>,
-    kind: RunKind,
-    run_options: &RunOptions,
+    session: &RuntimeSession,
 ) -> eyre::Result<String> {
     let mod_id = required_property(&context.plan.properties, "mod_id")?;
-    let existing_roots = run_source_root_paths(context, kind, run_options)?;
-    let roots = existing_roots
-        .into_iter()
-        .map(|path| path.display().to_string())
-        .collect::<Vec<_>>()
-        .join(";");
-    Ok(format!("{mod_id}%%{roots}"))
+    Ok(format!(
+        "{mod_id}%%{}",
+        session.receipt.mod_root().display()
+    ))
 }
 
 fn dependency_selected_for_run(
@@ -6167,75 +6527,478 @@ fn dependency_selected_for_run(
     run_dependency_configurations(kind).contains(&configuration)
 }
 
-fn run_source_root_paths(
+// Launch-only inputs live beside the session, never in mutable compile staging.
+fn retain_launch_preparation_lock(
     context: &ExecutionContext<'_>,
-    kind: RunKind,
-    run_options: &RunOptions,
-) -> eyre::Result<Vec<PathBuf>> {
-    let source_roots = run_project_source_roots(context, kind, run_options)?;
-    let combined_root = context
-        .plan
-        .cache_dir
-        .join("project")
-        .join("run-mod-root")
-        .join(kind.command_name());
-    reset_cache_directory(&context.plan.cache_dir, &combined_root)?;
-    for source_root in source_roots {
-        copy_directory_contents(context, &source_root, &combined_root)?;
-    }
-    Ok(vec![combined_root])
-}
-
-fn run_project_source_roots(
-    context: &ExecutionContext<'_>,
-    kind: RunKind,
-    run_options: &RunOptions,
-) -> eyre::Result<Vec<PathBuf>> {
-    let project_root = context.plan.cache_dir.join("project");
-    let mut roots = vec![
-        project_root.join("staged-resources"),
-        project_root.join("classes"),
-    ];
-    if !is_solo_client_like_launch(kind, run_options) {
-        let source_set = kind.optional_source_set();
-        roots.push(project_root.join(source_set).join("resources"));
-        roots.push(project_root.join(source_set).join("classes"));
-    }
-
-    let existing_roots = roots
-        .into_iter()
-        .filter(|path| path.exists())
-        .collect::<Vec<_>>();
-    if existing_roots.is_empty() {
-        eyre::bail!("No Rust-owned project class/resource roots are available for launch");
-    }
-
-    Ok(existing_roots)
-}
-
-fn copy_directory_contents(
-    context: &ExecutionContext<'_>,
-    source: &Path,
-    destination: &Path,
+    lock: &mut Option<ArtifactLock>,
 ) -> eyre::Result<()> {
-    context.assert_allowed_input(source)?;
-    fs::create_dir_all(destination)
-        .wrap_err_with(|| format!("Failed to create {}", destination.display()))?;
-    for file in collect_files_under_cancellable(context, source)? {
-        context.bail_if_cancelled()?;
-        let relative = file
-            .strip_prefix(source)
-            .wrap_err_with(|| format!("Failed to relativize {}", file.display()))?;
-        let output = destination.join(relative);
-        if let Some(parent) = output.parent() {
-            fs::create_dir_all(parent)
-                .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
-        }
-        fs::copy(&file, &output).wrap_err_with(|| {
-            format!("Failed to copy {} to {}", file.display(), output.display())
-        })?;
+    let path = build_cache_lock_path(context.plan);
+    if let Some(held) = lock {
+        eyre::ensure!(
+            held.path() == path,
+            "launch preparation holds the wrong producer lock"
+        );
+    } else {
+        *lock = Some(ArtifactLock::acquire_with_cancellation(
+            path,
+            "prepare immutable runtime inputs",
+            context.cancellation_token.clone(),
+        )?);
     }
     Ok(())
+}
+
+fn release_launch_preparation_lock(
+    kind: RunKind,
+    options: &RunOptions,
+    lock: &mut Option<ArtifactLock>,
+) {
+    if releases_build_cache_lock_before_launch(kind, options) {
+        drop(lock.take());
+        tracing::info!(
+            kind = kind.command_name(),
+            "released producer lock after capturing owned launch inputs"
+        );
+    }
+}
+
+fn checked_launch_input(path: &Path) -> eyre::Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("launch input has no parent"))?;
+    crate::source_projection::candidate_lock::checked_directory(parent)?;
+    let metadata = fs::symlink_metadata(path)?;
+    eyre::ensure!(
+        !crate::source_projection::candidate_lock::is_reparse(&metadata)
+            && (metadata.is_dir() || metadata.is_file()),
+        "launch input is a link or nonregular path"
+    );
+    Ok(dunce::canonicalize(path)?)
+}
+
+fn capture_mutable_launch_input(
+    context: &ExecutionContext<'_>,
+    session: &Path,
+    source: &Path,
+    captured: &mut BTreeMap<PathBuf, PathBuf>,
+    force: bool,
+    budget: &mut (usize, u64),
+) -> eyre::Result<PathBuf> {
+    context.bail_if_cancelled()?;
+    context.assert_allowed_input(source)?;
+    let source = checked_launch_input(source)?;
+    let cache = dunce::canonicalize(&context.plan.cache_dir)?;
+    if !force && super::build_snapshot_receipt::checked_descendant(&cache, &source).is_err() {
+        let pinned_roots = [
+            &context.plan.maven_cache_dir,
+            &context.plan.minecraft_libraries_dir,
+            &context.plan.minecraft_version_cache_dir,
+        ];
+        let shared = source.is_file()
+            && pinned_roots.iter().any(|root| {
+                dunce::canonicalize(root).is_ok_and(|root| {
+                    super::build_snapshot_receipt::checked_descendant(&root, &source).is_ok()
+                })
+            });
+        eyre::ensure!(
+            shared,
+            "launch input outside owned staging or pinned artifact caches: {}",
+            source.display()
+        );
+        return Ok(source);
+    }
+    eyre::ensure!(
+        !super::build_snapshot_receipt::same_path_spelling(&source, &cache),
+        "cannot capture the entire producer cache as a launch input"
+    );
+    if let Some(existing) = captured.get(&source) {
+        return Ok(existing.clone());
+    }
+    eyre::ensure!(captured.len() < 4096, "launch input count exceeds limit");
+    let name = source
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("launch input has no filename"))?;
+    let owner = session
+        .join("launch-inputs")
+        .join(captured.len().to_string());
+    super::build_snapshot_receipt::ensure_owned_directory(session, &owner)?;
+    let target = owner.join(name);
+    if source.is_dir() {
+        capture_launch_directory(context, session, &source, &target, budget)?;
+    } else {
+        copy_launch_file(context, &source, &target, budget)?;
+    }
+    captured.insert(source, target.clone());
+    Ok(target)
+}
+
+fn capture_launch_directory(
+    context: &ExecutionContext<'_>,
+    session: &Path,
+    source: &Path,
+    target: &Path,
+    budget: &mut (usize, u64),
+) -> eyre::Result<()> {
+    super::build_snapshot_receipt::ensure_owned_directory(session, target)?;
+    let mut entries = 0;
+    for entry in walkdir::WalkDir::new(source)
+        .min_depth(1)
+        .max_depth(129)
+        .follow_links(false)
+    {
+        context.bail_if_cancelled()?;
+        let entry = entry?;
+        entries += 1;
+        eyre::ensure!(
+            entries <= 100_000 && entry.depth() <= 128,
+            "launch directory exceeds entry/depth limit"
+        );
+        let input = checked_launch_input(entry.path())?;
+        let relative = super::build_snapshot_receipt::checked_descendant(source, &input)
+            .wrap_err("launch directory entry escaped its owner")?;
+        let output = target.join(relative);
+        if input.is_dir() {
+            budget.0 += 1;
+            eyre::ensure!(budget.0 <= 100_000, "launch entry count exceeds limit");
+            super::build_snapshot_receipt::ensure_owned_directory(session, &output)?;
+        } else {
+            let parent = output
+                .parent()
+                .ok_or_else(|| eyre::eyre!("launch output has no parent"))?;
+            super::build_snapshot_receipt::ensure_owned_directory(session, parent)?;
+            copy_launch_file(context, &input, &output, budget)?;
+        }
+    }
+    Ok(())
+}
+
+fn open_launch_input(source: &Path) -> eyre::Result<File> {
+    let mut options = OpenOptions::new();
+    options.read(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        options.custom_flags(0x0020_0000);
+    };
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.custom_flags(0o400_000);
+    };
+    let file = options.open(source)?;
+    let metadata = file.metadata()?;
+    eyre::ensure!(
+        metadata.is_file() && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+        "launch input is not a regular non-reparse file"
+    );
+    Ok(file)
+}
+
+fn copy_launch_file(
+    context: &ExecutionContext<'_>,
+    source: &Path,
+    target: &Path,
+    budget: &mut (usize, u64),
+) -> eyre::Result<()> {
+    let mut input = open_launch_input(source)?;
+    let before = input.metadata()?;
+    let identity = crate::file_identity::file_identity(&input)?;
+    eyre::ensure!(
+        before.len() <= 1024 * 1024 * 1024,
+        "launch file exceeds byte limit"
+    );
+    budget.0 += 1;
+    budget.1 = budget
+        .1
+        .checked_add(before.len())
+        .ok_or_else(|| eyre::eyre!("launch byte count overflow"))?;
+    eyre::ensure!(
+        budget.0 <= 100_000 && budget.1 <= 8 * 1024 * 1024 * 1024,
+        "launch inputs exceed file/byte limit"
+    );
+    let mut options = OpenOptions::new();
+    options.read(true).write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        use std::os::unix::fs::PermissionsExt as _;
+        options.mode(before.permissions().mode() & 0o777);
+    };
+    let mut output = options.open(target)?;
+    let copied = std::io::copy(
+        &mut std::io::Read::by_ref(&mut input).take(before.len() + 1),
+        &mut output,
+    )?;
+    eyre::ensure!(
+        copied == before.len(),
+        "launch input changed during bounded copy"
+    );
+    output.flush()?;
+    input.rewind()?;
+    output.rewind()?;
+    compare_launch_copy(context, &mut input, &mut output, before.len())?;
+    let after = input.metadata()?;
+    eyre::ensure!(
+        before.len() == after.len() && before.modified()? == after.modified()?,
+        "launch input changed during capture"
+    );
+    eyre::ensure!(
+        crate::file_identity::file_identity(&open_launch_input(&checked_launch_input(source)?)?)?
+            == identity,
+        "launch input path was replaced during capture"
+    );
+    Ok(())
+}
+
+fn compare_launch_copy(
+    context: &ExecutionContext<'_>,
+    input: &mut File,
+    output: &mut File,
+    expected: u64,
+) -> eyre::Result<()> {
+    // Direct bytes verify a final pair; no additional digest is computed for equality.
+    let mut first = vec![0_u8; 65_536].into_boxed_slice();
+    let mut second = vec![0_u8; 65_536].into_boxed_slice();
+    let mut remaining = expected;
+    while remaining != 0 {
+        context.bail_if_cancelled()?;
+        let count = usize::try_from(remaining.min(65_536))?;
+        input.read_exact(&mut first[..count])?;
+        output.read_exact(&mut second[..count])?;
+        eyre::ensure!(
+            first[..count] == second[..count],
+            "launch input changed while verifying copy"
+        );
+        remaining -= u64::try_from(count)?;
+    }
+    eyre::ensure!(
+        input.read(&mut first[..1])? == 0 && output.read(&mut second[..1])? == 0,
+        "launch input grew during capture"
+    );
+    Ok(())
+}
+
+fn launch_path_text(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
+// These are textual representations of one admitted path, not filesystem aliases.
+fn launch_path_spellings(path: &Path) -> Vec<String> {
+    let text = launch_path_text(path);
+    let mut spellings = vec![text.clone()];
+    #[cfg(windows)]
+    {
+        use std::path::Component;
+        use std::path::Prefix;
+        if let Some(Component::Prefix(prefix)) = path.components().next() {
+            match prefix.kind() {
+                Prefix::Disk(_) => spellings.push(format!("//?/{text}")),
+                Prefix::VerbatimDisk(_) => {
+                    if let Some(normal) = text.strip_prefix("//?/") {
+                        spellings.push(normal.to_owned());
+                    }
+                }
+                Prefix::UNC(_, _) => spellings.push(format!("//?/UNC/{}", &text[2..])),
+                Prefix::VerbatimUNC(_, _) => {
+                    if let Some(normal) = text.strip_prefix("//?/UNC/") {
+                        spellings.push(format!("//{normal}"));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    spellings.sort_by_key(|spelling| std::cmp::Reverse(spelling.len()));
+    spellings.dedup();
+    spellings
+}
+
+fn launch_authority_matches(source: &Path, matched: &str) -> bool {
+    #[cfg(windows)]
+    {
+        use std::path::Component;
+        use std::path::Prefix;
+        if let Some(Component::Prefix(prefix)) = source.components().next()
+            && let Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) = prefix.kind()
+        {
+            let candidate = PathBuf::from(matched.replace('/', "\\"));
+            return match candidate.components().next() {
+                Some(Component::Prefix(prefix)) => match prefix.kind() {
+                    Prefix::UNC(actual_server, actual_share)
+                    | Prefix::VerbatimUNC(actual_server, actual_share) => {
+                        server == actual_server && share == actual_share
+                    }
+                    _ => false,
+                },
+                _ => false,
+            };
+        }
+    }
+    let _ = (source, matched);
+    true
+}
+
+fn rewrite_captured_launch_value(value: &str, captured: &BTreeMap<PathBuf, PathBuf>) -> String {
+    let mut pairs = captured.iter().collect::<Vec<_>>();
+    pairs.sort_by_key(|(source, _)| std::cmp::Reverse(source.as_os_str().len()));
+    pairs
+        .into_iter()
+        .fold(value.to_owned(), |value, (source, target)| {
+            replace_launch_path(&value, source, target)
+        })
+}
+
+fn launch_path_delimiter(character: char) -> bool {
+    character.is_whitespace() || ";:,!=\"'[]".contains(character)
+}
+
+fn launch_path_matches(
+    value: &str,
+    source: &Path,
+    descendants: bool,
+    leading_delimiter: bool,
+) -> Vec<(usize, usize)> {
+    let portable = value.replace('\\', "/");
+    let searchable = if cfg!(windows) {
+        portable.to_ascii_lowercase()
+    } else {
+        portable
+    };
+    let mut matches = Vec::new();
+    for spelling in launch_path_spellings(source) {
+        let needle = if cfg!(windows) {
+            spelling.to_ascii_lowercase()
+        } else {
+            spelling
+        };
+        for (start, _) in searchable.match_indices(&needle) {
+            let end = start + needle.len();
+            let before = value[..start].chars().next_back();
+            let after = value[end..].chars().next();
+            if (!leading_delimiter || before.is_none_or(launch_path_delimiter))
+                && (after.is_none_or(launch_path_delimiter)
+                    || (descendants
+                        && after.is_some_and(|character| matches!(character, '/' | '\\'))))
+            {
+                matches.push((start, end));
+            }
+        }
+    }
+    matches.sort_unstable_by_key(|(start, end)| (*start, std::cmp::Reverse(*end)));
+    matches.dedup();
+    matches
+}
+
+fn replace_launch_path(value: &str, source: &Path, target: &Path) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut consumed = 0;
+    for (start, end) in launch_path_matches(value, source, source.is_dir(), true) {
+        if start < consumed || !launch_authority_matches(source, &value[start..end]) {
+            continue;
+        }
+        output.push_str(&value[consumed..start]);
+        output.push_str(&target.to_string_lossy());
+        consumed = end;
+    }
+    output.push_str(&value[consumed..]);
+    output
+}
+
+fn cache_path_in_launch_value(value: &str, cache: &Path) -> eyre::Result<Option<PathBuf>> {
+    eyre::ensure!(
+        value.len() <= 1024 * 1024,
+        "launch argument/environment value exceeds limit"
+    );
+    let Some((start, root_end)) = launch_path_matches(value, cache, true, false)
+        .into_iter()
+        .next()
+    else {
+        return Ok(None);
+    };
+    eyre::ensure!(
+        value[..start]
+            .chars()
+            .next_back()
+            .is_none_or(launch_path_delimiter),
+        "mutable launch cache path has unsupported token boundary"
+    );
+    eyre::ensure!(
+        launch_authority_matches(cache, &value[start..root_end]),
+        "mutable launch cache authority spelling differs from owner"
+    );
+    let portable = value.replace('\\', "/");
+    let tail = &portable[start..];
+    let mut ends = tail
+        .char_indices()
+        .filter_map(|(offset, character)| {
+            (offset >= root_end - start
+                && (character.is_whitespace() || ";:,!=\"'".contains(character)))
+            .then_some(offset)
+        })
+        .collect::<Vec<_>>();
+    ends.push(tail.len());
+    for end in ends.into_iter().rev() {
+        let spelling = &tail[..end];
+        let path = if cfg!(windows) {
+            PathBuf::from(spelling.replace('/', "\\"))
+        } else {
+            PathBuf::from(spelling)
+        };
+        if path.exists() {
+            return Ok(Some(path));
+        }
+    }
+    eyre::bail!("unresolved mutable cache path in launch argument/environment: {value}")
+}
+
+fn rewrite_owned_launch_values(
+    context: &ExecutionContext<'_>,
+    session: &Path,
+    args: &mut [String],
+    env: &mut BTreeMap<String, String>,
+    captured: &mut BTreeMap<PathBuf, PathBuf>,
+    budget: &mut (usize, u64),
+) -> eyre::Result<()> {
+    let cache = dunce::canonicalize(&context.plan.cache_dir)?;
+    for value in args.iter_mut().chain(env.values_mut()) {
+        *value = rewrite_captured_launch_value(value, captured);
+        // Also admit path-valued properties, native-library directories and agents
+        // supplied by the loader config, not only the explicit classpath vectors.
+        for _ in 0..4096 {
+            let Some(input) = cache_path_in_launch_value(value, &cache)? else {
+                break;
+            };
+            capture_mutable_launch_input(context, session, &input, captured, false, budget)?;
+            let rewritten = rewrite_captured_launch_value(value, captured);
+            eyre::ensure!(
+                rewritten != *value,
+                "cannot rewrite mutable launch input spelling"
+            );
+            *value = rewritten;
+        }
+        eyre::ensure!(
+            cache_path_in_launch_value(value, &cache)?.is_none(),
+            "unowned mutable cache input remains in launch argument/environment"
+        );
+    }
+    Ok(())
+}
+
+fn runtime_snapshot_roots(
+    snapshot: &BuildSnapshotReceipt,
+    kind: RunKind,
+    run_options: &RunOptions,
+) -> Vec<&'static str> {
+    let mut roots = vec!["staged-resources", "classes"];
+    if !is_solo_client_like_launch(kind, run_options) {
+        roots.extend(match kind.optional_source_set() {
+            "gametest" => ["gametest/resources", "gametest/classes"],
+            "datagen" => ["datagen/resources", "datagen/classes"],
+            _ => ["test/resources", "test/classes"],
+        });
+    }
+    roots.retain(|root| snapshot.has_root(root));
+    roots
 }
 
 fn kind_extra_program_args(plan: &BuildPlan, kind: RunKind) -> eyre::Result<Vec<String>> {
@@ -6480,4 +7243,117 @@ struct ExecutionContext<'a> {
     minecraft_libraries_cache: Mutex<Option<Vec<PathBuf>>>,
     // Borrowed only inside the owned NeoForm session's consumer callback.
     held_neoform_compile_jar: Option<&'a Path>,
+    // Immutable image profile hit; writable javac caches are not authority.
+    immutable_neoform_profile: bool,
+    // Require locally recorded input/output integrity before javac reuse.
+    verify_compilation_outputs: bool,
+    compiler_image_identity: Option<String>,
+    #[cfg(any(windows, target_os = "linux"))]
+    compiler_image: Option<&'a super::local_dependency_image::LocalDependencyImage>,
+}
+
+#[cfg(test)]
+mod junit_container_failure_regression {
+    use super::JunitExecutionReport;
+    use super::JunitSummary;
+    #[test]
+    fn failed_class_setup_cannot_be_reported_as_success_without_failed_methods() {
+        let report = JunitExecutionReport {
+            summary: Some(JunitSummary {
+                tests_found: 5,
+                tests_started: 0,
+                containers_found: 3,
+                containers_failed: 1,
+                ..JunitSummary::default()
+            }),
+            ..JunitExecutionReport::default()
+        };
+        assert!(report.has_failed_tests_or_containers());
+        assert!(report.summary_message().contains("0 started"));
+        assert!(report.summary_message().contains("1 containers failed"));
+        let report = JunitExecutionReport {
+            summary: Some(JunitSummary {
+                tests_found: 5,
+                tests_started: 5,
+                tests_succeeded: 5,
+                containers_found: 3,
+                ..JunitSummary::default()
+            }),
+            ..JunitExecutionReport::default()
+        };
+        assert!(!report.has_failed_tests_or_containers());
+    }
+}
+
+pub(crate) fn junit_summary_from_log(log: &str) -> eyre::Result<JunitSummary> {
+    let mut result = None;
+    for line in log.lines() {
+        if let Some(event) = parse_junit_protocol_line(line)
+            && let JunitProtocolEvent::Summary(summary) = event?
+        {
+            eyre::ensure!(result.is_none(), "duplicate JUnit summary refused");
+            result = Some(summary);
+        }
+    }
+    result.ok_or_else(|| eyre::eyre!("JUnit summary missing"))
+}
+
+#[cfg(test)]
+mod junit_persisted_summary_regression {
+    use super::JunitProtocolEvent;
+    use super::JunitSummary;
+    use super::junit_summary_from_log;
+    use super::write_junit_event_log_line;
+    #[test]
+    fn exported_console_retains_unstarted_tests_and_failed_containers() {
+        let expected = JunitSummary {
+            tests_found: 5,
+            tests_started: 0,
+            containers_found: 3,
+            containers_failed: 1,
+            ..JunitSummary::default()
+        };
+        let mut log = String::new();
+        write_junit_event_log_line(&mut log, &JunitProtocolEvent::Summary(expected)).unwrap();
+        let actual = junit_summary_from_log(&log).unwrap();
+        assert_eq!(actual.tests_found, 5);
+        assert_eq!(actual.tests_started, 0);
+        assert_eq!(actual.containers_found, 3);
+        assert_eq!(actual.containers_failed, 1);
+        assert!(junit_summary_from_log(&format!("{log}{log}")).is_err());
+    }
+}
+
+#[cfg(all(test, windows))]
+mod preview_source_prefix_tests {
+    use super::game_puppet_preview_relative_source_path;
+    use std::path::Path;
+
+    #[test]
+    fn mixed_windows_prefix_spellings_preserve_the_same_relative_identity() {
+        let relative = Path::new(r"platform\minecraft\sfm-toolchain.lock.json");
+        let normal_root = Path::new(r"D:\SFM");
+        let verbatim_root = Path::new(r"\\?\D:\SFM");
+        let normal_file = normal_root.join(relative);
+        let verbatim_file = verbatim_root.join(relative);
+        for root in [normal_root, verbatim_root] {
+            for file in [&normal_file, &verbatim_file] {
+                assert_eq!(
+                    game_puppet_preview_relative_source_path(root, file).unwrap(),
+                    relative
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn normalization_keeps_outside_and_relative_source_paths_rejected() {
+        let root = Path::new(r"\\?\D:\SFM");
+        for file in [
+            Path::new(r"D:\Other\sfm-toolchain.lock.json"),
+            Path::new("sfm-toolchain.lock.json"),
+        ] {
+            assert!(game_puppet_preview_relative_source_path(root, file).is_err());
+        }
+    }
 }

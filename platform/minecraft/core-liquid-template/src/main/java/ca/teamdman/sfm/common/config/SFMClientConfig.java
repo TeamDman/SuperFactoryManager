@@ -11,6 +11,9 @@ public class SFMClientConfig {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
     public final ForgeConfigSpec.BooleanValue showLabelGunReminderOverlay;
+{% if features.release_version_4_35_0 %}
+    public final ForgeConfigSpec.BooleanValue showLabelGunPushPullMessages;
+{% endif %}
     public final ForgeConfigSpec.BooleanValue showNetworkToolReminderOverlay;
 {% if features.command_history %}
     public final ForgeConfigSpec.BooleanValue commandPaletteHistoryEnabled;
@@ -21,6 +24,9 @@ public class SFMClientConfig {
 {% endif %}
 {% else %}
     public final ModConfigSpec.BooleanValue showLabelGunReminderOverlay;
+{% if features.release_version_4_35_0 %}
+    public final ModConfigSpec.BooleanValue showLabelGunPushPullMessages;
+{% endif %}
     public final ModConfigSpec.BooleanValue showNetworkToolReminderOverlay;
 {% if features.command_history %}
     public final ModConfigSpec.BooleanValue commandPaletteHistoryEnabled;
@@ -38,6 +44,12 @@ public class SFMClientConfig {
     SFMClientConfig(ModConfigSpec.Builder builder) {
 {% endcase %}
         showLabelGunReminderOverlay = builder.define("showLabelGunReminderOverlay", true);
+{% if features.release_version_4_35_0 %}
+{% issue 493 %}
+        showLabelGunPushPullMessages = builder
+                .comment("Show chat confirmations after pushing or pulling labels with the Label Gun.")
+                .define("showLabelGunPushPullMessages", true);
+{% endif %}
         showNetworkToolReminderOverlay = builder.define("showNetworkToolReminderOverlay", true);
 {% if features.command_history %}
         commandPaletteHistoryEnabled = builder.define("commandPaletteHistoryEnabled", true);

@@ -12,6 +12,8 @@ use std::collections::HashMap;
 use std::os::windows::ffi::OsStrExt as _;
 use std::path::Path;
 use std::path::PathBuf;
+use windows::Win32::Foundation::ERROR_ACCESS_DENIED;
+use windows::Win32::Foundation::ERROR_SHARING_VIOLATION;
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Storage::FileSystem::CreateFileW;
 use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_DIRECTORY;
@@ -28,10 +30,10 @@ use windows::Win32::Storage::FileSystem::OPEN_EXISTING;
 use windows::core::Owned;
 use windows::core::PCWSTR;
 
-const MAX_DIRECTORY_LEASES: usize = 16_384;
+pub(crate) const MAX_DIRECTORY_LEASES: usize = 16_384;
 
 #[derive(Default)]
-pub(super) struct DirectoryLeases {
+pub(crate) struct DirectoryLeases {
     directories: HashMap<PathBuf, Owned<HANDLE>>,
 }
 
@@ -40,30 +42,53 @@ impl DirectoryLeases {
         feature = "tracy",
         tracing::instrument(level = "info", skip_all, name = "oracle_lease_input_ancestors")
     )]
-    pub(super) fn prepare(&mut self, root: &Path, relative: &str) -> Result<PathBuf> {
+    pub(crate) fn prepare(&mut self, root: &Path, relative: &str) -> Result<PathBuf> {
+        self.prepare_inner(root, relative, false)?
+            .ok_or_else(|| eyre::eyre!("required core directory lease is unavailable"))
+    }
+
+    /// Optional capability admission only. Unsafe attributes still return errors.
+    /// Existing required callers retain their original open-error behavior.
+    pub(crate) fn prepare_if_available(
+        &mut self,
+        root: &Path,
+        relative: &str,
+    ) -> Result<Option<PathBuf>> {
+        self.prepare_inner(root, relative, true)
+    }
+
+    fn prepare_inner(
+        &mut self,
+        root: &Path,
+        relative: &str,
+        optional: bool,
+    ) -> Result<Option<PathBuf>> {
         ensure!(root.is_absolute(), "core input lease root must be absolute");
         validate_relative_path(relative)?;
         // Acquire top-down: once a parent is held, the next component cannot
         // be redirected by renaming/replacing that parent during acquisition.
         for directory in root.ancestors().collect::<Vec<_>>().into_iter().rev() {
-            self.hold(directory)?;
+            if !self.hold(directory, optional)? {
+                return Ok(None);
+            }
         }
         let mut path = root.to_owned();
         let mut parts = relative.split('/').peekable();
         while let Some(part) = parts.next() {
             path.push(part);
-            if parts.peek().is_some() {
-                self.hold(&path)?;
+            if parts.peek().is_some() && !self.hold(&path, optional)? {
+                return Ok(None);
             }
         }
-        Ok(path)
+        Ok(Some(path))
     }
 
-    fn hold(&mut self, path: &Path) -> Result<()> {
+    fn hold(&mut self, path: &Path, optional: bool) -> Result<bool> {
         if let Some(handle) = self.directories.get(path) {
             // Sharing guards namespace replacement; still query the held
             // object's current attributes instead of treating metadata as fixed.
-            return validate_directory(handle);
+            validate_directory(handle)?;
+            return Ok(true);
         }
         #[cfg(feature = "tracy")]
         let _span = tracing::info_span!("oracle_lease_new_directory").entered();
@@ -103,14 +128,27 @@ impl DirectoryLeases {
                 FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
                 None,
             )
-        }
-        .wrap_err_with(|| format!("cannot lease core directory '{}'", path.display()))?;
+        };
+        let handle = match handle {
+            Err(error)
+                if optional
+                    && [ERROR_ACCESS_DENIED.0, ERROR_SHARING_VIOLATION.0]
+                        .into_iter()
+                        .any(|code| error.code() == windows::core::HRESULT::from_win32(code)) =>
+            {
+                // Only opening this additional LIST/share capability may decline.
+                // Attribute/type/reparse validation below never becomes a fallback.
+                return Ok(false);
+            }
+            result => result
+                .wrap_err_with(|| format!("cannot lease core directory '{}'", path.display()))?,
+        };
         // SAFETY: CreateFileW succeeded; this uniquely owned handle must be
         // closed. Transfer ownership immediately without another fallible call.
         let handle = unsafe { Owned::new(handle) };
         validate_directory(&handle)?;
         self.directories.insert(path.to_owned(), handle);
-        Ok(())
+        Ok(true)
     }
 }
 

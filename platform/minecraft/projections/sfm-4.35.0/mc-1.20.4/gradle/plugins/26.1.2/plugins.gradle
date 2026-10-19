@@ -1,0 +1,7 @@
+pluginManager.apply('java-library')
+pluginManager.apply('eclipse')
+pluginManager.apply('idea')
+pluginManager.apply('maven-publish')
+pluginManager.apply('net.neoforged.gradle.userdev')
+pluginManager.apply('antlr')
+pluginManager.apply('application')

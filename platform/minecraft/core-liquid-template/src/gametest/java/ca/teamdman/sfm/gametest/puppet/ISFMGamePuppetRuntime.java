@@ -42,11 +42,11 @@ import java.util.List;
 public interface ISFMGamePuppetRuntime {
     boolean createFreshFlatWorld();
 
-{% case minecraft_version %}
-{% when "1.19.2" %}
-    /** Identifier of this puppet's disposable save, for an actual leave/rejoin probe. */
+    /** Identifier of the puppet-owned disposable save. */
     String puppetWorldId();
 
+{% case minecraft_version %}
+{% when "1.19.2" %}
     /** Publishes the owned integrated server to LAN and waits for the live state transition. */
     boolean publishIntegratedServerToLan();
 
@@ -76,13 +76,11 @@ public interface ISFMGamePuppetRuntime {
 {% endcase %}
     boolean runGameTest(String testName);
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
     /** Begin another fixture run in the same disposable world, after the previous run finishes. */
     void prepareGameTest();
 
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
+
     void positionOrbitCamera(BlockPos localTarget, double radius, double height, double angleRadians);
 
     void positionGameTestOrbitCamera(double angleRadians);

@@ -226,6 +226,10 @@ pub fn sync_catalog_projection(
         .ancestors()
         .find(|path| path.join(".git").exists())
         .ok_or_else(|| eyre::eyre!("projection output is not inside a Git worktree"))?;
+    // Matching outputs need no manifestation transaction.
+    if !report.needs_write() {
+        return Ok(report);
+    }
     let projection = super::manifestation::RenderedProjection {
         key: identity.projection_key.clone(),
         root: destination_root.clone(),
@@ -1155,6 +1159,43 @@ mod tests {
                 .to_string()
                 .contains("retired")
         );
+    }
+
+    #[test]
+    fn named_current_outputs_preserve_mode_and_git_root_requirements() {
+        let temporary = tempfile::tempdir().unwrap();
+        assert!(
+            !temporary
+                .path()
+                .ancestors()
+                .any(|path| path.join(".git").exists())
+        );
+        let destination = temporary.path().join("named");
+        let identity = catalog_identity();
+        let wanted = catalog_files("current\n");
+        let output = destination.join("src/main/java/Example.java");
+        fs::create_dir_all(output.parent().unwrap()).unwrap();
+        fs::write(&output, "current\n").unwrap();
+        for mode in [SyncMode::Apply, SyncMode::DryRun] {
+            assert!(
+                sync_catalog_projection(&destination, &identity, &wanted, mode)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("not inside a Git worktree")
+            );
+        }
+        let report =
+            sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Check).unwrap();
+        assert_eq!(report.unchanged, ["src/main/java/Example.java"]);
+        assert!(!report.needs_write());
+        assert!(
+            sync_catalog_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
+                .unwrap_err()
+                .to_string()
+                .contains("retired")
+        );
+        assert_eq!(fs::read(output).unwrap(), b"current\n");
+        assert!(!destination.join(MANIFEST_FILE).exists());
     }
 
     #[test]

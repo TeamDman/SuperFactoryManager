@@ -19,11 +19,9 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface SFMGamePuppet {
     SFMGamePuppetViewportProfile viewportProfile() default SFMGamePuppetViewportProfile.CURRENT;
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
 
     /** Whole-puppet watchdog; individual actions retain their own timeouts. */
     int timeoutTicks() default 20 * 2 * 60;
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
+
 }

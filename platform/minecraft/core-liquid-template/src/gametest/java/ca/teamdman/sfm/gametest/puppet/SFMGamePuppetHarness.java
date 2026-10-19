@@ -1,6 +1,12 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
+import ca.teamdman.sfm.common.util.SFMDist;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.event.GameShuttingDownEvent;
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
@@ -114,6 +120,10 @@ public final class SFMGamePuppetHarness {
     private static List<PuppetExecution> selectedExecutions = new ArrayList<>();
     private static SFMGamePuppetViewportSelection viewportSelection;
     private static ActivePuppet activePuppet;
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+    private static SFMGamePuppetInputOwnership.Lease runtimeInputLease;
+    private static boolean viewportRestoreFailed;
+{% endif %}
 
     private SFMGamePuppetHarness() {
     }
@@ -161,9 +171,22 @@ public final class SFMGamePuppetHarness {
 
     public static void onClientTick() {
         Minecraft minecraft = Minecraft.getInstance();
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        if (!completed && finalWorldHoldTicksRemaining < 0 && !awaitingTitleScreen
+                && activePuppet != null && !activePuppet.failureRecorded && !activePuppet.success) {
+            try {
+                keepRuntimeUnpaused(minecraft);
+            } catch (Throwable failure) {
+                failActivePuppet(activePuppet, failure);
+                returnToTitle(minecraft);
+                return;
+            }
+        }
+{% else %}
         if (!completed) {
             keepRuntimeUnpaused(minecraft);
         }
+{% endif %}
 
         if (completed) {
             tickAutoExit();
@@ -194,21 +217,15 @@ public final class SFMGamePuppetHarness {
             returnToTitle(minecraft);
             return;
         }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
         int timeoutTicks = active.definition.timeoutTicks();
         if (++active.totalActionTicks > timeoutTicks) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        if (++active.totalActionTicks > ACTION_TIMEOUT_TICKS) {
-{% endcase %}
+
             failActivePuppet(
                     active,
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
                     new IllegalStateException("Timed out after " + timeoutTicks + " client ticks")
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-                    new IllegalStateException("Timed out after " + ACTION_TIMEOUT_TICKS + " client ticks")
-{% endcase %}
+
             );
             returnToTitle(minecraft);
             return;
@@ -251,6 +268,10 @@ public final class SFMGamePuppetHarness {
         if (awaitingTitleScreen) {
             return;
         }
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        // A failing restoration must not latch the harness before a title transition starts.
+        restoreRuntimeOptions(minecraft);
+{% endif %}
         awaitingTitleScreen = true;
         if (minecraft.level == null) {
             minecraft.setScreen(new TitleScreen());
@@ -278,12 +299,20 @@ public final class SFMGamePuppetHarness {
         }
 
         int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        restoreRuntimeOptions(minecraft, keepOpenSeconds == 0
+                ? SFMGamePuppetInputOwnership.End.FINISHED : SFMGamePuppetInputOwnership.End.HANDOFF);
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
         // Completion describes assertions, not how long the user inspects the final scene.
         // Report it exactly once, before either kind of hold; ordinary shutdown while
         // holding must not turn a finished run into a missing-completion failure.
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        if (keepOpenSeconds != 0) reportCompletion();
+{% else %}
         reportCompletion();
+{% endif %}
         if (keepOpenSeconds != 0) {
             SFMGamePuppetViewportObservation viewport = active.viewportObservation;
             SFM.LOGGER.info(
@@ -345,7 +374,7 @@ public final class SFMGamePuppetHarness {
         }
         finalWorldHoldTicksRemaining = -1;
         SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_COMPLETE");
-        returnToTitle(minecraft);
+        finishRun();
     }
 
     private static void finishRun() {
@@ -357,9 +386,29 @@ public final class SFMGamePuppetHarness {
         SFMGamePuppetRenderHarness.clear();
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        // Cleanup errors must not prevent bounded finalization or leave the grab policy owned.
+        boolean cleanupFailed = false;
+        try {
+            SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
+        } catch (Throwable failure) {
+            cleanupFailed = true;
+            viewportRestoreFailed = true;
+            SFM.LOGGER.error("SFM_GAME_PUPPET_VIEWPORT_RESTORE_FAILED", failure);
+        }
+        try {
+            restoreRuntimeOptions(Minecraft.getInstance());
+        } catch (Throwable failure) {
+            cleanupFailed = true;
+            SFM.LOGGER.error("SFM_GAME_PUPPET_OPTIONS_RESTORE_FAILED", failure);
+        }
+        if (cleanupFailed && failedPuppetCount == 0) failedPuppetCount++;
+        completed = true;
+{% else %}
         completed = true;
         SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
         reportCompletion();
@@ -391,9 +440,22 @@ public final class SFMGamePuppetHarness {
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
     private static void tickAutoExit() {
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        // A partially initialized request or a failed asynchronous wait must not strand process exit.
+        if (!viewportRestoreFailed) {
+            try {
+                if (!SFMGamePuppetViewportController.tickRestore(Minecraft.getInstance())) return;
+            } catch (Throwable failure) {
+                viewportRestoreFailed = true;
+                if (failedPuppetCount == 0) failedPuppetCount++;
+                SFM.LOGGER.error("SFM_GAME_PUPPET_VIEWPORT_RESTORE_FAILED", failure);
+            }
+        }
+{% else %}
         if (!SFMGamePuppetViewportController.tickRestore(Minecraft.getInstance())) {
             return;
         }
+{% endif %}
         if (exitTicksRemaining < 0) {
             return;
         }
@@ -435,6 +497,13 @@ public final class SFMGamePuppetHarness {
         } catch (Throwable cleanupFailure) {
             if (cleanupFailure != throwable) throwable.addSuppressed(cleanupFailure);
         }
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        try {
+            restoreRuntimeOptions(Minecraft.getInstance(), SFMGamePuppetInputOwnership.End.FAILED);
+        } catch (Throwable cleanupFailure) {
+            if (cleanupFailure != throwable) throwable.addSuppressed(cleanupFailure);
+        }
+{% endif %}
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
         SFM.LOGGER.error(
@@ -447,6 +516,27 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void keepRuntimeUnpaused(Minecraft minecraft) {
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        if (runtimeInputLease == null) {
+            runtimeInputLease = SFMGamePuppetInputOwnership.INSTANCE.acquire(new SFMGamePuppetInputOwnership.Host() {
+                public boolean pauseOnLostFocus() { return minecraft.options.pauseOnLostFocus; }
+                public void pauseOnLostFocus(boolean value) { minecraft.options.pauseOnLostFocus = value; }
+                public boolean hideGui() { return minecraft.options.hideGui; }
+                public void hideGui(boolean value) { minecraft.options.hideGui = value; }
+                public boolean vsync() { return minecraft.options.enableVsync().get(); }
+                public void vsync(boolean value) { minecraft.options.enableVsync().set(value); }
+                public int framerateLimit() { return minecraft.options.framerateLimit().get(); }
+                public void framerateLimit(int value) { minecraft.options.framerateLimit().set(value); }
+                public boolean windowActive() { return minecraft.isWindowActive(); }
+                public boolean mouseGrabbed() { return minecraft.mouseHandler.isMouseGrabbed(); }
+                public void releaseMouse() { minecraft.mouseHandler.releaseMouse(); }
+            });
+            var before = runtimeInputLease.before();
+            SFM.LOGGER.info("SFM_GAME_PUPPET_INPUT_ACQUIRED pause_on_lost_focus={} hide_gui={} vsync={} max_fps={}",
+                    before.pauseOnLostFocus(), before.hideGui(), before.vsync(), before.framerateLimit());
+        }
+        runtimeInputLease.maintain();
+{% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
         if (!runtimeOptionsCaptured) {
@@ -482,9 +572,13 @@ public final class SFMGamePuppetHarness {
         }
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
+{% endif %}
     }
 
     private static void restoreRuntimeOptions(Minecraft minecraft) {
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        restoreRuntimeOptions(minecraft, SFMGamePuppetInputOwnership.End.FINISHED);
+{% else %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
         if (!runtimeOptionsCaptured) {
@@ -502,10 +596,72 @@ public final class SFMGamePuppetHarness {
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
         pauseOnLostFocusCaptured = false;
 {% endcase %}
+{% endif %}
     }
 
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+    private static void restoreRuntimeOptions(Minecraft minecraft, SFMGamePuppetInputOwnership.End reason) {
+        var lease = runtimeInputLease;
+        if (lease == null) return;
+        runtimeInputLease = null;
+        lease.close(reason);
+        SFM.LOGGER.info("SFM_GAME_PUPPET_INPUT_RELEASED reason={} pause_on_lost_focus={} hide_gui={} vsync={} max_fps={} mouse_grab_suppressed={}",
+                reason, minecraft.options.pauseOnLostFocus, minecraft.options.hideGui,
+                minecraft.options.enableVsync().get(), minecraft.options.framerateLimit().get(),
+                SFMGamePuppetInputOwnership.INSTANCE.suppressMouseGrab());
+    }
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    public static void onGameShuttingDown(GameShuttingDownEvent event) {
+        if (SFMProperties.clientRunMode() == SFMProperties.ClientRunMode.GAME_PUPPET) {
+            cancelAutomation("client shutdown");
+        }
+    }
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    public static void onPlayerLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        ActivePuppet active = activePuppet;
+        if (SFMProperties.clientRunMode() != SFMProperties.ClientRunMode.GAME_PUPPET || active == null) return;
+        if (SFMGamePuppetInputOwnership.shouldCancelOnLogout(event.getPlayer() != null, active.worldConfigured,
+                awaitingTitleScreen || active.helper.permitsWorldTransition())) {
+            cancelAutomation("left puppet world");
+        }
+    }
+
+    /** Ends ownership before shutdown/options persistence, without focusing or capturing the mouse. */
+    public static void cancelAutomation(String reason) {
+        // A successful finite hold has already released ownership and reported its result.
+        if (completed || completionReported) return;
+        completed = true;
+        finalWorldHoldTicksRemaining = -1;
+        exitTicksRemaining = -1;
+        ActivePuppet interrupted = activePuppet;
+        activePuppet = null;
+        awaitingTitleScreen = false;
+        if (interrupted == null || !interrupted.failureRecorded) failedPuppetCount++;
+        SFMGamePuppetRenderHarness.clear();
+        try {
+            if (interrupted != null) interrupted.helper.abortCurrentAction();
+        } catch (Throwable cleanupFailure) {
+            SFM.LOGGER.error("SFM_GAME_PUPPET_CANCEL_CLEANUP_FAILED", cleanupFailure);
+        } finally {
+            try {
+                restoreRuntimeOptions(Minecraft.getInstance(), SFMGamePuppetInputOwnership.End.CANCELLED);
+            } catch (Throwable cleanupFailure) {
+                SFM.LOGGER.error("SFM_GAME_PUPPET_CANCEL_OPTIONS_FAILED", cleanupFailure);
+            }
+        }
+        SFM.LOGGER.info("SFM_GAME_PUPPET_CANCELLED reason={}", reason);
+        reportCompletion();
+    }
+{% endif %}
+
     public static boolean isAutomationActive() {
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        return SFMGamePuppetInputOwnership.INSTANCE.suppressMouseGrab();
+{% else %}
         return initialized && !completed;
+{% endif %}
     }
 
 {% case minecraft_version %}
@@ -645,9 +801,9 @@ public final class SFMGamePuppetHarness {
             active.gameTestOrigin = info.getTestOrigin();
 {% endcase %}
             active.gameTestInfo = info;
+            active.gameTestBounds = info.getStructureBounds();
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-            active.gameTestBounds = info.getStructureBounds();
             active.gameTestTracker = new MultipleTestTracker(started);
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
             active.gameTestTracker = new MultipleTestTracker(started);

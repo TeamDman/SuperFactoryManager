@@ -47,6 +47,9 @@
     "KeyboardHandlerInvoker"
 {% endif %}
 {% else %}
+{% if features.issue_610_visual_evidence %}
+    "MouseHandlerInvoker",
+{% endif %}
 {% if features.game_puppet_runtime %}
      "MouseHandlerMixin"
 {% endif %}

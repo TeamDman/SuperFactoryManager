@@ -1,6 +1,9 @@
 package ca.teamdman.sfm.common.registry.registration;
 
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
+{% if features.release_version_4_35_0 %}
+import ca.teamdman.sfm.common.capability.TunnelledBlockCapabilityRelayOwner;
+{% endif %}
 {% case minecraft_version %}
 {% when '1.21', '1.21.1' %}
 import ca.teamdman.sfm.common.capability.CauldronBlockCapabilityProvider;
@@ -14,6 +17,9 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+{% if features.release_version_4_35_0 %}
+import net.minecraft.server.level.ServerLevel;
+{% endif %}
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 {% case minecraft_version %}
@@ -231,6 +237,12 @@ public class SFMBlockCapabilities {
             ) {
 
                 if (side == null) return null;
+{% if features.release_version_4_35_0 %}
+                if (level instanceof ServerLevel serverLevel
+                        && blockEntity instanceof TunnelledBlockCapabilityRelayOwner owner) {
+                    owner.sfm$getCapabilityRelay().watch(serverLevel, side);
+                }
+{% endif %}
                 var offset = blockPos.relative(side.getOpposite());
                 //noinspection unchecked
                 return (T) level.getCapability(cap, offset, side);

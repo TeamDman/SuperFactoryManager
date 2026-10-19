@@ -123,11 +123,16 @@ final class SFMHostExternalToolAction implements ExecutionNodeAction {
         if (original.getClass() == ExternalJavaToolAction.class && !originalConfiguration.equals(configuration(original))) {
             throw new IOException("Tool changed during command construction");
         }
-        var response = JsonParser.parseString(launcher.execute(request.toString())).getAsJsonObject();
-        if (!response.get("schema").getAsString().equals("sfm:nfrt_child_tool_result@1")
-                || !response.get("node_id").getAsString().equals(nodeId)
-                || response.get("exit_code").getAsInt() != 0) {
-            throw new IOException("Rust child tool did not acknowledge successful execution for this node");
+        // Wall time includes the Rust-owned child and host-side validation;
+        // it is nested inside run_node and is not Java CPU time.
+        try (var timing = SFMHostTiming.start("tool_channel_roundtrip", nodeId)) {
+            var response = JsonParser.parseString(launcher.execute(request.toString())).getAsJsonObject();
+            if (!response.get("schema").getAsString().equals("sfm:nfrt_child_tool_result@1")
+                    || !response.get("node_id").getAsString().equals(nodeId)
+                    || response.get("exit_code").getAsInt() != 0) {
+                throw new IOException("Rust child tool did not acknowledge successful execution for this node");
+            }
+            timing.success(1, -1);
         }
     }
 

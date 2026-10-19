@@ -1,0 +1,111 @@
+// Exact flat test-only closure reviewed with the original provision receipt.
+// This is not a production resolver or an instruction to discover versions.
+pub(super) const COMMON_PINS: [(&str, &str); 24] = [
+    (
+        "com.github.javaparser:javaparser-core:3.26.4",
+        "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b",
+    ),
+    (
+        "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+        "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+    ),
+    (
+        "com.google.errorprone:error_prone_annotations:2.36.0",
+        "blake3:60bfc777bca98126998dec5493948a8344db8bf9",
+    ),
+    (
+        "com.google.guava:failureaccess:1.0.2",
+        "blake3:ffc728120ab20fc9adc9b7f99024789815f6a1fd",
+    ),
+    (
+        "com.google.guava:guava:33.4.0-jre",
+        "blake3:cc4b7d4cf17be0ef0b92e4f6d1652975fb003e0d",
+    ),
+    (
+        "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+        "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f",
+    ),
+    (
+        "com.google.j2objc:j2objc-annotations:3.0.0",
+        "blake3:da36bd8c441894df9ffd285df80113b7a41681f7",
+    ),
+    (
+        "net.sf.jopt-simple:jopt-simple:5.0.4",
+        "blake3:c9f31de9dc51d72c8f1173842455542005d524e5",
+    ),
+    (
+        "org.apache.commons:commons-math3:3.6.1",
+        "blake3:55249fe2627f0fb2b1376fa97b2d622325271ff4",
+    ),
+    (
+        "org.apiguardian:apiguardian-api:1.1.2",
+        "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e",
+    ),
+    (
+        "org.checkerframework:checker-qual:3.43.0",
+        "blake3:0d5cc8849a0cf91d1316ec38c80a0b2f1b942009",
+    ),
+    (
+        "org.javassist:javassist:3.30.2-GA",
+        "blake3:78f08004376ccb54aff91bf0c69c213baaa837a7",
+    ),
+    (
+        "org.junit.jupiter:junit-jupiter-api:5.8.1",
+        "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+    ),
+    (
+        "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+        "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+    ),
+    (
+        "org.junit.platform:junit-platform-commons:1.8.1",
+        "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4",
+    ),
+    (
+        "org.junit.platform:junit-platform-console-standalone:1.8.1",
+        "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d",
+    ),
+    (
+        "org.junit.platform:junit-platform-engine:1.8.1",
+        "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
+    ),
+    (
+        "org.openjdk.jmh:jmh-core:1.37",
+        "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+    ),
+    (
+        "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+        "blake3:74920027bb3f569af240fc283876568793baa2e8",
+    ),
+    (
+        "org.openjdk.jmh:jmh-generator-asm:1.37",
+        "blake3:7d990641e58ba333d6533e1575c625105f9114e4",
+    ),
+    (
+        "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+        "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+    ),
+    (
+        "org.openjdk.jmh:jmh-generator-reflection:1.37",
+        "blake3:080c98f2b44dc69f4112da9a89dca9762f309948",
+    ),
+    (
+        "org.opentest4j:opentest4j:1.2.0",
+        "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b",
+    ),
+    (
+        "org.ow2.asm:asm:9.0",
+        "blake3:7c5d09ea11e7a1ef1f9794a61b680cfd90af18b6",
+    ),
+];
+pub(super) const LAUNCHER: (&str, &str) = (
+    "org.junit.platform:junit-platform-launcher:1.8.1",
+    "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
+);
+
+// Already required by PROJECT_COMPILE_ANNOTATION_COORDINATES. This is a
+// production base-classpath witness, not another test-only admitted dependency.
+pub(super) const BASE_JSR305: (&str, &str) = (
+    "com.google.code.findbugs:jsr305:3.0.2",
+    "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81",
+);

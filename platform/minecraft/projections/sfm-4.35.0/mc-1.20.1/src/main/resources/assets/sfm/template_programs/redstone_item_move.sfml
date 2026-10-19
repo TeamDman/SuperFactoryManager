@@ -1,0 +1,8 @@
+name "Redstone item movement"
+
+EVERY 20 TICKS DO
+    -- redstone is a keyword
+    -- I fixed it so that it can be used without quotes now :D
+    input redstone from a
+    output minecraft:redstone to b
+END

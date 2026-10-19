@@ -1,6 +1,6 @@
 Ahoy!
 
-The single-branch source-projection workflow is experimental. If you are working in a `platform/minecraft/mc-version/<target>` project, follow the [generated-project contributor guide](source-projection-contributor-guide.md): plain Gradle builds work, and you may propose edits to generated Java. Maintainers must reconcile those edits into canonical source before regeneration. The version-branch workflow below remains the production contribution path until the projection is accepted.
+The single-branch source-projection workflow is experimental. If you are working in a `platform/minecraft/projections/<projection-key>/` project, follow the [generated-project contributor guide](source-projection-contributor-guide.md): generated roots contain standalone Gradle projects, and you may propose edits to generated Java. The guide records the validated 4.35.0/1.19.2 visitor build, prerequisites and remaining limits. Maintainers must reconcile those edits into canonical source before regeneration. The version-branch workflow below remains the production contribution path until the projection is accepted.
 
 I'm pretty stingy with accepting contributions beyond localization changes.
 You are welcome to submit stuff, but **there's no guarantee your submissions will get merged or that they will receive much of a response.**

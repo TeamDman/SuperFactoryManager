@@ -29,17 +29,21 @@ ctrlc = "3.5.1"
 directories-next = "2.0.0"
 dunce = "1.0.5"
 eyre = "0.6.12"
-facet = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet" }
-facet-csv = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-csv" }
-facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-json" }
-facet-pretty = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-pretty" }
-facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }
-facet-value = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-value" }
-figue = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "figue", features = ["arbitrary"] }
+facet = { package = "teamy-facet", version = "=0.50.0-rc.7" }
+facet-csv = { git = "https://github.com/TeamDman/facet-format.git", rev = "1bd90d49eb0d9f78d00b14ba85d79612dd78c927", package = "facet-csv" }
+facet-json = { package = "teamy-facet-json", version = "=0.50.0-rc.7" }
+facet-pretty = { package = "teamy-facet-pretty", version = "=0.50.0-rc.7" }
+facet-value = { package = "teamy-facet-value", version = "=0.50.0-rc.7" }
+figue = { package = "teamy-figue", version = "=6.0.0-rc.2", features = ["arbitrary"] }
 glob = "0.3.3"
 gix = { version = "0.84.0", default-features = false, features = ["blob-diff", "blocking-http-transport-reqwest-rust-tls", "index", "sha1", "worktree-stream"] }
 humansize = "2.1.3"
 humantime = "2.1.0"
+bytes = "=1.12.0"
+futures-util = { version = "=0.3.32", default-features = false, features = ["std"] }
+http-body-util = "=0.1.3"
+hyper = { version = "=1.8.1", features = ["client", "http1"] }
+hyper-util = { version = "=0.1.20", features = ["tokio"] }
 liquid = "=0.26.11"
 mimalloc = "=0.1.52"
 open = { version = "5.3.3", features = ["shellexecute-on-windows"] }
@@ -49,6 +53,7 @@ rayon = "1.12.0"
 reqwest = { version = "0.12.24", default-features = false, features = ["blocking", "multipart", "rustls-tls"] }
 sha1 = "0.10.6"
 sha2 = "0.10.9"
+sfm-styx-state = { path = "crates/sfm-styx-state" }
 streaming-iterator = "0.1.9"
 tempfile = "3.27.0"
 tokio = { version = "1.49.0", features = ["full"] }
@@ -77,6 +82,14 @@ tracy_memory = ["tracy"]
 
 [build-dependencies]
 embed-resource = "3.0.6"
+
+# The unpublished CSV adapter uses sibling paths in its source workspace. Resolve
+# its reflection and format dependencies to the same published Teamy baseline.
+[patch."https://github.com/TeamDman/facet-format.git"]
+teamy-facet = { version = "=0.50.0-rc.7" }
+teamy-facet-core = { version = "=0.50.0-rc.7" }
+teamy-facet-reflect = { version = "=0.50.0-rc.7" }
+teamy-facet-format = { version = "=0.50.0-rc.7" }
 
 [[bin]]
 name = "source-jar-absence"

@@ -98,30 +98,24 @@ fn java_tool_argument_file_refuses_long_and_verbatim_windows_transports() {
 }
 
 #[test]
-fn interactive_and_puppet_hotswap_release_the_build_lock() {
-    let enabled = RunOptions {
-        client_hotswap_port: Some(5006),
-        ..RunOptions::default()
-    };
-    for kind in [RunKind::Client, RunKind::GameTestPreview] {
+fn live_launches_release_build_lock_after_snapshot_without_requiring_hotswap() {
+    for kind in [
+        RunKind::Client,
+        RunKind::GameTestPreview,
+        RunKind::Server,
+        RunKind::ClientSmoke,
+        RunKind::GameTestServer,
+        RunKind::Data,
+    ] {
         assert!(super::releases_build_cache_lock_before_launch(
-            kind, &enabled
-        ));
-        assert!(!super::releases_build_cache_lock_before_launch(
             kind,
             &RunOptions::default()
         ));
     }
-    for kind in [
-        RunKind::Server,
-        RunKind::ClientSmoke,
-        RunKind::GameTestServer,
+    assert!(!super::releases_build_cache_lock_before_launch(
         RunKind::Test,
-    ] {
-        assert!(!super::releases_build_cache_lock_before_launch(
-            kind, &enabled
-        ));
-    }
+        &RunOptions::default()
+    ));
 }
 
 #[test]
@@ -223,6 +217,7 @@ use super::portable_cache_path;
 use super::prepare_client_automation_options;
 use super::prepare_existing_artifact_for_reuse;
 use super::preview_program_args;
+use super::preview_runtime_owns_capture_options;
 use super::project_v3_artifact_lockfile;
 use super::read_optional_artifact_lockfile;
 use super::refresh_maintained_lockfile_document;
@@ -375,6 +370,7 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
         &puppet_dir,
         RunKind::ClientPuppet,
         &RunOptions::default(),
+        false,
     )
     .expect("prepare client puppet options");
 
@@ -394,6 +390,7 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
         &client_dir,
         RunKind::Client,
         &RunOptions::default(),
+        false,
     )
     .expect("skip regular client options");
     assert_eq!(untouched, None);
@@ -420,6 +417,7 @@ fn game_puppet_options_set_the_requested_master_volume() {
             game_puppet_mute: true,
             ..RunOptions::default()
         },
+        false,
     )
     .expect("prepare muted puppet options");
     let muted = fs::read_to_string(&options_path).expect("read muted options");
@@ -433,10 +431,123 @@ fn game_puppet_options_set_the_requested_master_volume() {
             game_puppet_mute: false,
             ..RunOptions::default()
         },
+        false,
     )
     .expect("prepare unmuted puppet options");
     let unmuted = fs::read_to_string(&options_path).expect("read unmuted options");
     assert!(unmuted.contains("soundCategory_master:1.0\n"));
+}
+
+#[test]
+fn preview_runtime_option_ownership_requires_the_exact_selected_development_lease() {
+    assert!(preview_runtime_owns_capture_options(
+        RunKind::GameTestPreview,
+        "1.19.2",
+        true,
+        true,
+    ));
+    for (kind, version, development, selected_lease) in [
+        (RunKind::GameTestPreview, "1.19.2", false, true),
+        (RunKind::GameTestPreview, "1.19.4", true, true),
+        (RunKind::GameTestPreview, "1.19.2", true, false),
+        (RunKind::ClientSmoke, "1.19.2", true, true),
+        (RunKind::ClientPuppet, "1.19.2", true, true),
+        (RunKind::Client, "1.19.2", true, true),
+        (RunKind::GameTestServer, "1.19.2", true, true),
+    ] {
+        assert!(
+            !preview_runtime_owns_capture_options(kind, version, development, selected_lease),
+            "{kind:?} {version} development={development} selected_lease={selected_lease}"
+        );
+    }
+}
+
+#[test]
+fn preview_runtime_lease_preserves_capture_options_and_legacy_runs_keep_overrides() {
+    let test_dir = tempfile::tempdir().expect("create options fixture");
+    let minecraft_dir = test_dir.path().join("minecraft");
+    for (index, (kind, runtime_owns_options, preserve)) in [
+        (RunKind::GameTestPreview, true, true),
+        (RunKind::GameTestPreview, false, false),
+        (RunKind::ClientSmoke, true, false),
+        (RunKind::ClientPuppet, true, false),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let working_dir = minecraft_dir.join(format!("run-{index}"));
+        fs::create_dir_all(&working_dir).expect("create options run dir");
+        let options = working_dir.join("options.txt");
+        fs::write(
+            &options,
+            "version:3955\npauseOnLostFocus:true\nenableVsync:true\nmaxFps:73\nunrelated:keep-me\nsoundCategory_master:0.25\n",
+        )
+        .expect("write inherited options");
+        assert_eq!(
+            prepare_client_automation_options(
+                &minecraft_dir,
+                &working_dir,
+                kind,
+                &RunOptions {
+                    game_puppet_mute: true,
+                    ..RunOptions::default()
+                },
+                runtime_owns_options,
+            )
+            .expect("prepare client options"),
+            Some(options.clone())
+        );
+        let updated = fs::read_to_string(&options).expect("read prepared options");
+        for (key, value) in if preserve {
+            [
+                ("pauseOnLostFocus", "true"),
+                ("enableVsync", "true"),
+                ("maxFps", "73"),
+            ]
+        } else {
+            [
+                ("pauseOnLostFocus", "false"),
+                ("enableVsync", "false"),
+                ("maxFps", "260"),
+            ]
+        } {
+            let expected = format!("{key}:{value}");
+            assert!(updated.lines().any(|line| line == expected));
+        }
+        assert!(updated.contains("unrelated:keep-me\n"));
+        assert!(updated.contains("onboardAccessibility:false\n"));
+        assert!(updated.contains("narrator:0\n"));
+        assert!(updated.contains("tutorialStep:none\n"));
+        if matches!(kind, RunKind::GameTestPreview) {
+            assert!(updated.contains("soundCategory_master:0.0\n"));
+        } else {
+            assert!(updated.contains("soundCategory_master:0.25\n"));
+        }
+    }
+}
+
+#[test]
+fn preview_runtime_lease_does_not_seed_absent_capture_options() {
+    let test_dir = tempfile::tempdir().expect("create options fixture");
+    let minecraft_dir = test_dir.path().join("minecraft");
+    let working_dir = minecraft_dir.join("runGameTestPreview");
+    fs::create_dir_all(&working_dir).expect("create preview run dir");
+    let options = working_dir.join("options.txt");
+    fs::write(&options, "unrelated:keep-me\n").expect("write inherited options");
+    prepare_client_automation_options(
+        &minecraft_dir,
+        &working_dir,
+        RunKind::GameTestPreview,
+        &RunOptions::default(),
+        true,
+    )
+    .expect("prepare leased preview options");
+    let updated = fs::read_to_string(&options).expect("read preview options");
+    for key in ["pauseOnLostFocus", "enableVsync", "maxFps"] {
+        let prefix = format!("{key}:");
+        assert!(!updated.lines().any(|line| line.starts_with(&prefix)));
+    }
+    assert!(updated.contains("unrelated:keep-me\n"));
 }
 
 #[test]
@@ -2586,7 +2697,7 @@ fn cached_artifact_repairs_source_build_provenance_from_the_lock() {
         false,
         false,
         Vec::new(),
-        Some(lockfile),
+        Some(lockfile.clone()),
         None,
         test_cancellation_token(),
     )
@@ -2612,6 +2723,31 @@ fn cached_artifact_repairs_source_build_provenance_from_the_lock() {
             .source_relative_path
             .as_deref(),
         Some(output_path.as_path())
+    );
+    assert!(
+        resolver
+            .resolve_pom_runtime_dependencies(&coordinate)
+            .is_err(),
+        "source-build provenance alone must not authorize an empty runtime closure"
+    );
+    let mut malformed = lockfile;
+    malformed.artifacts[0].source_build = None;
+    let malformed_resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        Vec::new(),
+        false,
+        false,
+        Vec::new(),
+        Some(malformed),
+        None,
+        test_cancellation_token(),
+    )
+    .expect("resolver");
+    assert!(
+        malformed_resolver
+            .resolve_pom_runtime_dependencies(&coordinate)
+            .is_err(),
+        "missing source-build provenance must not bypass POM admission"
     );
 }
 
@@ -2917,7 +3053,12 @@ fn parallel_targets_return_plans_in_input_order() {
         .collect::<Vec<_>>();
     assert_eq!(branches, vec!["1.19.2", "1.20.1"]);
     assert_eq!(summary.reports.len(), 2);
-    assert!(summary.reports.iter().all(|report| report.warning_count == 1));
+    assert!(
+        summary
+            .reports
+            .iter()
+            .all(|report| report.warning_count == 1)
+    );
 }
 
 #[test]
@@ -2974,7 +3115,9 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
         minecraft_dir: PathBuf::from("platform/minecraft"),
         gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
         rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
+        output_name: None,
         cache_dir: PathBuf::from("build/sfm-toolchain"),
+        derived_cache_root: None,
         common_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain"),
         state_dir: PathBuf::from("build/sfm-toolchain/state"),
         maven_cache_dir: PathBuf::from("sfm-cache/minecraft-toolchain/maven"),
@@ -3485,7 +3628,8 @@ fn facet_json_parses_mojang_version_config_shape() {
         .expect("version json should parse");
     assert_eq!(version_json.libraries.len(), 1);
     let libraries_root = Path::new("D:/sfm-cache/minecraft-toolchain/minecraft/libraries");
-    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json);
+    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json)
+        .expect("supported platform policy");
     assert_eq!(libraries.len(), 1);
     assert_eq!(
         libraries[0].path,
@@ -3664,7 +3808,8 @@ fn minecraft_library_selection_uses_only_current_version_json() {
     )
     .expect("version json should parse");
     let libraries_root = Path::new("D:/sfm-cache/minecraft-toolchain/minecraft/libraries");
-    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json);
+    let libraries = minecraft_library_jars_from_version_json(libraries_root, &version_json)
+        .expect("supported platform policy");
     let paths = libraries
         .iter()
         .map(|library| library.path.clone())
@@ -3740,7 +3885,161 @@ fn named_compile_preserves_complete_legacy_build_plan_wire() {
     );
 }
 
-fn minimal_plan_for_paths() -> BuildPlan {
+#[test]
+fn main_compilation_cache_reuses_complete_outputs_and_rejects_missing_class() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    let classes = plan.cache_dir.join("project/classes");
+    let required_class = super::required_main_class_output(&classes);
+    let refmap = plan.cache_dir.join("project/resources/sfm.refmap.json");
+    let state = plan.cache_dir.join("project/javac-main.inputs.sha1");
+    fs::create_dir_all(required_class.parent().unwrap())?;
+    fs::create_dir_all(refmap.parent().unwrap())?;
+    fs::write(&required_class, b"compiled SFM class")?;
+    fs::write(classes.join("Other.class"), b"another compiled class")?;
+    fs::write(&refmap, b"{}")?;
+    fs::write(&state, b"matching-inputs")?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    assert!(super::main_compilation_cache_matches(
+        &context,
+        &state,
+        "matching-inputs",
+        &classes,
+        &refmap,
+    )?);
+    fs::remove_file(&required_class)?;
+    assert!(classes.join("Other.class").is_file());
+    assert!(!super::main_compilation_cache_matches(
+        &context,
+        &state,
+        "matching-inputs",
+        &classes,
+        &refmap,
+    )?);
+    Ok(())
+}
+
+#[test]
+fn main_compilation_cache_rejects_changed_inputs_missing_refmap_and_refresh() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    let classes = plan.cache_dir.join("project/classes");
+    let required_class = super::required_main_class_output(&classes);
+    let refmap = plan.cache_dir.join("project/resources/sfm.refmap.json");
+    let state = plan.cache_dir.join("project/javac-main.inputs.sha1");
+    fs::create_dir_all(required_class.parent().unwrap())?;
+    fs::create_dir_all(refmap.parent().unwrap())?;
+    fs::write(&required_class, b"compiled SFM class")?;
+    fs::write(&refmap, b"{}")?;
+    fs::write(&state, b"matching-inputs")?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    assert!(!super::main_compilation_cache_matches(
+        &context,
+        &state,
+        "changed-inputs",
+        &classes,
+        &refmap,
+    )?);
+    fs::remove_file(&refmap)?;
+    assert!(!super::main_compilation_cache_matches(
+        &context,
+        &state,
+        "matching-inputs",
+        &classes,
+        &refmap,
+    )?);
+    fs::write(&refmap, b"{}")?;
+    plan.refresh = true;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    assert!(!super::main_compilation_cache_matches(
+        &context,
+        &state,
+        "matching-inputs",
+        &classes,
+        &refmap,
+    )?);
+    Ok(())
+}
+
+#[test]
+fn strict_compilation_fingerprint_uses_bound_bytes_and_selected_jvm_image() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    fs::create_dir_all(&plan.cache_dir)?;
+    let first = plan.cache_dir.join("first.jar");
+    let second = plan.cache_dir.join("second.jar");
+    fs::write(&first, b"selected dependency")?;
+    fs::write(&second, b"selected dependency")?;
+    // Isolated hashing context: a synthetic identity never authorizes a JVM.
+    let mut context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    context.verify_compilation_outputs = true;
+    context.compiler_image_identity = Some("synthetic-image-a".to_owned());
+    context.held_neoform_compile_jar = Some(&first);
+    let a = super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&first), &[])?;
+    context.held_neoform_compile_jar = Some(&second);
+    let b = super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&second), &[])?;
+    assert_eq!(
+        a, b,
+        "Invocation path alone must not rebuild identical dependencies"
+    );
+    context.compiler_image_identity = Some("synthetic-image-b".to_owned());
+    assert_ne!(
+        a,
+        super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&second), &[])?
+    );
+    context.compiler_image_identity = Some("synthetic-image-a".to_owned());
+    fs::write(&second, b"changed! dependency")?;
+    assert_ne!(
+        a,
+        super::input_fingerprint(&context, "javac-main", std::slice::from_ref(&second), &[])?
+    );
+    Ok(())
+}
+
+#[test]
+fn strict_main_cache_checks_outputs_before_reusing_historical_dependencies() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().join("minecraft");
+    plan.cache_dir = plan.minecraft_dir.join("build/sfm-toolchain");
+    let classes = plan.cache_dir.join("project/classes");
+    let required = super::required_main_class_output(&classes);
+    let resources = plan.cache_dir.join("project/resources");
+    let refmap = resources.join("sfm.refmap.json");
+    let state = plan.cache_dir.join("project/main.inputs.sha1");
+    fs::create_dir_all(required.parent().unwrap())?;
+    fs::create_dir_all(&resources)?;
+    fs::write(&required, b"compiled bytes")?;
+    fs::write(&refmap, b"{}")?;
+    let roots = [
+        ("classes", classes.as_path()),
+        ("resources", resources.as_path()),
+    ];
+    super::project_compilation_cache::record(&plan.cache_dir, &state, "inputs", &roots, || Ok(()))?;
+    let mut context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    context.verify_compilation_outputs = true;
+    context.compiler_image_identity = Some("synthetic-image-no-execution".to_owned());
+    let allowed = super::project_java_cache_reuse_allowed(&context);
+    assert_eq!(
+        super::main_compilation_cache_matches(&context, &state, "inputs", &classes, &refmap)?,
+        allowed
+    );
+    fs::write(&required, b"corrupt! bytes")?;
+    assert!(!super::main_compilation_cache_matches(
+        &context, &state, "inputs", &classes, &refmap
+    )?);
+    context.compiler_image_identity = None;
+    assert!(!super::project_java_cache_reuse_allowed(&context));
+    Ok(())
+}
+
+pub(super) fn minimal_plan_for_paths() -> BuildPlan {
     let artifact = minimal_artifact();
     BuildPlan {
         schema_version: 1,
@@ -3751,9 +4050,11 @@ fn minimal_plan_for_paths() -> BuildPlan {
         minecraft_dir: PathBuf::from("D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft"),
         gradle_output_jar: PathBuf::from("build/libs/sfm.jar"),
         rust_output_jar: PathBuf::from("build/libs/sfm-rust.jar"),
+        output_name: None,
         cache_dir: PathBuf::from(
             "D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft/build/sfm-toolchain",
         ),
+        derived_cache_root: None,
         common_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain"),
         state_dir: PathBuf::from("build/sfm-toolchain/state"),
         maven_cache_dir: PathBuf::from("D:/sfm-cache/minecraft-toolchain/maven"),
@@ -3819,8 +4120,10 @@ fn test_build_options(parallelism: Parallelism) -> BuildOptions {
     BuildOptions {
         selection: super::super::BuildSelection::Worktree(BranchQuery::default()),
         refresh: false,
+        skip_source_checks: false,
         explain_rebuild: false,
         plan_json: None,
+        output_name: None,
         java_home: None,
         dry_run: true,
         allow_local_artifact_cache: false,
@@ -4400,6 +4703,11 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         cancellation_token: CancellationToken::new(),
         minecraft_libraries_cache: std::sync::Mutex::new(None),
         held_neoform_compile_jar: None,
+        immutable_neoform_profile: false,
+        verify_compilation_outputs: false,
+        compiler_image_identity: None,
+        #[cfg(any(windows, target_os = "linux"))]
+        compiler_image: None,
     }
 }
 
@@ -4710,5 +5018,870 @@ fn catalog_release_packaging_stale_real_owned_input_refuses_before_output_reset(
         fs::read(output.join("retained.bin"))?,
         b"retain prior test-only evidence"
     );
+    Ok(())
+}
+
+#[test]
+fn frozen_cache_marker_relocates_either_separator_without_changing_other_paths() {
+    let root = Path::new("project");
+    let cache = Path::new("cache");
+    for value in [
+        "$sfm-cache/maven/g/a.jar",
+        "$sfm-cache\\maven\\g\\a.jar",
+        "$sfm-cache/maven\\g/a.jar",
+    ] {
+        assert_eq!(
+            super::resolve_locked_artifact_path(Path::new(value), root, cache),
+            cache.join("maven/g/a.jar")
+        );
+    }
+    assert_eq!(
+        super::resolve_locked_artifact_path(Path::new("relative.jar"), root, cache),
+        root.join("relative.jar")
+    );
+    let absolute = std::env::current_dir().unwrap().join("artifact.jar");
+    assert_eq!(
+        super::resolve_locked_artifact_path(&absolute, root, cache),
+        absolute
+    );
+}
+
+#[test]
+fn runtime_pom_traversal_retains_loader_managed_mods_and_requires_plain_library_metadata()
+-> eyre::Result<()> {
+    use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
+    let fixture = tempfile::tempdir()?;
+    let resolver = Resolver::new(
+        fixture.path().join("maven"),
+        Vec::new(),
+        false,
+        false,
+        Vec::new(),
+        None,
+        None,
+        CancellationToken::new(),
+    )?;
+    for configuration in [
+        "implementation",
+        "runtimeOnly",
+        "gametestImplementation",
+        "gametestRuntimeOnly",
+    ] {
+        let mut root = DependencyPlan {
+            configuration: configuration.to_owned(),
+            bundle: None,
+            artifact_treatment: ArtifactTreatmentV3::LoaderManagedMod,
+            data_run_policy:
+                crate::toolchain_lockfile_schema::version::v3::DataRunPolicyV3::Exclude,
+            notation: "org.appliedenergistics:guideme:21.1.1".to_owned(),
+            resolved_notation: "org.appliedenergistics:guideme:21.1.1".to_owned(),
+            source: DependencySource::Maven,
+            cache_path: fixture.path().join("guideme.jar"),
+            url: None,
+            dynamic_version: false,
+        };
+        let planned =
+            super::add_transitive_runtime_dependency_plans(&resolver, vec![root.clone()])?;
+        assert_eq!(planned.len(), 1);
+        assert_eq!(planned[0].resolved_notation, root.resolved_notation);
+        assert_eq!(planned[0].cache_path, root.cache_path);
+        assert_eq!(
+            planned[0].artifact_treatment,
+            ArtifactTreatmentV3::LoaderManagedMod
+        );
+        root.artifact_treatment = ArtifactTreatmentV3::Plain;
+        let error = super::add_transitive_runtime_dependency_plans(&resolver, vec![root])
+            .expect_err("plain library without metadata must fail");
+        assert!(
+            error.to_string().contains(
+                "offline Maven metadata missing: org.appliedenergistics:guideme:21.1.1@pom"
+            ),
+            "{error:?}"
+        );
+    }
+    assert!(
+        !fixture.path().join("maven").exists(),
+        "closure selection must not acquire or manufacture metadata"
+    );
+    Ok(())
+}
+
+#[test]
+fn real_prepared_run_dry_run_never_builds_or_publishes_or_claims_runtime_data() -> eyre::Result<()>
+{
+    assert_prepared_run_is_plan_only(false)
+}
+
+#[test]
+fn real_prepared_projection_run_dry_run_never_builds_or_publishes_or_claims_runtime_data()
+-> eyre::Result<()> {
+    assert_prepared_run_is_plan_only(true)
+}
+
+fn assert_prepared_run_is_plan_only(projection_route: bool) -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let minecraft = dunce::canonicalize(fixture.path())?;
+    let cache = minecraft.join("build/sfm-toolchain/native-project/dry-run-fixture");
+    fs::create_dir_all(cache.join("state"))?;
+    let latest = cache.join("state/latest-successful-build.json");
+    fs::write(&latest, b"unchanged previous successful receipt")?;
+    let data = minecraft.join("build/sfm-runtime/slots/1/run");
+    fs::create_dir_all(data.join("saves/world"))?;
+    fs::write(data.join("options.txt"), b"retained options")?;
+    fs::write(
+        data.join("saves/world/session.lock"),
+        b"retained native world lock",
+    )?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = minecraft.clone();
+    plan.cache_dir = cache.clone();
+    plan.state_dir = cache.join("state");
+    let mut options = test_build_options(Parallelism::Sequential);
+    options.mode = BuildMode::Build;
+    options.dry_run = true;
+    // A late dry-run branch would fail at this producer lock before any external
+    // compiler could be launched, making this a safe real-orchestration fixture.
+    let _producer = ArtifactLock::acquire(build_cache_lock_path(&plan), "held fixture producer")?;
+    let run_options = RunOptions::default();
+    let cancellation = CancellationToken::new();
+    if projection_route {
+        let result = super::execute_prepared_projection_operation(
+            &options,
+            "fixture/1.19.2",
+            super::ProjectionOperation::Run(RunKind::Client, &run_options),
+            &cancellation,
+            plan,
+        )?;
+        assert!(result.is_some());
+    } else {
+        super::execute_prepared_run_target(
+            &options,
+            RunKind::Client,
+            &run_options,
+            plan,
+            &cancellation,
+        )?;
+    }
+    assert_eq!(fs::read(&latest)?, b"unchanged previous successful receipt");
+    assert!(!cache.join("project").exists());
+    assert!(!cache.join("build-snapshots").exists());
+    assert!(
+        !minecraft
+            .join("build/sfm-runtime/slots/1/.sfm-owners")
+            .exists()
+    );
+    assert!(
+        !minecraft
+            .join("build/sfm-runtime/slots/1/launches")
+            .exists()
+    );
+    assert_eq!(fs::read(data.join("options.txt"))?, b"retained options");
+    assert_eq!(
+        fs::read(data.join("saves/world/session.lock"))?,
+        b"retained native world lock"
+    );
+    Ok(())
+}
+
+#[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Two live-session sentinel fixture covers copy ownership, producer release and retained user data together."
+)]
+fn runtime_launch_inputs_are_owned_before_producer_release_and_survive_next_build()
+-> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let plan = launch_input_fixture_plan(&root)?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    let inputs = [
+        "run/forge-dev.jar",
+        "run/neoforge.jar",
+        "run/client-extra.jar",
+        "dependencies/copied.jar",
+        "run/mcp-mappings/fields.csv",
+        "project/run-refmap-remap.srg",
+        "run/natives/example.dll",
+    ];
+    let data = root.join("build/sfm-runtime/slots/1/run");
+    fs::create_dir_all(data.join("saves/world"))?;
+    fs::write(data.join("options.txt"), b"retained options")?;
+    fs::write(data.join("saves/world/session.lock"), b"native world lock")?;
+    let control = root.join("control-cli.exe");
+    fs::write(&control, b"first control executable")?;
+    let mut first_capture = BTreeMap::new();
+    for number in 1..=2 {
+        let mut producer = Some(ArtifactLock::acquire(
+            build_cache_lock_path(&plan),
+            "fixture producer",
+        )?);
+        for relative in inputs {
+            let path = plan.cache_dir.join(relative);
+            fs::create_dir_all(path.parent().unwrap())?;
+            fs::write(path, format!("build {number}: {relative}"))?;
+        }
+        if number == 2 {
+            fs::write(&control, b"second control executable")?;
+        }
+        let session = root.join(format!(
+            "build/sfm-runtime/slots/{number}/launches/session-{number}"
+        ));
+        fs::create_dir_all(session.join("mod"))?;
+        fs::write(
+            session.join("mod/classes.sentinel"),
+            b"successful mod snapshot",
+        )?;
+        let mut captured = BTreeMap::new();
+        let mut budget = (0, 0);
+        let mappings = plan.cache_dir.join("run/mcp-mappings");
+        let owned = super::capture_mutable_launch_input(
+            &context,
+            &session,
+            &mappings,
+            &mut captured,
+            false,
+            &mut budget,
+        )?;
+        assert!(owned.is_dir());
+        let captured_control = super::capture_mutable_launch_input(
+            &context,
+            &session,
+            &control,
+            &mut captured,
+            true,
+            &mut budget,
+        )?;
+        assert!(captured_control.starts_with(&session));
+        let mut args = vec![
+            format!(
+                "-cp={}",
+                inputs[..4]
+                    .iter()
+                    .map(|name| plan.cache_dir.join(name).display().to_string())
+                    .collect::<Vec<_>>()
+                    .join(if cfg!(windows) { ";" } else { ":" })
+            ),
+            format!(
+                "-Dmixin.env.refMapRemappingFile={}",
+                plan.cache_dir.join(inputs[5]).display()
+            ),
+            format!(
+                "-Djava.library.path={}",
+                plan.cache_dir.join("run/natives").display()
+            ),
+        ];
+        let mut env = BTreeMap::from([
+            ("MAPPINGS".to_owned(), mappings.display().to_string()),
+            (
+                "LD_LIBRARY_PATH".to_owned(),
+                plan.cache_dir.join("run/natives").display().to_string(),
+            ),
+        ]);
+        super::rewrite_owned_launch_values(
+            &context,
+            &session,
+            &mut args,
+            &mut env,
+            &mut captured,
+            &mut budget,
+        )?;
+        assert!(
+            args.iter()
+                .chain(env.values())
+                .all(|value| !value.contains(&plan.cache_dir.display().to_string()))
+        );
+        super::release_launch_preparation_lock(
+            RunKind::Client,
+            &RunOptions::default(),
+            &mut producer,
+        );
+        assert!(producer.is_none());
+        // A new compile producer can own the same cache while this session's
+        // inputs and persistent game data are still in use.
+        let concurrent = ArtifactLock::try_acquire(build_cache_lock_path(&plan), "next build")?;
+        assert!(concurrent.is_some());
+        drop(concurrent);
+        if number == 1 {
+            first_capture = captured;
+        } else {
+            assert_eq!(fs::read(captured_control)?, b"second control executable");
+            assert_eq!(
+                fs::read(owned.join("fields.csv"))?,
+                b"build 2: run/mcp-mappings/fields.csv"
+            );
+        }
+        assert_eq!(
+            fs::read(session.join("mod/classes.sentinel"))?,
+            b"successful mod snapshot"
+        );
+    }
+    for (source, owned) in &first_capture {
+        if source.is_dir() {
+            assert_eq!(
+                fs::read(owned.join(if source.ends_with("natives") {
+                    "example.dll"
+                } else {
+                    "fields.csv"
+                }))?,
+                if source.ends_with("natives") {
+                    b"build 1: run/natives/example.dll".as_slice()
+                } else {
+                    b"build 1: run/mcp-mappings/fields.csv".as_slice()
+                }
+            );
+        } else if source == &control {
+            assert_eq!(fs::read(owned)?, b"first control executable");
+        } else {
+            let relative = source
+                .strip_prefix(&plan.cache_dir)?
+                .to_string_lossy()
+                .replace('\\', "/");
+            assert_eq!(fs::read(owned)?, format!("build 1: {relative}").as_bytes());
+        }
+    }
+    assert_eq!(fs::read(data.join("options.txt"))?, b"retained options");
+    assert_eq!(
+        fs::read(data.join("saves/world/session.lock"))?,
+        b"native world lock"
+    );
+    Ok(())
+}
+
+fn launch_input_fixture_plan(root: &Path) -> eyre::Result<BuildPlan> {
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = root.to_owned();
+    plan.cache_dir = root.join("build/sfm-toolchain/native-project/launch-input-fixture");
+    plan.state_dir = plan.cache_dir.join("state");
+    fs::create_dir_all(&plan.state_dir)?;
+    Ok(plan)
+}
+
+#[test]
+fn runtime_launch_input_rewrite_preserves_distinct_same_prefix_paths() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let plan = launch_input_fixture_plan(&root)?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    let session = root.join("session");
+    fs::create_dir(&session)?;
+    let jar = plan.cache_dir.join("foo.jar");
+    let sibling = plan.cache_dir.join("foo.jar.extra");
+    fs::write(&jar, b"jar")?;
+    fs::write(&sibling, b"distinct sibling")?;
+    let mut captured = BTreeMap::new();
+    let mut budget = (0, 0);
+    super::capture_mutable_launch_input(
+        &context,
+        &session,
+        &jar,
+        &mut captured,
+        false,
+        &mut budget,
+    )?;
+    let mut args = vec![format!("-Dfirst={};{}", jar.display(), sibling.display())];
+    super::rewrite_owned_launch_values(
+        &context,
+        &session,
+        &mut args,
+        &mut BTreeMap::new(),
+        &mut captured,
+        &mut budget,
+    )?;
+    assert_eq!(captured.len(), 2);
+    assert_eq!(
+        fs::read(captured.get(&sibling).unwrap())?,
+        b"distinct sibling"
+    );
+    assert!(!args[0].contains("foo.jar.extra.extra"));
+    assert!(!args[0].contains(&plan.cache_dir.display().to_string()));
+    let mappings = plan.cache_dir.join("mappings");
+    let mappings_next = plan.cache_dir.join("mappings-next");
+    for directory in [&mappings, &mappings_next] {
+        fs::create_dir(directory)?;
+        fs::write(
+            directory.join("fields.csv"),
+            directory.file_name().unwrap().to_string_lossy().as_bytes(),
+        )?;
+    }
+    super::capture_mutable_launch_input(
+        &context,
+        &session,
+        &mappings,
+        &mut captured,
+        false,
+        &mut budget,
+    )?;
+    let mut args = vec![format!("-Dmapping={}", mappings_next.display())];
+    super::rewrite_owned_launch_values(
+        &context,
+        &session,
+        &mut args,
+        &mut BTreeMap::new(),
+        &mut captured,
+        &mut budget,
+    )?;
+    assert_eq!(
+        fs::read(captured.get(&mappings_next).unwrap().join("fields.csv"))?,
+        b"mappings-next"
+    );
+    #[cfg(windows)]
+    {
+        let mut args = vec![
+            format!("-Dalternate={}", jar.display())
+                .replace('\\', "/")
+                .to_ascii_uppercase(),
+        ];
+        super::rewrite_owned_launch_values(
+            &context,
+            &session,
+            &mut args,
+            &mut BTreeMap::new(),
+            &mut captured,
+            &mut budget,
+        )?;
+        assert_eq!(
+            args[0],
+            format!("-DALTERNATE={}", captured.get(&jar).unwrap().display())
+        );
+    };
+    Ok(())
+}
+
+#[test]
+fn runtime_launch_input_bounds_and_unresolved_paths_fail_closed() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let plan = launch_input_fixture_plan(&root)?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    let session = root.join("session");
+    fs::create_dir(&session)?;
+    let large = plan.cache_dir.join("too-large.jar");
+    fs::File::create(&large)?.set_len(1024 * 1024 * 1024 + 1)?;
+    let mut captured = BTreeMap::new();
+    assert!(
+        super::capture_mutable_launch_input(
+            &context,
+            &session,
+            &large,
+            &mut captured,
+            false,
+            &mut (0, 0)
+        )
+        .is_err()
+    );
+    assert!(captured.is_empty());
+    let unpinned = root.join("unbound.jar");
+    fs::write(&unpinned, b"not a pinned shared artifact")?;
+    assert!(
+        super::capture_mutable_launch_input(
+            &context,
+            &session,
+            &unpinned,
+            &mut captured,
+            false,
+            &mut (0, 0)
+        )
+        .is_err()
+    );
+    let mut args = vec![format!(
+        "-Dmissing={}",
+        plan.cache_dir.join("missing.jar").display()
+    )];
+    assert!(
+        super::rewrite_owned_launch_values(
+            &context,
+            &session,
+            &mut args,
+            &mut BTreeMap::new(),
+            &mut captured,
+            &mut (0, 0)
+        )
+        .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn runtime_owned_log_consumers_ignore_a_later_sessions_console() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let first = root.join("build/sfm-runtime/slots/1/launches/session-first/run/console.log");
+    let second = root.join("build/sfm-runtime/slots/2/launches/session-second/run/console.log");
+    for path in [&first, &second] {
+        fs::create_dir_all(path.parent().unwrap())?;
+    }
+    fs::write(&first, b"first attempt: Test failed: sfm:original_target")?;
+    fs::write(
+        &second,
+        b"later unrelated session: All 999 required tests passed :)",
+    )?;
+    let latest = root.join("build/sfm-toolchain/run/game-test/latest-session.json");
+    fs::create_dir_all(latest.parent().unwrap())?;
+    fs::write(
+        &latest,
+        format!("later session now points to {}", second.display()),
+    )?;
+    let (text, saved) = super::read_owned_game_test_bisect_log(&first, 1, "baseline")?;
+    assert_eq!(text.as_bytes(), fs::read(&first)?);
+    assert_eq!(fs::read(&saved)?, fs::read(&first)?);
+    assert!(saved.starts_with(first.parent().unwrap()));
+    super::publish_owned_preview_console(&first, &root)?;
+    assert_eq!(
+        fs::read(super::super::projection_preview_artifact_root(&root).join("console.log"))?,
+        fs::read(&first)?
+    );
+    assert_ne!(fs::read(&first)?, fs::read(&second)?);
+    assert!(fs::read_to_string(latest)?.contains(&second.display().to_string()));
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn runtime_launch_long_dependency_and_directory_capture_preserves_exact_bytes() -> eyre::Result<()>
+{
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let plan = launch_input_fixture_plan(&root)?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    let session = root.join("session");
+    fs::create_dir(&session)?;
+    let dependency = plan
+        .cache_dir
+        .join("dependencies")
+        .join(format!("{}.jar", "d".repeat(180)));
+    fs::create_dir_all(dependency.parent().unwrap())?;
+    fs::write(&dependency, b"long owned dependency")?;
+    let directory = plan.cache_dir.join("run/native-inputs");
+    let relative = PathBuf::from("a".repeat(96))
+        .join("b".repeat(96))
+        .join("example.dll");
+    fs::create_dir_all(directory.join(&relative).parent().unwrap())?;
+    fs::write(directory.join(&relative), b"long nested native input")?;
+    let mut captured = BTreeMap::new();
+    let mut budget = (0, 0);
+    for source in [&dependency, &directory] {
+        let target = super::capture_mutable_launch_input(
+            &context,
+            &session,
+            source,
+            &mut captured,
+            false,
+            &mut budget,
+        )?;
+        assert_eq!(
+            fs::read(if source == &directory {
+                target.join(&relative)
+            } else {
+                target
+            })?,
+            if source == &directory {
+                b"long nested native input".as_slice()
+            } else {
+                b"long owned dependency".as_slice()
+            }
+        );
+    }
+    let canonical = dunce::canonicalize(&dependency)?;
+    assert_ne!(canonical, dependency);
+    let target = captured.get(&canonical).unwrap();
+    for spelling in [dependency.clone(), canonical.clone()] {
+        let value = format!("-Dlibrary=\"{}\"", spelling.display());
+        assert_eq!(
+            super::rewrite_captured_launch_value(&value, &captured),
+            format!("-Dlibrary=\"{}\"", target.display())
+        );
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn runtime_launch_long_cache_parser_and_rewriter_admit_both_prefix_forms() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let mut plan = launch_input_fixture_plan(&root)?;
+    plan.cache_dir = root
+        .join("long-cache")
+        .join("a".repeat(112))
+        .join("b".repeat(112));
+    plan.state_dir = plan.cache_dir.join("state");
+    fs::create_dir_all(&plan.state_dir)?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    let source = plan.cache_dir.join("library.jar");
+    fs::write(&source, b"long cache library")?;
+    let cache = dunce::canonicalize(&plan.cache_dir)?;
+    let canonical = dunce::canonicalize(&source)?;
+    assert_ne!(cache, plan.cache_dir);
+    let session = root.join("session");
+    fs::create_dir(&session)?;
+    let mut captured = BTreeMap::new();
+    let mut budget = (0, 0);
+    let target = super::capture_mutable_launch_input(
+        &context,
+        &session,
+        &source,
+        &mut captured,
+        false,
+        &mut budget,
+    )?;
+    for spelling in [&source, &canonical] {
+        let value = format!("-Dpath={}", spelling.display());
+        let admitted = super::cache_path_in_launch_value(&value, &cache)?.unwrap();
+        assert_eq!(dunce::canonicalize(admitted)?, canonical);
+        let mut args = vec![value];
+        super::rewrite_owned_launch_values(
+            &context,
+            &session,
+            &mut args,
+            &mut BTreeMap::new(),
+            &mut captured,
+            &mut budget,
+        )?;
+        assert_eq!(args[0], format!("-Dpath={}", target.display()));
+    }
+    let mut sibling = plan.cache_dir.clone().into_os_string();
+    sibling.push("-sibling/library.jar");
+    assert!(
+        super::cache_path_in_launch_value(
+            &format!("-Dpath={}", PathBuf::from(sibling).display()),
+            &cache
+        )?
+        .is_none()
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn runtime_launch_rewrite_consumes_complete_prefix_and_keeps_unc_authority() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let source = root
+        .join("source")
+        .join("a".repeat(112))
+        .join("b".repeat(112))
+        .join("input.jar");
+    let target = root
+        .join("target")
+        .join("c".repeat(112))
+        .join("d".repeat(112))
+        .join("captured.jar");
+    for path in [&source, &target] {
+        fs::create_dir_all(path.parent().unwrap())?;
+        fs::write(path, b"fixture")?;
+    }
+    let canonical_source = dunce::canonicalize(&source)?;
+    let canonical_target = dunce::canonicalize(&target)?;
+    for spelling in [&source, &canonical_source] {
+        for destination in [&target, &canonical_target] {
+            assert_eq!(
+                super::replace_launch_path(
+                    &format!("-Dpath={}", spelling.display()),
+                    &canonical_source,
+                    destination
+                ),
+                format!("-Dpath={}", destination.display())
+            );
+        }
+    }
+    let unc = Path::new(r"\\server\share\Owned\file.jar");
+    assert!(super::launch_authority_matches(
+        unc,
+        r"\\?\UNC\server\share\Owned\file.jar"
+    ));
+    assert!(!super::launch_authority_matches(
+        unc,
+        r"\\?\UNC\SERVER\share\Owned\file.jar"
+    ));
+    assert!(!super::launch_authority_matches(
+        unc,
+        r"\\other\share\Owned\file.jar"
+    ));
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn runtime_launch_forbidden_gradle_roots_reject_long_descendants() -> eyre::Result<()> {
+    let fixture = tempfile::tempdir()?;
+    let root = dunce::canonicalize(fixture.path())?;
+    let plan = launch_input_fixture_plan(&root)?;
+    let forbidden = root
+        .join("build/classes")
+        .join("a".repeat(112))
+        .join("b".repeat(112))
+        .join("input.jar");
+    fs::create_dir_all(forbidden.parent().unwrap())?;
+    fs::write(&forbidden, b"synthetic forbidden Gradle output")?;
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    assert!(
+        context
+            .assert_allowed_input(&forbidden)
+            .unwrap_err()
+            .to_string()
+            .contains("forbidden Gradle output")
+    );
+    let sibling = root.join("build/classes-sibling/input.jar");
+    fs::create_dir_all(sibling.parent().unwrap())?;
+    fs::write(&sibling, b"allowed synthetic sibling")?;
+    context.assert_allowed_input(&sibling)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn runtime_launch_cache_parser_rejects_unc_aliases_and_unrewritable_embeddings() -> eyre::Result<()>
+{
+    let cache = Path::new(r"\\server\share\cache");
+    for value in [
+        r"-Dpath=\\SERVER\share\cache\input.jar",
+        r"-Dpath=\\?\UNC\server\SHARE\cache\input.jar",
+    ] {
+        assert!(
+            super::cache_path_in_launch_value(value, cache)
+                .unwrap_err()
+                .to_string()
+                .contains("authority spelling")
+        );
+    }
+    assert!(
+        super::cache_path_in_launch_value(r"-Dpath=\\other\share\cache\input.jar", cache)?
+            .is_none()
+    );
+    assert!(
+        super::cache_path_in_launch_value(
+            r"-Dpath=file:/C:/Owned/cache/input.jar",
+            Path::new(r"C:\Owned\cache")
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("token boundary")
+    );
+    Ok(())
+}
+
+#[test]
+fn fresh_jar_output_does_not_read_or_update_the_default_package_marker() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = temporary.path().to_path_buf();
+    plan.cache_dir = temporary.path().join("build/sfm-toolchain");
+    let default_output = temporary.path().join("default.jar");
+    let alternate_output = temporary.path().join("alternate.jar");
+    let marker = temporary.path().join("package.inputs.sha1");
+    fs::write(&default_output, b"old default final")?;
+    fs::write(&alternate_output, b"new alternate final")?;
+    fs::write(&marker, b"old-default-inputs")?;
+    plan.output_name = Some("alternate.jar".to_owned());
+    plan.rust_output_jar = alternate_output;
+    {
+        let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+        assert!(!super::package_cache_matches(
+            &context,
+            &marker,
+            "old-default-inputs"
+        )?);
+        super::write_package_cache_state(&context, &marker, "new-alternate-inputs")?;
+        assert_eq!(fs::read(&marker)?, b"old-default-inputs");
+    }
+    plan.output_name = None;
+    plan.rust_output_jar = default_output.clone();
+    let context = ExecutionContext::new(&plan, CancellationToken::new())?;
+    assert!(super::package_cache_matches(
+        &context,
+        &marker,
+        "old-default-inputs"
+    )?);
+    assert!(!super::package_cache_matches(
+        &context,
+        &marker,
+        "new-alternate-inputs"
+    )?);
+    assert_eq!(fs::read(&default_output)?, b"old default final");
+    Ok(())
+}
+
+#[test]
+fn fresh_jar_output_writer_requires_its_exact_admitted_private_path() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let owner = dunce::canonicalize(temporary.path())?;
+    fs::create_dir_all(owner.join("build/libs"))?;
+    let cache = owner.join("build/cache/project");
+    fs::create_dir_all(&cache)?;
+    let mut plan = minimal_plan_for_paths();
+    plan.minecraft_dir = owner.clone();
+    plan.output_name = Some("fresh.jar".to_owned());
+    plan.rust_output_jar = owner.join("build/libs/fresh.jar");
+    assert!(super::project_package_writer_output(&plan, None).is_err());
+    let mut admitted =
+        super::fresh_jar_output::FreshJarOutput::prepare(&owner, &plan.rust_output_jar)?;
+    assert!(super::project_package_writer_output(&plan, Some(&admitted)).is_err());
+    let private = admitted.private_output_directory(&cache)?;
+    assert_eq!(
+        super::project_package_writer_output(&plan, Some(&admitted))?,
+        private.path().join("reobfuscated.jar")
+    );
+    plan.rust_output_jar = owner.join("build/libs/changed.jar");
+    assert!(super::project_package_writer_output(&plan, Some(&admitted)).is_err());
+    // Release held private ancestry before the TempDir cleanup.
+    drop(admitted);
+    drop(private);
+    Ok(())
+}
+
+#[test]
+fn fresh_jar_output_worktree_selection_is_refused_before_planning() {
+    let mut options = test_build_options(Parallelism::Sequential);
+    options.output_name = Some("fresh.jar".to_owned());
+    let error = super::invoke_build(&options, &CancellationToken::new()).unwrap_err();
+    assert!(
+        error.to_string().contains("explicitly selected projection"),
+        "{error:?}"
+    );
+}
+
+#[cfg(any(windows, target_os = "linux"))]
+#[test]
+fn fresh_jar_output_external_cache_is_refused_before_planning() -> eyre::Result<()> {
+    let temporary = tempfile::tempdir()?;
+    let root = dunce::canonicalize(temporary.path())?;
+    let repository = root.join("repository");
+    let project = repository.join("minecraft");
+    let java = root.join("synthetic-sdk-not-executed");
+    fs::create_dir_all(&project)?;
+    fs::create_dir(&java)?;
+    let external = root.join("owned-external-cache");
+    let cancellation = CancellationToken::new();
+    let derived = super::native_cache_root::NativeCacheRoot::acquire(
+        &external,
+        &repository,
+        &project,
+        &java,
+        &cancellation,
+    )?;
+    let marker = external.join(".sfm-native-cache-root.json");
+    let before = fs::read(&marker)?;
+    let planning = super::NativePlanningOptions {
+        output_name: Some("fresh.jar".to_owned()),
+        derived_cache_root: Some(Arc::new(derived)),
+        mode: BuildMode::Plan,
+        java_home: None,
+        refresh: false,
+        allow_local_artifact_cache: false,
+        artifact_sources: Vec::new(),
+        require_portable_artifacts: false,
+    };
+    let identity = BuildProjectIdentity::Worktree {
+        branch: BranchName::from("1.19.2"),
+        root: repository.clone(),
+    };
+    let error = super::create_plan_for_project(&planning, &identity, &cancellation).unwrap_err();
+    assert!(
+        error.to_string().contains("default projection cache root"),
+        "{error:?}"
+    );
+    assert_eq!(fs::read(&marker)?, before);
+    assert!(!external.join("projects").exists());
+    assert!(!repository.join("platform/minecraft").exists());
     Ok(())
 }

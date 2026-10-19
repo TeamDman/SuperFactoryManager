@@ -25,6 +25,7 @@ use super::core_inputs::collect_core_artifacts;
 use super::core_inputs::discover_core_source_files;
 use super::core_inputs::select_core_inputs;
 use super::named_root::catalog_projection_root;
+pub(crate) use super::preparation_progress::ProjectionPreparationPhase;
 use super::projection_catalog::CATALOG_PATH;
 use super::projection_catalog::ProjectionEnvironment;
 use super::projection_catalog::validate_projection_key;
@@ -38,6 +39,7 @@ use eyre::Result;
 use eyre::WrapErr;
 use eyre::ensure;
 use facet::Facet;
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -45,6 +47,7 @@ use std::io::Read as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 const RECEIPT_SCHEMA: &str = "sfm:catalog_owned_project@1";
 const MAX_SOURCE_ENTRIES: usize = 131_072;
@@ -96,13 +99,21 @@ pub struct CollectedCatalogProject {
     artifacts: BTreeMap<String, ProjectedArtifact>,
 }
 
-/// A checked immutable snapshot, not a filesystem lock or execution permit.
-/// Callers must recheck it after preparation and immediately before effects.
+/// Retained selected bytes and their ownership evidence. Independent callers
+/// recheck before effects; the development CLI may retain an invocation snapshot.
 #[derive(Debug)]
 pub struct CatalogOwnedProject {
     collected: CollectedCatalogProject,
     project_root: PathBuf,
     receipt: CatalogOwnedProjectReceipt,
+    invocation_checks: Option<InvocationSourceChecks>,
+}
+
+/// Private admission policy retained only by one development CLI invocation.
+#[derive(Clone, Copy, Debug)]
+enum InvocationSourceChecks {
+    VerifiedOnce,
+    Skipped,
 }
 
 /// Borrowed selected bytes bound to the checked project and its output path.
@@ -114,21 +125,21 @@ pub struct CatalogOwnedInput<'a> {
     declared_template: bool,
 }
 
-impl CatalogOwnedInput<'_> {
+impl<'a> CatalogOwnedInput<'a> {
     #[must_use]
-    pub fn output_path(&self) -> &str {
+    pub fn output_path(&self) -> &'a str {
         self.output_path
     }
     #[must_use]
-    pub fn source_path(&self) -> &str {
+    pub fn source_path(&self) -> &'a str {
         &self.artifact.source_path
     }
     #[must_use]
-    pub fn source_bytes(&self) -> &[u8] {
+    pub fn source_bytes(&self) -> &'a [u8] {
         &self.artifact.source_bytes
     }
     #[must_use]
-    pub fn output_bytes(&self) -> &[u8] {
+    pub fn output_bytes(&self) -> &'a [u8] {
         &self.artifact.output_bytes
     }
     /// The selected authoring metadata flag, not an inference from byte equality.
@@ -143,7 +154,7 @@ impl CatalogOwnedInput<'_> {
     /// # Errors
     /// Rejects a template-enabled role, including unchanged rendering, or any
     /// role whose raw authored and projected bytes differ.
-    pub fn require_exact_copy(&self) -> Result<&[u8]> {
+    pub fn require_exact_copy(&self) -> Result<&'a [u8]> {
         ensure!(
             !self.declared_template,
             "selected role input declares template rendering: {}",
@@ -171,6 +182,10 @@ impl CollectedCatalogProject {
             self.identity.environment == ProjectionEnvironment::Dev,
             "development preparation cannot synchronize a release projection"
         );
+        let phase = ProjectionPreparationPhase::start(
+            &self.identity.projection_key,
+            "development_preparation",
+        );
         self.recheck_authored_snapshot()?;
         let root = catalog_projection_root(
             &self.loaded.repo_root,
@@ -178,8 +193,94 @@ impl CollectedCatalogProject {
             &self.identity.projection_key,
             &self.artifacts,
         )?;
-        sync_catalog_projection(&root, &self.identity, &self.artifacts, SyncMode::Apply)?;
+        let sync_phase = ProjectionPreparationPhase::start(
+            &self.identity.projection_key,
+            "development_output_sync",
+        );
+        let report =
+            sync_catalog_projection(&root, &self.identity, &self.artifacts, SyncMode::Apply)?;
+        tracing::info!(
+            projection_key = self.identity.projection_key,
+            created_files = report.created.len(),
+            updated_files = report.updated.len(),
+            unchanged_files = report.unchanged.len(),
+            "Development projection outputs synchronized"
+        );
+        sync_phase.complete();
+        phase.complete();
         self.check_current()
+    }
+
+    /// Prepare one development CLI snapshot. Collection/rendering and guarded
+    /// sync still read their inputs; only the final ownership pass verifies the
+    /// complete snapshot. The explicit opt-out omits that pass as well.
+    pub(crate) fn prepare_development_invocation(
+        self,
+        skip_source_checks: bool,
+    ) -> Result<CatalogOwnedProject> {
+        ensure!(
+            self.identity.environment == ProjectionEnvironment::Dev,
+            "invocation source snapshots require a development projection"
+        );
+        let phase = ProjectionPreparationPhase::start(
+            &self.identity.projection_key,
+            "development_preparation",
+        );
+        let root = catalog_projection_root(
+            &self.loaded.repo_root,
+            &self.loaded.catalog,
+            &self.identity.projection_key,
+            &self.artifacts,
+        )?;
+        let sync_phase = ProjectionPreparationPhase::start(
+            &self.identity.projection_key,
+            "development_output_sync",
+        );
+        let report =
+            sync_catalog_projection(&root, &self.identity, &self.artifacts, SyncMode::Apply)?;
+        tracing::info!(
+            projection_key = self.identity.projection_key,
+            created_files = report.created.len(),
+            updated_files = report.updated.len(),
+            unchanged_files = report.unchanged.len(),
+            "Development projection outputs synchronized"
+        );
+        sync_phase.complete();
+        phase.complete();
+        let mut project = if skip_source_checks {
+            ProjectionPreparationPhase::start(&self.identity.projection_key, "source_verification")
+                .skip("--skip-source-checks requested");
+            let source_inventory = self
+                .artifacts
+                .keys()
+                .filter(|path| path.starts_with("src/"))
+                .cloned()
+                .collect();
+            self.finish_ownership(
+                &root,
+                &source_inventory,
+                "unverified_development_input_snapshot",
+            )?
+        } else {
+            self.check_current()?
+        };
+        project.invocation_checks = Some(if skip_source_checks {
+            InvocationSourceChecks::Skipped
+        } else {
+            InvocationSourceChecks::VerifiedOnce
+        });
+        tracing::info!(
+            projection_key = project.receipt.projection_key,
+            phase = "admit_development_source_snapshot",
+            status = if skip_source_checks {
+                "skipped"
+            } else {
+                "verified_once"
+            },
+            skip_source_checks,
+            "Development source snapshot admitted for this invocation"
+        );
+        Ok(project)
     }
 
     #[must_use]
@@ -220,6 +321,10 @@ impl CollectedCatalogProject {
     /// files/reparse points, stale/conflicting outputs and changed provenance.
     #[tracing::instrument(name = "catalog.check_current", skip_all)]
     pub fn check_current(self) -> Result<CatalogOwnedProject> {
+        #[cfg(test)]
+        source_check_observation::notify("check_current");
+        let projection_key = self.identity.projection_key.clone();
+        let phase = ProjectionPreparationPhase::start(&projection_key, "check_generated_ownership");
         let project_root = catalog_projection_root(
             &self.loaded.repo_root,
             &self.loaded.catalog,
@@ -227,34 +332,65 @@ impl CollectedCatalogProject {
             &self.artifacts,
         )?;
         self.validate_output_contract()?;
-        let mut files = BTreeMap::new();
         let mut total = 0_u64;
         let mut reader = CheckedInputReader::default();
+        let mut read_phase = ProjectionPreparationPhase::start_with_totals(
+            &self.identity.projection_key,
+            "read_generated_outputs",
+            self.artifacts.len(),
+            self.artifacts
+                .values()
+                .map(|artifact| artifact.output_bytes.len() as u64)
+                .sum(),
+        );
         for (output, artifact) in &self.artifacts {
             let actual = reader.read(&project_root, output, MAX_CORE_FILE_BYTES)?;
+            read_phase.checked_file(actual.len());
             add_budget(&mut total, actual.len())?;
             ensure!(
                 actual == artifact.output_bytes,
                 "catalog-owned generated output changed during check: {output}"
             );
-            files.insert(
-                output.clone(),
-                CatalogOwnedFileReceipt {
-                    related_references: artifact.related_references.clone(),
-                    authored_input: artifact.source_path.clone(),
-                    declared_template: selected_template_mode(&self.selection, output)?,
-                    source_sha256: sha256(&artifact.source_bytes),
-                    source_bytes: artifact.source_bytes.len() as u64,
-                    output_sha256: sha256(&artifact.output_bytes),
-                    output_bytes: artifact.output_bytes.len() as u64,
-                },
-            );
         }
+        read_phase.complete();
         let source_inventory = inspect_generated_sources(&project_root, &self.artifacts)?;
         self.recheck_authored_snapshot()?;
+        let project = self.finish_ownership(
+            &project_root,
+            &source_inventory,
+            "read_only_selected_input_ownership_not_native_build",
+        )?;
+        phase.complete();
+        Ok(project)
+    }
+
+    fn finish_ownership(
+        self,
+        project_root: &Path,
+        source_inventory: &BTreeSet<String>,
+        scope: &str,
+    ) -> Result<CatalogOwnedProject> {
+        let files = self
+            .artifacts
+            .iter()
+            .map(|(output, artifact)| {
+                Ok((
+                    output.clone(),
+                    CatalogOwnedFileReceipt {
+                        related_references: artifact.related_references.clone(),
+                        authored_input: artifact.source_path.clone(),
+                        declared_template: selected_template_mode(&self.selection, output)?,
+                        source_sha256: sha256(&artifact.source_bytes),
+                        source_bytes: artifact.source_bytes.len() as u64,
+                        output_sha256: sha256(&artifact.output_bytes),
+                        output_bytes: artifact.output_bytes.len() as u64,
+                    },
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
         let receipt = CatalogOwnedProjectReceipt {
             schema: RECEIPT_SCHEMA.to_owned(),
-            scope: "read_only_selected_input_ownership_not_native_build".to_owned(),
+            scope: scope.to_owned(),
             projection_key: self.identity.projection_key.clone(),
             environment: self.identity.environment,
             target_id: self.identity.target_id.clone(),
@@ -272,13 +408,15 @@ impl CollectedCatalogProject {
             feature_definitions_sha256: self.loaded.feature_definitions_sha256.clone(),
             project_inputs_sha256: sha256(&self.metadata_bytes),
             authored_source_inventory_sha256: inventory_digest(&self.source_inventory)?,
-            generated_source_inventory_sha256: inventory_digest(&source_inventory)?,
+            generated_source_inventory_sha256: inventory_digest(source_inventory)?,
             files,
         };
+        let project_root = checked_directory(project_root)?;
         Ok(CatalogOwnedProject {
             collected: self,
-            project_root: checked_directory(&project_root)?,
+            project_root,
             receipt,
+            invocation_checks: None,
         })
     }
 
@@ -293,6 +431,17 @@ impl CollectedCatalogProject {
 
     #[tracing::instrument(name = "catalog.recheck_authored", skip_all)]
     fn recheck_authored_snapshot(&self) -> Result<()> {
+        #[cfg(test)]
+        source_check_observation::notify("authored");
+        let mut phase = ProjectionPreparationPhase::start_with_totals(
+            &self.identity.projection_key,
+            "recheck_authored_inputs",
+            self.artifacts.len(),
+            self.artifacts
+                .values()
+                .map(|artifact| artifact.source_bytes.len() as u64)
+                .sum(),
+        );
         let mut reader = CheckedInputReader::default();
         ensure!(
             self.loaded.catalog_sha256
@@ -315,29 +464,26 @@ impl CollectedCatalogProject {
                 && discover_core_source_files(&self.core)? == self.source_inventory,
             "catalog authored metadata or source inventory changed during collection"
         );
-        let mut total = 0_u64;
-        for artifact in self.artifacts.values() {
-            if let Some(issues) = &artifact.related_references {
-                for (path, digest) in &issues.declarations {
-                    let raw = reader.read(&self.loaded.repo_root, path, MAX_CORE_FILE_BYTES)?;
-                    ensure!(
-                        sha256(&raw) == *digest,
-                        "issue declaration source changed: {path}"
-                    );
-                }
-            }
-            let bytes = reader.read(
-                &self.loaded.repo_root,
-                &artifact.source_path,
-                MAX_CORE_FILE_BYTES,
-            )?;
-            add_budget(&mut total, bytes.len())?;
-            ensure!(
-                bytes == artifact.source_bytes,
-                "selected core-owned source bytes changed: {}",
-                artifact.source_path
-            );
-        }
+        recheck_issue_declarations(&self.artifacts, |path| {
+            reader.read(&self.loaded.repo_root, path, MAX_CORE_FILE_BYTES)
+        })?;
+        let inputs = self
+            .artifacts
+            .values()
+            .map(|artifact| {
+                (
+                    artifact.source_path.as_str(),
+                    artifact.source_bytes.as_slice(),
+                )
+            })
+            .collect::<Vec<_>>();
+        reader.verify_expected(
+            &self.loaded.repo_root,
+            &inputs,
+            &mut phase,
+            "selected core-owned source bytes changed",
+        )?;
+        phase.complete();
         Ok(())
     }
 }
@@ -383,6 +529,79 @@ impl CatalogOwnedProject {
             artifact,
             declared_template: selected_template_mode(&self.collected.selection, path)?,
         })
+    }
+
+    /// Borrow the exact admitted selected map without reading current files.
+    /// Callers cannot promote an arbitrary path or substitute byte buffers.
+    pub(crate) fn retained_selected_inputs(&self) -> Result<Vec<CatalogOwnedInput<'_>>> {
+        self.collected
+            .artifacts
+            .keys()
+            .map(|output| self.selected_input(output))
+            .collect()
+    }
+
+    /// Fresh authority checks for an already admitted all-hit compile snapshot.
+    /// Source bodies and membership remain the retained immutable admission;
+    /// this method does not grant authority to compile changed current files.
+    pub(crate) fn recheck_retained_inputs(&self, outputs: &BTreeSet<&str>) -> Result<()> {
+        let mut reader = CheckedInputReader::default();
+        self.recheck_retained_context(&mut reader)?;
+        let mut total = 0;
+        for output in outputs {
+            let input = self.selected_input(output)?;
+            let authored =
+                reader.read(self.repo_root(), input.source_path(), MAX_CORE_FILE_BYTES)?;
+            add_budget(&mut total, authored.len())?;
+            ensure!(
+                authored == input.source_bytes(),
+                "retained authority selected authored input changed: {}",
+                input.source_path()
+            );
+            let generated = reader.read(self.project_root(), output, MAX_CORE_FILE_BYTES)?;
+            add_budget(&mut total, generated.len())?;
+            ensure!(
+                generated == input.output_bytes(),
+                "retained authority selected generated input changed: {output}"
+            );
+        }
+        Ok(())
+    }
+
+    fn recheck_retained_context(&self, reader: &mut CheckedInputReader) -> Result<()> {
+        ensure!(
+            checked_directory(self.repo_root())? == self.repo_root()
+                && checked_directory(&self.collected.core)? == self.collected.core,
+            "retained authority repository or core root changed"
+        );
+        ensure!(
+            sha256(&reader.read(self.repo_root(), CATALOG_PATH, MAX_CATALOG_INPUT_BYTES)?)
+                == self.collected.loaded.catalog_sha256
+                && sha256(&reader.read(
+                    self.repo_root(),
+                    FEATURE_DEFINITIONS_PATH,
+                    MAX_CATALOG_INPUT_BYTES
+                )?) == self.collected.loaded.feature_definitions_sha256
+                && reader.read(
+                    self.repo_root(),
+                    CORE_METADATA_PATH,
+                    MAX_CORE_METADATA_BYTES
+                )? == self.collected.metadata_bytes,
+            "retained authority catalog context metadata changed"
+        );
+        // Keep the existing current destination and Git ownership policy. It
+        // inspects selected path policy, not source membership or body bytes.
+        let root = catalog_projection_root(
+            self.repo_root(),
+            &self.collected.loaded.catalog,
+            &self.receipt.projection_key,
+            &self.collected.artifacts,
+        )?;
+        ensure!(
+            checked_directory(&root)? == self.project_root,
+            "retained authority checked catalog project root changed"
+        );
+        Ok(())
     }
 
     /// Resolve a reviewed authored role only through its selected output.
@@ -431,6 +650,37 @@ impl CatalogOwnedProject {
         Ok(sha256(facet_json::to_string(&self.receipt)?.as_bytes()))
     }
 
+    /// Liveness admission for callers that hold per-producer locks. Independent
+    /// owners may install the source read pool during a recheck; invocation
+    /// checks do not. `Some(Skipped)` is included, so this is not freshness proof.
+    #[cfg(any(windows, test))]
+    pub(crate) fn uses_invocation_source_checks(&self) -> bool {
+        self.invocation_checks.is_some()
+    }
+
+    /// Reuse only an internally admitted CLI snapshot. Public recheck remains
+    /// strict, and independently collected owners always take that path.
+    pub(crate) fn recheck_for_invocation(&self) -> Result<()> {
+        let Some(policy) = self.invocation_checks else {
+            return self.recheck();
+        };
+        ensure!(
+            checked_directory(self.project_root())? == self.project_root
+                && checked_directory(self.repo_root())? == self.repo_root(),
+            "development invocation project root changed"
+        );
+        let skipped = matches!(policy, InvocationSourceChecks::Skipped);
+        tracing::info!(
+            projection_key = self.receipt.projection_key,
+            phase = "recheck_development_source_snapshot",
+            status = if skipped { "skipped" } else { "reused" },
+            source_validation = if skipped { "skipped" } else { "verified_once" },
+            skip_source_checks = skipped,
+            "Reusing retained development source snapshot"
+        );
+        Ok(())
+    }
+
     /// Recheck exact input/owner/output bytes before a later preparation gate.
     ///
     /// # Errors
@@ -439,10 +689,21 @@ impl CatalogOwnedProject {
     #[tracing::instrument(name = "catalog.recheck", skip_all)]
     pub fn recheck(&self) -> Result<()> {
         #[cfg(test)]
+        source_check_observation::notify("recheck");
+        #[cfg(test)]
         recheck_observation::notify(self);
         // Rendering is deterministic for these exact retained input bytes.
         // Re-read content and membership, never trust mtimes or skip effects'
         // rechecks, but do not parse/render the same full tree at every launch.
+        let mut phase = ProjectionPreparationPhase::start_with_totals(
+            &self.receipt.projection_key,
+            "recheck_generated_inputs",
+            self.artifacts().len(),
+            self.artifacts()
+                .values()
+                .map(|artifact| artifact.output_bytes.len() as u64)
+                .sum(),
+        );
         let root = catalog_projection_root(
             self.repo_root(),
             &self.collected.loaded.catalog,
@@ -455,12 +716,17 @@ impl CatalogOwnedProject {
         );
         self.collected.validate_output_contract()?;
         let mut reader = CheckedInputReader::default();
-        for (output, artifact) in self.artifacts() {
-            ensure!(
-                reader.read(&root, output, MAX_CORE_FILE_BYTES)? == artifact.output_bytes,
-                "checked catalog generated output changed: {output}"
-            );
-        }
+        let outputs = self
+            .artifacts()
+            .iter()
+            .map(|(output, artifact)| (output.as_str(), artifact.output_bytes.as_slice()))
+            .collect::<Vec<_>>();
+        reader.verify_expected(
+            &root,
+            &outputs,
+            &mut phase,
+            "checked catalog generated output changed",
+        )?;
         // This method has no filesystem writes or external callbacks between
         // observations. Check authored content and membership once at exit;
         // duplicate entry scans do not make the filesystem snapshot atomic.
@@ -470,6 +736,7 @@ impl CatalogOwnedProject {
                 == self.receipt.generated_source_inventory_sha256,
             "checked catalog generated membership changed during recheck"
         );
+        phase.complete();
         Ok(())
     }
 }
@@ -520,6 +787,44 @@ pub(crate) mod recheck_observation {
     }
 }
 
+#[cfg(test)]
+pub(crate) mod source_check_observation {
+    use std::cell::RefCell;
+    use std::marker::PhantomData;
+    use std::rc::Rc;
+
+    type Observer = Box<dyn FnMut(&'static str)>;
+    thread_local! {
+        static OBSERVER: RefCell<Option<Observer>> = const { RefCell::new(None) };
+    }
+
+    pub(crate) struct Scope(PhantomData<Rc<()>>);
+
+    pub(crate) fn install(observer: impl FnMut(&'static str) + 'static) -> Scope {
+        OBSERVER.with(|slot| {
+            assert!(slot.borrow().is_none());
+            *slot.borrow_mut() = Some(Box::new(observer));
+        });
+        Scope(PhantomData)
+    }
+
+    pub(super) fn notify(check: &'static str) {
+        OBSERVER.with(|slot| {
+            if let Some(observer) = slot.borrow_mut().as_mut() {
+                observer(check);
+            }
+        });
+    }
+
+    impl Drop for Scope {
+        fn drop(&mut self) {
+            OBSERVER.with(|slot| {
+                slot.borrow_mut().take();
+            });
+        }
+    }
+}
+
 /// Collect only the current core-owned catalog context and immutable bytes.
 ///
 /// Callers validate the intended dependency interpretation before `check_current`;
@@ -534,6 +839,32 @@ pub fn collect_catalog_project(
     invocation_dir: &Path,
     projection_key: &str,
 ) -> Result<CollectedCatalogProject> {
+    collect_catalog_project_impl(repo_root, invocation_dir, projection_key, true)
+}
+
+/// Internal collection for an invocation which performs its complete ownership
+/// check after guarded development sync, rather than at intermediate stages.
+pub(crate) fn collect_development_invocation(
+    repo_root: &Path,
+    invocation_dir: &Path,
+    projection_key: &str,
+) -> Result<CollectedCatalogProject> {
+    let collected = collect_catalog_project_impl(repo_root, invocation_dir, projection_key, false)?;
+    ensure!(
+        collected.environment() == ProjectionEnvironment::Dev,
+        "invocation source snapshots require a development projection"
+    );
+    Ok(collected)
+}
+
+fn collect_catalog_project_impl(
+    repo_root: &Path,
+    invocation_dir: &Path,
+    projection_key: &str,
+    verify_collection: bool,
+) -> Result<CollectedCatalogProject> {
+    let phase = ProjectionPreparationPhase::start(projection_key, "collect_catalog_project");
+    let metadata_phase = ProjectionPreparationPhase::start(projection_key, "read_catalog_metadata");
     let loaded = CoreCatalog::load(repo_root, invocation_dir)?;
     let context = loaded.context(projection_key)?;
     let identity = CatalogProjectionIdentity::from_catalog(&loaded.catalog, projection_key)?;
@@ -546,10 +877,42 @@ pub fn collect_catalog_project(
         std::str::from_utf8(&metadata_bytes)?,
         &loaded.registered_features,
     )?;
+    tracing::info!(
+        projection_key,
+        catalog_entries = loaded.catalog.0.len(),
+        registered_features = loaded.registered_features.len(),
+        project_inputs_bytes = metadata_bytes.len(),
+        "Projection catalog metadata validated"
+    );
+    metadata_phase.complete();
     let core = checked_directory(&loaded.repo_root.join(CORE_ROOT))?;
+    let inventory_phase =
+        ProjectionPreparationPhase::start(projection_key, "discover_authored_source_inventory");
     let source_inventory = discover_core_source_files(&core)?;
+    inventory_phase.complete_with_counts(source_inventory.len(), 0);
+    let selection_phase =
+        ProjectionPreparationPhase::start(projection_key, "select_projection_inputs");
     let selection = select_core_inputs(&metadata, &context, &source_inventory)?;
+    selection_phase.complete_with_counts(selection.inputs.len(), 0);
+    let render_phase =
+        ProjectionPreparationPhase::start(projection_key, "read_and_render_selected_inputs");
     let artifacts = collect_core_artifacts(&core, &selection, &context)?;
+    let source_bytes: u64 = artifacts
+        .values()
+        .map(|artifact| artifact.source_bytes.len() as u64)
+        .sum();
+    let output_bytes: u64 = artifacts
+        .values()
+        .map(|artifact| artifact.output_bytes.len() as u64)
+        .sum();
+    tracing::info!(
+        projection_key,
+        selected_files = artifacts.len(),
+        source_bytes,
+        output_bytes,
+        "Selected projection inputs rendered"
+    );
+    render_phase.complete_with_counts(artifacts.len(), source_bytes + output_bytes);
     let collected = CollectedCatalogProject {
         loaded,
         context,
@@ -560,7 +923,10 @@ pub fn collect_catalog_project(
         selection,
         artifacts,
     };
-    collected.recheck_authored_snapshot()?;
+    if verify_collection {
+        collected.recheck_authored_snapshot()?;
+    }
+    phase.complete();
     Ok(collected)
 }
 
@@ -682,6 +1048,49 @@ fn read_checked(root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
     CheckedInputReader::default().read(root, relative, limit)
 }
 
+fn recheck_issue_declarations(
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+    mut read: impl FnMut(&str) -> Result<Vec<u8>>,
+) -> Result<()> {
+    let mut seen = BTreeMap::new();
+    for artifact in artifacts.values() {
+        if let Some(issues) = &artifact.related_references {
+            for (path, digest) in &issues.declarations {
+                if let Some(previous) = seen.get(path.as_str()) {
+                    ensure!(
+                        *previous == digest.as_str(),
+                        "conflicting issue declaration source digests: {path}"
+                    );
+                    continue;
+                }
+                let raw = read(path)?;
+                ensure!(
+                    sha256(&raw) == *digest,
+                    "issue declaration source changed: {path}"
+                );
+                seen.insert(path.as_str(), digest.as_str());
+            }
+        }
+    }
+    Ok(())
+}
+
+const MAX_PARALLEL_RECHECK_READS: usize = 4;
+const RECHECK_BATCH_FILES: usize = 32;
+
+fn recheck_read_pool() -> Result<&'static rayon::ThreadPool> {
+    static POOL: OnceLock<std::result::Result<rayon::ThreadPool, String>> = OnceLock::new();
+    POOL.get_or_init(|| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(MAX_PARALLEL_RECHECK_READS)
+            .thread_name(|index| format!("sfm-recheck-read-{index}"))
+            .build()
+            .map_err(|error| error.to_string())
+    })
+    .as_ref()
+    .map_err(|error| eyre::eyre!("cannot start bounded catalog read workers: {error}"))
+}
+
 /// One read pass shares held ancestry, never file contents or metadata across
 /// rechecks. On Windows the existing leases prevent rename/reparse swaps;
 /// other platforms retain the existing per-read path checks.
@@ -692,39 +1101,114 @@ struct CheckedInputReader {
 }
 
 impl CheckedInputReader {
-    fn read(&mut self, root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
+    fn prepare_path(&mut self, root: &Path, relative: &str) -> Result<PathBuf> {
         #[cfg(windows)]
         let path = self.directories.prepare(root, relative)?;
         #[cfg(not(windows))]
         let path = checked_file(root, relative)?;
-        let mut options = fs::OpenOptions::new();
-        options.read(true);
-        #[cfg(windows)]
-        let () = {
-            use std::os::windows::fs::OpenOptionsExt as _;
-            use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
-            options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
-        };
-        let file = options
-            .open(path)
-            .wrap_err_with(|| format!("cannot read catalog-owned input `{relative}`"))?;
-        let metadata = file.metadata()?;
-        ensure!(
-            metadata.is_file() && !super::candidate_lock::is_reparse(&metadata),
-            "catalog-owned input is a reparse point or non-file: {relative}"
-        );
-        ensure!(
-            metadata.len() <= limit,
-            "catalog-owned input exceeds byte limit: {relative}"
-        );
-        let mut bytes = Vec::new();
-        file.take(limit + 1).read_to_end(&mut bytes)?;
-        ensure!(
-            bytes.len() as u64 <= limit,
-            "catalog-owned input grew beyond byte limit: {relative}"
-        );
-        Ok(bytes)
+        Ok(path)
     }
+
+    fn read(&mut self, root: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
+        let path = self.prepare_path(root, relative)?;
+        read_prepared_catalog_input(&path, relative, limit)
+    }
+
+    fn verify_expected(
+        &mut self,
+        root: &Path,
+        inputs: &[(&str, &[u8])],
+        phase: &mut ProjectionPreparationPhase<'_>,
+        mismatch: &str,
+    ) -> Result<()> {
+        phase.set_total(
+            inputs.len(),
+            inputs.iter().map(|(_, bytes)| bytes.len() as u64).sum(),
+        );
+        let pool = recheck_read_pool()?;
+        tracing::info!(
+            files = inputs.len(),
+            parallel_reads = pool.current_num_threads(),
+            "Verifying fresh catalog file bytes with bounded workers"
+        );
+        let mut total = 0_u64;
+        for batch in inputs.chunks(RECHECK_BATCH_FILES) {
+            let read_and_compare = |path: Result<PathBuf>, relative: &str, expected: &[u8]| {
+                let actual = read_prepared_catalog_input(&path?, relative, MAX_CORE_FILE_BYTES)?;
+                ensure!(actual.as_slice() == expected, "{mismatch}: {relative}");
+                // Drop each bounded buffer on its worker; at most four
+                // file buffers coexist, rather than a whole batch of them.
+                Ok(actual.len())
+            };
+            // Parent-held leases survive all batches and the caller's final
+            // membership checks. Workers never own or drop ancestry guards.
+            #[cfg(windows)]
+            let results = {
+                let prepared = batch
+                    .iter()
+                    .map(|(relative, _)| self.prepare_path(root, relative))
+                    .collect::<Vec<_>>();
+                pool.install(|| {
+                    prepared
+                        .into_par_iter()
+                        .zip(batch.par_iter())
+                        .map(|(path, (relative, expected))| {
+                            read_and_compare(path, relative, expected)
+                        })
+                        .collect::<Vec<Result<usize>>>()
+                })
+            };
+            #[cfg(not(windows))]
+            let results = pool.install(|| {
+                batch
+                    .par_iter()
+                    .map(|(relative, expected)| {
+                        // Other platforms retain fresh per-read ancestry checks
+                        // on the worker, immediately before opening the leaf.
+                        read_and_compare(checked_file(root, relative), relative, expected)
+                    })
+                    .collect::<Vec<Result<usize>>>()
+            });
+            // Indexed collection preserves the original deterministic first
+            // error, aggregate byte budget and progress order.
+            for result in results {
+                let bytes = result?;
+                add_budget(&mut total, bytes)?;
+                phase.checked_file(bytes);
+            }
+        }
+        Ok(())
+    }
+}
+
+fn read_prepared_catalog_input(path: &Path, relative: &str, limit: u64) -> Result<Vec<u8>> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(windows)]
+    let () = {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+        options.custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0);
+    };
+    let file = options
+        .open(path)
+        .wrap_err_with(|| format!("cannot read catalog-owned input `{relative}`"))?;
+    let metadata = file.metadata()?;
+    ensure!(
+        metadata.is_file() && !super::candidate_lock::is_reparse(&metadata),
+        "catalog-owned input is a reparse point or non-file: {relative}"
+    );
+    ensure!(
+        metadata.len() <= limit,
+        "catalog-owned input exceeds byte limit: {relative}"
+    );
+    let mut bytes = Vec::new();
+    file.take(limit + 1).read_to_end(&mut bytes)?;
+    ensure!(
+        bytes.len() as u64 <= limit,
+        "catalog-owned input grew beyond byte limit: {relative}"
+    );
+    Ok(bytes)
 }
 fn portable_path(path: &Path) -> Result<String> {
     path.components()
@@ -1207,6 +1691,103 @@ pub(crate) mod tests {
         }
     }
 
+    #[test]
+    fn development_invocation_check_admission_distinguishes_strict_verified_and_skipped()
+    -> Result<()> {
+        let fixture = Fixture::new_for_target("1.19.2");
+        let key = Fixture::key(0, "dev");
+        let strict = fixture.collect(&key)?.prepare_development()?;
+        assert!(!strict.uses_invocation_source_checks());
+        strict.recheck()?;
+        for skipped in [false, true] {
+            let fixture = Fixture::new_for_target("1.19.2");
+            let collected =
+                collect_development_invocation(fixture.repository(), fixture.repository(), &key)?;
+            let invocation = collected.prepare_development_invocation(skipped)?;
+            assert!(invocation.uses_invocation_source_checks());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn development_invocation_verifies_once_or_skips_but_public_recheck_stays_strict() -> Result<()>
+    {
+        use std::cell::RefCell;
+        use std::rc::Rc;
+
+        for skip in [false, true] {
+            let fixture = Fixture::new_for_target("1.19.2");
+            let key = Fixture::key(0, "dev");
+            let checks = Rc::new(RefCell::new(Vec::new()));
+            let observed = Rc::clone(&checks);
+            let _observer = source_check_observation::install(move |check| {
+                observed.borrow_mut().push(check);
+            });
+            let collected =
+                collect_development_invocation(fixture.repository(), fixture.repository(), &key)?;
+            assert!(
+                checks.borrow().is_empty(),
+                "collection must only read/render"
+            );
+            let project = collected.prepare_development_invocation(skip)?;
+            let expected = if skip {
+                vec![]
+            } else {
+                vec!["check_current", "authored"]
+            };
+            assert_eq!(*checks.borrow(), expected);
+            assert_eq!(
+                project.receipt().scope,
+                if skip {
+                    "unverified_development_input_snapshot"
+                } else {
+                    "read_only_selected_input_ownership_not_native_build"
+                }
+            );
+            // Later CLI gates intentionally retain the admitted snapshot. A
+            // separately requested public check must still observe this edit.
+            fs::write(project.project_root().join(JAVA), b"changed output")?;
+            for _ in 0..3 {
+                project.recheck_for_invocation()?;
+            }
+            assert_eq!(*checks.borrow(), expected);
+            assert!(project.recheck().is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn initial_development_check_detects_authored_edit_while_explicit_skip_omits_it() -> Result<()>
+    {
+        for skip in [false, true] {
+            let fixture = Fixture::new_for_target("1.19.2");
+            let key = Fixture::key(0, "dev");
+            let collected =
+                collect_development_invocation(fixture.repository(), fixture.repository(), &key)?;
+            fs::write(
+                fixture.source("src/main/resources/fixture.bin"),
+                b"changed after collection",
+            )?;
+            let result = collected.prepare_development_invocation(skip);
+            if skip {
+                let project = result?;
+                assert_eq!(
+                    project.receipt().scope,
+                    "unverified_development_input_snapshot"
+                );
+            } else {
+                let error = result.unwrap_err();
+                assert!(
+                    error
+                        .to_string()
+                        .contains("selected core-owned source bytes changed"),
+                    "{error:?}"
+                );
+            }
+        }
+        Ok(())
+    }
+
     fn check_catalog_contexts_for_target(slot: usize) -> Result<()> {
         let mut verified = 0;
         let (target, actual) = &SUPPORTED_TARGETS[slot];
@@ -1473,6 +2054,106 @@ pub(crate) mod tests {
         fs::create_dir(&directory)?;
         fs::write(directory.join("input"), b"new")?;
         assert_eq!(read_checked(fixture.path(), "nested/input", 3)?, b"new");
+        Ok(())
+    }
+
+    #[test]
+    fn parallel_rechecks_read_fresh_bytes_and_report_the_first_ordered_error() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let root = fixture.path();
+        fs::create_dir(root.join("nested"))?;
+        let inputs = (0..160)
+            .map(|index| (format!("nested/{index:04}"), b"ok".to_vec()))
+            .collect::<Vec<_>>();
+        for (relative, bytes) in &inputs {
+            fs::write(root.join(relative), bytes)?;
+        }
+        let expected = inputs
+            .iter()
+            .map(|(relative, bytes)| (relative.as_str(), bytes.as_slice()))
+            .collect::<Vec<_>>();
+        let mut reader = CheckedInputReader::default();
+        let mut phase = ProjectionPreparationPhase::start("fixture/mc-1.19.2", "fresh_read_test");
+        reader.verify_expected(root, &expected, &mut phase, "changed")?;
+        phase.complete();
+        assert!(recheck_read_pool()?.current_num_threads() <= 4);
+        #[cfg(windows)]
+        assert!(fs::rename(root.join("nested"), root.join("moved")).is_err());
+        for relative in ["nested/0099", "nested/0003"] {
+            let path = root.join(relative);
+            let before = fs::metadata(&path)?;
+            fs::write(&path, b"NO")?;
+            fs::OpenOptions::new()
+                .write(true)
+                .open(&path)?
+                .set_times(fs::FileTimes::new().set_modified(before.modified()?))?;
+            assert_eq!(fs::metadata(&path)?.len(), before.len());
+            assert_eq!(fs::metadata(&path)?.modified()?, before.modified()?);
+        }
+        let mut phase = ProjectionPreparationPhase::start("fixture/mc-1.19.2", "fresh_read_test");
+        let error = reader
+            .verify_expected(root, &expected, &mut phase, "changed")
+            .unwrap_err();
+        assert!(error.to_string().contains("nested/0003"), "{error:?}");
+        #[cfg(windows)]
+        assert!(fs::rename(root.join("nested"), root.join("moved")).is_err());
+        drop(reader);
+        fs::rename(root.join("nested"), root.join("moved"))?;
+        Ok(())
+    }
+
+    #[test]
+    fn repeated_issue_declarations_are_read_once_per_pass_and_conflicts_are_rejected() -> Result<()>
+    {
+        use super::super::reference_associations::ReferenceAssociations;
+        let fixture = Fixture::new_for_target("1.19.2");
+        let key = Fixture::key(0, "dev");
+        let mut artifacts = fixture.collect(&key)?.artifacts;
+        let bytes = b"shared declaration";
+        for artifact in artifacts.values_mut() {
+            artifact.related_references = None;
+        }
+        for artifact in artifacts.values_mut().take(2) {
+            artifact.related_references = Some(ReferenceAssociations {
+                schema: "sfm:related-references@1".to_owned(),
+                references: Vec::new(),
+                projection_key: key.clone(),
+                context_sha256: sha256(b"context"),
+                declarations: BTreeMap::from([("docs/shared.ref".to_owned(), sha256(bytes))]),
+                conditions: BTreeMap::new(),
+            });
+        }
+        let mut reads = 0;
+        recheck_issue_declarations(&artifacts, |_| {
+            reads += 1;
+            Ok(bytes.to_vec())
+        })?;
+        assert_eq!(reads, 1);
+        let error = recheck_issue_declarations(&artifacts, |_| Ok(b"edited declaration".to_vec()))
+            .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("issue declaration source changed")
+        );
+        artifacts
+            .values_mut()
+            .nth(1)
+            .unwrap()
+            .related_references
+            .as_mut()
+            .unwrap()
+            .declarations
+            .insert(
+                "docs/shared.ref".to_owned(),
+                sha256(b"conflicting snapshot"),
+            );
+        let error = recheck_issue_declarations(&artifacts, |_| Ok(bytes.to_vec())).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("conflicting issue declaration source digests")
+        );
         Ok(())
     }
 

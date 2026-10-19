@@ -30,7 +30,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void explicitPinnedAnalysisIdentitySuppressesOnlyTheAmbientDiskHash() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path sourceRoot = repoRoot.resolve("src/main/java");
         Path nativePath = sourceRoot.resolve("example/A.java");
         SFMPath durableRoot = SFMPath.parse("review://release/revision/");
@@ -77,7 +77,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void dirtyUnicodeCrlfOverlayUsesDeepestAnalysisRootAndBothExactHashes() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path sourceRoot = repoRoot.resolve("platform/minecraft/src/main/java");
         Path file = sourceRoot.resolve("ca/teamdman/sfm/A.java");
         String baselineText = "package ca.teamdman.sfm;\r\nclass A {}\r\n";
@@ -121,7 +121,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void sameLookingSourceRootsAreSelectedByFullCanonicalContainment() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path first = repoRoot.resolve("one/src/main/java");
         Path second = repoRoot.resolve("two/src/main/java");
         Path file = second.resolve("example/A.java");
@@ -146,10 +146,10 @@ class SFMDefinitionContextAdapterTests {
     }
 
     @Test
-    void windowsRootContainmentUsesNativeCaseInsensitivePathSemantics() {
-        Path authorizedRoot = Path.of("D:/WORKSPACE/SFM");
-        Path sourceRoot = Path.of("D:/workspace/sfm/src/main/java");
-        Path file = Path.of("D:/Workspace/Sfm/src/main/java/example/A.java");
+    void nativeRootContainmentFollowsHostCaseSemantics() {
+        Path authorizedRoot = SFMSymbolServerProtocolTests.fixturePath("WORKSPACE/SFM");
+        Path sourceRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm/src/main/java");
+        Path file = SFMSymbolServerProtocolTests.fixturePath("Workspace/Sfm/src/main/java/example/A.java");
         String text = "package example; class A {}\n";
 
         var adapted = new SFMDefinitionContextAdapter().adapt(
@@ -167,13 +167,18 @@ class SFMDefinitionContextAdapterTests {
                 5
         );
 
-        assertTrue(adapted.success());
-        assertEquals("example/A.java", adapted.request().orElseThrow().document().rootRelativePath());
+        if (java.nio.file.FileSystems.getDefault().getSeparator().equals("\\")) {
+            assertTrue(adapted.success());
+            assertEquals("example/A.java", adapted.request().orElseThrow().document().rootRelativePath());
+        } else {
+            assertFalse(adapted.success(), "Distinct case-sensitive native roots must not grant authority");
+            assertTrue(adapted.request().isEmpty());
+        }
     }
 
     @Test
     void resolverAuthorizedSubtreeComposesWithContainingWorkerSourceRoot() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path sourceRoot = repoRoot.resolve("platform/minecraft/src/main/java");
         Path authorizedPackage = sourceRoot.resolve("ca/teamdman/sfm");
         Path file = authorizedPackage.resolve("OutputStatement.java");
@@ -207,7 +212,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void acquiredDependencySourceUsesItsNegotiatedRootPrefixAndContributedAddress() {
-        Path dependencyRoot = Path.of("D:/cache/dependency-sources/forge");
+        Path dependencyRoot = SFMSymbolServerProtocolTests.fixturePath("cache/dependency-sources/forge");
         Path file = dependencyRoot.resolve("net/minecraftforge/ForgeType.java");
         String text = "package net.minecraftforge; class ForgeType {}\n";
         SFMSymbolServerProtocol.DependencySourceRootMapping dependency =
@@ -255,7 +260,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void retainedDependencyRootIdentityDisambiguatesOnePhysicalTreeWithMultipleSemanticRoots() {
-        Path sharedRoot = Path.of("D:/cache/forge/combined-deobfuscated.filetree");
+        Path sharedRoot = SFMSymbolServerProtocolTests.fixturePath("cache/forge/combined-deobfuscated.filetree");
         Path file = sharedRoot.resolve("net/minecraft/network/chat/contents/TranslatableContents.java");
         String text = "package net.minecraft.network.chat.contents; class TranslatableContents {}\n";
         SFMSymbolServerProtocol.DependencySourceRootMapping forge =
@@ -334,7 +339,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void staleRetainedDependencyRootIdentityFailsClosed() {
-        Path sharedRoot = Path.of("D:/cache/forge/combined-deobfuscated.filetree");
+        Path sharedRoot = SFMSymbolServerProtocolTests.fixturePath("cache/forge/combined-deobfuscated.filetree");
         Path file = sharedRoot.resolve("net/minecraft/network/chat/contents/TranslatableContents.java");
         String text = "package net.minecraft.network.chat.contents; class TranslatableContents {}\n";
         SFMSymbolServerProtocol.DependencySourceRootMapping forge =
@@ -376,7 +381,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void managedJdkSourceUsesNegotiatedResolverIdentityWithoutWorkspaceFallback() {
-        Path jdkRoot = Path.of("D:/cache/jdk/java-17/abc123/tree");
+        Path jdkRoot = SFMSymbolServerProtocolTests.fixturePath("cache/jdk/java-17/abc123/tree");
         Path file = jdkRoot.resolve("java.base/java/lang/String.java");
         String text = "package java.lang; public final class String {}\n";
         SFMDefinitionRequest.SourceRoot requestRoot = new SFMDefinitionRequest.SourceRoot(
@@ -445,7 +450,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void inconsistentManagedJdkIdentityFailsClosedInsteadOfUsingOrderedRoot() {
-        Path jdkRoot = Path.of("D:/cache/jdk/java-17/abc123/tree");
+        Path jdkRoot = SFMSymbolServerProtocolTests.fixturePath("cache/jdk/java-17/abc123/tree");
         Path file = jdkRoot.resolve("java.base/java/lang/String.java");
         String text = "package java.lang; public final class String {}\n";
         SFMDefinitionRequest.SourceRoot requestRoot = new SFMDefinitionRequest.SourceRoot(
@@ -493,7 +498,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void equallyDeepMappingsAndOutsideAuthorizationFailClosed() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path sourceRoot = repoRoot.resolve("src/main/java");
         Path file = sourceRoot.resolve("A.java");
         String text = "class A {}\n";
@@ -519,7 +524,7 @@ class SFMDefinitionContextAdapterTests {
                 ambiguous.diagnostics().get(0).code()
         );
 
-        Path outsideAuthorization = Path.of("D:/different/repo");
+        Path outsideAuthorization = SFMSymbolServerProtocolTests.fixturePath("different/repo");
         var outside = new SFMDefinitionContextAdapter().adapt(
                 contribution(projection(
                         outsideAuthorization,
@@ -540,7 +545,7 @@ class SFMDefinitionContextAdapterTests {
 
     @Test
     void canvasWhitespaceAndAbsentHandshakeProduceTypedDiagnostics() {
-        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path repoRoot = SFMSymbolServerProtocolTests.fixturePath("workspace/sfm");
         Path sourceRoot = repoRoot.resolve("src/main/java");
         Path file = sourceRoot.resolve("A.java");
         String text = "class A {}\n";

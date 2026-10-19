@@ -9,8 +9,9 @@ pub mod catalog_owned_project;
 pub mod context;
 pub mod core_catalog;
 pub mod core_features;
-#[cfg(windows)]
-mod core_input_leases;
+#[cfg(any(windows, target_os = "linux"))]
+#[cfg_attr(target_os = "linux", path = "core_input_leases_unix.rs")]
+pub(crate) mod core_input_leases;
 pub mod core_inputs;
 pub mod core_network_layout;
 pub mod development_baseline;
@@ -28,14 +29,16 @@ pub(crate) mod manifestation;
 pub mod named_root;
 pub mod native_project_target;
 pub mod nfrt_child_identity_supplement;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
+mod nfrt_file_open;
+#[cfg(any(windows, target_os = "linux"))]
 pub(crate) mod nfrt_held_producer;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub(crate) mod nfrt_input_store;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub(crate) mod nfrt_producer_output_receipt;
 pub(crate) mod nfrt_project_owner;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub(crate) mod nfrt_tool_sdk;
 pub mod oracle;
 pub mod oracle_checkout;
@@ -44,6 +47,7 @@ pub mod oracle_draft;
 pub mod oracle_git;
 pub mod oracle_index;
 pub mod oracle_seed;
+pub(crate) mod preparation_progress;
 pub mod prepared_dependency_inputs;
 pub mod project_layout;
 pub mod projection_catalog;
@@ -62,6 +66,7 @@ pub mod release_jar_absence;
 pub mod release_resources;
 pub mod release_version;
 pub mod released_native_inputs;
+pub(crate) mod retained_nfrt_project_owner;
 pub mod selection;
 pub(crate) mod simplify;
 mod simplify_flexible_constructor;

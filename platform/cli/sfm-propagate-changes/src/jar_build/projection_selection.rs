@@ -24,11 +24,25 @@ fn matching_keys<'a>(
     selector: &str,
 ) -> eyre::Result<Vec<String>> {
     let pattern = glob::Pattern::new(selector)?;
-    let keys = keys
+    let candidates = keys.collect::<Vec<_>>();
+    let keys = candidates
+        .iter()
+        .copied()
         .filter(|key| pattern.matches(key))
         .map(str::to_owned)
         .collect::<Vec<_>>();
-    eyre::ensure!(!keys.is_empty(), "no projections match {selector:?}");
+    if keys.is_empty() {
+        let available = if candidates.is_empty() {
+            "  (none defined)".to_owned()
+        } else {
+            candidates
+                .iter()
+                .map(|key| format!("  {key}"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+        eyre::bail!("no projections match {selector:?}\n\nAvailable projections:\n{available}");
+    }
     Ok(keys)
 }
 
@@ -41,6 +55,27 @@ mod tests {
         "sfm-dev/mc-26.1.2",
         "sfm-4.34.0/mc-1.19.2",
     ];
+
+    #[test]
+    fn unmatched_selector_lists_all_available_projections() {
+        let error = matching_keys(KEYS.into_iter(), "a").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "no projections match \"a\"\n\nAvailable projections:\n  {}",
+                KEYS.join("\n  ")
+            )
+        );
+    }
+
+    #[test]
+    fn empty_catalog_reports_no_available_projections() {
+        let error = matching_keys(std::iter::empty(), "a").unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "no projections match \"a\"\n\nAvailable projections:\n  (none defined)"
+        );
+    }
 
     #[test]
     fn selectors_address_projection_keys_not_version_branches() {

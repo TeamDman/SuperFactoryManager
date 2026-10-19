@@ -12,8 +12,12 @@ use std::path::PathBuf;
 pub struct BuildOptions {
     pub selection: BuildSelection,
     pub refresh: bool,
+    /// Skip initial comprehensive source checks for development projections.
+    pub skip_source_checks: bool,
     pub explain_rebuild: bool,
     pub plan_json: Option<PathBuf>,
+    /// Create-only filename in one projection's existing build/libs directory.
+    pub output_name: Option<String>,
     pub java_home: Option<PathBuf>,
     pub dry_run: bool,
     pub allow_local_artifact_cache: bool,

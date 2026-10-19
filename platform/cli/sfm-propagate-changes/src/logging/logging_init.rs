@@ -106,6 +106,7 @@ pub fn init_logging(
             .with_file(true)
             .with_target(false)
             .with_line_number(true)
+            .event_format(crate::startup_argv::StartupJsonFormatter::new(false))
             .with_writer(json_writer)
             .with_filter(build_env_filter(config));
 

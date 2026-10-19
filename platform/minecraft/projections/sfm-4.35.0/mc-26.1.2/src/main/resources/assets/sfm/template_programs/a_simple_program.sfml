@@ -1,0 +1,11 @@
+NAME "A simple program"
+
+EVERY 20 TICKS DO
+    -- on their own, input statements do nothing
+    -- there is no item buffer
+    INPUT FROM a
+
+    -- all the magic happens here
+    OUTPUT TO b
+END
+

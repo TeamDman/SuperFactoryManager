@@ -42,7 +42,15 @@ fn create_plan_for_project(
     target: &BuildProjectIdentity,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
+    eyre::ensure!(
+        options.output_name.is_none() || options.derived_cache_root.is_none(),
+        "--output-name requires the default projection cache root"
+    );
     target.recheck()?;
+    eyre::ensure!(
+        options.derived_cache_root.is_none() || target.is_catalog_owned(),
+        "Derived cache override requires an exact catalog-owned compile"
+    );
     cancellation_token.bail_if_cancelled()?;
     let (worktree_path, minecraft_dir, properties_path) = {
         let _span = tracing::debug_span!("plan_resolve_project_paths").entered();
@@ -53,7 +61,11 @@ fn create_plan_for_project(
     };
     let properties = {
         let _span = tracing::debug_span!("plan_read_properties").entered();
-        read_properties(&properties_path)?
+        if let Some(inputs) = target.retained_inputs() {
+            inputs.properties()?
+        } else {
+            read_properties(&properties_path)?
+        }
     };
 
     let (
@@ -98,9 +110,24 @@ fn create_plan_for_project(
         let _span = tracing::debug_span!("plan_compute_cache_paths").entered();
         let gradle_output_jar =
             gradle_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
-        let rust_output_jar =
+        let default_output =
             rust_output_jar_path(&minecraft_dir, mod_name, minecraft_version, mod_version);
-        let cache_dir = if let Some(project) = target.named_project() {
+        let rust_output_jar = match options.output_name.as_deref() {
+            Some(name) => {
+                let output = fresh_jar_output::resolve(
+                    &minecraft_dir,
+                    name,
+                    &default_output,
+                    &gradle_output_jar,
+                )?;
+                fresh_jar_output::FreshJarOutput::prepare(&minecraft_dir, &output)?;
+                output
+            }
+            None => default_output,
+        };
+        let cache_dir = if let Some(root) = &options.derived_cache_root {
+            root.path().join("projects")
+        } else if let Some(project) = target.named_project() {
             minecraft_dir.join(project.receipt().preparation_cache_relative_path()?)
         } else if let Some(development) = target.development_target() {
             dunce::simplified(&development.cache_dir).to_path_buf()
@@ -141,7 +168,7 @@ fn create_plan_for_project(
     cancellation_token.bail_if_cancelled()?;
     let (existing_lockfile, lockfile, repositories, dependencies, jdk_pins) =
         if let Some(project) = target.named_project() {
-            project.recheck(false)?;
+            target.recheck()?;
             let inputs = project.dependencies();
             let legacy = inputs.original_lock().clone().into_latest();
             let repositories = legacy.repositories.clone();
@@ -219,13 +246,14 @@ fn create_plan_for_project(
         )
         .entered();
         if let Some(project) = target.named_project() {
-            project.recheck(false)?;
+            target.recheck()?;
             Resolver::new_prepared(
                 maven_cache_dir.clone(),
                 Arc::clone(project.dependencies()),
                 false,
                 cancellation_token.clone(),
             )?
+            .existing_only(target.retained_inputs().is_some())
         } else {
             let resolver = Resolver::new(
                 maven_cache_dir.clone(),
@@ -292,12 +320,24 @@ fn create_plan_for_project(
         let java = {
             let jdk_resolution = if target.is_catalog_owned() {
                 let discovered = if options.java_home.is_none() {
-                    crate::jdk::resolve_java_for_lockfile(None, jdk_pins.as_deref(), required_java,
-                        &common_cache_dir.join("jbrsdk"), false)?.home
-                } else { None };
-                let home = options.java_home.as_deref().or(discovered.as_deref()).ok_or_else(|| {
-                    eyre::eyre!("named compile requires an explicit checked SDK home")
-                })?;
+                    crate::jdk::resolve_java_for_lockfile(
+                        None,
+                        jdk_pins.as_deref(),
+                        required_java,
+                        &common_cache_dir.join("jbrsdk"),
+                        false,
+                    )?
+                    .home
+                } else {
+                    None
+                };
+                let home = options
+                    .java_home
+                    .as_deref()
+                    .or(discovered.as_deref())
+                    .ok_or_else(|| {
+                        eyre::eyre!("named compile requires an explicit checked SDK home")
+                    })?;
                 resolve_named_java_with_verified_spelling(
                     home,
                     cancellation_token,
@@ -338,24 +378,32 @@ fn create_plan_for_project(
         target.recheck()?;
         let sdk_identity = named_sdk_identity(&java)?;
         java.execution_identity = Some(sdk_identity.clone());
-        let key = crate::source_projection::provenance::sha256(
-            format!(
-                "{}\n{sdk_identity}",
-                project.receipt().preparation_identity()?
-            )
-            .as_bytes(),
-        );
-        cache_dir = minecraft_dir
-            .join("build/sfm-toolchain/native-project")
-            .join(key.trim_start_matches("sha256:"));
+        if let Some(root) = &options.derived_cache_root {
+            let key = stable_overridden_project_namespace(target, &sdk_identity)?;
+            cache_dir = root.prepare_directory(
+                &format!("projects/{}", key.trim_start_matches("sha256:")),
+                cancellation_token,
+            )?;
+        } else {
+            let key = crate::source_projection::provenance::sha256(
+                format!(
+                    "{}\n{sdk_identity}",
+                    project.receipt().preparation_identity()?
+                )
+                .as_bytes(),
+            );
+            cache_dir = minecraft_dir
+                .join("build/sfm-toolchain/native-project")
+                .join(key.trim_start_matches("sha256:"));
+            crate::source_projection::native_project_target::inspect_cache_ancestors(
+                &minecraft_dir,
+                &cache_dir
+                    .strip_prefix(&minecraft_dir)?
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+            )?;
+        }
         state_dir = cache_dir.join("state");
-        crate::source_projection::native_project_target::inspect_cache_ancestors(
-            &minecraft_dir,
-            &cache_dir
-                .strip_prefix(&minecraft_dir)?
-                .to_string_lossy()
-                .replace('\\', "/"),
-        )?;
         fs::create_dir_all(&state_dir)?;
         fs::create_dir_all(&maven_cache_dir)?;
         fs::create_dir_all(&minecraft_version_cache_dir)?;
@@ -365,18 +413,47 @@ fn create_plan_for_project(
         target.recheck()?;
         let sdk_identity = named_sdk_identity(&java)?;
         java.execution_identity = Some(sdk_identity.clone());
-        let key = crate::source_projection::provenance::sha256(
-            format!("{}\n{sdk_identity}", development.cache_identity).as_bytes(),
-        );
-        cache_dir = minecraft_dir.join("build/sfm-toolchain/native-project")
-            .join(key.trim_start_matches("sha256:"));
+        if let Some(root) = &options.derived_cache_root {
+            let key = stable_overridden_project_namespace(target, &sdk_identity)?;
+            let key = development_forge_preparation_key(
+                &key,
+                target,
+                &loader_toolchain,
+                minecraft_version,
+            );
+            cache_dir = root.prepare_directory(
+                &format!("projects/{}", key.trim_start_matches("sha256:")),
+                cancellation_token,
+            )?;
+        } else {
+            let key = crate::source_projection::provenance::sha256(
+                format!("{}\n{sdk_identity}", development.cache_identity).as_bytes(),
+            );
+            let key = development_forge_preparation_key(
+                &key,
+                target,
+                &loader_toolchain,
+                minecraft_version,
+            );
+            cache_dir = minecraft_dir
+                .join("build/sfm-toolchain/native-project")
+                .join(key.trim_start_matches("sha256:"));
+            crate::source_projection::native_project_target::inspect_cache_ancestors(
+                &minecraft_dir,
+                &cache_dir
+                    .strip_prefix(&minecraft_dir)?
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+            )?;
+        }
         state_dir = cache_dir.join("state");
-        crate::source_projection::native_project_target::inspect_cache_ancestors(
-            &minecraft_dir,
-            &cache_dir.strip_prefix(&minecraft_dir)?.to_string_lossy().replace('\\', "/"),
-        )?;
-        for directory in [&state_dir, &maven_cache_dir, &minecraft_version_cache_dir,
-            &minecraft_assets_dir, &minecraft_libraries_dir] {
+        for directory in [
+            &state_dir,
+            &maven_cache_dir,
+            &minecraft_version_cache_dir,
+            &minecraft_assets_dir,
+            &minecraft_libraries_dir,
+        ] {
             fs::create_dir_all(directory)?;
         }
     }
@@ -447,9 +524,9 @@ fn create_plan_for_project(
 
     let minecraft = {
         let _span = tracing::debug_span!("plan_resolve_minecraft_inputs").entered();
-        if let Some(project) = target.named_project() {
+        if target.named_project().is_some() {
             resolve_frozen_minecraft_plan(
-                project,
+                target,
                 &minecraft_cache_dir,
                 &resolver.client,
                 cancellation_token,
@@ -457,7 +534,13 @@ fn create_plan_for_project(
         } else if let BuildProjectIdentity::Development { project, target } = target
             && loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
         {
-            resolve_development_minecraft_plan(project, &target.receipt.dependency_profile, &minecraft_cache_dir, &resolver.client, cancellation_token)?
+            resolve_development_minecraft_plan(
+                project,
+                &target.receipt.dependency_profile,
+                &minecraft_cache_dir,
+                &resolver.client,
+                cancellation_token,
+            )?
         } else {
             resolve_minecraft_plan(
                 &minecraft_cache_dir,
@@ -532,11 +615,7 @@ fn create_plan_for_project(
         )
         .entered();
         BuildPlan {
-            schema_version: if target.is_catalog_owned() {
-                2
-            } else {
-                1
-            },
+            schema_version: if target.is_catalog_owned() { 2 } else { 1 },
             mode: match options.mode {
                 BuildMode::Plan => "plan".to_string(),
                 BuildMode::Build => "build".to_string(),
@@ -547,6 +626,7 @@ fn create_plan_for_project(
             minecraft_dir,
             gradle_output_jar,
             rust_output_jar,
+            output_name: options.output_name.clone(),
             cache_dir,
             common_cache_dir,
             state_dir,
@@ -577,6 +657,10 @@ fn create_plan_for_project(
                 .named_project()
                 .map(|project| project.receipt().clone()),
             identity: target.clone(),
+            derived_cache_root: options
+                .derived_cache_root
+                .as_ref()
+                .map(|root| root.path().to_path_buf()),
         }
     };
     {
@@ -1011,7 +1095,14 @@ fn add_transitive_runtime_dependency_plans(
         .collect::<BTreeSet<_>>();
     let mut queue = dependencies
         .iter()
-        .filter(|dependency| is_runtime_transitive_root(&dependency.configuration))
+        // Loader-managed mods retain their declared artifact and loader metadata.
+        // Only plain libraries use per-root Maven closure discovery. The strict
+        // frozen global runtime closure above keeps its original root sequence.
+        .filter(|dependency| {
+            is_runtime_transitive_root(&dependency.configuration)
+                && dependency.artifact_treatment
+                    != crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
+        })
         .filter_map(|dependency| MavenCoordinate::parse(&dependency.resolved_notation).ok())
         .collect::<Vec<_>>();
 
@@ -1540,10 +1631,11 @@ fn read_projected_dependencies(lockfile_path: &Path) -> eyre::Result<Vec<ParsedD
 }
 
 /// Native transfer roles from the actual effective development profile.
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 pub(super) fn development_nfrt_dependency_rows(
     lock: &crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3,
-) -> eyre::Result<Vec<crate::source_projection::released_native_inputs::ReleasedPreparedDependency>> {
+) -> eyre::Result<Vec<crate::source_projection::released_native_inputs::ReleasedPreparedDependency>>
+{
     use crate::source_projection::released_native_inputs::ReleasedBundlePolicy;
     use crate::source_projection::released_native_inputs::ReleasedPreparedDependency;
     use crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3;
@@ -1555,8 +1647,16 @@ pub(super) fn development_nfrt_dependency_rows(
         .filter(|row| row.configuration != "minecraft")
         .map(|row| {
             let coordinate = row.coordinate.to_string();
-            let matches = lock.artifacts.iter().enumerate().filter(|(_, pin)| pin.coordinate.as_deref() == Some(coordinate.as_str())).collect::<Vec<_>>();
-            eyre::ensure!(matches.len() == 1, "development dependency role requires one exact artifact: {coordinate}");
+            let matches = lock
+                .artifacts
+                .iter()
+                .enumerate()
+                .filter(|(_, pin)| pin.coordinate.as_deref() == Some(coordinate.as_str()))
+                .collect::<Vec<_>>();
+            eyre::ensure!(
+                matches.len() == 1,
+                "development dependency role requires one exact artifact: {coordinate}"
+            );
             let (index, pin) = matches[0];
             Ok(ReleasedPreparedDependency {
                 // No schema-2 original row is invented for a schema-4 profile.
@@ -1569,18 +1669,21 @@ pub(super) fn development_nfrt_dependency_rows(
                 artifact_treatment: match row.artifact_treatment {
                     ArtifactTreatmentV3::Plain => "plain",
                     ArtifactTreatmentV3::LoaderManagedMod => "loader_managed_mod",
-                }.to_owned(),
+                }
+                .to_owned(),
                 data_run_policy: match row.data_run_policy {
                     DataRunPolicyV3::Include => "include",
                     DataRunPolicyV3::Exclude => "exclude",
-                }.to_owned(),
+                }
+                .to_owned(),
                 bundle: row.bundle.map(|bundle| ReleasedBundlePolicy {
                     accepted_version_range: bundle.accepted_version_range,
                     artifact_version: bundle.artifact_version,
                     is_obfuscated: bundle.is_obfuscated,
                 }),
             })
-        }).collect()
+        })
+        .collect()
 }
 
 fn project_v3_artifact_lockfile(
@@ -1744,140 +1847,6 @@ fn project_scope_pair(
     }
 }
 
-fn parse_maven_pom_runtime_dependencies(
-    pom: &str,
-    parent: &MavenCoordinate,
-) -> Vec<MavenCoordinate> {
-    let properties = parse_maven_pom_properties(pom, parent);
-    let search_start = pom
-        .find("</dependencyManagement>")
-        .map_or(0, |index| index + "</dependencyManagement>".len());
-    let Some(dependencies_xml) = extract_xml_section(&pom[search_start..], "dependencies") else {
-        return Vec::new();
-    };
-
-    let mut coordinates = Vec::new();
-    for block in dependencies_xml.split("<dependency").skip(1) {
-        let Some(start) = block.find('>') else {
-            continue;
-        };
-        let Some(end) = block[start + 1..].find("</dependency>") else {
-            continue;
-        };
-        let dependency_xml = &block[start + 1..start + 1 + end];
-        let scope = extract_xml_tag_text(dependency_xml, "scope").unwrap_or_default();
-        if !scope.is_empty() && scope != "compile" && scope != "runtime" {
-            continue;
-        }
-        if extract_xml_tag_text(dependency_xml, "optional")
-            .is_some_and(|optional| optional.eq_ignore_ascii_case("true"))
-        {
-            continue;
-        }
-        let dependency_type =
-            extract_xml_tag_text(dependency_xml, "type").unwrap_or_else(|| "jar".to_string());
-        if dependency_type != "jar" {
-            continue;
-        }
-
-        let Some(group) = extract_resolved_pom_tag(dependency_xml, "groupId", &properties) else {
-            continue;
-        };
-        let Some(artifact) = extract_resolved_pom_tag(dependency_xml, "artifactId", &properties)
-        else {
-            continue;
-        };
-        let Some(version) = extract_resolved_pom_tag(dependency_xml, "version", &properties) else {
-            continue;
-        };
-        if version.contains('[') || version.contains('(') {
-            continue;
-        }
-        let classifier = extract_resolved_pom_tag(dependency_xml, "classifier", &properties);
-        coordinates.push(MavenCoordinate {
-            group,
-            artifact,
-            version,
-            classifier,
-            extension: "jar".to_string(),
-        });
-    }
-
-    coordinates
-}
-
-fn parse_maven_pom_properties(pom: &str, parent: &MavenCoordinate) -> BTreeMap<String, String> {
-    let mut properties = BTreeMap::from([
-        ("project.groupId".to_string(), parent.group.clone()),
-        ("pom.groupId".to_string(), parent.group.clone()),
-        ("project.artifactId".to_string(), parent.artifact.clone()),
-        ("pom.artifactId".to_string(), parent.artifact.clone()),
-        ("project.version".to_string(), parent.version.clone()),
-        ("pom.version".to_string(), parent.version.clone()),
-        ("version".to_string(), parent.version.clone()),
-    ]);
-    if let Some(properties_xml) = extract_xml_section(pom, "properties") {
-        for block in properties_xml.split('<').skip(1) {
-            let Some((tag, rest)) = block.split_once('>') else {
-                continue;
-            };
-            if tag.starts_with('/') || tag.contains(char::is_whitespace) {
-                continue;
-            }
-            let end_tag = format!("</{tag}>");
-            let Some(end) = rest.find(&end_tag) else {
-                continue;
-            };
-            properties.insert(tag.to_string(), strip_xml_cdata(rest[..end].trim()));
-        }
-    }
-    properties
-}
-
-fn extract_resolved_pom_tag(
-    input: &str,
-    tag: &str,
-    properties: &BTreeMap<String, String>,
-) -> Option<String> {
-    let value = extract_xml_tag_text(input, tag)?;
-    let mut resolved = value;
-    for _ in 0..8 {
-        let Some(start) = resolved.find("${") else {
-            return Some(resolved);
-        };
-        let property_start = start + "${".len();
-        let end = resolved[property_start..].find('}')? + property_start;
-        let property_name = &resolved[property_start..end];
-        let replacement = properties.get(property_name)?;
-        resolved.replace_range(start..=end, replacement);
-    }
-    None
-}
-
-fn extract_xml_section(input: &str, tag: &str) -> Option<String> {
-    let start_tag = format!("<{tag}>");
-    let end_tag = format!("</{tag}>");
-    let start = input.find(&start_tag)? + start_tag.len();
-    let end = input[start..].find(&end_tag)? + start;
-    Some(input[start..end].to_string())
-}
-
-fn extract_xml_tag_text(input: &str, tag: &str) -> Option<String> {
-    let start_tag = format!("<{tag}>");
-    let end_tag = format!("</{tag}>");
-    let start = input.find(&start_tag)? + start_tag.len();
-    let end = input[start..].find(&end_tag)? + start;
-    Some(strip_xml_cdata(input[start..end].trim()))
-}
-
-fn strip_xml_cdata(input: &str) -> String {
-    input
-        .strip_prefix("<![CDATA[")
-        .and_then(|value| value.strip_suffix("]]>"))
-        .unwrap_or(input)
-        .to_string()
-}
-
 fn build_graph(
     minecraft_version: &str,
     rust_output_jar: &Path,
@@ -1982,3 +1951,225 @@ fn graph_planned(id: &str, reason: &str, inputs: Vec<&str>, outputs: Vec<&str>) 
         rebuild_reason: reason.to_string(),
     }
 }
+
+fn stable_overridden_project_namespace(
+    target: &BuildProjectIdentity,
+    sdk: &str,
+) -> eyre::Result<String> {
+    let (projection, recipe, lock) = match target {
+        BuildProjectIdentity::Catalog { frozen } => (
+            frozen.project().receipt().projection_key.as_str(),
+            frozen.receipt().released_inputs.recipe_id.as_str(),
+            frozen.receipt().prepared_inputs.source_lock_sha256.as_str(),
+        ),
+        BuildProjectIdentity::CatalogAdmitted { inputs } => (
+            inputs.project().project().receipt().projection_key.as_str(),
+            inputs
+                .project()
+                .receipt()
+                .released_inputs
+                .recipe_id
+                .as_str(),
+            inputs
+                .project()
+                .receipt()
+                .prepared_inputs
+                .source_lock_sha256
+                .as_str(),
+        ),
+        BuildProjectIdentity::Development { target, .. } => (
+            target.receipt.projection_key.as_str(),
+            target.receipt.dependency_profile.as_str(),
+            target.receipt.lockfile_sha256.as_str(),
+        ),
+        BuildProjectIdentity::Worktree { .. } => {
+            eyre::bail!("Derived cache override requires an exact catalog owner")
+        }
+    };
+    let project = target.minecraft_dir();
+    let descriptor = (
+        "sfm:native_derived_project_namespace@1",
+        (
+            target
+                .repository_root()
+                .to_str()
+                .ok_or_else(|| eyre::eyre!("Repository path is not Unicode"))?,
+            project
+                .to_str()
+                .ok_or_else(|| eyre::eyre!("Project path is not Unicode"))?,
+        ),
+        (projection, recipe, lock),
+        sdk,
+    );
+    Ok(crate::source_projection::provenance::sha256(
+        facet_json::to_string(&descriptor)?.as_bytes(),
+    ))
+}
+#[test]
+fn derived_cache_namespace_survives_sfm_edits_but_changes_with_sdk_selection() -> eyre::Result<()> {
+    use crate::source_projection::core_inputs::CORE_ROOT;
+    use crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project_with_witness_loader;
+
+    let (fixture, original) =
+        super::nfrt_launch_contract::tests::project_fixture("1.20.3", "release")?;
+    let key = original.project().receipt().projection_key.clone();
+    let recipe = original.receipt().released_inputs.recipe_id.clone();
+    let preparation = original.receipt().preparation_identity()?;
+    let project_root = original.project().project_root().to_path_buf();
+    let identity = BuildProjectIdentity::Catalog {
+        frozen: Arc::new(original),
+    };
+    let before = stable_overridden_project_namespace(&identity, "exact-sdk-a")?;
+    drop(identity);
+    fs::write(
+        fixture
+            .repository()
+            .join(CORE_ROOT)
+            .join("src/main/java/Shared.java"),
+        b"package proof;\nclass Shared { int edited; }\n",
+    )?;
+    let collected = fixture.collect(&key)?;
+    let repository = fs::canonicalize(fixture.repository())?;
+    let output = project_root.join("src/main/java/Shared.java");
+    let relative = output
+        .strip_prefix(&repository)?
+        .to_str()
+        .expect("fixture path is Unicode")
+        .replace('\\', "/");
+    let rendered = crate::source_projection::manifestation::RenderedProjection {
+        key: key.clone(),
+        root: project_root,
+        artifacts: collected.artifacts().clone(),
+        removed: BTreeSet::new(),
+    };
+    // This test explicitly edits one authored fixture source, then permits only
+    // its known temporary projection output to be replaced. Ordinary fixture
+    // publication and production contributor-edit protection stay unchanged.
+    let report = crate::source_projection::manifestation::manifest_selected(
+        &repository,
+        &[rendered],
+        &Some(Some(relative.clone())),
+        false,
+    )?;
+    assert_eq!(report.changed, vec![relative]);
+    let changed = prepare_frozen_recipe_project_with_witness_loader(
+        collected.check_current()?,
+        &recipe,
+        false,
+        |_| Ok(BTreeMap::new()),
+    )?;
+    assert_ne!(changed.receipt().preparation_identity()?, preparation);
+    let changed = BuildProjectIdentity::Catalog {
+        frozen: Arc::new(changed),
+    };
+    assert_eq!(
+        stable_overridden_project_namespace(&changed, "exact-sdk-a")?,
+        before
+    );
+    assert_ne!(
+        stable_overridden_project_namespace(&changed, "exact-sdk-b")?,
+        before
+    );
+    Ok(())
+}
+
+#[test]
+fn derived_cache_namespaces_separate_two_projections_of_the_same_minecraft_version()
+-> eyre::Result<()> {
+    use crate::source_projection::core_catalog::CoreCatalog;
+    use crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project_with_witness_loader;
+    use crate::source_projection::projection_catalog::CATALOG_PATH;
+
+    let (fixture, original) =
+        super::nfrt_launch_contract::tests::project_fixture("1.20.3", "release")?;
+    let key = original.project().receipt().projection_key.clone();
+    let recipe = original.receipt().released_inputs.recipe_id.clone();
+    let original = BuildProjectIdentity::Catalog {
+        frozen: Arc::new(original),
+    };
+    let before = stable_overridden_project_namespace(&original, "exact-sdk-a")?;
+    let mut loaded = CoreCatalog::load(fixture.repository(), fixture.repository())?;
+    let entry = loaded
+        .catalog
+        .0
+        .get(&key)
+        .expect("original fixture entry")
+        .clone();
+    let alternate = "published/alternate/same-minecraft";
+    loaded.catalog.0.insert(alternate.to_owned(), entry);
+    fs::write(
+        fixture.repository().join(CATALOG_PATH),
+        loaded.catalog.to_json(&loaded.registered_features)?,
+    )?;
+    fixture.publish(alternate);
+    let alternate = prepare_frozen_recipe_project_with_witness_loader(
+        fixture.collect(alternate)?.check_current()?,
+        &recipe,
+        false,
+        |_| Ok(BTreeMap::new()),
+    )?;
+    let alternate = BuildProjectIdentity::Catalog {
+        frozen: Arc::new(alternate),
+    };
+    assert_ne!(alternate.minecraft_dir(), original.minecraft_dir());
+    assert_eq!(
+        alternate
+            .named_project()
+            .unwrap()
+            .receipt()
+            .ownership
+            .target_id,
+        original
+            .named_project()
+            .unwrap()
+            .receipt()
+            .ownership
+            .target_id
+    );
+    assert_ne!(
+        stable_overridden_project_namespace(&alternate, "exact-sdk-a")?,
+        before
+    );
+    Ok(())
+}
+
+// Wrap each existing route's key, preserving its source/SDK authority while
+// keeping the Windows working-directory component at its original 64 hex bytes.
+fn development_forge_preparation_key(
+    legacy_key: &str,
+    target: &BuildProjectIdentity,
+    loader: &LoaderToolchainPlan,
+    minecraft_version: &str,
+) -> String {
+    forge_preparation_project_key(
+        legacy_key,
+        cfg!(windows),
+        target.development_target().is_some(),
+        &loader.kind,
+        minecraft_version,
+    )
+}
+
+fn forge_preparation_project_key(
+    legacy_key: &str,
+    windows: bool,
+    development: bool,
+    loader: &LoaderToolchainKind,
+    minecraft_version: &str,
+) -> String {
+    if windows
+        && development
+        && *loader == LoaderToolchainKind::ForgeGradleForge
+        && minecraft_version == "1.19.2"
+    {
+        crate::source_projection::provenance::sha256(
+            format!("sfm:development_forge_preparation_namespace@2\n{legacy_key}").as_bytes(),
+        )
+    } else {
+        legacy_key.to_owned()
+    }
+}
+
+#[cfg(test)]
+#[path = "development_forge_preparation_key_tests.rs"]
+mod development_forge_preparation_key_tests;

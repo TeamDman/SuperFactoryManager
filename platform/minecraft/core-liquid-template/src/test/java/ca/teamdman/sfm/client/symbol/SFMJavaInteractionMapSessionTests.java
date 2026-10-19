@@ -30,8 +30,8 @@ class SFMJavaInteractionMapSessionTests {
         long generation = 0;
         for (String name : List.of("options.txt", "Cargo.lock", "README.md", "config.json",
                 "sample.rs", "program.sfml", "Fake.java.txt", "changes.diff")) {
-            var path = SFMPath.parse("file:///D:/workspace/" + name);
-            var baseline = SFMTextDocumentSnapshot.pinned(path, SFMPath.parse("file:///D:/workspace/"),
+            var path = SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("workspace") + "/" + name);
+            var baseline = SFMTextDocumentSnapshot.pinned(path, SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("workspace/")),
                     "text", SFMTextDocumentSnapshot.literal("text").sha256().orElseThrow(), Optional.empty(), Optional.empty());
             var context = contribution(baseline, "text", ++generation);
             assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
@@ -44,12 +44,12 @@ class SFMJavaInteractionMapSessionTests {
 
     @Test
     void declaredSourceLanguageSurvivesNativeMaterializationAndOverridesMisleadingFileNames() {
-        var root = SFMPath.parse("file:///D:/materialized/");
-        var path = SFMPath.parse("file:///D:/materialized/opaque-snapshot");
+        var root = SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("materialized/"));
+        var path = SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("materialized/opaque-snapshot"));
         var java = SFMTextDocumentSnapshot.pinned(path, root, "class A {}", SFMTextDocumentSnapshot.literal("class A {}").sha256().orElseThrow(),
                 Optional.empty(), Optional.empty(), Optional.empty(), SFMTextDocumentLanguage.java());
         assertTrue(SFMJavaInteractionMapSession.structurallyUnavailable(contribution(java, java.text(), 1)).isEmpty());
-        var diff = SFMTextDocumentSnapshot.pinned(SFMPath.parse("file:///D:/materialized/NotSource.java"), root,
+        var diff = SFMTextDocumentSnapshot.pinned(SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("materialized/NotSource.java")), root,
                 "class A {}", java.sha256().orElseThrow(), Optional.empty(), Optional.empty(), Optional.empty(),
                 SFMTextDocumentLanguage.diff());
         assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
@@ -84,9 +84,9 @@ class SFMJavaInteractionMapSessionTests {
         var evidence = SFMJavaInteractionMapSession.requestEvidence(context);
         assertEquals("java", evidence.language());
         assertEquals("file", evidence.addressScheme());
-        assertEquals(SFMDefinitionRequest.sha256("file:///D:/workspace/source/A.java"), evidence.documentId());
+        assertEquals(SFMDefinitionRequest.sha256(SFMSymbolServerProtocolTests.fixtureAddress("workspace/source/A.java")), evidence.documentId());
         assertEquals(SFMDefinitionRequest.sha256("class A {}"), evidence.contentHash());
-        assertFalse(evidence.toString().contains("D:/workspace"));
+        assertFalse(evidence.toString().contains(SFMSymbolServerProtocolTests.fixtureAddress("workspace")));
         assertFalse(evidence.toString().contains("class A"));
         session.refresh(context, 7, SFMDefinitionRequest.sha256("class A {}"));
         assertEquals(1, service.results.size());
@@ -216,8 +216,8 @@ class SFMJavaInteractionMapSessionTests {
                 literal.state(),
                 literal.text(),
                 literal.mutationCapability(),
-                Optional.of(SFMPath.parse("file:///D:/workspace/source/A.java")),
-                Optional.of(SFMPath.parse("file:///D:/workspace/source/")),
+                Optional.of(SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("workspace/source/A.java"))),
+                Optional.of(SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("workspace/source/"))),
                 literal.sha256(),
                 literal.byteLength(),
                 literal.lastModified(),
@@ -242,7 +242,7 @@ class SFMJavaInteractionMapSessionTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         request.workspace(),
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\source",
+                                SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(),
                                 root.id(),
                                 root.sourceSet(),
                                 root.path()

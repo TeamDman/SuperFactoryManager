@@ -1,0 +1,14 @@
+NAME "Empty Slots"
+
+EVERY 20 TICKS DO
+    INPUT FROM mob_loot
+    OUTPUT TO EMPTY SLOTS IN storage
+    -- You can add EMPTY SLOTS IN before the labels to have SFM only insert into empty slots
+    -- This should be useful for minimizing lag when outputting to large full inventories
+END
+
+-- Optional: run an infrequent condensing pass to stack items
+EVERY 300 SECONDS DO
+    INPUT FROM storage
+    OUTPUT TO storage
+END

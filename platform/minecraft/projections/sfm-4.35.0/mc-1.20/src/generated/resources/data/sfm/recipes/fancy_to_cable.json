@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "sfm:fancy_cable"
+    }
+  ],
+  "result": {
+    "item": "sfm:cable"
+  }
+}

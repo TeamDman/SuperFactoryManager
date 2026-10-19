@@ -1,0 +1,25 @@
+if (project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("versioned-plugins.gradle must not be applied more than once")
+}
+
+def sfmPluginVersion = project.minecraft_version.toString()
+def sfmPluginScript = file("gradle/plugins/${sfmPluginVersion}/plugins.gradle")
+
+if (!sfmPluginScript.isFile()) {
+    def available = file("gradle/plugins")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No Gradle plugin script found for minecraft_version=${sfmPluginVersion}. "
+            + "Expected ${sfmPluginScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmPluginVersion = sfmPluginVersion
+
+apply from: sfmPluginScript
+
+ext.sfmPluginsConfigured = true

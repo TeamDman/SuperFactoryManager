@@ -44,7 +44,7 @@ class SFMSymbolServerProtocolTests {
 
     @Test
     void helloRetainsTypedWorkspaceAndRawAdditiveMetadata() throws Exception {
-        String json = helloEnvelope(7, "D:/workspace/source", "extra_field", "retained");
+        String json = helloEnvelope(7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), "extra_field", "retained");
 
         var frame = assertInstanceOf(
                 SFMSymbolServerProtocol.HelloFrame.class,
@@ -56,7 +56,7 @@ class SFMSymbolServerProtocolTests {
         assertEquals("source", frame.hello().workspace().rootMappings().get(0).reportRootPath());
         assertTrue(frame.hello().rawHelloJson().contains("extra_field"));
         assertEquals(
-                "file:///D:/workspace/source",
+                SFMSymbolServerProtocolTests.fixtureAddress("workspace/source"),
                 frame.hello().workspace().rootMappings().get(0).absoluteRootAddress()
         );
     }
@@ -64,11 +64,11 @@ class SFMSymbolServerProtocolTests {
     @Test
     void helloRetainsManagedDependencySourceRootMetadata() throws Exception {
         JsonObject envelope = JsonParser.parseString(
-                helloEnvelope(7, "D:/workspace/source", null, null)
+                helloEnvelope(7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null)
         ).getAsJsonObject();
         JsonObject workspace = envelope.getAsJsonObject("hello").getAsJsonObject("workspace");
         JsonObject dependencyRoot = new JsonObject();
-        dependencyRoot.addProperty("canonical_absolute_path", "D:/workspace/dependencies/forge");
+        dependencyRoot.addProperty("canonical_absolute_path", SFMSymbolServerProtocolTests.fixturePath("workspace/dependencies/forge").toString());
         dependencyRoot.addProperty("root_id", "dependency-source-0");
         dependencyRoot.addProperty("source_set", "dependency:forge");
         dependencyRoot.addProperty("report_prefix", "dependency/forge/userdev/loader-pipeline");
@@ -85,7 +85,7 @@ class SFMSymbolServerProtocolTests {
         assertEquals("dependency:forge", decoded.sourceSet());
         assertEquals("dependency/forge/userdev/loader-pipeline", decoded.reportPrefix());
         assertEquals(
-                "file:///D:/workspace/dependencies/forge",
+                SFMSymbolServerProtocolTests.fixtureAddress("workspace/dependencies/forge"),
                 decoded.absoluteRootAddress()
         );
     }
@@ -93,7 +93,7 @@ class SFMSymbolServerProtocolTests {
     @Test
     void helloRetainsCanonicalJdkManagedSourceAuthority() throws Exception {
         JsonObject envelope = JsonParser.parseString(
-                helloEnvelope(7, "D:/workspace/source", null, null)
+                helloEnvelope(7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null)
         ).getAsJsonObject();
         JsonObject workspace = envelope.getAsJsonObject("hello").getAsJsonObject("workspace");
         JsonObject requestWorkspace = workspace.getAsJsonObject("request_workspace");
@@ -107,7 +107,7 @@ class SFMSymbolServerProtocolTests {
         requestWorkspace.getAsJsonArray("source_roots").add(jdkRoot);
 
         JsonObject orderedRoot = new JsonObject();
-        orderedRoot.addProperty("canonical_absolute_path", "D:/cache/jdk/java-17/abc123/tree");
+        orderedRoot.addProperty("canonical_absolute_path", SFMSymbolServerProtocolTests.fixturePath("cache/jdk/java-17/abc123/tree").toString());
         orderedRoot.addProperty("root_id", "jdk-java-17-abc123");
         orderedRoot.addProperty("source_set", "jdk:java-17");
         orderedRoot.addProperty("report_root_path", "jdk/java-17/abc123");
@@ -117,7 +117,7 @@ class SFMSymbolServerProtocolTests {
         managed.addProperty("resolver_id", "jdk-source");
         managed.addProperty("address_scheme", "jdk-source");
         managed.addProperty("resolver_identity", "jdk/java-17/abc123");
-        managed.addProperty("canonical_absolute_path", "D:/cache/jdk/java-17/abc123/tree");
+        managed.addProperty("canonical_absolute_path", SFMSymbolServerProtocolTests.fixturePath("cache/jdk/java-17/abc123/tree").toString());
         managed.addProperty("root_id", "jdk-java-17-abc123");
         managed.addProperty("source_set", "jdk:java-17");
         managed.addProperty("portable_root_path", "jdk/java-17/abc123");
@@ -134,12 +134,12 @@ class SFMSymbolServerProtocolTests {
         assertEquals("jdk-source", decoded.resolverId());
         assertEquals("jdk-java-17-abc123", decoded.rootId());
         assertEquals(Optional.of("jdk/java-17/abc123"), decoded.portableRootPath());
-        assertEquals("file:///D:/cache/jdk/java-17/abc123/tree", decoded.absoluteRootAddress());
+        assertEquals(SFMSymbolServerProtocolTests.fixtureAddress("cache/jdk/java-17/abc123/tree"), decoded.absoluteRootAddress());
     }
 
     @Test
     void workspaceAckCarriesACompleteReplacementWorkspace() throws Exception {
-        JsonObject hello = JsonParser.parseString(helloEnvelope(12, "D:/workspace/new-source", null, null))
+        JsonObject hello = JsonParser.parseString(helloEnvelope(12, SFMSymbolServerProtocolTests.fixturePath("workspace/new-source").toString(), null, null))
                 .getAsJsonObject()
                 .getAsJsonObject("hello");
         JsonObject update = new JsonObject();
@@ -156,7 +156,7 @@ class SFMSymbolServerProtocolTests {
         );
         assertEquals(12, frame.workspaceGeneration());
         assertEquals(2, frame.cancelledRequests());
-        assertEquals("D:\\workspace\\new-source",
+        assertEquals(fixturePath("workspace/new-source").toString(),
                 frame.workspace().rootMappings().get(0).canonicalAbsolutePath());
     }
 
@@ -225,7 +225,7 @@ class SFMSymbolServerProtocolTests {
                 + "\"kind\":\"custom\",\"exists\":true}],\"classpath_fingerprint\":\"blake3:workspace\","
                 + "\"workspace_fingerprint\":\"blake3:0000000000000000000000000000000000000000000000000000000000000000\","
                 + "\"workspace_generation\":11},\"document\":{"
-                + "\"address\":\"file:///D:/workspace/source/A.java\",\"root_id\":\"custom-0\","
+                + "\"address\":\"" + fixtureAddress("workspace/source/A.java") + "\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"text\":\"class A {}\\n\",\"content_hash\":\"" + hash + "\","
                 + "\"disk_content_hash\":\"" + hash + "\"},"
@@ -234,14 +234,14 @@ class SFMSymbolServerProtocolTests {
         assertEquals(request, SFMDefinitionJsonCodec.decodeRequest(expectedRequest));
 
         SFMDefinitionResult addressed = addressedResult(request);
-        String identifierSpan = "{\"address\":\"file:///D:/workspace/source/A.java\","
+        String identifierSpan = "{\"address\":\"" + fixtureAddress("workspace/source/A.java") + "\","
                 + "\"resolver_id\":\"sfm:file\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"source_hash\":\"" + hash + "\","
                 + "\"source_sha256\":\"" + hash + "\","
                 + "\"start_byte\":6,\"end_byte\":7,\"start_line\":1,\"start_column\":7,"
                 + "\"end_line\":1,\"end_column\":8}";
-        String declarationSpan = "{\"address\":\"file:///D:/workspace/source/A.java\","
+        String declarationSpan = "{\"address\":\"" + fixtureAddress("workspace/source/A.java") + "\","
                 + "\"resolver_id\":\"sfm:file\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"source_hash\":\"" + hash + "\","
@@ -260,7 +260,7 @@ class SFMSymbolServerProtocolTests {
                 + "\"source_exclusions\":[],\"classpath_mode\":\"isolated\","
                 + "\"classpath_fingerprint\":\"blake3:workspace\",\"parser_fingerprint\":\"arborium\","
                 + "\"index_fingerprint\":\"blake3:index\"},\"document\":{"
-                + "\"address\":\"file:///D:/workspace/source/A.java\",\"root_id\":\"custom-0\","
+                + "\"address\":\"" + fixtureAddress("workspace/source/A.java") + "\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"content_hash\":\"" + hash + "\","
                 + "\"disk_content_hash\":\"" + hash + "\"},"
@@ -320,6 +320,17 @@ class SFMSymbolServerProtocolTests {
                                 + "\"code\":\"x\",\"message\":\"x\",\"disposition\":\"future\","
                                 + "\"request_id\":null,\"request_generation\":null}}"
                 ));
+    }
+
+    /** Native fixture paths retain host containment semantics without assuming a drive. */
+    static java.nio.file.Path fixturePath(String relative) {
+        return java.nio.file.Path.of(System.getProperty("java.io.tmpdir"), "sfm-symbol-fixture")
+                .resolve(relative).toAbsolutePath().normalize();
+    }
+
+    static String fixtureAddress(String relative) {
+        String address = fixturePath(relative).toUri().toASCIIString();
+        return relative.endsWith("/") && !address.endsWith("/") ? address + "/" : address;
     }
 
     static String helloEnvelope(
@@ -394,7 +405,7 @@ class SFMSymbolServerProtocolTests {
                         workspaceGeneration
                 ),
                 SFMDefinitionRequest.Document.sha256(
-                        "file:///D:/workspace/source/A.java",
+                        SFMSymbolServerProtocolTests.fixtureAddress("workspace/source/A.java"),
                         "custom-0",
                         "A.java",
                         "source/A.java",

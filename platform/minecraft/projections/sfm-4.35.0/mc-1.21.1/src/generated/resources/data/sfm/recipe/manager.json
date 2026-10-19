@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "tag": "c:chests"
+    },
+    "B": {
+      "item": "sfm:cable"
+    },
+    "C": {
+      "item": "minecraft:repeater"
+    }
+  },
+  "pattern": [
+    "ABA",
+    "BCB",
+    "ABA"
+  ],
+  "result": {
+    "count": 1,
+    "id": "sfm:manager"
+  }
+}

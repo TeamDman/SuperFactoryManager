@@ -1118,6 +1118,11 @@ mod tests {
     }
 
     fn fixture_lock_bytes(recipe: &ReviewedRecipe) -> Result<Vec<u8>> {
+        // Historical review tests retain the original weak-identity lock;
+        // the current production lock has a separate strong producer receipt.
+        if recipe.target == "26.1.2" {
+            return Ok(include_bytes!("fixtures/released-2612-original-schema2.json").to_vec());
+        }
         read_bounded(
             &checked_file(fixture_repository()?, &recipe.source_lock.path)?,
             MAX_LOCK_BYTES as u64,

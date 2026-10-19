@@ -12,6 +12,9 @@ use std::path::PathBuf;
 /// Arguments for launching the Forge client and running selected SFM game puppet definitions.
 #[derive(Facet, Debug, Clone)]
 pub struct RunGameTestPreviewArgs {
+    /// Explicit maximum Minecraft JVM heap in MiB (512..=8192); passed directly as -Xmx.
+    #[facet(default, args::named)]
+    pub java_max_heap_mib: Option<u32>,
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
@@ -64,6 +67,7 @@ impl RunGameTestPreviewArgs {
             self.mute,
             self.keep_open,
             self.control_cli_source_root,
+            self.java_max_heap_mib,
             cancellation_token,
         )
     }
@@ -89,6 +93,7 @@ pub(crate) fn invoke_game_puppet(
     mute: bool,
     keep_open: Option<Option<String>>,
     control_cli_source_root: Option<PathBuf>,
+    java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
     invoke_game_puppet_with_hotswap(
@@ -102,6 +107,7 @@ pub(crate) fn invoke_game_puppet(
         keep_open,
         None,
         control_cli_source_root,
+        java_max_heap_mib,
         cancellation_token,
     )
 }
@@ -123,8 +129,12 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     keep_open: Option<Option<String>>,
     client_hotswap_port: Option<u16>,
     control_cli_source_root: Option<PathBuf>,
+    java_max_heap_mib: Option<u32>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
+    let java_max_heap_mib = java_max_heap_mib
+        .map(crate::jar_build::JavaMaxHeapMib::new)
+        .transpose()?;
     let puppet_filter = puppet.trim();
     if puppet_filter.is_empty() {
         eyre::bail!("puppet selector must not be empty");
@@ -137,6 +147,7 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
         options.into_options(BuildMode::Build)?,
         RunKind::GameTestPreview,
         RunOptions {
+            java_max_heap_mib,
             client_hotswap_port,
             control_cli_source_root,
             game_puppet_filter: Some(puppet_filter.to_string()),

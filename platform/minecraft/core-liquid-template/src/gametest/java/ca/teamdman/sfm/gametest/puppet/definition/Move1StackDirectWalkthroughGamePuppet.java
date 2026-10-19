@@ -19,7 +19,12 @@ public final class Move1StackDirectWalkthroughGamePuppet {
 
     public static void run(SFMGamePuppetHelper puppet) {
         puppet.createFreshFlatWorld();
+{% case minecraft_version %}
+{% when '1.21.1' %}
+        String testName = new Move1StackDirectGameTest().testName();
+{% else %}
         String testName = SFMGameTestDefinition.testNameFor(Move1StackDirectGameTest.class);
+{% endcase %}
         puppet.runGameTest(testName);
         puppet.captureOrbit(
                 "overview",

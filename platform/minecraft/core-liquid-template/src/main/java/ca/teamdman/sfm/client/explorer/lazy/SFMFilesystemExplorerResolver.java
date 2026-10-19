@@ -291,6 +291,15 @@ public final class SFMFilesystemExplorerResolver implements SFMExplorerResolver 
                     "The requested path is unavailable: " + request.path().canonical()
             );
         } catch (IOException failure) {
+            if (Files.isSymbolicLink(lexical)) {
+                ioCounter.containmentRejected(request.path());
+                return SFMResolverTextResult.failure(
+                        request,
+                        SFMResolverTextResult.Status.UNAVAILABLE,
+                        generation(),
+                        "The symbolic link cannot be safely resolved within the supplied authorized root"
+                );
+            }
             return ioError(request, "Could not resolve the requested path", failure);
         }
         if (!real.startsWith(rootReal)) {
@@ -665,7 +674,15 @@ public final class SFMFilesystemExplorerResolver implements SFMExplorerResolver 
                 .filter(candidate -> lexical.startsWith(candidate.lexical()))
                 .max(Comparator.comparingInt(candidate -> candidate.lexical().getNameCount()))
                 .orElseThrow(() -> rejected(path, "path is outside every explicit explorer root"));
-        Path real = lexical.toRealPath();
+        Path real;
+        try {
+            real = lexical.toRealPath();
+        } catch (IOException failure) {
+            if (Files.isSymbolicLink(lexical)) {
+                throw rejected(path, "symbolic link cannot be safely resolved within its explicit explorer root");
+            }
+            throw failure;
+        }
         Path rootReal = root.lexical().toRealPath();
         if (!real.startsWith(rootReal)) {
             throw rejected(path, "path escapes its explicit explorer root through a symbolic link");

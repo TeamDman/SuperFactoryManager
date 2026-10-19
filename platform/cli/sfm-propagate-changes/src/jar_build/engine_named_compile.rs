@@ -1,5 +1,22 @@
 // Included in the engine namespace after engine_model.rs.
 
+#[path = "native_cache_root.rs"]
+mod native_cache_root;
+
+pub(crate) fn preflight_named_cache_root(
+    path: &Path,
+    repository: &Path,
+    source: &Path,
+    sdk: &Path,
+) -> eyre::Result<PathBuf> {
+    native_cache_root::NativeCacheRoot::preflight(
+        path,
+        dunce::simplified(repository),
+        dunce::simplified(source),
+        dunce::simplified(sdk),
+    )
+}
+
 #[cfg(test)]
 mod named_forge_compile_cohort_tests {
     use super::*;
@@ -144,7 +161,8 @@ mod named_forge_compile_cohort_tests {
         let context = catalog.context(&format!("sfm-4.34.0/mc-{target}"))?;
         let selection = select_core_inputs(metadata, &context, &BTreeSet::new())?;
         let mut fixture = Fixture::new_for_target(target);
-        let configuration = crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
+        let configuration =
+            crate::source_projection::released_native_inputs::BUILD_CONFIGURATION_PATH;
         let destination = fixture.repository().join(configuration);
         fs::create_dir_all(destination.parent().unwrap())?;
         fs::copy(repository.join(configuration), destination)?;
@@ -169,10 +187,19 @@ mod named_forge_compile_cohort_tests {
                 "frozen fixture role must be one exact-copy selected input"
             );
             let bytes = read_bounded(&checked_file(repository, source_path)?, 1024 * 1024)?;
-            roles.push((selected[0].0.clone(), core_relative.to_owned(), bytes, false));
+            roles.push((
+                selected[0].0.clone(),
+                core_relative.to_owned(),
+                bytes,
+                false,
+            ));
         }
-        fixture.set_project_files_for(target, roles.iter().map(|(output, input, bytes, template)|
-            (output.as_str(), input.as_str(), bytes.as_slice(), *template)))?;
+        fixture.set_project_files_for(
+            target,
+            roles.iter().map(|(output, input, bytes, template)| {
+                (output.as_str(), input.as_str(), bytes.as_slice(), *template)
+            }),
+        )?;
         let slot = SUPPORTED_TARGETS
             .iter()
             .position(|(candidate, _)| *candidate == target)
@@ -508,6 +535,11 @@ enum BuildProjectIdentity {
     Catalog {
         frozen: Arc<crate::source_projection::frozen_recipe_project::FrozenRecipeProject>,
     },
+    // Only the private command admission constructs this all-hit capability.
+    // Its source consumers use retained bytes; misses cannot launch children.
+    CatalogAdmitted {
+        inputs: Arc<retained_compile_inputs::RetainedCompileInputs>,
+    },
     Development {
         project: Arc<crate::source_projection::catalog_owned_project::CatalogOwnedProject>,
         target: Arc<crate::source_projection::native_project_target::NativeProjectTarget>,
@@ -521,13 +553,14 @@ impl BuildProjectIdentity {
         match self {
             Self::Worktree { .. } | Self::Development { .. } => None,
             Self::Catalog { frozen } => Some(frozen),
+            Self::CatalogAdmitted { inputs } => Some(inputs.project()),
         }
     }
 
     fn legacy_branch(&self) -> Option<&BranchName> {
         match self {
             Self::Worktree { branch, .. } => Some(branch),
-            Self::Catalog { .. } | Self::Development { .. } => None,
+            Self::Catalog { .. } | Self::CatalogAdmitted { .. } | Self::Development { .. } => None,
         }
     }
 
@@ -535,6 +568,7 @@ impl BuildProjectIdentity {
         match self {
             Self::Worktree { root, .. } => root,
             Self::Catalog { frozen } => frozen.project().repo_root(),
+            Self::CatalogAdmitted { inputs } => inputs.project().project().repo_root(),
             Self::Development { project, .. } => project.repo_root(),
         }
     }
@@ -548,13 +582,33 @@ impl BuildProjectIdentity {
                 // simplify only when dunce proves equivalent Win32 spelling.
                 dunce::simplified(frozen.project().project_root()).to_path_buf()
             }
+            Self::CatalogAdmitted { inputs } => {
+                dunce::simplified(inputs.project().project().project_root()).to_path_buf()
+            }
             Self::Development { project, .. } => {
                 dunce::simplified(project.project_root()).to_path_buf()
             }
         }
     }
 
+    fn retained_inputs(&self) -> Option<&retained_compile_inputs::RetainedCompileInputs> {
+        match self {
+            Self::CatalogAdmitted { inputs } => Some(inputs),
+            _ => None,
+        }
+    }
+
+    fn require_strict(&self, reason: &'static str) -> eyre::Result<()> {
+        if self.retained_inputs().is_some() {
+            return Err(all_hit_cache_miss::AllHitCacheMiss::new(reason).into());
+        }
+        Ok(())
+    }
+
     fn recheck(&self) -> eyre::Result<()> {
+        if let Some(inputs) = self.retained_inputs() {
+            return inputs.recheck();
+        }
         if let Some(project) = self.named_project() {
             project.recheck(false)?;
         }
@@ -573,7 +627,7 @@ impl BuildProjectIdentity {
     ) -> Option<&crate::source_projection::native_project_target::NativeProjectTarget> {
         match self {
             Self::Development { target, .. } => Some(target),
-            Self::Worktree { .. } | Self::Catalog { .. } => None,
+            Self::Worktree { .. } | Self::Catalog { .. } | Self::CatalogAdmitted { .. } => None,
         }
     }
 }
@@ -602,6 +656,8 @@ impl TryFrom<JsonOptionalBranchName> for Option<BranchName> {
 
 #[derive(Clone, Debug)]
 struct NativePlanningOptions {
+    output_name: Option<String>,
+    derived_cache_root: Option<Arc<native_cache_root::NativeCacheRoot>>,
     mode: BuildMode,
     java_home: Option<PathBuf>,
     refresh: bool,
@@ -613,6 +669,8 @@ struct NativePlanningOptions {
 impl From<&BuildOptions> for NativePlanningOptions {
     fn from(value: &BuildOptions) -> Self {
         Self {
+            derived_cache_root: None,
+            output_name: value.output_name.clone(),
             mode: value.mode,
             java_home: value.java_home.clone(),
             refresh: value.refresh,
@@ -640,6 +698,9 @@ impl BuildPlan {
             BuildProjectIdentity::Catalog { frozen } => {
                 frozen.project().receipt().projection_key.clone()
             }
+            BuildProjectIdentity::CatalogAdmitted { inputs } => {
+                inputs.project().project().receipt().projection_key.clone()
+            }
             BuildProjectIdentity::Development { target, .. } => {
                 target.receipt.projection_key.clone()
             }
@@ -648,6 +709,19 @@ impl BuildPlan {
 
     fn recheck_named_inputs(&self) -> eyre::Result<()> {
         self.identity.recheck()
+    }
+
+    fn retained_inputs(&self) -> Option<&retained_compile_inputs::RetainedCompileInputs> {
+        self.identity.retained_inputs()
+    }
+
+    fn require_strict(&self, reason: &'static str) -> eyre::Result<()> {
+        self.identity.require_strict(reason)
+    }
+
+    fn before_named_acquisition(&self) -> eyre::Result<()> {
+        self.recheck_named_inputs()?;
+        self.require_strict("exact artifact acquisition")
     }
 
     fn recheck_named_sdk(&self) -> eyre::Result<()> {
@@ -659,13 +733,14 @@ impl BuildPlan {
 
     fn resolver(&self, cancellation: &CancellationToken) -> eyre::Result<Resolver> {
         if let Some(project) = self.named_project() {
-            project.recheck(false)?;
-            Resolver::new_prepared(
+            self.recheck_named_inputs()?;
+            let resolver = Resolver::new_prepared(
                 self.maven_cache_dir.clone(),
                 Arc::clone(project.dependencies()),
                 false,
                 cancellation.clone(),
-            )
+            )?;
+            Ok(resolver.existing_only(self.retained_inputs().is_some()))
         } else {
             let resolver = Resolver::new(
                 self.maven_cache_dir.clone(),
@@ -687,7 +762,7 @@ impl BuildPlan {
 
     fn parsed_dependencies(&self) -> eyre::Result<Vec<ParsedDependency>> {
         if let Some(project) = self.named_project() {
-            project.recheck(false)?;
+            self.recheck_named_inputs()?;
             prepared_parsed_dependencies(project.dependencies())
         } else {
             read_projected_dependencies(&self.lockfile_path)
@@ -733,6 +808,7 @@ fn prepared_parsed_dependencies(
 #[derive(Debug)]
 pub(crate) struct NamedCompileOptions {
     pub(crate) java_home: PathBuf,
+    pub(crate) cache_root: Option<PathBuf>,
     pub(crate) explain_rebuild: bool,
     pub(crate) wait_for_build_lock: bool,
 }
@@ -760,11 +836,88 @@ pub(crate) fn invoke_named_compile(
     cancellation: &CancellationToken,
 ) -> eyre::Result<NamedCompileReport> {
     validate_first_named_compile(&project)?;
-    project.recheck(false)?;
-    let identity = BuildProjectIdentity::Catalog {
-        frozen: Arc::new(project),
+    let frozen = Arc::new(project);
+    // The first slice covers Windows NeoForm compile only. Other routes retain
+    // their existing strict input and compiler behavior.
+    if cfg!(windows) && frozen.receipt().released_inputs.loader_kind == "neogradle_userdev" {
+        let inputs = Arc::new(retained_compile_inputs::RetainedCompileInputs::admit(
+            Arc::clone(&frozen),
+        )?);
+        let admitted = BuildProjectIdentity::CatalogAdmitted { inputs };
+        return all_hit_or_strict_compile(
+            &frozen,
+            || invoke_named_compile_attempt(admitted, options, cancellation),
+            || {
+                invoke_named_compile_attempt(
+                    BuildProjectIdentity::Catalog {
+                        frozen: Arc::clone(&frozen),
+                    },
+                    options,
+                    cancellation,
+                )
+            },
+        );
+    }
+    frozen.recheck(false)?;
+    let result = invoke_named_compile_attempt(
+        BuildProjectIdentity::Catalog {
+            frozen: Arc::clone(&frozen),
+        },
+        options,
+        cancellation,
+    )?;
+    frozen.recheck(false)?;
+    Ok(result)
+}
+
+fn all_hit_or_strict_compile<T>(
+    frozen: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    all_hit: impl FnOnce() -> eyre::Result<T>,
+    strict: impl FnOnce() -> eyre::Result<T>,
+) -> eyre::Result<T> {
+    let result = match all_hit() {
+        Ok(result) => result,
+        Err(error)
+            if error
+                .downcast_ref::<all_hit_cache_miss::AllHitCacheMiss>()
+                .is_some() =>
+        {
+            tracing::debug!(%error, "All-hit compile requires the strict compiler path");
+            // The admitted plan has unwound. Re-admit the live source before
+            // constructing a fresh strict plan that may launch build tools.
+            frozen.recheck(false)?;
+            strict()?
+        }
+        Err(error) => return Err(error),
     };
+    // Neither a cached result nor a successful strict child establishes that
+    // the command still describes the current source tree.
+    frozen.recheck(false)?;
+    Ok(result)
+}
+
+fn invoke_named_compile_attempt(
+    identity: BuildProjectIdentity,
+    options: &NamedCompileOptions,
+    cancellation: &CancellationToken,
+) -> eyre::Result<NamedCompileReport> {
+    let derived_cache_root = options
+        .cache_root
+        .as_deref()
+        .map(|path| {
+            native_cache_root::NativeCacheRoot::acquire(
+                path,
+                identity.repository_root(),
+                &identity.minecraft_dir(),
+                &options.java_home,
+                cancellation,
+            )
+            .map(Arc::new)
+        })
+        .transpose()?;
     let planning = NativePlanningOptions {
+        output_name: None,
+        derived_cache_root,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,
@@ -773,6 +926,9 @@ pub(crate) fn invoke_named_compile(
         require_portable_artifacts: true,
     };
     let plan = create_plan_for_project(&planning, &identity, cancellation)?;
+    // The plan owns its identity clone. Consume the attempt's original here so
+    // every scoped capability is discarded before a separate strict retry.
+    drop(identity);
     plan.recheck_named_inputs()?;
     let artifact = format!("{} native compile cache", plan.target_label());
     let path = build_cache_lock_path(&plan);
@@ -790,10 +946,13 @@ pub(crate) fn invoke_named_compile(
         BuildTarget::Compile,
         cancellation,
     )?;
-    plan.recheck_named_inputs()?;
     let project = plan
         .named_project()
         .ok_or_else(|| eyre::eyre!("named compile lost its checked owner"))?;
+    // Preserve the existing final source gate while the producer lock is held.
+    project.recheck(false)?;
+    // The enclosing command's final full currentness gate runs before this
+    // report can be returned as success.
     Ok(NamedCompileReport {
         schema: "sfm:named_native_compile@1".to_owned(),
         scope: "real native main/gametest/datagen compile; no jar/launch/release parity claim"
@@ -1089,14 +1248,17 @@ fn verify_named_sdk_identity(java: &JavaPlan) -> eyre::Result<()> {
 }
 
 fn resolve_frozen_minecraft_plan(
-    project: &crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+    target: &BuildProjectIdentity,
     minecraft_cache: &Path,
     client: &Client,
     cancellation: &CancellationToken,
 ) -> eyre::Result<MinecraftPlan> {
     use authenticated_minecraft_inputs::MinecraftCompileDownload as Role;
 
-    project.recheck(false)?;
+    target.recheck()?;
+    let project = target
+        .named_project()
+        .ok_or_else(|| eyre::eyre!("frozen plan lost owner"))?;
     let receipt = &project.receipt().released_inputs;
     let hash = ContentHash::parse(&receipt.direct_version_json_hash)
         .map_err(|error| eyre::eyre!(error))?;
@@ -1112,7 +1274,10 @@ fn resolve_frozen_minecraft_plan(
         &hash,
         16 * 1024 * 1024,
         None,
-        || project.recheck(false),
+        || {
+            target.recheck()?;
+            target.require_strict("exact version metadata acquisition")
+        },
     )?;
     let inputs = authenticated_minecraft_inputs::authenticate_version_json(project, &raw)?;
     let (client_mappings_url, server_mappings_url) = inputs.compile_mapping_urls()?;
@@ -1192,7 +1357,7 @@ fn acquire_authenticated_child_bytes(
         request.expected_hash(),
         request.expected_bytes(),
         Some(request.expected_bytes()),
-        || context.plan.recheck_named_inputs(),
+        || context.plan.before_named_acquisition(),
     )?;
     inputs.verify_child_bytes(request, &raw)?;
     context.assert_allowed_input(path)?;
@@ -1303,6 +1468,10 @@ fn acquire_named_frozen_download(
 
 // Keep complete SHA-256 supplement pins outside the legacy 20-byte ContentHash
 // representation. Both algorithms use this same locked, create-only path.
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep missing-only acquisition, all verification boundaries and one terminal observation on every returned result together."
+)]
 fn acquire_named_frozen_download_verified(
     cancellation: &CancellationToken,
     client: &Client,
@@ -1312,62 +1481,117 @@ fn acquire_named_frozen_download_verified(
     verify: impl Fn(&[u8]) -> eyre::Result<()>,
     before_missing_effect: impl Fn() -> eyre::Result<()>,
 ) -> eyre::Result<Vec<u8>> {
-    cancellation.bail_if_cancelled()?;
-    let _lock = acquire_artifact_path_lock_cancellable(path, cancellation)?;
-    match fs::symlink_metadata(path) {
-        Ok(metadata) => {
-            require_named_regular_file(path, &metadata)?;
-            let bytes = read_named_authenticated_file(path, maximum)?;
-            verify(&bytes)?;
-            return Ok(bytes);
+    static NEXT_OPERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let operation_id = NEXT_OPERATION.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let started = std::time::Instant::now();
+    let mut acquisition_source = "not_selected";
+    let mut observed_bytes = None;
+    let mut network_request_attempts = 0_u64;
+    let mut published = false;
+    let result = (|| -> eyre::Result<Vec<u8>> {
+        cancellation.bail_if_cancelled()?;
+        let _lock = acquire_artifact_path_lock_cancellable(path, cancellation)?;
+        match fs::symlink_metadata(path) {
+            Ok(metadata) => {
+                acquisition_source = "existing";
+                require_named_regular_file(path, &metadata)?;
+                let bytes = read_named_authenticated_file(path, maximum)?;
+                observed_bytes = Some(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
+                verify(&bytes)?;
+                tracing::info!(
+                    phase = "named_input.acquire",
+                    event = "verified_existing",
+                    operation_id,
+                    verified_bytes = observed_bytes.unwrap_or(0),
+                    "named_acquisition_observation"
+                );
+                return Ok(bytes);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error.into()),
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
-        Err(error) => return Err(error.into()),
-    }
-    cancellation.bail_if_cancelled()?;
-    before_missing_effect()?;
-    cancellation.bail_if_cancelled()?;
-    let mut response = client
-        .get(url)
-        .send()
-        .wrap_err_with(|| format!("failed exact named request {url}"))?;
-    cancellation.bail_if_cancelled()?;
-    eyre::ensure!(
-        response.status().is_success(),
-        "exact named request failed: HTTP {}",
-        response.status()
+        cancellation.bail_if_cancelled()?;
+        before_missing_effect()?;
+        cancellation.bail_if_cancelled()?;
+        acquisition_source = "network";
+        network_request_attempts = 1_u64;
+        tracing::info!(
+            phase = "named_input.acquire",
+            event = "network_request_started",
+            operation_id,
+            network_request_attempts,
+            "named_acquisition_observation"
+        );
+        let mut response = client
+            .get(url)
+            .send()
+            .wrap_err_with(|| format!("failed exact named request {url}"))?;
+        cancellation.bail_if_cancelled()?;
+        eyre::ensure!(
+            response.status().is_success(),
+            "exact named request failed: HTTP {}",
+            response.status()
+        );
+        eyre::ensure!(
+            response.content_length().is_none_or(|size| size <= maximum),
+            "exact named response exceeds byte limit"
+        );
+        let mut bytes = Vec::new();
+        (&mut response)
+            .take(
+                maximum
+                    .checked_add(1)
+                    .ok_or_else(|| eyre::eyre!("named response limit overflow"))?,
+            )
+            .read_to_end(&mut bytes)?;
+        cancellation.bail_if_cancelled()?;
+        eyre::ensure!(
+            u64::try_from(bytes.len())? <= maximum,
+            "exact named response exceeds byte limit"
+        );
+        observed_bytes = Some(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
+        verify(&bytes)?;
+        cancellation.bail_if_cancelled()?;
+        before_missing_effect()?;
+        cancellation.bail_if_cancelled()?;
+        let temporary = write_unique_temp_file(path, &bytes)?;
+        // Atomic create-if-missing cannot overwrite a non-cooperating writer.
+        // A failed link leaves only our recovery temporary; no prior file is moved.
+        cancellation.bail_if_cancelled()?;
+        before_missing_effect()?;
+        cancellation.bail_if_cancelled()?;
+        fs::hard_link(&temporary, path)
+            .wrap_err("named destination appeared or cannot be published without replacement")?;
+        published = true;
+        fs::remove_file(&temporary)?;
+        tracing::info!(
+            phase = "named_input.acquire",
+            event = "network_published",
+            operation_id,
+            verified_bytes = observed_bytes.unwrap_or(0),
+            "named_acquisition_observation"
+        );
+        Ok(bytes)
+    })();
+    let elapsed_us = u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX);
+    let outcome = if result.is_ok() { "success" } else { "error" };
+    tracing::info!(
+        phase = "named_input.acquire",
+        event = "complete",
+        operation_id,
+        outcome,
+        acquisition_source,
+        completed_operations = 1_u64,
+        network_request_attempts,
+        published,
+        elapsed_us,
+        observed_bytes = observed_bytes.unwrap_or(0),
+        observed_bytes_known = observed_bytes.is_some(),
+        measurement = "wall_duration",
+        nested = true,
+        "named_acquisition_observation"
     );
-    eyre::ensure!(
-        response.content_length().is_none_or(|size| size <= maximum),
-        "exact named response exceeds byte limit"
-    );
-    let mut bytes = Vec::new();
-    (&mut response)
-        .take(
-            maximum
-                .checked_add(1)
-                .ok_or_else(|| eyre::eyre!("named response limit overflow"))?,
-        )
-        .read_to_end(&mut bytes)?;
-    cancellation.bail_if_cancelled()?;
-    eyre::ensure!(
-        u64::try_from(bytes.len())? <= maximum,
-        "exact named response exceeds byte limit"
-    );
-    verify(&bytes)?;
-    cancellation.bail_if_cancelled()?;
-    before_missing_effect()?;
-    cancellation.bail_if_cancelled()?;
-    let temporary = write_unique_temp_file(path, &bytes)?;
-    // Atomic create-if-missing cannot overwrite a non-cooperating writer.
-    // A failed link leaves only our recovery temporary; no prior file is moved.
-    cancellation.bail_if_cancelled()?;
-    before_missing_effect()?;
-    cancellation.bail_if_cancelled()?;
-    fs::hard_link(&temporary, path)
-        .wrap_err("named destination appeared or cannot be published without replacement")?;
-    fs::remove_file(&temporary)?;
-    Ok(bytes)
+    result
 }
 
 fn verify_named_download_bytes(
@@ -1408,7 +1632,7 @@ fn require_named_regular_file(path: &Path, metadata: &fs::Metadata) -> eyre::Res
     clippy::case_sensitive_file_extension_comparisons,
     reason = "Frozen grammar paths and role membership require exact case, not aliases."
 )]
-fn first_named_compile_grammars<'a>(
+fn select_project_compile_grammars<'a>(
     owned_paths: impl IntoIterator<Item = &'a str>,
 ) -> eyre::Result<Vec<&'a str>> {
     let paths = owned_paths
@@ -1426,17 +1650,17 @@ fn first_named_compile_grammars<'a>(
     ];
     eyre::ensure!(
         baseline.iter().all(|path| paths.contains(path)),
-        "first named recipe lacks required baseline grammars"
+        "project lacks required baseline grammars"
     );
     eyre::ensure!(
         paths.contains(pair[0]) == paths.contains(pair[1]),
-        "first named recipe requires the complete optional ANTLRv4 pair"
+        "project requires the complete optional ANTLRv4 pair"
     );
     eyre::ensure!(
         paths
             .iter()
             .all(|path| baseline.contains(path) || pair.contains(path)),
-        "first named recipe contains an unsupported owned grammar"
+        "project contains an unsupported owned grammar"
     );
     let mut result = baseline.into_iter().collect::<Vec<_>>();
     if paths.contains(pair[0]) {
@@ -1608,22 +1832,22 @@ mod named_compile_wire_tests {
             "src/main/antlr/toml/TomlLexer.g4",
             "src/main/antlr/toml/TomlParser.g4",
         ];
-        assert_eq!(first_named_compile_grammars(baseline)?, baseline);
+        assert_eq!(select_project_compile_grammars(baseline)?, baseline);
         let mut complete = baseline.to_vec();
         complete.extend([
             "src/main/antlr/antlr4/ANTLRv4Lexer.g4",
             "src/main/antlr/antlr4/ANTLRv4Parser.g4",
         ]);
         assert_eq!(
-            first_named_compile_grammars(complete.iter().copied())?,
+            select_project_compile_grammars(complete.iter().copied())?,
             complete
         );
-        assert!(first_named_compile_grammars(baseline.iter().take(2).copied()).is_err());
+        assert!(select_project_compile_grammars(baseline.iter().take(2).copied()).is_err());
         complete.pop();
-        assert!(first_named_compile_grammars(complete).is_err());
+        assert!(select_project_compile_grammars(complete).is_err());
         let mut unexpected = baseline.to_vec();
         unexpected.push("src/main/antlr/new/Unreviewed.g4");
-        assert!(first_named_compile_grammars(unexpected).is_err());
+        assert!(select_project_compile_grammars(unexpected).is_err());
         Ok(())
     }
 

@@ -15,6 +15,13 @@ import java.util.jar.JarFile;
 /** Owned graph/store integration with bounded built-in and original extractServer proofs. */
 public final class SFMNamedHostPreparationMain {
     public static void main(String[] args) throws Exception {
+        try (var timing = SFMHostTiming.start("host_preparation", "")) {
+            prepare(args);
+            timing.success(-1, -1);
+        }
+    }
+
+    private static void prepare(String[] args) throws Exception {
         boolean childToolProof = args.length == 3 && args[2].equals("child-tool-proof");
         boolean compileProof = args.length == 3 && args[2].equals("minecraft-compile-proof");
         boolean sourceTransformProof = compileProof || args.length == 3 && args[2].equals("source-transform-proof");
@@ -30,9 +37,7 @@ public final class SFMNamedHostPreparationMain {
         byte[] contractBytes = bounded(root.resolve("contract.json"), 4 * 1024 * 1024);
         if (!sha256(contractBytes).equals(args[1])) throw new IllegalArgumentException("Contract digest changed");
         var transfer = JsonParser.parseString(new String(contractBytes, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
-        if (!root.getFileName().toString().equals("nfrt-" + transfer.get("invocation_id").getAsString())) {
-            throw new IllegalArgumentException("Contract belongs to another invocation root");
-        }
+        validateInvocationRoot(root, transfer.get("invocation_id").getAsString());
         Path version = null;
         String userdev = sourceUserdev(transfer);
         for (var item : transfer.getAsJsonArray("inputs")) {
@@ -56,76 +61,110 @@ public final class SFMNamedHostPreparationMain {
             engine.setJavaHome(Path.of(System.getProperty("java.home")));
             var userdevFile = engine.addManagedResource(new JarFile(engine.getArtifactManager().get(userdev).path().toFile()));
             var config = NeoForgeConfig.from(userdevFile);
-            engine.loadNeoFormData(engine.getArtifactManager().get(config.neoformArtifact()).path(), "joined");
-            var configure = RunNeoFormCommand.class.getDeclaredMethod("applyNeoForgeProcessTransforms",
-                    NeoFormEngine.class, JarFile.class, NeoForgeConfig.class);
-            configure.setAccessible(true);
-            configure.invoke(null, engine, userdevFile, config);
-            SFMHostProjectInputs.install(engine, root, args[1], transfer.get("preparation_identity").getAsString());
-            var nodes = List.copyOf(engine.getGraph().getNodes());
-            bindExactVersionDiscovery(nodes, transfer.get("minecraft_version").getAsString());
-            for (var node : nodes) {
-                if (node.action() instanceof net.neoforged.neoform.runtime.actions.ExternalJavaToolAction tool
-                        && tool.getClass() == net.neoforged.neoform.runtime.actions.ExternalJavaToolAction.class) {
-                    node.setAction(new SFMHostExternalToolAction(node.id(), tool, root,
-                            request -> channel.exchange("tool", request)));
-                } else if (node.action() instanceof net.neoforged.neoform.runtime.actions.ExternalJavaToolAction tool
-                        && (tool.getClass() == net.neoforged.neoform.runtime.actions.ApplySourceTransformAction.class
-                        || tool.getClass() == net.neoforged.neoform.runtime.actions.ApplyDevTransformsAction.class)) {
-                    node.setAction(new SFMHostTransformToolAction(node.id(), tool, root,
-                            request -> channel.exchange("tool", request)));
-                } else if (node.action().getClass() == net.neoforged.neoform.runtime.actions.RecompileSourcesActionWithJDK.class) {
-                    node.setAction(new SFMHostRecompileAction(
-                            (net.neoforged.neoform.runtime.actions.RecompileSourcesActionWithJDK) node.action(), root.resolve("work").resolve(node.id())));
+            try (var timing = SFMHostTiming.start("graph_load", "")) {
+                engine.loadNeoFormData(engine.getArtifactManager().get(config.neoformArtifact()).path(), "joined");
+                timing.success(engine.getGraph().getNodes().size(), -1);
+            }
+            List<net.neoforged.neoform.runtime.graph.ExecutionNode> nodes;
+            try (var timing = SFMHostTiming.start("graph_configure", "")) {
+                var configure = RunNeoFormCommand.class.getDeclaredMethod("applyNeoForgeProcessTransforms",
+                        NeoFormEngine.class, JarFile.class, NeoForgeConfig.class);
+                configure.setAccessible(true);
+                configure.invoke(null, engine, userdevFile, config);
+                SFMHostProjectInputs.install(engine, root, args[1], transfer.get("preparation_identity").getAsString());
+                nodes = List.copyOf(engine.getGraph().getNodes());
+                bindExactVersionDiscovery(nodes, transfer.get("minecraft_version").getAsString());
+                for (var node : nodes) {
+                    if (node.action() instanceof net.neoforged.neoform.runtime.actions.ExternalJavaToolAction tool
+                            && tool.getClass() == net.neoforged.neoform.runtime.actions.ExternalJavaToolAction.class) {
+                        node.setAction(new SFMHostExternalToolAction(node.id(), tool, root,
+                                request -> channel.exchange("tool", request)));
+                    } else if (node.action() instanceof net.neoforged.neoform.runtime.actions.ExternalJavaToolAction tool
+                            && (tool.getClass() == net.neoforged.neoform.runtime.actions.ApplySourceTransformAction.class
+                            || tool.getClass() == net.neoforged.neoform.runtime.actions.ApplyDevTransformsAction.class)) {
+                        node.setAction(new SFMHostTransformToolAction(node.id(), tool, root,
+                                request -> channel.exchange("tool", request)));
+                    } else if (node.action().getClass() == net.neoforged.neoform.runtime.actions.RecompileSourcesActionWithJDK.class) {
+                        node.setAction(new SFMHostRecompileAction(
+                                (net.neoforged.neoform.runtime.actions.RecompileSourcesActionWithJDK) node.action(), root.resolve("work").resolve(node.id())));
+                    }
                 }
+                timing.success(nodes.size(), -1);
             }
-            SFMNamedNeoFormLauncher.declareFreshWorkspaces(engine.getCacheManager(), nodes);
-            var ready = JsonParser.parseString(channel.exchange("graph", SFMHostGraph.describe(nodes))).getAsJsonObject();
-            if (!ready.get("workspaces_ready").getAsBoolean() || ready.get("execution_enabled").getAsBoolean()) {
-                throw new IllegalStateException("Preparation received an invalid execution acknowledgement");
+            try (var timing = SFMHostTiming.start("workspaces", "")) {
+                SFMNamedNeoFormLauncher.declareFreshWorkspaces(engine.getCacheManager(), nodes);
+                var ready = JsonParser.parseString(channel.exchange("graph", SFMHostGraph.describe(nodes))).getAsJsonObject();
+                if (!ready.get("workspaces_ready").getAsBoolean() || ready.get("execution_enabled").getAsBoolean()) {
+                    throw new IllegalStateException("Preparation received an invalid execution acknowledgement");
+                }
+                if (!producerProof) {
+                    for (var node : nodes) engine.getCacheManager().createWorkspace(node.id());
+                }
+                timing.success(nodes.size(), -1);
             }
-            if (!producerProof) {
-                for (var node : nodes) engine.getCacheManager().createWorkspace(node.id());
+            for (var node : nodes) {
+                SFMHostTiming.declaredNode(node.id(), node.action().getClass().getName());
             }
-            SFMNamedNeoFormLauncher.bindFreshProducers(engine, new SFMHostProducerSealer(channel, root));
+            var sealer = new SFMHostProducerSealer(channel, root);
+            SFMNamedNeoFormLauncher.bindFreshProducers(engine, requests -> {
+                // Nested wall duration: includes Rust sealing and its existing validation.
+                try (var timing = SFMHostTiming.start("seal", "")) {
+                    var snapshots = sealer.seal(requests);
+                    timing.success(requests.size(), -1);
+                    return snapshots;
+                }
+            });
             if (producerProof) {
                 String target = compileProof ? "compiledWithNeoForge" : sourceTransformProof ? "transformSources" : sourceRecipeProof ? "decompile" : childToolProof ? "extractServer" : "stripClient";
                 var strip = nodes.stream().filter(node -> node.id().equals(target)).findFirst().orElseThrow();
                 var targets = compileProof ? List.of(strip, nodes.stream()
                         .filter(node -> node.id().equals("sourcesWithNeoForge")).findFirst().orElseThrow()) : List.of(strip);
-                var closure = java.util.Collections.newSetFromMap(
-                        new java.util.IdentityHashMap<net.neoforged.neoform.runtime.graph.ExecutionNode, Boolean>());
-                var remaining = new java.util.ArrayDeque<net.neoforged.neoform.runtime.graph.ExecutionNode>();
-                remaining.addAll(targets);
-                while (!remaining.isEmpty()) {
-                    var node = remaining.removeFirst();
-                    if (!closure.add(node)) continue;
-                    Class<?> action = node.action().getClass();
-                    boolean approvedTool = (sourceRecipeProof || childToolProof && node == strip)
-                            && (node.action() instanceof SFMHostExternalToolAction
-                            || sourceTransformProof && node.action() instanceof SFMHostTransformToolAction);
-                    if (!approvedTool && !action.equals(net.neoforged.neoform.runtime.actions.SplitResourcesFromClassesAction.class)
-                            && !(sourceRecipeProof && action.equals(net.neoforged.neoform.runtime.actions.CreateLibrariesOptionsFile.class))
-                            && !(sourceTransformProof && action.equals(net.neoforged.neoform.runtime.actions.InjectZipContentAction.class))
-                            && !(compileProof && action.equals(SFMHostRecompileAction.class))
-                            && !action.equals(net.neoforged.neoform.runtime.actions.DownloadVersionManifestAction.class)
-                            && !action.equals(net.neoforged.neoform.runtime.actions.DownloadFromVersionManifestAction.class)) {
-                        throw new IllegalStateException("Built-in proof refuses " + node.id() + ": " + action.getName());
+                try (var timing = SFMHostTiming.start("closure", target)) {
+                    var closure = java.util.Collections.newSetFromMap(
+                            new java.util.IdentityHashMap<net.neoforged.neoform.runtime.graph.ExecutionNode, Boolean>());
+                    var remaining = new java.util.ArrayDeque<net.neoforged.neoform.runtime.graph.ExecutionNode>();
+                    remaining.addAll(targets);
+                    while (!remaining.isEmpty()) {
+                        var node = remaining.removeFirst();
+                        if (!closure.add(node)) continue;
+                        Class<?> action = node.action().getClass();
+                        boolean approvedTool = (sourceRecipeProof || childToolProof && node == strip)
+                                && (node.action() instanceof SFMHostExternalToolAction
+                                || sourceTransformProof && node.action() instanceof SFMHostTransformToolAction);
+                        if (!approvedTool && !action.equals(net.neoforged.neoform.runtime.actions.SplitResourcesFromClassesAction.class)
+                                && !(sourceRecipeProof && action.equals(net.neoforged.neoform.runtime.actions.CreateLibrariesOptionsFile.class))
+                                && !(sourceTransformProof && action.equals(net.neoforged.neoform.runtime.actions.InjectZipContentAction.class))
+                                && !(compileProof && action.equals(SFMHostRecompileAction.class))
+                                && !action.equals(net.neoforged.neoform.runtime.actions.DownloadVersionManifestAction.class)
+                                && !action.equals(net.neoforged.neoform.runtime.actions.DownloadFromVersionManifestAction.class)) {
+                            throw new IllegalStateException("Built-in proof refuses " + node.id() + ": " + action.getName());
+                        }
+                        remaining.addAll(node.getPredecessors());
                     }
-                    remaining.addAll(node.getPredecessors());
+                    timing.success(closure.size(), -1);
                 }
                 for (var result : targets) {
-                engine.runNode(result);
-                if (result.getState() != net.neoforged.neoform.runtime.graph.NodeState.COMPLETED) {
-                    throw new IllegalStateException("Pinned result producer did not complete: " + result.id());
+                try (var timing = SFMHostTiming.start("run_node", result.id())) {
+                    engine.runNode(result);
+                    if (result.getState() != net.neoforged.neoform.runtime.graph.NodeState.COMPLETED) {
+                        throw new IllegalStateException("Pinned result producer did not complete: " + result.id());
+                    }
+                    timing.success(1, -1);
                 }
                 var original = result.getRequiredOutput("output").getResultPath();
                 var paths = engine.getArtifactManager().resolveClasspath(List.of(
                         net.neoforged.neoform.runtime.artifacts.ClasspathItem.of(result.getRequiredOutput("output"))));
-                if (paths.size() != 1 || paths.getFirst().equals(original)
-                        || !MessageDigest.isEqual(bounded(original, 512 * 1024 * 1024),
-                                bounded(paths.getFirst(), 512 * 1024 * 1024))) {
-                    throw new IllegalStateException("Owned producer snapshot differs from actual strip output");
+                try (var timing = SFMHostTiming.start("full_byte_verification", result.id())) {
+                    if (paths.size() != 1 || paths.getFirst().equals(original)) {
+                        throw new IllegalStateException("Owned producer snapshot differs from actual strip output");
+                    }
+                    // Retain exactly the two original bounded reads and byte comparison.
+                    byte[] actualBytes = bounded(original, 512 * 1024 * 1024);
+                    byte[] sealedBytes = bounded(paths.getFirst(), 512 * 1024 * 1024);
+                    if (!MessageDigest.isEqual(actualBytes, sealedBytes)) {
+                        throw new IllegalStateException("Owned producer snapshot differs from actual strip output");
+                    }
+                    timing.success(2, (long) actualBytes.length + sealedBytes.length);
                 }
                 System.err.println("PASS actual producer sealed into " + paths.getFirst());
                 }
@@ -136,7 +175,7 @@ public final class SFMNamedHostPreparationMain {
                 throw new IllegalStateException("Host did not acknowledge graph preparation");
             }
             System.err.println("PASS actual host graph/store handshake: " + nodes.size()
-                    + " workspaces; full native compilation disabled; producer proof=" + producerProof
+                    + " workspaces; phase=" + phase + "; producer proof=" + producerProof
                     + "; exact child-tool proof=" + childToolProof);
         }
     }
@@ -184,6 +223,12 @@ public final class SFMNamedHostPreparationMain {
             throw new IllegalStateException("Discovery output has an unreviewed consumer");
         }
         launcher.setAction(version.action());
+    }
+
+    static void validateInvocationRoot(Path root, String invocationId) {
+        if (root.getFileName() == null || !root.getFileName().toString().equals("n-" + invocationId)) {
+            throw new IllegalArgumentException("Contract belongs to another invocation root");
+        }
     }
 
     static String sourceUserdev(com.google.gson.JsonObject transfer) {

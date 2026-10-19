@@ -140,14 +140,14 @@ fn article_class_loading_is_optional_and_lazy() {
 #[test]
 fn presentation_labels_distinguish_transfer_states_and_mutation() {
     let body = include_str!("templates/article_body.liquid");
-    assert!(body.contains("Before the second transfer"));
+    assert!(body.contains("controlled second pass"));
     assert!(body.contains("99,975 FE"));
     assert!(body.contains("24 FE"));
-    assert!(body.contains("a <strong>state mutation</strong>, not a check"));
+    assert!(body.contains("changes the source’s state"));
     assert!(!body.contains("The original report involved"));
     assert!(
         body.contains("issues/610")
-            && body.contains("issues/528")
+            && body.contains("issues/620")
             && body.contains("issues/621")
             && body.contains("issues/527")
     );
@@ -177,4 +177,46 @@ fn initial_gap_profile_requires_its_additional_assigned_capture() {
         alt: "Actual initial capture".to_owned(),
     });
     super::article_render::validate(doc.article.as_ref().unwrap(), &doc).unwrap();
+}
+
+#[test]
+fn five_change_review_keeps_delivery_boundaries_and_inspector_after_story() {
+    let body = include_str!("templates/article_body.liquid");
+    for id in [
+        "energy-transfer",
+        "tunnelled-cable",
+        "localization",
+        "recipe-namespace",
+        "test-barrel",
+    ] {
+        assert!(body.contains(&format!("<section id=\"{id}\"")));
+    }
+    assert!(body.find("</article>").unwrap() < body.find("{{ changes }}").unwrap());
+    assert!(body.contains("absent from the captured candidate"));
+    assert!(body.contains("both pull requests open"));
+    assert!(body.contains("warning fix still proposed"));
+    assert!(body.contains("PR #587 is an open draft"));
+    assert!(!body.contains("SHA256"));
+}
+
+#[test]
+fn rebuilt_profile_requires_delivery_evidence_beyond_retained_captures() {
+    let mut doc = fixture();
+    doc.images.retain(|image| image.id.ends_with("-final"));
+    let article = doc.article.as_mut().unwrap();
+    article.profile = "sfm-4.35-energy-candidate@3".to_owned();
+    article.historical_images.clear();
+    article.linux_images.clear();
+    let id = "issue610-red-dropper-initial-final".to_owned();
+    article.supporting_images.push(id.clone());
+    doc.images.push(super::image::ReleaseReportImage {
+        id,
+        relative_path: "initial.png".to_owned(),
+        sha256: "sha256:fixture".to_owned(),
+        caption: "Initial dropper before transfer".to_owned(),
+        alt: "Retained initial capture".to_owned(),
+    });
+    super::article_render::validate(doc.article.as_ref().unwrap(), &doc).unwrap();
+    doc.article.as_mut().unwrap().profile = "sfm-4.35-energy-candidate@4".to_owned();
+    assert!(super::article_render::validate(doc.article.as_ref().unwrap(), &doc).is_err());
 }

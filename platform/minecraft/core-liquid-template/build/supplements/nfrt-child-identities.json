@@ -385,8 +385,8 @@
       "target_id": "26.1.2",
       "minecraft_version": "26.1.2",
       "recipe_id": "sfm:released-native-inputs/4.34.0/26.1.2@1",
-      "source_lock_sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
-      "source_lock_bytes": 50153,
+      "source_lock_sha256": "2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f",
+      "source_lock_bytes": 50479,
       "compiler_release": 25,
       "minimum_tool_jvm": 25,
       "parents": [

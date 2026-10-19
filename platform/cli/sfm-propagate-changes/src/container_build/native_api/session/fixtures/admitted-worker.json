@@ -1,0 +1,77 @@
+{
+  "Id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "Image": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "Config": {
+    "User": "10001:10001",
+    "Entrypoint": [
+      "/bin/sh",
+      "/opt/sfm/entrypoint.sh"
+    ],
+    "Cmd": [
+      "sfm-dev/mc-1.19.2",
+      "sfm:move_1_stack_direct",
+      "--java-max-heap-mib",
+      "4096",
+      "--session-seconds",
+      "900",
+      "--startup-seconds",
+      "720"
+    ],
+    "Env": [
+      "HOME=/work"
+    ],
+    "Labels": {
+      "org.sfm.session.owner": "sfm-local-session-v1",
+      "org.sfm.session.image": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "org.sfm.session.projection": "sfm-dev/mc-1.19.2",
+      "org.sfm.session.command": "[\"sfm-dev/mc-1.19.2\",\"sfm:move_1_stack_direct\",\"--java-max-heap-mib\",\"4096\",\"--session-seconds\",\"900\",\"--startup-seconds\",\"720\"]",
+      "org.sfm.container.context": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  "HostConfig": {
+    "Memory": 8589934592,
+    "MemorySwap": 8589934592,
+    "CpuPeriod": 100000,
+    "CpuQuota": 200000,
+    "PidsLimit": 512,
+    "NetworkMode": "none",
+    "IpcMode": "private",
+    "PidMode": "private",
+    "UTSMode": "private",
+    "CgroupMode": "private",
+    "UsernsMode": "private",
+    "IDMappings": {"UidMap": ["0:1:65536"], "GidMap": ["0:1:65536"]},
+    "Privileged": false,
+    "SecurityOpt": [
+      "no-new-privileges"
+    ],
+    "CapAdd": [],
+    "CapDrop": [
+      "CAP_CHOWN",
+      "CAP_DAC_OVERRIDE",
+      "CAP_FOWNER",
+      "CAP_FSETID",
+      "CAP_KILL",
+      "CAP_NET_BIND_SERVICE",
+      "CAP_SETFCAP",
+      "CAP_SETGID",
+      "CAP_SETPCAP",
+      "CAP_SETUID",
+      "CAP_SYS_CHROOT"
+    ],
+    "Annotations": {
+      "io.podman.annotations.userns": "auto:size=65536"
+    },
+    "Binds": [],
+    "PortBindings": {}
+  },
+  "State": {
+    "Status": "running",
+    "Running": true,
+    "ExitCode": 0,
+    "OOMKilled": false
+  },
+  "Mounts": [],
+  "EffectiveCaps": [],
+  "BoundingCaps": []
+}

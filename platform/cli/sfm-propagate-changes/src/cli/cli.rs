@@ -69,6 +69,8 @@ pub enum Command {
     Gradle(super::gradle::GradleArgs),
     /// Client instance tracking and management commands
     Client(super::client::ClientArgs),
+    /// Build Linux container images from verified inputs.
+    Container(super::container::ContainerArgs),
     /// Server instance tracking and management commands
     Server(super::server::ServerArgs),
     /// Git operation commands across all worktrees
@@ -138,6 +140,7 @@ impl Command {
             Command::Audit(args) => legacy_output(args.invoke()),
             Command::Gradle(args) => legacy_output(args.invoke()),
             Command::Client(args) => legacy_output(args.invoke()),
+            Command::Container(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Server(args) => legacy_output(args.invoke()),
             Command::Git(args) => legacy_output(args.invoke()),
             Command::Github(args) => legacy_output(args.invoke()),
@@ -152,7 +155,7 @@ impl Command {
             Command::Run(args) => legacy_output(args.invoke(cancellation_token)),
             Command::GameTest(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Test(args) => args.invoke(cancellation_token),
             Command::ProjectCatalog(args) => {
                 legacy_output(args.invoke(cancellation_token, invocation_dir))
             }
@@ -739,6 +742,57 @@ mod tests {
     }
 
     #[test]
+    fn fresh_jar_output_name_is_scoped_to_jar_build_and_plan() {
+        for verb in ["build", "plan"] {
+            let cli = figue::from_slice::<Cli>(&[
+                "jar",
+                verb,
+                "--projection",
+                "sfm-dev/mc-1.19.2",
+                "--output-name",
+                "task9-fresh.jar",
+            ])
+            .into_result()
+            .expect("explicit fresh Jar output should parse")
+            .get_silent();
+            let Command::Jar(crate::cli::jar::JarArgs { command }) = cli.command else {
+                panic!("expected Jar command");
+            };
+            let options = match command {
+                JarCommand::Build(command) => command.into_options(BuildMode::Build),
+                JarCommand::Plan(command) => command.into_options(BuildMode::Plan),
+                other => panic!("unexpected Jar command {other:?}"),
+            }
+            .expect("fresh Jar options should normalize");
+            assert_eq!(options.output_name.as_deref(), Some("task9-fresh.jar"));
+            assert!(
+                figue::from_slice::<Cli>(&[
+                    "jar",
+                    verb,
+                    "--projection",
+                    "sfm-dev/mc-1.19.2",
+                    "--output-name",
+                    "fresh.jar",
+                    "--cache-root",
+                    "unused-external-root",
+                ])
+                .is_err()
+            );
+        }
+        assert!(
+            figue::from_slice::<Cli>(&[
+                "run",
+                "compile",
+                "--projection",
+                "sfm-dev/mc-1.19.2",
+                "--output-name",
+                "must-not-apply.jar",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
     fn parses_jar_build_dry_run() {
         let cli = figue::from_slice::<Cli>(&[
             "jar",
@@ -763,6 +817,8 @@ mod tests {
                     .into_options(BuildMode::Build)
                     .expect("branch query should parse");
                 assert!(options.dry_run);
+                assert!(options.output_name.is_none());
+                assert!(!options.skip_source_checks);
                 assert!(
                     matches!(options.selection, crate::jar_build::BuildSelection::Projection { ref selector, .. } if selector == "sfm-dev/mc-1.19.2")
                 );
@@ -780,6 +836,59 @@ mod tests {
             }
             command => panic!("expected jar build command, got {command:?}"),
         }
+    }
+
+    #[test]
+    fn shared_build_options_skip_source_checks_is_opt_in() {
+        for surface in [
+            ["jar", "build"],
+            ["run", "compile"],
+            ["game-test", "run-server"],
+        ] {
+            for skip_source_checks in [false, true] {
+                let mut args = surface.to_vec();
+                args.extend(["--projection", "sfm-dev/mc-1.19.2"]);
+                if skip_source_checks {
+                    args.push("--skip-source-checks");
+                }
+                let cli = figue::from_slice::<Cli>(&args)
+                    .into_result()
+                    .expect("shared source-check flag should parse")
+                    .get_silent();
+                let options = match cli.command {
+                    Command::Jar(crate::cli::jar::JarArgs {
+                        command: JarCommand::Build(command),
+                    }) => command.into_options(BuildMode::Build),
+                    Command::Run(crate::cli::run::RunArgs {
+                        command: RunCommand::Compile(command),
+                    }) => command.options.into_options(BuildMode::Build),
+                    Command::GameTest(crate::cli::game_test::GameTestArgs {
+                        command: crate::cli::game_test::GameTestCommand::RunServer(command),
+                    }) => command.into_options(BuildMode::Build),
+                    command => panic!("expected shared build options, got {command:?}"),
+                }
+                .expect("shared build options should normalize");
+                assert_eq!(
+                    options.skip_source_checks, skip_source_checks,
+                    "{surface:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_skip_source_rechecks_alias() {
+        assert!(
+            figue::from_slice::<Cli>(&[
+                "run",
+                "compile",
+                "--projection",
+                "sfm-dev/mc-1.19.2",
+                "--skip-source-rechecks",
+            ])
+            .into_result()
+            .is_err()
+        );
     }
 
     #[test]

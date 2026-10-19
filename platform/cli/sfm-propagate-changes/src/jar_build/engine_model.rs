@@ -14,6 +14,8 @@ struct BuildPlan {
     gradle_output_jar: PathBuf,
     #[facet(proxy = JsonPath)]
     rust_output_jar: PathBuf,
+    #[facet(default, skip_unless_truthy)]
+    output_name: Option<String>,
     #[facet(proxy = JsonPath)]
     cache_dir: PathBuf,
     #[facet(proxy = JsonPath)]
@@ -56,6 +58,8 @@ struct BuildPlan {
         Option<crate::source_projection::frozen_recipe_project::FrozenRecipeProjectReceipt>,
     #[facet(skip_serializing, opaque)]
     identity: BuildProjectIdentity,
+    #[facet(default, proxy = JsonOptionalPath, skip_serializing_if = Option::is_none)]
+    derived_cache_root: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Facet)]
@@ -548,6 +552,8 @@ struct MinecraftAssetObject {
 
 #[derive(Debug, Facet)]
 struct MinecraftLibrary {
+    #[facet(default)]
+    rules: Vec<super::library_rule::LibraryRule>,
     #[facet(default)]
     downloads: Option<MinecraftLibraryDownloads>,
 }

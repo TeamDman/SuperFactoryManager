@@ -1,7 +1,7 @@
 {
   "schema": "sfm:nfrt_source_library_identity_supplement@1",
   "authorization": "exact_four_original_recipe_libraries_20261006",
-  "original_tool_supplement_sha256": "be8fbfd87a20f6ba018056f651f3f3d2bec054a0c19424c89127ae2c75311b6f",
+  "original_tool_supplement_sha256": "eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2",
   "artifacts": [
     {
       "coordinate": "net.neoforged:mergetool:2.0.2:api",

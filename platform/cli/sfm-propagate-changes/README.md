@@ -4,6 +4,30 @@
 
 This tool is responsible for executing the git merge commands that apply changes to later versions of Minecraft.
 
+## Rust parser and serialization baseline
+
+The CLI uses the published `teamy-facet` family at `0.50.0-rc.7` and
+`teamy-figue` at `6.0.0-rc.2`, matching Cloud-Terrastodon revision
+`ea90bf830a4d38c83aeb2d9cec76b2b07dcec4bb`. The canonical Cargo aliases remain
+`facet`, `facet-json`, `facet-pretty` and `figue` for their derive integrations.
+
+CSV support comes from `TeamDman/facet-format` revision
+`1bd90d49eb0d9f78d00b14ba85d79612dd78c927` because there is no published
+`teamy-facet-csv` package. Its sibling-path dependencies are patched to the same
+published Teamy reflection/format packages rather than a second reflection identity.
+
+Styx has no published Teamy adapter for this baseline. The private
+`crates/sfm-styx-state` package therefore retains the previous immutable Styx
+source solely to preserve existing `state.styx` bytes and schema. Its old Facet
+types are private wire types; only an owned status and strings cross into the
+CLI. Compatibility tests compare both statuses and escaped/Unicode paths to the
+original state schema and path proxy. The Java Vox artifact baseline is independent
+of the Rust parser graph and is unchanged by this migration.
+
+The JSON baseline no longer exposes the old `JsonWeavyPlan` optimization. The
+dependency-index reader uses typed `facet_json::from_str` for retained records;
+its routing filters, count validation and stream schema remain the same.
+
 ## Build and run projections
 
 From the SFM repository root:
@@ -206,3 +230,5 @@ When the CLI is ran, if the state is `MergingWithConflicts`, then it will check 
 If merging with any conflicts, it will bail indicating that the user needs to resolve the conflicts.
 If merging with no conflicts, then it will commit using a commit message like "Propagate changes: merge 1.19.2 into 1.19.4"
 If not in the middle of a merge, change state to Idle and start over.
+
+The report class explorer is losslessly DEFLATE-compressed in the single HTML using the existing ZIP dependency. JavaScript expands it locally with `DecompressionStream`, verifies the expanded size and SHA-256, and enforces a 32 MiB expansion budget. Full package/class navigation and class/debug details require JavaScript and a compatible browser. Without JavaScript or expansion support, the ten-projection status summary, representative instruction diff, authored source diffs, all captures and full JAR provenance remain readable. The optional pinned Monaco viewer is still desktop-only; mobile uses the expanded static diffs. No game evidence is fetched or rebuilt.

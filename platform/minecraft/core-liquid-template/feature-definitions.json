@@ -338,6 +338,10 @@
     ],
     "requires": []
   },
+  "ae2_inscriber_bank_tests": {
+    "supported_targets": ["1.19.2"],
+    "requires": []
+  },
   "ae2_mekanism_bank_tests": {
     "supported_targets": [
       "1.19.2",

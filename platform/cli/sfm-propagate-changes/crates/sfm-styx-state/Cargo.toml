@@ -1,0 +1,12 @@
+[package]
+name = "sfm-styx-state"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MPL-2.0"
+description = "Private compatibility boundary for existing SFM Styx state files"
+
+[dependencies]
+eyre = "0.6.12"
+facet = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet" }
+facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }

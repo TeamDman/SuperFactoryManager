@@ -12,9 +12,9 @@ Cases require stable `id`, `projection`, `status`, `observed`, `method` and
 `untested`. Report assembly does not promote evidence to acceptance.
 
 Code diffs carry `id`, `title`, `language`, `before` and `after`; complete static
-source is readable without JavaScript. Monaco0.52.2 loads from the approved
-jsDelivr CDN only after an explicit viewer click. CDN failure leaves the static
-source available. No game or evidence bytes are sent by the generator.
+source is readable without JavaScript. Monaco 0.52.2 loads from jsDelivr when a
+visible diff activates, including the default viewer on page load. CDN failure
+leaves the static source available. No game or evidence bytes are sent by the generator.
 
 Images require `id`, safe `relative_path`, `sha256:<hex>`, nonempty `caption` and
 `alt`. Canonical paths must remain below the explicit asset root; images are
@@ -26,7 +26,9 @@ explicitly mapped to baseline/candidate. Raw SHA256 and ZIP metadata hashes
 remain separate from normalized payload differences. Only
 Implementation-Timestamp is omitted from manifest comparison; differing
 class bytes are not classified as behavioral equivalence. Local absolute input
-paths are reduced to filenames in rendered comparison output.
+paths are reduced to filenames in rendered comparison output. The archive
+appendix and raw input/provenance downloads retain supplied paths; review those
+identifiers before sharing.
 
 Limits:32MiB JSON,8MiB per PNG,64MiB HTML,128MiB per JAR,20,000 JAR entries,
 512MiB expanded JAR payload. Inputs must be quiescent during rendering.
@@ -109,3 +111,18 @@ Optional `correlations` currently supports the reviewed Minecraft 1.21.1
 ResourceQuantity case: source-line LCS alignment is checked at matched method/PC
 coordinates, with every mapping and the raw printed diff retained. It never
 applies a global line shift or claims exhaustive class-attribute equivalence.
+
+
+The opt-in article profile `sfm-4.35-energy-candidate@4` presents rebuilt
+six-topic release evidence while keeping the earlier profiles available.
+It requires all ten actual baseline/candidate JAR pairs, prepared class
+evidence, and the sections `release435-artifact-delivery`,
+`release435-source-comparison-identities`, `release435-runtime-acceptance`,
+and `historical-runtime-boundary`. The delivery JSON uses
+`sfm:release435-artifact-delivery@1` and binds exact package, resource and
+class-audit receipts to the actual archive hashes. Its required Label Gun
+proof prevents candidates built before issue493 from satisfying this profile.
+Runtime results retain their own acceptance scope; generated-projection tests
+do not become packaged-JAR acceptance results. The nine retained graphical
+captures keep their historical identities. Current unpublished source is local
+evidence and must not receive an invented public permalink.

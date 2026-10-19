@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": {
+      "item": "minecraft:iron_bars"
+    },
+    "C": {
+      "tag": "c:chests"
+    },
+    "D": {
+      "tag": "c:dyes/black"
+    },
+    "G": {
+      "item": "minecraft:light_weighted_pressure_plate"
+    }
+  },
+  "pattern": [
+    "DGD",
+    "BCB",
+    "DGD"
+  ],
+  "result": {
+    "count": 16,
+    "id": "sfm:cable"
+  }
+}

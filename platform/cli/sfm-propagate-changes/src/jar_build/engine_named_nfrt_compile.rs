@@ -51,7 +51,7 @@ const NAMED_NEOFORM_RECIPES: [NamedNeoformCompileRecipe; 6] = [
         target: "26.1.2",
         minecraft: "26.1.2",
         loader: "net.neoforged:neoforge:26.1.2.72",
-        lock: "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+        lock: "sha256:2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f",
         compiler_and_tool: (25, 25),
     },
 ];
@@ -70,10 +70,10 @@ pub(crate) fn preflight_named_neoform_recipe(
         return Ok(false);
     };
     eyre::ensure!(
-        cfg!(windows)
+        cfg!(any(windows, target_os = "linux"))
             && minecraft == expected.minecraft
             && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1"),
-        "named NeoForm preflight requires its exact reviewed Windows recipe"
+        "named NeoForm preflight requires its exact reviewed Windows/Linux recipe"
     );
     Ok(true)
 }
@@ -90,7 +90,7 @@ fn require_named_neoform_recipe_identity(
         .find(|row| row.target == target)
         .ok_or_else(|| eyre::eyre!("named NeoForm requires an exact reviewed recipe"))?;
     eyre::ensure!(
-        cfg!(windows)
+        cfg!(any(windows, target_os = "linux"))
             && minecraft == expected.minecraft
             && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1")
             && lock == expected.lock
@@ -120,7 +120,7 @@ fn validate_named_neoform_compile(
             && released.minecraft_version == expected.minecraft
             && released.loader_kind == "neogradle_userdev"
             && released.loader_coordinate == expected.loader,
-        "named NeoForm Compile requires its exact reviewed Windows loader recipe"
+        "named NeoForm Compile requires its exact reviewed Windows/Linux loader recipe"
     );
     crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared_at(
         project.project().repo_root(), Arc::clone(project.dependencies()), false,
@@ -128,25 +128,34 @@ fn validate_named_neoform_compile(
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 struct DevelopmentNeoformSource<'a> {
     owner: crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner<'a>,
-    dependencies: Arc<crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies>,
-    supplement: crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement,
+    dependencies:
+        Arc<crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies>,
+    supplement:
+        crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement,
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn development_neoform_source<'a>(
     project: &'a crate::source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
 ) -> eyre::Result<DevelopmentNeoformSource<'a>> {
-    let owner = crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner::from_checked(project, profile)?;
+    let owner =
+        crate::source_projection::nfrt_project_owner::DevelopmentNfrtSourceOwner::from_checked(
+            project, profile,
+        )?;
     let dependencies = Arc::new(crate::source_projection::development_nfrt_dependencies::DevelopmentNfrtDependencies::from_checked(&owner, false)?);
     let supplement = crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_development_at(project.repo_root(), Arc::clone(&dependencies), false)?;
-    Ok(DevelopmentNeoformSource { owner, dependencies, supplement })
+    Ok(DevelopmentNeoformSource {
+        owner,
+        dependencies,
+        supplement,
+    })
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn resolve_development_minecraft_plan(
     project: &crate::source_projection::catalog_owned_project::CatalogOwnedProject,
     profile: &str,
@@ -161,15 +170,33 @@ fn resolve_development_minecraft_plan(
     let pin = source.dependencies.artifact_pin(&request)?;
     let url = pin.url.as_deref().expect("exact version JSON URL");
     let minecraft = &source.dependencies.receipt().minecraft_version;
-    let path = minecraft_cache.join("versions").join(minecraft).join("version.json");
-    let raw = acquire_named_frozen_download(cancellation, client, url, &path, &pin.hash, 16 * 1024 * 1024, None, || source.owner.recheck_source())?;
-    let catalog = super::nfrt_requests::NfrtRequestCatalog::Development(Arc::clone(&source.dependencies));
+    let path = minecraft_cache
+        .join("versions")
+        .join(minecraft)
+        .join("version.json");
+    let raw = acquire_named_frozen_download(
+        cancellation,
+        client,
+        url,
+        &path,
+        &pin.hash,
+        16 * 1024 * 1024,
+        None,
+        || source.owner.recheck_source(),
+    )?;
+    let catalog =
+        super::nfrt_requests::NfrtRequestCatalog::Development(Arc::clone(&source.dependencies));
     let inputs = catalog.authenticate_version_json(minecraft, url, &raw)?;
     let (client_mappings_url, server_mappings_url) = inputs.compile_mapping_urls()?;
     source.owner.recheck_source()?;
     Ok(MinecraftPlan {
         version_manifest: None,
-        version_json: plain_artifact(ArtifactId::from("minecraft-version-json"), url, path, ArtifactPurpose::from("exact captured-development Minecraft metadata"))?,
+        version_json: plain_artifact(
+            ArtifactId::from("minecraft-version-json"),
+            url,
+            path,
+            ArtifactPurpose::from("exact captured-development Minecraft metadata"),
+        )?,
         client_jar_url: inputs.download(Role::ClientJar)?.url().to_owned(),
         server_jar_url: inputs.download(Role::ServerJar)?.url().to_owned(),
         client_mappings_url,
@@ -179,7 +206,7 @@ fn resolve_development_minecraft_plan(
     })
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn resolve_development_minecraft_plan(
     _: &crate::source_projection::catalog_owned_project::CatalogOwnedProject,
     _: &str,
@@ -190,13 +217,17 @@ fn resolve_development_minecraft_plan(
     eyre::bail!("development NeoForm requires the Windows held-input adapter")
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 enum NeoformCompileSource<'a> {
     Released(&'a crate::source_projection::frozen_recipe_project::FrozenRecipeProject),
+    Admitted {
+        frozen: &'a crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
+        owner: crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner<'a>,
+    },
     Development(Box<DevelopmentNeoformSource<'a>>),
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 impl<'a> NeoformCompileSource<'a> {
     fn from_plan(plan: &'a BuildPlan) -> eyre::Result<Self> {
         match &plan.identity {
@@ -204,41 +235,108 @@ impl<'a> NeoformCompileSource<'a> {
                 validate_named_neoform_compile(frozen)?;
                 Ok(Self::Released(frozen))
             }
-            BuildProjectIdentity::Development { project, target } => {
-                Ok(Self::Development(Box::new(development_neoform_source(project, &target.receipt.dependency_profile)?)))
+            BuildProjectIdentity::CatalogAdmitted { inputs } => {
+                validate_named_neoform_compile(inputs.project())?;
+                Ok(Self::Admitted {
+                    frozen: inputs.project(),
+                    owner: crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner::from_admitted(inputs.project())?,
+                })
             }
-            BuildProjectIdentity::Worktree { .. } => eyre::bail!("retained NeoForm host requires a checked catalog owner"),
+            BuildProjectIdentity::Development { project, target } => {
+                Ok(Self::Development(Box::new(development_neoform_source(
+                    project,
+                    &target.receipt.dependency_profile,
+                )?)))
+            }
+            BuildProjectIdentity::Worktree { .. } => {
+                eyre::bail!("retained NeoForm host requires a checked catalog owner")
+            }
         }
     }
 
     fn owner(&self) -> &dyn crate::source_projection::nfrt_project_owner::NfrtProjectOwner {
         match self {
             Self::Released(project) => *project,
+            Self::Admitted { owner, .. } => owner,
             Self::Development(source) => &source.owner,
         }
     }
 
     fn catalog(&self) -> super::nfrt_requests::NfrtRequestCatalog {
         match self {
-            Self::Released(project) => super::nfrt_requests::NfrtRequestCatalog::Released(Arc::clone(project.dependencies())),
-            Self::Development(source) => super::nfrt_requests::NfrtRequestCatalog::Development(Arc::clone(&source.dependencies)),
+            Self::Released(project)
+            | Self::Admitted {
+                frozen: project, ..
+            } => super::nfrt_requests::NfrtRequestCatalog::Released(Arc::clone(
+                project.dependencies(),
+            )),
+            Self::Development(source) => super::nfrt_requests::NfrtRequestCatalog::Development(
+                Arc::clone(&source.dependencies),
+            ),
         }
     }
 
-    fn export(&self, selected: &crate::jdk::ResolvedJava, executable: &[u8], invocation: &str) -> eyre::Result<super::nfrt_launch_contract::NfrtExportPlan> {
+    fn export(
+        &self,
+        selected: &crate::jdk::ResolvedJava,
+        executable: &[u8],
+        invocation: &str,
+    ) -> eyre::Result<super::nfrt_launch_contract::NfrtExportPlan> {
         use super::nfrt_launch_contract::NfrtExportPlan;
         use crate::source_projection::nfrt_child_identity_supplement::NfrtChildIdentitySupplement;
         match self {
-            Self::Released(project) => {
-                let supplement = NfrtChildIdentitySupplement::from_prepared_at(project.project().repo_root(), Arc::clone(project.dependencies()), false)?;
-                NfrtExportPlan::prepare(project, &supplement, selected, executable, invocation, false)
+            Self::Released(project)
+            | Self::Admitted {
+                frozen: project, ..
+            } => {
+                let supplement = NfrtChildIdentitySupplement::from_prepared_at(
+                    project.project().repo_root(),
+                    Arc::clone(project.dependencies()),
+                    false,
+                )?;
+                NfrtExportPlan::prepare(
+                    project,
+                    &supplement,
+                    selected,
+                    executable,
+                    invocation,
+                    false,
+                )
             }
-            Self::Development(source) => NfrtExportPlan::prepare_development(&source.owner, &source.dependencies, &source.supplement, selected, executable, invocation, false),
+            Self::Development(source) => NfrtExportPlan::prepare_development(
+                &source.owner,
+                &source.dependencies,
+                &source.supplement,
+                selected,
+                executable,
+                invocation,
+                false,
+            ),
         }
     }
 }
 
-#[cfg(windows)]
+// Only receipt-bound producer inputs depart from the historical Maven path.
+// Verification precedes the read and no missing producer may use remote fallback.
+#[cfg(any(windows, target_os = "linux"))]
+fn named_neoform_coordinate_cache_path(
+    resolver: &Resolver,
+    maven_cache: &Path,
+    coordinate: &MavenCoordinate,
+    remote: bool,
+) -> eyre::Result<(PathBuf, bool)> {
+    if let Some(path) = resolver.verified_producer_cache_path(coordinate)? {
+        Ok((path, false))
+    } else {
+        Ok((maven_cache_path_for(maven_cache, coordinate), remote))
+    }
+}
+
+#[cfg(all(test, any(windows, target_os = "linux")))]
+#[path = "named_neoform_producer_tests.rs"]
+mod named_neoform_producer_tests;
+
+#[cfg(any(windows, target_os = "linux"))]
 #[expect(
     clippy::too_many_lines,
     reason = "Keep the three frozen acquisition authorities and their cache-miss checks together."
@@ -273,18 +371,22 @@ fn acquire_named_neoform_inputs(
         |request| {
             context.bail_if_cancelled()?;
             let (hash, remote) = catalog.transport_pin(request)?;
-            let path = if let Some(coordinate) = request.resolved_coordinate() {
-                maven_cache_path_for(
+            let (path, remote) = if let Some(coordinate) = request.resolved_coordinate() {
+                named_neoform_coordinate_cache_path(
+                    &resolver,
                     &context.plan.maven_cache_dir,
                     &MavenCoordinate::parse(coordinate)?,
-                )
+                    remote,
+                )?
             } else {
                 eyre::ensure!(
-                    request.exact_transport_url()
-                        == Some(export.version_json_url()),
+                    request.exact_transport_url() == Some(export.version_json_url()),
                     "NFRT original URL is not its exact version metadata"
                 );
-                context.plan.minecraft.version_json.cache_path.clone()
+                (
+                    context.plan.minecraft.version_json.cache_path.clone(),
+                    remote,
+                )
             };
             context.assert_allowed_input(&path)?;
             acquire_named_frozen_download(
@@ -296,7 +398,7 @@ fn acquire_named_neoform_inputs(
                 512 * 1024 * 1024,
                 None,
                 || {
-                    context.plan.recheck_named_inputs()?;
+                    context.plan.before_named_acquisition()?;
                     eyre::ensure!(
                         remote && request.exact_transport_url().is_some(),
                         "NFRT original cache miss has no frozen remote acquisition recipe"
@@ -320,7 +422,7 @@ fn acquire_named_neoform_inputs(
                 &path,
                 size,
                 |bytes| verify_named_supplement_bytes(bytes, request.sha256(), size),
-                || context.plan.recheck_named_inputs(),
+                || context.plan.before_named_acquisition(),
             )
         },
         |request| {
@@ -351,7 +453,7 @@ fn acquire_named_neoform_inputs(
                 request.expected_hash(),
                 request.expected_bytes(),
                 Some(request.expected_bytes()),
-                || context.plan.recheck_named_inputs(),
+                || context.plan.before_named_acquisition(),
             )
         },
     )?;
@@ -382,16 +484,22 @@ fn verify_named_supplement_bytes(
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
 fn execute_named_neoform_compile(
     context: &ExecutionContext<'_>,
     target: BuildTarget,
     started: Instant,
 ) -> eyre::Result<()> {
-    with_named_neoform_context(context, |consumer| execute_project_build(consumer, target, started))
+    with_named_neoform_context(context, |consumer| {
+        execute_project_build(consumer, target, started)
+    })
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "linux"))]
+#[expect(
+    clippy::too_many_lines,
+    reason = "Keep current source authority, historical/fresh origin and held SDK/output lifetimes visible across both consumer paths."
+)]
 fn with_named_neoform_context<T>(
     context: &ExecutionContext<'_>,
     consume: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
@@ -411,12 +519,143 @@ fn with_named_neoform_context<T>(
     };
     let mut sdk =
         crate::source_projection::nfrt_tool_sdk::NfrtToolSdk::capture(&selected, &prepared)?;
-    super::nfrt_owned_host::with_owned_compiler_inputs(
+    let profile_key = if context.plan.derived_cache_root.is_some() {
+        None
+    } else {
+        match super::derived_toolchain_cache::key(project, &prepared, &mut sdk) {
+            Ok(key) => key,
+            Err(error) => {
+                eprintln!(
+                    "Derived toolchain key unavailable: {error:#}; using fresh owned execution"
+                );
+                None
+            }
+        }
+    };
+    if let Some(profile) = profile_key
+        .as_deref()
+        .filter(|_| !context.plan.refresh)
+        .and_then(super::derived_toolchain_cache::lookup)
+    {
+        context
+            .plan
+            .require_strict("unverified derived NeoForm profile")?;
+        project.recheck_source()?;
+        sdk.recheck()?;
+        let mut consumer = ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
+        consumer.held_neoform_compile_jar = Some(&profile.classes);
+        consumer.immutable_neoform_profile = true;
+        let result = consume(&consumer);
+        project.recheck_source()?;
+        sdk.recheck()?;
+        return result;
+    }
+    // A separate trusted-local historical dependency cache never enables NFRT
+    // inherited restoration or turns historical output into fresh execution.
+    let mut cache = None;
+    let mut execution_image = None;
+    if cfg!(windows) {
+        match super::local_dependency_image::LocalDependencyImage::capture(
+            &sdk,
+            &context.cancellation_token,
+        ) {
+            Ok(image) => execution_image = Some(image),
+            Err(error) => {
+                context.bail_if_cancelled()?;
+                tracing::warn!(%error, "Selected SDK image unavailable; using fresh owned execution without local dependency reuse");
+            }
+        }
+    }
+    if let Some(image) = &execution_image
+        && super::local_dependency_cache::environment_allows_reuse()
+    {
+        let attempt = (|| -> eyre::Result<_> {
+            const AT: &str = "src/main/resources/META-INF/accesstransformer.cfg";
+            let selected_at = if project.project().receipt().files.contains_key(AT) {
+                Some(project.project().selected_input(AT)?)
+            } else {
+                None
+            };
+            let key = super::local_dependency_key::LocalDependencyKey::from_prepared(
+                &prepared,
+                sdk.identity(),
+                image.identity(),
+                &super::local_dependency_cache::implementation_identity(),
+                selected_at.as_ref().map(crate::source_projection::catalog_owned_project::CatalogOwnedInput::output_bytes),
+            )?;
+            let cache = super::local_dependency_cache::LocalDependencyCache::begin(
+                &context
+                    .plan
+                    .derived_cache_root
+                    .as_ref()
+                    .unwrap_or(&context.plan.common_cache_dir)
+                    .join("local-dependencies-v1"),
+                key,
+                &context.cancellation_token,
+            )?;
+            Ok(cache)
+        })();
+        match attempt {
+            Ok(prepared_cache) => cache = Some(prepared_cache),
+            Err(error) => {
+                context.bail_if_cancelled()?;
+                tracing::warn!(%error, "Local dependency cache unavailable; preserving it and using fresh owned execution");
+            }
+        }
+    }
+    if !context.plan.refresh
+        && let Some(cache) = &mut cache
+        && let Some(classes) = cache.lookup(&prepared, &context.cancellation_token)?
+    {
+        project.recheck_source()?;
+        sdk.recheck()?;
+        if let Some(image) = &execution_image {
+            image.recheck(&context.cancellation_token)?;
+        }
+        cache.release_producer();
+        let mut consumer = ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
+        consumer.held_neoform_compile_jar = Some(&classes);
+        // Dependency origin does not authorize existence-only project hits.
+        // The separate project-output manifest policy verifies those bytes.
+        consumer.verify_compilation_outputs = true;
+        consumer.compiler_image_identity = execution_image
+            .as_ref()
+            .map(|image| image.identity().to_owned());
+        consumer.compiler_image = execution_image.as_ref();
+        let result = consume(&consumer);
+        project.recheck_source()?;
+        sdk.recheck()?;
+        if let Some(image) = &execution_image {
+            image.recheck(&context.cancellation_token)?;
+        }
+        return result;
+    }
+    context
+        .plan
+        .require_strict("NeoForm dependency producer cache miss")?;
+    let result = super::nfrt_owned_host::with_owned_compiler_inputs(
         project,
         &prepared,
         &mut sdk,
         &context.cancellation_token,
-        |classes, _sources| {
+        context.plan.derived_cache_root.as_deref(),
+        |classes, sources, receipts| {
+            if let Some(image) = &execution_image {
+                image.recheck(&context.cancellation_token)?;
+            }
+            if let Some(cache) = &mut cache {
+                if let Err(error) = cache.publish(
+                    &prepared,
+                    classes,
+                    sources,
+                    receipts,
+                    &context.cancellation_token,
+                ) {
+                    context.bail_if_cancelled()?;
+                    tracing::warn!(%error, "Local dependency publication failed; retained evidence and using the successful fresh inputs");
+                }
+                cache.release_producer();
+            }
             context.bail_if_cancelled()?;
             let normal = dunce::simplified(classes);
             eyre::ensure!(
@@ -426,12 +665,21 @@ fn with_named_neoform_context<T>(
             let mut consumer =
                 ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
             consumer.held_neoform_compile_jar = Some(normal);
+            consumer.verify_compilation_outputs = true;
+            consumer.compiler_image_identity = execution_image
+                .as_ref()
+                .map(|image| image.identity().to_owned());
+            consumer.compiler_image = execution_image.as_ref();
             consume(&consumer)
         },
-    )
+    );
+    if let Some(image) = &execution_image {
+        image.recheck(&context.cancellation_token)?;
+    }
+    result
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn with_named_neoform_context<T>(
     _: &ExecutionContext<'_>,
     _: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
@@ -439,7 +687,7 @@ fn with_named_neoform_context<T>(
     eyre::bail!("named NeoForm launch requires the Windows held-input adapter")
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 fn execute_named_neoform_compile(
     _: &ExecutionContext<'_>,
     _: BuildTarget,
@@ -503,6 +751,49 @@ mod named_neoform_compile_tests {
             assert!(named_forge_compile_recipe_for_project(&project).is_err());
             assert!(validate_named_jar_project(&project).is_err());
             validate_named_package_project(&project)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn producer_receipt_2612_admission_preserves_all_identity_guards() -> eyre::Result<()> {
+        let target = "26.1.2";
+        let recipe = "sfm:released-native-inputs/4.34.0/26.1.2@1";
+        let lock = "sha256:2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f";
+        let admitted =
+            require_named_neoform_recipe_identity(target, target, recipe, lock, (25, 25))?;
+        assert_eq!(admitted.loader, "net.neoforged:neoforge:26.1.2.72");
+        for (selected_target, minecraft, selected_recipe, selected_lock, tools) in [
+            ("unknown", target, recipe, lock, (25, 25)),
+            (target, "1.21.1", recipe, lock, (25, 25)),
+            (
+                target,
+                target,
+                "sfm:released-native-inputs/4.34.0/26.1.2@2",
+                lock,
+                (25, 25),
+            ),
+            (
+                target,
+                target,
+                recipe,
+                "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+                (25, 25),
+            ),
+            (target, target, recipe, "sha256:wrong", (25, 25)),
+            (target, target, recipe, lock, (21, 25)),
+            (target, target, recipe, lock, (25, 21)),
+        ] {
+            assert!(
+                require_named_neoform_recipe_identity(
+                    selected_target,
+                    minecraft,
+                    selected_recipe,
+                    selected_lock,
+                    tools
+                )
+                .is_err()
+            );
         }
         Ok(())
     }
@@ -603,7 +894,10 @@ mod named_neoform_compile_tests {
         }
         // Only the published title is proven here. Preparing the 26.1.2
         // project still requires its separately authenticated byte witness.
-        assert_eq!(catalog_release_implementation_title("26.1.2")?, "sfm-26.1.2");
+        assert_eq!(
+            catalog_release_implementation_title("26.1.2")?,
+            "sfm-26.1.2"
+        );
         assert!(catalog_release_implementation_title("1.21").is_err());
         assert!(catalog_release_implementation_title("unknown").is_err());
         Ok(())

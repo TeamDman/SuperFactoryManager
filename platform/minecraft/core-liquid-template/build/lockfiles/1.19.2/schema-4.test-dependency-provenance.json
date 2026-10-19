@@ -1,0 +1,390 @@
+{
+  "schema": "sfm:approved_test_dependency_provision@1",
+  "sourceLock": "D:\\Repos\\Minecraft\\SFM\\worktrees\\sfm-main-source-projection\\platform\\minecraft\\core-liquid-template\\build\\lockfiles\\1.19.2\\schema-4.json",
+  "sourceLockBeforeSha256": "sha256:04781fc22f7fa4458b96197a513ce117a17d5a30292b2a089bdd2bc46f2fe952",
+  "sourceCliSha256": "sha256:577eb6296bb3e1715265784e6defaec36a2d12088acdc39f9fbc54125fda74d6",
+  "scope": "Only the seven exact JavaParser test dependency coordinates; no source edits or release projection writes.",
+  "artifacts": [
+    {
+      "coordinate": "com.google.errorprone:error_prone_annotations:2.36.0",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\com\\google\\errorprone\\error_prone_annotations\\2.36.0\\error_prone_annotations-2.36.0.jar",
+      "bytes": 19401,
+      "sha256": "sha256:77440e270b0bc9a249903c5a076c36a722c4886ca4f42675f2903a1c53ed61a5",
+      "canonicalHash": "blake3:60bfc777bca98126998dec5493948a8344db8bf9",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar.sha1",
+          "expected": "227d4d4957ccc3dc5761bd897e3a0ee587e750a7",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar.md5",
+          "expected": "0e48e5ba2cd0a8d8d09bad849b99f6a6",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:27.571761+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\com\\google\\errorprone\\error_prone_annotations\\2.36.0\\error_prone_annotations-2.36.0.jar"
+    },
+    {
+      "coordinate": "com.google.guava:failureaccess:1.0.2",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\failureaccess\\1.0.2\\failureaccess-1.0.2.jar",
+      "bytes": 4740,
+      "sha256": "sha256:8a8f81cf9b359e3f6dfa691a1e776985c061ef2f223c9b2c80753e1b458e8064",
+      "canonicalHash": "blake3:ffc728120ab20fc9adc9b7f99024789815f6a1fd",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar.sha1",
+          "expected": "c4a06a64e650562f30b7bf9aaec1bfed43aca12b",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar.md5",
+          "expected": "3f75955b49b6758fd6d1e1bd9bf777b3",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:27.904175+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\failureaccess\\1.0.2\\failureaccess-1.0.2.jar"
+    },
+    {
+      "coordinate": "com.google.guava:guava:33.4.0-jre",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\guava\\33.4.0-jre\\guava-33.4.0-jre.jar",
+      "bytes": 3080298,
+      "sha256": "sha256:b918c98a7e44dbe94ebd9fe3e40cddaadb5a93e6a78eb6008b42df237241e538",
+      "canonicalHash": "blake3:cc4b7d4cf17be0ef0b92e4f6d1652975fb003e0d",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar.sha1",
+          "expected": "03fcc0a259f724c7de54a6a55ea7e26d3d5c0cac",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar.md5",
+          "expected": "5732af16367192820c7bf177e9b29512",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:28.686890+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\guava\\33.4.0-jre\\guava-33.4.0-jre.jar"
+    },
+    {
+      "coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "bytes": 2199,
+      "sha256": "sha256:b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99",
+      "canonicalHash": "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar.sha1",
+          "expected": "b421526c5f297295adef1c886e5246c39d4ac629",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar.md5",
+          "expected": "d094c22570d65e132c19cea5d352e381",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:29.047344+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\com\\google\\guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
+    },
+    {
+      "coordinate": "com.google.j2objc:j2objc-annotations:3.0.0",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\com\\google\\j2objc\\j2objc-annotations\\3.0.0\\j2objc-annotations-3.0.0.jar",
+      "bytes": 12467,
+      "sha256": "sha256:88241573467ddca44ffd4d74aa04c2bbfd11bf7c17e0c342c94c9de7a70a7c64",
+      "canonicalHash": "blake3:da36bd8c441894df9ffd285df80113b7a41681f7",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar.sha1",
+          "expected": "7399e65dd7e9ff3404f4535b2f017093bdb134c7",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar.md5",
+          "expected": "f59529b29202a5baf37f491ea5ec8627",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:29.341468+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\com\\google\\j2objc\\j2objc-annotations\\3.0.0\\j2objc-annotations-3.0.0.jar"
+    },
+    {
+      "coordinate": "org.checkerframework:checker-qual:3.43.0",
+      "origin": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\org\\checkerframework\\checker-qual\\3.43.0\\checker-qual-3.43.0.jar",
+      "bytes": 231525,
+      "sha256": "sha256:3fbc2e98f05854c3df16df9abaa955b91b15b3ecac33623208ed6424640ef0f6",
+      "canonicalHash": "blake3:0d5cc8849a0cf91d1316ec38c80a0b2f1b942009",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar.sha256",
+          "expected": "3fbc2e98f05854c3df16df9abaa955b91b15b3ecac33623208ed6424640ef0f6",
+          "matched": true
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar.sha1",
+          "expected": "9425eee39e56b116d2b998b7c2cebcbd11a3c98b",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar.md5",
+          "expected": "4f56e65c8f302ca8b4cb384c9b4a53b6",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:29.863833+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\checkerframework\\checker-qual\\3.43.0\\checker-qual-3.43.0.jar"
+    },
+    {
+      "coordinate": "org.javassist:javassist:3.30.2-GA",
+      "origin": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-test-dependencies\\cache\\minecraft-toolchain\\maven\\org\\javassist\\javassist\\3.30.2-GA\\javassist-3.30.2-GA.jar",
+      "bytes": 794714,
+      "sha256": "sha256:eba37290994b5e4868f3af98ff113f6244a6b099385d9ad46881307d3cb01aaf",
+      "canonicalHash": "blake3:78f08004376ccb54aff91bf0c69c213baaa837a7",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar.sha1",
+          "expected": "284580b5e42dfa1b8267058566435d9e93fae7f7",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar.md5",
+          "expected": "f5b827b8ddec0629cc7a6d7dafc45999",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:05:30.417494+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\javassist\\javassist\\3.30.2-GA\\javassist-3.30.2-GA.jar"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.8.1",
+      "origin": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar",
+      "originalCacheOrigin": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\junit\\platform\\junit-platform-engine\\1.8.1\\junit-platform-engine-1.8.1.jar",
+      "bytes": 185778,
+      "sha256": "sha256:702868ed7e86b9b4672ede0f1e185e905baca9afab57746a7c650be3c7bca047",
+      "pinStatus": "newly-approved-pin-of-existing-verified-cache-bytes",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar.sha256",
+          "expected": "702868ed7e86b9b4672ede0f1e185e905baca9afab57746a7c650be3c7bca047",
+          "matched": true
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar.sha1",
+          "expected": "e6c63bf990dc88a6527b4ed617b23e47048f07e0",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.jar.md5",
+          "expected": "73659fbb057bda54e14825c08661e98b",
+          "matched": true
+        }
+      ],
+      "containsLauncherFactory": false,
+      "containsTestEngine": true,
+      "verifiedUtc": "2026-10-10T16:37:58.715326+00:00",
+      "canonicalHash": "blake3:f98f7e2669f9f7661af6ca3d0dfdea913234168a",
+      "canonicalCliByteVerificationPassed": true
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-console-standalone:1.8.1",
+      "origin": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar",
+      "originalCacheOrigin": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\junit\\platform\\junit-platform-console-standalone\\1.8.1\\junit-platform-console-standalone-1.8.1.jar",
+      "bytes": 2409563,
+      "sha256": "sha256:e15e28559eb4ced29562693355bf7874c55a6cf006c96ae198f7fc75ba914f9f",
+      "pinStatus": "newly-approved-pin-of-existing-verified-cache-bytes",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar.sha256",
+          "expected": "e15e28559eb4ced29562693355bf7874c55a6cf006c96ae198f7fc75ba914f9f",
+          "matched": true
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar.sha1",
+          "expected": "0e01bf93820f644fbcf46ff20f43833c6624d8dd",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/junit/platform/junit-platform-console-standalone/1.8.1/junit-platform-console-standalone-1.8.1.jar.md5",
+          "expected": "3f79b32754e618879a410bcc2db2829a",
+          "matched": true
+        }
+      ],
+      "containsLauncherFactory": true,
+      "containsTestEngine": true,
+      "verifiedUtc": "2026-10-10T16:37:59.071457+00:00",
+      "canonicalHash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d",
+      "canonicalCliByteVerificationPassed": true
+    },
+    {
+      "coordinate": "org.apache.commons:commons-math3:3.6.1",
+      "origin": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-jmh-dependencies-6\\cache\\minecraft-toolchain\\maven\\org\\apache\\commons\\commons-math3\\3.6.1\\commons-math3-3.6.1.jar",
+      "bytes": 2213560,
+      "sha256": "sha256:1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308",
+      "canonicalHash": "blake3:55249fe2627f0fb2b1376fa97b2d622325271ff4",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar.sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar.sha1",
+          "expected": "e4ba98f1d4b3c80ec46392f25e094a6a2e58fcbf",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar.md5",
+          "expected": "5b730d97e4e6368069de1983937c508e",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:58:14.884763+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\apache\\commons\\commons-math3\\3.6.1\\commons-math3-3.6.1.jar"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.0",
+      "origin": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+      "localPath": "C:\\Users\\Teamy\\Documents\\Codex\\2026-10-09\\task-11\\approved-jmh-dependencies-6\\cache\\minecraft-toolchain\\maven\\org\\ow2\\asm\\asm\\9.0\\asm-9.0.jar",
+      "bytes": 121783,
+      "sha256": "sha256:0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0",
+      "canonicalHash": "blake3:7c5d09ea11e7a1ef1f9794a61b680cfd90af18b6",
+      "pinStatus": "newly-acquired-under-explicit-user-approval",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar.sha256",
+          "expected": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0",
+          "matched": true
+        },
+        {
+          "algorithm": "sha1",
+          "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar.sha1",
+          "expected": "af582ff60bc567c42d931500c3fdc20e0141ddf9",
+          "matched": true
+        },
+        {
+          "algorithm": "md5",
+          "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar.md5",
+          "expected": "e87284e4421437854ba938179cf803e7",
+          "matched": true
+        }
+      ],
+      "retrievedUtc": "2026-10-10T16:58:15.488756+00:00",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\org\\ow2\\asm\\asm\\9.0\\asm-9.0.jar"
+    },
+    {
+      "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
+      "origin": "https://repo.maven.apache.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+      "originalCacheOrigin": "https://maven.minecraftforge.net/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+      "canonicalCachePath": "C:\\Users\\Teamy\\AppData\\Local\\teamdman\\sfm-propagate-changes\\cache\\minecraft-toolchain\\maven\\net\\sf\\jopt-simple\\jopt-simple\\5.0.4\\jopt-simple-5.0.4.jar",
+      "bytes": 78146,
+      "sha256": "sha256:df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28",
+      "canonicalHash": "blake3:c9f31de9dc51d72c8f1173842455542005d524e5",
+      "checksums": [
+        {
+          "algorithm": "sha256",
+          "status": 404
+        },
+        {
+          "algorithm": "sha1",
+          "matched": true,
+          "expected": "4fdac2fbe92dfad86aa6e9301736f6b4342a3f5c",
+          "url": "https://repo.maven.apache.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar.sha1"
+        },
+        {
+          "algorithm": "md5",
+          "matched": true,
+          "expected": "eb0d9dffe9b0eddead68fe678be76c49",
+          "url": "https://repo.maven.apache.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar.md5"
+        }
+      ],
+      "pinStatus": "approved-pin-of-existing-verified-cache-bytes",
+      "verifiedUtc": "2026-10-10T16:59:20.177159+00:00",
+      "canonicalCliByteVerificationPassed": true
+    }
+  ],
+  "totalBytes": 9154174,
+  "sourceLockAfterSha256": "sha256:198c141c2e45ed29a90935e84565e10f861aa0895233bb9b4a10cb8d2c109d41",
+  "preservedOriginalBytes": 141517,
+  "originalEntriesUnchanged": true,
+  "addedTestComponents": 7,
+  "addedArtifacts": 12,
+  "runtimeHashFormat": "Existing CLI format: truncated 160-bit BLAKE3; full SHA256 pins recorded here.",
+  "validation": "Exact JSON semantic delta, byte-preservation reverse check, canonical cache reread, ZIP CRC, publisher checksums.",
+  "additionalCachedJunitPins": 2,
+  "junitReason": "Existing Jupiter engine 5.8.1 requires platform-engine 1.8.1. Existing custom runner compiles against standalone 1.8.1 for LauncherFactory and launcher APIs. Platform engine alone has no LauncherFactory. Standalone bundles engine classes too; existing declared external engine closure is retained, not upgraded or broadened.",
+  "additionalJmhTestArtifactPins": 3
+}

@@ -137,9 +137,6 @@ where
     let header: DependencyJavaSymbolIndexStreamHeader =
         facet_json::from_str(std::str::from_utf8(&line)?)?;
     header.validate(expected_identity)?;
-    let definition_decoder = facet_json::JsonWeavyPlan::<JavaSymbolDefinitionOutput>::build()?;
-    let usage_decoder = facet_json::JsonWeavyPlan::<JavaSymbolUsageOutput>::build()?;
-    let diagnostic_decoder = facet_json::JsonWeavyPlan::<JavaAnalysisDiagnosticOutput>::build()?;
     let mut body = DependencyJavaSymbolIndexBody::new(Vec::new(), Vec::new(), Vec::new());
     let mut resolution = Vec::new();
     let mut observed = DependencySymbolIndexCounts {
@@ -177,7 +174,7 @@ where
                     route.descriptor,
                     route.qualified_name,
                 ) {
-                    let definition = definition_decoder.from_str(route.json)?;
+                    let definition = facet_json::from_str(route.json)?;
                     route.validate_definition(&definition)?;
                     body.definitions.push(definition);
                 }
@@ -192,7 +189,7 @@ where
                     route.descriptor,
                     route.qualified_name,
                 ) {
-                    let usage = usage_decoder.from_str(route.json)?;
+                    let usage = facet_json::from_str(route.json)?;
                     route.validate_usage(&usage)?;
                     body.usages.push(usage);
                 }
@@ -200,7 +197,7 @@ where
             "diagnostic" => {
                 observed.diagnostics = observed.diagnostics.saturating_add(1);
                 if body.diagnostics.len() < DIAGNOSTIC_LIMIT {
-                    body.diagnostics.push(diagnostic_decoder.from_str(record)?);
+                    body.diagnostics.push(facet_json::from_str(record)?);
                 }
             }
             _ => eyre::bail!(

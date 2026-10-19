@@ -37,6 +37,9 @@ pub enum PuppetCommand {
 
 #[derive(Facet, Debug)]
 pub struct PuppetRunArgs {
+    /// Explicit maximum Minecraft JVM heap in MiB (512..=8192); passed directly as -Xmx.
+    #[facet(default, args::named)]
+    pub java_max_heap_mib: Option<u32>,
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
@@ -99,6 +102,7 @@ impl PuppetArgs {
                 args.mute,
                 args.keep_open,
                 args.control_cli_source_root,
+                args.java_max_heap_mib,
                 cancellation_token,
             ),
             PuppetCommand::List(args) => SourceCatalogCommand::new(

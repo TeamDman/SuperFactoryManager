@@ -1,0 +1,1 @@
+status @MergingWithConflict{source_branch 1.19.2, source_path r#"D:\SFM worktrees\雪 \"source\""#, dest_branch "feature/next\nbranch", dest_path "D:/SFM worktrees/next/# @ {} \\ dest"}

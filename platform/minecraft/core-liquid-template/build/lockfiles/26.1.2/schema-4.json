@@ -497,10 +497,10 @@
             "data_run_policy": "exclude"
           },
           "derived_checks": {
-            "artifact_id": "mekanism-mekanism-26-1-2-10-8-0-86-api-512f02bc",
+            "artifact_id": "mekanism-mekanism-26-1-2-10-8-0-86-api-b5e829e9",
             "resolved_coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
-            "expected_hash": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
-            "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar"
+            "expected_hash": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d",
+            "cache_path": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86-api.jar"
           },
           "source_providers": []
         },
@@ -520,10 +520,10 @@
             "data_run_policy": "exclude"
           },
           "derived_checks": {
-            "artifact_id": "mekanism-mekanism-26-1-2-10-8-0-86-fa5d9653",
+            "artifact_id": "mekanism-mekanism-26-1-2-10-8-0-86-5dc6c6c6",
             "resolved_coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86",
-            "expected_hash": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
-            "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar"
+            "expected_hash": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62",
+            "cache_path": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86.jar"
           },
           "source_providers": []
         }
@@ -953,7 +953,7 @@
       "weak": null
     },
     {
-      "id": "mekanism-mekanism-26-1-2-10-8-0-86-api-512f02bc",
+      "id": "mekanism-mekanism-26-1-2-10-8-0-86-api-b5e829e9",
       "owner": {
         "dependency_id": "mekanism",
         "component_id": "api"
@@ -964,11 +964,11 @@
       "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
       "repository_id": "modmaven",
       "url": "https://github.com/mekanism/Mekanism/",
-      "hash": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
-      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "hash": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d",
+      "cache_path": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86-api.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "root": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254",
         "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
         "branch": "26.1",
         "dirty": false,
@@ -977,17 +977,19 @@
       "source_build": {
         "build_system": "gradle-wrapper",
         "tasks": [
+          "jar",
           "apiJar"
         ],
         "environment": {
-          "BUILD_NUMBER": "86"
+          "BUILD_NUMBER": "86",
+          "SFM_PRODUCER_RECEIPT_SHA256": "40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d"
         },
-        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar"
+        "output_path": "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar"
       },
       "weak": null
     },
     {
-      "id": "mekanism-mekanism-26-1-2-10-8-0-86-fa5d9653",
+      "id": "mekanism-mekanism-26-1-2-10-8-0-86-5dc6c6c6",
       "owner": {
         "dependency_id": "mekanism",
         "component_id": "main"
@@ -998,11 +1000,11 @@
       "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86",
       "repository_id": "modmaven",
       "url": "https://github.com/mekanism/Mekanism/",
-      "hash": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
-      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
+      "hash": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62",
+      "cache_path": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+        "root": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254",
         "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
         "branch": "26.1",
         "dirty": false,
@@ -1011,18 +1013,16 @@
       "source_build": {
         "build_system": "gradle-wrapper",
         "tasks": [
-          "jar"
+          "jar",
+          "apiJar"
         ],
         "environment": {
-          "BUILD_NUMBER": "86"
+          "BUILD_NUMBER": "86",
+          "SFM_PRODUCER_RECEIPT_SHA256": "40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d"
         },
-        "output_path": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar"
+        "output_path": "build/libs/Mekanism-26.1.2-10.8.0.86.jar"
       },
-      "weak": {
-        "metadata_path": "META-INF/neoforge.mods.toml",
-        "mod_id": "mekanism",
-        "version": "10.8.0"
-      }
+      "weak": null
     },
     {
       "id": "mezz-jei-jei-26-1-2-neoforge-29-5-0-27-c106ad3e",

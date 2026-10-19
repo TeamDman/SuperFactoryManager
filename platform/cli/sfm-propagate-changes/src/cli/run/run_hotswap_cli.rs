@@ -1,14 +1,20 @@
+use super::hotswap_cache_plan::HotswapCachePlan;
+use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::RunTestAction;
 use crate::jar_build::RunTestCommand as JarBuildRunTestCommand;
 use crate::jar_build::RunTestOptions;
-use crate::jar_build::json_path::JsonOptionalPath;
-use crate::jar_build::json_path::JsonPath;
+use crate::jar_build::build_snapshot_receipt::BuildSnapshotReceipt;
+use crate::jar_build::runtime_session_receipt::RuntimeSessionReceipt;
 use eyre::Context;
+use eyre::ensure;
 use facet::Facet;
 use figue as args;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -18,13 +24,19 @@ const DEFAULT_HOTSWAP_PORT: u16 = 5005;
 const DEFAULT_CLASS_PREFIX: &str = "ca.teamdman.";
 const HOTSWAP_HELPER_SOURCE: &str = include_str!("sfm_hotswap_helper.java");
 
-/// Arguments for redefining classes in a running hotswap-enabled client.
+/// Explicit application of successful compiled classes to an identified live client.
 #[derive(Facet, Debug, Clone)]
 pub struct RunHotswapArgs {
     /// Build and compile options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
-    /// JDWP port exposed by `run client --hotswap`.
+    /// Apply this successful snapshot receipt without compiling another candidate.
+    #[facet(default, args::named)]
+    pub build_snapshot: Option<PathBuf>,
+    /// Exact live session receipt; otherwise use the projection's latest session for the selected port.
+    #[facet(default, args::named)]
+    pub session: Option<PathBuf>,
+    /// JDWP port exposed by run client --hotswap.
     #[facet(default, args::named)]
     pub port: Option<u16>,
     /// Only reload loaded classes whose binary name starts with this prefix.
@@ -37,153 +49,203 @@ pub struct RunHotswapArgs {
 
 impl RunHotswapArgs {
     /// # Errors
-    ///
-    /// Returns an error if compilation fails, the helper cannot be built, or JDWP redefinition fails.
+    /// Rejects unsuccessful/stale snapshots, wrong sessions, unsafe paths and unsupported updates.
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "Run commands retain the owning cancellation-token dispatcher interface."
+    )]
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         let (root, keys) = crate::jar_build::projection_selection::select_projections(
             self.options.repo_root.as_deref(),
             &self.options.projection,
         )?;
-        eyre::ensure!(keys.len() == 1, "hotswap requires exactly one projection");
+        ensure!(keys.len() == 1, "hotswap requires exactly one projection");
         let minecraft_dir = root.join("platform/minecraft/projections").join(&keys[0]);
-        let build_options = self.options.clone().into_options(BuildMode::Build)?;
-        let temporary_plan_dir =
-            tempfile::tempdir().wrap_err("Failed to create a temporary hotswap plan directory")?;
-        let plan_path = build_options
+        let Some(snapshot) = self.prepare_snapshot(&minecraft_dir, cancellation_token.clone())?
+        else {
+            return Ok(());
+        };
+        cancellation_token.bail_if_cancelled()?;
+        let session = self.select_session(&minecraft_dir, &snapshot)?;
+        let baseline = BuildSnapshotReceipt::load(&session.snapshot_receipt, &minecraft_dir)?;
+        ensure_apply_contract(
+            &snapshot.runtime_contract,
+            &baseline.runtime_contract,
+            &snapshot.files,
+            &baseline.files,
+            &session.active_roots,
+        )?;
+        let port = session.jdwp_port.ok_or_else(|| {
+            eyre::eyre!("selected client has no JDWP port; restart with --hotswap")
+        })?;
+        let _apply_lock = ArtifactLock::try_acquire(
+            session.session_dir.join(".apply.lock"),
+            "explicit live apply",
+        )?
+        .ok_or_else(|| eyre::eyre!("another explicit application is using this session"))?;
+        let classes_dirs = active_snapshot_classes(&snapshot, &session)?;
+        let java = snapshot.java();
+        let helper = tempfile::tempdir().wrap_err("Failed to create owned apply staging")?;
+        let helper_classes = helper.path().join("classes");
+        compile_hotswap_helper(&java, &helper_classes)?;
+        cancellation_token.bail_if_cancelled()?;
+        snapshot.recheck()?;
+        session.check_active(&minecraft_dir, port)?;
+        let selector = self
+            .class_name
+            .as_deref()
+            .map(|name| format!("={name}"))
+            .or(self.class_prefix)
+            .unwrap_or_else(|| DEFAULT_CLASS_PREFIX.to_owned());
+        run_hotswap_helper(
+            &java,
+            &helper_classes,
+            port,
+            &session,
+            &selector,
+            &classes_dirs,
+        )
+    }
+
+    fn prepare_snapshot(
+        &self,
+        minecraft_dir: &Path,
+        cancellation: CancellationToken,
+    ) -> eyre::Result<Option<BuildSnapshotReceipt>> {
+        if let Some(receipt) = &self.build_snapshot {
+            let snapshot = BuildSnapshotReceipt::load(receipt, minecraft_dir)?;
+            if self.options.dry_run {
+                tracing::info!(receipt = %receipt.display(), "Verified snapshot; dry run does not attach or apply");
+                return Ok(None);
+            }
+            return Ok(Some(snapshot));
+        }
+        // Legacy explicit `run hotswap` still prepares first. Ordinary compile
+        // and checks only publish a snapshot and never reach this apply path.
+        let mut options = self.options.clone().into_options(BuildMode::Build)?;
+        let temporary = tempfile::tempdir()?;
+        let plan_path = options
             .plan_json
             .clone()
-            .unwrap_or_else(|| temporary_plan_dir.path().join("hotswap-build-plan.json"));
-        let mut compile_options = build_options.clone();
-        compile_options.plan_json = Some(plan_path.clone());
+            .unwrap_or_else(|| temporary.path().join("plan.json"));
+        options.plan_json = Some(plan_path.clone());
         JarBuildRunTestCommand::new(
-            compile_options,
+            options,
             RunTestOptions {
                 action: RunTestAction::Compile,
                 filter: None,
                 no_capture: false,
             },
-            cancellation_token,
+            cancellation,
         )
         .invoke()?;
-
-        let cache: HotswapCachePlan = facet_json::from_str(&fs::read_to_string(&plan_path)?)?;
-        let project_classes_dir = cache.cache_dir.join("project");
-        let classes_dirs = client_hotswap_class_directories(&project_classes_dir)?;
-
-        let helper_classes_dir = cache
-            .cache_dir
-            .join("run")
-            .join("hotswap-helper")
-            .join("classes");
-        let java = selected_java_from_build_plan(&plan_path, &minecraft_dir)?;
-        if build_options.dry_run {
-            return Ok(());
+        if self.options.dry_run {
+            return Ok(None);
         }
-        compile_hotswap_helper(&java, &helper_classes_dir)?;
-        let class_selector = self
-            .class_name
-            .as_deref()
-            .map(|class_name| format!("={class_name}"))
-            .or_else(|| self.class_prefix.clone())
-            .unwrap_or_else(|| DEFAULT_CLASS_PREFIX.to_string());
-        run_hotswap_helper(
-            &java,
-            &helper_classes_dir,
-            self.port.unwrap_or(DEFAULT_HOTSWAP_PORT),
-            &class_selector,
-            &classes_dirs,
-        )
+        let plan: HotswapCachePlan = facet_json::from_slice(&fs::read(&plan_path)?)?;
+        Ok(Some(BuildSnapshotReceipt::load(
+            &plan.cache_dir.join("state/latest-successful-build.json"),
+            minecraft_dir,
+        )?))
     }
-}
 
-#[derive(Facet)]
-struct HotswapCachePlan {
-    #[facet(proxy = JsonPath)]
-    cache_dir: PathBuf,
-}
-
-#[derive(Facet)]
-struct HotswapBuildPlan {
-    #[facet(proxy = JsonPath)]
-    minecraft_dir: PathBuf,
-    java: HotswapJavaPlan,
-}
-
-#[derive(Facet)]
-struct HotswapJavaPlan {
-    #[facet(proxy = JsonPath)]
-    executable: PathBuf,
-    #[facet(proxy = JsonOptionalPath)]
-    home: Option<PathBuf>,
-    version_output: String,
-    major_version: u32,
-    selection: String,
-    pin_url: Option<String>,
-    pin_sha512: Option<String>,
-}
-
-fn selected_java_from_build_plan(
-    plan_path: &Path,
-    expected_minecraft_dir: &Path,
-) -> eyre::Result<crate::jdk::ResolvedJava> {
-    let plan_json = fs::read_to_string(plan_path).wrap_err_with(|| {
-        format!(
-            "Failed to read completed build plan {}",
-            plan_path.display()
-        )
-    })?;
-    let plan: HotswapBuildPlan = facet_json::from_str(&plan_json).wrap_err_with(|| {
-        format!(
-            "Failed to parse completed build plan {}",
-            plan_path.display()
-        )
-    })?;
-    let planned_dir = fs::canonicalize(&plan.minecraft_dir).wrap_err_with(|| {
-        format!(
-            "Failed to resolve planned Minecraft directory {}",
-            plan.minecraft_dir.display()
-        )
-    })?;
-    let expected_dir = fs::canonicalize(expected_minecraft_dir).wrap_err_with(|| {
-        format!(
-            "Failed to resolve selected Minecraft directory {}",
-            expected_minecraft_dir.display()
-        )
-    })?;
-    if planned_dir != expected_dir {
-        eyre::bail!(
-            "Completed build plan targets {}, not {}",
-            plan.minecraft_dir.display(),
-            expected_minecraft_dir.display()
+    fn select_session(
+        &self,
+        minecraft_dir: &Path,
+        snapshot: &BuildSnapshotReceipt,
+    ) -> eyre::Result<RuntimeSessionReceipt> {
+        let port = self.port.unwrap_or(DEFAULT_HOTSWAP_PORT);
+        let locator = self.session.clone().unwrap_or_else(|| {
+            minecraft_dir
+                .join("build/sfm-runtime")
+                .join(format!("latest-hotswap-{port}.json"))
+        });
+        let session = RuntimeSessionReceipt::load(&locator, minecraft_dir)?;
+        let port = self.port.or(session.jdwp_port).unwrap_or(port);
+        session.check_active(minecraft_dir, port)?;
+        ensure!(
+            session.java_major == snapshot.java_major
+                && session.sdk_identity == snapshot.sdk_identity,
+            "successful snapshot and live client use different SDK identities; restart the client with the selected SDK"
         );
+        ensure!(
+            matches!(
+                session.run_kind.as_str(),
+                "runClient" | "runGameTestPreview"
+            ),
+            "selected session is not a supported interactive client; restart/select the correct client"
+        );
+        Ok(session)
     }
-    Ok(crate::jdk::ResolvedJava {
-        executable: plan.java.executable,
-        home: plan.java.home,
-        version_output: plan.java.version_output,
-        major_version: plan.java.major_version,
-        selection: plan.java.selection,
-        pin_url: plan.java.pin_url,
-        pin_sha512: plan.java.pin_sha512,
-    })
 }
 
-fn client_hotswap_class_directories(project_dir: &Path) -> eyre::Result<Vec<PathBuf>> {
-    let candidates = [
-        project_dir.join("classes"),
-        project_dir.join("gametest").join("classes"),
-    ];
-    let classes_dirs = candidates
+fn active_snapshot_classes(
+    snapshot: &BuildSnapshotReceipt,
+    session: &RuntimeSessionReceipt,
+) -> eyre::Result<Vec<PathBuf>> {
+    let roots = snapshot.class_directories()?;
+    let roots = roots
         .into_iter()
-        .filter(|path| path.is_dir())
+        .filter(|path| {
+            path.strip_prefix(snapshot.snapshot_dir.join("project"))
+                .ok()
+                .and_then(|relative| relative.to_str())
+                .is_some_and(|relative| {
+                    session
+                        .active_roots
+                        .iter()
+                        .any(|root| root == &relative.replace('\\', "/"))
+                })
+        })
         .collect::<Vec<_>>();
-    if classes_dirs.is_empty() {
-        eyre::bail!(
-            "No compiled class directories active in the interactive client exist under {}",
-            project_dir.display()
-        );
-    }
-    Ok(classes_dirs)
+    ensure!(
+        !roots.is_empty(),
+        "no successful class directories are active in this runtime session"
+    );
+    Ok(roots)
+}
+
+fn ensure_apply_contract(
+    candidate_contract: &str,
+    baseline_contract: &str,
+    candidate_files: &BTreeMap<String, String>,
+    baseline_files: &BTreeMap<String, String>,
+    roots: &[String],
+) -> eyre::Result<()> {
+    ensure!(
+        candidate_contract == baseline_contract,
+        "loader, dependency, platform or project metadata changed; restart the client with this successful build"
+    );
+    let active = |path: &str| {
+        roots
+            .iter()
+            .any(|root| path.starts_with(&format!("project/{root}/")))
+    };
+    let classes = |files: &BTreeMap<String, String>| {
+        files
+            .keys()
+            .filter(|path| active(path) && Path::new(path).extension() == Some(OsStr::new("class")))
+            .cloned()
+            .collect::<BTreeSet<_>>()
+    };
+    ensure!(
+        classes(candidate_files) == classes(baseline_files),
+        "the active class set changed; restart the client to load added/removed classes"
+    );
+    let resources = |files: &BTreeMap<String, String>| {
+        files
+            .iter()
+            .filter(|(path, _)| {
+                active(path) && Path::new(path).extension() != Some(OsStr::new("class"))
+            })
+            .map(|(path, value)| (path.clone(), value.clone()))
+            .collect::<BTreeMap<_, _>>()
+    };
+    ensure!(
+        resources(candidate_files) == resources(baseline_files),
+        "active resources changed; restart the client because class redefinition does not replace resources"
+    );
+    Ok(())
 }
 
 fn compile_hotswap_helper(
@@ -234,6 +296,7 @@ fn run_hotswap_helper(
     java: &crate::jdk::ResolvedJava,
     helper_classes_dir: &Path,
     port: u16,
+    session: &RuntimeSessionReceipt,
     class_prefix: &str,
     classes_dirs: &[PathBuf],
 ) -> eyre::Result<()> {
@@ -246,6 +309,8 @@ fn run_hotswap_helper(
         .arg("SfmHotswapHelper")
         .arg("127.0.0.1")
         .arg(port.to_string())
+        .arg(&session.session_id)
+        .arg(session.java_major.to_string())
         .arg(class_prefix)
         .args(classes_dirs);
     let output = command
@@ -254,138 +319,113 @@ fn run_hotswap_helper(
     print!("{}", String::from_utf8_lossy(&output.stdout));
     eprint!("{}", String::from_utf8_lossy(&output.stderr));
     if !output.status.success() {
-        eyre::bail!("hotswap helper failed with {}", output.status);
+        eyre::bail!(
+            "hotswap application failed with {}; inspect the compatibility diagnostic above and restart the client if the change is unsupported",
+            output.status
+        );
     }
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::HotswapCachePlan;
-    use super::client_hotswap_class_directories;
-    use super::selected_java_from_build_plan;
-    use std::fs;
+    use super::ensure_apply_contract;
+    use std::collections::BTreeMap;
 
     #[test]
-    fn hotswap_reads_the_native_projection_cache_from_the_completed_plan() {
-        let plan: HotswapCachePlan = facet_json::from_str(
-            r#"{"cache_dir":"project/build/sfm-toolchain/native-project/context-key","unrelated":true}"#,
-        ).unwrap();
-        assert_eq!(
-            plan.cache_dir.join("project"),
-            std::path::PathBuf::from(
-                "project/build/sfm-toolchain/native-project/context-key/project"
-            )
-        );
-    }
-
-    #[test]
-    fn hotswap_uses_java_selected_by_completed_build_for_each_runtime_line() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let minecraft_dir = temp.path().join("minecraft");
-        fs::create_dir(&minecraft_dir).expect("minecraft dir");
-
-        for major in [17, 21, 25] {
-            let plan_path = temp.path().join(format!("java-{major}-plan.json"));
-            let java_home = temp.path().join(format!("jdk-{major}"));
-            let java_executable = java_home.join("bin").join("java.exe");
-            let (selection, pin_url, pin_sha512) = match major {
-                17 => ("legacy-discovery", "null", "null"),
-                21 => (
-                    "exact-lockfile-pin",
-                    "\"https://example.test/jbrsdk21.zip\"",
-                    "\"test-sha512\"",
-                ),
-                25 => ("explicit-override", "null", "null"),
-                _ => unreachable!("test covers three runtime lines"),
-            };
-            let plan = format!(
-                "{{\"minecraft_dir\":{:?},\"java\":{{\"executable\":{:?},\"home\":{:?},\"version_output\":{:?},\"major_version\":{major},\"selection\":\"{selection}\",\"pin_url\":{pin_url},\"pin_sha512\":{pin_sha512}}},\"unrelated_build_field\":true}}",
-                minecraft_dir.to_string_lossy(),
-                java_executable.to_string_lossy(),
-                java_home.to_string_lossy(),
-                format!("openjdk version \"{major}\""),
-            );
-            fs::write(&plan_path, plan).expect("build plan");
-
-            let selected = selected_java_from_build_plan(&plan_path, &minecraft_dir)
-                .expect("selected Java should come from the plan");
-            assert_eq!(selected.major_version, major);
-            assert_eq!(selected.home, Some(java_home));
-            assert_eq!(selected.executable, java_executable);
-            assert_eq!(selected.selection, selection);
-            assert_eq!(
-                selected.pin_url.as_deref(),
-                (major == 21).then_some("https://example.test/jbrsdk21.zip")
-            );
-            assert_eq!(
-                selected.pin_sha512.as_deref(),
-                (major == 21).then_some("test-sha512")
-            );
-        }
-    }
-
-    #[test]
-    fn hotswap_rejects_a_plan_for_another_target() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let minecraft_dir = temp.path().join("minecraft");
-        let other_minecraft_dir = temp.path().join("other-minecraft");
-        fs::create_dir(&minecraft_dir).expect("minecraft dir");
-        fs::create_dir(&other_minecraft_dir).expect("other minecraft dir");
-        let plan_path = temp.path().join("other-plan.json");
-        fs::write(
-            &plan_path,
-            format!(
-                "{{\"minecraft_dir\":{:?},\"java\":{{\"executable\":\"java\",\"home\":null,\"version_output\":\"openjdk version 21\",\"major_version\":21,\"selection\":\"test-selected\",\"pin_url\":null,\"pin_sha512\":null}}}}",
-                other_minecraft_dir.to_string_lossy()
+    fn existing_class_bytes_can_change_but_resources_classes_and_dependencies_need_restart() {
+        let roots = vec!["classes".to_owned(), "staged-resources".to_owned()];
+        let original = BTreeMap::from([
+            (
+                "project/classes/Main.class".to_owned(),
+                "old-class".to_owned(),
             ),
-        )
-        .expect("build plan");
-
-        let error = selected_java_from_build_plan(&plan_path, &minecraft_dir)
-            .expect_err("plan from another target must be rejected");
-        assert!(error.to_string().contains("not"));
-    }
-
-    #[test]
-    fn discovers_every_class_directory_active_in_an_interactive_client() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let project = temp.path().join("project");
-        let main = project.join("classes");
-        let gametest = project.join("gametest").join("classes");
-        let datagen = project.join("datagen").join("classes");
-        let test = project.join("test").join("classes");
-        for directory in [&main, &gametest, &datagen, &test] {
-            fs::create_dir_all(directory).expect("class directory");
-        }
-
-        assert_eq!(
-            client_hotswap_class_directories(&project).expect("interactive class directories"),
-            vec![main, gametest]
+            (
+                "project/staged-resources/mod.json".to_owned(),
+                "resource".to_owned(),
+            ),
+        ]);
+        let mut candidate = original.clone();
+        candidate.insert(
+            "project/classes/Main.class".to_owned(),
+            "new-class".to_owned(),
+        );
+        assert!(
+            ensure_apply_contract(
+                "same-contract",
+                "same-contract",
+                &candidate,
+                &original,
+                &roots
+            )
+            .is_ok()
+        );
+        assert!(
+            ensure_apply_contract(
+                "new-dependencies",
+                "same-contract",
+                &candidate,
+                &original,
+                &roots
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("restart")
+        );
+        candidate.insert(
+            "project/staged-resources/mod.json".to_owned(),
+            "changed-resource".to_owned(),
+        );
+        assert!(
+            ensure_apply_contract(
+                "same-contract",
+                "same-contract",
+                &candidate,
+                &original,
+                &roots
+            )
+            .is_err()
+        );
+        candidate = original.clone();
+        candidate.insert(
+            "project/classes/Added.class".to_owned(),
+            "new-class".to_owned(),
+        );
+        assert!(
+            ensure_apply_contract(
+                "same-contract",
+                "same-contract",
+                &candidate,
+                &original,
+                &roots
+            )
+            .is_err()
+        );
+        candidate = original.clone();
+        candidate.remove("project/classes/Main.class");
+        assert!(
+            ensure_apply_contract(
+                "same-contract",
+                "same-contract",
+                &candidate,
+                &original,
+                &roots
+            )
+            .is_err()
         );
     }
 
     #[test]
-    fn permits_a_client_without_the_optional_gametest_source_set() {
-        let temp = tempfile::tempdir().expect("tempdir");
-        let project = temp.path().join("project");
-        let main = project.join("classes");
-        fs::create_dir_all(&main).expect("main class directory");
-
-        assert_eq!(
-            client_hotswap_class_directories(&project).expect("main class directory"),
-            vec![main]
+    fn inactive_source_sets_do_not_expand_the_live_apply_contract() {
+        let roots = vec!["classes".to_owned()];
+        let original =
+            BTreeMap::from([("project/classes/Main.class".to_owned(), "old".to_owned())]);
+        let mut candidate = original.clone();
+        candidate.insert(
+            "project/datagen/classes/Data.class".to_owned(),
+            "new".to_owned(),
         );
-    }
-
-    #[test]
-    fn rejects_missing_interactive_client_outputs() {
-        let temp = tempfile::tempdir().expect("tempdir");
-
-        let error = client_hotswap_class_directories(temp.path())
-            .expect_err("missing class directories should fail");
-
-        assert!(error.to_string().contains("No compiled class directories"));
+        assert!(ensure_apply_contract("same", "same", &candidate, &original, &roots).is_ok());
     }
 }
 

@@ -146,7 +146,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
 {% when "26.1.2" %}
                 .unlockedBy("has_iron_ingot", hasItem(Items.IRON_INGOT))
                 .unlockedBy("has_chest", hasItem(Tags.Items.CHESTS))
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:fancy_to_cable");
+{% else %}
                 .save(writer, "fancy_to_cable");
+{% endif %}
 {% else %}
                 .unlockedBy("has_iron_ingot", RecipeProvider.has(Items.IRON_INGOT))
                 .unlockedBy("has_chest", RecipeProvider.has(Tags.Items.CHESTS))
@@ -183,7 +189,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("AAA")
                 .pattern(" B ")
                 .pattern("AAA")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tough_cable_horizontal");
+{% else %}
                 .save(writer, "tough_cable_horizontal");
+{% endif %}
 
         beginShaped(SFMBlocks.TOUGH_FANCY_CABLE.get(), 1)
                 .define('A', Blocks.OBSIDIAN)
@@ -199,7 +211,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("A A")
                 .pattern("ABA")
                 .pattern("A A")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tough_cable_vertical");
+{% else %}
                 .save(writer, "tough_cable_vertical");
+{% endif %}
 
         beginShaped(SFMBlocks.TOUGH_FANCY_CABLE.get(), 1)
                 .define('A', Blocks.OBSIDIAN)
@@ -215,14 +233,26 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("AAA")
                 .pattern(" B ")
                 .pattern("AAA")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tough_fancy_cable_horizontal");
+{% else %}
                 .save(writer, "tough_fancy_cable_horizontal");
+{% endif %}
 
         beginShapeless(SFMBlocks.CABLE.get(), 1)
                 .requires(SFMBlocks.TOUGH_CABLE.get(), 1)
 {% case minecraft_version %}
 {% when "26.1.2" %}
                 .unlockedBy("has_tough_cable", hasItem(SFMItems.TOUGH_CABLE.get()))
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tough_to_cable");
+{% else %}
                 .save(writer, "tough_to_cable");
+{% endif %}
 {% else %}
                 .unlockedBy("has_tough_cable", RecipeProvider.has(SFMItems.TOUGH_CABLE.get()))
                 .save(writer, SFMResourceLocation.fromSFMPath("tough_to_cable"));
@@ -233,7 +263,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
 {% case minecraft_version %}
 {% when "26.1.2" %}
                 .unlockedBy("has_tough_fancy_cable", hasItem(SFMItems.TOUGH_FANCY_CABLE.get()))
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tough_fancy_to_fancy");
+{% else %}
                 .save(writer, "tough_fancy_to_fancy");
+{% endif %}
 {% else %}
                 .unlockedBy("has_tough_fancy_cable", RecipeProvider.has(SFMItems.TOUGH_FANCY_CABLE.get()))
                 .save(writer, SFMResourceLocation.fromSFMPath("tough_fancy_to_fancy"));
@@ -253,7 +289,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("A A")
                 .pattern("ABA")
                 .pattern("A A")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_cable_vertical");
+{% else %}
                 .save(writer, "tunnelled_cable_vertical");
+{% endif %}
 
         beginShaped(SFMBlocks.TUNNELLED_CABLE.get(), 1)
                 .define('A', Tags.Items.FENCES)
@@ -269,7 +311,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("AAA")
                 .pattern(" B ")
                 .pattern("AAA")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_cable_horizontal");
+{% else %}
                 .save(writer, "tunnelled_cable_horizontal");
+{% endif %}
 
         beginShaped(SFMBlocks.TUNNELLED_FANCY_CABLE.get(), 1)
                 .define('A', Tags.Items.FENCES)
@@ -285,7 +333,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("A A")
                 .pattern("ABA")
                 .pattern("A A")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_fancy_cable_vertical");
+{% else %}
                 .save(writer, "tunnelled_fancy_cable_vertical");
+{% endif %}
 
         beginShaped(SFMBlocks.TUNNELLED_FANCY_CABLE.get(), 1)
                 .define('A', Tags.Items.FENCES)
@@ -301,7 +355,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("AAA")
                 .pattern(" B ")
                 .pattern("AAA")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_fancy_cable_horizontal");
+{% else %}
                 .save(writer, "tunnelled_fancy_cable_horizontal");
+{% endif %}
 
         beginShaped(SFMBlocks.MANAGER.get(), 1)
                 .define('A', Tags.Items.CHESTS)
@@ -376,7 +436,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("AAA")
                 .pattern(" B ")
                 .pattern("AAA")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_manager_horizontal");
+{% else %}
                 .save(writer, "tunnelled_manager_horizontal");
+{% endif %}
 
         beginShapeless(SFMBlocks.MANAGER.get(), 1)
                 .requires(SFMItems.TUNNELLED_MANAGER.get())
@@ -386,7 +452,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
 {% else %}
                 .unlockedBy("has_manager", RecipeProvider.has(SFMItems.TUNNELLED_MANAGER.get()))
 {% endcase %}
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:uncraft_tunnelled_manager");
+{% else %}
                 .save(writer, "uncraft_tunnelled_manager");
+{% endif %}
 
         beginShaped(SFMItems.LABEL_GUN.get(), 1)
                 .define('S', Tags.Items.RODS_WOODEN)
@@ -402,7 +474,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern(" LC")
                 .pattern(" SB")
                 .pattern("S  ")
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                .save(writer, "sfm:tunnelled_manager_vertical");
+{% else %}
                 .save(writer, "tunnelled_manager_vertical");
+{% endif %}
 
 
         beginShaped(SFMItems.NETWORK_TOOL.get(), 1)
@@ -539,7 +617,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .special(DiskResetRecipe::new)
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:disk_reset"
+{% else %}
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.DISK_RESET.get()).getPath()
+{% endif %}
                 );
 {% else %}
 {% case minecraft_version %}
@@ -547,13 +631,25 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .special(DiskResetRecipe::new)
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:disk_reset"
+{% else %}
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.DISK_RESET.get()).getPath()
+{% endif %}
                 );
 {% else %}
                 .special(SFMRecipeSerializers.DISK_RESET.get())
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:disk_reset"
+{% else %}
                         SFMRecipeSerializers.DISK_RESET.getPath()
+{% endif %}
                 );
 {% endcase %}
 {% endcase %}
@@ -565,7 +661,13 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .special(LabelGunResetRecipe::new)
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:label_gun_reset"
+{% else %}
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.LABEL_GUN_RESET.get()).getPath()
+{% endif %}
                 );
 {% else %}
 {% case minecraft_version %}
@@ -573,13 +675,25 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .special(LabelGunResetRecipe::new)
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:label_gun_reset"
+{% else %}
                         BuiltInRegistries.RECIPE_SERIALIZER.getKey(SFMRecipeSerializers.LABEL_GUN_RESET.get()).getPath()
+{% endif %}
                 );
 {% else %}
                 .special(SFMRecipeSerializers.LABEL_GUN_RESET.get())
                 .save(
                         writer,
+{% if features.recipe_namespace %}
+{% issue 527 %}
+{% issue 621 %}
+                        "sfm:label_gun_reset"
+{% else %}
                         SFMRecipeSerializers.LABEL_GUN_RESET.getPath()
+{% endif %}
                 );
 {% endcase %}
 {% endcase %}

@@ -162,11 +162,17 @@ pub(crate) fn invoke_named_jar(
     options: &NamedCompileOptions,
     cancellation: &CancellationToken,
 ) -> eyre::Result<NamedJarReport> {
+    eyre::ensure!(
+        options.cache_root.is_none(),
+        "--cache-root is supported by source project compile only"
+    );
     validate_named_package_project(&project)?;
     let identity = BuildProjectIdentity::Catalog {
         frozen: Arc::new(project),
     };
     let planning = NativePlanningOptions {
+        output_name: None,
+        derived_cache_root: None,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,
@@ -615,6 +621,55 @@ fn insert_named_jar_pin(
     Ok(())
 }
 
+fn prepare_fresh_jar_output(
+    plan: &BuildPlan,
+) -> eyre::Result<Option<fresh_jar_output::FreshJarOutput>> {
+    if plan.output_name.is_none() {
+        return Ok(None);
+    }
+    eyre::ensure!(
+        selected_project_jar_output(plan)? == plan.rust_output_jar,
+        "fresh Jar final differs from its selected output name"
+    );
+    fresh_jar_output::FreshJarOutput::prepare(&plan.minecraft_dir, &plan.rust_output_jar).map(Some)
+}
+
+fn selected_project_jar_output(plan: &BuildPlan) -> eyre::Result<PathBuf> {
+    let default_output = rust_output_jar_path(
+        &plan.minecraft_dir,
+        required_property(&plan.properties, "mod_name")?,
+        plan.minecraft_version.as_str(),
+        required_property(&plan.properties, "mod_version")?,
+    );
+    match plan.output_name.as_deref() {
+        Some(name) => fresh_jar_output::resolve(
+            &plan.minecraft_dir,
+            name,
+            &default_output,
+            &plan.gradle_output_jar,
+        ),
+        None => Ok(default_output),
+    }
+}
+
+fn project_package_writer_output<'a>(
+    plan: &'a BuildPlan,
+    fresh: Option<&'a fresh_jar_output::FreshJarOutput>,
+) -> eyre::Result<&'a Path> {
+    match (plan.output_name.as_ref(), fresh) {
+        (None, None) => Ok(&plan.rust_output_jar),
+        (Some(_), Some(output)) => {
+            eyre::ensure!(
+                output.path() == plan.rust_output_jar,
+                "fresh Jar output authority changed"
+            );
+            output.recheck_absent()?;
+            output.private_output_path()
+        }
+        _ => eyre::bail!("fresh Jar writer lost its output admission"),
+    }
+}
+
 impl ExecutionContext<'_> {
     fn require_named_package_paths(&self) -> eyre::Result<()> {
         let Some(project) = self.plan.named_project() else {
@@ -629,12 +684,7 @@ impl ExecutionContext<'_> {
             &project.dependencies().receipt().source_lock_sha256,
             (self.plan.java_release, self.plan.java.major_version),
         )?;
-        let expected = rust_output_jar_path(
-            &self.plan.minecraft_dir,
-            required_property(&self.plan.properties, "mod_name")?,
-            self.plan.minecraft_version.as_str(),
-            required_property(&self.plan.properties, "mod_version")?,
-        );
+        let expected = selected_project_jar_output(self.plan)?;
         eyre::ensure!(
             expected == self.plan.rust_output_jar
                 && expected != self.plan.gradle_output_jar
@@ -781,8 +831,10 @@ impl ExecutionContext<'_> {
             return Ok(());
         };
         self.bail_if_cancelled()?;
-        self.plan.recheck_named_inputs()?;
-        self.plan.recheck_named_sdk()?;
+        eyre::ensure!(
+            self.plan.named_project().is_some(),
+            "named Jar admission requires its checked catalog owner"
+        );
         self.require_named_package_paths()?;
         admission.recheck()?;
         require_named_jar_output_absent(&self.plan.minecraft_dir, &self.plan.rust_output_jar)
@@ -903,7 +955,20 @@ impl ExecutionContext<'_> {
         classpath: &[PathBuf],
         args: &[String],
         diagnostic: &Path,
+        fresh: Option<&fresh_jar_output::FreshJarOutput>,
     ) -> eyre::Result<()> {
+        let writer_output = project_package_writer_output(self.plan, fresh)?;
+        let paths =
+            project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        if fresh.is_some() {
+            require_named_jar_invocation(
+                args,
+                &paths.development_jar,
+                writer_output,
+                &paths.reobf_mapping,
+                &paths.mixin_reobf_mapping,
+            )?;
+        }
         let Some(project) = self.plan.named_project() else {
             return self.run_java_tool_with_classpath(
                 "tool-specialsource",
@@ -920,13 +985,13 @@ impl ExecutionContext<'_> {
             development_jar: input,
             reobf_mapping: official,
             mixin_reobf_mapping: mixin,
-        } = project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        } = paths;
         eyre::ensure!(
             diagnostic == project_root.join("reobf"),
             "named Jar refuses changed diagnostic path"
         );
-        require_named_jar_invocation(args, &input, &self.plan.rust_output_jar, &official, &mixin)?;
-        require_named_jar_output_absent(&self.plan.minecraft_dir, &self.plan.rust_output_jar)?;
+        require_named_jar_invocation(args, &input, writer_output, &official, &mixin)?;
+        require_named_jar_output_absent(&self.plan.minecraft_dir, writer_output)?;
         let resolver = self.plan.resolver(&self.cancellation_token)?;
         eyre::ensure!(
             classpath == self.package_reobfuscation_classpath(&resolver)?
@@ -1033,6 +1098,7 @@ impl ExecutionContext<'_> {
             transport.path(),
             &console_log.path,
             contents.as_bytes(),
+            writer_output,
         )?;
         receipt.persist()?;
         let preflight = (|| {
@@ -1055,7 +1121,10 @@ impl ExecutionContext<'_> {
                     && console_log.held.metadata()?.len() == 0,
                 "named Jar diagnostics changed before launch"
             );
-            require_named_jar_output_absent(&self.plan.minecraft_dir, &self.plan.rust_output_jar)?;
+            require_named_jar_output_absent(&self.plan.minecraft_dir, writer_output)?;
+            if let Some(output) = fresh {
+                output.recheck_absent()?;
+            }
             eyre::ensure!(
                 read_named_authenticated_file(
                     transport.path(),
@@ -1135,8 +1204,8 @@ impl ExecutionContext<'_> {
             );
         }
         self.require_named_package_paths()?;
-        let hash = capture_named_package_hash(&self.plan.rust_output_jar)?;
-        let produced = ReviewedSpecialSourceFile::read(&self.plan.rust_output_jar, &hash)?;
+        let hash = capture_named_package_hash(writer_output)?;
+        let produced = ReviewedSpecialSourceFile::read(writer_output, &hash)?;
         produced.recheck()?;
         receipt.output_content_hash = Some(produced.content_hash.to_string());
         receipt.output_bytes = Some(produced.bytes);
@@ -1220,6 +1289,7 @@ impl NamedPackageLaunchReceipt {
         transport: &Path,
         log: &Path,
         bytes: &[u8],
+        writer_output: &Path,
     ) -> eyre::Result<Self> {
         let project = context
             .plan
@@ -1246,7 +1316,7 @@ impl NamedPackageLaunchReceipt {
                 .count(),
             exact_jar_arguments: named_jar_arguments(
                 &paths.development_jar,
-                &context.plan.rust_output_jar,
+                writer_output,
                 &paths.reobf_mapping,
                 &paths.mixin_reobf_mapping,
             )?,
@@ -1269,7 +1339,7 @@ impl NamedPackageLaunchReceipt {
                     })
                 })
                 .collect::<eyre::Result<Vec<_>>>()?,
-            output_jar: require_named_jar_path(&context.plan.rust_output_jar)?.to_owned(),
+            output_jar: require_named_jar_path(writer_output)?.to_owned(),
             output_content_hash: None,
             output_bytes: None,
             diagnostic_cwd: require_named_jar_path(diagnostic)?.to_owned(),

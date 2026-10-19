@@ -1,4 +1,4 @@
-//! Projection text changes are the primary reader view; bytecode stays separate.
+//! One shared JAR-first inspector, with repository projections kept as a distinct input.
 use super::document::ReleaseReportDocument;
 use super::render::escape;
 use std::collections::BTreeMap;
@@ -49,7 +49,12 @@ pub(super) fn tree(rows: &[(String, String)]) -> String {
     format!("<ul>{files}</ul>")
 }
 
-pub(super) fn render(doc: &ReleaseReportDocument, diffs: &str) -> (String, String) {
+pub(super) fn render(
+    doc: &ReleaseReportDocument,
+    diffs: &str,
+    explorer: &str,
+    verified_correlations: &str,
+) -> (String, String) {
     let mut versions: BTreeMap<String, Vec<(String, String)>> = BTreeMap::new();
     let mut supplemental = Vec::new();
     for diff in &doc.diffs {
@@ -92,8 +97,24 @@ pub(super) fn render(doc: &ReleaseReportDocument, diffs: &str) -> (String, Strin
             views.push_str(fragment(diffs, id));
         }
     }
+    let mut review_options = String::new();
+    for jar in &doc.jars {
+        let version = jar.id[4..].replace('-', ".");
+        let _ = write!(
+            review_options,
+            "<option value=\"jar-{version}\">Delivered JAR · Minecraft {version}</option><option value=\"repo-{version}\">Repository source · Minecraft {version}</option>"
+        );
+    }
+    // The caller supplies only successful correlation_render output, after its
+    // exact source-insertion and class-profile validation. Metadata is not a target.
+    let causal_example =
+        if verified_correlations.contains("<section id=\"resource-quantity-cause\">") {
+            "<a href=\"#resource-quantity-cause\">Verified source-to-line-table example</a> · "
+        } else {
+            ""
+        };
     let changes = format!(
-        "<section id=\"release-changes\"><h2>What changed in this release?</h2><p>Actual 4.34.0 → 4.35.0 projection text comparisons. Select a Minecraft version and a changed source or resource. Resource moves show both archive paths; an unchanged recipe body is shown as unchanged. Shared fixtures are separate below.</p><div class=\"source-workbench release-workbench\"><aside class=\"source-sidebar\"><label>Minecraft version <select id=\"source-version\">{options}</select></label>{trees}</aside><div class=\"source-preview\">{views}</div></div><p class=\"small-note\">The class explorer is a separate verification view. A Java source file can produce its outer class and multiple inner classes; the shared basename alone does not establish that association. <a href=\"#resource-quantity-cause\">ResourceQuantity: verified source-to-line-table mapping</a> · <a href=\"#class-explorer-panel\">Class verification</a></p></section>"
+        "<section id=\"release-changes\"><h2>Inspect the JAR and source changes</h2><p class=\"inspector-intro\">Start with the delivered JARs to inspect packaged files. Repository source is a separate captured comparison. Select a file, then use its source/class links to move between the two.</p><label class=\"review-input-control\">Compare <select id=\"review-input\">{review_options}</select></label><div class=\"source-workbench release-workbench\"><aside class=\"source-sidebar\"><label>Repository projection <select id=\"source-version\">{options}</select></label>{trees}</aside><div class=\"source-preview\">{views}</div></div><details id=\"class-explorer-panel\" class=\"inspector-method\" open><summary>JAR comparison details</summary>{explorer}</details><details class=\"inspector-method\"><summary>How to interpret these comparisons</summary><p>A Java source file can produce multiple classes. Source/class navigation uses captured compiler metadata and paths; it does not establish that current repository bytes produced a frozen JAR. Equal instruction text is narrower than semantic equivalence. Debug-table differences and unexplained raw-byte changes remain separately classified.</p><p>Moves retain old and new paths. Raw archive members remain downloadable. {causal_example}<a href=\"#technical-appendix\">Complete evidence</a>.</p></details></section>"
     );
     let sources = supplemental
         .iter()

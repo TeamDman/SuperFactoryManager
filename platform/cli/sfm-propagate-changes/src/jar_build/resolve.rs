@@ -3,6 +3,9 @@
 //! Legacy constructors retain existing behavior. Named native planner and
 //! external-tool integration remain separate gates, not implied by this API.
 
+#[path = "resolver_acquisition_policy.rs"]
+mod acquisition_policy;
+
 use super::ArtifactId;
 use super::ArtifactLockEntry;
 use super::ArtifactLockfile;
@@ -24,7 +27,6 @@ use super::copy_file_to_path_checked_locked;
 use super::download_text_optional;
 use super::download_to_path_overwrite_locked;
 use super::materialize_source_build;
-use super::parse_maven_pom_runtime_dependencies;
 use super::parse_maven_versions;
 use super::prepare_existing_artifact_for_reuse;
 use super::read_artifact_provenance;
@@ -40,6 +42,7 @@ use crate::source_projection::prepared_dependency_inputs::FrozenRuntimeRoot;
 use crate::source_projection::prepared_dependency_inputs::PreparedArtifactRequest;
 use crate::source_projection::prepared_dependency_inputs::PreparedDependencyInputs;
 use crate::source_projection::released_native_inputs::ReleasedPreparedDependency;
+use acquisition_policy::ResolverAcquisitionPolicy;
 use eyre::Context;
 use rayon::prelude::*;
 use reqwest::blocking::Client;
@@ -121,6 +124,7 @@ pub(super) struct Resolver {
     materialization_lockfile: Option<Arc<ArtifactLockfile>>,
     prepared_inputs: Option<Arc<PreparedDependencyInputs>>,
     immutable_catalog: bool,
+    acquisition: ResolverAcquisitionPolicy,
     pub(super) cancellation_token: CancellationToken,
 }
 
@@ -169,8 +173,18 @@ impl Resolver {
             materialization_lockfile: materialization_lockfile.map(Arc::new),
             prepared_inputs: None,
             immutable_catalog: false,
+            acquisition: ResolverAcquisitionPolicy::AcquireMissing,
             cancellation_token,
         })
+    }
+
+    pub(super) fn existing_only(mut self, existing_only: bool) -> Self {
+        self.acquisition = if existing_only {
+            ResolverAcquisitionPolicy::ExistingOnly
+        } else {
+            ResolverAcquisitionPolicy::AcquireMissing
+        };
+        self
     }
 
     pub(super) fn require_immutable_catalog(mut self) -> eyre::Result<Self> {
@@ -382,16 +396,15 @@ impl Resolver {
                 workers = rayon::current_num_threads()
             )
             .entered();
-            values
+            let resolved = values
                 .par_iter()
                 .map(|(id, coordinate, required_for)| {
                     self.cancellation_token.bail_if_cancelled()?;
                     self.resolve_artifact(id.clone(), coordinate, required_for.clone())
                         .wrap_err_with(|| format!("Failed to resolve core coordinate {coordinate}"))
                 })
-                .collect::<Vec<eyre::Result<_>>>()
-                .into_iter()
-                .collect::<eyre::Result<Vec<_>>>()
+                .collect::<Vec<eyre::Result<_>>>();
+            super::all_hit_cache_miss::collect_results(resolved)
                 .wrap_err("Failed to resolve core artifact")
         })
     }
@@ -423,10 +436,21 @@ impl Resolver {
                 has_lockfile = self.lockfile.is_some(),
             )
             .entered();
+            if self.acquisition == ResolverAcquisitionPolicy::ExistingOnly
+                && coordinate.version.ends_with('+')
+            {
+                return Err(super::all_hit_cache_miss::AllHitCacheMiss::new(
+                    "dynamic coordinate resolution",
+                )
+                .into());
+            }
             self.resolve_dynamic_coordinate(coordinate)?
         };
         self.cancellation_token.bail_if_cancelled()?;
-        let cache_path = self.cache_path_for(&coordinate);
+        let cache_path = self
+            .producer_cache_path(&coordinate)?
+            .unwrap_or_else(|| self.cache_path_for(&coordinate));
+        self.verify_producer_before_effects(&coordinate, &cache_path)?;
         let expected_hash = {
             let _span = tracing::debug_span!(
                 "resolve_artifact_lock_lookup",
@@ -463,6 +487,13 @@ impl Resolver {
             let request = inputs.coordinate(&coordinate.to_string(), self.refresh)?;
             let pin = inputs.artifact_pin(&request)?;
             verify_strict_cache_miss_source(&pin.source, &coordinate.to_string())?;
+        }
+
+        if self.acquisition == ResolverAcquisitionPolicy::ExistingOnly {
+            return Err(super::all_hit_cache_miss::AllHitCacheMiss::new(
+                "exact Maven artifact acquisition",
+            )
+            .into());
         }
 
         let _cache_lock = {
@@ -1026,6 +1057,92 @@ impl Resolver {
         Ok(Some(artifact))
     }
 
+    fn producer_locked_artifact(&self, coordinate: &MavenCoordinate) -> Option<&ArtifactLockEntry> {
+        let coordinate = coordinate.to_string();
+        self.lockfile
+            .as_ref()
+            .or(self.materialization_lockfile.as_ref())?
+            .artifacts
+            .iter()
+            .find(|entry| entry.coordinate.as_deref() == Some(coordinate.as_str()))
+            .filter(|entry| {
+                crate::jar_build::source_build_receipt::required(
+                    entry.coordinate.as_deref(),
+                    entry.source_build.as_ref(),
+                )
+            })
+    }
+
+    fn producer_cache_path(&self, coordinate: &MavenCoordinate) -> eyre::Result<Option<PathBuf>> {
+        let Some(locked) = self.producer_locked_artifact(coordinate) else {
+            return Ok(None);
+        };
+        let portable = locked.cache_path.to_string_lossy().replace('\\', "/");
+        let relative = portable
+            .strip_prefix("$sfm-cache/")
+            .ok_or_else(|| eyre::eyre!("producer output requires a portable $sfm-cache path"))?;
+        crate::source_projection::promotion::validate_relative_path(relative)?;
+        let cache = self
+            .cache_dir
+            .parent()
+            .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
+        crate::source_projection::candidate_lock::checked_directory(cache)?;
+        Ok(Some(
+            crate::source_projection::candidate_lock::checked_file(cache, relative)?,
+        ))
+    }
+
+    /// Reuse the existing receipt-bound path and verification without cache effects.
+    #[cfg(any(windows, target_os = "linux"))]
+    pub(super) fn verified_producer_cache_path(
+        &self,
+        coordinate: &MavenCoordinate,
+    ) -> eyre::Result<Option<PathBuf>> {
+        let Some(path) = self.producer_cache_path(coordinate)? else {
+            return Ok(None);
+        };
+        self.verify_producer_before_effects(coordinate, &path)?;
+        Ok(Some(path))
+    }
+
+    fn verify_producer_before_effects(
+        &self,
+        coordinate: &MavenCoordinate,
+        artifact: &Path,
+    ) -> eyre::Result<()> {
+        let Some(locked) = self.producer_locked_artifact(coordinate) else {
+            return Ok(());
+        };
+        eyre::ensure!(
+            !self.refresh,
+            "producer-pinned input cannot be refreshed implicitly; create and approve a new producer receipt separately"
+        );
+        eyre::ensure!(
+            locked.weak.is_none(),
+            "producer-pinned input cannot use weak artifact substitution"
+        );
+        let expected_path = self
+            .producer_cache_path(coordinate)?
+            .expect("producer row checked above");
+        eyre::ensure!(
+            artifact == expected_path,
+            "producer output path differs from the locked isolated cache path"
+        );
+        let cache = self
+            .cache_dir
+            .parent()
+            .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
+        crate::jar_build::source_build_receipt::verify(
+            cache,
+            artifact,
+            locked.coordinate.as_deref(),
+            locked.hash,
+            locked.source_git.as_ref(),
+            locked.source_build.as_ref(),
+        )?;
+        Ok(())
+    }
+
     fn locked_artifact_hash(&self, coordinate: &MavenCoordinate) -> Option<&ContentHash> {
         let coordinate_text = coordinate.to_string();
         let locked = self
@@ -1067,6 +1184,7 @@ impl Resolver {
                 lockfile.minecraft_version
             );
         };
+        self.verify_producer_before_effects(coordinate, &artifact.cache_path)?;
         let actual_hash = match actual_hash {
             Some(actual_hash) if actual_hash.algorithm == locked.hash.algorithm => actual_hash,
             _ => ContentHash::from_path(&artifact.cache_path, locked.hash.algorithm)?,
@@ -1088,6 +1206,7 @@ impl Resolver {
         required_for: &ArtifactPurpose,
         hash: ContentHash,
     ) -> eyre::Result<ArtifactPlan> {
+        self.verify_producer_before_effects(coordinate, &cache_path)?;
         if let Some(inputs) = &self.prepared_inputs {
             let request = inputs.coordinate(&coordinate.to_string(), self.refresh)?;
             let pin = inputs.artifact_pin(&request)?;
@@ -1288,7 +1407,7 @@ impl Resolver {
                 workers = rayon::current_num_threads()
             )
             .entered();
-            items
+            let resolved = items
                 .par_iter()
                 .map(|(configuration, coordinate)| {
                     self.cancellation_token.bail_if_cancelled()?;
@@ -1297,9 +1416,8 @@ impl Resolver {
                             format!("Failed to resolve dependency {configuration} {coordinate}")
                         })
                 })
-                .collect::<Vec<eyre::Result<_>>>()
-                .into_iter()
-                .collect::<eyre::Result<Vec<_>>>()
+                .collect::<Vec<eyre::Result<_>>>();
+            super::all_hit_cache_miss::collect_results(resolved)
                 .wrap_err("Failed to resolve dependency")
         })
     }
@@ -1495,6 +1613,22 @@ impl Resolver {
         &self,
         coordinate: &MavenCoordinate,
     ) -> eyre::Result<Vec<MavenCoordinate>> {
+        self.pom_runtime_dependencies(coordinate, |pom| self.read_pinned_pom(pom))
+    }
+    pub(super) fn resolve_pom_runtime_dependencies_export(
+        &self,
+        coordinate: &MavenCoordinate,
+        trace: &mut super::maven_metadata_trace::MavenMetadataTrace,
+    ) -> eyre::Result<Vec<MavenCoordinate>> {
+        self.pom_runtime_dependencies(coordinate, |pom| {
+            self.read_pinned_pom_traced(pom, Some(&mut *trace))
+        })
+    }
+    fn pom_runtime_dependencies(
+        &self,
+        coordinate: &MavenCoordinate,
+        read: impl FnMut(&MavenCoordinate) -> eyre::Result<String>,
+    ) -> eyre::Result<Vec<MavenCoordinate>> {
         self.cancellation_token.bail_if_cancelled()?;
         if self.prepared_inputs.is_some() {
             self.prepared_coordinate(coordinate)?;
@@ -1502,6 +1636,31 @@ impl Resolver {
                 "strict released dependencies use the frozen global runtime closure; per-root POM discovery is unavailable"
             );
         }
+        let coordinate_text = coordinate.to_string();
+        if let Some(entry) = self
+            .lockfile
+            .as_ref()
+            .and_then(|lock| {
+                lock.artifacts
+                    .iter()
+                    .find(|entry| entry.coordinate.as_deref() == Some(coordinate_text.as_str()))
+            })
+            .filter(|entry| entry.source == ArtifactSource::SourceBuild)
+        {
+            let contract = crate::jar_build::frozen_file_dependency_contract::FrozenFileDependencyContract::for_artifact(entry)
+                .ok_or_else(|| eyre::eyre!("frozen source-built dependency {coordinate} has no matching reviewed runtime dependency contract; source-build provenance or a missing POM alone cannot authorize an empty closure"))?;
+            let path = maven_cache_path_for(&self.cache_dir, coordinate);
+            let _guard =
+                acquire_artifact_path_read_lock_cancellable(&path, &self.cancellation_token)?;
+            let raw = bounded_regular_read(&path, &self.cache_dir, 64 * 1024 * 1024)
+                .wrap_err_with(|| format!("reviewed file dependency {coordinate} requires its exact cached artifact at {}", path.display()))?;
+            contract.verify_bytes(&raw).wrap_err_with(|| {
+                format!("reviewed file dependency contract rejected {coordinate}")
+            })?;
+            tracing::debug!(coordinate = %coordinate, contract = "vox-java-0.10.0-rc.5-f2afdece-java17", "Using reviewed frozen runtime dependency contract");
+            return Ok(Vec::new());
+        }
+
         if coordinate.group == "curse.maven"
             || coordinate.classifier.is_some()
             || coordinate.extension != "jar"
@@ -1509,19 +1668,7 @@ impl Resolver {
             return Ok(Vec::new());
         }
 
-        let pom_coordinate = coordinate.with_extension("pom");
-        for repo in self.candidate_repositories(coordinate) {
-            self.cancellation_token.bail_if_cancelled()?;
-            let url = Self::artifact_url(repo, &pom_coordinate);
-            let pom = match download_text_optional(&self.cancellation_token, &self.client, &url) {
-                Ok(pom) => pom,
-                Err(error) if self.cancellation_token.is_cancelled() => return Err(error),
-                Err(_) => continue,
-            };
-            return Ok(parse_maven_pom_runtime_dependencies(&pom, coordinate));
-        }
-
-        Ok(Vec::new())
+        super::maven_pom_model::runtime_dependencies(coordinate, read)
     }
 }
 
@@ -1766,10 +1913,16 @@ mod prepared_resolver_proposal_tests {
             .into_iter()
             .find(|recipe| recipe.target == target)
             .ok_or_else(|| eyre::eyre!("fixture target missing"))?;
-        let raw = read_bounded(
-            &checked_file(repository, &recipe.source_lock.path)?,
-            1024 * 1024,
-        )?;
+        // Keep the historical weak-identity fixture independent of production provenance updates.
+        let raw = if recipe.target == "26.1.2" {
+            include_bytes!("../source_projection/fixtures/released-2612-original-schema2.json")
+                .to_vec()
+        } else {
+            read_bounded(
+                &checked_file(repository, &recipe.source_lock.path)?,
+                1024 * 1024,
+            )?
+        };
         eyre::ensure!(
             raw.len() == recipe.source_lock.bytes
                 && sha256(&raw) == format!("sha256:{}", recipe.source_lock.sha256),
@@ -2393,6 +2546,207 @@ mod prepared_resolver_proposal_tests {
                     && !bundle.is_obfuscated),
             "bundle policy lost"
         );
+        Ok(())
+    }
+}
+
+include!("resolve_pom_metadata.rs");
+
+#[cfg(test)]
+mod producer_native_tests {
+    use super::*;
+    use crate::jar_build::source_build_receipt::tests::resolver_fixture;
+
+    fn resolver(
+        root: &Path,
+        entry: ArtifactLockEntry,
+        refresh: bool,
+        materialization_only: bool,
+    ) -> eyre::Result<Resolver> {
+        let lock = ArtifactLockfile {
+            schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+            minecraft_version: "26.1.2".into(),
+            maven_cache_dir: "$sfm-cache/maven".into(),
+            allow_local_artifact_cache: false,
+            repositories: Vec::new(),
+            dependencies: Vec::new(),
+            artifacts: vec![entry],
+        };
+        Resolver::new(
+            root.join("maven"),
+            Vec::new(),
+            refresh,
+            false,
+            Vec::new(),
+            (!materialization_only).then(|| lock.clone()),
+            materialization_only.then_some(lock),
+            CancellationToken::new(),
+        )
+    }
+
+    #[test]
+    fn producer_native_uses_isolated_locked_output_without_overwriting_old_maven_bytes()
+    -> eyre::Result<()> {
+        let (root, path, entry) = resolver_fixture();
+        let coordinate = MavenCoordinate::parse(entry.coordinate.as_deref().unwrap())?;
+        let resolved = resolver(root.path(), entry, false, false)?;
+        let old = resolved.cache_path_for(&coordinate);
+        fs::create_dir_all(old.parent().unwrap())?;
+        fs::write(&old, b"historical Maven bytes")?;
+        let artifact = resolved.resolve_artifact(
+            ArtifactId::from("receipt"),
+            &coordinate,
+            ArtifactPurpose::from("native receipt test"),
+        )?;
+        assert_eq!(artifact.cache_path, path);
+        assert_eq!(fs::read(old)?, b"historical Maven bytes");
+        assert!(read_artifact_provenance(&path)?.is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn producer_native_missing_or_invalid_proof_refuses_before_cache_sidecar_and_network()
+    -> eyre::Result<()> {
+        for case in 0..8 {
+            let (root, path, mut entry) = resolver_fixture();
+            let pin = entry.source_build.as_ref().unwrap().environment
+                [crate::jar_build::source_build_receipt::RECEIPT_KEY]
+                .clone();
+            let receipt = root.path().join(format!("producer-receipts/{pin}.json"));
+            match case {
+                0 => {
+                    entry
+                        .source_build
+                        .as_mut()
+                        .unwrap()
+                        .environment
+                        .remove(crate::jar_build::source_build_receipt::RECEIPT_KEY);
+                }
+                1 => fs::remove_file(&receipt)?,
+                2 => fs::write(&receipt, b"{}")?,
+                3 => entry.source_git.as_mut().unwrap().commit = "c".repeat(40),
+                4 => {
+                    entry.source_git.as_mut().unwrap().remote_url =
+                        Some("https://example.invalid/other".into())
+                }
+                5 => fs::write(&path, b"tampered output")?,
+                6 => {
+                    entry.source_build.as_mut().unwrap().build_system =
+                        SourceBuildSystem::CargoCommand
+                }
+                _ => entry.cache_path = "$sfm-cache/../outside.jar".into(),
+            }
+            let coordinate = MavenCoordinate::parse(entry.coordinate.as_deref().unwrap())?;
+            let resolved = resolver(root.path(), entry, false, case == 4)?;
+            assert!(
+                resolved
+                    .resolve_artifact(
+                        ArtifactId::from("refusal"),
+                        &coordinate,
+                        ArtifactPurpose::from("refusal")
+                    )
+                    .is_err(),
+                "case {case}"
+            );
+            assert!(
+                !root.path().join("maven").exists(),
+                "refusal created Maven cache case {case}"
+            );
+            assert!(
+                read_artifact_provenance(&path)?.is_none(),
+                "refusal wrote provenance case {case}"
+            );
+            assert!(
+                !root.path().join("source-builds-gix").exists(),
+                "refusal created checkout case {case}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn producer_native_direct_cache_plan_and_refresh_cannot_bypass_proof() -> eyre::Result<()> {
+        let (root, path, mut entry) = resolver_fixture();
+        let coordinate = MavenCoordinate::parse(entry.coordinate.as_deref().unwrap())?;
+        let hash = entry.hash;
+        entry
+            .source_build
+            .as_mut()
+            .unwrap()
+            .environment
+            .remove(crate::jar_build::source_build_receipt::RECEIPT_KEY);
+        let resolved = resolver(root.path(), entry, false, false)?;
+        assert!(
+            resolved
+                .cached_artifact_plan(
+                    &ArtifactId::from("direct"),
+                    &coordinate,
+                    path.clone(),
+                    &ArtifactPurpose::from("direct"),
+                    hash
+                )
+                .is_err()
+        );
+        assert!(read_artifact_provenance(&path)?.is_none());
+        let (root, path, entry) = resolver_fixture();
+        let resolved = resolver(root.path(), entry, true, false)?;
+        assert!(
+            resolved
+                .resolve_artifact(
+                    ArtifactId::from("refresh"),
+                    &coordinate,
+                    ArtifactPurpose::from("refresh")
+                )
+                .is_err()
+        );
+        assert!(read_artifact_provenance(&path)?.is_none());
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires the retained local fresh producer outputs; run explicitly with SFM_PRODUCER_REAL_FIXTURE"]
+    fn producer_native_real_completed_main_and_api_receipts() -> eyre::Result<()> {
+        let root = PathBuf::from(std::env::var("SFM_PRODUCER_REAL_FIXTURE")?);
+        let raw = fs::read_to_string(root.join("canonical-lock.json"))?;
+        let current = crate::toolchain_lockfile_schema::read_current(&raw)?;
+        let lock = super::super::project_current_lockfile_for_audit(current, "26.1.2");
+        let resolved = Resolver::new(
+            root.join("minecraft-toolchain/maven"),
+            Vec::new(),
+            false,
+            false,
+            Vec::new(),
+            Some(lock),
+            None,
+            CancellationToken::new(),
+        )?;
+        for notation in [
+            "mekanism:Mekanism:26.1.2-10.8.0.86",
+            "mekanism:Mekanism:26.1.2-10.8.0.86:api",
+        ] {
+            let coordinate = MavenCoordinate::parse(notation)?;
+            let plan = resolved.resolve_artifact(
+                ArtifactId::from("real-producer"),
+                &coordinate,
+                ArtifactPurpose::from("real completed producer"),
+            )?;
+            assert!(
+                plan.cache_path
+                    .to_string_lossy()
+                    .contains("producer-outputs")
+            );
+            assert!(
+                crate::jar_build::source_build_receipt::verify(
+                    root.join("minecraft-toolchain").as_path(),
+                    &plan.cache_path,
+                    Some(notation),
+                    plan.sha1.unwrap(),
+                    plan.provenance.source_git.as_ref(),
+                    plan.provenance.source_build.as_ref()
+                )?
+                .is_some()
+            );
+        }
         Ok(())
     }
 }

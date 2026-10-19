@@ -70,7 +70,10 @@ public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
 {% endcase %}
         writer.dropSelf(SFMBlocks.TUNNELLED_MANAGER);
         writer.dropSelf(SFMBlocks.CABLE);
+{% if features.release_version_4_35_0 %}
+{% else %}
         writer.dropSelf(SFMBlocks.BUFFER_BLOCK);
+{% endif %}
         writer.dropOther(SFMBlocks.CABLE_FACADE, SFMBlocks.CABLE);
 
         // Tough cables
@@ -102,7 +105,14 @@ public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
     protected Set<? extends SFMRegistryObject<Block, ? extends Block>> getExpectedBlocks() {
         Set<SFMRegistryObject<Block, ? extends Block>> exclude = Set.of(
                 SFMBlocks.TEST_BARREL,
+{% if features.release_version_4_35_0 %}
+{% issue 583 %}
+                SFMBlocks.TEST_BARREL_TANK,
+                // The buffer block is WIP and has no item outside the IDE.
+                SFMBlocks.BUFFER_BLOCK
+{% else %}
                 SFMBlocks.TEST_BARREL_TANK
+{% endif %}
         );
         HashSet<SFMRegistryObject<Block, ? extends Block>> ourBlocks = new HashSet<>(SFMBlocks.REGISTERER.getOurEntries());
         ourBlocks.removeIf(exclude::contains);

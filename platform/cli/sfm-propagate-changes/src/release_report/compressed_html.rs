@@ -7,8 +7,9 @@ use std::io::Write as _;
 
 pub(super) fn render(html: &str) -> Result<String> {
     ensure!(
-        html.len() <= 32 * 1024 * 1024,
-        "class explorer exceeds expansion budget"
+        html.len() <= 64 * 1024 * 1024,
+        "class explorer exceeds 64 MiB expansion budget: {} bytes",
+        html.len()
     );
     let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
     writer.start_file(
@@ -49,6 +50,6 @@ mod tests {
                 html.as_bytes()
             ))
         );
-        assert!(super::render(&"x".repeat(32 * 1024 * 1024 + 1)).is_err());
+        assert!(super::render(&"x".repeat(64 * 1024 * 1024 + 1)).is_err());
     }
 }

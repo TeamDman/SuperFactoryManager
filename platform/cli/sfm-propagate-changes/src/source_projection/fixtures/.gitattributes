@@ -1,0 +1,2 @@
+# Historical fixture identity binds exact raw bytes, including line endings.
+released-2612-original-schema2.json -text

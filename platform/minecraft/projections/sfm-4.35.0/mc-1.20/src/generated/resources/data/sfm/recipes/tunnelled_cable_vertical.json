@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "tag": "forge:fences"
+    },
+    "B": {
+      "item": "sfm:cable"
+    }
+  },
+  "pattern": [
+    "A A",
+    "ABA",
+    "A A"
+  ],
+  "result": {
+    "item": "sfm:tunnelled_cable"
+  },
+  "show_notification": true
+}

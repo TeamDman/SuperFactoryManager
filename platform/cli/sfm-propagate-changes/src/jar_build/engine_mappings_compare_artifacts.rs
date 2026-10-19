@@ -2223,7 +2223,10 @@ fn write_artifact_provenance(path: &Path, provenance: &ArtifactProvenance) -> ey
     }
     let content = facet_json::to_string_pretty(provenance)
         .wrap_err("Failed to encode artifact provenance")?;
-    fs::write(&provenance_path, content)
+    if fs::read(&provenance_path).is_ok_and(|existing| existing.as_slice() == content.as_bytes()) {
+        return Ok(());
+    }
+    crate::payload_fetcher::write_payload_atomically(&provenance_path, content.as_bytes())
         .wrap_err_with(|| format!("Failed to write {}", provenance_path.display()))
 }
 
@@ -2737,3 +2740,7 @@ impl VersionPart {
 #[cfg(test)]
 #[path = "engine_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "engine_artifact_provenance_tests.rs"]
+mod artifact_provenance_tests;

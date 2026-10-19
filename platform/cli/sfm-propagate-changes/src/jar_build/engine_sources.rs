@@ -218,37 +218,32 @@ fn safe_path_segment(value: &str) -> String {
         .collect()
 }
 
+fn antlr_grammars(context: &ExecutionContext<'_>) -> eyre::Result<Vec<PathBuf>> {
+    let grammars = if let Some(project) = context.plan.named_project() {
+        select_project_compile_grammars(
+            project.project().receipt().files.keys().map(String::as_str),
+        )?
+        .into_iter()
+        .map(|relative| context.plan.minecraft_dir.join(relative))
+        .collect::<Vec<_>>()
+    } else {
+        projected_compile_grammar_paths(&context.plan.minecraft_dir)?
+    };
+    for grammar in &grammars {
+        context.bail_if_cancelled()?;
+        context.assert_allowed_input(grammar)?;
+    }
+    Ok(grammars)
+}
+
 fn run_antlr(
     context: &ExecutionContext<'_>,
     classpath: &[PathBuf],
     output_dir: &Path,
 ) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
-    let grammar_root = context
-        .plan
-        .minecraft_dir
-        .join("src")
-        .join("main")
-        .join("antlr");
-    let grammars = [
-        grammar_root.join("sfml").join("SFML.g4"),
-        grammar_root.join("toml").join("TomlLexer.g4"),
-        grammar_root.join("toml").join("TomlParser.g4"),
-        grammar_root.join("antlr4").join("ANTLRv4Lexer.g4"),
-        grammar_root.join("antlr4").join("ANTLRv4Parser.g4"),
-    ];
-    let grammars = if let Some(project) = context.plan.named_project() {
-        first_named_compile_grammars(project.project().receipt().files.keys().map(String::as_str))?
-            .into_iter()
-            .map(|relative| context.plan.minecraft_dir.join(relative))
-            .collect::<Vec<_>>()
-    } else {
-        grammars.to_vec()
-    };
-    for grammar in &grammars {
-        context.bail_if_cancelled()?;
-        context.assert_allowed_input(grammar)?;
-    }
+    context.require_all_hit_compilation_binding()?;
+    let grammars = antlr_grammars(context)?;
 
     let mut fingerprint_paths = classpath.to_vec();
     fingerprint_paths.extend(grammars.iter().cloned());
@@ -270,7 +265,17 @@ fn run_antlr(
         grammars.len(),
         output_dir.display()
     );
-    if cache_state_matches(context, &state_path, &fingerprint, &[output_dir])? {
+    let cache_hit = if context.verify_compilation_outputs {
+        verified_java_cache_matches(
+            context,
+            &state_path,
+            &fingerprint,
+            &[("sources", output_dir)],
+        )?
+    } else {
+        cache_state_matches(context, &state_path, &fingerprint, &[output_dir])?
+    };
+    if cache_hit {
         tracing::info!(
             "ANTLR main: reused cached outputs in {} ms",
             started.elapsed().as_millis()
@@ -279,6 +284,7 @@ fn run_antlr(
     }
 
     context.bail_if_cancelled()?;
+    context.plan.require_strict("ANTLR generator cache miss")?;
     reset_cache_directory(&context.plan.cache_dir, output_dir)?;
     context.bail_if_cancelled()?;
     let mut command = Command::new(&context.plan.java.executable);
@@ -294,6 +300,7 @@ fn run_antlr(
     context.bail_if_cancelled()?;
     context.plan.recheck_named_inputs()?;
     context.plan.recheck_named_sdk()?;
+    context.recheck_compiler_image()?;
     let output = run_command_capture_output(&context.cancellation_token, &mut command, "antlr")
         .wrap_err("Failed to run ANTLR")?;
     context.bail_if_cancelled()?;
@@ -319,7 +326,16 @@ fn run_antlr(
             log_path.display()
         );
     }
-    write_cache_state(&state_path, &fingerprint)?;
+    if context.verify_compilation_outputs {
+        write_project_java_cache(
+            context,
+            &state_path,
+            &fingerprint,
+            &[("sources", output_dir)],
+        )?;
+    } else {
+        write_cache_state(&state_path, &fingerprint)?;
+    }
     context.bail_if_cancelled()?;
     tracing::info!("ANTLR main: done in {} ms", started.elapsed().as_millis());
     Ok(())
@@ -508,6 +524,12 @@ fn read_source_excludes(
     source_set: &str,
 ) -> eyre::Result<Vec<String>> {
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs() {
+        return inputs
+            .project()
+            .retained_source_exclusion_policy(source_set)
+            .map(|policy| policy.patterns);
+    }
     if let Some(project) = context.plan.named_project() {
         return project
             .source_exclusion_policy(source_set)
@@ -537,6 +559,16 @@ fn source_exclusion_fingerprint_path(
     source_set: &str,
 ) -> eyre::Result<Option<PathBuf>> {
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs() {
+        return inputs
+            .project()
+            .retained_source_exclusion_policy(source_set)
+            .map(|policy| {
+                policy
+                    .output
+                    .map(|relative| context.plan.minecraft_dir.join(relative))
+            });
+    }
     if let Some(project) = context.plan.named_project() {
         return project.source_exclusion_policy(source_set).map(|policy| {
             policy
@@ -553,6 +585,11 @@ fn collect_java_sources_under(
     root: &Path,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs()
+        && let Some(paths) = inputs.selected_paths(root, "java")?
+    {
+        return Ok(paths);
+    }
     let mut sources = Vec::new();
     if !root.exists() {
         return Ok(sources);
@@ -666,14 +703,7 @@ fn write_javac_argfile(
         fs::create_dir_all(parent)?;
     }
     context.bail_if_cancelled()?;
-    fs::write(
-        argfile,
-        args.into_iter()
-            .map(escape_argfile_arg)
-            .collect::<Vec<_>>()
-            .join("\n"),
-    )
-    .wrap_err_with(|| format!("Failed to write {}", argfile.display()))?;
+    write_compilation_argfiles(context, argfile, classpath, &args)?;
     Ok(())
 }
 
@@ -714,14 +744,7 @@ fn write_javac_no_ap_argfile(
         fs::create_dir_all(parent)?;
     }
     context.bail_if_cancelled()?;
-    fs::write(
-        argfile,
-        args.into_iter()
-            .map(escape_argfile_arg)
-            .collect::<Vec<_>>()
-            .join("\n"),
-    )
-    .wrap_err_with(|| format!("Failed to write {}", argfile.display()))?;
+    write_compilation_argfiles(context, argfile, classpath, &args)?;
     Ok(())
 }
 
@@ -957,6 +980,9 @@ fn resolve_current_minecraft_libraries(
         context.plan.recheck_named_inputs()?;
         let mut paths = Vec::new();
         for request in inputs.libraries() {
+            if !request.library_allowed_for_target(std::env::consts::OS, std::env::consts::ARCH)? {
+                continue;
+            }
             let relative = request
                 .library_relative_path()
                 .ok_or_else(|| eyre::eyre!("authenticated library lost its exact path"))?;
@@ -983,7 +1009,7 @@ fn resolve_current_minecraft_libraries(
         minecraft_library_jars_from_version_json(
             &context.plan.minecraft_libraries_dir,
             &version_json,
-        )
+        )?
     };
 
     let library_paths = {
@@ -1062,19 +1088,33 @@ struct MinecraftLibraryJar {
 fn minecraft_library_jars_from_version_json(
     libraries_root: &Path,
     version_json: &MinecraftVersionJson,
-) -> Vec<MinecraftLibraryJar> {
-    version_json
-        .libraries
-        .iter()
-        .filter_map(|library| {
-            let artifact = library.downloads.as_ref()?.artifact.as_ref()?;
-            Some(MinecraftLibraryJar {
-                path: minecraft_library_path(libraries_root, &artifact.path),
-                url: artifact.url.clone(),
-                sha1: artifact.sha1,
-            })
-        })
-        .collect()
+) -> eyre::Result<Vec<MinecraftLibraryJar>> {
+    let mut libraries = Vec::new();
+    for library in &version_json.libraries {
+        let Some(artifact) = library
+            .downloads
+            .as_ref()
+            .and_then(|downloads| downloads.artifact.as_ref())
+        else {
+            continue;
+        };
+        if !super::library_platform::allows(
+            &artifact.path,
+            &library.rules,
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+        )
+        .map_err(|message| eyre::eyre!(message))?
+        {
+            continue;
+        }
+        libraries.push(MinecraftLibraryJar {
+            path: minecraft_library_path(libraries_root, &artifact.path),
+            url: artifact.url.clone(),
+            sha1: artifact.sha1,
+        });
+    }
+    Ok(libraries)
 }
 
 fn minecraft_library_path(libraries_root: &Path, artifact_path: &str) -> PathBuf {
@@ -1969,4 +2009,117 @@ struct MojangClassMapping {
     obf: String,
     fields: BTreeMap<String, String>,
     methods: BTreeMap<(String, String), MojangMethodMapping>,
+}
+
+fn projected_compile_grammar_paths(minecraft_dir: &Path) -> eyre::Result<Vec<PathBuf>> {
+    let candidates = [
+        "src/main/antlr/sfml/SFML.g4",
+        "src/main/antlr/toml/TomlLexer.g4",
+        "src/main/antlr/toml/TomlParser.g4",
+        "src/main/antlr/antlr4/ANTLRv4Lexer.g4",
+        "src/main/antlr/antlr4/ANTLRv4Parser.g4",
+    ];
+    let mut present = Vec::new();
+    for relative in candidates {
+        let path = minecraft_dir.join(relative);
+        if path
+            .try_exists()
+            .wrap_err_with(|| format!("Failed to inspect projected grammar {}", path.display()))?
+        {
+            present.push(relative);
+        }
+    }
+    select_project_compile_grammars(present).map(|paths| {
+        paths
+            .into_iter()
+            .map(|relative| minecraft_dir.join(relative))
+            .collect()
+    })
+}
+
+#[cfg(test)]
+mod projected_grammar_tests {
+    use super::*;
+
+    #[test]
+    fn projected_grammars_follow_optional_canvas_sources_and_require_complete_inputs()
+    -> eyre::Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let root = fixture.path();
+        let baseline = [
+            "src/main/antlr/sfml/SFML.g4",
+            "src/main/antlr/toml/TomlLexer.g4",
+            "src/main/antlr/toml/TomlParser.g4",
+        ];
+        for relative in baseline {
+            let path = root.join(relative);
+            fs::create_dir_all(path.parent().expect("grammar parent"))?;
+            fs::write(path, b"grammar fixture")?;
+        }
+        assert_eq!(
+            projected_compile_grammar_paths(root)?,
+            baseline.map(|path| root.join(path))
+        );
+        let lexer = root.join("src/main/antlr/antlr4/ANTLRv4Lexer.g4");
+        let parser = root.join("src/main/antlr/antlr4/ANTLRv4Parser.g4");
+        fs::create_dir_all(lexer.parent().expect("grammar parent"))?;
+        fs::write(&lexer, b"lexer fixture")?;
+        assert!(projected_compile_grammar_paths(root).is_err());
+        fs::write(&parser, b"parser fixture")?;
+        let selected = projected_compile_grammar_paths(root)?;
+        assert_eq!(selected.len(), 5);
+        assert_eq!(&selected[3..], &[lexer, parser]);
+        fs::remove_file(root.join(baseline[0]))?;
+        assert!(projected_compile_grammar_paths(root).is_err());
+        Ok(())
+    }
+}
+
+fn compilation_argfile_fingerprint_path(context: &ExecutionContext<'_>, argfile: &Path) -> PathBuf {
+    if context.verify_compilation_outputs && context.held_neoform_compile_jar.is_some() {
+        argfile.with_extension("fingerprint.args")
+    } else {
+        argfile.to_path_buf()
+    }
+}
+
+fn write_compilation_argfiles(
+    context: &ExecutionContext<'_>,
+    argfile: &Path,
+    classpath: &[PathBuf],
+    args: &[String],
+) -> eyre::Result<()> {
+    if let Some(inputs) = context.plan.retained_inputs() {
+        inputs.recheck()?;
+    }
+    let render = |values: &[String]| {
+        values
+            .iter()
+            .cloned()
+            .map(escape_argfile_arg)
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let actual = render(args);
+    if context.verify_compilation_outputs {
+        project_compilation_cache::write_record(
+            &context.plan.cache_dir,
+            argfile,
+            actual.as_bytes(),
+        )?;
+    } else {
+        fs::write(argfile, actual)
+            .wrap_err_with(|| format!("Failed to write {}", argfile.display()))?;
+    }
+    if context.verify_compilation_outputs
+        && let Some(held) = context.held_neoform_compile_jar
+    {
+        let canonical = project_compile_identity::arguments(args, classpath, held)?;
+        project_compilation_cache::write_record(
+            &context.plan.cache_dir,
+            &compilation_argfile_fingerprint_path(context, argfile),
+            render(&canonical).as_bytes(),
+        )?;
+    }
+    Ok(())
 }

@@ -353,7 +353,7 @@ class SFMJumpToDefinitionActionTests {
     void changedResolverAddressRejectsWithoutBlamingTheCursor() {
         String text = "class Use { Target value; }\n";
         AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
-                addressedContribution(text, "file:///D:/workspace/src/Use.java", 12, 1));
+                addressedContribution(text, SFMSymbolServerProtocolTests.fixtureAddress("workspace/src/Use.java"), 12, 1));
         SFMScreenMultiplexer workspace = uninitializedWorkspace();
         CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
         AtomicInteger navigations = new AtomicInteger();
@@ -366,7 +366,7 @@ class SFMJumpToDefinitionActionTests {
                 feedback::add
         ));
         currentContribution.set(addressedContribution(
-                text, "file:///D:/workspace/src/Replaced.java", 12, 2));
+                text, SFMSymbolServerProtocolTests.fixtureAddress("workspace/src/Replaced.java"), 12, 2));
         pending.complete(successfulLookup());
 
         assertEquals(0, navigations.get());
@@ -662,7 +662,7 @@ class SFMJumpToDefinitionActionTests {
             long generation
     ) {
         SFMPath path = SFMPath.parse(address);
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src/");
+        SFMPath root = SFMPath.parse(SFMSymbolServerProtocolTests.fixtureAddress("workspace/src/"));
         SFMTextDocumentSnapshot baseline = new SFMTextDocumentSnapshot(
                 SFMTextDocumentSnapshot.State.READY,
                 text,
@@ -747,7 +747,7 @@ class SFMJumpToDefinitionActionTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         workspace,
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\src", "main", "main", "src"))
+                                SFMSymbolServerProtocolTests.fixturePath("workspace/src").toString(), "main", "main", "src"))
                 ),
                 "{}"
         );
@@ -826,7 +826,7 @@ class SFMJumpToDefinitionActionTests {
                         "blake3:classpath", "arborium", "blake3:index"
                 ),
                 new SFMDefinitionResult.DocumentIdentity(
-                        "file:///D:/workspace/src/Use.java", "main", "Use.java", "Use.java", "main",
+                        SFMSymbolServerProtocolTests.fixtureAddress("workspace/src/Use.java"), "main", "Use.java", "Use.java", "main",
                         "sha256:0000000000000000000000000000000000000000000000000000000000000000",
                         Optional.empty()
                 ),

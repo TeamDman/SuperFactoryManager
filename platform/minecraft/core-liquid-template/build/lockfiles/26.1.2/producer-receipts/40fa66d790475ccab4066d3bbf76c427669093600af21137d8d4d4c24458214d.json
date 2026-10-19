@@ -1,0 +1,38 @@
+{
+  "schema": "sfm:source_producer@1",
+  "repository_url": "https://github.com/mekanism/Mekanism/",
+  "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+  "source_tree": "ed07ebaa260846b071dcff3af2ed5cd25485db89",
+  "source_archive_sha256": "d62a42423754b17462afc491564917ae346ac1b28ea10caa2bc1c0e210cfe4a3",
+  "producer_container": "a6abf0a93c03e54859dbc62f1d3beea1cb42ad5dba28ad1796742862d4376f64",
+  "producer_image": "b381ed667c325be3b87fc48fc10c736a1bb11bcdc63e3c75f6ff2f84a919ee37",
+  "java_archive_sha256": "dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e",
+  "gradle_archive_sha256": "a3c4ba4aca8f0075688b9c5b18939fd28e8cb4357c227da5c1d9f38343791439",
+  "download_inventory_sha256": "68f7486f7bd662faf19b873f7046fc5d40a7e306146ec3e6826462130ec5a764",
+  "build_log_sha256": "8a784215ff60f92e8e2726f5097200ce5c788e2a894cd12ce7b3694823997995",
+  "build_system": "gradle-wrapper",
+  "tasks": [
+    "jar",
+    "apiJar"
+  ],
+  "environment": {
+    "BUILD_NUMBER": "86"
+  },
+  "exit_code": 0,
+  "task_output_cache_reused": false,
+  "tracked_source_unchanged": true,
+  "outputs": {
+    "mekanism:Mekanism:26.1.2-10.8.0.86:api": {
+      "path": "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar",
+      "bytes": 498420,
+      "sha256": "5c1039f15afb35100018b8bdaf44bfa7947aa734351648b8b3dfec30268f2d44",
+      "content_hash": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d"
+    },
+    "mekanism:Mekanism:26.1.2-10.8.0.86": {
+      "path": "build/libs/Mekanism-26.1.2-10.8.0.86.jar",
+      "bytes": 11873829,
+      "sha256": "333601e9f08a83fecb936727cd423ce7d6781478f475f1aaf1ab6d19d9452a15",
+      "content_hash": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62"
+    }
+  }
+}

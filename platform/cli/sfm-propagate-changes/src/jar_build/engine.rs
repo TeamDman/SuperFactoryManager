@@ -19,6 +19,7 @@ pub(super) use super::artifact_audit_issue_kind::ArtifactAuditIssueKind;
 pub(super) use super::artifact_audit_report::ArtifactAuditReport;
 pub(super) use super::artifact_audit_severity::ArtifactAuditSeverity;
 use super::authenticated_minecraft_inputs;
+use super::build_snapshot_receipt::BuildSnapshotReceipt;
 use super::game_puppet_preview_artifact_root;
 use super::hash::ContentHash;
 use super::hash::ContentHashAlgorithm;
@@ -26,6 +27,7 @@ use super::json_branch_name::JsonBranchName;
 use super::json_minecraft_version::JsonMinecraftVersion;
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
+use super::runtime_session::RuntimeSession;
 pub(super) use super::target_artifact_audit_report::TargetArtifactAuditReport;
 use crate::artifact_lock::ArtifactLock;
 use crate::artifact_lock::ArtifactReadLock;
@@ -87,8 +89,36 @@ use zip::CompressionMethod;
 use zip::ZipArchive;
 use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
+#[path = "all_hit_cache_miss.rs"]
+mod all_hit_cache_miss;
+#[cfg(test)]
+#[path = "all_hit_compile_tests.rs"]
+mod all_hit_compile_tests;
+#[path = "consumed_maven_pom.rs"]
+mod consumed_maven_pom;
+#[path = "fresh_jar_output.rs"]
+mod fresh_jar_output;
+#[path = "junit_inputs/mod.rs"]
+pub(crate) mod junit_inputs;
+#[path = "maven_metadata_catalog.rs"]
+mod maven_metadata_catalog;
+#[path = "maven_metadata_pin.rs"]
+mod maven_metadata_pin;
+#[path = "maven_metadata_trace.rs"]
+mod maven_metadata_trace;
+#[path = "maven_pom_dependency.rs"]
+mod maven_pom_dependency;
+#[path = "maven_pom_model.rs"]
+mod maven_pom_model;
+#[cfg(test)]
+#[path = "ordinary_release_compile_tests.rs"]
+mod ordinary_release_compile_tests;
 #[path = "resolve.rs"]
 mod resolve;
+#[path = "retained_compile_inputs.rs"]
+mod retained_compile_inputs;
+#[path = "xml_node.rs"]
+mod xml_node;
 
 use self::resolve::Resolver;
 use self::resolve::maven_cache_path_for;
@@ -127,6 +157,11 @@ pub(crate) fn invoke_build(
     options: &BuildOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    eyre::ensure!(
+        options.output_name.is_none()
+            || matches!(&options.selection, super::BuildSelection::Projection { .. }),
+        "--output-name requires one explicitly selected projection"
+    );
     if matches!(options.selection, super::BuildSelection::Projection { .. }) {
         return invoke_projection_operation(
             options,
@@ -263,6 +298,7 @@ pub(crate) fn invoke_run_test(
     test_options: &RunTestOptions,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    junit_inputs::enforce_selected(options, cancellation_token)?;
     if matches!(options.selection, super::BuildSelection::Projection { .. }) {
         return invoke_projection_operation(
             options,
@@ -672,14 +708,35 @@ fn execute_run_target(
 ) -> eyre::Result<BuildPlan> {
     cancellation_token.bail_if_cancelled()?;
     let plan = create_plan_for_target(options, target, cancellation_token)?;
+    execute_prepared_run_target(options, kind, run_options, plan, cancellation_token)
+}
+
+fn execute_prepared_run_target(
+    options: &BuildOptions,
+    kind: RunKind,
+    run_options: &RunOptions,
+    plan: BuildPlan,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<BuildPlan> {
     if run_options.client_hotswap_port.is_some() {
         crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
     }
     cancellation_token.bail_if_cancelled()?;
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
+    if options.dry_run || matches!(options.mode, BuildMode::Plan) {
+        tracing::info!(
+            kind = kind.command_name(),
+            "Run plan prepared; compilation, success publication and runtime allocation were skipped"
+        );
+        return Ok(plan);
+    }
     cancellation_token.bail_if_cancelled()?;
-    let build_cache_lock = acquire_build_cache_lock(options, &plan, kind.command_name())?;
+    let mut build_cache_lock = Some(acquire_build_cache_lock(
+        options,
+        &plan,
+        kind.command_name(),
+    )?);
     execute_build(
         &plan,
         options.explain_rebuild,
@@ -689,35 +746,85 @@ fn execute_run_target(
     cancellation_token.bail_if_cancelled()?;
     write_artifact_lockfile(&plan)?;
     cancellation_token.bail_if_cancelled()?;
-    if releases_build_cache_lock_before_launch(kind, run_options) {
-        drop(build_cache_lock);
-        tracing::info!(
-            kind = kind.command_name(),
-            "released build cache lock before hotswap-enabled launch"
-        );
-    }
+    let snapshot = publish_run_snapshot(&plan, cancellation_token)?;
     if run_options.game_test_bisect.is_some() {
         execute_game_test_bisect(
             &ExecutionContext::new(&plan, cancellation_token.clone())?,
+            &snapshot,
             kind,
             run_options,
             options.dry_run,
+            &mut build_cache_lock,
         )?;
     } else {
-        execute_run(
+        let _owned_log = execute_run(
             &plan,
+            &snapshot,
             kind,
             run_options,
             options.dry_run,
             cancellation_token,
+            &mut build_cache_lock,
         )?;
     }
     Ok(plan)
 }
 
-fn releases_build_cache_lock_before_launch(kind: RunKind, run_options: &RunOptions) -> bool {
-    matches!(kind, RunKind::Client | RunKind::GameTestPreview)
-        && run_options.client_hotswap_port.is_some()
+fn releases_build_cache_lock_before_launch(kind: RunKind, _run_options: &RunOptions) -> bool {
+    !matches!(kind, RunKind::Test)
+}
+
+// An admitted all-hit plan may read retained bodies at intermediate gates,
+// but publication still requires full currentness of the original source tree.
+fn recheck_run_snapshot_source(plan: &BuildPlan) -> eyre::Result<()> {
+    if let Some(inputs) = plan.retained_inputs() {
+        inputs.project().recheck(false)
+    } else {
+        plan.recheck_named_inputs()
+    }
+}
+
+fn publish_run_snapshot(
+    plan: &BuildPlan,
+    cancellation: &CancellationToken,
+) -> eyre::Result<BuildSnapshotReceipt> {
+    cancellation.bail_if_cancelled()?;
+    super::nfrt_preparation_phase::NfrtPreparationPhase::run(
+        "snapshot.final_source_check",
+        || recheck_run_snapshot_source(plan),
+    )?;
+    super::nfrt_preparation_phase::NfrtPreparationPhase::run("snapshot.final_sdk_check", || {
+        plan.recheck_named_sdk()
+    })?;
+    let java = crate::jdk::ResolvedJava {
+        executable: plan.java.executable.clone(),
+        home: plan.java.home.clone(),
+        version_output: plan.java.version_output.clone(),
+        major_version: plan.java.major_version,
+        selection: plan.java.selection.clone(),
+        pin_url: plan.java.pin_url.clone(),
+        pin_sha512: plan.java.pin_sha512.clone(),
+    };
+    // Reuse the existing locked dependency/loader values; compare their
+    // canonical bytes directly rather than adding a presentation-only digest.
+    let runtime_contract = facet_json::to_string(&(
+        plan.minecraft_version.as_str(),
+        &plan.loader_toolchain,
+        &plan.dependencies,
+        &plan.properties,
+    ))?;
+    let snapshot = BuildSnapshotReceipt::publish_cancellable(
+        &plan.minecraft_dir,
+        &plan.cache_dir,
+        plan.minecraft_version.as_str(),
+        &java,
+        &plan.cache_dir.join("project"),
+        (&plan.java.cache_identity(), &runtime_contract),
+        cancellation,
+    )?;
+    tracing::info!(receipt = %snapshot.receipt_path().display(),
+        "Successful runtime compile snapshot; applying it to a live game requires explicit run hotswap");
+    Ok(snapshot)
 }
 
 fn execute_run_test_target(
@@ -743,6 +850,9 @@ fn execute_run_test_target(
     write_artifact_lockfile(&plan)?;
     cancellation_token.bail_if_cancelled()?;
     execute_junit_tests(&plan, options.dry_run, test_options, cancellation_token)?;
+    if !options.dry_run {
+        publish_run_snapshot(&plan, cancellation_token)?;
+    }
     Ok(plan)
 }
 
@@ -792,8 +902,8 @@ fn acquire_build_cache_lock(
              Worktree: {}\n\
              Cache: {}\n\
              Lock: {}\n\
-             Likely cause: an open `sfm-propagate-changes run client`, `run server`, or `game-test run-server` using this branch.\n\
-             Close the running game/server or rerun this command with `--wait-for-build-lock` to wait for it to exit.",
+             Another compile/check is preparing mutable outputs for this cache.\n\
+             Live games own separate snapshots and runtime slots; rerun with `--wait-for-build-lock` to wait for the producer.",
             plan.target_label(),
             plan.repository_root().display(),
             plan.cache_dir.display(),
@@ -2085,6 +2195,13 @@ fn resolve_locked_artifact_path(
     minecraft_dir: &Path,
     common_cache_dir: &Path,
 ) -> PathBuf {
+    // Frozen marker paths are host-independent; retain original lock bytes/hashes.
+    if let Some(relative) = path.to_str().and_then(|text| {
+        text.strip_prefix("$sfm-cache/")
+            .or_else(|| text.strip_prefix("$sfm-cache\\"))
+    }) {
+        return common_cache_dir.join(relative.replace('\\', "/"));
+    }
     if let Ok(relative) = path.strip_prefix(Path::new("$sfm-cache")) {
         return common_cache_dir.join(relative);
     }
@@ -2311,6 +2428,10 @@ include!("engine_named_sdk_launch.rs");
 include!("engine_plan.rs");
 include!("engine_projection_operation.rs");
 include!("engine_run.rs");
+include!("engine_test_maven_metadata.rs");
+#[cfg(test)]
+#[path = "engine_test_maven_metadata_tests.rs"]
+mod test_maven_metadata_tests;
 include!("engine_execute.rs");
 include!("engine_specialsource_launch.rs");
 include!("engine_sources.rs");

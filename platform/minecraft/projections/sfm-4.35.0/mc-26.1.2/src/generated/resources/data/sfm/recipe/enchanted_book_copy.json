@@ -1,0 +1,6 @@
+{
+  "type": "sfm:printing_press",
+  "form": "minecraft:enchanted_book",
+  "ink": "sfm:xp_goop",
+  "paper": "minecraft:book"
+}

@@ -283,7 +283,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "miniz_oxide",
- "object 0.37.3",
+ "object",
  "rustc-demangle",
  "windows-link",
 ]
@@ -558,15 +558,6 @@ name = "coolor"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "980c2afde4af43d6a05c5be738f9eae595cff86dce1f38f88b95058a98c027f3"
-
-[[package]]
-name = "copypatch"
-version = "0.2.0-rc.4"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "libc",
- "object 0.39.1",
-]
 
 [[package]]
 name = "core-foundation"
@@ -997,23 +988,21 @@ version = "0.50.0-rc.5"
 source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
 dependencies = [
  "autocfg",
- "camino",
  "const-fnv1a-hash",
  "iddqd",
  "impls",
- "indexmap",
- "taxon",
+ "taxon 0.2.0-rc.5 (git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad)",
 ]
 
 [[package]]
 name = "facet-csv"
-version = "0.50.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
+version = "0.50.0-rc.7"
+source = "git+https://github.com/TeamDman/facet-format.git?rev=1bd90d49eb0d9f78d00b14ba85d79612dd78c927#1bd90d49eb0d9f78d00b14ba85d79612dd78c927"
 dependencies = [
- "facet",
- "facet-core",
- "facet-format",
- "facet-reflect",
+ "teamy-facet",
+ "teamy-facet-core",
+ "teamy-facet-format",
+ "teamy-facet-reflect",
 ]
 
 [[package]]
@@ -1026,14 +1015,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "facet-error"
-version = "0.50.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "facet",
-]
-
-[[package]]
 name = "facet-format"
 version = "0.50.0-rc.5"
 source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
@@ -1043,19 +1024,6 @@ dependencies = [
  "facet-path",
  "facet-reflect",
  "facet-solver",
-]
-
-[[package]]
-name = "facet-json"
-version = "0.50.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "copypatch",
- "facet",
- "facet-core",
- "facet-format",
- "facet-reflect",
- "weavy",
 ]
 
 [[package]]
@@ -1105,17 +1073,6 @@ version = "0.50.0-rc.5"
 source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
 dependencies = [
  "facet-core",
-]
-
-[[package]]
-name = "facet-pretty"
-version = "0.50.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "facet-core",
- "facet-reflect",
- "owo-colors",
- "terminal-light",
 ]
 
 [[package]]
@@ -1179,17 +1136,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "facet-value"
-version = "0.50.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "facet-core",
- "facet-format",
- "facet-reflect",
- "indexmap",
-]
-
-[[package]]
 name = "fancy-regex"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1214,42 +1160,6 @@ name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f1f227452a390804cdb637b74a86990f2a7d7ba4b7d5693aac9b4dd6defd8d6"
-
-[[package]]
-name = "figue"
-version = "5.0.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "arbitrary",
- "ariadne",
- "camino",
- "facet",
- "facet-core",
- "facet-error",
- "facet-format",
- "facet-json",
- "facet-pretty",
- "facet-reflect",
- "figue-attrs",
- "heck",
- "indexmap",
- "owo-colors",
- "rand 0.9.2",
- "rand_chacha",
- "strip-ansi-escapes",
- "strsim",
- "supports-color 3.0.2",
- "tracing",
- "unicode-width",
-]
-
-[[package]]
-name = "figue-attrs"
-version = "5.0.0-rc.5"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "facet",
-]
 
 [[package]]
 name = "filedescriptor"
@@ -3245,17 +3155,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "object"
-version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e5a6c098c7a3b6547378093f5cc30bc54fd361ce711e05293a5cc589562739b"
-dependencies = [
- "flate2",
- "memchr",
- "ruzstd",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4024,15 +3923,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
-name = "ruzstd"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7c1c839d570d835527c9a5e4db7cb2198683a988cb9d7293fc8674e6bd58fc8"
-dependencies = [
- "twox-hash",
-]
-
-[[package]]
 name = "ryu"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4177,6 +4067,7 @@ dependencies = [
  "arborium-typescript",
  "base64",
  "blake3",
+ "bytes",
  "chrono",
  "color-eyre",
  "ctrlc",
@@ -4184,17 +4075,15 @@ dependencies = [
  "dunce",
  "embed-resource",
  "eyre",
- "facet",
  "facet-csv",
- "facet-json",
- "facet-pretty",
- "facet-styx",
- "facet-value",
- "figue",
+ "futures-util",
  "gix",
  "glob",
+ "http-body-util",
  "humansize",
  "humantime",
+ "hyper",
+ "hyper-util",
  "liquid",
  "mimalloc",
  "open",
@@ -4202,9 +4091,15 @@ dependencies = [
  "ratatui",
  "rayon",
  "reqwest 0.12.28",
+ "sfm-styx-state",
  "sha1",
  "sha2",
  "streaming-iterator",
+ "teamy-facet",
+ "teamy-facet-json",
+ "teamy-facet-pretty",
+ "teamy-facet-value",
+ "teamy-figue",
  "teamy-windows",
  "tempfile",
  "tokio",
@@ -4218,6 +4113,15 @@ dependencies = [
  "walkdir",
  "windows",
  "zip",
+]
+
+[[package]]
+name = "sfm-styx-state"
+version = "0.1.0"
+dependencies = [
+ "eyre",
+ "facet",
+ "facet-styx",
 ]
 
 [[package]]
@@ -4514,9 +4418,227 @@ dependencies = [
 [[package]]
 name = "taxon"
 version = "0.2.0-rc.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3acccfbd01e7cf4c7ea384b46df6ba3afb934ad88abd247f92998249854de968"
+dependencies = [
+ "blake3",
+]
+
+[[package]]
+name = "taxon"
+version = "0.2.0-rc.5"
 source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
 dependencies = [
  "blake3",
+]
+
+[[package]]
+name = "teamy-facet"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b77b05f407ae8c1c5ce23ffbc88bd8fbf77cb1c9025a39e91512f71d4408dd8"
+dependencies = [
+ "autocfg",
+ "teamy-facet-core",
+ "teamy-facet-macros",
+]
+
+[[package]]
+name = "teamy-facet-core"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0df3759dc87fbf4d322b6f12bb4c819ea1d4781da32e4f225c5ea48b0b784194"
+dependencies = [
+ "autocfg",
+ "camino",
+ "const-fnv1a-hash",
+ "iddqd",
+ "impls",
+ "indexmap",
+ "taxon 0.2.0-rc.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "teamy-facet-dessert"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca1375e0d76af3d8edd140c38482cdbbc0473372b50bf022f2f99c8f1bf8c23f"
+dependencies = [
+ "teamy-facet-core",
+ "teamy-facet-reflect",
+]
+
+[[package]]
+name = "teamy-facet-error"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a27f27d532348a70d74038d6cbd1d957313e62b22eb8fb8dbc90fcc8b84cff3"
+dependencies = [
+ "teamy-facet",
+]
+
+[[package]]
+name = "teamy-facet-format"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e46b878a37ddd9a2f1411ff44da5e03f15a5960226616673668ddd2b9ab0d995"
+dependencies = [
+ "teamy-facet-core",
+ "teamy-facet-dessert",
+ "teamy-facet-path",
+ "teamy-facet-reflect",
+ "teamy-facet-solver",
+]
+
+[[package]]
+name = "teamy-facet-json"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8459d938201fe908aeb99b13789e68cdc2806ab00fafbe2a5ec1ee73770487ce"
+dependencies = [
+ "teamy-facet",
+ "teamy-facet-core",
+ "teamy-facet-format",
+ "teamy-facet-reflect",
+]
+
+[[package]]
+name = "teamy-facet-macro-parse"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a92becb9f78c906b705dd0ba787164b430081940e03d00f2e342ad5f2add8cb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "teamy-facet-macro-types",
+]
+
+[[package]]
+name = "teamy-facet-macro-types"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2af5ff81f096ed7b13e6f02c1d2eaa40bc415fdcc001ed6048b0bafcabe56654"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unsynn",
+]
+
+[[package]]
+name = "teamy-facet-macros"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "40b7c526e93b67c8e7bdaf02003d94e3fd8a780d3da831baeda914e111edc6b6"
+dependencies = [
+ "teamy-facet-macros-impl",
+]
+
+[[package]]
+name = "teamy-facet-macros-impl"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df2c4c0edd5513ea947d9c68a28f023ebaef2aac5ba4308e54b734c809ddca1a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "strsim",
+ "teamy-facet-macro-parse",
+ "teamy-facet-macro-types",
+ "unsynn",
+]
+
+[[package]]
+name = "teamy-facet-path"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "738aec7346839f1f5e7aba18aeae703d9e86358c05d04fcdc03169abc295685a"
+dependencies = [
+ "teamy-facet-core",
+]
+
+[[package]]
+name = "teamy-facet-pretty"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2ffcf8bfebc3ac449d9dfc005f0bd840aafb3cf471020a958e888bc7aa14403"
+dependencies = [
+ "owo-colors",
+ "teamy-facet-core",
+ "teamy-facet-reflect",
+ "terminal-light",
+]
+
+[[package]]
+name = "teamy-facet-reflect"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0142aacf8402fa4f16ace15c74f0686ace285c9878d19afa17c1adc8af9ab821"
+dependencies = [
+ "hashbrown 0.17.1",
+ "smallvec 2.0.0-alpha.12",
+ "teamy-facet-core",
+ "teamy-facet-path",
+]
+
+[[package]]
+name = "teamy-facet-solver"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c56dafdabe4eab1cb05cd6e5a597ffbbe21ce99fd120b535836e9bf74451c8e"
+dependencies = [
+ "strsim",
+ "teamy-facet-core",
+ "teamy-facet-reflect",
+]
+
+[[package]]
+name = "teamy-facet-value"
+version = "0.50.0-rc.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8222f51fda7b9bf5875589ec477f984ff1e9bdc295cc13026ade2d74aa8fcd7b"
+dependencies = [
+ "indexmap",
+ "teamy-facet-core",
+ "teamy-facet-format",
+ "teamy-facet-reflect",
+]
+
+[[package]]
+name = "teamy-figue"
+version = "6.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35f0fe928ad3dc8c4a1da495bd81e5244bcd1be6a629383a741f5de4ff57cbbe"
+dependencies = [
+ "arbitrary",
+ "ariadne",
+ "camino",
+ "heck",
+ "indexmap",
+ "owo-colors",
+ "rand 0.9.2",
+ "rand_chacha",
+ "strip-ansi-escapes",
+ "strsim",
+ "supports-color 3.0.2",
+ "teamy-facet",
+ "teamy-facet-core",
+ "teamy-facet-error",
+ "teamy-facet-format",
+ "teamy-facet-json",
+ "teamy-facet-pretty",
+ "teamy-facet-reflect",
+ "teamy-figue-attrs",
+ "tracing",
+ "unicode-width",
+]
+
+[[package]]
+name = "teamy-figue-attrs"
+version = "6.0.0-rc.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "feaf5dce49a60ed593226dbc054c335ca58026c031437741d2db579ea772598b"
+dependencies = [
+ "teamy-facet",
 ]
 
 [[package]]
@@ -5021,12 +5143,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
-name = "twox-hash"
-version = "2.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c"
-
-[[package]]
 name = "typenum"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5293,14 +5409,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f01b580c9ac74c8d8f0c0e4afb04eeef2acf145458e52c03845ee9cd23e3d12"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "weavy"
-version = "0.2.2"
-source = "git+https://github.com/TeamDman/facet.git?rev=f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad#f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad"
-dependencies = [
- "copypatch",
 ]
 
 [[package]]

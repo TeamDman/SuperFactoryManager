@@ -51,6 +51,7 @@ pub(crate) fn render(
         include_str!("templates/comparison.js"),
         include_str!("templates/review.js"),
     );
+    let html = super::fonts::embed(&html);
     ensure!(
         html.len() <= 64 * 1024 * 1024,
         "comparison HTML exceeds budget"

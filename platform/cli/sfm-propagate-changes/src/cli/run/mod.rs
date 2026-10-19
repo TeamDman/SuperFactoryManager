@@ -1,3 +1,4 @@
+mod hotswap_cache_plan;
 mod run_cli;
 mod run_client_cli;
 mod run_client_puppet_cli;

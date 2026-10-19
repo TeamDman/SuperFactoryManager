@@ -494,8 +494,10 @@ fn acquire_platform_sources(
     let build = crate::jar_build::BuildOptions {
         selection: crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
         refresh: false,
+        skip_source_checks: false,
         explain_rebuild: false,
         plan_json: None,
+        output_name: None,
         java_home: None,
         dry_run: false,
         allow_local_artifact_cache: false,

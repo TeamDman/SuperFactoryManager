@@ -1,0 +1,112 @@
+<a class="skip-link" href="#release-story">Skip to the release notes</a>
+<div class="shell">
+<header class="masthead"><a class="brand" href="#top"><span class="brandmark">SFM</span> Super Factory Manager</a><span>Release review · 4.35 candidate</span></header>
+<header class="hero" id="top">
+<p class="release-kicker">Changes, evidence and open work</p>
+<h1>What changes in SFM 4.35?</h1>
+<p class="standfirst">The rebuilt candidates include the energy-transfer fix, optional Label Gun success messages, tunnel cache notifications, French and Portuguese contributions, corrected recipe IDs and the Buffer loot correction. Archive evidence and new headless checks are separate from the retained game captures.</p>
+<p class="review-scope"><strong>Candidate review, not a published release.</strong> The nine game captures retain the earlier Minecraft 1.21.1 experiment and its original artifact identities. New dedicated-server and resource checks are recorded separately below; these are not new graphical captures.</p>
+<nav class="change-index" aria-label="Six changes in this review">
+<a href="#energy-transfer"><span>Energy transfer</span><small>Retained captures; new checks</small></a>
+<a href="#label-gun-chat"><span>Label Gun messages</span><small>A separate client preference</small></a>
+<a href="#tunnelled-cable"><span>Tunnelled cables</span><small>Cache relay in modern targets</small></a>
+<a href="#localization"><span>French &amp; Portuguese</span><small>Packaged contributions</small></a>
+<a href="#recipe-namespace"><span>Recipe IDs</span><small>Verified in all ten JARs</small></a>
+<a href="#test-barrel"><span>Development-block warnings</span><small>Invalid Buffer loot removed</small></a>
+</nav>
+<p class="opening-actions"><a class="primary-action" href="#release-changes">Inspect the JAR and source changes</a><a href="#technical-appendix">Evidence and limitations</a></p>
+</header>
+<div class="article-layout">
+<aside class="article-contents"><details class="contents-menu" open><summary>On this page</summary><nav class="article-nav" aria-label="Article sections"><a href="#energy-transfer">Energy transfer</a><a href="#label-gun-chat">Label Gun messages</a><a href="#tunnelled-cable">Tunnelled cables</a><a href="#localization">Translations</a><a href="#recipe-namespace">Recipe IDs</a><a href="#test-barrel">Development blocks</a><a href="#release-changes">Inspect files</a><a href="#technical-appendix">Evidence</a></nav></details></aside>
+<main>
+<article id="release-story" class="story">
+<section id="energy-transfer" class="change-topic">
+<div class="reading" id="reproduce"><p class="topic-state state-verified">Historical real-mod captures · current archive and headless checks below</p><h2>One nearly full machine should not stop the next one getting power</h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/issues/610">Issue #610 · machines not receiving energy</a></p>
+<p>A full Mekanism cube feeds two Just Dire Things droppers in order. The first has almost no room left. In the baseline, its refused transfer makes SFM stop considering that source, and the empty consumer behind it receives nothing.</p>
+<p>The captured candidate skips the refused source/destination pair and leaves the source available for the next consumer. In the controlled second pass, that consumer receives <strong>100,000 FE</strong>.</p>
+<h3>Before · a full cube, but the later consumer is empty</h3><p class="evidence-caption">These are separately captured views, not a simultaneous or continuous recording. The initial dropper view records the earlier <strong>99,975 FE</strong> setup, before any SFM transfer.</p></div>
+<div class="comparison story-before">{{ baseline_pair }}</div>
+<div class="reading" id="in-game"><h3>After · the later consumer receives power</h3><p class="evidence-caption">After the same controlled second pass, the candidate has supplied the consumer. The source was refilled and the consumer drained between passes so both builds faced the same one-FE obstruction.</p></div>
+<div class="comparison story-after">{{ fixed_pair }}</div>
+<div class="reading" id="fix"><h3>The change in Java</h3><p><code>setDone()</code> changes the source’s state: it tells later destinations to stop asking that source. Removing it from the empty-extraction branch lets the next destination try its own transfer.</p>
+<div class="code-pair"><div><h4>Baseline · retire the source</h4><pre><code>{{ before_branch }}</code></pre></div><div><h4>Candidate · skip this pair</h4><pre><code>{{ after_branch }}</code></pre></div></div>
+<p class="code-label">Excerpts from <code>OutputStatement</code>; comments and trace logging omitted. <a href="#issue610-output-statement">Inspect the complete before/after source</a>.</p>
+<details id="rounding" class="explanation"><summary>Why a 25-FE request moves 24, and a one-FE request moves nothing</summary><p>The initial dropper has <strong>99,975 / 100,000 FE</strong>: a 25-FE gap. The first pass moves 24 FE, leaving <strong>99,999 FE</strong>. The obstruction in the controlled second pass is therefore <strong>one FE</strong>, not 25 FE.</p><p>At 2.5 joules per FE, an integer-joule extraction can refuse this tiny request even though the cube still holds energy. The larger request from the later consumer can succeed. Its 100,000 FE accounts for the source’s 250,000-J decrease: 256,000,000 J before, 255,750,000 J after.</p><p>The first dropper’s tooltip rounds both 99,999 and 100,000 FE to <code>100.0k</code>. Exact one-FE precision comes from runtime state, not extra detail in the pixels.</p><pre class="sfml-source"><code>{{ program }}</code></pre><p class="code-label">The captured program’s tokens are unchanged; display indentation is added. <code>Dropper</code> is visited before <code>Healthy</code>.</p></details>
+<details id="validation" class="explanation"><summary>What was tested, and what this does not establish</summary><p>The same eight selected server tests give five expected failures and three passing controls on the baseline; all eight pass with the candidate. The GUI harness covers the dropper-first case separately. The other seven server cases have no GUI acceptance claim.</p><p>There is no new retry loop for the same pair. A finite set of later destinations can make further requests while the input is in scope. This can add handler calls; it is not a benchmark or a promise about every third-party handler or round-robin setup.</p><p>Successful transfers still account for the amount actually moved. Existing retention, resource, quantity, stack and remainder checks remain. <a href="#impact-input-state">Source state</a> · <a href="#impact-input-cache">state lifetime</a> · <a href="#energy-asset-resource-test-java">resource-test evidence</a>.</p></details>
+<p class="evidence-limit" id="scope">Runtime scope: this retained real-mod example is Minecraft 1.21.1. It does not establish all-mod behavior. The new generated-projection headless tests are listed separately and are not runs of these exact newly packaged JARs.</p></div>
+</section>
+<section id="label-gun-chat" class="change-topic"><div class="reading">
+<p class="topic-state state-verified">In the rebuilt client code · enabled by default</p><h2>Choose whether the Label Gun confirms every successful transfer</h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/issues/493">Issue #493 · Label Gun chat confirmations</a></p>
+<p>The new client setting <code>showLabelGunPushPullMessages</code> controls both routine success messages: pushing labels to a manager and pulling them from one. It defaults to <code>true</code>, preserving the existing confirmations.</p>
+<div class="code-pair"><div><h3>Default · show both confirmations</h3><pre><code>showLabelGunPushPullMessages = true</code></pre></div><div><h3>Optional · hide both confirmations</h3><pre><code>showLabelGunPushPullMessages = false</code></pre></div></div>
+<p>The preference is checked when the receiving client displays a success response. The same packet and label operations still run, including on a remote server. Warnings, errors and destructive-operation confirmations keep their existing paths. <code>showLabelGunReminderOverlay</code> remains a separate setting.</p>
+<p class="evidence-limit">Message-dispatch tests cover enabled and disabled push/pull responses, the default and overlay independence. Delivered bytecode and unchanged warning/operation boundaries are checked separately. These are not a new graphical multiplayer acceptance test. <a href="#release435-label-gun-chat">Exact settings, tests and delivered-artifact evidence</a>.</p>
+</div></section>
+<section id="tunnelled-cable" class="change-topic"><div class="reading">
+<p class="topic-state state-pending">In the rebuilt modern candidates · original forwarding preserved</p><h2>Let tunnelled connections hear when the block behind them changes</h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/issues/620">Issue #620 · tunnelled connection and relog reports</a><a href="https://github.com/TeamDman/SuperFactoryManager/blob/261113b9798bae6655f4b813e433aa119a9923e2/docs/tasks/tunnelled-relog-incident-plan.md#L54-L62">Investigation and recorded test scope</a></p>
+<p>The report describes connections that recover after breaking and replacing a cable. The integrated fix addresses a narrower problem: a consumer can keep an old cached capability when the provider behind a tunnel changes. The relay is packaged for 1.20.3, 1.20.4, 1.21, 1.21.1 and 26.1.2. The five older targets retain their existing LazyOptional behavior.</p>
+<div class="behavior-pair"><div><h3>Before · retained cache failures</h3><p>A cached lookup remains stale after a Mekanism installer upgrade, or remains absent after a provider appears.</p></div><div><h3>After · rebuilt modern candidates</h3><p>The queried tunnel position receives a change notification from the far provider. New focused checks cover all five variants and six faces independently from cache appearance, removal, replacement and cycle recovery.</p></div></div>
+<h3>The forwarded lookup stays the same; notifications are added</h3>
+<div class="code-pair"><div><h4>Before</h4><pre><code>var offset = blockPos.relative(side.getOpposite());
+return (T) level.getCapability(cap, offset, side);</code></pre></div><div><h4>After · integrated cache relay</h4><pre><code>if (level instanceof ServerLevel serverLevel
+        &amp;&amp; blockEntity instanceof TunnelledBlockCapabilityRelayOwner owner) {
+    owner.sfm$getCapabilityRelay().watch(serverLevel, side);
+}
+var offset = blockPos.relative(side.getOpposite());
+return (T) level.getCapability(cap, offset, side);</code></pre></div></div>
+<p>The watcher listens at the far block. It queues invalidation of the tunnel position after the callback, so consumers refresh their cached lookup without querying the world inside the invalidation callback.</p>
+<p class="evidence-limit"><strong>The original forwarding contract and invalidation relay are checked separately.</strong> The far position remains opposite the queried face, and the same face and capability are forwarded. The rebuilt modern JARs contain the relay; the older API does not require this position-listener implementation. Neither the focused checks nor the retained investigation establishes the complete reactor/relog scenario from #620. No tunnel before/after graphical captures are supplied. Current unpublished source is retained as local evidence, without an invented GitHub permalink.</p>
+<p><a href="#release435-artifact-delivery">Inspect delivered artifacts and the separate runtime records</a>.</p>
+</div></section>
+<section id="localization" class="change-topic"><div class="reading">
+<p class="topic-state state-source">In all ten rebuilt candidates · contribution provenance preserved</p><h2>French and Brazilian Portuguese contributions are packaged</h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/pull/563">PR #563 · French by programgames</a><a href="https://github.com/TeamDman/SuperFactoryManager/pull/627">PR #627 · Brazilian Portuguese by PrincessStellar</a></p>
+<p>Each rebuilt candidate includes <strong>276 French entries</strong> and <strong>23 added Portuguese keys</strong>. Existing Portuguese wording is preserved; the broader wording replacements in the contribution are still withheld for review.</p>
+<div class="behavior-pair"><div><h3>Before · captured JARs</h3><p>No French language file is present. Existing Portuguese entries are present, but the new keys are missing.</p></div><div><h3>After · rebuilt candidate JARs</h3><p>All ten archives contain the exact curated French resource and the added Portuguese keys. Packaging is verified; localized GUI appearance has not been captured.</p></div></div>
+<h3>A concrete French resource addition</h3><div class="code-pair"><div><h4>Before · French resource absent</h4><pre><code>// No fr_fr.json entry for block.sfm.cable</code></pre></div><div><h4>After · packaged French resource</h4><pre><code>"block.sfm.cable": "Câble d'inventaire"</code></pre></div></div>
+<p class="code-label">The left side describes a verified missing entry; it is not a line from a file. The right side is the actual resource entry.</p>
+<h3>A Portuguese key that was missing</h3><div class="code-pair"><div><h4>Before · English fallback</h4><pre><code>"block.sfm.tunnelled_cable": "Tunnelled Inventory Cable"</code></pre></div><div><h4>After · added Portuguese entry</h4><pre><code>"block.sfm.tunnelled_cable": "Cabo de Inventário Tunelado"</code></pre></div></div><p class="code-label">The left entry is from the English language resource because the Portuguese key is absent. The right entry is present in every newly built candidate JAR.</p>
+<p class="evidence-limit"><strong>All ten rebuilt JARs contain 276 French and 282 Portuguese entries.</strong> The 259 baseline Portuguese entries keep their wording, and 23 accepted keys are added. Broader proposed wording replacements remain withheld. The earlier frozen candidates remain separate evidence and lack these additions. PR #563 and PR #627 remain open and unmerged as checked on 18 October 2026; their contribution credit is retained. Structural checks do not constitute native-language review. No localized GUI captures are available.</p>
+<p><a href="#release435-artifact-delivery">Key review, preserved wording and contribution provenance</a>.</p>
+</div></section>
+<section id="recipe-namespace" class="change-topic"><div class="reading">
+<p class="topic-state state-verified">In all ten rebuilt candidates · archive and resource evidence</p><h2>SFM recipe IDs belong under <code>sfm:</code></h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/issues/527">Issue #527 · recipe namespace</a><a href="https://github.com/TeamDman/SuperFactoryManager/issues/621">Issue #621 · reported recipe behavior</a></p>
+<p>Some SFM recipes were saved under <code>minecraft:</code>. The candidate moves those IDs to <code>sfm:</code>. If a datapack or command names an old SFM recipe ID, update that reference; vanilla recipe IDs and tags keep their own namespace.</p>
+<div class="code-pair"><div><h3>Before · Minecraft 1.21.1 archive</h3><pre><code>data/minecraft/recipe/disk_reset.json
+recipe ID: minecraft:disk_reset</code></pre></div><div><h3>After · rebuilt candidate</h3><pre><code>data/sfm/recipe/disk_reset.json
+recipe ID: sfm:disk_reset</code></pre></div></div>
+<p>The <code>disk_reset</code> recipe’s JSON contents are <strong>byte-for-byte unchanged</strong> in this pair. Its <code>type</code> already names SFM’s serializer. The file’s location changes the recipe ID.</p>
+<h3>References to SFM recipes change too</h3><div class="code-pair"><div><h4>Before</h4><pre><code>{
+  "recipe": "minecraft:tough_cable_horizontal"
+}</code></pre></div><div><h4>After</h4><pre><code>{
+  "recipe": "sfm:tough_cable_horizontal"
+}</code></pre></div></div>
+<p>This is the complete one-field <code>criteria.has_the_recipe.conditions</code> change in the paired advancement. Its reward recipe reference also changes; vanilla parent and trigger identifiers remain unchanged. Previously unlocked recipe IDs may need unlocking again.</p>
+<p class="evidence-limit">The rebuilt archives contain 29 sfm: recipe IDs and 23 recipe advancements per target, with valid references and unchanged recipe contents. These archive checks do not establish in-game recipe-book appearance. <a href="#recipe-example-provenance">Exact paired example evidence</a> · <a href="#jar-1-21-1">Archive identities</a>.</p>
+</div></section>
+<section id="test-barrel" class="change-topic"><div class="reading">
+<p class="topic-state state-pending">In all ten rebuilt candidates · Buffer remains itemless</p><h2>Remove the invalid Buffer loot without inventing an item</h2>
+<p class="topic-links"><a href="https://github.com/TeamDman/SuperFactoryManager/issues/583">Issue #583 · missing <code>sfm:buffer</code> item warning</a><a href="https://github.com/TeamDman/SuperFactoryManager/pull/587">Draft PR #587 · stop generating the invalid loot table</a></p>
+<p>An item-less development block can be intentional. The test barrel and test barrel tank are excluded from expected block loot tables. The warning report is specifically about the separate work-in-progress <strong>buffer</strong>: its item is registered only in the IDE, but the old shipped loot table asked Minecraft for <code>sfm:buffer</code>.</p>
+<div class="behavior-pair"><div><h3>Before · reported startup error</h3><p>Minecraft loads a loot entry for an item that is not registered in a normal game. That invalid entry is retained in the earlier frozen candidate evidence.</p></div><div><h3>After · rebuilt candidate archives</h3><p>The Buffer loot table is no longer generated or packaged. Buffer is excluded from loot expectations alongside the test helpers; its production item registration is still absent.</p></div></div>
+<div class="code-pair"><div><h4>Before · old generator</h4><pre><code>writer.dropSelf(SFMBlocks.BUFFER_BLOCK);
+
+Set.of(SFMBlocks.TEST_BARREL,
+       SFMBlocks.TEST_BARREL_TANK);</code></pre></div><div><h4>After · integrated generator</h4><pre><code>// Remove the buffer dropSelf call.
+Set.of(SFMBlocks.TEST_BARREL,
+       SFMBlocks.TEST_BARREL_TANK,
+       SFMBlocks.BUFFER_BLOCK);</code></pre></div></div>
+<p class="code-label">Two generator excerpts; unrelated calls are omitted. The comment on the right describes the removed line. The generated Buffer loot-table file is also absent from all ten rebuilt archives.</p>
+<p class="evidence-limit"><strong>The invalid item reference is removed; Buffer is still intentionally itemless.</strong> Archive checks and focused resource tests cover this correction. They do not claim that every unrelated startup warning is gone. Draft PR #587 remains contribution provenance, as checked on 18 October 2026; no new graphical capture is supplied. Related reports: <a href="https://github.com/TeamDman/SuperFactoryManager/issues/530">#530</a> and <a href="https://github.com/TeamDman/SuperFactoryManager/issues/568">#568</a>.</p>
+</div></section>
+</article>
+{{ changes }}
+<details id="technical-appendix" class="appendix"><summary>Evidence and limitations · captures, sources, tests and artifact identities</summary><p class="appendix-lede">This review keeps the original {{ image_count }} captures with their historical artifact records. Primary JAR and class comparisons bind the newly built candidates to the preserved 4.34 archives. Source panels separately identify current projection renderings or pinned Git snapshots; these do not reconstruct a historical Liquid catalog or establish the exact compiler inputs of a published baseline JAR without a matching receipt. Delivery audits and current headless results have their own exact receipts; raw hashes and machine-readable records remain available.</p><div class="packaging-scope"><h2>Packaging scope</h2><p>Fresh native packaging and delivered-resource audits cover these ten targets. The runtime records distinguish generated-projection headless execution from packaged-JAR acceptance and from the retained 1.21.1 experiment. A successful package is not a runtime result.</p><div class="version-grid">{{ versions }}</div></div>{{ appendix }}</details>
+</main></div>
+<footer class="site-footer"><p>Super Factory Manager · 4.35 candidate review</p><p>Historical graphical captures: Minecraft 1.21.1 · current build and headless receipts in evidence</p></footer>
+</div>
+<dialog class="capture-dialog" id="capture-dialog" aria-labelledby="capture-dialog-caption" aria-describedby="capture-dialog-hint"><button type="button" id="close-capture" autofocus>Close capture</button><p id="capture-dialog-caption"></p><div id="capture-dialog-image"></div><p class="capture-hint" id="capture-dialog-hint">Click the enlarged image to close, or press Escape.</p></dialog>

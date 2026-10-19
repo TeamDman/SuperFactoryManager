@@ -31,13 +31,13 @@ const MANIFEST: &str = include_str!(
     "../../../../../platform/minecraft/core-liquid-template/build/supplements/nfrt-child-identities.json"
 );
 const MANIFEST_SHA256: &str =
-    "sha256:be8fbfd87a20f6ba018056f651f3f3d2bec054a0c19424c89127ae2c75311b6f";
+    "sha256:eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2";
 #[cfg(test)]
 const SOURCE_LIBRARIES: &str = include_str!(
     "../../../../../platform/minecraft/core-liquid-template/build/supplements/nfrt-source-library-identities.json"
 );
 const SOURCE_LIBRARIES_SHA256: &str =
-    "sha256:986a253497f049fb22ca354f58aabe269651b90d3d734a99f5d46a3830c1ebf3";
+    "sha256:41ee3807912c5202a927654f257ef634432ccbd30f677e010a49e8018114a688";
 #[cfg(test)]
 const OFFICIAL_PROOF: &str =
     include_str!("../../../../../docs/tasks/sfm-core-nfrt-child-official-identity-proof.json");
@@ -1105,10 +1105,15 @@ mod tests {
             .ancestors()
             .nth(3)
             .ok_or_else(|| eyre::eyre!("CLI fixture repository missing"))?;
-        let raw = read_bounded(
-            &checked_file(repository, &recipe.source_lock.path)?,
-            1024 * 1024,
-        )?;
+        // The historical weak-byte refusal must retain its originally reviewed lock.
+        let raw = if target == "26.1.2" {
+            include_bytes!("fixtures/released-2612-original-schema2.json").to_vec()
+        } else {
+            read_bounded(
+                &checked_file(repository, &recipe.source_lock.path)?,
+                1024 * 1024,
+            )?
+        };
         let roles = super::super::core_release_project_role_fixtures::release_project_role_outputs(
             &recipe.target,
             &recipe
@@ -1408,6 +1413,74 @@ mod tests {
                     .function_requests("unapproved_function", &classpath, false)
                     .is_err(),
             "function/classpath changed"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn reconciled_2612_binding_refuses_old_lock_and_changed_receipt_identity() -> Result<()> {
+        let document = reviewed_document()?;
+        let target = document
+            .targets
+            .iter()
+            .find(|row| row.target_id == "26.1.2")
+            .ok_or_else(|| eyre::eyre!("missing target"))?;
+        ensure!(
+            target.source_lock_sha256
+                == "2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f"
+                && target.source_lock_bytes == 50479,
+            "reconciled lock binding changed"
+        );
+        // Exercise the pure receipt binding; this synthetic tuple grants no project or native capability.
+        let mut receipt = prepared("1.20.2")?.receipt().clone();
+        receipt.target_id = target.target_id.clone();
+        receipt.minecraft_version = target.minecraft_version.clone();
+        receipt.recipe_id = target.recipe_id.clone();
+        receipt.source_lock_sha256 = format!("sha256:{}", target.source_lock_sha256);
+        receipt.source_lock_bytes = target.source_lock_bytes;
+        bound_target(&document, &receipt)?;
+        let mut wrong = receipt.clone();
+        wrong.source_lock_sha256 =
+            "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de".to_owned();
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "old lock digest accepted"
+        );
+        wrong = receipt.clone();
+        wrong.source_lock_bytes = 50153;
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "old lock length accepted"
+        );
+        wrong = receipt.clone();
+        wrong.recipe_id.push_str("-other");
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "foreign recipe accepted"
+        );
+        wrong = receipt.clone();
+        wrong.minecraft_version = "1.21.1".to_owned();
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "foreign Minecraft accepted"
+        );
+        wrong = receipt.clone();
+        wrong.target_id = "unknown".to_owned();
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "foreign target accepted"
+        );
+        wrong = receipt.clone();
+        wrong.immutable_source_lock = false;
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "mutable lock accepted"
+        );
+        wrong = receipt;
+        wrong.live_pom_discovery = true;
+        ensure!(
+            bound_target(&document, &wrong).is_err(),
+            "live discovery accepted"
         );
         Ok(())
     }

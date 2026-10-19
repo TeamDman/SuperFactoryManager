@@ -19,6 +19,7 @@ use std::path::Path;
 const MAX_MANIFEST: u64 = 32 * 1024 * 1024;
 const MAX_PNG: u64 = 8 * 1024 * 1024;
 const MAX_HTML: usize = 64 * 1024 * 1024;
+const MAX_ARTICLE_HTML: usize = 32 * 1024 * 1024;
 
 pub(super) fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
@@ -174,16 +175,13 @@ pub fn render(
         &manifest_hash,
     )?)?;
     html = html.replacen("<script>", &format!("{review}<script>"), 1);
-    ensure!(
-        html.len() <= MAX_HTML,
-        "HTML exceeds {MAX_HTML} byte budget"
-    );
-    cancellation.bail_if_cancelled()?;
-    OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&request.output)?
-        .write_all(html.as_bytes())?;
+    html = super::fonts::embed(&html);
+    write_html(
+        &request.output,
+        &html,
+        manifest.article.is_some(),
+        cancellation,
+    )?;
     Ok(ReleaseReportReceipt {
         schema: "sfm:release-report-receipt@1".to_owned(),
         manifest_sha256: sha256(&bytes),
@@ -192,6 +190,34 @@ pub fn render(
         embedded_images: manifest.images.len(),
         compared_jars: manifest.jars.len(),
     })
+}
+
+/// Enforce the final budget after every embedding step, before output creation.
+pub(super) fn validate_final_html_size(bytes: usize, article: bool) -> Result<()> {
+    if article {
+        ensure!(
+            bytes <= MAX_ARTICLE_HTML,
+            "editorial HTML exceeds {MAX_ARTICLE_HTML} byte budget: {bytes} bytes"
+        );
+    }
+    ensure!(bytes <= MAX_HTML, "HTML exceeds {MAX_HTML} byte budget");
+    Ok(())
+}
+
+pub(super) fn write_html(
+    output: &Path,
+    html: &str,
+    article: bool,
+    cancellation: &CancellationToken,
+) -> Result<()> {
+    validate_final_html_size(html.len(), article)?;
+    cancellation.bail_if_cancelled()?;
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(output)?
+        .write_all(html.as_bytes())?;
+    Ok(())
 }
 
 fn render_sections(

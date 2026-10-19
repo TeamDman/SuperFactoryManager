@@ -10,7 +10,7 @@ class SFMGamePuppetRenderCaptureSourceTests {
     @Test
     void finalAssertionsAreReportedOnceBeforeEitherHoldWithoutPretendingTheViewportWasRestored() throws Exception {
         Path cursor = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java");
+        Path relative = Path.of("src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java");
         while (cursor != null && !Files.isRegularFile(cursor.resolve(relative))) cursor = cursor.getParent();
         assertNotNull(cursor);
         String source = Files.readString(cursor.resolve(relative));
@@ -28,7 +28,7 @@ class SFMGamePuppetRenderCaptureSourceTests {
     @Test
     void captureMustWaitForACompletedRenderFrameNotJustAClientTick() throws Exception {
         Path cursor = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        Path relative = Path.of("src/gametest/java/ca/teamdman/sfm/gametest/puppet");
         while (cursor != null && !Files.isDirectory(cursor.resolve(relative))) cursor = cursor.getParent();
         assertNotNull(cursor);
         Path root = cursor.resolve(relative);
@@ -44,7 +44,7 @@ class SFMGamePuppetRenderCaptureSourceTests {
     @Test
     void gameTestBoundsAreCapturedBeforeCleanupAndResetBetweenFixtureRuns() throws Exception {
         Path cursor = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        Path relative = Path.of("src/gametest/java/ca/teamdman/sfm/gametest/puppet");
         while (cursor != null && !Files.isDirectory(cursor.resolve(relative))) cursor = cursor.getParent();
         assertNotNull(cursor);
         Path root = cursor.resolve(relative);

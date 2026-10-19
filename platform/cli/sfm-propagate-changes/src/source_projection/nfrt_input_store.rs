@@ -4,26 +4,26 @@
 //! Failure leaves the fresh directory for diagnosis; never overwrites or cleans.
 
 use super::core_input_leases::DirectoryLeases;
+use super::nfrt_file_open::open_new;
+use super::nfrt_file_open::open_read;
+use super::nfrt_file_open::regular;
 use super::nfrt_producer_output_receipt::SealedNfrtProducerOutput;
 use super::nfrt_project_owner::NfrtProjectOwner;
 use super::provenance::sha256;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
+use crate::jar_build::nfrt_preparation_phase::NfrtPreparationPhase;
 use eyre::Result;
 use eyre::ensure;
 use sha2::Digest;
 use sha2::Sha256;
 use std::fs::File;
+#[cfg(all(test, windows))]
 use std::fs::OpenOptions;
 use std::fs::{self};
 use std::io::Read;
 use std::io::Write;
-use std::os::windows::fs::MetadataExt;
-use std::os::windows::fs::OpenOptionsExt;
 use std::path::Path;
 use std::path::PathBuf;
-use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
-use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
-use windows::Win32::Storage::FileSystem::FILE_SHARE_READ;
 
 const MAX_INPUTS: usize = 8192;
 const MAX_BYTES: usize = 1024 * 1024 * 1024;
@@ -44,6 +44,15 @@ impl NfrtInputStore {
         project: &dyn NfrtProjectOwner,
         prepared: &PreparedNfrtInvocationInput,
     ) -> Result<Self> {
+        Self::create_with_derived_root(project, prepared, None)
+    }
+
+    pub(crate) fn create_with_derived_root(
+        project: &dyn NfrtProjectOwner,
+        prepared: &PreparedNfrtInvocationInput,
+        derived_cache_root: Option<&Path>,
+    ) -> Result<Self> {
+        let mut observation = NfrtPreparationPhase::start("input_store.create");
         project.recheck_source()?;
         let receipt = prepared.receipt();
         ensure!(
@@ -69,7 +78,11 @@ impl NfrtInputStore {
         validate_snapshots(prepared)?;
 
         let project_root = project.project().project_root();
-        let (root, mut leases) = create_owned_root(project_root, token)?;
+        let (root, mut leases) = if let Some(root) = derived_cache_root {
+            create_overridden_root(root, token)?
+        } else {
+            create_owned_root(project_root, token)?
+        };
         let mut files = Vec::with_capacity(receipt.inputs.len() + 1);
         for (entry, bytes) in receipt.inputs.iter().zip(prepared.snapshots()) {
             let path = leases.prepare(&root, &entry.snapshot_relative_path)?;
@@ -82,10 +95,21 @@ impl NfrtInputStore {
             &prepared.contract_identity(),
         )?);
         project.recheck_source()?;
+        let project_preparation_identity = project.preparation_identity()?;
+        observation.work(
+            receipt.inputs.len() as u64 + 1,
+            receipt
+                .inputs
+                .iter()
+                .map(|entry| entry.bytes as u64)
+                .sum::<u64>()
+                + prepared.serialized().len() as u64,
+        );
+        observation.success();
         Ok(Self {
             root,
             contract_identity: prepared.contract_identity(),
-            project_preparation_identity: project.preparation_identity()?,
+            project_preparation_identity,
             workspaces_declared: false,
             generated: std::collections::BTreeMap::new(),
             files,
@@ -107,12 +131,13 @@ impl NfrtInputStore {
         &mut self,
         sources: &[(&str, &[u8])],
     ) -> Result<(Vec<PathBuf>, PathBuf)> {
+        let mut observation = NfrtPreparationPhase::start("input_store.publish_host_sources");
         ensure!(
             !self.workspaces_declared,
             "Host compilation follows graph execution"
         );
         ensure!(
-            sources.len() == 14,
+            sources.len() == 15,
             "Incomplete embedded host source bundle"
         );
         let mut names = std::collections::BTreeSet::new();
@@ -148,12 +173,15 @@ impl NfrtInputStore {
                 .push(write_and_hold(&path, bytes, &sha256(bytes))?);
             paths.push(path);
         }
+        observation.work(sources.len() as u64, total as u64);
+        observation.success();
         Ok((paths, self.root.join("adapter/classes")))
     }
 
     /// Seal the completed javac output into one immutable classpath JAR.
     /// Java must not load from the writable compiler output directory.
     pub(crate) fn publish_host_jar(&mut self, sources: &[(&str, &[u8])]) -> Result<PathBuf> {
+        let mut observation = NfrtPreparationPhase::start("input_store.publish_host_jar");
         let mut directory = self.root.join("adapter/classes");
         for component in ["ca", "teamdman", "sfm", "toolchain", "nfrt"] {
             self.leases.prepare(&directory, "reserved-leaf")?;
@@ -174,9 +202,10 @@ impl NfrtInputStore {
             .collect::<Result<std::collections::BTreeSet<_>>>()?;
         let mut classes = fs::read_dir(&directory)?.collect::<std::io::Result<Vec<_>>>()?;
         ensure!(
-            (14..=256).contains(&classes.len()),
+            (15..=256).contains(&classes.len()),
             "Invalid compiled host class count"
         );
+        let class_count = classes.len();
         classes.sort_by_key(fs::DirEntry::file_name);
         let mut top_level = std::collections::BTreeSet::new();
         let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
@@ -197,17 +226,13 @@ impl NfrtInputStore {
             if !stem.contains('$') {
                 top_level.insert(stem.to_owned());
             }
-            let mut file = OpenOptions::new()
-                .read(true)
-                .share_mode(FILE_SHARE_READ.0)
-                .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0)
-                .open(class.path())?;
+            let mut file = open_read(&class.path())?;
             let metadata = file.metadata()?;
             ensure!(
                 metadata.is_file()
                     && metadata.len() > 0
                     && metadata.len() <= 1024 * 1024
-                    && metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0,
+                    && regular(&metadata),
                 "Compiled host class is not a bounded regular file"
             );
             let identity = crate::file_identity::file_identity(&file)?;
@@ -249,6 +274,8 @@ impl NfrtInputStore {
             .prepare(&self.root, "adapter/host-adapter.jar")?;
         self.files
             .push(write_and_hold(&path, &bytes, &sha256(&bytes))?);
+        observation.work(class_count as u64, total as u64);
+        observation.success();
         Ok(path)
     }
 
@@ -271,6 +298,7 @@ impl NfrtInputStore {
             project_preparation_identity: String,
             inputs: Vec<ProjectInput>,
         }
+        let mut observation = NfrtPreparationPhase::start("input_store.publish_project_inputs");
         project.recheck_source()?;
         ensure!(
             project.preparation_identity()? == self.project_preparation_identity,
@@ -311,6 +339,16 @@ impl NfrtInputStore {
             &sha256(text.as_bytes()),
         )?);
         project.recheck_source()?;
+        observation.work(
+            1 + descriptor.inputs.len() as u64,
+            descriptor
+                .inputs
+                .iter()
+                .map(|entry| entry.bytes as u64)
+                .sum::<u64>()
+                + text.len() as u64,
+        );
+        observation.success();
         Ok(())
     }
 
@@ -321,6 +359,7 @@ impl NfrtInputStore {
         &mut self,
         outputs: &[SealedNfrtProducerOutput],
     ) -> Result<Vec<PathBuf>> {
+        let mut observation = NfrtPreparationPhase::start("input_store.publish_generated");
         ensure!(
             self.workspaces_declared,
             "Generated outputs require the owned graph workspaces"
@@ -368,6 +407,8 @@ impl NfrtInputStore {
             }
         }
         let mut paths = Vec::with_capacity(outputs.len());
+        let mut written_files = 0_u64;
+        let mut written_bytes = 0_u64;
         for output in outputs {
             let receipt = output.receipt();
             let path = self
@@ -376,6 +417,8 @@ impl NfrtInputStore {
             if !self.generated.contains_key(&receipt.snapshot_relative_path) {
                 let file = write_and_hold(&path, output.bytes(), &receipt.full_sha256)?;
                 self.files.push(file);
+                written_files += 1;
+                written_bytes += receipt.bytes as u64;
                 self.generated.insert(
                     receipt.snapshot_relative_path.clone(),
                     receipt.full_sha256.clone(),
@@ -383,6 +426,9 @@ impl NfrtInputStore {
             }
             paths.push(path);
         }
+        tracing::info!(target: "sfm::nfrt_preparation", phase = "input_store.publish_generated", requested_outputs = outputs.len(), written_files, reused_outputs = outputs.len() as u64 - written_files, written_bytes, "NFRT generated-input publication counts");
+        observation.work(written_files, written_bytes);
+        observation.success();
         Ok(paths)
     }
 
@@ -390,6 +436,7 @@ impl NfrtInputStore {
     /// A failed creation poisons this declaration; retained directories are
     /// diagnostic evidence, never reusable invocation workspaces.
     pub(crate) fn create_workspaces(&mut self, node_ids: &[String]) -> Result<()> {
+        let mut observation = NfrtPreparationPhase::start("input_store.create_workspaces");
         ensure!(
             !self.workspaces_declared,
             "Workspace graph already declared"
@@ -434,11 +481,14 @@ impl NfrtInputStore {
             fs::create_dir(&path)?;
             self.leases.prepare(&path, "reserved-leaf")?;
         }
+        observation.work(node_ids.len() as u64, 0);
+        observation.success();
         Ok(())
     }
 }
 
 fn validate_snapshots(prepared: &PreparedNfrtInvocationInput) -> Result<()> {
+    let mut observation = NfrtPreparationPhase::start("input_store.validate_snapshots");
     let entries = &prepared.receipt().inputs;
     let snapshots = prepared.snapshots();
     ensure!(
@@ -464,7 +514,35 @@ fn validate_snapshots(prepared: &PreparedNfrtInvocationInput) -> Result<()> {
             .ok_or_else(|| eyre::eyre!("NFRT byte count overflow"))?;
         ensure!(total <= MAX_BYTES, "NFRT snapshot batch is oversized");
     }
+    observation.work(entries.len() as u64, total as u64);
+    observation.success();
     Ok(())
+}
+
+fn create_overridden_root(derived_root: &Path, token: &str) -> Result<(PathBuf, DirectoryLeases)> {
+    ensure!(
+        !token.is_empty()
+            && token.len() <= 128
+            && token
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'),
+        "Unsafe NFRT invocation token"
+    );
+    let checked = super::candidate_lock::checked_directory(derived_root)?;
+    ensure!(
+        dunce::simplified(&checked).as_os_str() == derived_root.as_os_str(),
+        "Derived NFRT root has an aliased spelling"
+    );
+    let mut leases = DirectoryLeases::default();
+    leases.prepare(derived_root, "reserved-leaf")?;
+    let parent = derived_root.join("nfrt");
+    match fs::create_dir(&parent) {
+        Ok(()) => (),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (),
+        Err(error) => return Err(error.into()),
+    }
+    leases.prepare(&parent, "reserved-leaf")?;
+    create_fresh_invocation(&parent, token, leases)
 }
 
 fn create_owned_root(project_root: &Path, token: &str) -> Result<(PathBuf, DirectoryLeases)> {
@@ -481,7 +559,9 @@ fn create_owned_root(project_root: &Path, token: &str) -> Result<(PathBuf, Direc
     // Acquire each parent before creating or accepting its next child.
     // No create_dir_all traversal can silently follow a reparse point.
     leases.prepare(&parent, "reserved-leaf")?;
-    for component in ["build", "sfm-toolchain", "nfrt-invocations"] {
+    // Keep invocation paths short for Windows Java tools that cannot open MAX_PATH-length JARs.
+    // The full validated token, fresh create_dir refusal, and ancestry leases are unchanged.
+    for component in ["build", "sfm-toolchain", "nfrt"] {
         let next = parent.join(component);
         match fs::create_dir(&next) {
             Ok(()) => (),
@@ -491,7 +571,15 @@ fn create_owned_root(project_root: &Path, token: &str) -> Result<(PathBuf, Direc
         leases.prepare(&next, "reserved-leaf")?;
         parent = next;
     }
-    let root = parent.join(format!("nfrt-{token}"));
+    create_fresh_invocation(&parent, token, leases)
+}
+
+fn create_fresh_invocation(
+    parent: &Path,
+    token: &str,
+    mut leases: DirectoryLeases,
+) -> Result<(PathBuf, DirectoryLeases)> {
+    let root = parent.join(format!("n-{token}"));
     // Existing invocations, even apparently complete ones, are refused.
     fs::create_dir(&root)?;
     leases.prepare(&root, "reserved-leaf")?;
@@ -511,28 +599,20 @@ fn create_owned_root(project_root: &Path, token: &str) -> Result<(PathBuf, Direc
 }
 
 fn write_and_hold(path: &Path, bytes: &[u8], expected: &str) -> Result<File> {
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0)
-        .open(path)?;
+    let mut observation = NfrtPreparationPhase::start("input_store.write_and_hold");
+    let mut output = open_new(path)?;
     output.write_all(bytes)?;
-    output.sync_all()?;
+    NfrtPreparationPhase::run("input_store.sync_all", || Ok(output.sync_all()?))?;
     drop(output);
     // Reopen after writing, verify through this held handle, then retain it.
     // A concurrent replacement in the gap must match the full expected bytes.
-    let mut input = OpenOptions::new()
-        .read(true)
-        .share_mode(FILE_SHARE_READ.0)
-        .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0)
-        .open(path)?;
+    let mut input = open_read(path)?;
     let metadata = input.metadata()?;
     ensure!(
-        metadata.is_file()
-            && metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0
-            && metadata.len() == u64::try_from(bytes.len())?,
+        metadata.is_file() && regular(&metadata) && metadata.len() == u64::try_from(bytes.len())?,
         "NFRT snapshot is not the expected regular file"
     );
+    let mut verification = NfrtPreparationPhase::start("input_store.held_sha256_verification");
     let mut hash = Sha256::new();
     let mut total = 0_usize;
     let mut buffer = vec![0_u8; 64 * 1024];
@@ -551,10 +631,14 @@ fn write_and_hold(path: &Path, bytes: &[u8], expected: &str) -> Result<File> {
         total == bytes.len() && format!("sha256:{:x}", hash.finalize()) == expected,
         "NFRT snapshot held-handle hash mismatch"
     );
+    verification.work(1, total as u64);
+    verification.success();
+    observation.work(1, bytes.len() as u64);
+    observation.success();
     Ok(input)
 }
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 mod tests {
     use super::*;
 
@@ -574,7 +658,7 @@ mod tests {
                 files: Vec::new(),
                 leases,
             };
-            let names = (0..14)
+            let names = (0..15)
                 .map(|index| format!("SFMFixture{index}.java"))
                 .collect::<Vec<_>>();
             let sources = names
@@ -586,7 +670,7 @@ mod tests {
                 directory.push(component);
                 fs::create_dir(&directory)?;
             }
-            for index in 0..if variant == "missing" { 13 } else { 14 } {
+            for index in 0..if variant == "missing" { 14 } else { 15 } {
                 fs::write(
                     directory.join(format!("SFMFixture{index}.class")),
                     [0xca, 0xfe, 0xba, 0xbe, 0],
@@ -599,7 +683,7 @@ mod tests {
             if variant == "complete" {
                 let path = result?;
                 let archive = zip::ZipArchive::new(File::open(&path)?)?;
-                assert_eq!(archive.len(), 14);
+                assert_eq!(archive.len(), 15);
                 assert!(OpenOptions::new().write(true).open(&path).is_err());
                 assert!(
                     store.publish_host_jar(&sources).is_err(),
@@ -622,6 +706,10 @@ mod tests {
     fn fresh_root_is_complete_leased_and_never_adopts_previous_invocations() -> Result<()> {
         let fixture = tempfile::tempdir()?;
         let (root, mut leases) = create_owned_root(fixture.path(), "proof-1")?;
+        assert_eq!(
+            root,
+            fixture.path().join("build/sfm-toolchain/nfrt/n-proof-1")
+        );
         for relative in ["home", "work", "inputs/artifacts", "inputs/generated"] {
             ensure!(
                 root.join(relative).is_dir(),
@@ -757,6 +845,140 @@ mod tests {
             fs::read(&path)? == b"actual",
             "Failure cleaned or changed diagnostic input"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn overridden_root_uses_derived_namespace_without_creating_project_build() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let project = fixture.path().join("source-project");
+        let derived = fixture.path().join("derived");
+        fs::create_dir(&project)?;
+        fs::create_dir(&derived)?;
+        // NativeCacheRoot supplies normal canonical spelling, not a verbatim alias.
+        let project = dunce::canonicalize(&project)?;
+        let derived = dunce::canonicalize(&derived)?;
+        let (overridden, overridden_leases) = create_overridden_root(&derived, "override-proof")?;
+        assert_eq!(overridden, derived.join("nfrt/n-override-proof"));
+        for relative in [
+            "home",
+            "work",
+            "inputs",
+            "inputs/artifacts",
+            "inputs/generated",
+        ] {
+            ensure!(
+                overridden.join(relative).is_dir(),
+                "Override layout is incomplete"
+            );
+        }
+        ensure!(
+            !project.join("build").exists(),
+            "Override unexpectedly created the default project build tree"
+        );
+        let (default, default_leases) = create_owned_root(&project, "default-proof")?;
+        assert_eq!(
+            default,
+            project.join("build/sfm-toolchain/nfrt/n-default-proof")
+        );
+        assert_ne!(overridden, default);
+        ensure!(
+            overridden.is_dir(),
+            "Default creation disturbed the override"
+        );
+        drop(default_leases);
+        drop(overridden_leases);
+        Ok(())
+    }
+
+    #[test]
+    fn overridden_root_rejects_unsafe_tokens_before_creating_nfrt() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let derived = dunce::canonicalize(fixture.path())?;
+        for token in [
+            "",
+            "../escape",
+            "a/b",
+            "a\\b",
+            ".",
+            "with space",
+            "with:colon",
+        ] {
+            let error = match create_overridden_root(&derived, token) {
+                Ok(_) => eyre::bail!("Unsafe override token was accepted: {token:?}"),
+                Err(error) => error,
+            };
+            ensure!(
+                error.to_string().contains("Unsafe NFRT invocation token"),
+                "Token validation was bypassed"
+            );
+            ensure!(
+                !derived.join("nfrt").exists(),
+                "Invalid token created the NFRT namespace"
+            );
+        }
+        ensure!(
+            create_overridden_root(&derived, &"x".repeat(129)).is_err(),
+            "Oversized override token was accepted"
+        );
+        ensure!(
+            !derived.join("nfrt").exists(),
+            "Oversized token created the NFRT namespace"
+        );
+        ensure!(
+            fs::read_dir(&derived)?.next().is_none(),
+            "Invalid token left filesystem effects"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn overridden_root_refuses_live_and_retained_invocations_without_changing_evidence()
+    -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let derived = dunce::canonicalize(fixture.path())?;
+        let (root, leases) = create_overridden_root(&derived, "retained-proof")?;
+        let sentinel = root.join("work/sentinel.bin");
+        let evidence = b"retained invocation evidence";
+        fs::write(&sentinel, evidence)?;
+        ensure!(
+            create_overridden_root(&derived, "retained-proof").is_err(),
+            "Live override invocation was adopted"
+        );
+        assert_eq!(fs::read(&sentinel)?, evidence);
+        drop(leases);
+        ensure!(
+            create_overridden_root(&derived, "retained-proof").is_err(),
+            "Retained override invocation was adopted"
+        );
+        assert_eq!(fs::read(&sentinel)?, evidence);
+        for relative in ["home", "work", "inputs/artifacts", "inputs/generated"] {
+            ensure!(
+                root.join(relative).is_dir(),
+                "Refusal changed retained invocation layout"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn overridden_root_rejects_non_directory_nfrt_ancestry_without_changing_evidence() -> Result<()>
+    {
+        let fixture = tempfile::tempdir()?;
+        let derived = dunce::canonicalize(fixture.path())?;
+        let blocked = derived.join("nfrt");
+        let evidence = b"existing non-directory namespace";
+        fs::write(&blocked, evidence)?;
+        ensure!(
+            create_overridden_root(&derived, "blocked-proof").is_err(),
+            "A non-directory NFRT ancestor was accepted"
+        );
+        ensure!(
+            fs::symlink_metadata(&blocked)?.is_file(),
+            "Refusal replaced the existing namespace"
+        );
+        assert_eq!(fs::read(&blocked)?, evidence);
+        assert_eq!(fs::read_dir(&derived)?.count(), 1);
         Ok(())
     }
 }

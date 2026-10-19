@@ -1,0 +1,31 @@
+if (project.ext.has('sfmPublishingConfigured')) {
+    throw new GradleException("publishing.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("publishing.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmArchiveNameConfigured')) {
+    throw new GradleException("publishing.gradle requires archive-name.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmJarJarConfigured')) {
+    throw new GradleException("publishing.gradle requires jar-jar.gradle to be applied first")
+}
+
+ext.sfmPublishingConfigured = true
+
+// Example configuration to allow publishing using the maven-publish plugin.
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact project.sfmPublishedJarTask
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}

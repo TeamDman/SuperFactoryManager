@@ -36,6 +36,7 @@
       "timeline_dynamic_bounds",
       "timeline_wrapper_transparency",
       "timeline_positive_transition_ticks",
+      "ae2_inscriber_bank_tests",
       "ae2_mekanism_bank_tests",
       "buffer_image_persistence",
       "canvas_pointer_defaults",

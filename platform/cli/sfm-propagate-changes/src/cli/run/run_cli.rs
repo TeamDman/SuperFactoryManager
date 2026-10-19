@@ -36,7 +36,7 @@ pub enum RunCommand {
     Server(RunServerArgs),
     /// Launch the projection's datagen run config
     Data(RunDataArgs),
-    /// Compile changed classes and hotswap them into a running JDWP-enabled client
+    /// Explicitly apply a successful compile snapshot to a matching live client session
     Hotswap(RunHotswapArgs),
 }
 

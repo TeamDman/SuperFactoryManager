@@ -26,6 +26,11 @@ public final class RejoinCurrentWorldPuppetAction implements SFMPuppetAction {
         return "leave and rejoin disposable puppet world";
     }
 
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+    @Override
+    public boolean permitsWorldTransition() { return true; }
+{% endif %}
+
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
         Minecraft minecraft = Minecraft.getInstance();

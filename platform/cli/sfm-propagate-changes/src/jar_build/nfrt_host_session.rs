@@ -8,6 +8,7 @@ use super::nfrt_child_tool::NfrtChildCommand;
 use super::nfrt_child_tool::prepare_child_command;
 use super::nfrt_host_protocol::NfrtHostOperation;
 use super::nfrt_host_protocol::NfrtHostRequest;
+use super::nfrt_preparation_phase::NfrtPreparationPhase;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use crate::source_projection::nfrt_held_producer::NfrtHeldProducer;
 use crate::source_projection::nfrt_input_store::NfrtInputStore;
@@ -77,13 +78,16 @@ impl<'a> NfrtHostSession<'a> {
         prepared: &'a PreparedNfrtInvocationInput,
         store: &'a mut NfrtInputStore,
     ) -> Result<Self> {
-        project.recheck_source()?;
+        let phase = NfrtPreparationPhase::start("host_session.new");
+        NfrtPreparationPhase::run("host_session.source_recheck.new", || {
+            project.recheck_source()
+        })?;
         ensure!(
             store.contract_identity() == prepared.contract_identity()
                 && prepared.receipt().preparation_identity == project.preparation_identity()?,
             "Host store, transfer and current source owner differ"
         );
-        Ok(Self {
+        phase.finish(Ok(Self {
             project,
             prepared,
             store,
@@ -96,7 +100,7 @@ impl<'a> NfrtHostSession<'a> {
             tool_configurations: BTreeMap::new(),
             finished: false,
             compiler_inputs_ready: false,
-        })
+        }))
     }
 
     /// Prepare only: the caller must establish actual SDK and child ownership
@@ -107,16 +111,20 @@ impl<'a> NfrtHostSession<'a> {
         graph_node_id: &str,
         payload: &str,
     ) -> Result<NfrtChildCommand> {
+        let mut phase = NfrtPreparationPhase::start("host_session.prepare_child_command");
+        phase.work(self.sealed_paths.len() as u64, payload.len() as u64);
         ensure!(
             !self.finished && self.plan.is_some(),
             "No active registered graph"
         );
-        self.project.recheck_source()?;
+        NfrtPreparationPhase::run("host_session.source_recheck.prepare_child", || {
+            self.project.recheck_source()
+        })?;
         let configuration = self
             .tool_configurations
             .get(graph_node_id)
             .ok_or_else(|| eyre::eyre!("Tool is not part of this owned graph"))?;
-        prepare_child_command(
+        phase.finish(prepare_child_command(
             self.prepared,
             self.store.root(),
             java,
@@ -124,7 +132,7 @@ impl<'a> NfrtHostSession<'a> {
             configuration,
             payload,
             &self.sealed_paths,
-        )
+        ))
     }
 
     pub(crate) fn execute_tool(
@@ -133,6 +141,8 @@ impl<'a> NfrtHostSession<'a> {
         sdk: &mut crate::source_projection::nfrt_tool_sdk::NfrtToolSdk,
         cancellation: &crate::cancellation::CancellationToken,
     ) -> Result<String> {
+        let mut phase = NfrtPreparationPhase::start("host_session.execute_tool");
+        phase.work(1, request.payload.len() as u64);
         cancellation.bail_if_cancelled()?;
         ensure!(
             request.operation == NfrtHostOperation::Tool
@@ -140,10 +150,15 @@ impl<'a> NfrtHostSession<'a> {
             "Foreign child-tool request"
         );
         let node = super::nfrt_child_tool::requested_node(&request.payload)?;
+        let node_span =
+            tracing::info_span!("nfrt_host_tool", node = %NfrtPreparationPhase::safe_node(&node));
+        let _node_span = node_span.enter();
         let command = self.prepare_tool(sdk.executable(), &node, &request.payload)?;
         let reply = super::nfrt_child_process::execute_child(command, sdk, cancellation)?;
-        self.project.recheck_source()?;
-        Ok(reply)
+        NfrtPreparationPhase::run("host_session.source_recheck.after_child", || {
+            self.project.recheck_source()
+        })?;
+        phase.finish(Ok(reply))
     }
 
     pub(crate) fn handle(&mut self, request: &NfrtHostRequest) -> Result<String> {
@@ -153,13 +168,17 @@ impl<'a> NfrtHostSession<'a> {
             native_execution_enabled: bool,
             compiler_inputs: Option<[&'a NfrtProducerOutputReceipt; 2]>,
         }
+        let mut phase = NfrtPreparationPhase::start("host_session.handle");
+        phase.work(1, request.payload.len() as u64);
         ensure!(!self.finished, "Host session is already closed");
         ensure!(
             request.contract_identity() == self.store.contract_identity(),
             "Host request belongs to another owned invocation"
         );
-        self.project.recheck_source()?;
-        match request.operation {
+        NfrtPreparationPhase::run("host_session.source_recheck.handle", || {
+            self.project.recheck_source()
+        })?;
+        let result = match request.operation {
             NfrtHostOperation::Graph => self.accept_graph(&request.payload),
             NfrtHostOperation::Seal => self.seal(&request.payload),
             NfrtHostOperation::Complete => {
@@ -218,7 +237,8 @@ impl<'a> NfrtHostSession<'a> {
                 Ok(reply)
             }
             NfrtHostOperation::Tool => eyre::bail!("Host operation has no integrated handler"),
-        }
+        };
+        phase.finish(result)
     }
 
     /// Consume the exact published compiler pair while this session retains
@@ -234,17 +254,22 @@ impl<'a> NfrtHostSession<'a> {
             self.finished && self.compiler_inputs_ready,
             "Compiler inputs require successful paired-result completion"
         );
-        self.project.recheck_source()?;
+        NfrtPreparationPhase::run("host_session.source_recheck.before_consume", || {
+            self.project.recheck_source()
+        })?;
         let [classes, sources] = self.compiler_result_receipts()?;
         let classes = self.store.root().join(&classes.snapshot_relative_path);
         let sources = self.store.root().join(&sources.snapshot_relative_path);
+        let consumer = NfrtPreparationPhase::start("host_session.compiler_consumer");
         let result = consume(&classes, &sources);
         // Check source ownership even when the downstream consumer fails.
-        self.project.recheck_source()?;
-        result
+        NfrtPreparationPhase::run("host_session.source_recheck.after_consume", || {
+            self.project.recheck_source()
+        })?;
+        consumer.finish(result)
     }
 
-    fn compiler_result_receipts(&self) -> Result<[&NfrtProducerOutputReceipt; 2]> {
+    pub(super) fn compiler_result_receipts(&self) -> Result<[&NfrtProducerOutputReceipt; 2]> {
         let mut results = Vec::with_capacity(2);
         for (producer, output_type) in [
             ("compiledWithNeoForge", "JAR"),
@@ -272,6 +297,7 @@ impl<'a> NfrtHostSession<'a> {
         reason = "Preflight all graph declarations and their original bindings before registration."
     )]
     fn accept_graph(&mut self, payload: &str) -> Result<String> {
+        let mut phase = NfrtPreparationPhase::start("host_session.accept_graph");
         ensure!(self.plan.is_none(), "Host graph is already registered");
         let graph: Graph = facet_json::from_str(payload)?;
         ensure!(
@@ -280,6 +306,7 @@ impl<'a> NfrtHostSession<'a> {
                 && graph.nodes.len() <= 256,
             "Wrong or oversized host graph"
         );
+        phase.work(graph.nodes.len() as u64, payload.len() as u64);
         let mut ids = BTreeSet::new();
         for node in &graph.nodes {
             validate_relative_path(&format!("work/{}/reserved-leaf", node.id))?;
@@ -410,8 +437,18 @@ impl<'a> NfrtHostSession<'a> {
             .iter()
             .map(|node| node.id.clone())
             .collect::<Vec<_>>();
-        self.project.recheck_source()?;
-        self.store.create_workspaces(&node_ids)?;
+        NfrtPreparationPhase::run("host_session.source_recheck.graph", || {
+            self.project.recheck_source()
+        })?;
+        NfrtPreparationPhase::run("host_session.create_workspaces", || {
+            self.store.create_workspaces(&node_ids)
+        })?;
+        tracing::info!(
+            phase = "host_session.graph",
+            graph_nodes = graph.nodes.len(),
+            producer_declarations = declarations.len(),
+            "nfrt_preparation_work"
+        );
         self.declarations = declarations
             .into_iter()
             .map(|declaration| {
@@ -439,10 +476,13 @@ impl<'a> NfrtHostSession<'a> {
             .map(|node| (node.id.clone(), node.action_contract_json.clone()))
             .collect();
         self.plan = Some(plan);
-        Ok("{\"workspaces_ready\":true,\"execution_enabled\":false}".to_owned())
+        phase.finish(Ok(
+            "{\"workspaces_ready\":true,\"execution_enabled\":false}".to_owned(),
+        ))
     }
 
     fn seal(&mut self, payload: &str) -> Result<String> {
+        let mut phase = NfrtPreparationPhase::start("host_session.seal");
         let plan = self
             .plan
             .as_ref()
@@ -468,42 +508,30 @@ impl<'a> NfrtHostSession<'a> {
             );
             selected.push((key, declaration.clone()));
         }
-        let mut observations = Vec::with_capacity(selected.len());
-        for (key, declaration) in &selected {
-            if !self.held.contains_key(key) {
-                self.held.insert(
-                    key.clone(),
-                    NfrtHeldProducer::acquire(self.store.root(), declaration)?,
-                );
-            }
-            let held = &self.held[key];
-            // The fixed Java adapter sends this operation only after its exact
-            // owned NodeOutput reaches COMPLETED; it never trusts a user path.
-            observations.push(NfrtProducerObservation {
-                scope: scope.clone(),
-                declaration: declaration.clone(),
-                belongs_to_fresh_engine: true,
-                completed: true,
-                restored_from_cache: false,
-                regular_file: true,
-                reparse_free_ancestry: true,
-                before_file_identity: held.identity(),
-                after_file_identity: held.identity(),
-                before_bytes: held.bytes(),
-                after_bytes: held.bytes(),
-            });
-        }
-        let outputs = plan.seal_classpath_batch(&observations, |declaration| {
-            self.held
-                .get_mut(&(
-                    declaration.producer_id.clone(),
-                    declaration.output_id.clone(),
-                ))
-                .ok_or_else(|| eyre::eyre!("Missing held producer"))?
-                .read_once()
+        let (observations, producer_bytes) =
+            Self::producer_observations(self.store.root(), &mut self.held, &selected, scope)?;
+        phase.work(observations.len() as u64, producer_bytes);
+        let outputs =
+            NfrtPreparationPhase::run("host_session.validate_and_snapshot_producers", || {
+                plan.seal_classpath_batch(&observations, |declaration| {
+                    let held = self
+                        .held
+                        .get_mut(&(
+                            declaration.producer_id.clone(),
+                            declaration.output_id.clone(),
+                        ))
+                        .ok_or_else(|| eyre::eyre!("Missing held producer"))?;
+                    let mut read = NfrtPreparationPhase::start("host_session.read_producer");
+                    read.work(1, held.bytes() as u64);
+                    read.finish(held.read_once())
+                })
+            })?;
+        NfrtPreparationPhase::run("host_session.source_recheck.seal", || {
+            self.project.recheck_source()
         })?;
-        self.project.recheck_source()?;
-        self.store.publish_generated(&outputs)?;
+        NfrtPreparationPhase::run("host_session.publish_generated", || {
+            self.store.publish_generated(&outputs)
+        })?;
         for output in &outputs {
             let receipt = output.receipt();
             self.sealed_paths.insert(
@@ -525,7 +553,59 @@ impl<'a> NfrtHostSession<'a> {
             .iter()
             .map(SealedNfrtProducerOutput::receipt)
             .collect::<Vec<_>>();
-        Ok(facet_json::to_string(&receipts)?)
+        phase.finish(facet_json::to_string(&receipts).map_err(Into::into))
+    }
+
+    fn producer_observations(
+        root: &std::path::Path,
+        held: &mut BTreeMap<(String, String), NfrtHeldProducer>,
+        selected: &[((String, String), NfrtProducerDeclaration)],
+        scope: &NfrtProducerScope,
+    ) -> Result<(Vec<NfrtProducerObservation>, u64)> {
+        let mut observations = Vec::with_capacity(selected.len());
+        let mut held_handle_hits = 0_u64;
+        let mut held_handle_misses = 0_u64;
+        let mut producer_bytes = 0_u64;
+        for (key, declaration) in selected {
+            if held.contains_key(key) {
+                held_handle_hits += 1;
+            } else {
+                held_handle_misses += 1;
+                held.insert(
+                    key.clone(),
+                    NfrtPreparationPhase::run("host_session.acquire_producer", || {
+                        NfrtHeldProducer::acquire(root, declaration)
+                    })?,
+                );
+            }
+            let producer = &held[key];
+            producer_bytes += producer.bytes() as u64;
+            // The fixed Java adapter sends this operation only after its exact
+            // owned NodeOutput reaches COMPLETED; it never trusts a user path.
+            observations.push(NfrtProducerObservation {
+                scope: scope.clone(),
+                declaration: declaration.clone(),
+                belongs_to_fresh_engine: true,
+                completed: true,
+                restored_from_cache: false,
+                regular_file: true,
+                reparse_free_ancestry: true,
+                before_file_identity: producer.identity(),
+                after_file_identity: producer.identity(),
+                before_bytes: producer.bytes(),
+                after_bytes: producer.bytes(),
+            });
+        }
+        tracing::info!(
+            phase = "host_session.seal_handles",
+            held_handle_hits,
+            held_handle_misses,
+            producer_outputs = observations.len(),
+            producer_bytes,
+            inherited_cache_restore_enabled = false,
+            "nfrt_preparation_work"
+        );
+        Ok((observations, producer_bytes))
     }
 }
 

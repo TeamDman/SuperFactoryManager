@@ -1,0 +1,37 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    },
+    {
+      "item": "sfm:xp_shard"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "sfm:xp_goop"
+  }
+}

@@ -1,0 +1,47 @@
+if (project.ext.has('sfmSourceSetsConfigured')) {
+    throw new GradleException("source-sets.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("source-sets.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmSourceExcludesConfigured')) {
+    throw new GradleException("source-sets.gradle requires source-excludes.gradle to be applied first")
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs += "src/generated/resources"
+            srcDirs += "src/main/resources"
+            exclude ".cache"
+        }
+        java {
+            exclude sfmSourceSetJavaExcludes.main
+        }
+    }
+    test {
+        compileClasspath += main.output
+        java {
+            exclude sfmSourceSetJavaExcludes.test
+        }
+    }
+    gametest {
+        java {
+            srcDir "src/gametest/java"
+            exclude sfmSourceSetJavaExcludes.gametest
+        }
+        compileClasspath += main.output
+        resources {
+            srcDirs += "src/gametest/resources"
+            exclude "README.md"
+        }
+    }
+    datagen {
+        compileClasspath += main.output
+    }
+    generated
+}
+
+ext.sfmSourceSetsConfigured = true

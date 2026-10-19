@@ -270,6 +270,7 @@ fn run_matrix_target(
         mute,
         None,
         control_cli_source_root.map(Path::to_path_buf),
+        None,
         cancellation_token,
     )?;
     collect_target_preview(target, puppet_selection, expected_game_test)

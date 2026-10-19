@@ -1,6 +1,8 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::JarBuildOptionsArgs;
+use crate::cli::output::CliOutput;
 use crate::cli::run::RunTestArgs;
+use crate::cli::test_preflight_args::TestPreflightArgs;
 use crate::jar_build::BuildMode;
 use crate::jar_build::SourceCatalogAction;
 use crate::jar_build::SourceCatalogCategory;
@@ -20,6 +22,8 @@ pub struct TestArgs {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum TestCommand {
+    /// Verify all ten approved `JUnit` dependency closures before any build or Java.
+    Preflight(TestPreflightArgs),
     /// Compile and run Java `JUnit` tests.
     Run(RunTestArgs),
     /// List statically discovered Java `JUnit` methods.
@@ -49,8 +53,12 @@ impl TestArgs {
     /// # Errors
     ///
     /// Returns an error if test execution or static cataloguing fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
+        if let TestCommand::Preflight(args) = self.command {
+            return args.invoke(&cancellation_token);
+        }
         match self.command {
+            TestCommand::Preflight(_) => unreachable!("handled above"),
             TestCommand::Run(args) => args.invoke(cancellation_token),
             TestCommand::List(args) => SourceCatalogCommand::new(
                 args.options.into_options(BuildMode::Plan)?,
@@ -70,6 +78,7 @@ impl TestArgs {
                 cancellation_token,
             )
             .invoke(),
-        }
+        }?;
+        Ok(CliOutput::none())
     }
 }

@@ -19,7 +19,7 @@ class SFMGamePuppetReviewViewportContractTests {
     @Test
     void reviewSquareWitnessIsExplicitAndDoesNotBroadenOtherPuppets() throws Exception {
         Path root = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        Path relative = Path.of("src/gametest/java/ca/teamdman/sfm/gametest/puppet");
         while (root != null && !Files.isDirectory(root.resolve(relative))) root = root.getParent();
         assertNotNull(root);
         Path source = root.resolve(relative);

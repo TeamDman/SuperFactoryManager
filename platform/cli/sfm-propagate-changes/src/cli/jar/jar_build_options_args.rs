@@ -26,6 +26,10 @@ pub struct JarBuildOptionsArgs {
     #[facet(default = false, args::named)]
     pub refresh: bool,
 
+    /// Skip initial comprehensive source checks for development projections.
+    #[facet(default = false, args::named)]
+    pub skip_source_checks: bool,
+
     /// Print the reason each graph node is considered dirty.
     #[facet(default = false, args::named)]
     pub explain_rebuild: bool,
@@ -75,8 +79,10 @@ impl JarBuildOptionsArgs {
                 repo_root: self.repo_root,
             },
             refresh: self.refresh,
+            skip_source_checks: self.skip_source_checks,
             explain_rebuild: self.explain_rebuild,
             plan_json: self.plan_json,
+            output_name: None,
             java_home: self.java_home,
             dry_run: self.dry_run,
             allow_local_artifact_cache: self.allow_local_artifact_cache,

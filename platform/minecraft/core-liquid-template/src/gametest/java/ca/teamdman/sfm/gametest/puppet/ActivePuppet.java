@@ -10,11 +10,9 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
 import net.minecraft.world.phys.AABB;
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -85,13 +83,11 @@ public final class ActivePuppet {
 
     public volatile GameTestInfo gameTestInfo;
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+
     /** Captured while the structure block still exists; successful tests may remove it. */
     public volatile AABB gameTestBounds;
 
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
+
     public volatile Throwable gameTestStartFailure;
 
 {% case minecraft_version %}

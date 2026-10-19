@@ -1,0 +1,22 @@
+//! Exact public repository fixtures; never an arbitrary folder or user cache.
+pub(super) const PATHS: &[&str] = &[
+    "examples/01-moveitems.sfm",
+    "examples/02-retention.sfm",
+    "examples/03-conditions.sfm",
+    "examples/04-smelting.sfm",
+    "examples/05-each.sfm",
+    "examples/06-slots.sfm",
+    "examples/07-redstone.sfm",
+    "examples/08-fluids.sfm",
+    "docs/architecture/fixtures/review-comment-session-v1.json",
+    "docs/architecture/fixtures/review-comment-session-v2.json",
+    "docs/architecture/fixtures/release-review-v1.json",
+    "docs/architecture/fixtures/release-review-working-tree-v2.json",
+    "docs/architecture/fixtures/release-review-freshness-v1.json",
+    "docs/architecture/fixtures/working-tree-capture-v1/capture.json",
+    "docs/architecture/fixtures/review-live-invalidation/Example.java",
+    "docs/architecture/fixtures/spatial-semantic-v1/contract-expected.json",
+    "docs/architecture/fixtures/spatial-semantic-v1/layout-cases.json",
+    "docs/architecture/fixtures/spatial-semantic-v1/source/example/SpatialFixture.java",
+    "docs/architecture/fixtures/spatial-semantic-v1/source/example/Malformed.java.txt",
+];

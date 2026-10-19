@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": "#minecraft:signs",
+    "L": "minecraft:redstone_lamp",
+    "P": "minecraft:heavy_weighted_pressure_plate",
+    "S": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    " LC",
+    " SP",
+    "S  "
+  ],
+  "result": {
+    "id": "sfm:network_tool"
+  }
+}

@@ -410,11 +410,7 @@ fn cancellation_interrupts_access_denied_open_retry() {
     let lock_path = dir.path().join("artifact.jar.lock");
     std::fs::write(&lock_path, []).expect("persisted lock file");
     let cancellation_token = CancellationToken::new();
-    let cancel_from_thread = cancellation_token.clone();
-    let canceller = thread::spawn(move || {
-        thread::sleep(Duration::from_millis(25));
-        cancel_from_thread.request_cancel("cancel open retry");
-    });
+    let cancel_on_second_attempt = cancellation_token.clone();
     let policy = ArtifactLockWaitPolicy::new(Duration::from_millis(2), Duration::from_millis(2))
         .with_max_wait(Duration::from_secs(2))
         .with_cancellation(cancellation_token);
@@ -431,13 +427,16 @@ fn cancellation_interrupts_access_denied_open_retry() {
         &mut last_log,
         |_| {
             attempts += 1;
+            if attempts == 2 {
+                // Cancel only after the real retry has reached the injected opener.
+                cancel_on_second_attempt.request_cancel("cancel open retry");
+            }
             Err(std::io::Error::from_raw_os_error(5))
         },
     )
     .expect_err("cancellation must interrupt open retry");
 
-    canceller.join().expect("canceller thread");
-    assert!(attempts > 1);
+    assert_eq!(attempts, 2);
     assert!(error.to_string().contains("cancel open retry"));
 }
 

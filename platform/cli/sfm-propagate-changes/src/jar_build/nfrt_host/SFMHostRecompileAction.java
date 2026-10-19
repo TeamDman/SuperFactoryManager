@@ -11,6 +11,7 @@ import net.neoforged.neoform.runtime.graph.ExecutionNodeAction;
 import javax.tools.Diagnostic;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -90,60 +91,99 @@ final class SFMHostRecompileAction implements ExecutionNodeAction {
     @Override public void computeCacheKey(CacheKeyBuilder builder) { original.computeCacheKey(builder); }
 
     @Override public void run(ProcessingEnvironment environment) throws IOException, InterruptedException {
-        unchanged();
-        if (!workspace.equals(environment.getWorkspace().toAbsolutePath().normalize()))
-            throw new IOException("Compiler belongs to another declared workspace");
-        var sources = environment.getRequiredInputPath("sources");
-        var classpath = paths("getEffectiveClasspath", environment);
-        var sourcepath = paths("getEffectiveSourcepath", environment);
-        unchanged();
-        Path classes = Files.createDirectory(workspace.resolve("classes"));
-        try (var sourceFs = FileSystems.newFileSystem(URI.create("jar:" + sources.toUri()), Map.of())) {
-            Path sourceRoot = sourceFs.getRootDirectories().iterator().next();
-            var sourcePaths = new ArrayList<Path>();
-            var resources = new ArrayList<Path>();
-            try (var files = Files.walk(sourceRoot).filter(Files::isRegularFile)) {
-                files.forEach(path -> { if (path.getFileName().toString().endsWith(".java")) sourcePaths.add(path); else resources.add(path); });
+        String node = String.valueOf(workspace.getFileName());
+        try (var actionTiming = SFMHostTiming.start("recompile_action", node)) {
+            Path sources;
+            List<Path> classpath;
+            List<Path> sourcepath;
+            Path classes;
+            try (var timing = SFMHostTiming.start("recompile_setup", node)) {
+                unchanged();
+                if (!workspace.equals(environment.getWorkspace().toAbsolutePath().normalize()))
+                    throw new IOException("Compiler belongs to another declared workspace");
+                sources = environment.getRequiredInputPath("sources");
+                classpath = paths("getEffectiveClasspath", environment);
+                sourcepath = paths("getEffectiveSourcepath", environment);
+                unchanged();
+                classes = Files.createDirectory(workspace.resolve("classes"));
+                timing.success((long) classpath.size() + sourcepath.size(), -1);
             }
-            var compiler = ToolProvider.getSystemJavaCompiler();
-            if (compiler == null) throw new IOException("Selected owned JVM has no compiler");
-            System.err.println(" Compiling " + sourcePaths.size() + " source files with lease-compatible output");
-            javax.tools.DiagnosticListener<javax.tools.JavaFileObject> diagnostics = diagnostic -> {
-                if (environment.isVerbose() || diagnostic.getKind() == Diagnostic.Kind.ERROR)
-                    System.err.println(" " + diagnostic.getKind() + " Line: " + diagnostic.getLineNumber() + ", "
-                            + diagnostic.getMessage(null) + " in " + (diagnostic.getSource() == null ? "<unknown>" : diagnostic.getSource().getName()));
-            };
-            try (var manager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
-                manager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, List.of(classes));
-                manager.setLocationFromPaths(StandardLocation.CLASS_PATH, classpath);
-                manager.setLocationFromPaths(StandardLocation.SOURCE_PATH, sourcepath);
-                if (!compiler.getTask(null, manager, diagnostics, options(original), null,
-                        manager.getJavaFileObjectsFromPaths(sourcePaths)).call()) throw new IOException("Compilation failed");
+            try (var sourceFs = FileSystems.newFileSystem(URI.create("jar:" + sources.toUri()), Map.of())) {
+                Path sourceRoot = sourceFs.getRootDirectories().iterator().next();
+                var sourcePaths = new ArrayList<Path>();
+                var resources = new ArrayList<Path>();
+                try (var timing = SFMHostTiming.start("recompile_source_inventory", node)) {
+                    try (var files = Files.walk(sourceRoot).filter(Files::isRegularFile)) {
+                        files.forEach(path -> { if (path.getFileName().toString().endsWith(".java")) sourcePaths.add(path); else resources.add(path); });
+                    }
+                    timing.success((long) sourcePaths.size() + resources.size(), -1);
+                }
+                try (var compilerTiming = SFMHostTiming.start("recompile_compiler", node)) {
+                    var compiler = ToolProvider.getSystemJavaCompiler();
+                    if (compiler == null) throw new IOException("Selected owned JVM has no compiler");
+                    System.err.println(" Compiling " + sourcePaths.size() + " source files with lease-compatible output");
+                    javax.tools.DiagnosticListener<javax.tools.JavaFileObject> diagnostics = diagnostic -> {
+                        if (environment.isVerbose() || diagnostic.getKind() == Diagnostic.Kind.ERROR)
+                            System.err.println(" " + diagnostic.getKind() + " Line: " + diagnostic.getLineNumber() + ", "
+                                    + diagnostic.getMessage(null) + " in " + (diagnostic.getSource() == null ? "<unknown>" : diagnostic.getSource().getName()));
+                    };
+                    try (var manager = compiler.getStandardFileManager(diagnostics, Locale.ROOT, StandardCharsets.UTF_8)) {
+                        manager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, List.of(classes));
+                        manager.setLocationFromPaths(StandardLocation.CLASS_PATH, classpath);
+                        manager.setLocationFromPaths(StandardLocation.SOURCE_PATH, sourcepath);
+                        var task = compiler.getTask(null, manager, diagnostics, options(original), null,
+                                manager.getJavaFileObjectsFromPaths(sourcePaths));
+                        try (var timing = SFMHostTiming.start("javac_recompile", workspace.getFileName().toString())) {
+                            if (!task.call()) throw new IOException("Compilation failed");
+                            timing.success(sourcePaths.size(), -1);
+                        }
+                    }
+                    compilerTiming.success(sourcePaths.size(), -1);
+                }
+                try (var archiveTiming = SFMHostTiming.start("recompile_archive", node)) {
+                    unchanged();
+                    Path output = environment.getOutputPath("output");
+                    if (!output.toAbsolutePath().normalize().equals(workspace.resolve("output.jar")))
+                        throw new IOException("Compiler output left its exact declared path");
+                    long compilerOutputCount;
+                    long compilerOutputBytes = 0;
+                    long resourceBytes = 0;
+                    try (var stream = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(output, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), 64 * 1024))) {
+                        var directories = new java.util.HashSet<String>();
+                        try (var files = Files.walk(classes).filter(Files::isRegularFile)) {
+                            List<Path> classPaths;
+                            try (var timing = SFMHostTiming.start("recompile_class_output_inventory", node)) {
+                                classPaths = files.sorted().toList();
+                                timing.success(classPaths.size(), -1);
+                            }
+                            compilerOutputCount = classPaths.size();
+                            try (var timing = SFMHostTiming.start("recompile_class_output_archive", node)) {
+                                for (Path path : classPaths) {
+                                    String name = classes.relativize(path).toString().replace('\\', '/');
+                                    writeParents(stream, name, directories);
+                                    stream.putNextEntry(new ZipEntry(name));
+                                    compilerOutputBytes += Files.copy(path, stream); stream.closeEntry();
+                                }
+                                timing.success(compilerOutputCount, compilerOutputBytes);
+                            }
+                        }
+                        try (var timing = SFMHostTiming.start("recompile_resource_archive", node)) {
+                            for (Path resource : resources) {
+                                String name = sourceRoot.relativize(resource).toString().replace('\\', '/');
+                                writeParents(stream, name, directories);
+                                stream.putNextEntry(new ZipEntry(name));
+                                resourceBytes += Files.copy(resource, stream); stream.closeEntry();
+                            }
+                            timing.success(resources.size(), resourceBytes);
+                        }
+                    }
+                    archiveTiming.success(compilerOutputCount + resources.size(), compilerOutputBytes + resourceBytes);
+                }
+                System.err.println("Copied " + resources.size() + " resource files");
             }
             unchanged();
-            Path output = environment.getOutputPath("output");
-            if (!output.toAbsolutePath().normalize().equals(workspace.resolve("output.jar")))
-                throw new IOException("Compiler output left its exact declared path");
-            try (var stream = new ZipOutputStream(Files.newOutputStream(output, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))) {
-                var directories = new java.util.HashSet<String>();
-                try (var files = Files.walk(classes).filter(Files::isRegularFile)) {
-                    for (Path path : files.sorted().toList()) {
-                        String name = classes.relativize(path).toString().replace('\\', '/');
-                        writeParents(stream, name, directories);
-                        stream.putNextEntry(new ZipEntry(name));
-                        Files.copy(path, stream); stream.closeEntry();
-                    }
-                }
-                for (Path resource : resources) {
-                    String name = sourceRoot.relativize(resource).toString().replace('\\', '/');
-                    writeParents(stream, name, directories);
-                    stream.putNextEntry(new ZipEntry(name));
-                    Files.copy(resource, stream); stream.closeEntry();
-                }
-            }
-            System.err.println("Copied " + resources.size() + " resource files");
+            actionTiming.success(-1, -1);
         }
-        unchanged();
     }
 
     private static void writeParents(ZipOutputStream stream, String name, java.util.Set<String> directories) throws IOException {

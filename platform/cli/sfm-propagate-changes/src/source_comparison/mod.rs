@@ -16,3 +16,5 @@ pub use prepare::prepare;
 pub mod preparation_receipt;
 #[cfg(test)]
 mod tests;
+
+pub(crate) mod namespace_moves;

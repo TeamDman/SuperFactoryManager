@@ -74,6 +74,14 @@ public final class SFMGamePuppetHelper {
     private final List<SFMPuppetAction> actions = new ArrayList<>();
     private int currentAction = 0;
 
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+    /** Opt-in bounded commands for one already-created disposable superflat world. */
+    public void manageSession(String test) {
+        add(new ca.teamdman.sfm.gametest.puppet.action.ManagedSessionPuppetAction(test));
+    }
+{% endcase %}
+
     public void createFreshFlatWorld() {
         add(new CreateFreshWorldPuppetAction());
     }
@@ -2338,6 +2346,13 @@ public final class SFMGamePuppetHelper {
     public void abortCurrentAction() {
         if (!isComplete()) actions.get(currentAction).abort();
     }
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+
+    /** A declared relog is distinct from the user cancelling a ready capture world. */
+    public boolean permitsWorldTransition() {
+        return !isComplete() && actions.get(currentAction).permitsWorldTransition();
+    }
+{% endif %}
 
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
@@ -2402,6 +2417,9 @@ public final class SFMGamePuppetHelper {
 
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
+{% if features.issue_610_visual_evidence %}
+    public void issue610EnergyEvidence() { add(new Issue610EnergyEvidencePuppetAction()); }
+{% endif %}
     private void add(SFMPuppetAction action) {
         if (currentAction != 0) {
             throw new IllegalStateException("Cannot add game puppet actions after execution has begun");

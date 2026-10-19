@@ -82,7 +82,7 @@ public final class SfmJUnitRunner {
             if (result.getTestsFoundCount() == 0) {
                 System.exit(4);
             }
-            System.exit(result.getTestsFailedCount() == 0 ? 0 : 1);
+            System.exit(result.getTestsFailedCount() == 0 && result.getContainersFailedCount() == 0 ? 0 : 1);
         } catch (Throwable error) {
             emitter.emit("runner_error", error.toString(), stackTrace(error));
             System.exit(2);

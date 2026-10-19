@@ -226,7 +226,9 @@ pub(crate) fn prepare_child_command(
         }
     }
     let mut command = Command::new(java);
-    command.args(&request.jvm_args);
+    // Validate the original request above before applying our execution budget.
+    // Pinned recipes with an explicit heap remain byte-for-byte unchanged.
+    command.args(bounded_child_jvm_args(&request.jvm_args)?);
     if let Some(main) = &request.main_class {
         ensure!(
             !main.is_empty() && !main.starts_with('-'),
@@ -1225,6 +1227,42 @@ mod original_function_binding_tests {
             "prefix{libraries}",
         ] {
             assert_eq!(graph_function_argument(argument, "1.20.2", true), argument);
+        }
+    }
+}
+
+fn bounded_child_jvm_args(original: &[String]) -> Result<Vec<String>> {
+    let mut result = original.to_vec();
+    if !original
+        .iter()
+        .any(|arg| arg.starts_with("-Xmx") || arg.starts_with("-XX:MaxHeapSize="))
+    {
+        result.push(super::java_max_heap_mib::JavaMaxHeapMib::new(2048)?.argument());
+    }
+    Ok(result)
+}
+
+#[cfg(test)]
+mod heap_budget_tests {
+    use super::bounded_child_jvm_args;
+    #[test]
+    fn undeclared_heap_is_bounded_without_changing_original_options() {
+        for original in [
+            vec![],
+            vec!["--sun-misc-unsafe-memory-access=allow".to_owned()],
+        ] {
+            let effective = bounded_child_jvm_args(&original).unwrap();
+            assert_eq!(&effective[..original.len()], original.as_slice());
+            assert_eq!(effective.last().unwrap(), "-Xmx2048m");
+        }
+    }
+    #[test]
+    fn declared_recipe_heap_is_preserved_exactly() {
+        for original in [
+            vec!["-Xmx4g".to_owned()],
+            vec!["-XX:MaxHeapSize=4294967296".to_owned()],
+        ] {
+            assert_eq!(bounded_child_jvm_args(&original).unwrap(), original);
         }
     }
 }

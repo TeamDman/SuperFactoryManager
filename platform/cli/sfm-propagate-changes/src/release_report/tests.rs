@@ -123,11 +123,71 @@ fn compact_patch_highlights_escaped_changes_without_custom_navigation() {
 #[test]
 fn frozen_source_payloads_remain_serialized_without_duplicate_explorer_views() {
     let doc: super::document::ReleaseReportDocument = facet_json::from_str(r#"{"schema":"sfm:release-report-input@1","title":"test","generated_utc":"test","summary":"test","limitations":[],"sections":[],"cases":[],"diffs":[{"id":"hidden-frozen","title":"Frozen source","language":"java","before":"class Historical {}","after":"class Historical { int n; }","evidence_only":true},{"id":"current","title":"Current source","language":"java","before":"class A {}","after":"class A { int n; }"}],"images":[],"jars":[]}"#).unwrap();
-    let (html, _) = super::render::render_diffs(&doc, &mut std::collections::BTreeSet::new(), &crate::cancellation::CancellationToken::new()).unwrap();
+    let (html, _) = super::render::render_diffs(
+        &doc,
+        &mut std::collections::BTreeSet::new(),
+        &crate::cancellation::CancellationToken::new(),
+    )
+    .unwrap();
     assert!(!html.contains("hidden-frozen"));
     assert!(html.contains("id=\"current\""));
-    assert!(facet_json::to_string(&doc).unwrap().contains("class Historical { int n; }"));
-    let (_, supporting) = super::source_explorer::render(&doc, &html);
+    assert!(
+        facet_json::to_string(&doc)
+            .unwrap()
+            .contains("class Historical { int n; }")
+    );
+    let (_, supporting) = super::source_explorer::render(&doc, &html, "", "");
     assert!(!supporting.contains("hidden-frozen"));
     assert!(supporting.contains("Current source"));
+}
+
+#[test]
+fn font_embedding_cannot_publish_an_article_that_crosses_the_final_cap() {
+    let root = tempfile::tempdir().unwrap();
+    let output = root.path().join("oversized-article.html");
+    let limit = 32 * 1024 * 1024;
+    let shell = "<html><head></head><body></body></html>";
+    let before_fonts = format!(
+        "<html><head></head><body>{}</body></html>",
+        "x".repeat(limit - shell.len() - 1)
+    );
+    assert_eq!(before_fonts.len(), limit - 1);
+    let html = super::fonts::embed(&before_fonts);
+    assert!(html.len() > limit);
+    assert!(html.contains("data:font/woff2;base64,"));
+    assert!(html.contains("SIL OPEN FONT LICENSE Version 1.1"));
+    let error = super::render::write_html(
+        &output,
+        &html,
+        true,
+        &crate::cancellation::CancellationToken::new(),
+    )
+    .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("editorial HTML exceeds 33554432")
+    );
+    assert!(!output.exists());
+
+    let valid = "<html><head></head><body>bounded</body></html>";
+    super::render::write_html(
+        &output,
+        valid,
+        true,
+        &crate::cancellation::CancellationToken::new(),
+    )
+    .unwrap();
+    assert_eq!(std::fs::read_to_string(&output).unwrap(), valid);
+}
+
+#[test]
+fn final_article_and_generic_html_budgets_keep_their_exact_boundaries() {
+    let article_cap = 32 * 1024 * 1024;
+    let generic_cap = 64 * 1024 * 1024;
+    super::render::validate_final_html_size(article_cap, true).unwrap();
+    assert!(super::render::validate_final_html_size(article_cap + 1, true).is_err());
+    super::render::validate_final_html_size(article_cap + 1, false).unwrap();
+    super::render::validate_final_html_size(generic_cap, false).unwrap();
+    assert!(super::render::validate_final_html_size(generic_cap + 1, false).is_err());
 }

@@ -162,6 +162,9 @@ pub struct CoreProjectCompileArgs {
     /// Existing SDK home; compiler release and tool JVM remain separate.
     #[facet(args::named)]
     pub java_home: PathBuf,
+    /// Compile-only root for isolated derived outputs; pinned downloads stay shared.
+    #[facet(default, args::named)]
+    pub cache_root: Option<PathBuf>,
     #[facet(default = false, args::named)]
     pub explain_rebuild: bool,
     #[facet(default = false, args::named)]
@@ -284,6 +287,20 @@ fn invoke_native_compile(
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
     let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let cache_root = args
+        .cache_root
+        .as_deref()
+        .map(|path| {
+            crate::jar_build::engine::preflight_named_cache_root(
+                path,
+                &initial.repo_root,
+                &initial
+                    .repo_root
+                    .join(initial.catalog.project_dir(&args.project.projection)?),
+                &home,
+            )
+        })
+        .transpose()?;
     let report = project_report(
         &args.project,
         GenerationPolicy::BuildRun,
@@ -310,11 +327,11 @@ fn invoke_native_compile(
         "named compile build metadata changed after generation"
     );
     let frozen = crate::jar_build::prepare_named_frozen_recipe_project(checked, recipe)?;
-    frozen.recheck(false)?;
     let result = crate::jar_build::invoke_named_compile(
         frozen,
         &crate::jar_build::NamedCompileOptions {
             java_home: home,
+            cache_root,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -328,6 +345,10 @@ fn invoke_native_jar(
     cancellation: &CancellationToken,
     invocation_dir: &Path,
 ) -> Result<CliOutput> {
+    ensure!(
+        args.cache_root.is_none(),
+        "--cache-root is supported by source project compile only"
+    );
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, true, cancellation, invocation_dir);
     }
@@ -371,6 +392,7 @@ fn invoke_native_jar(
         frozen,
         &crate::jar_build::NamedCompileOptions {
             java_home: home,
+            cache_root: None,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -417,6 +439,20 @@ fn invoke_native_development(
     )?;
     let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
     cancellation.bail_if_cancelled()?;
+    let cache_root = args
+        .cache_root
+        .as_deref()
+        .map(|path| {
+            crate::jar_build::engine::preflight_named_cache_root(
+                path,
+                &initial.repo_root,
+                &initial
+                    .repo_root
+                    .join(initial.catalog.project_dir(&args.project.projection)?),
+                &home,
+            )
+        })
+        .transpose()?;
     let checked = collected.prepare_development()?;
     Ok(CliOutput::facet(
         crate::jar_build::invoke_development_project(
@@ -424,6 +460,7 @@ fn invoke_native_development(
             profile,
             &crate::jar_build::NamedCompileOptions {
                 java_home: home,
+                cache_root,
                 explain_rebuild: args.explain_rebuild,
                 wait_for_build_lock: args.wait_for_build_lock,
             },
@@ -799,6 +836,30 @@ mod tests {
     use std::process::Command;
 
     #[test]
+    fn native_compile_cache_root_parses_explicit_path_and_defaults_absent() {
+        let base = [
+            "--repo-root",
+            "must-not-be-read",
+            "--projection",
+            "unused",
+            "--java-home",
+            "must-not-be-read",
+        ];
+        let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
+        assert!(default.cache_root.is_none());
+        let mut explicit = base.to_vec();
+        explicit.extend(["--cache-root", "C:/sfm cache fixture"]);
+        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&explicit).unwrap();
+        assert_eq!(
+            parsed.cache_root,
+            Some(PathBuf::from("C:/sfm cache fixture"))
+        );
+        let error =
+            invoke_native_jar(&parsed, &CancellationToken::new(), Path::new(".")).unwrap_err();
+        assert!(error.to_string().contains("compile only"));
+    }
+
+    #[test]
     fn native_recipe_and_development_profile_are_exclusive_before_effects() {
         let args = CoreProjectCompileArgs {
             project: CoreProjectSelectionArgs {
@@ -808,6 +869,7 @@ mod tests {
             released_recipe: Some("unused".to_owned()),
             dependency_profile: Some("rust-toolchain".to_owned()),
             java_home: PathBuf::from("must-not-be-read"),
+            cache_root: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
         };

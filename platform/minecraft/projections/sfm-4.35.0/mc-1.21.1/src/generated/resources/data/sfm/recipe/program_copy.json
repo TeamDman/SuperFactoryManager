@@ -1,0 +1,12 @@
+{
+  "type": "sfm:printing_press",
+  "form": {
+    "item": "sfm:disk"
+  },
+  "ink": {
+    "tag": "c:dyes/black"
+  },
+  "paper": {
+    "item": "sfm:disk"
+  }
+}

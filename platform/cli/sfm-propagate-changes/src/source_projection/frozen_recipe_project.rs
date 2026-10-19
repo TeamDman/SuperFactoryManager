@@ -6,6 +6,9 @@
 //! proves the selected source membership; the frozen recipe proves dependency
 //! roles. Both identities remain independent of any legacy branch name.
 
+#[path = "frozen_recipe_metadata.rs"]
+mod frozen_recipe_metadata;
+
 use super::catalog_owned_project::CatalogOwnedProject;
 use super::catalog_owned_project::CatalogOwnedProjectReceipt;
 use super::core_catalog::read_bounded_catalog_input;
@@ -44,6 +47,8 @@ pub struct FrozenRecipeProjectReceipt {
     pub prepared_inputs: PreparedDependencyReceipt,
     pub source_lock_binding: FrozenRecipeInputBinding,
     pub role_bindings: BTreeMap<String, FrozenRecipeInputBinding>,
+    /// Selected project metadata, independently of the pinned dependency recipe.
+    pub project_mod_version: String,
     pub compiler_release: u16,
     pub tool_jvm_minimum: u16,
     pub jdk_identity: Option<String>,
@@ -60,7 +65,8 @@ pub struct FrozenRecipeInputBinding {
     pub authored_sha256: String,
     pub authored_bytes: usize,
     pub declared_template: bool,
-    /// Exact role bytes supplied to the frozen recipe, after approved rendering.
+    /// Exact dependency-role bytes supplied to the recipe. A properties role may
+    /// retain its pinned version while `authored_sha256` binds selected metadata.
     pub raw_sha256: String,
     pub bytes: usize,
 }
@@ -135,15 +141,36 @@ impl FrozenRecipeProject {
         &self,
         source_set: &str,
     ) -> Result<FrozenRecipeSourceExclusionPolicy> {
+        let relative = self.source_exclusion_relative(source_set)?;
+        self.recheck(false)?;
+        self.checked_source_exclusion_policy(source_set, relative)
+    }
+
+    pub(crate) fn retained_source_exclusion_policy(
+        &self,
+        source_set: &str,
+    ) -> Result<FrozenRecipeSourceExclusionPolicy> {
+        let relative = self.source_exclusion_relative(source_set)?;
+        self.recheck_retained_authority()?;
+        self.checked_source_exclusion_policy(source_set, relative)
+    }
+
+    fn source_exclusion_relative(&self, source_set: &str) -> Result<String> {
         ensure!(
             matches!(source_set, "main" | "test" | "gametest" | "datagen"),
             "unknown frozen recipe source set: {source_set}"
         );
-        self.recheck(false)?;
-        let relative = format!(
+        Ok(format!(
             "gradle/source-excludes/{}/{source_set}-java.txt",
             self.receipt.ownership.minecraft_version,
-        );
+        ))
+    }
+
+    fn checked_source_exclusion_policy(
+        &self,
+        source_set: &str,
+        relative: String,
+    ) -> Result<FrozenRecipeSourceExclusionPolicy> {
         // All authenticated released recipes apply exclusions only to main,
         // test and gametest. Datagen's empty policy is explicit, not a fallback
         // to arbitrary physical files or a missing required recipe input.
@@ -200,6 +227,29 @@ impl FrozenRecipeProject {
     pub fn recheck(&self, refresh: bool) -> Result<()> {
         refuse_refresh(refresh)?;
         self.project.recheck()?;
+        self.recheck_recipe_authority()
+    }
+
+    /// Check current recipe authority for the retained all-hit source snapshot.
+    /// This is private to the admitted orchestration; ordinary effects continue
+    /// to use `recheck`, including full authored/generated source membership.
+    #[tracing::instrument(name = "frozen_recipe.recheck_retained_authority", skip_all)]
+    pub(crate) fn recheck_retained_authority(&self) -> Result<()> {
+        let mut outputs = BTreeSet::from([
+            self.receipt.source_lock_binding.output.as_str(),
+            "gradle.properties",
+        ]);
+        outputs.extend(
+            self.receipt
+                .role_bindings
+                .values()
+                .map(|role| role.output.as_str()),
+        );
+        self.project.recheck_retained_inputs(&outputs)?;
+        self.recheck_recipe_authority()
+    }
+
+    fn recheck_recipe_authority(&self) -> Result<()> {
         let configuration =
             read_bounded_catalog_input(self.project.repo_root(), BUILD_CONFIGURATION_PATH)?;
         ensure!(
@@ -217,13 +267,22 @@ impl FrozenRecipeProject {
             binding(&lock, raw) == self.receipt.source_lock_binding,
             "frozen recipe source-lock binding changed"
         );
+        let properties = self.project.selected_input("gradle.properties")?;
+        ensure!(
+            frozen_recipe_metadata::mod_version(properties.require_exact_copy()?)
+                .map_err(|error| eyre::eyre!(error))?
+                == self.receipt.project_mod_version,
+            "frozen recipe selected project mod_version changed"
+        );
         for (path, expected) in &self.receipt.role_bindings {
-            let input = self.project.authored_input(path)?;
+            let (input, bytes) = selected_frozen_role(
+                &self.project,
+                path,
+                &self.receipt.ownership.target_id,
+                &self.receipt.ownership.minecraft_version,
+            )?;
             ensure!(
-                binding(
-                    &input,
-                    frozen_role_bytes(&input, &self.receipt.ownership.minecraft_version)?
-                ) == *expected,
+                binding(&input, &bytes) == *expected,
                 "frozen recipe selected role binding changed: {path}"
             );
         }
@@ -302,19 +361,10 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
         "frozen selected source-lock bytes differ from the reviewed recipe"
     );
     let source_lock_binding = binding(&lock, raw_lock);
-    let mut role_bytes = BTreeMap::new();
-    let mut role_bindings = BTreeMap::new();
-    for witness in &recipe.role_input_hashes {
-        let input = project.authored_input(&witness.path)?;
-        let bytes = frozen_role_bytes(&input, &recipe.minecraft_version)?;
-        ensure!(
-            sha256(bytes) == format!("sha256:{}", witness.sha256),
-            "frozen selected role bytes differ from the reviewed recipe: {}",
-            witness.path
-        );
-        role_bindings.insert(witness.path.clone(), binding(&input, bytes));
-        role_bytes.insert(witness.path.clone(), bytes.to_vec());
-    }
+    let PreparedFrozenRoles {
+        bytes: role_bytes,
+        bindings: role_bindings,
+    } = prepare_frozen_roles(&project, &recipe)?;
     let reviewed = review_released_native_inputs_from_configuration(
         configuration,
         &ReleasedNativeRequest {
@@ -331,6 +381,11 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     let released = reviewed.require_exact_bytes(&witnesses)?;
     let released_receipt = released.receipt().clone();
     let dependencies = Arc::new(PreparedDependencyInputs::from_released(released, false)?);
+    let selected_properties = project.selected_input("gradle.properties")?;
+    let project_mod_version =
+        frozen_recipe_metadata::mod_version(selected_properties.require_exact_copy()?)
+            .map_err(|error| eyre::eyre!(error))?
+            .to_owned();
     let receipt = FrozenRecipeProjectReceipt {
         schema: "sfm:frozen_recipe_project@1".to_owned(),
         scope: "read_only_checked_recipe_preparation_not_native_build".to_owned(),
@@ -339,6 +394,7 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
         prepared_inputs: dependencies.receipt().clone(),
         source_lock_binding,
         role_bindings,
+        project_mod_version,
         compiler_release: recipe.platform.java_major,
         tool_jvm_minimum,
         jdk_identity: None,
@@ -360,6 +416,109 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     };
     prepared.recheck(false)?;
     Ok(prepared)
+}
+
+struct PreparedFrozenRoles {
+    bytes: BTreeMap<String, Vec<u8>>,
+    bindings: BTreeMap<String, FrozenRecipeInputBinding>,
+}
+
+fn prepare_frozen_roles(
+    project: &CatalogOwnedProject,
+    recipe: &FrozenRecipeIndexRow,
+) -> Result<PreparedFrozenRoles> {
+    let mut role_bytes = BTreeMap::new();
+    let mut role_bindings = BTreeMap::new();
+    for witness in &recipe.role_input_hashes {
+        let (input, bytes) = selected_frozen_role(
+            project,
+            &witness.path,
+            &recipe.target,
+            &recipe.minecraft_version,
+        )?;
+        ensure!(
+            sha256(&bytes) == format!("sha256:{}", witness.sha256),
+            "frozen selected role bytes differ from the reviewed recipe: {}",
+            witness.path
+        );
+        role_bindings.insert(witness.path.clone(), binding(&input, &bytes));
+        role_bytes.insert(witness.path.clone(), bytes);
+    }
+    Ok(PreparedFrozenRoles {
+        bytes: role_bytes,
+        bindings: role_bindings,
+    })
+}
+
+/// Select the unique reviewed dependency identity, never a release name.
+/// No artifacts are acquired and every original recipe remains unchanged.
+pub(crate) fn select_frozen_recipe_for_project(project: &CatalogOwnedProject) -> Result<String> {
+    use frozen_recipe_metadata::DependencyRecipeIdentity;
+
+    project.recheck()?;
+    let bytes = read_bounded_catalog_input(project.repo_root(), BUILD_CONFIGURATION_PATH)?;
+    let index = recipe_index_from_configuration(std::str::from_utf8(&bytes)?)?;
+    let lock = project.selected_input(LOCK_OUTPUT)?;
+    let lock_sha256 = sha256(lock.require_exact_copy()?);
+    let reviewed = index
+        .targets
+        .iter()
+        .map(|recipe| {
+            Ok(DependencyRecipeIdentity {
+                target: &recipe.target,
+                minecraft_version: &recipe.minecraft_version,
+                java_major: recipe.platform.java_major,
+                loader: compiler_and_tool_boundary(recipe)?.0,
+                source_lock_path: &recipe.source_lock.path,
+                source_lock_sha256: &recipe.source_lock.sha256,
+                recipe_id: &recipe.recipe_id,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let owner = project.receipt();
+    let selected = DependencyRecipeIdentity {
+        target: &owner.target_id,
+        minecraft_version: &owner.minecraft_version,
+        java_major: owner.java_major,
+        loader: &owner.loader,
+        source_lock_path: lock.source_path(),
+        source_lock_sha256: lock_sha256
+            .strip_prefix("sha256:")
+            .ok_or_else(|| eyre::eyre!("lock identity does not use SHA-256"))?,
+        recipe_id: "",
+    };
+    frozen_recipe_metadata::select_dependency_recipe(&reviewed, &selected)
+        .map(str::to_owned)
+        .map_err(|error| eyre::eyre!(error))
+}
+
+/// Keep all recipe roles exact. Only the version-properties role may select
+/// another core-owned raw input, with a byte proof of mod_version-only change.
+fn selected_frozen_role<'a>(
+    project: &'a CatalogOwnedProject,
+    path: &str,
+    target: &str,
+    minecraft_version: &str,
+) -> Result<(super::catalog_owned_project::CatalogOwnedInput<'a>, Vec<u8>)> {
+    let properties_path = format!(
+        "{}/build/versions/{target}/gradle.properties",
+        super::core_inputs::CORE_ROOT
+    );
+    if path == properties_path {
+        let input = project.selected_input("gradle.properties")?;
+        if input.source_path() != path {
+            let projected = input.require_exact_copy()?;
+            // The exact reviewed path and checksum remain dependency evidence;
+            // reading it grants no arbitrary role, output, or cache fallback.
+            let pinned = read_bounded_catalog_input(project.repo_root(), path)?;
+            frozen_recipe_metadata::prove_mod_version_only(&pinned, projected)
+                .map_err(|error| eyre::eyre!(error))?;
+            return Ok((input, pinned));
+        }
+    }
+    let input = project.authored_input(path)?;
+    let bytes = frozen_role_bytes(&input, minecraft_version)?.to_vec();
+    Ok((input, bytes))
 }
 
 fn binding(
@@ -513,7 +672,7 @@ fn refuse_refresh(refresh: bool) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::source_projection::candidate_lock::checked_file;
     use crate::source_projection::catalog_owned_project::tests::Fixture;
@@ -569,13 +728,19 @@ mod tests {
                     .map(|input| input.path.clone()),
             )
             .collect();
-        let projected =
+        let mut projected =
             super::super::core_release_project_role_fixtures::release_project_role_outputs_selected(
                 repo,
                 &context,
                 &selection,
                 &wanted,
             )?;
+        if recipe.target == "26.1.2" {
+            projected.insert(
+                recipe.source_lock.path.clone(),
+                include_bytes!("fixtures/released-2612-original-schema2.json").to_vec(),
+            );
+        }
         let mut fixture = Fixture::new_for_target(&recipe.target);
         let configuration_path = fixture.repository().join(BUILD_CONFIGURATION_PATH);
         fs::create_dir_all(
@@ -583,7 +748,15 @@ mod tests {
                 .parent()
                 .expect("configuration has a parent"),
         )?;
-        fs::copy(repo.join(BUILD_CONFIGURATION_PATH), &configuration_path)?;
+        // Only the isolated fixture receives the historical review configuration.
+        // Production configuration and its stronger lock/producer admission remain untouched.
+        fs::write(
+            &configuration_path,
+            REVIEW.replace(
+                "sfm:core_released_native_adapter_review@1",
+                "sfm:released_native_build_configuration@1",
+            ),
+        )?;
         let mut roles = Vec::new();
         for source_path in std::iter::once(recipe.source_lock.path.as_str()).chain(
             recipe
@@ -613,6 +786,20 @@ mod tests {
         }
         fixture.set_project_files_for(&recipe.target, roles)?;
         Ok(fixture)
+    }
+
+    /// Import the actual target's pinned roles through the existing selector
+    /// and bounded release renderer, including the three permitted exclusions.
+    /// This helper returns an isolated fixture; it grants no production policy.
+    pub(crate) fn fixture_for_target(target: &str) -> Result<(Fixture, usize, String)> {
+        let recipe = recipe_index()?
+            .targets
+            .into_iter()
+            .find(|recipe| recipe.target == target)
+            .ok_or_else(|| eyre::eyre!("unknown frozen fixture target: {target}"))?;
+        let fixture = fixture_for(&recipe)?;
+        let slot = slot(&recipe)?;
+        Ok((fixture, slot, recipe.recipe_id))
     }
 
     fn slot(recipe: &FrozenRecipeIndexRow) -> Result<usize> {
@@ -976,6 +1163,7 @@ mod tests {
         assert_eq!(binding.authored_sha256, sha256(template.as_bytes()));
         assert_ne!(binding.authored_sha256, binding.raw_sha256);
         prepared.recheck(false)?;
+        prepared.recheck_retained_authority()?;
 
         // Authored changes invalidate the snapshot even when the release branch
         // is unchanged. The selected output remains its original exact bytes.
@@ -985,6 +1173,7 @@ mod tests {
             changed_inactive.as_bytes(),
         )?;
         assert!(prepared.recheck(false).is_err());
+        assert!(prepared.recheck_retained_authority().is_err());
         assert_eq!(fs::read(root.join(&output))?, raw.as_bytes());
 
         let mut fixture = fixture_for(&recipe)?;
@@ -1039,6 +1228,121 @@ mod tests {
             fs::write(&source, saved)?;
             assert!(!root.join("build").exists());
         }
+        Ok(())
+    }
+
+    #[test]
+    fn release_mod_version_metadata_is_independent_of_immutable_dependency_recipe() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let root = fixture.publish(&key);
+        let original = prepare(&fixture, &key, &recipe)?;
+        assert_eq!(
+            select_frozen_recipe_for_project(original.project())?,
+            recipe.recipe_id
+        );
+        let pinned_path = format!(
+            "{CORE_ROOT}/build/versions/{}/gradle.properties",
+            recipe.target
+        );
+        let pinned = fs::read(fixture.repository().join(&pinned_path))?;
+        let projected =
+            std::str::from_utf8(&pinned)?.replace("mod_version=4.34.0", "mod_version=4.35.0");
+        fixture.set_project_file_for(
+            &recipe.target,
+            "gradle.properties",
+            "build/features/new_release/gradle.properties",
+            projected.as_bytes(),
+            false,
+        )?;
+        // Stage only this temporary fixture output; keep the dirty guard intact.
+        fs::write(root.join("gradle.properties"), projected.as_bytes())?;
+        fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        assert_eq!(prepared.receipt().project_mod_version, "4.35.0");
+        assert_eq!(
+            prepared.receipt().prepared_inputs,
+            original.receipt().prepared_inputs
+        );
+        assert_eq!(
+            prepared.receipt().released_inputs,
+            original.receipt().released_inputs
+        );
+        assert_eq!(
+            select_frozen_recipe_for_project(prepared.project())?,
+            recipe.recipe_id
+        );
+        let role = &prepared.receipt().role_bindings[&pinned_path];
+        assert_eq!(role.output, "gradle.properties");
+        assert!(
+            role.authored_input
+                .ends_with("build/features/new_release/gradle.properties")
+        );
+        assert_eq!(role.raw_sha256, sha256(&pinned));
+        assert_ne!(role.authored_sha256, role.raw_sha256);
+        prepared.recheck(false)?;
+        // The unselected original remains pinned evidence on every recheck.
+        fs::write(
+            fixture.repository().join(&pinned_path),
+            b"changed frozen dependency role",
+        )?;
+        assert!(prepared.recheck(false).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn metadata_separation_refuses_loader_changes_and_changed_lock_selection() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let pinned_path = format!(
+            "{CORE_ROOT}/build/versions/{}/gradle.properties",
+            recipe.target
+        );
+        let pinned = fs::read(fixture.repository().join(&pinned_path))?;
+        let projected = std::str::from_utf8(&pinned)?
+            .replace("mod_version=4.34.0", "mod_version=4.35.0")
+            .replace("neo_version=43.4.0", "neo_version=43.4.1");
+        fixture.set_project_file_for(
+            &recipe.target,
+            "gradle.properties",
+            "build/features/new_release/gradle.properties",
+            projected.as_bytes(),
+            false,
+        )?;
+        let root = fixture.publish(&key);
+        assert!(
+            prepare(&fixture, &key, &recipe)
+                .unwrap_err()
+                .to_string()
+                .contains("more than mod_version")
+        );
+        let raw = fs::read(fixture.repository().join(&recipe.source_lock.path))?;
+        let mut changed_lock = raw;
+        changed_lock.push(b' ');
+        let lock_input = recipe
+            .source_lock
+            .path
+            .strip_prefix(&format!("{CORE_ROOT}/"))
+            .ok_or_else(|| eyre::eyre!("fixture lock must be core-owned"))?;
+        fixture.set_project_file_for(
+            &recipe.target,
+            LOCK_OUTPUT,
+            lock_input,
+            &changed_lock,
+            false,
+        )?;
+        // Stage only the temporary fixture lock, without a dirty override.
+        fs::write(root.join(LOCK_OUTPUT), &changed_lock)?;
+        fixture.publish(&key);
+        let project = fixture.collect(&key)?.check_current()?;
+        assert!(
+            select_frozen_recipe_for_project(&project)
+                .unwrap_err()
+                .to_string()
+                .contains("no matching reviewed dependency recipe")
+        );
         Ok(())
     }
 
@@ -1345,6 +1649,237 @@ mod tests {
             )
             .is_err()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn retained_authority_rejects_raw_selected_lock_role_and_properties_mutations() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        let mut outputs = BTreeSet::from([LOCK_OUTPUT, "gradle.properties"]);
+        outputs.extend(
+            prepared
+                .receipt()
+                .role_bindings
+                .values()
+                .map(|role| role.output.as_str()),
+        );
+        for output in outputs {
+            let input = prepared.project().selected_input(output)?;
+            for path in [
+                fixture.repository().join(input.source_path()),
+                prepared.project().project_root().join(output),
+            ] {
+                let original = fs::read(&path)?;
+                let mut changed = original.clone();
+                // Lock whitespace is semantically valid but not the pinned raw identity.
+                changed.extend_from_slice(b" \n");
+                fs::write(&path, &changed)?;
+                assert!(
+                    prepared.recheck_retained_authority().is_err(),
+                    "{}",
+                    path.display()
+                );
+                assert_eq!(fs::read(&path)?, changed);
+                assert_eq!(
+                    prepared.dependencies().raw_source_lock_bytes(),
+                    prepared
+                        .project()
+                        .selected_input(LOCK_OUTPUT)?
+                        .source_bytes()
+                );
+                fs::write(&path, original)?;
+                prepared.recheck_retained_authority()?;
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn retained_authority_rejects_raw_context_and_review_configuration_mutations() -> Result<()> {
+        use crate::source_projection::core_features::FEATURE_DEFINITIONS_PATH;
+        use crate::source_projection::projection_catalog::CATALOG_PATH;
+
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        for relative in [
+            CATALOG_PATH,
+            FEATURE_DEFINITIONS_PATH,
+            CORE_METADATA_PATH,
+            BUILD_CONFIGURATION_PATH,
+        ] {
+            let path = fixture.repository().join(relative);
+            let original = fs::read(&path)?;
+            let mut changed = original.clone();
+            changed.extend_from_slice(b" \n");
+            fs::write(&path, &changed)?;
+            assert!(prepared.recheck_retained_authority().is_err(), "{relative}");
+            assert_eq!(fs::read(&path)?, changed);
+            fs::write(&path, original)?;
+            prepared.recheck_retained_authority()?;
+        }
+        let ignore = fixture.repository().join(".gitignore");
+        fs::write(ignore, "/platform/minecraft/projections/\n")?;
+        assert!(prepared.recheck_retained_authority().is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn retained_authority_uses_admitted_bodies_while_public_recheck_stays_strict() -> Result<()> {
+        use crate::source_projection::catalog_owned_project::source_check_observation;
+        use crate::source_projection::nfrt_project_owner::NfrtProjectOwner;
+        use crate::source_projection::retained_nfrt_project_owner::RetainedNfrtProjectOwner;
+        use std::cell::RefCell;
+        use std::rc::Rc;
+
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let root = fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        let owner = RetainedNfrtProjectOwner::from_admitted(&prepared)?;
+        assert_eq!(
+            owner.preparation_identity()?,
+            prepared.receipt().preparation_identity()?
+        );
+        assert!(std::ptr::eq(owner.project(), prepared.project()));
+        let retained = prepared.project().retained_selected_inputs()?;
+        let body = retained
+            .iter()
+            .find(|input| input.output_path().ends_with("/Shared.java"))
+            .ok_or_else(|| eyre::eyre!("fixture has no retained Java body"))?;
+        let authored = fixture.repository().join(body.source_path());
+        let generated = root.join(body.output_path());
+        let observed = Rc::new(RefCell::new(Vec::new()));
+        let events = Rc::clone(&observed);
+        let _scope =
+            source_check_observation::install(move |event| events.borrow_mut().push(event));
+        fs::remove_file(&authored)?;
+        fs::remove_file(&generated)?;
+        prepared.recheck_retained_authority()?;
+        owner.recheck_source()?;
+        assert!(
+            observed.borrow().is_empty(),
+            "narrow authority must not call full checks"
+        );
+        assert!(!body.source_bytes().is_empty());
+        assert!(!body.output_bytes().is_empty());
+        assert!(NfrtProjectOwner::recheck_source(&prepared).is_err());
+        assert!(prepared.recheck(false).is_err());
+        fs::write(&authored, body.source_bytes())?;
+        fs::write(&generated, body.output_bytes())?;
+        for path in [
+            fixture
+                .repository()
+                .join(CORE_ROOT)
+                .join("src/main/java/Unowned.java"),
+            root.join("src/main/java/Unowned.java"),
+        ] {
+            fs::write(&path, b"class Unowned {}\n")?;
+            prepared.recheck_retained_authority()?;
+            assert!(prepared.recheck(false).is_err());
+            fs::remove_file(path)?;
+        }
+        fs::write(&generated, b"class Changed {}\n")?;
+        prepared.recheck_retained_authority()?;
+        assert!(prepared.recheck(false).is_err());
+        assert_eq!(fs::read(generated)?, b"class Changed {}\n");
+        Ok(())
+    }
+
+    #[test]
+    fn retained_selected_view_does_not_admit_physical_unselected_paths() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let root = fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        let unselected = "unselected-authority.json";
+        fs::write(root.join(unselected), b"{}")?;
+        let view = prepared.project().retained_selected_inputs()?;
+        assert_eq!(view.len(), prepared.project().receipt().files.len());
+        assert!(view.iter().all(|input| input.output_path() != unselected));
+        for output in [unselected, "../escape", "C:/outside.json"] {
+            assert!(prepared.project().selected_input(output).is_err());
+            assert!(
+                prepared
+                    .project()
+                    .recheck_retained_inputs(&BTreeSet::from([output]))
+                    .is_err()
+            );
+        }
+        prepared.recheck_retained_authority()?;
+        Ok(())
+    }
+
+    #[test]
+    fn retained_authority_preserves_original_properties_version_witness() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let pinned_path = format!(
+            "{CORE_ROOT}/build/versions/{}/gradle.properties",
+            recipe.target
+        );
+        let pinned = fs::read(fixture.repository().join(&pinned_path))?;
+        let projected =
+            std::str::from_utf8(&pinned)?.replace("mod_version=4.34.0", "mod_version=4.35.0");
+        fixture.set_project_file_for(
+            &recipe.target,
+            "gradle.properties",
+            "build/features/new_release/gradle.properties",
+            projected.as_bytes(),
+            false,
+        )?;
+        let root = fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        let binding = &prepared.receipt().role_bindings[&pinned_path];
+        assert_ne!(binding.authored_input, pinned_path);
+        assert_eq!(binding.raw_sha256, sha256(&pinned));
+        assert_eq!(prepared.receipt().project_mod_version, "4.35.0");
+        prepared.recheck_retained_authority()?;
+        // This path is deliberately no longer selected; it remains original evidence.
+        let mut changed = pinned;
+        changed.extend_from_slice(b" \n");
+        fs::write(fixture.repository().join(&pinned_path), changed)?;
+        assert!(prepared.recheck_retained_authority().is_err());
+        assert_eq!(
+            fs::read(root.join("gradle.properties"))?,
+            projected.as_bytes()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn retained_exclusion_policy_preserves_exact_roles_and_datagen_absence() -> Result<()> {
+        let recipe = primary_recipe()?;
+        let fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        let root = fixture.publish(&key);
+        let prepared = prepare(&fixture, &key, &recipe)?;
+        for source_set in ["main", "test", "gametest"] {
+            let strict = prepared.source_exclusion_policy(source_set)?;
+            let retained = prepared.retained_source_exclusion_policy(source_set)?;
+            assert_eq!(retained.output, strict.output);
+            assert_eq!(retained.patterns, strict.patterns);
+        }
+        let unowned = root.join("gradle/source-excludes/1.19.2/datagen-java.txt");
+        fs::write(unowned, b"\xff{% untrusted physical policy %}\n")?;
+        let datagen = prepared.retained_source_exclusion_policy("datagen")?;
+        assert!(datagen.patterns.is_empty());
+        assert_eq!(datagen.output, None);
+        for unknown in ["unknown", "generated", "../main", ""] {
+            assert!(prepared.retained_source_exclusion_policy(unknown).is_err());
+        }
+        let relative = "gradle/source-excludes/1.19.2/main-java.txt";
+        fs::write(root.join(relative), b"unreviewed exclusions\n")?;
+        assert!(prepared.retained_source_exclusion_policy("main").is_err());
         Ok(())
     }
 }

@@ -16,6 +16,12 @@ pub struct RunClientArgs {
     /// Build and launch options.
     #[facet(flatten)]
     pub options: ProjectionClientOptions,
+    /// Persistent runtime slot; defaults to the lowest free positive slot for this projection.
+    #[facet(default, args::named)]
+    pub runtime_slot: Option<u32>,
+    /// Explicitly share the selected slot's gameDir; options/log/config writes may contend. Minecraft retains its native world lock.
+    #[facet(default, args::named)]
+    pub share_runtime: bool,
     /// SFM checkout containing platform/cli/sfm to build with its existing lockfile. Also enables the worker in an interactive client.
     #[facet(default, args::named)]
     pub control_cli_source_root: Option<PathBuf>,
@@ -84,8 +90,13 @@ impl RunClientArgs {
     ///
     /// Returns an error if planning, building, or launching fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+        if self.smoke && self.puppet.is_none() {
+            self.validate_smoke_options()?;
+        }
         let Self {
             options,
+            runtime_slot,
+            share_runtime,
             control_cli_source_root,
             text_editor,
             input_diag,
@@ -101,6 +112,10 @@ impl RunClientArgs {
             mute,
             keep_open,
         } = self;
+        eyre::ensure!(
+            !share_runtime || runtime_slot.is_some(),
+            "--share-runtime requires explicit --runtime-slot"
+        );
         let client_hotswap_port = resolve_hotswap_port(hotswap, hotswap_port)?;
         if smoke && puppet.is_some() {
             eyre::bail!("--smoke and --puppet cannot be used together.");
@@ -116,6 +131,8 @@ impl RunClientArgs {
             return options.invoke(
                 RunKind::GameTestPreview,
                 RunOptions {
+                    runtime_slot,
+                    share_runtime,
                     game_puppet_filter: Some(puppet.to_owned()),
                     game_puppet_game_test: super::normalize_game_puppet_game_test(game_test)?,
                     game_puppet_keep_open: crate::jar_build::GamePuppetKeepOpen::from_cli(
@@ -133,22 +150,11 @@ impl RunClientArgs {
             );
         }
         if smoke {
-            if text_editor
-                || input_diag
-                || title_screen.is_some()
-                || hotswap
-                || hotswap_port.is_some()
-                || width.is_some()
-                || height.is_some()
-                || keep_open.is_some()
-                || game_test.is_some()
-                || control_cli_source_root.is_some()
-            {
-                eyre::bail!("--smoke cannot be combined with interactive or puppet-only flags.");
-            }
             return options.invoke(
                 RunKind::ClientSmoke,
                 RunOptions {
+                    runtime_slot,
+                    share_runtime,
                     client_solo: solo,
                     ..RunOptions::default()
                 },
@@ -169,6 +175,8 @@ impl RunClientArgs {
         options.invoke(
             RunKind::Client,
             RunOptions {
+                runtime_slot,
+                share_runtime,
                 client_title_screen: title_screen,
                 control_cli_source_root,
                 client_solo: solo,
@@ -177,6 +185,27 @@ impl RunClientArgs {
             },
             cancellation_token,
         )
+    }
+    fn validate_smoke_options(&self) -> eyre::Result<()> {
+        eyre::ensure!(
+            !self.share_runtime || self.runtime_slot.is_some(),
+            "--share-runtime requires explicit --runtime-slot"
+        );
+        resolve_hotswap_port(self.hotswap, self.hotswap_port)?;
+        eyre::ensure!(
+            !self.text_editor
+                && !self.input_diag
+                && self.title_screen.is_none()
+                && !self.hotswap
+                && self.hotswap_port.is_none()
+                && self.width.is_none()
+                && self.height.is_none()
+                && self.keep_open.is_none()
+                && self.game_test.is_none()
+                && self.control_cli_source_root.is_none(),
+            "--smoke cannot be combined with interactive or puppet-only flags."
+        );
+        Ok(())
     }
 }
 

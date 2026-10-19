@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "sfm:tunnelled_manager"
+    }
+  ],
+  "result": {
+    "item": "sfm:manager"
+  }
+}

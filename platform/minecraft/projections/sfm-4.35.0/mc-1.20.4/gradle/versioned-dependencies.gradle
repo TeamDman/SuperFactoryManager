@@ -1,0 +1,33 @@
+if (project.ext.has('sfmDependenciesConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmConfigurationsConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle requires versioned-configurations.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmRepositoriesConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle requires repositories.gradle to be applied first")
+}
+
+def sfmDependenciesVersion = project.minecraft_version.toString()
+def sfmDependenciesScript = file("gradle/dependencies/${sfmDependenciesVersion}/dependencies.gradle")
+
+if (!sfmDependenciesScript.isFile()) {
+    def available = file("gradle/dependencies")
+            .listFiles()
+            ?.findAll { it.isDirectory() }
+            ?.collect { it.name }
+            ?.sort()
+            ?.join(', ')
+    throw new GradleException(
+            "No dependencies script found for minecraft_version=${sfmDependenciesVersion}. "
+            + "Expected ${sfmDependenciesScript}. Available versions: ${available ?: '(none)'}"
+    )
+}
+
+ext.sfmDependenciesVersion = sfmDependenciesVersion
+
+apply from: sfmDependenciesScript
+
+ext.sfmDependenciesConfigured = true

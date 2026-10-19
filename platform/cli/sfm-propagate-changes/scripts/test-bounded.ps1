@@ -51,7 +51,7 @@ $moduleRoots = @(
     'release_review_v1', 'release_review_working_tree',
     'review_session_v1', 'review_session_v2', 'source_archive',
     'source_audit', 'source_cache', 'source_comparison', 'source_decompile', 'source_git',
-    'source_maven', 'source_projection', 'source_provider',
+    'source_maven', 'source_projection', 'source_provider', 'startup_argv',
     'syntax_highlight', 'toolchain_lockfile_schema',
     'toolchain_lockfile_write'
 )
@@ -59,7 +59,8 @@ $integrationTargets = @(
     'java_analysis_scenarios',
     'release_review_git_test',
     'release_review_materialize_test',
-    'source_jar_absence_cli_test'
+    'source_jar_absence_cli_test',
+    'startup_argv_cli_tests'
 )
 $fixture = 'cli::source::promotion_cli::tests::real_pinned_tag_inputs_flow_through_fictional_ten_target_immutable_apply'
 $standaloneTests = @(

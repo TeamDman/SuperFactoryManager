@@ -10834,8 +10834,8 @@
       "recipe_id": "sfm:released-native-inputs/4.34.0/26.1.2@1",
       "source_lock": {
         "path": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2.json",
-        "sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
-        "bytes": 50153,
+        "sha256": "2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f",
+        "bytes": 50479,
         "schema_version": 2,
         "minecraft_version": "26.1.2",
         "dependency_count": 8,
@@ -11108,7 +11108,7 @@
         [
           18,
           "mekanism:Mekanism:26.1.2-10.8.0.86",
-          "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+          "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62",
           "source-build",
           [
             "recorded_dependency:implementation",
@@ -11118,7 +11118,7 @@
         [
           19,
           "mekanism:Mekanism:26.1.2-10.8.0.86:api",
-          "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
+          "blake3:b5e829e94223c179b4a196b8fc098213c10a242d",
           "source-build",
           [
             "recorded_dependency:compileOnly",
@@ -11742,7 +11742,7 @@
           "source": "Maven",
           "dynamic_version": false,
           "artifact_index": 18,
-          "artifact_hash": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+          "artifact_hash": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62",
           "gradle_line": 64,
           "gradle_wrap": "plain",
           "artifact_treatment": "plain",
@@ -11757,7 +11757,7 @@
           "source": "Maven",
           "dynamic_version": false,
           "artifact_index": 19,
-          "artifact_hash": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
+          "artifact_hash": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d",
           "gradle_line": 65,
           "gradle_wrap": "plain",
           "artifact_treatment": "plain",

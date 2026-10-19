@@ -61,7 +61,7 @@ pub fn compare(
         limitations: vec![
             "Pinned Git inputs compare source trees; they do not reconstruct an old Liquid catalog.".into(),
             "Byte allowances are explicit directional views. Original bytes and SHA-256 remain evidence.".into(),
-            "Only unique byte-identical removed/added pairs are grouped as moves; ambiguous copies remain separate.".into(),
+            "Moves require unique byte matches or unique advancement namespace tails with full JSON equality after exactly two self-recipe identifier rewrites. Raw changed contents remain compared; ambiguous pairs remain separate.".into(),
             "Source changes do not establish behavioral equivalence. No class/debug-metadata classification is inferred.".into(),
             "Windows directory executable modes are unknown. Mode equality is separate from byte equality.".into(),
             "Local inputs are captured during the invocation; concurrently edited directories are not atomic filesystem snapshots.".into(),
@@ -97,6 +97,7 @@ fn unique_moves<'a>(
             moves.insert(new[0], old[0]);
         }
     }
+    super::namespace_moves::extend(left, right, &mut moves);
     moves
 }
 

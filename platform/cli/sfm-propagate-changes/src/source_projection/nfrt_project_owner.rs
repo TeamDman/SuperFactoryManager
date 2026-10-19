@@ -13,7 +13,7 @@ use super::provenance::sha256;
 use eyre::Result;
 use eyre::ensure;
 
-mod sealed {
+pub(super) mod sealed {
     pub trait Sealed {}
 }
 

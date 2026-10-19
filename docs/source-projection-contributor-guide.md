@@ -232,6 +232,26 @@ Contributors can build the ordinary generated project under `platform/minecraft/
 
 From the selected generated root, contributors can run `./gradlew jar` or `.\gradlew.bat jar`. Development projections may require `-PsfmProfile=rust-toolchain` for their captured bundled dependencies. The native development builds use that explicit profile; they do not prove compilation with the default Gradle profile.
 
+### Validated 4.35.0 visitor build
+
+The `sfm-4.35.0/mc-1.19.2` generated root was copied independently and built with JDK 17 and its Gradle 7.5 wrapper, with Rust and `sfm-propagate-changes` absent from PATH. Main/datagen compilation, the two namespace regression tests and `jar` packaging passed using an existing dependency cache. A cold machine and the other targets have not been tested this way. See the [release validation evidence](tasks/sfm-4.35.0-release-projection-validation.md).
+
+Enter `platform/minecraft/projections/sfm-4.35.0/mc-1.19.2` and select an installed JDK 17. Keep the checked-in wrapper, build scripts and dependency versions. For bounded Windows commands:
+
+```powershell
+$env:JAVA_HOME = '<installed-jdk-17>'
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+$visitorGradleArgs = @('--no-daemon', '--max-workers=1', '-Dorg.gradle.jvmargs=-Xmx2G -XX:ActiveProcessorCount=2')
+.\gradlew.bat @visitorGradleArgs clean
+.\gradlew.bat @visitorGradleArgs compileJava compileDatagenJava
+.\gradlew.bat @visitorGradleArgs test --tests ca.teamdman.sfm.test.Issue621RecipeNamespaceTests
+.\gradlew.bat @visitorGradleArgs processResources jar
+```
+
+Run `clean` in its own invocation: this Forge configuration can prepare Minecraft dependencies under `build/fg_cache` before tasks run; a combined `clean compileJava` removed them and failed. Separate compilation recreated them successfully without source/dependency changes. Existing caches speed dependency resolution but do not prove a cold-machine build. First-time resolution needs access to the wrapper, plugin and dependency repositories. Compilation does not run Minecraft or datagen.
+
+`jar` currently produces a named development archive; its task graph does not include Forge production reobfuscation. Do not treat it as a validated game-ready release. Datagen execution, production reobfuscation and runtime checks remain separate. Automated repository work still requires the active AGENTS rules or an explicit scoped exception.
+
 The twenty-project static audit verifies required scripts, wrapper entry points and literal script references. It does not execute Gradle or prove dynamic dependency resolution. Use the wrapper and profile selected by that exact projection; do not copy build files from another Minecraft version.
 
 ## Adoption and historical reference

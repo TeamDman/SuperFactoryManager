@@ -1,0 +1,12 @@
+{
+  "type": "sfm:printing_press",
+  "form": {
+    "item": "minecraft:filled_map"
+  },
+  "ink": {
+    "tag": "c:dyes/black"
+  },
+  "paper": {
+    "item": "minecraft:map"
+  }
+}

@@ -55,6 +55,7 @@ pub(super) struct AuthenticatedMinecraftChild {
     exact_url: String,
     expected_sha1: ContentHash,
     expected_bytes: u64,
+    library_rules: Vec<super::library_rule::LibraryRule>,
 }
 
 impl AuthenticatedMinecraftChild {
@@ -68,6 +69,14 @@ impl AuthenticatedMinecraftChild {
 
     pub(super) fn expected_bytes(&self) -> u64 {
         self.expected_bytes
+    }
+
+    pub(super) fn library_allowed_for_target(&self, os: &str, arch: &str) -> Result<bool> {
+        let path = self
+            .library_relative_path()
+            .ok_or_else(|| eyre::eyre!("platform selection requires a library child"))?;
+        super::library_platform::allows(path, &self.library_rules, os, arch)
+            .map_err(|message| eyre::eyre!(message))
     }
 
     pub(super) fn library_relative_path(&self) -> Option<&str> {
@@ -303,6 +312,8 @@ struct CompileDownload {
 #[derive(Debug, Facet)]
 struct CompileLibrary {
     #[facet(default)]
+    rules: Vec<super::library_rule::LibraryRule>,
+    #[facet(default)]
     downloads: Option<CompileLibraryDownloads>,
 }
 
@@ -413,13 +424,14 @@ fn parse_authenticated_parent(
                 "Minecraft library file/directory collision"
             );
         }
-        let child = child_request(
+        let mut child = child_request(
             &parent,
             ChildRole::Library(artifact.path.clone()),
             artifact.url,
             &artifact.sha1,
             exact_integer_size(&artifact.size)?,
         )?;
+        child.library_rules = library.rules;
         let parsed = Url::parse(&child.exact_url)?;
         ensure!(
             parsed.path() == format!("/{}", artifact.path),
@@ -501,6 +513,7 @@ fn child_request(
         exact_url: url,
         expected_sha1,
         expected_bytes: size,
+        library_rules: Vec::new(),
     })
 }
 
@@ -568,6 +581,23 @@ mod tests {
                 .starts_with("https://libraries.minecraft.net/")
         );
         inputs.verify_child_bytes(libraries[0], CHILD)?;
+        Ok(())
+    }
+
+    #[test]
+    fn platform_rules_remain_authenticated_and_windows_selection_is_unchanged() -> Result<()> {
+        let text = metadata().replace(
+            "\"libraries\":[{",
+            "\"libraries\":[{\"rules\":[{\"action\":\"allow\",\"os\":{\"name\":\"osx\"}}],",
+        );
+        let inputs = parse(&text)?;
+        let child = inputs.libraries().next().unwrap();
+        assert!(!child.library_allowed_for_target("linux", "x86_64")?);
+        assert!(child.library_allowed_for_target("windows", "x86_64")?);
+        inputs.verify_child_bytes(child, CHILD)?;
+        let mut changed = child.clone();
+        changed.library_rules.clear();
+        assert!(inputs.verify_child_bytes(&changed, CHILD).is_err());
         Ok(())
     }
 

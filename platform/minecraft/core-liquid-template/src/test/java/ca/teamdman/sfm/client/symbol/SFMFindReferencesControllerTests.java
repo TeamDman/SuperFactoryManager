@@ -392,7 +392,7 @@ class SFMFindReferencesControllerTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         workspace,
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\src", "main", "main", "src"))),
+                                SFMSymbolServerProtocolTests.fixturePath("workspace/src").toString(), "main", "main", "src"))),
                 "{}"
         );
     }

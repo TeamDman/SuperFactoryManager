@@ -49,9 +49,10 @@ impl State {
 
         let content = std::fs::read_to_string(&state_file).wrap_err("Failed to read state file")?;
 
-        let state: State = facet_styx::from_str(&content).wrap_err("Failed to parse state file")?;
-
-        Ok(state)
+        let status = sfm_styx_state::decode(&content).wrap_err("Failed to parse state file")?;
+        Ok(Self {
+            status: status.into(),
+        })
     }
 
     /// Save state to the state file
@@ -63,7 +64,8 @@ impl State {
         APP_HOME.ensure_dir()?;
 
         let state_file = APP_HOME.file_path(STATE_FILE);
-        let content = facet_styx::to_string(self).wrap_err("Failed to serialize state to Styx")?;
+        let content = sfm_styx_state::encode((&self.status).into())
+            .wrap_err("Failed to serialize state to Styx")?;
 
         std::fs::write(&state_file, content).wrap_err("Failed to write state file")?;
 
@@ -79,5 +81,43 @@ impl State {
     pub fn reset(&mut self) -> eyre::Result<()> {
         self.status = Status::Idle;
         self.save()
+    }
+}
+
+impl From<sfm_styx_state::PropagationState> for Status {
+    fn from(status: sfm_styx_state::PropagationState) -> Self {
+        match status {
+            sfm_styx_state::PropagationState::Idle => Self::Idle,
+            sfm_styx_state::PropagationState::MergingWithConflict {
+                source_branch,
+                source_path,
+                dest_branch,
+                dest_path,
+            } => Self::MergingWithConflict {
+                source_branch,
+                source_path: source_path.into(),
+                dest_branch,
+                dest_path: dest_path.into(),
+            },
+        }
+    }
+}
+
+impl From<&Status> for sfm_styx_state::PropagationState {
+    fn from(status: &Status) -> Self {
+        match status {
+            Status::Idle => Self::Idle,
+            Status::MergingWithConflict {
+                source_branch,
+                source_path,
+                dest_branch,
+                dest_path,
+            } => Self::MergingWithConflict {
+                source_branch: source_branch.clone(),
+                source_path: source_path.0.to_string_lossy().into_owned(),
+                dest_branch: dest_branch.clone(),
+                dest_path: dest_path.0.to_string_lossy().into_owned(),
+            },
+        }
     }
 }

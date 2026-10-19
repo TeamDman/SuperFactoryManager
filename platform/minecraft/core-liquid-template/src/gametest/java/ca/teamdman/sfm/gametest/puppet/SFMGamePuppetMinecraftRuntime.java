@@ -333,15 +333,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
-{% case minecraft_version %}
-{% when "1.19.2" %}
     public String puppetWorldId() {
         return active.worldId;
     }
 
     @Override
-{% when "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% endcase %}
     @MCVersionDependentBehaviour
     public boolean createFreshFlatWorld() {
 
@@ -424,8 +420,6 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         return true;
     }
 
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
     @Override
     public void prepareGameTest() {
         if (active.gameTestStartRequested
@@ -438,8 +432,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         active.gameTestInfo = null;
         active.gameTestOrigin = null;
         active.gameTestBounds = null;
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
         active.gameTestName = null;
+{% endcase %}
     }
+
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     @Override
     public boolean runGameTest(String testName) {
@@ -577,14 +578,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (gameTestInfo == null) {
             throw new IllegalStateException("No completed GameTest is available for orbit capture");
         }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
         AABB bounds = active.gameTestBounds != null
                 ? active.gameTestBounds
                 : gameTestInfo.getStructureBounds();
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-        AABB bounds = gameTestInfo.getStructureBounds();
-{% endcase %}
         if (bounds == null) {
             throw new IllegalStateException("Completed GameTest has no structure bounds for orbit capture");
         }
@@ -3908,6 +3904,10 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             GuiGraphics guiGraphics = new GuiGraphics(minecraft, minecraft.renderBuffers().bufferSource());
             int y = SFMGamePuppetHarness.CAPTION_VERTICAL_PADDING;
             for (FormattedCharSequence line : captionLayout.lines()) {
+{% case minecraft_version %}
+{% when '1.21.1' %}
+                guiGraphics.drawString(minecraft.font, line, SFMGamePuppetHarness.CAPTION_HORIZONTAL_PADDING, y, 0xFF000000, false);
+{% else %}
                 SFMFontUtils.draw(
                         guiGraphics,
                         minecraft.font,
@@ -3917,6 +3917,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                         0xFF000000,
                         false
                 );
+{% endcase %}
                 y += minecraft.font.lineHeight;
             }
             guiGraphics.flush();

@@ -1,0 +1,41 @@
+NAME "AE2 Inscribers"
+
+-- labels:
+-- logic, engineering, calculation, silicon, last => inscribers
+-- materials, results => chests
+EVERY 20 TICKS DO
+    INPUT FROM materials
+
+    OUTPUT RETAIN 2 gold_ingot TO EACH logic SLOTS 2
+    OUTPUT RETAIN 2 diamond TO EACH engineering SLOTS 2
+    OUTPUT RETAIN 2 certus_quartz_crystal TO EACH calculation SLOTS 2
+
+    OUTPUT RETAIN 2 silicon TO EACH silicon SLOTS 2
+
+    OUTPUT RETAIN 2 redstone TO EACH last SLOTS 2
+    OUTPUT RETAIN 2 printed_silicon TO EACH last SLOTS 1
+
+    OUTPUT
+        RETAIN 2 printed_calculation_processor,
+        RETAIN 2 printed_engineering_processor,
+        RETAIN 2 printed_logic_processor
+    TO EACH last SLOTS 0
+FORGET
+    INPUT FROM logic, engineering, calculation, silicon west side
+    output to materials
+FORGET
+    INPUT FROM last west SIDE
+    OUTPUT TO results
+END
+EVERY 200 TICKS DO
+    IF SOME last HAS LT 3 THEN
+-- There's a partially filled inscriber.
+-- We want to shuffle ingredients to make sure there isn't a full craft
+-- that is improperly distributed.
+-- This trigger interval should be longer than the time it takes
+-- to process a single craft so that SFM doesn't sabotage the crafting
+-- process by pulling out ingredients from inscribers that have enough.
+        INPUT FROM last
+        OUTPUT TO materials
+    END
+END

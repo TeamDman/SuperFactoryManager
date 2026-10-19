@@ -1,3 +1,23 @@
+#[path = "project_compilation_cache.rs"]
+mod project_compilation_cache;
+#[path = "project_compile_identity.rs"]
+mod project_compile_identity;
+
+#[path = "dependency_deobf_producer.rs"]
+mod dependency_deobf_producer;
+#[cfg(test)]
+#[path = "dependency_deobf_producer_tests.rs"]
+mod dependency_deobf_producer_tests;
+#[cfg(test)]
+#[path = "dependency_remap_mapping_tests.rs"]
+mod dependency_remap_mapping_tests;
+
+use dependency_deobf_producer::DependencyDeobfProducer;
+
+#[cfg(windows)]
+#[path = "dependency_remap_cache.rs"]
+mod dependency_remap_cache;
+
 #[derive(Debug, Facet)]
 struct NodeState {
     schema_version: u32,
@@ -70,6 +90,19 @@ fn java_tool_launch_cwd<'a>(
 }
 
 impl<'a> ExecutionContext<'a> {
+    fn require_all_hit_compilation_binding(&self) -> eyre::Result<()> {
+        if self.plan.retained_inputs().is_some() {
+            let bound = self.verify_compilation_outputs && self.compiler_image_identity.is_some();
+            #[cfg(any(windows, target_os = "linux"))]
+            let bound = bound && self.compiler_image.is_some();
+            if !bound {
+                self.plan
+                    .require_strict("verified compilation manifest and held SDK image required")?;
+            }
+        }
+        Ok(())
+    }
+
     fn new(plan: &'a BuildPlan, cancellation_token: CancellationToken) -> eyre::Result<Self> {
         cancellation_token.bail_if_cancelled()?;
         plan.recheck_named_inputs()?;
@@ -91,11 +124,24 @@ impl<'a> ExecutionContext<'a> {
             cancellation_token,
             minecraft_libraries_cache: Mutex::new(None),
             held_neoform_compile_jar: None,
+            immutable_neoform_profile: false,
+            verify_compilation_outputs: false,
+            compiler_image_identity: None,
+            #[cfg(any(windows, target_os = "linux"))]
+            compiler_image: None,
         })
     }
 
     fn bail_if_cancelled(&self) -> eyre::Result<()> {
         self.cancellation_token.bail_if_cancelled()
+    }
+
+    fn recheck_compiler_image(&self) -> eyre::Result<()> {
+        #[cfg(any(windows, target_os = "linux"))]
+        if let Some(image) = self.compiler_image {
+            image.recheck(&self.cancellation_token)?;
+        }
+        Ok(())
     }
 
     fn write_node_state(
@@ -194,7 +240,7 @@ impl<'a> ExecutionContext<'a> {
     fn assert_allowed_input(&self, path: &Path) -> eyre::Result<()> {
         let canonical = canonicalize_lenient(path)?;
         for forbidden in &self.forbidden_input_roots {
-            if canonical.starts_with(forbidden) {
+            if super::build_snapshot_receipt::relative_spelling(forbidden, &canonical).is_some() {
                 eyre::bail!(
                     "Clean-slate jar build attempted to read forbidden Gradle output path: {}",
                     path.display()
@@ -266,6 +312,7 @@ impl<'a> ExecutionContext<'a> {
         work_dir: &Path,
         launch_scratch: Option<&RetainedSpecialSourceScratch>,
     ) -> eyre::Result<()> {
+        self.plan.require_strict("Java transform tool")?;
         let tool = self.artifact(ArtifactId::from(tool_id))?;
         self.assert_allowed_input(&tool.cache_path)?;
         for path in extra_classpath {
@@ -373,504 +420,37 @@ impl<'a> ExecutionContext<'a> {
     }
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "clean-slate MCP executor is being split incrementally"
-)]
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    fields(mc = %context.plan.minecraft_version)
-)]
+#[cfg(windows)]
+#[path = "forge_preparation_cache.rs"]
+mod forge_preparation_cache;
+
 fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let client = Client::builder()
-        .user_agent("sfm-propagate-changes/no-gradle-toolchain")
-        .build()
-        .wrap_err("Failed to create HTTP client")?;
-    let mcp_root = context
-        .plan
-        .cache_dir
-        .join("mcp")
-        .join(context.plan.minecraft_version.as_str())
-        .join("joined");
-    fs::create_dir_all(&mcp_root)?;
-    let output = mcp_root.join("patch").join("joined-patched-sources.jar");
-    if output.is_file() && !context.plan.refresh {
-        tracing::info!(
-            output = %output.display(),
-            "mcp_config_joined cache hit"
+    #[cfg(windows)]
+    if forge_preparation_cache::eligible(context) {
+        return forge_preparation_cache::execute(
+            context,
+            "mcp",
+            || execute_mcp_config_joined_uncached(context, true),
+            |_| execute_mcp_config_joined_uncached(context, false),
         );
-        tracing::info!(
-            "Build node execute-mcp-config-joined: reusing {}",
-            output.display()
-        );
-        context.write_node_state(
-            "execute-mcp-config-joined",
-            &["Minecraft client/server jars", "MCPConfig config.json"],
-            &[output],
-            "cached",
-        )?;
-        return Ok(());
     }
-    tracing::info!(
-        output = %output.display(),
-        refresh = context.plan.refresh,
-        "mcp_config_joined cache miss"
-    );
-
-    let client_jar = context.plan.minecraft_version_cache_dir.join("client.jar");
-    let server_bundle = context
-        .plan
-        .minecraft_version_cache_dir
-        .join("server-bundle.jar");
-    let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
-
-    download_compile_child(
-        context,
-        &client,
-        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientJar,
-        &client_jar,
-    )?;
-    context.bail_if_cancelled()?;
-    download_compile_child(
-        context,
-        &client,
-        authenticated_minecraft_inputs::MinecraftCompileDownload::ServerJar,
-        &server_bundle,
-    )?;
-    context.bail_if_cancelled()?;
-    download_compile_child(
-        context,
-        &client,
-        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientMappings,
-        &client_mappings,
-    )?;
-    context.bail_if_cancelled()?;
-
-    context.assert_allowed_input(&client_jar)?;
-    context.assert_allowed_input(&server_bundle)?;
-    context.assert_allowed_input(&client_mappings)?;
-
-    let mcp_config = context.artifact(ArtifactId::from("mcp-config"))?;
-    context.assert_allowed_input(&mcp_config.cache_path)?;
-    let data_dir = mcp_root.join("data");
-    fs::create_dir_all(&data_dir)?;
-    let joined_tsrg = data_dir.join("joined.tsrg");
-    extract_zip_entry_to_path(&mcp_config.cache_path, "config/joined.tsrg", &joined_tsrg)?;
-    context.bail_if_cancelled()?;
-
-    let extract_server = mcp_root.join("extractServer").join("output.jar");
-    context.run_java_tool(
-        "tool-installer-tools-1-3",
-        &[],
-        &[
-            "--task".to_string(),
-            "bundler_extract".to_string(),
-            "--input".to_string(),
-            server_bundle.display().to_string(),
-            "--output".to_string(),
-            extract_server.display().to_string(),
-            "--jar-only".to_string(),
-        ],
-        &mcp_root.join("extractServer"),
-    )?;
-
-    let merged_mappings = mcp_root.join("mergeMappings").join("output.tsrg");
-    context.run_java_tool(
-        "tool-installer-tools-1-2",
-        &[],
-        &[
-            "--task".to_string(),
-            "MERGE_MAPPING".to_string(),
-            "--left".to_string(),
-            joined_tsrg.display().to_string(),
-            "--right".to_string(),
-            client_mappings.display().to_string(),
-            "--right-names".to_string(),
-            "right,left".to_string(),
-            "--classes".to_string(),
-            "--output".to_string(),
-            merged_mappings.display().to_string(),
-        ],
-        &mcp_root.join("mergeMappings"),
-    )?;
-
-    let mapped_classes = read_tsrg_original_classes(&joined_tsrg)?;
-    let stripped_client = mcp_root.join("stripClient").join("output.jar");
-    copy_filtered_jar(&client_jar, &stripped_client, &mapped_classes)?;
-    let stripped_server = mcp_root.join("stripServer").join("output.jar");
-    copy_filtered_jar(&extract_server, &stripped_server, &mapped_classes)?;
-
-    let merged_jar = mcp_root.join("merge").join("output.jar");
-    context.run_java_tool(
-        "tool-mergetool-1-1-5",
-        &[],
-        &[
-            "--client".to_string(),
-            stripped_client.display().to_string(),
-            "--server".to_string(),
-            stripped_server.display().to_string(),
-            "--ann".to_string(),
-            context.plan.minecraft_version.to_string(),
-            "--output".to_string(),
-            merged_jar.display().to_string(),
-            "--inject".to_string(),
-            "false".to_string(),
-        ],
-        &mcp_root.join("merge"),
-    )?;
-
-    let libraries_file = mcp_root.join("listLibraries").join("libraries.txt");
-    write_minecraft_libraries_cfg(context, &client, &libraries_file)?;
-
-    let renamed_jar = mcp_root.join("rename").join("output.jar");
-    context.run_java_tool(
-        "tool-fart",
-        &[],
-        &[
-            "--input".to_string(),
-            merged_jar.display().to_string(),
-            "--output".to_string(),
-            renamed_jar.display().to_string(),
-            "--map".to_string(),
-            merged_mappings.display().to_string(),
-            "--cfg".to_string(),
-            libraries_file.display().to_string(),
-            "--ann-fix".to_string(),
-            "--ids-fix".to_string(),
-            "--src-fix".to_string(),
-            "--record-fix".to_string(),
-        ],
-        &mcp_root.join("rename"),
-    )?;
-
-    let decompiled_jar = mcp_root.join("decompile").join("output.jar");
-    context.run_java_tool(
-        "tool-forgeflower",
-        &["-Xmx4G"],
-        &[
-            "-din=1".to_string(),
-            "-rbr=1".to_string(),
-            "-dgs=1".to_string(),
-            "-asc=1".to_string(),
-            "-rsy=1".to_string(),
-            "-iec=1".to_string(),
-            "-jvn=1".to_string(),
-            "-isl=0".to_string(),
-            "-iib=1".to_string(),
-            "-bsm=1".to_string(),
-            "-dcl=1".to_string(),
-            "-log=TRACE".to_string(),
-            "-cfg".to_string(),
-            libraries_file.display().to_string(),
-            renamed_jar.display().to_string(),
-            decompiled_jar.display().to_string(),
-        ],
-        &mcp_root.join("decompile"),
-    )?;
-
-    let injected_jar = mcp_root.join("inject").join("output.jar");
-    inject_mcp_sources(&mcp_config.cache_path, &decompiled_jar, &injected_jar)?;
-
-    apply_mcp_joined_patches(
-        context,
-        &mcp_config.cache_path,
-        &injected_jar,
-        &output,
-        &mcp_root,
-    )?;
-
-    context.write_node_state(
-        "execute-mcp-config-joined",
-        &["Minecraft client/server jars", "MCPConfig config.json"],
-        &[output],
-        "complete",
-    )?;
-    Ok(())
+    execute_mcp_config_joined_uncached(context, true)
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "clean-slate Forge userdev executor is being split incrementally"
-)]
-#[tracing::instrument(
-    level = "info",
-    skip_all,
-    fields(mc = %context.plan.minecraft_version)
-)]
 fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
-    let client = Client::builder()
-        .user_agent("sfm-propagate-changes/no-gradle-toolchain")
-        .build()
-        .wrap_err("Failed to create HTTP client")?;
-    let forge_root = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str());
-    fs::create_dir_all(&forge_root)?;
-    let mappings_root = forge_root.join("mappings");
-    let srg_to_official = mappings_root.join("srg_to_official.tsrg");
-    let official_to_srg = mappings_root.join("official_to_srg.tsrg");
-    let official_sources = forge_root.join("sources").join("combined-official.jar");
-    let deobfuscated_sources = forge_root.join("sources").join("combined-deobfuscated.jar");
-    let output = forge_root.join("classes").join("dev-compile.jar");
-    if output.is_file()
-        && official_sources.is_file()
-        && deobfuscated_sources.is_file()
-        && srg_to_official.is_file()
-        && official_to_srg.is_file()
-        && !context.plan.refresh
-    {
-        tracing::info!(
-            output = %output.display(),
-            "forge_userdev cache hit"
-        );
-        tracing::info!(
-            "Build node execute-forge-userdev: reusing {}",
-            output.display()
-        );
-        context.write_node_state(
-            "execute-forge-userdev",
-            &["Forge userdev", "MCPConfig joined outputs"],
-            &[
-                output.clone(),
-                official_sources.clone(),
-                deobfuscated_sources.clone(),
-            ],
-            "cached",
-        )?;
-        return Ok(());
-    }
-    tracing::info!(
-        output = %output.display(),
-        refresh = context.plan.refresh,
-        "forge_userdev cache miss"
-    );
-
-    let mcp_root = context
-        .plan
-        .cache_dir
-        .join("mcp")
-        .join(context.plan.minecraft_version.as_str())
-        .join("joined");
-    let mcp_sources = mcp_root.join("patch").join("joined-patched-sources.jar");
-    if !mcp_sources.is_file() {
-        eyre::bail!(
-            "Forge userdev requires MCP joined sources first: {}",
-            mcp_sources.display()
+    #[cfg(windows)]
+    if forge_preparation_cache::eligible(context) {
+        return forge_preparation_cache::execute(
+            context,
+            "forge",
+            || execute_forge_userdev_uncached(context, true, None),
+            |at| execute_forge_userdev_uncached(context, false, at),
         );
     }
-
-    let userdev = context.artifact(ArtifactId::from("forge-userdev"))?;
-    let forge_sources = context.artifact(ArtifactId::from("forge-sources"))?;
-    let forge_universal = context.artifact(ArtifactId::from("forge-universal"))?;
-    context.assert_allowed_input(&userdev.cache_path)?;
-    context.assert_allowed_input(&forge_sources.cache_path)?;
-    context.assert_allowed_input(&forge_universal.cache_path)?;
-
-    let patched_minecraft_sources = forge_root.join("sourcePatches").join("minecraft-srg.jar");
-    context.run_java_tool(
-        "tool-diffpatch",
-        &[],
-        &[
-            "--patch".to_string(),
-            "--mode".to_string(),
-            "OFFSET".to_string(),
-            "--archive".to_string(),
-            "ZIP".to_string(),
-            "--archive-rejects".to_string(),
-            "ZIP".to_string(),
-            "--prefix".to_string(),
-            "patches/".to_string(),
-            "--output".to_string(),
-            patched_minecraft_sources.display().to_string(),
-            "--reject".to_string(),
-            forge_root
-                .join("sourcePatches")
-                .join("rejects.zip")
-                .display()
-                .to_string(),
-            mcp_sources.display().to_string(),
-            userdev.cache_path.display().to_string(),
-        ],
-        &forge_root.join("sourcePatches"),
-    )?;
-    context.bail_if_cancelled()?;
-
-    let combined_srg_sources = forge_root.join("sources").join("combined-srg.jar");
-    merge_zip_archives(
-        &[
-            patched_minecraft_sources.clone(),
-            forge_sources.cache_path.clone(),
-        ],
-        &combined_srg_sources,
-    )?;
-
-    let client_mappings = context.plan.minecraft_version_cache_dir.join("client.txt");
-    let server_mappings = context.plan.minecraft_version_cache_dir.join("server.txt");
-    download_compile_child(
-        context,
-        &client,
-        authenticated_minecraft_inputs::MinecraftCompileDownload::ClientMappings,
-        &client_mappings,
-    )?;
-    context.bail_if_cancelled()?;
-    download_compile_child(
-        context,
-        &client,
-        authenticated_minecraft_inputs::MinecraftCompileDownload::ServerMappings,
-        &server_mappings,
-    )?;
-    context.bail_if_cancelled()?;
-    fs::create_dir_all(&mappings_root)?;
-    let obf_to_official = mappings_root.join("obf_to_official.tsrg");
-    let parchment_parameters = context
-        .artifact(ArtifactId::from("parchment-data"))
-        .ok()
-        .map(|artifact| read_parchment_parameters(&artifact.cache_path))
-        .transpose()?;
-    generate_mojang_tsrg_mappings(
-        &mcp_root.join("mergeMappings").join("output.tsrg"),
-        &[client_mappings, server_mappings],
-        parchment_parameters.as_ref(),
-        &obf_to_official,
-        &srg_to_official,
-        &official_to_srg,
-    )?;
-    context.bail_if_cancelled()?;
-
-    context.run_java_tool(
-        "tool-fart",
-        &[],
-        &[
-            "--input".to_string(),
-            combined_srg_sources.display().to_string(),
-            "--output".to_string(),
-            official_sources.display().to_string(),
-            "--map".to_string(),
-            srg_to_official.display().to_string(),
-            "--src-fix".to_string(),
-            "--record-fix".to_string(),
-        ],
-        &forge_root.join("remapSources"),
-    )?;
-    super::source_identifier_remapper::remap_source_jar_identifiers(
-        &SourceJarPath::new(official_sources.clone()),
-        &SourceIdentifierMappingPath::new(srg_to_official.clone()),
-        &SourceJarPath::new(deobfuscated_sources.clone()),
-    )?;
-
-    let binpatches = forge_root.join("binpatch").join("joined.lzma");
-    extract_zip_entry_to_path(&userdev.cache_path, "joined.lzma", &binpatches)?;
-    let binpatched_minecraft = forge_root.join("classes").join("minecraft-binpatched.jar");
-    context.run_java_tool(
-        "forge-binarypatcher",
-        &[],
-        &[
-            "--clean".to_string(),
-            mcp_root
-                .join("rename")
-                .join("output.jar")
-                .display()
-                .to_string(),
-            "--output".to_string(),
-            binpatched_minecraft.display().to_string(),
-            "--apply".to_string(),
-            binpatches.display().to_string(),
-        ],
-        &forge_root.join("binpatch"),
-    )?;
-    if !binpatched_minecraft.is_file() {
-        eyre::bail!(
-            "BinaryPatcher completed without producing {}",
-            binpatched_minecraft.display()
-        );
-    }
-
-    let merged_output = forge_root
-        .join("classes")
-        .join("dev-compile-srg-untransformed.jar");
-    let clean_named_minecraft = mcp_root.join("rename").join("output.jar");
-    merge_zip_archives(
-        &[
-            binpatched_minecraft,
-            clean_named_minecraft,
-            forge_universal.cache_path.clone(),
-        ],
-        &merged_output,
-    )?;
-
-    let access_transformed = forge_root.join("classes").join("dev-compile-srg-at.jar");
-    let access_transformed_patched = forge_root.join("classes").join("dev-compile-srg.jar");
-    let forge_at = forge_root
-        .join("accessTransform")
-        .join("forge-accesstransformer.cfg");
-    extract_zip_entry_to_path(&userdev.cache_path, "ats/accesstransformer.cfg", &forge_at)?;
-    let project_at = context
-        .plan
-        .minecraft_dir
-        .join("src")
-        .join("main")
-        .join("resources")
-        .join("META-INF")
-        .join("accesstransformer.cfg");
-    context.run_java_tool(
-        "tool-access-transformers",
-        &[],
-        &[
-            "--inJar".to_string(),
-            merged_output.display().to_string(),
-            "--outJar".to_string(),
-            access_transformed.display().to_string(),
-            "--atFile".to_string(),
-            forge_at.display().to_string(),
-            "--atFile".to_string(),
-            project_at.display().to_string(),
-        ],
-        &forge_root.join("accessTransform"),
-    )?;
-    if !access_transformed.is_file() {
-        eyre::bail!(
-            "AccessTransformers completed without producing {}",
-            access_transformed.display()
-        );
-    }
-    patch_inner_class_access_in_jar(
-        &access_transformed,
-        &access_transformed_patched,
-        "net/minecraft/client/gui/components/MultilineTextField",
-        "net/minecraft/client/gui/components/MultilineTextField$StringView",
-    )?;
-    context.run_java_tool(
-        "tool-fart",
-        &[],
-        &[
-            "--input".to_string(),
-            access_transformed_patched.display().to_string(),
-            "--output".to_string(),
-            output.display().to_string(),
-            "--map".to_string(),
-            srg_to_official.display().to_string(),
-            "--ann-fix".to_string(),
-            "--ids-fix".to_string(),
-            "--record-fix".to_string(),
-        ],
-        &forge_root.join("remapDevCompile"),
-    )?;
-    if !output.is_file() {
-        eyre::bail!(
-            "FART completed without producing mapped Forge dev compile jar {}",
-            output.display()
-        );
-    }
-    context.write_node_state(
-        "execute-forge-userdev",
-        &["Forge userdev", "MCPConfig joined outputs"],
-        &[output, official_sources],
-        "complete",
-    )
+    execute_forge_userdev_uncached(context, true, None)
 }
+
+include!("forge_preparation_producers.rs");
 
 #[expect(
     clippy::too_many_lines,
@@ -1117,39 +697,64 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
         return Ok(());
     }
 
-    let (mapping_path, mapping_hash, member_mappings) = {
-        let _span = tracing::debug_span!("dependency_deobf_load_mappings").entered();
-        let mapping_path = context
-            .plan
-            .cache_dir
-            .join("forge")
-            .join(context.plan.minecraft_version.as_str())
-            .join("mappings")
-            .join("srg_to_official.tsrg");
-        if !mapping_path.is_file() {
-            eyre::bail!(
-                "Dependency deobf requires generated mapping first: {}",
-                mapping_path.display()
-            );
-        }
-        let mapping_hash = {
-            let _span = tracing::debug_span!(
-                "dependency_deobf_hash_mapping",
-                mapping = %mapping_path.display()
-            )
-            .entered();
-            ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?
-        };
-        let member_mappings = {
-            let _span = tracing::debug_span!(
-                "dependency_deobf_read_member_mappings",
-                mapping = %mapping_path.display()
-            )
-            .entered();
-            read_unique_srg_member_mappings(&mapping_path)?
-        };
-        (mapping_path, mapping_hash, member_mappings)
+    let mapping_path = context
+        .plan
+        .cache_dir
+        .join("forge")
+        .join(context.plan.minecraft_version.as_str())
+        .join("mappings/srg_to_official.tsrg");
+    if !mapping_path.is_file() {
+        eyre::bail!(
+            "Dependency deobf requires generated mapping first: {}",
+            mapping_path.display()
+        );
+    }
+    #[cfg(windows)]
+    let remap_authority = if forge_preparation_cache::eligible(context) {
+        super::nfrt_preparation_phase::NfrtPreparationPhase::run(
+            "dependency_remap.shared_admission",
+            || {
+                forge_preparation_cache::ForgePreparationInputs::prepare_remap(
+                    context,
+                    &mapping_path,
+                )
+            },
+        )?
+    } else {
+        None
     };
+    #[cfg(windows)]
+    let remap_key = remap_authority
+        .as_ref()
+        .map(|owner| owner.fingerprint().to_owned());
+    #[cfg(windows)]
+    let remap_check = remap_authority
+        .as_ref()
+        .map(forge_preparation_cache::ForgePreparationInputs::remap_recheck);
+    #[cfg(windows)]
+    let (mapping_hash, member_mappings) = if let Some(owner) = &remap_authority {
+        tracing::info!(outcome = "admitted", "dependency_remap_shared_authority");
+        let raw = owner.mapping_bytes();
+        let mapping_text =
+            std::str::from_utf8(raw).wrap_err("Captured remap mapping is not UTF-8")?;
+        (
+            ContentHash::from_bytes(raw, ContentHashAlgorithm::Blake3),
+            parse_unique_srg_member_mappings(mapping_text),
+        )
+    } else {
+        if forge_preparation_cache::eligible(context) {
+            tracing::info!(outcome = "declined", "dependency_remap_shared_authority");
+        }
+        (
+            ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?,
+            read_unique_srg_member_mappings(&mapping_path)?,
+        )
+    };
+    #[cfg(not(windows))]
+    let (mapping_hash, member_mappings) = (
+        ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?,
+        read_unique_srg_member_mappings(&mapping_path)?,
+    );
     let outputs: Vec<PathBuf> = {
         let _span = tracing::debug_span!(
             "dependency_deobf_process_dependencies",
@@ -1157,37 +762,79 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
             workers = rayon::current_num_threads()
         )
         .entered();
-        let mut outputs = context
-            .plan
-            .dependencies
+        // Resolve every original row through the strict resolver before grouping.
+        // Duplicate configurations share a physical producer, never a second lock
+        // acquisition nested in another producer's cross-pool source recheck.
+        let mut rows = Vec::new();
+        for (index, dependency) in context.plan.dependencies.iter().enumerate() {
+            if !requires_forge_dependency_deobf(dependency) {
+                continue;
+            }
+            context.bail_if_cancelled()?;
+            let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
+            let artifact = resolver.resolve_artifact(
+                ArtifactId::from(format!("dependency-{index}")),
+                &coordinate,
+                ArtifactPurpose::from(format!("{} dependency", dependency.configuration)),
+            )?;
+            context.assert_allowed_input(&artifact.cache_path)?;
+            rows.push(DependencyDeobfProducer::new(
+                index,
+                coordinate,
+                artifact,
+                &output,
+                mapping_hash,
+            )?);
+        }
+        let original_rows = rows.len();
+        let producers = DependencyDeobfProducer::select(rows)?;
+        tracing::info!(
+            dependency_rows = original_rows,
+            physical_producers = producers.len(),
+            "Selected distinct dependency deobf producers; all configuration bindings retained"
+        );
+        let producer_results = producers
             .par_iter()
-            .enumerate()
-            .filter(|(_, dependency)| requires_forge_dependency_deobf(dependency))
-            .map(|(dependency_index, dependency)| {
+            .map(|producer| {
                 context.bail_if_cancelled()?;
-                let resolver = resolver.clone();
+                #[cfg(windows)]
+                if let (Some(key), Some(check)) = (&remap_key, &remap_check) {
+                    return dependency_remap_cache::execute(
+                        context,
+                        key,
+                        producer,
+                        &mapping_path,
+                        &member_mappings,
+                        &|| check(context),
+                        || {
+                            execute_dependency_deobf_dependency(
+                                context,
+                                &resolver,
+                                producer,
+                                &mapping_path,
+                                &member_mappings,
+                            )
+                        },
+                    );
+                }
                 execute_dependency_deobf_dependency(
                     context,
                     &resolver,
-                    dependency_index,
-                    dependency,
-                    &output,
+                    producer,
                     &mapping_path,
-                    mapping_hash,
                     &member_mappings,
                 )
             })
-            .collect::<Vec<eyre::Result<_>>>()
-            .into_iter()
-            .collect::<eyre::Result<Vec<_>>>()
+            .collect::<Vec<eyre::Result<_>>>();
+        all_hit_cache_miss::collect_results(producer_results)
             .wrap_err("Failed to deobfuscate dependency")?;
-        {
-            let _span = tracing::debug_span!("dependency_deobf_sort_outputs").entered();
-            outputs.sort_by_key(|(dependency_index, _)| *dependency_index);
-        };
-        outputs.into_iter().map(|(_, output)| output).collect()
+        DependencyDeobfProducer::output_bindings(&producers)
     };
 
+    #[cfg(windows)]
+    if let Some(owner) = &remap_authority {
+        owner.recheck(context)?;
+    }
     {
         let _span =
             tracing::debug_span!("dependency_deobf_write_node_state", outputs = outputs.len())
@@ -1203,21 +850,22 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
 }
 
 #[expect(
-    clippy::too_many_arguments,
     clippy::too_many_lines,
     reason = "Dependency deobfuscation is orchestration-heavy and kept linear for cache/debug tracing."
 )]
 fn execute_dependency_deobf_dependency(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
-    dependency_index: usize,
-    dependency: &DependencyPlan,
-    output: &Path,
+    producer: &DependencyDeobfProducer,
     mapping_path: &Path,
-    mapping_hash: ContentHash,
     member_mappings: &BTreeMap<String, String>,
-) -> eyre::Result<(usize, PathBuf)> {
-    let coordinate = MavenCoordinate::parse(&dependency.resolved_notation)?;
+) -> eyre::Result<()> {
+    let dependency_index = producer.dependency_indexes[0];
+    let dependency = &context.plan.dependencies[dependency_index];
+    let coordinate = &producer.coordinate;
+    let artifact = &producer.artifact;
+    let remapped = &producer.remapped;
+    let specialsource_output = &producer.specialsource_output;
     let _dependency_span = tracing::debug_span!(
         "dependency_deobf_dependency",
         index = dependency_index,
@@ -1226,39 +874,6 @@ fn execute_dependency_deobf_dependency(
         source = ?dependency.source,
     )
     .entered();
-    let artifact = {
-        let _span = tracing::debug_span!("dependency_deobf_resolve_artifact").entered();
-        resolver.resolve_artifact(
-            ArtifactId::from(format!("dependency-{dependency_index}")),
-            &coordinate,
-            ArtifactPurpose::from(format!("{} dependency", dependency.configuration)),
-        )?
-    };
-    {
-        let _span = tracing::debug_span!(
-            "dependency_deobf_validate_input",
-            artifact = %artifact.cache_path.display()
-        )
-        .entered();
-        context.assert_allowed_input(&artifact.cache_path)?;
-    };
-    let (remapped, specialsource_output) = {
-        let _span = tracing::debug_span!(
-            "dependency_deobf_compute_output_paths",
-            artifact = %artifact.cache_path.display()
-        )
-        .entered();
-        let artifact_hash = resolved_artifact_hash(&artifact)?;
-        (
-            remapped_dependency_output_path(output, &artifact_hash, &mapping_hash, &coordinate),
-            specialsource_dependency_output_path(
-                output,
-                &artifact_hash,
-                &mapping_hash,
-                &coordinate,
-            ),
-        )
-    };
     let cache_hit = {
         let _span = tracing::debug_span!(
             "dependency_deobf_check_remapped_cache",
@@ -1280,7 +895,7 @@ fn execute_dependency_deobf_dependency(
                 output = %remapped.display()
             )
             .entered();
-            acquire_artifact_path_lock_cancellable(&remapped, &resolver.cancellation_token)?
+            acquire_artifact_path_lock_cancellable(remapped, &resolver.cancellation_token)?
         };
         if remapped.is_file() {
             tracing::debug!(
@@ -1326,12 +941,15 @@ fn execute_dependency_deobf_dependency(
                     )
                     .entered();
                     context.run_dependency_specialsource(
-                        &artifact,
-                        &specialsource_output,
+                        artifact,
+                        specialsource_output,
                         mapping_path,
-                        mapping_hash,
-                        &coordinate,
-                        &output
+                        producer.mapping_hash(),
+                        coordinate,
+                        &context
+                            .plan
+                            .cache_dir
+                            .join("dependencies")
                             .join("remap-work")
                             .join(safe_path_segment(&coordinate.file_name())),
                     )?;
@@ -1345,8 +963,8 @@ fn execute_dependency_deobf_dependency(
                 )
                 .entered();
                 rewrite_srg_member_constants_in_jar(
-                    &specialsource_output,
-                    &remapped,
+                    specialsource_output,
+                    remapped,
                     member_mappings,
                 )?;
             }
@@ -1365,7 +983,7 @@ fn execute_dependency_deobf_dependency(
             );
         }
     }
-    Ok((dependency_index, remapped))
+    Ok(())
 }
 
 fn copy_neogradle_dependency_jars(
@@ -1459,6 +1077,10 @@ fn resolved_artifact_hash(artifact: &ArtifactPlan) -> eyre::Result<ContentHash> 
 fn read_unique_srg_member_mappings(mapping_path: &Path) -> eyre::Result<BTreeMap<String, String>> {
     let content = fs::read_to_string(mapping_path)
         .wrap_err_with(|| format!("Failed to read {}", mapping_path.display()))?;
+    Ok(parse_unique_srg_member_mappings(&content))
+}
+
+fn parse_unique_srg_member_mappings(content: &str) -> BTreeMap<String, String> {
     let candidates = {
         let _span = tracing::debug_span!(
             "read_unique_srg_member_mappings_parse",
@@ -1475,10 +1097,10 @@ fn read_unique_srg_member_mappings(mapping_path: &Path) -> eyre::Result<BTreeMap
             .reduce(BTreeMap::new, merge_unique_member_mapping_candidates)
     };
 
-    Ok(candidates
+    candidates
         .into_iter()
         .filter_map(|(srg, named)| named.map(|named| (srg, named)))
-        .collect())
+        .collect()
 }
 
 fn parse_srg_member_mapping_line(line: &str) -> Option<(&str, &str)> {
@@ -1722,6 +1344,7 @@ fn remove_stale_dependency_outputs(output: &Path) -> eyre::Result<()> {
 )]
 fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
+    context.require_all_hit_compilation_binding()?;
     let (
         project_root,
         generated_sources,
@@ -1829,7 +1452,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                     .wrap_err("Failed to collect project Java sources")
             },
         );
-        (classpath?, sources?)
+        all_hit_cache_miss::pair_results(classpath, sources)?
     };
     context.bail_if_cancelled()?;
     let argfile = project_root.join("javac-main.args");
@@ -1853,7 +1476,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     );
     let mut main_fingerprint_paths = classpath.clone();
     main_fingerprint_paths.extend(sources.iter().cloned());
-    main_fingerprint_paths.push(argfile.clone());
+    main_fingerprint_paths.push(compilation_argfile_fingerprint_path(context, &argfile));
     if let Some(main_source_excludes) = source_exclusion_fingerprint_path(context, "main")? {
         main_fingerprint_paths.push(main_source_excludes);
     }
@@ -1878,7 +1501,6 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
     let main_state_path = project_root.join("javac-main.inputs.sha1");
     let main_refmap = resources_dir.join("sfm.refmap.json");
-    let required_main_class = required_main_class_output(&classes_dir);
     let main_cache_hit = {
         let _span = tracing::debug_span!(
             "project_compile_check_main_cache",
@@ -1887,13 +1509,13 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             refmap = %main_refmap.display(),
         )
         .entered();
-        cache_state_matches(
+        main_compilation_cache_matches(
             context,
             &main_state_path,
             &main_fingerprint,
-            &[&classes_dir, &required_main_class],
-        )? && (context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
-            || main_refmap.is_file())
+            &classes_dir,
+            &main_refmap,
+        )?
     };
     context.bail_if_cancelled()?;
     if main_cache_hit {
@@ -1903,6 +1525,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
         );
     } else {
         context.bail_if_cancelled()?;
+        context.plan.require_strict("main javac cache miss")?;
         {
             let _span = tracing::debug_span!(
                 "project_compile_reset_main_classes",
@@ -1933,6 +1556,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             .entered();
             context.plan.recheck_named_inputs()?;
             context.plan.recheck_named_sdk()?;
+            context.recheck_compiler_image()?;
             run_command_capture_output(&context.cancellation_token, &mut command, "javac-main")
                 .wrap_err("Failed to run javac")?
         };
@@ -1989,13 +1613,33 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                 state = %main_state_path.display()
             )
             .entered();
-            write_cache_state(&main_state_path, &main_fingerprint)?;
+            if !context.verify_compilation_outputs {
+                write_cache_state(&main_state_path, &main_fingerprint)?;
+            }
         };
         context.bail_if_cancelled()?;
         tracing::info!("javac main: done in {} ms", started.elapsed().as_millis());
     }
 
     context.bail_if_cancelled()?;
+    if context.verify_compilation_outputs {
+        let patches = if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+        {
+            let _span =
+                tracing::debug_span!("project_compile_patch_neogradle_debug_names").entered();
+            patch_neogradle_anonymous_constructor_debug_names(context, &classes_dir)?
+        } else {
+            0
+        };
+        if !main_cache_hit || patches > 0 {
+            write_project_java_cache(
+                context,
+                &main_state_path,
+                &main_fingerprint,
+                &[("classes", &classes_dir), ("resources", &resources_dir)],
+            )?;
+        }
+    }
     {
         let classes_dir = classes_dir.as_path();
         let gametest_classes_dir = gametest_classes_dir.as_path();
@@ -2011,6 +1655,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                     classes_dir,
                     gametest_classes_dir,
                     main_fingerprint,
+                    None,
                 )
                 .wrap_err("Failed to compile gametest source set")
             },
@@ -2025,8 +1670,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                 .wrap_err("Failed to stage gametest resources")
             },
         );
-        gametest_compile?;
-        gametest_resources?;
+        all_hit_cache_miss::pair_results(gametest_compile, gametest_resources)?;
     };
     context.bail_if_cancelled()?;
     {
@@ -2044,6 +1688,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                     classes_dir,
                     datagen_classes_dir,
                     main_fingerprint,
+                    None,
                 )
                 .wrap_err("Failed to compile datagen source set")
             },
@@ -2053,13 +1698,15 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
                     .wrap_err("Failed to stage datagen resources")
             },
         );
-        datagen_compile?;
-        datagen_resources?;
+        all_hit_cache_miss::pair_results(datagen_compile, datagen_resources)?;
     };
     context.bail_if_cancelled()?;
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        let _span = tracing::debug_span!("project_compile_patch_neogradle_debug_names").entered();
-        patch_neogradle_anonymous_constructor_debug_names(context, &classes_dir)?;
+        if !context.verify_compilation_outputs {
+            let _span =
+                tracing::debug_span!("project_compile_patch_neogradle_debug_names").entered();
+            patch_neogradle_anonymous_constructor_debug_names(context, &classes_dir)?;
+        }
     } else {
         let _span = tracing::debug_span!("project_compile_ensure_run_refmap_remap").entered();
         ensure_run_refmap_remapping_file(context)?;
@@ -2103,6 +1750,63 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     Ok(())
 }
 
+fn project_java_cache_reuse_allowed(context: &ExecutionContext<'_>) -> bool {
+    #[cfg(any(windows, target_os = "linux"))]
+    {
+        context.compiler_image_identity.is_some()
+            && super::local_dependency_cache::environment_allows_reuse()
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        let _ = context;
+        false
+    }
+}
+
+fn write_project_java_cache(
+    context: &ExecutionContext<'_>,
+    state: &Path,
+    fingerprint: &str,
+    outputs: &[(&str, &Path)],
+) -> eyre::Result<()> {
+    context.recheck_compiler_image()?;
+    if project_java_cache_reuse_allowed(context) {
+        project_compilation_cache::record(
+            &context.plan.cache_dir,
+            state,
+            fingerprint,
+            outputs,
+            || context.bail_if_cancelled(),
+        )
+    } else {
+        // Do not leave an older valid marker authorizing outputs overwritten
+        // by a compiler whose execution image/environment was unbound.
+        project_compilation_cache::invalidate(&context.plan.cache_dir, state, || {
+            context.bail_if_cancelled()
+        })
+    }
+}
+
+fn verified_java_cache_matches(
+    context: &ExecutionContext<'_>,
+    state: &Path,
+    fingerprint: &str,
+    outputs: &[(&str, &Path)],
+) -> eyre::Result<bool> {
+    context.bail_if_cancelled()?;
+    context.plan.recheck_named_sdk()?;
+    context.recheck_compiler_image()?;
+    Ok(!context.plan.refresh
+        && project_java_cache_reuse_allowed(context)
+        && project_compilation_cache::matches(
+            &context.plan.cache_dir,
+            state,
+            fingerprint,
+            outputs,
+            || context.bail_if_cancelled(),
+        )?)
+}
+
 fn requires_forge_dependency_deobf(dependency: &DependencyPlan) -> bool {
     dependency.artifact_treatment
         == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod
@@ -2116,10 +1820,50 @@ fn required_main_class_output(classes_dir: &Path) -> PathBuf {
         .join("SFM.class")
 }
 
+fn main_compilation_cache_matches(
+    context: &ExecutionContext<'_>,
+    state_path: &Path,
+    expected_state: &str,
+    classes_dir: &Path,
+    main_refmap: &Path,
+) -> eyre::Result<bool> {
+    let required_main_class = required_main_class_output(classes_dir);
+    if context.verify_compilation_outputs {
+        context.bail_if_cancelled()?;
+        context.plan.recheck_named_sdk()?;
+        context.recheck_compiler_image()?;
+        return Ok(!context.plan.refresh
+            && project_java_cache_reuse_allowed(context)
+            && required_main_class.is_file()
+            && (context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+                || main_refmap.is_file())
+            && project_compilation_cache::matches(
+                &context.plan.cache_dir,
+                state_path,
+                expected_state,
+                &[
+                    ("classes", classes_dir),
+                    ("resources", main_refmap.parent().expect("refmap parent")),
+                ],
+                || context.bail_if_cancelled(),
+            )?);
+    }
+    Ok(!context.immutable_neoform_profile
+        && cache_state_matches_outputs(
+            context,
+            state_path,
+            expected_state,
+            &[classes_dir],
+            &[&required_main_class],
+        )?
+        && (context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+            || main_refmap.is_file()))
+}
+
 fn patch_neogradle_anonymous_constructor_debug_names(
     context: &ExecutionContext<'_>,
     classes_dir: &Path,
-) -> eyre::Result<()> {
+) -> eyre::Result<usize> {
     let debug_name_patches: &[(&str, &[(&str, &str)])] = &[
         (
             "ca/teamdman/sfm/client/text_styling/ProgramSyntaxHighlightingHelper$1.class",
@@ -2178,7 +1922,7 @@ fn patch_neogradle_anonymous_constructor_debug_names(
     if total_replacements > 0 {
         tracing::info!("Patched {total_replacements} NeoGradle anonymous constructor debug names");
     }
-    Ok(())
+    Ok(total_replacements)
 }
 
 #[expect(
@@ -2192,10 +1936,12 @@ fn compile_optional_java_source_set(
     main_classes_dir: &Path,
     classes_dir: &Path,
     upstream_fingerprint: &str,
+    prepared_junit: Option<&junit_inputs::PreparedJunitInputs>,
 ) -> eyre::Result<()> {
     let _source_set_span =
         tracing::debug_span!("compile_optional_java_source_set", source_set).entered();
     context.bail_if_cancelled()?;
+    context.require_all_hit_compilation_binding()?;
     let project_root = context.plan.cache_dir.join("project");
     let source_root = context
         .plan
@@ -2203,7 +1949,7 @@ fn compile_optional_java_source_set(
         .join("src")
         .join(source_set)
         .join("java");
-    if !source_root.exists() {
+    if context.plan.retained_inputs().is_none() && !source_root.exists() {
         reset_cache_directory(&context.plan.cache_dir, classes_dir)?;
         return Ok(());
     }
@@ -2257,7 +2003,7 @@ fn compile_optional_java_source_set(
         argfile.display()
     );
     let mut fingerprint_paths = sources.clone();
-    fingerprint_paths.push(argfile.clone());
+    fingerprint_paths.push(compilation_argfile_fingerprint_path(context, &argfile));
     if let Some(source_excludes) = source_exclusion_fingerprint_path(context, source_set)? {
         fingerprint_paths.push(source_excludes);
     }
@@ -2291,9 +2037,22 @@ fn compile_optional_java_source_set(
             output = %classes_dir.display()
         )
         .entered();
-        cache_state_matches(context, &state_path, &fingerprint, &[classes_dir])?
+        if context.verify_compilation_outputs {
+            verified_java_cache_matches(
+                context,
+                &state_path,
+                &fingerprint,
+                &[("classes", classes_dir)],
+            )?
+        } else {
+            !context.immutable_neoform_profile
+                && cache_state_matches(context, &state_path, &fingerprint, &[classes_dir])?
+        }
     };
     if cache_hit {
+        if let Some(prepared) = prepared_junit {
+            prepared.recheck(context.plan, &context.cancellation_token)?;
+        }
         tracing::info!(
             "javac {source_set}: reused cached outputs in {} ms",
             started.elapsed().as_millis()
@@ -2302,6 +2061,7 @@ fn compile_optional_java_source_set(
     }
 
     context.bail_if_cancelled()?;
+    context.plan.require_strict("optional javac cache miss")?;
     {
         let _span = tracing::debug_span!(
             "compile_optional_reset_classes",
@@ -2326,8 +2086,16 @@ fn compile_optional_java_source_set(
         .entered();
         context.plan.recheck_named_inputs()?;
         context.plan.recheck_named_sdk()?;
-        run_command_capture_output(&context.cancellation_token, &mut command, &source)
-            .wrap_err_with(|| format!("Failed to run javac for {source_set}"))?
+        let mut launch = || {
+            context.recheck_compiler_image()?;
+            run_command_capture_output(&context.cancellation_token, &mut command, &source)
+                .wrap_err_with(|| format!("Failed to run javac for {source_set}"))
+        };
+        if let Some(prepared) = prepared_junit {
+            prepared.with_rechecked(context.plan, &context.cancellation_token, launch)?
+        } else {
+            launch()?
+        }
     };
     context.bail_if_cancelled()?;
     {
@@ -2374,7 +2142,16 @@ fn compile_optional_java_source_set(
             state = %state_path.display()
         )
         .entered();
-        write_cache_state(&state_path, &fingerprint)?;
+        if context.verify_compilation_outputs {
+            write_project_java_cache(
+                context,
+                &state_path,
+                &fingerprint,
+                &[("classes", classes_dir)],
+            )?;
+        } else {
+            write_cache_state(&state_path, &fingerprint)?;
+        }
     };
     context.bail_if_cancelled()?;
     tracing::info!(
@@ -2397,6 +2174,9 @@ fn stage_optional_resource_source_set(
     )
     .entered();
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs() {
+        inputs.recheck()?;
+    }
     {
         let _span = tracing::debug_span!("stage_optional_resources_reset_output").entered();
         reset_cache_directory(&context.plan.cache_dir, output)?;
@@ -2408,12 +2188,22 @@ fn stage_optional_resource_source_set(
         .join("src")
         .join(source_set)
         .join("resources");
-    if !root.exists() {
+    let retained = context
+        .plan
+        .retained_inputs()
+        .map(|inputs| inputs.entries_under(&root))
+        .transpose()?
+        .flatten();
+    if retained.is_none() && !root.exists() {
         return Ok(());
     }
-    context.assert_allowed_input(&root)?;
+    if retained.is_none() {
+        context.assert_allowed_input(&root)?;
+    }
 
-    let files = {
+    let files = if let Some(entries) = &retained {
+        entries.iter().map(|(path, _)| path.clone()).collect()
+    } else {
         let _span = tracing::debug_span!(
             "stage_optional_resources_collect_files",
             root = %root.display()
@@ -2432,7 +2222,17 @@ fn stage_optional_resource_source_set(
         if let Some(parent) = output_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::copy(&path, &output_path).wrap_err_with(|| {
+        let bytes = if let Some(entries) = &retained {
+            entries
+                .iter()
+                .find(|(selected, _)| selected == &path)
+                .ok_or_else(|| eyre::eyre!("retained resource membership changed"))?
+                .1
+                .to_vec()
+        } else {
+            fs::read(&path)?
+        };
+        fs::write(&output_path, bytes).wrap_err_with(|| {
             format!(
                 "Failed to copy {} to {}",
                 path.display(),
@@ -2457,6 +2257,7 @@ fn stage_optional_resource_source_set(
     )
 )]
 fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+    let mut fresh_output = prepare_fresh_jar_output(context.plan)?;
     let named_admission = context.prepare_named_package_admission()?;
     if context.plan.rust_output_jar == context.plan.gradle_output_jar {
         eyre::bail!(
@@ -2524,15 +2325,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         "package-and-reobfuscate-jar: start output={}",
         context.plan.rust_output_jar.display()
     );
-    if named_package_cache_reuse_allowed(context.plan.named_project().is_some())
-        && cache_state_matches_outputs(
-            context,
-            &package_state_path,
-            &package_fingerprint,
-            &[],
-            &[&context.plan.rust_output_jar],
-        )?
-    {
+    if package_cache_matches(context, &package_state_path, &package_fingerprint)? {
         tracing::info!(
             "package-and-reobfuscate-jar: reused cached Rust jar in {} ms",
             started.elapsed().as_millis()
@@ -2562,6 +2355,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         fs::create_dir_all(parent)?;
     }
     if named_package_previous_output_removal_allowed(context.plan.named_project().is_some())
+        && fresh_output.is_none()
         && context.plan.rust_output_jar.exists()
     {
         fs::remove_file(&context.plan.rust_output_jar).wrap_err_with(|| {
@@ -2572,7 +2366,10 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         })?;
     }
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        if context.plan.named_project().is_some() {
+        if let Some(output) = &mut fresh_output {
+            context.recheck_named_package_admission(named_admission.as_ref())?;
+            output.publish_copy(&development_jar, &context.cancellation_token)?;
+        } else if context.plan.named_project().is_some() {
             context.recheck_named_package_admission(named_admission.as_ref())?;
             copy_named_neoform_package(&development_jar, &context.plan.rust_output_jar)?;
         } else {
@@ -2594,7 +2391,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             ],
             "complete",
         )?;
-        write_cache_state(&package_state_path, &package_fingerprint)?;
+        write_package_cache_state(context, &package_state_path, &package_fingerprint)?;
         tracing::info!(
             "package-and-reobfuscate-jar: done in {} ms",
             started.elapsed().as_millis()
@@ -2618,13 +2415,19 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     let resolver = context.plan.resolver(&context.cancellation_token)?;
     context.recheck_named_package_admission(named_admission.as_ref())?;
     let reobf_classpath = context.package_reobfuscation_classpath(&resolver)?;
+    let private_output_directory = fresh_output
+        .as_mut()
+        .map(|output| output.private_output_directory(&project_root))
+        .transpose()?;
+    let writer_output =
+        project_package_writer_output(context.plan, fresh_output.as_ref())?.to_path_buf();
     context.run_project_package_specialsource(
         &reobf_classpath,
         &[
             "--in-jar".to_string(),
             development_jar.display().to_string(),
             "--out-jar".to_string(),
-            context.plan.rust_output_jar.display().to_string(),
+            writer_output.display().to_string(),
             "--srg-in".to_string(),
             reobf_mapping.display().to_string(),
             "--srg-in".to_string(),
@@ -2632,15 +2435,20 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
             "--live".to_string(),
         ],
         &project_root.join("reobf"),
+        fresh_output.as_ref(),
     )?;
-    if !context.plan.rust_output_jar.is_file() {
+    if !writer_output.is_file() {
         eyre::bail!(
             "SpecialSource completed without producing Rust jar {}",
-            context.plan.rust_output_jar.display()
+            writer_output.display()
         );
     }
+    if let Some(output) = &mut fresh_output {
+        output.publish_copy(&writer_output, &context.cancellation_token)?;
+    }
+    drop(private_output_directory);
 
-    write_cache_state(&package_state_path, &package_fingerprint)?;
+    write_package_cache_state(context, &package_state_path, &package_fingerprint)?;
     tracing::info!(
         "package-and-reobfuscate-jar: done in {} ms",
         started.elapsed().as_millis()
@@ -2659,6 +2467,40 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
         ],
         "complete",
     )
+}
+
+fn package_cache_matches(
+    context: &ExecutionContext<'_>,
+    state: &Path,
+    fingerprint: &str,
+) -> eyre::Result<bool> {
+    if context.plan.output_name.is_some() {
+        context.bail_if_cancelled()?;
+        return Ok(false);
+    }
+    Ok(
+        named_package_cache_reuse_allowed(context.plan.named_project().is_some())
+            && cache_state_matches_outputs(
+                context,
+                state,
+                fingerprint,
+                &[],
+                &[&context.plan.rust_output_jar],
+            )?,
+    )
+}
+
+fn write_package_cache_state(
+    context: &ExecutionContext<'_>,
+    state: &Path,
+    fingerprint: &str,
+) -> eyre::Result<()> {
+    // The legacy marker does not bind a final-output path. An alternate output
+    // must never make an older default final qualify by existence alone.
+    if context.plan.output_name.is_none() {
+        write_cache_state(state, fingerprint)?;
+    }
+    Ok(())
 }
 
 fn package_fingerprint_extras(context: &ExecutionContext<'_>) -> Vec<String> {
@@ -2712,6 +2554,9 @@ fn stage_project_resources(
     )
     .entered();
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs() {
+        inputs.recheck()?;
+    }
     let release_policy = checked_catalog_release_packaging_policy(context.plan)?;
     {
         let _span = tracing::debug_span!("stage_project_resources_reset_output").entered();
@@ -2754,18 +2599,31 @@ fn stage_antlr_grammar_resources(
     written: &mut BTreeSet<String>,
 ) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
+    if let Some(inputs) = context.plan.retained_inputs() {
+        inputs.recheck()?;
+    }
     let root = context
         .plan
         .minecraft_dir
         .join("src")
         .join("main")
         .join("antlr");
-    if !root.exists() {
+    let retained = context
+        .plan
+        .retained_inputs()
+        .map(|inputs| inputs.entries_under(&root))
+        .transpose()?
+        .flatten();
+    if retained.is_none() && !root.exists() {
         return Ok(());
     }
-    context.assert_allowed_input(&root)?;
+    if retained.is_none() {
+        context.assert_allowed_input(&root)?;
+    }
 
-    let files = {
+    let files = if let Some(entries) = &retained {
+        entries.iter().map(|(path, _)| path.clone()).collect()
+    } else {
         let _span = tracing::debug_span!(
             "stage_antlr_grammar_resources_collect_files",
             root = %root.display()
@@ -2788,7 +2646,17 @@ fn stage_antlr_grammar_resources(
         if let Some(parent) = output.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::copy(&path, &output).wrap_err_with(|| {
+        let bytes = if let Some(entries) = &retained {
+            entries
+                .iter()
+                .find(|(selected, _)| selected == &path)
+                .ok_or_else(|| eyre::eyre!("retained grammar membership changed"))?
+                .1
+                .to_vec()
+        } else {
+            fs::read(&path)?
+        };
+        fs::write(&output, bytes).wrap_err_with(|| {
             format!(
                 "Failed to stage grammar resource {} to {}",
                 path.display(),
@@ -2806,12 +2674,25 @@ fn stage_resource_root(
     written: &mut BTreeSet<String>,
 ) -> eyre::Result<()> {
     context.bail_if_cancelled()?;
-    if !root.exists() {
+    if let Some(inputs) = context.plan.retained_inputs() {
+        inputs.recheck()?;
+    }
+    let retained = context
+        .plan
+        .retained_inputs()
+        .map(|inputs| inputs.entries_under(root))
+        .transpose()?
+        .flatten();
+    if retained.is_none() && !root.exists() {
         return Ok(());
     }
-    context.assert_allowed_input(root)?;
+    if retained.is_none() {
+        context.assert_allowed_input(root)?;
+    }
 
-    let files = {
+    let files = if let Some(entries) = &retained {
+        entries.iter().map(|(path, _)| path.clone()).collect()
+    } else {
         let _span = tracing::debug_span!(
             "stage_resource_root_collect_files",
             root = %root.display()
@@ -2833,15 +2714,25 @@ fn stage_resource_root(
             continue;
         }
 
+        let raw = if let Some(entries) = &retained {
+            entries
+                .iter()
+                .find(|(selected, _)| selected == &path)
+                .ok_or_else(|| eyre::eyre!("retained resource membership changed"))?
+                .1
+                .to_vec()
+        } else {
+            fs::read(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?
+        };
         let bytes = if matches!(
             name.as_str(),
             "META-INF/mods.toml" | "META-INF/neoforge.mods.toml" | "pack.mcmeta"
         ) {
-            let template_text = fs::read_to_string(&path)
+            let template_text = std::str::from_utf8(&raw)
                 .wrap_err_with(|| format!("Failed to read resource {}", path.display()))?;
-            expand_gradle_resource_template(&template_text, &context.plan.properties)?.into_bytes()
+            expand_gradle_resource_template(template_text, &context.plan.properties)?.into_bytes()
         } else {
-            fs::read(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?
+            raw
         };
         context.bail_if_cancelled()?;
         let output = zip_name_to_path(staging_dir, &name);
@@ -3186,6 +3077,14 @@ fn input_fingerprint(
     input.extend_from_slice(b"sfm-input-fingerprint-v2\n");
     input.extend_from_slice(label.as_bytes());
     input.extend_from_slice(b"\n");
+    if context.verify_compilation_outputs
+        && (label.starts_with("javac-") || label == "antlr-main")
+        && let Some(image) = &context.compiler_image_identity
+    {
+        input.extend_from_slice(b"compiler-image:");
+        input.extend_from_slice(image.as_bytes());
+        input.extend_from_slice(b"\n");
+    }
     for extra in extras {
         context.bail_if_cancelled()?;
         input.extend_from_slice(b"extra:");
@@ -3195,12 +3094,11 @@ fn input_fingerprint(
     let path_inputs = {
         let _span =
             tracing::debug_span!("input_fingerprint_paths", label, paths = paths.len()).entered();
-        paths
+        let hashed = paths
             .par_iter()
             .map(|path| hash_path_input(context, path))
-            .collect::<Vec<eyre::Result<_>>>()
-            .into_iter()
-            .collect::<eyre::Result<Vec<_>>>()?
+            .collect::<Vec<eyre::Result<_>>>();
+        all_hit_cache_miss::collect_results(hashed)?
     };
     for path_input in path_inputs {
         input.extend_from_slice(&path_input);
@@ -3211,8 +3109,21 @@ fn input_fingerprint(
 fn hash_path_input(context: &ExecutionContext<'_>, path: &Path) -> eyre::Result<Vec<u8>> {
     context.bail_if_cancelled()?;
     let _span = tracing::debug_span!("hash_path_input", path = %path.display()).entered();
+    if let Some(inputs) = context.plan.retained_inputs()
+        && let Some(input) = inputs.path_input(path)?
+    {
+        return Ok(input);
+    }
     context.assert_allowed_input(path)?;
-    let normalized = path.to_string_lossy().replace('\\', "/");
+    let normalized = if context.verify_compilation_outputs
+        && context
+            .held_neoform_compile_jar
+            .is_some_and(|held| project_compile_identity::is_bound(path, held))
+    {
+        "sfm:bound_neoform_classes@1".to_owned()
+    } else {
+        path.to_string_lossy().replace('\\', "/")
+    };
     let mut input = Vec::new();
     input.extend_from_slice(b"path:");
     input.extend_from_slice(normalized.as_bytes());

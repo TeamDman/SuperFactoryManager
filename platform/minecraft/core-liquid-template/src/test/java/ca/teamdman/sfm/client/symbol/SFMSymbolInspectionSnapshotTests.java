@@ -55,7 +55,7 @@ class SFMSymbolInspectionSnapshotTests {
         assertEquals("Missing", snapshot.region().selectedText());
         assertEquals("java-identifier", snapshot.region().semanticKind());
         assertEquals(fixture.document().currentSha256(), snapshot.document().currentSha256());
-        assertEquals("file:///D:/repo/src/p/Use.java", snapshot.document().address().orElseThrow());
+        assertEquals(SFMSymbolServerProtocolTests.fixtureAddress("repo/src/p/Use.java"), snapshot.document().address().orElseThrow());
         assertEquals("p/Use.java", snapshot.document().rootRelativePath().orElseThrow());
         assertTrue(snapshot.replayCommand().contains("--source-path 'p/Use.java'"));
         assertTrue(snapshot.replayCommand().contains("--line 2 --column 5 --branch '1.19.2'"));
@@ -86,7 +86,7 @@ class SFMSymbolInspectionSnapshotTests {
                 fixture.document().currentSha256(),
                 fixture.point(),
                 new SFMSymbolInspectionSnapshot.DocumentEvidence(
-                        Optional.of("file:///D:/repo/src/p/Use.java"),
+                        Optional.of(SFMSymbolServerProtocolTests.fixtureAddress("repo/src/p/Use.java")),
                         Optional.of("file"),
                         Optional.of("main-java"),
                         Optional.of("p/Use.java"),
@@ -259,7 +259,7 @@ class SFMSymbolInspectionSnapshotTests {
         return new SFMSymbolInspectionSnapshot.Outlink(
                 id,
                 relation,
-                Optional.of("file:///D:/repo/src/p/A.java"),
+                Optional.of(SFMSymbolServerProtocolTests.fixtureAddress("repo/src/p/A.java")),
                 "sfm:java-symbol-index",
                 9,
                 "resolved",
@@ -271,8 +271,8 @@ class SFMSymbolInspectionSnapshotTests {
     }
 
     private static Fixture fixture(String text, int line, int column) {
-        SFMPath root = SFMPath.fromNative(Path.of("D:/repo/src"));
-        SFMPath path = SFMPath.fromNative(Path.of("D:/repo/src/p/Use.java"));
+        SFMPath root = SFMPath.fromNative(SFMSymbolServerProtocolTests.fixturePath("repo/src"));
+        SFMPath path = SFMPath.fromNative(SFMSymbolServerProtocolTests.fixturePath("repo/src/p/Use.java"));
         SFMTextDocumentSnapshot baseline = new SFMTextDocumentSnapshot(
                 SFMTextDocumentSnapshot.State.READY,
                 text,

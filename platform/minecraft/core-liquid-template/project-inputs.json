@@ -43,6 +43,15 @@
     }
   },
   "source_rules": {
+    "src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java": [{"input":"src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java","template":false,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelay.java": [{"input":"src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelay.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelayOwner.java": [{"input":"src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelayOwner.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscriberBankAutocraftingGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscriberBankAutocraftingGameTest.java","template":true,"when":{"targets":["1.19.2"],"all_features":["ae2_inscriber_bank_tests"],"any_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Issue610EnergyEvidenceGamePuppet.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Issue610EnergyEvidenceGamePuppet.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
@@ -10449,6 +10458,8 @@
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMDiscoveredGamePuppet.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMDiscoveredGamePuppet.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppet.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppet.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetDiscovery.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetDiscovery.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnership.java": [{"input":"src/main/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnership.java","template":true,"when":{"targets":["1.19.2"],"all_features":["game_puppet_runtime","client_automation_pause_restore"],"any_features":[],"none_features":[]}}],
+    "src/test/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnershipTests.java": [{"input":"src/test/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnershipTests.java","template":true,"when":{"targets":["1.19.2"],"all_features":["game_puppet_runtime","client_automation_pause_restore"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHarness.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHelper.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHelper.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetMinecraftRuntime.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["game_puppet_runtime"],"any_features":[],"none_features":[]}}],
@@ -24091,22 +24102,7 @@
         "template": false
       }
     ],
-    "src/generated/resources/data/sfm/loot_table/blocks/buffer.json": [
-      {
-        "input": "src/generated/resources/data/sfm/loot_table/blocks/buffer.json",
-        "when": {
-          "targets": [
-            "1.21.0",
-            "1.21.1",
-            "26.1.2"
-          ],
-          "all_features": [],
-          "any_features": [],
-          "none_features": []
-        },
-        "template": false
-      }
-    ],
+    "src/generated/resources/data/sfm/loot_table/blocks/buffer.json": [{"input":"src/generated/resources/data/sfm/loot_table/blocks/buffer.json","when":{"targets":["1.21.0","1.21.1","26.1.2"],"all_features":[],"any_features":[],"none_features":["release_version_4_35_0"]},"template":false}],
     "src/generated/resources/data/sfm/loot_table/blocks/cable.json": [
       {
         "input": "src/generated/resources/data/sfm/loot_table/blocks/cable.json",
@@ -27452,37 +27448,7 @@
         "template": false
       }
     ],
-    "src/generated/resources/data/sfm/loot_tables/blocks/buffer.json": [
-      {
-        "input": "assets/versioned/dc2835cbb5dddc953aed3e1f13f083afb4ff753eed6d96abc071b8f53839feb3/src/generated/resources/data/sfm/loot_tables/blocks/buffer.json",
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [],
-          "any_features": [],
-          "none_features": []
-        },
-        "template": false
-      },
-      {
-        "input": "assets/versioned/53dfee8ce57ce4d992110d4138ca06f0185a87cc4a573b40ea2beaabae38e991/src/generated/resources/data/sfm/loot_tables/blocks/buffer.json",
-        "when": {
-          "targets": [
-            "1.20",
-            "1.20.1",
-            "1.20.2",
-            "1.20.3",
-            "1.20.4"
-          ],
-          "all_features": [],
-          "any_features": [],
-          "none_features": []
-        },
-        "template": false
-      }
-    ],
+    "src/generated/resources/data/sfm/loot_tables/blocks/buffer.json": [{"input":"assets/versioned/dc2835cbb5dddc953aed3e1f13f083afb4ff753eed6d96abc071b8f53839feb3/src/generated/resources/data/sfm/loot_tables/blocks/buffer.json","when":{"targets":["1.19.2","1.19.4"],"all_features":[],"any_features":[],"none_features":["release_version_4_35_0"]},"template":false},{"input":"assets/versioned/53dfee8ce57ce4d992110d4138ca06f0185a87cc4a573b40ea2beaabae38e991/src/generated/resources/data/sfm/loot_tables/blocks/buffer.json","when":{"targets":["1.20","1.20.1","1.20.2","1.20.3","1.20.4"],"all_features":[],"any_features":[],"none_features":["release_version_4_35_0"]},"template":false}],
     "src/generated/resources/data/sfm/loot_tables/blocks/cable_facade.json": [
       {
         "input": "assets/versioned/b8deeff75fc063ff5dab0ae8ac8cad884b5182c8411c736a0fa99421198f340d/src/generated/resources/data/sfm/loot_tables/blocks/cable_facade.json",
@@ -29210,6 +29176,7 @@
     "src/main/resources/assets/sfm/lang/pt_br.json": [
       {
         "input": "assets/features/release_version_4_35_0/localization/26.1.2/pt_br.json",
+        "reference_template": "assets/features/release_version_4_35_0/localization/pt_br-references.liquid",
         "when": {
           "all_features": [
             "release_version_4_35_0"
@@ -29238,6 +29205,7 @@
       },
       {
         "input": "assets/features/release_version_4_35_0/localization/legacy/pt_br.json",
+        "reference_template": "assets/features/release_version_4_35_0/localization/pt_br-references.liquid",
         "when": {
           "all_features": [
             "release_version_4_35_0"
@@ -29284,6 +29252,7 @@
     "src/main/resources/assets/sfm/lang/fr_fr.json": [
       {
         "input": "assets/features/release_version_4_35_0/localization/fr_fr.json",
+        "reference_template": "assets/features/release_version_4_35_0/localization/fr_fr-references.liquid",
         "when": {
           "all_features": [
             "release_version_4_35_0"

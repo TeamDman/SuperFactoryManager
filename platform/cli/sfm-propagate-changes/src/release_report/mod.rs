@@ -20,6 +20,7 @@ mod static_patch;
 mod compressed_html;
 
 pub mod article;
+mod article_appendix;
 pub mod article_figure;
 mod article_render;
 mod rendered_image;
@@ -46,3 +47,17 @@ pub mod reference_evidence;
 mod whitespace_review;
 
 pub mod source_paths;
+
+mod archive_resource_pair;
+mod archive_tree;
+
+mod fonts;
+
+mod article_release_artifact;
+mod article_release_delivery;
+mod article_release_validation;
+
+#[cfg(test)]
+mod article_release_validation_tests;
+
+mod article_release_class_receipt;

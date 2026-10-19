@@ -22,7 +22,7 @@ class TouchDisplayTerminalVisualControlTests {
 
     @BeforeAll static void loadPureControl() throws Exception {
         Path root = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest");
+        Path relative = Path.of("src/gametest/java/ca/teamdman/sfm/gametest");
         while (root != null && !Files.isDirectory(root.resolve(relative))) root = root.getParent();
         assertNotNull(root);
         sourceRoot = root.resolve(relative);

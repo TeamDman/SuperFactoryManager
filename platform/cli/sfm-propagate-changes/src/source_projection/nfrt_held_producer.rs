@@ -3,6 +3,8 @@
 //! Caller must separately bind completion to the owned, cache-disabled engine.
 
 use super::core_input_leases::DirectoryLeases;
+use super::nfrt_file_open::open_read;
+use super::nfrt_file_open::regular;
 use super::nfrt_producer_output_receipt::NfrtProducerDeclaration;
 use super::nfrt_producer_output_receipt::NfrtProducerRead;
 use crate::file_identity::FileIdentity;
@@ -10,14 +12,10 @@ use crate::file_identity::file_identity;
 use eyre::Result;
 use eyre::ensure;
 use std::fs::File;
+#[cfg(all(test, windows))]
 use std::fs::OpenOptions;
 use std::io::Read;
-use std::os::windows::fs::MetadataExt;
-use std::os::windows::fs::OpenOptionsExt;
 use std::path::Path;
-use windows::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT;
-use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
-use windows::Win32::Storage::FileSystem::FILE_SHARE_READ;
 
 const MAX_PRODUCER_BYTES: usize = 512 * 1024 * 1024;
 
@@ -26,6 +24,7 @@ pub(crate) struct NfrtHeldProducer {
     file: File,
     identity: FileIdentity,
     bytes: usize,
+    path: std::path::PathBuf,
     _ancestry: DirectoryLeases,
 }
 
@@ -39,14 +38,10 @@ impl NfrtHeldProducer {
         // The existing validator rejects traversal and unsafe path components;
         // held ancestors prevent directory substitution before the leaf open.
         let path = ancestry.prepare(root, &declaration.output_relative_path)?;
-        let file = OpenOptions::new()
-            .read(true)
-            .share_mode(FILE_SHARE_READ.0)
-            .custom_flags(FILE_FLAG_OPEN_REPARSE_POINT.0)
-            .open(path)?;
+        let file = open_read(&path)?;
         let metadata = file.metadata()?;
         ensure!(
-            metadata.is_file() && metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0,
+            metadata.is_file() && regular(&metadata),
             "Producer file is a reparse point or nonregular file"
         );
         let bytes = usize::try_from(metadata.len())?;
@@ -56,6 +51,7 @@ impl NfrtHeldProducer {
         );
         let identity = file_identity(&file)?;
         Ok(Self {
+            path,
             file,
             identity,
             bytes,
@@ -79,7 +75,9 @@ impl NfrtHeldProducer {
         self.file.seek(SeekFrom::Start(0))?;
         let before = file_identity(&self.file)?;
         ensure!(
-            before == self.identity && self.file.metadata()?.len() == self.bytes as u64,
+            file_identity(&open_read(&self.path)?)? == self.identity
+                && before == self.identity
+                && self.file.metadata()?.len() == self.bytes as u64,
             "Held producer identity or length changed before read"
         );
         let mut bytes = Vec::with_capacity(self.bytes);
@@ -101,7 +99,7 @@ impl NfrtHeldProducer {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, windows))]
 mod tests {
     use super::*;
     use std::fs;

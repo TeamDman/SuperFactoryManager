@@ -378,7 +378,105 @@ fn fixture_selection_never_hides_changed_metadata_or_invalid_inputs() -> Result<
 #[test]
 fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls() -> Result<()> {
     let fixture = CoreTestFixture::load()?;
-    assert_eq!(fixture.catalog.catalog.0.len(), 20);
+    assert_eq!(fixture.catalog.catalog.0.len(), 34);
+    let counts =
+        fixture
+            .catalog
+            .catalog
+            .0
+            .keys()
+            .fold(BTreeMap::<&str, usize>::new(), |mut counts, key| {
+                *counts.entry(key.split_once('/').unwrap().0).or_default() += 1;
+                counts
+            });
+    assert_eq!(
+        counts,
+        BTreeMap::from([
+            ("sfm-dev", 10),
+            ("sfm-4.34.0", 10),
+            ("sfm-4.35.0", 10),
+            ("sfm-4.34.0-issue610", 1),
+            ("sfm-4.35.0-issue610", 1),
+            ("sfm-4.34.0-issue610-visual", 1),
+            ("sfm-4.35.0-issue610-visual", 1),
+        ])
+    );
+    assert_eq!(counts["sfm-dev"] + counts["sfm-4.34.0"], 20);
+    for (key, entry) in &fixture.catalog.catalog.0 {
+        if key.starts_with("sfm-4.35.0/") {
+            assert_eq!(
+                entry
+                    .features
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>(),
+                BTreeSet::from([
+                    "recipe_namespace",
+                    "release_version_4_35_0",
+                    "quantity_sensitive_extraction_progress"
+                ])
+            );
+        } else if key.starts_with("sfm-4.34.0/") {
+            assert!(entry.features.is_empty());
+        } else if key == "sfm-4.34.0-issue610/mc-1.21.1" {
+            assert_eq!(
+                entry
+                    .features
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>(),
+                BTreeSet::from(["locked_dependency_projection", "issue_610_progress_tests"])
+            );
+        } else if key == "sfm-4.35.0-issue610/mc-1.21.1" {
+            assert_eq!(
+                entry
+                    .features
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>(),
+                BTreeSet::from([
+                    "locked_dependency_projection",
+                    "recipe_namespace",
+                    "release_version_4_35_0",
+                    "quantity_sensitive_extraction_progress",
+                    "issue_610_progress_tests"
+                ])
+            );
+        }
+    }
+    for (visual_key, acceptance_key) in [
+        (
+            "sfm-4.34.0-issue610-visual/mc-1.21.1",
+            "sfm-4.34.0-issue610/mc-1.21.1",
+        ),
+        (
+            "sfm-4.35.0-issue610-visual/mc-1.21.1",
+            "sfm-4.35.0-issue610/mc-1.21.1",
+        ),
+    ] {
+        let visual = fixture.catalog.catalog.entry(visual_key)?;
+        let acceptance = fixture.catalog.catalog.entry(acceptance_key)?;
+        let mut expected = acceptance
+            .features
+            .iter()
+            .map(String::as_str)
+            .collect::<BTreeSet<_>>();
+        expected.extend([
+            "game_puppet_runtime",
+            "issue_610_visual_evidence",
+            "client_properties",
+        ]);
+        assert_eq!(
+            visual
+                .features
+                .iter()
+                .map(String::as_str)
+                .collect::<BTreeSet<_>>(),
+            expected
+        );
+        assert_eq!(visual.minecraft_version, acceptance.minecraft_version);
+        assert_eq!(visual.environment, acceptance.environment);
+    }
     let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
     for (key, entry) in &fixture.catalog.catalog.0 {
         let current = fixture.catalog.context(key)?;

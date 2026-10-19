@@ -31,3 +31,7 @@ Get the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=T
 for syntax highlighting 🌈
 
 ![](./docs/media/vscode%20syntax.png)
+
+## Build from source
+
+Generated Minecraft projects include their own Gradle wrapper and can be built without Rust. Follow the [contributor guide](docs/source-projection-contributor-guide.md#standalone-gradle-projects) for project selection, Java requirements, and the verified 4.35.0/Minecraft 1.19.2 visitor path.
