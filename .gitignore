@@ -1,6 +1,9 @@
 *.bak
 # eclipse
 bin
+# Keep authored Rust binary entry points visible under the Eclipse rule.
+!/platform/cli/sfm-propagate-changes/src/bin/
+!/platform/cli/sfm-propagate-changes/src/bin/**
 logs/
 *.log
 log*.ndjson
@@ -81,3 +84,5 @@ run_client_puppet
 /platform/minecraft/projections/sfm-4.34.0-issue610-visual/
 
 /platform/minecraft/projections/sfm-4.35.0-issue610-visual/
+
+__pycache__

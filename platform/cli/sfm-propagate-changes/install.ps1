@@ -23,7 +23,7 @@ $previousInstallerRevision = [Environment]::GetEnvironmentVariable(
 )
 
 try {
-    & cargo install --path $PSScriptRoot --locked --offline
+    & cargo install --path $PSScriptRoot --locked --offline --bin sfm-propagate-changes
     $installExitCode = $LASTEXITCODE
 } finally {
     [Environment]::SetEnvironmentVariable(
