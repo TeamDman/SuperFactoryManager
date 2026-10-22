@@ -115,6 +115,8 @@ mod maven_pom_model;
 mod ordinary_release_compile_tests;
 #[path = "resolve.rs"]
 mod resolve;
+#[path = "source_build_output.rs"]
+mod source_build_output;
 #[path = "retained_compile_inputs.rs"]
 mod retained_compile_inputs;
 #[path = "xml_node.rs"]
@@ -1553,7 +1555,7 @@ fn current_locked_artifact_path(
     if let (Some(source_git), Some(source_build)) = (&artifact.source_git, &artifact.source_build) {
         let source_root =
             resolve_locked_artifact_path(&source_git.root, minecraft_dir, common_cache_dir);
-        let source_output = source_root.join(&source_build.output_path);
+        let source_output = source_build_output::resolve(&source_root, &source_build.output_path)?;
         if source_output.is_file() {
             return Ok(source_output);
         }

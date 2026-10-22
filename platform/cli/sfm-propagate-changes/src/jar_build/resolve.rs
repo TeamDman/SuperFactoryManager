@@ -653,7 +653,8 @@ impl Resolver {
             &repository_dir,
         )?;
         self.cancellation_token.bail_if_cancelled()?;
-        let source_output = checkout_dir.join(&source_build.output_path);
+        let source_output =
+            super::source_build_output::resolve(&checkout_dir, &source_build.output_path)?;
         if !source_output.is_file() {
             eyre::bail!(
                 "Source build for {} completed but did not produce {}",
