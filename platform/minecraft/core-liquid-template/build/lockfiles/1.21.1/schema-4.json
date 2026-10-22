@@ -1970,8 +1970,8 @@
       "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-fcaeddfee42b4adbb4a6c6fc4fd7d3b291050bbd",
-        "commit": "fcaeddfee42b4adbb4a6c6fc4fd7d3b291050bbd",
+        "root": "$sfm-cache\\source-builds\\facet-e76bef6ade844985e98d8799d139c905fba28c10",
+        "commit": "e76bef6ade844985e98d8799d139c905fba28c10",
         "branch": "fix/sfm435-late-channel-credit",
         "dirty": false,
         "remote_url": "https://github.com/TeamDman/facet"
