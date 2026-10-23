@@ -1,0 +1,1 @@
+/workspace/sfm-handshake-20261023/tools/sfm-propagate-changes 0.1.1 (rev 0918604ac558906c93a9c4ab449400e8f75792ce, built 2026-10-23 15:05:31 +00:00)

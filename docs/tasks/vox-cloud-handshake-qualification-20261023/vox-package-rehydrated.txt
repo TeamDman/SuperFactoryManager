@@ -1,0 +1,157 @@
+    Blocking waiting for file lock on package cache
+    Updating crates.io index
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+ Downloading crates ...
+  Downloaded xshell-macros v0.2.7
+  Downloaded find-msvc-tools v0.1.11
+  Downloaded prettyplease v0.2.37
+  Downloaded xshell v0.2.7
+  Downloaded cc v1.4.3
+  Downloaded blake3 v1.8.7
+   Compiling unicode-ident v1.0.24
+   Compiling cfg-if v1.0.4
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.11
+   Compiling autocfg v1.5.1
+   Compiling cc v1.4.3
+   Compiling constant_time_eq v0.4.2
+   Compiling arrayvec v0.7.8
+   Compiling equivalent v1.0.2
+   Compiling cpufeatures v0.3.0
+   Compiling camino v1.2.5
+   Compiling foldhash v0.2.0
+   Compiling allocator-api2 v0.2.21
+   Compiling teamy-facet-core v0.50.0-rc.7
+   Compiling hashbrown v0.17.1
+   Compiling impls v1.0.3
+   Compiling blake3 v1.8.7
+   Compiling const-fnv1a-hash v1.1.0
+   Compiling smallvec v2.0.0-alpha.12
+   Compiling strsim v0.11.1
+   Compiling crc32fast v1.5.0
+   Compiling mutants v0.0.3
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling indexmap v2.14.0
+   Compiling rustc-hash v2.1.3
+   Compiling miniz_oxide v0.8.9
+   Compiling unsynn v0.3.0
+   Compiling taxon v0.2.0-rc.5
+   Compiling twox-hash v2.1.3
+   Compiling object v0.39.1
+   Compiling ruzstd v0.8.3
+   Compiling flate2 v1.1.9
+   Compiling memchr v2.8.3
+   Compiling teamy-facet-macro-types v0.50.0-rc.7
+   Compiling teamy-facet-path v0.50.0-rc.7
+   Compiling teamy-facet-reflect v0.50.0-rc.7
+   Compiling teamy-facet-macro-parse v0.50.0-rc.7
+   Compiling syn v2.0.119
+   Compiling teamy-facet-macros-impl v0.50.0-rc.7
+   Compiling teamy-facet-solver v0.50.0-rc.7
+   Compiling teamy-facet-dessert v0.50.0-rc.7
+   Compiling teamy-facet-format v0.50.0-rc.9
+   Compiling copypatch v0.2.0-rc.5
+   Compiling teamy-facet v0.50.0-rc.7
+   Compiling parking_lot_core v0.9.12
+   Compiling weavy v0.2.3-rc.0
+   Compiling scopeguard v1.2.0
+   Compiling smallvec v1.15.2
+   Compiling lock_api v0.4.14
+   Compiling teamy-facet-value v0.50.0-rc.9
+   Compiling parking_lot v0.12.5
+   Compiling syn v3.0.3
+   Compiling teamy-facet-macros v0.50.0-rc.7
+   Compiling teamy-phon-schema v0.2.0-rc.6 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon-schema)
+   Compiling pin-project-lite v0.2.17
+   Compiling teamy-phon-jit v0.2.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon-jit)
+   Compiling errno v0.3.14
+   Compiling signal-hook v0.3.18
+   Compiling unicode-segmentation v1.13.3
+   Compiling bitflags v2.13.1
+   Compiling cfg_aliases v0.2.2
+   Compiling nix v0.31.3
+   Compiling convert_case v0.10.0
+   Compiling signal-hook-registry v1.4.8
+   Compiling bytes v1.12.1
+   Compiling thiserror v1.0.69
+   Compiling log v0.4.33
+   Compiling heck v0.5.0
+   Compiling rustix v1.1.4
+   Compiling mio v1.2.2
+   Compiling derive_more-impl v2.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling litrs v1.0.0
+   Compiling tokio-macros v2.7.2
+   Compiling teamy-vox-rt-macros v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-rt-macros)
+   Compiling linux-raw-sys v0.12.1
+   Compiling is_ci v1.2.0
+   Compiling document-features v0.2.12
+   Compiling tokio v1.53.1
+   Compiling derive_more v2.1.1
+   Compiling signal-hook-mio v0.2.5
+   Compiling teamy-phon-ir v0.2.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon-ir)
+   Compiling teamy-phon-engine v0.2.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon-engine)
+   Compiling is-terminal v0.4.17
+   Compiling venial v0.5.0
+   Compiling teamy-phon v0.2.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon)
+   Compiling owo-colors v4.3.0
+   Compiling once_cell v1.21.4
+   Compiling structstruck v0.5.1
+   Compiling supports-color v2.1.0
+   Compiling tracing-core v0.1.36
+   Compiling teamy-vox-rt v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-rt)
+   Compiling teamy-vox-phon v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-phon)
+   Compiling crossterm v0.29.0
+   Compiling xterm-query v0.6.0
+   Compiling supports-color v3.0.2
+   Compiling teamy-vox-schema v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-schema)
+   Compiling tracing-attributes v0.1.31
+   Compiling coolor v1.1.0
+   Compiling zerocopy v0.8.56
+   Compiling terminal-light v1.9.0
+   Compiling teamy-vox-types v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-types)
+   Compiling futures-macro v0.3.34
+   Compiling tracing v0.1.44
+   Compiling zerocopy-derive v0.8.56
+   Compiling teamy-vox-macros-parse v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-macros-parse)
+   Compiling futures-task v0.3.34
+   Compiling slab v0.4.12
+   Compiling futures-core v0.3.34
+   Compiling futures-util v0.3.34
+   Compiling teamy-vox-macros-core v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-macros-core)
+   Compiling teamy-facet-pretty v0.50.0-rc.7
+   Compiling teamy-vox-service-macros v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-macros)
+   Compiling vte v0.14.1
+   Compiling unicode-width v0.2.2
+   Compiling prettyplease v0.2.37
+   Compiling yansi v1.0.1
+   Compiling strip-ansi-escapes v0.2.1
+   Compiling ariadne v0.6.0
+   Compiling teamy-phon-codegen v0.2.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/phon/rust/phon-codegen)
+   Compiling teamy-facet-json v0.50.0-rc.9
+   Compiling teamy-facet-error v0.50.0-rc.7
+   Compiling teamy-figue-attrs v6.0.0-rc.3
+   Compiling base64 v0.21.7
+   Compiling xshell-macros v0.2.7
+   Compiling xshell v0.2.7
+   Compiling teamy-vox-codegen v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-codegen)
+   Compiling teamy-vox-core v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox-core)
+   Compiling teamy-figue v6.0.0-rc.5
+   Compiling teamy-vox v0.10.0-rc.7 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/rust/vox)
+   Compiling teamy-vox-proto v0.2.2 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/spec/spec-proto)
+   Compiling teamy-vox-xtask v0.2.2 (/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 1m 49s
+     Running `/workspace/sfm-handshake-20261023/vox-target/debug/teamy-vox-xtask package-java`
+Java generated sources are up to date
+Schema bundle cutover passed (1934 assertions)
+Phon Java conformance passed (86 assertions)
+StreamFramingTest: PASS
+VoxRuntimeTest: PASS
+GeneratedResponseIntegrationTest: PASS
+Java 17 Phon/Vox tests passed
+Packaged deterministic dependency-free Java runtime: /workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00/java/target/teamy-vox-java-0.10.0-rc.7.jar

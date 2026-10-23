@@ -1,0 +1,47 @@
+{
+  "source_url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.8%2B9/OpenJDK21U-jdk_x64_linux_hotspot_21.0.8_9.tar.gz",
+  "authorized_hosts": [
+    "github.com",
+    "release-assets.githubusercontent.com"
+  ],
+  "started_utc": "2026-10-23T15:07:27.743702+00:00",
+  "ca_file": "/workspace/.sfm-env/trust/ca-certificates.crt",
+  "ca_path": "/workspace/.sfm-env/trust/certs",
+  "tls_verification": true,
+  "retries": 0,
+  "redirects": [
+    {
+      "http_code": 302,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 0,
+      "time_total": 0.491514,
+      "http_version": "2",
+      "host": "github.com",
+      "curl_exit": 0,
+      "content-type": "text/html; charset=utf-8",
+      "content-length": "0",
+      "next_host": "release-assets.githubusercontent.com"
+    },
+    {
+      "http_code": 200,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 207098019,
+      "time_total": 18.426558,
+      "http_version": "2",
+      "host": "release-assets.githubusercontent.com",
+      "curl_exit": 0,
+      "content-type": "application/octet-stream",
+      "content-length": "207098019",
+      "etag": "\"0x8DDC60BF2BE7BEA\"",
+      "last-modified": "Fri, 18 Jul 2025 15:01:17 GMT"
+    }
+  ],
+  "result": "downloaded",
+  "bytes": 207098019,
+  "sha256": "f2dc5418092c43003db8f9005c4a286e1c0104fea96ccdd49e8ebd037cac9219",
+  "output": "/workspace/sfm-handshake-20261023/downloads/OpenJDK21U-jdk_x64_linux_hotspot_21.0.8_9.tar.gz",
+  "final_host": "release-assets.githubusercontent.com",
+  "finished_utc": "2026-10-23T15:07:46.925925+00:00"
+}

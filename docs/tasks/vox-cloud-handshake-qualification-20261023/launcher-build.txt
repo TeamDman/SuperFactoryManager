@@ -1,0 +1,2238 @@
+   Compiling sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes)
+   Compiling sfm-styx-state v0.1.0 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/crates/sfm-styx-state)
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/curseforge/curseforge_cli.rs:363:14
+    |
+363 |           _ => eyre::bail!(
+    |  ______________^
+364 | |             "Invalid --safety-age unit '{unit}'. Supported units: s, m, h (example: 30m)."
+365 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: `#[warn(semicolon_in_expressions_from_non_local_macros)]` (part of `#[warn(future_incompatible)]`) on by default
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_add_cli.rs:178:31
+    |
+178 |           (None, None, None) => eyre::bail!(
+    |  _______________________________^
+179 | |             "Specify either --maven or both --curseforge-project and --curseforge-file."
+180 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_add_cli.rs:181:14
+    |
+181 |           _ => eyre::bail!(
+    |  ______________^
+182 | |             "Use exactly one source: --maven or both --curseforge-project and --curseforge-file."
+183 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_add_cli.rs:726:19
+    |
+726 |         loader => eyre::bail!("Unsupported CurseForge loader '{loader}'."),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_add_cli.rs:797:5
+    |
+797 | /     eyre::bail!(
+798 | |         "Could not resolve '{}'. Tried:\n{}",
+799 | |         coordinate.canonical,
+800 | |         attempted.join("\n")
+801 | |     )
+    | |_____^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_add_cli.rs:905:18
+    |
+905 |             _ => eyre::bail!("Invalid Maven coordinate '{input}'."),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_artifact_accept_cli.rs:160:84
+    |
+160 |           ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+    |  ____________________________________________________________________________________^
+161 | |             "dependency commands require schema version 3 or 4; run dependency migrate --branch <branch> first"
+162 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_artifact_accept_cli.rs:259:5
+    |
+259 | /     eyre::bail!(
+260 | |         "Could not find Forge or NeoForge mod metadata in {}",
+261 | |         artifact_path.display()
+262 | |     )
+    | |_____^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_migrate_cli.rs:122:17
+    |
+122 | /                 eyre::bail!(
+123 | |                     "migration requires {} correction(s); the lockfile was not modified",
+124 | |                     diagnostics.len()
+125 | |                 )
+    | |_________________^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_source_configure_cli.rs:292:14
+    |
+292 |           _ => eyre::bail!(
+    |  ______________^
+293 | |             "Platform pipelines may only be configured for the Minecraft or loader dependency, not '{}'.",
+294 | |             selected_dependency.id
+295 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/dependency/dependency_source_search_cli.rs:208:14
+    |
+208 |           _ => eyre::bail!(
+    |  ______________^
+209 | |             "ripgrep failed for {}: {}",
+210 | |             root.display(),
+211 | |             String::from_utf8_lossy(&output.stderr).trim()
+212 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/cli/git/push/git_push_cli.rs:70:13
+   |
+70 |             bail!(msg)
+   |             ^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/cli/git/git_add_cli.rs:82:13
+   |
+82 |             bail!(message)
+   |             ^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/cli/git/git_commit_cli.rs:90:13
+   |
+90 |             bail!(message)
+   |             ^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/git/git_commit_cli.rs:110:14
+    |
+110 |           _ => bail!(
+    |  ______________^
+111 | |             "git diff --cached --quiet failed in {} with exit {:?}",
+112 | |             worktree.path.display(),
+113 | |             status
+114 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/cli/project_catalog.rs:38:22
+   |
+38 |               other => eyre::bail!(
+   |  ______________________^
+39 | |                 "Unknown project catalog category `{other}`; expected test, game-test, or puppet"
+40 | |             ),
+   | |_____________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/puppet_matrix.rs:235:44
+    |
+235 |   ...   Parallelism::Parallel { limit } => eyre::bail!(
+    |  __________________________________________^
+236 | | ...       "puppet matrix --parallel {limit} is not enabled until Phase 3.2 records two-client calibration evidence; use --paralle...
+237 | | ...   ),
+    | |_______^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/puppet_matrix.rs:576:5
+    |
+576 | /     eyre::bail!(
+577 | |         "Could not allocate a unique matrix directory under {}",
+578 | |         matrix_parent.display()
+579 | |     )
+    | |_____^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/promotion_cli.rs:371:9
+    |
+371 |         bail!("repair Apply requires a pre-acceptance repair transition")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/promotion_cli.rs:588:13
+    |
+588 |             bail!("immutable-preset transition cannot contain repair-only fields")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/promotion_cli.rs:591:13
+    |
+591 | /             bail!(
+592 | |                 "pre-acceptance repair requires both expected-old identity fields and reviewed operations"
+593 | |             )
+    | |_____________^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/promotion_cli.rs:595:28
+    |
+595 |         (kind, _, _, _) => bail!("unknown source-promotion transition kind '{kind}'"),
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/promotion_cli.rs:616:22
+    |
+616 |             other => bail!("unknown reviewed promotion operation kind '{other}'"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/release_package_cli.rs:300:18
+    |
+300 |         Ok(_) => eyre::bail!("release package output root already exists"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/release_provider_plan_cli.rs:305:18
+    |
+305 |             _ => eyre::bail!("invalid reviewed Modrinth 1.20.1 loader policy"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/cli/source/release_provider_plan_cli.rs:508:18
+    |
+508 |             _ => eyre::bail!("unsupported package loader for '{target_id}'"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/container_build/native_api/copy_cli.rs:56:18
+   |
+56 |             _ => eyre::bail!("CLI archive contains unapproved links or entries"),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/container_build/native_api/session/file_archive.rs:79:27
+   |
+79 |             "linkpath" => eyre::bail!("PAX links refused"),
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/container_build/native_api/session/file_archive.rs:152:18
+    |
+152 |             _ => eyre::bail!("links/directories/other tar entry types refused"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_auth.rs:292:9
+    |
+292 |         eyre::bail!("Persistent discovery leases require Windows")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_auth.rs:295:9
+    |
+295 |         eyre::bail!("Persistent discovery leases require Windows")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_auth.rs:304:9
+    |
+304 |         eyre::bail!("Persistent discovery leases require Windows")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_auth.rs:307:9
+    |
+307 |         eyre::bail!("Persistent discovery leases require Windows")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/curseforge/curseforge_game_version_id.rs:49:19
+   |
+49 |               [] => eyre::bail!(
+   |  ___________________^
+50 | |                 "Could not resolve required game version '{}' with type id {}. Candidates: {}",
+51 | |                 name,
+52 | |                 required_type_id,
+53 | |                 Self::format_candidates(candidates)
+54 | |             ),
+   | |_____________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/curseforge/curseforge_game_version_id.rs:61:17
+   |
+61 | /                 eyre::bail!(
+62 | |                     "Ambiguous game version '{}' with type id {}. Matching IDs: {}",
+63 | |                     name,
+64 | |                     required_type_id,
+65 | |                     summary
+66 | |                 )
+   | |_________________^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_game_version_id.rs:96:19
+    |
+ 96 |               [] => eyre::bail!(
+    |  ___________________^
+ 97 | |                 "Could not resolve required Minecraft version '{}'. Candidates: {}",
+ 98 | |                 minecraft_version,
+ 99 | |                 Self::format_candidates(candidates)
+100 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_game_version_id.rs:112:17
+    |
+112 | /                 eyre::bail!(
+113 | |                     "Ambiguous Minecraft version '{}'. Matching IDs: {}",
+114 | |                     minecraft_version,
+115 | |                     summary
+116 | |                 )
+    | |_________________^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/curseforge/curseforge_game_version_id.rs:169:22
+    |
+169 |                 _ => eyre::bail!("Unsupported release metadata name '{name}'"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/dependency_classfile_stubs.rs:774:22
+    |
+774 |                 _ => eyre::bail!("unsupported class constant-pool tag {tag}"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/dependency_inventory.rs:75:18
+   |
+75 |             _ => eyre::bail!("Dependency editing requires schema version 3 or 4"),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/dependency_inventory.rs:184:14
+    |
+184 |           _ => eyre::bail!(
+    |  ______________^
+185 | |             "Dependency editing requires schema version 3 or 4; run dependency migrate first"
+186 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/dependency_sources.rs:331:17
+    |
+331 |         None => eyre::bail!("Provide a dependency target or use --all."),
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/dependency_sources.rs:654:17
+    |
+654 |           None => eyre::bail!(
+    |  _________________^
+655 | |             "Dependency '{dependency_id}' has multiple components; select dependency/component explicitly."
+656 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/build_options.rs:48:17
+   |
+48 |                 eyre::bail!("projection cannot be resolved as a Git branch")
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/fresh_jar_output.rs:164:22
+    |
+164 |             Ok(_) => eyre::bail!("fresh JAR refuses an existing output of any kind"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/maven_pom_model.rs:34:5
+   |
+34 |     eyre::bail!("cyclic or excessive POM property expansion: {value}")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/resolve.rs:1716:18
+     |
+1716 |         other => eyre::bail!("unsupported prepared artifact treatment: {other}"),
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/resolve.rs:1721:18
+     |
+1721 |         other => eyre::bail!("unsupported prepared data-run policy: {other}"),
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/resolve_pom_metadata.rs:98:9
+    |
+ 98 | / ...   eyre::bail!(
+ 99 | | ...       "offline Maven metadata missing: {coordinate}; expected hash-pinned POM at {} and origin entry in {}; provision authori...
+100 | | ...       path.display(),
+101 | | ...       catalog_path.display()
+102 | | ...   )
+    | |_______^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine.rs:1468:9
+     |
+1468 |         eyre::bail!("Jar comparison found normalized differences.")
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine.rs:1563:5
+     |
+1563 | /     eyre::bail!(
+1564 | |         "Locked artifact {} is missing and no source-build output is available",
+1565 | |         artifact_label(artifact)
+1566 | |     )
+     | |_____^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine.rs:2029:5
+     |
+2029 | /     eyre::bail!(
+2030 | |         "Artifact {} resolved with content hash {}, but sfm-toolchain.lock.json requires {}",
+2031 | |         locked.coordinate.as_deref().unwrap_or("<unknown>"),
+2032 | |         actual_hash,
+2033 | |         locked.hash
+2034 | |     )
+     | |_____^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_model.rs:728:18
+    |
+728 |             _ => eyre::bail!("Invalid Maven coordinate: {input}"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/native_cache_root.rs:287:18
+    |
+287 |             _ => eyre::bail!("Native cache root rejects dot and traversal components"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_compile.rs:796:30
+    |
+796 |                     other => eyre::bail!("unknown prepared artifact treatment {other}"),
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_compile.rs:801:30
+    |
+801 |                     other => eyre::bail!("unknown prepared data-run policy {other}"),
+    |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_named_compile.rs:1044:14
+     |
+1044 |   ...   _ => eyre::bail!(
+     |  ____________^
+1045 | | ...       "named native Compile currently supports only the exact released Forge-family recipes for 1.19.2, 1.19.4, 1.20 and 1.2...
+1046 | | ...   ),
+     | |_______^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_nfrt_compile.rs:252:17
+    |
+252 |                 eyre::bail!("retained NeoForm host requires a checked catalog owner")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_nfrt_compile.rs:443:21
+    |
+443 |                     eyre::bail!("NFRT Minecraft request has no exact compile role")
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/engine_named_jar.rs:93:58
+   |
+93 |           BuildTarget::Run | BuildTarget::SourceOutputs => eyre::bail!(
+   |  __________________________________________________________^
+94 | |             "catalog-owned native route permits Compile or exact Jar only; NeoForm/JUnit/launch stay disabled"
+95 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_jar.rs:335:13
+    |
+335 |             eyre::bail!("named Jar refuses existing output of any kind; prior evidence is retained")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_jar.rs:476:18
+    |
+476 |             _ => eyre::bail!("unreviewed named Jar diagnostic role"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_named_jar.rs:669:14
+    |
+669 |         _ => eyre::bail!("fresh Jar writer lost its output admission"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/engine_catalog_release_packaging.rs:59:14
+   |
+59 |         _ => eyre::bail!("catalog release packaging has no admitted exact Jar title"),
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_plan.rs:900:5
+    |
+900 |     eyre::bail!(message)
+    |     ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_plan.rs:1986:13
+     |
+1986 |             eyre::bail!("Derived cache override requires an exact catalog owner")
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:2132:14
+     |
+2132 |         _ => eyre::bail!("Unknown JUnit protocol event: {event}"),
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:2416:5
+     |
+2416 |     eyre::bail!("Could not infer a JUnit Platform version from test dependencies")
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:3071:14
+     |
+3071 |         _ => eyre::bail!("Refusing to clean world for non-client-automation run kind"),
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:4607:5
+     |
+4607 | /     eyre::bail!(
+4608 | |         "Could not allocate a unique game-puppet preview run directory under {}",
+4609 | |         run_parent.display()
+4610 | |     )
+     | |_____^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:4906:14
+     |
+4906 |         _ => eyre::bail!("Unsupported game puppet artifact format {format}"),
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:4969:14
+     |
+4969 |         _ => eyre::bail!("Unsupported terminal artifact kind {kind}"),
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_run.rs:6951:5
+     |
+6951 |     eyre::bail!("unresolved mutable cache path in launch argument/environment: {value}")
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_execute.rs:1281:18
+     |
+1281 |             _ => eyre::bail!("Unsupported class constant pool tag {tag}"),
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/engine_sources.rs:117:14
+    |
+117 |         _ => eyre::bail!("Unsupported ANTLR tool version: {version}"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_sources.rs:1949:18
+     |
+1949 |             _ => eyre::bail!("Unsupported class constant pool tag {tag}"),
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_mappings_compare_artifacts.rs:1112:14
+     |
+1112 |           _ => eyre::bail!(
+     |  ______________^
+1113 | |             "artifact refresh requires schema version 3 or 4; migrate the lockfile first"
+1114 | |         ),
+     | |_________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/engine_mappings_compare_artifacts.rs:2586:5
+     |
+2586 | /     eyre::bail!(
+2587 | |         "Could not allocate a unique temporary file for {}",
+2588 | |         path.display()
+2589 | |     )
+     | |_____^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/error_action.rs:37:18
+   |
+37 |             _ => eyre::bail!("Invalid --error-action '{input}'. Expected 'bail' or 'continue'."),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/build_snapshot_receipt.rs:824:13
+    |
+824 |             eyre::bail!("unsafe snapshot path component")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `super::nfrt_preparation_phase::NfrtPreparationPhase`
+ --> src/jar_build/local_dependency_image.rs:4:5
+  |
+4 | use super::nfrt_preparation_phase::NfrtPreparationPhase;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `eyre::ensure`
+ --> src/jar_build/local_dependency_image.rs:8:5
+  |
+8 | use eyre::ensure;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `sha2::Digest`
+ --> src/jar_build/local_dependency_image.rs:9:5
+  |
+9 | use sha2::Digest;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `sha2::Sha256`
+  --> src/jar_build/local_dependency_image.rs:10:5
+   |
+10 | use sha2::Sha256;
+   |     ^^^^^^^^^^^^
+
+warning: unused import: `std::fs`
+  --> src/jar_build/local_dependency_image.rs:12:5
+   |
+12 | use std::fs;
+   |     ^^^^^^^
+
+warning: unused import: `std::io::Read`
+  --> src/jar_build/local_dependency_image.rs:14:5
+   |
+14 | use std::io::Read;
+   |     ^^^^^^^^^^^^^
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/local_dependency_image.rs:135:9
+    |
+135 |         eyre::bail!("Local dependency SDK image holding is Windows-only")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/local_dependency_image.rs:216:9
+    |
+216 |         eyre::bail!("Local dependency SDK image holding is Windows-only")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_host_session.rs:239:40
+    |
+239 |             NfrtHostOperation::Tool => eyre::bail!("Host operation has no integrated handler"),
+    |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_host_session.rs:413:26
+    |
+413 |                     _ => eyre::bail!("Unreviewed graph output type"),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_launch_contract.rs:232:9
+    |
+232 | /         eyre::bail!(
+233 | |             "named NFRT input export cannot enable native execution: {}",
+234 | |             self.receipt.unresolved_execution_gates.join(", ")
+235 | |         )
+    | |_________^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/jar_build/nfrt_launch_contract.rs:1333:22
+     |
+1333 |                 _ => eyre::bail!("ambiguous frozen function classpath"),
+     |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_owned_host.rs:311:13
+    |
+311 |             eyre::bail!("Owned host exceeded request bound")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_owned_host.rs:284:29
+    |
+284 | ...                   eyre::bail!("Owned host pipe closed before completion")
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_requests.rs:115:18
+    |
+115 |             _ => eyre::bail!("NeoForm transport request belongs to another source authority"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/nfrt_requests.rs:183:18
+    |
+183 |             _ => eyre::bail!("NeoForm request belongs to a different source-lock authority"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/parallelism.rs:28:30
+   |
+28 |             Some(Some(0)) => eyre::bail!("--parallel must be greater than zero"),
+   |                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/run_options.rs:64:18
+   |
+64 |               _ => eyre::bail!(
+   |  __________________^
+65 | |                 "Invalid --title-screen '{input}'. Expected 'text-editor', 'input-diag', or 'draw-canvas'."
+66 | |             ),
+   | |_____________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/runtime_slot.rs:88:9
+   |
+88 | /         eyre::bail!(
+89 | |             "no free runtime slot among 1..={MAX_DEFAULT_SLOTS}; select an explicit positive --runtime-slot N"
+90 | |         )
+   | |_________^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jar_build/source_identifier_remapper.rs:186:5
+    |
+186 |     eyre::bail!("Could not allocate temporary path for {}", path.display())
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jar_build/source_output_layout.rs:30:18
+   |
+30 |             _ => eyre::bail!("Invalid --layout '{input}'. Expected 'jar' or 'filetree'."),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/definition_at_position.rs:861:14
+    |
+861 |         _ => eyre::bail!("unsupported content-hash algorithm `{algorithm}`"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/java_analysis/definition_at_position_engine.rs:1687:24
+     |
+1687 |               matches => eyre::bail!(
+     |  ________________________^
+1688 | |                 "definition document `{}`:`{}` matched {} editable workspace files",
+1689 | |                 request.document.root_id,
+1690 | |                 request.document.root_relative_path,
+1691 | |                 matches.len()
+1692 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/java_analysis/definition_at_position_engine.rs:1717:19
+     |
+1717 |               [] => eyre::bail!(
+     |  ___________________^
+1718 | |                 "definition document `{}`:`{}` has no editable, managed-JDK, or acquired-dependency source authority",
+1719 | |                 request.document.root_id,
+1720 | |                 request.document.root_relative_path
+1721 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/java_analysis/definition_at_position_engine.rs:1722:22
+     |
+1722 |               roots => eyre::bail!(
+     |  ______________________^
+1723 | |                 "definition document root `{}` matched {} acquired dependency source authorities",
+1724 | |                 request.document.root_id,
+1725 | |                 roots.len()
+1726 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/dependency_index_body.rs:203:18
+    |
+203 |               _ => eyre::bail!(
+    |  __________________^
+204 | |                 "dependency Java symbol stream line {line_index} has unknown record tag `{record_kind}`"
+205 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/dependency_index_body.rs:362:14
+    |
+362 |         _ => eyre::bail!("unknown dependency Java symbol route kind `{value}`"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/dependency_index_projection.rs:147:84
+    |
+147 |           ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+    |  ____________________________________________________________________________________^
+148 | |             "dependency symbol index projection requires a schema-v3 or schema-v4 lockfile"
+149 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/dependency_index_worker.rs:281:14
+    |
+281 |         _ => eyre::bail!("unknown dependency symbol worker pass `{value}`"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/java_analysis/dependency_index_worker.rs:1482:14
+     |
+1482 |         _ => eyre::bail!("unknown dependency symbol resolution kind `{value}`"),
+     |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/generated_dependency_index.rs:254:45
+    |
+254 |           ToolchainLockfileDocument::V1(_) => eyre::bail!(
+    |  _____________________________________________^
+255 | |             "generated dependency lookup requires checksum-pinned schema-v2, v3 or v4 project lockfiles"
+256 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/generated_dependency_index.rs:433:18
+    |
+433 |             _ => eyre::bail!("unknown classfile constant tag {tag}"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/java_analysis/java_interaction_map.rs:1301:5
+     |
+1301 |     eyre::bail!("Java interaction-map encoded size did not converge")
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: macro invocations at the end of a block are treated as expressions
+     = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/java_analysis/selector.rs:58:19
+   |
+58 |             [] => bail!("symbol selector requires a class name"),
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/java_analysis/selector.rs:59:18
+   |
+59 |             _ => bail!("symbol selector accepts '<class>' or '<class> <field|method(descriptor)>'"),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/selector.rs:305:17
+    |
+305 |         b'V' => bail!("void is only valid as a method return type"),
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/selector.rs:306:14
+    |
+306 |         _ => bail!("invalid JVM descriptor type code '{}'", char::from(kind)),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:290:18
+    |
+290 |             _ => eyre::bail!("Java source path `{source_path}` matched multiple report paths"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:300:19
+    |
+300 |             [] => eyre::bail!("Java source path `{source_path}` is not in the selected workspace"),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:312:17
+    |
+312 | / ...   eyre::bail!(
+313 | | ...       "Java source path `{source_path}` is ambiguous across roots: {matches}. Pass an exact report path or a single --source-...
+314 | | ...   )
+    | |_______^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:348:17
+    |
+348 |                 eyre::bail!("Java source path `{relative}` is not in the selected workspace")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:356:17
+    |
+356 | /                 eyre::bail!(
+357 | |                     "Java source path `{relative}` is ambiguous across roots [{roots}]; pass --source-root-id"
+358 | |                 )
+    | |_________________^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:867:73
+    |
+867 |               Some(existing) if existing.source_set != file.source_set => eyre::bail!(
+    |  _________________________________________________________________________^
+868 | |                 "Java source {} was assigned to conflicting source sets `{}` and `{}`",
+869 | |                 file.absolute_path.display(),
+870 | |                 existing.source_set,
+871 | |                 file.source_set
+872 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/java_analysis/workspace.rs:967:9
+    |
+967 |         eyre::bail!("lockfile feature references unknown Java source set `{value}`")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/jdk_artifact_cache.rs:64:18
+   |
+64 |           Ok(_) => eyre::bail!(
+   |  __________________^
+65 | |             "JBRSDK cache archive is not a regular file: {}",
+66 | |             archive.display()
+67 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jdk_artifact_cache.rs:383:5
+    |
+383 |     eyre::bail!("JBRSDK ZIP does not contain a single SDK home with java and javac")
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/jdk_artifact_cache.rs:543:20
+    |
+543 |         Some(_) => eyre::bail!("JBRSDK ZIP contains a duplicate installed path"),
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/paths/app_home.rs:54:13
+   |
+54 |             bail!("Could not determine config directory")
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/paths/cache.rs:39:13
+   |
+39 |             bail!("Could not determine cache directory")
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/prism/meta/metadata.rs:218:14
+    |
+218 |         _ => eyre::bail!("Unsupported loader coordinate: {coordinate}"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unused import: `std::fs::File`
+ --> src/release_review_capture_io.rs:6:5
+  |
+6 | use std::fs::File;
+  |     ^^^^^^^^^^^^^
+
+warning: unused import: `std::fs::Metadata`
+ --> src/release_review_capture_io.rs:7:5
+  |
+7 | use std::fs::Metadata;
+  |     ^^^^^^^^^^^^^^^^^
+
+warning: trailing semicolon in macro used in expression position
+   --> src/release_review_surface_v1.rs:174:17
+    |
+174 |                 eyre::bail!("added file-pair must have only an after source")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/release_review_surface_v1.rs:177:17
+    |
+177 |                 eyre::bail!("deleted file-pair must have only a before source")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/release_review_surface_v1.rs:185:17
+    |
+185 |                 eyre::bail!("non-add/delete file-pair must have before and after sources")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/release_review_surface_v1.rs:718:18
+    |
+718 |             _ => eyre::bail!("diagnostic source range must include side and both endpoints"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_audit/source_language.rs:49:18
+   |
+49 |             _ => eyre::bail!("Unsupported source language '{value}'. Expected rust or java."),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/candidate_lock.rs:724:14
+    |
+724 |         _ => eyre::bail!("unsupported source-candidate target '{target}'"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/core_catalog.rs:60:9
+   |
+60 |         eyre::bail!("project has no containing checkout projections catalog")
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: macro invocations at the end of a block are treated as expressions
+   = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/directive_scanner.rs:308:14
+    |
+308 |         _ => eyre::bail!("line {line_number}: unsupported template directive: {body}"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/frozen_recipe_project.rs:662:18
+    |
+662 |         other => eyre::bail!("unreviewed frozen native loader/tool boundary: {other}"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/localization_audit/format_signature.rs:86:26
+   |
+86 |                     _ => eyre::bail!("unsupported conversion %{conversion}"),
+   |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/manifest.rs:1203:18
+     |
+1203 |               _ => eyre::bail!(
+     |  __________________^
+1204 | |                 "changed canonical selection requires both imported output SHA-256 and required feature"
+1205 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/manifest.rs:1263:29
+     |
+1263 |             (None, None) => eyre::bail!("new version output `{path}` requires a feature gate"),
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/manifest.rs:1395:14
+     |
+1395 |           _ => eyre::bail!(
+     |  ______________^
+1396 | |             "feature `{feature_id}` effect `{}` has an invalid input path for {}",
+1397 | |             effect.output_path,
+1398 | |             effect.kind.as_str()
+1399 | |         ),
+     | |_________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/native_project_target.rs:46:14
+   |
+46 |           _ => eyre::bail!(
+   |  ______________^
+47 | |             "development native admission requires a captured Forge-family target: 1.19.2, 1.19.4, 1.20 or 1.20.1"
+48 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/native_project_target.rs:60:14
+   |
+60 |         _ => eyre::bail!("development target has no captured native adapter"),
+   |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/native_project_target.rs:415:26
+    |
+415 |                     _ => eyre::bail!("native loader coordinate is not a supported platform"),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/nfrt_input_store.rs:475:26
+    |
+475 |                 Ok(_) => eyre::bail!("Workspace path already exists"),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/nfrt_project_owner.rs:68:18
+   |
+68 |             _ => eyre::bail!("NeoForm development source has no captured target"),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle.rs:809:22
+    |
+809 |                 _ => eyre::bail!("selected build input acquisition is incomplete"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle.rs:838:26
+    |
+838 |                     _ => eyre::bail!("selected input acquisition is incomplete"),
+    |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_draft.rs:783:18
+    |
+783 |               _ => eyre::bail!(
+    |  __________________^
+784 | |                 "Production candidate membership differs from {}",
+785 | |                 witness.id
+786 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_draft.rs:884:18
+    |
+884 |           Ok(_) => eyre::bail!(
+    |  __________________^
+885 | |             "Draft destination already exists; choose a new directory to preserve all staged and contributor work"
+886 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_git.rs:268:9
+    |
+268 |         bail!("Oracle tag chain for {full_ref} exceeds {MAX_TAG_DEPTH} objects")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_git.rs:265:25
+    |
+265 |                 kind => bail!("Oracle reference {full_ref} targets {kind:?}, not a commit"),
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_seed.rs:543:5
+    |
+543 |     eyre::bail!("Metadata has no root {wanted} object")
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_seed.rs:584:5
+    |
+584 |     eyre::bail!("Core seed input already exists: {relative}")
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/oracle_seed.rs:570:17
+    |
+570 |                 eyre::bail!("Core seed input already exists: {relative}; refusing overwrite")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/promotion.rs:929:14
+    |
+929 |         _ => bail!("unsupported production JAR target '{target_id}'"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/promotion.rs:1077:33
+     |
+1077 |               (false, Some(_)) => bail!(
+     |  _________________________________^
+1078 | |                 "candidate output '{}/{path}' collides with an unowned checked-in file",
+1079 | |                 target.id
+1080 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/promotion.rs:1104:29
+     |
+1104 |             (true, None) => bail!("previously owned output '{}/{path}' is missing", target.id),
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+    --> src/source_projection/promotion.rs:1282:18
+     |
+1282 |               _ => bail!(
+     |  __________________^
+1283 | |                 "pre-acceptance repair contains a non-refmap output delta: '{}/{}'",
+1284 | |                 operation.target_id,
+1285 | |                 operation.relative_path
+1286 | |             ),
+     | |_____________^
+     |
+     = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+     = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+     = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/provenance.rs:159:18
+    |
+159 |               _ => eyre::bail!(
+    |  __________________^
+160 | |                 "unsupported source projection manifest schema '{}'",
+161 | |                 self.schema
+162 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/release_apply.rs:552:49
+    |
+552 |                   BaselinePathClass::Unchanged => eyre::bail!(
+    |  _________________________________________________^
+553 | |                     "post-baseline version source '{path}' cannot replace unchanged membership"
+554 | |                 ),
+    | |_________________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/source_projection/source_reference.rs:79:18
+   |
+79 |             _ => eyre::bail!("unknown reference kind"),
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/sync.rs:451:32
+    |
+451 |               (Some(_), None) => bail!(
+    |  ________________________________^
+452 | |                 "generated output '{path}' collides with an unowned file; reconcile before sync"
+453 | |             ),
+    | |_____________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/sync.rs:455:17
+    |
+455 |                 bail!("previously generated file '{path}' is missing; reconcile before sync")
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: macro invocations at the end of a block are treated as expressions
+    = note: to ignore the value produced by the macro, add a semicolon after the invocation of `bail`
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/sync.rs:572:14
+    |
+572 |         _ => bail!("generated output '{relative_path}' changed during apply"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/sync.rs:931:22
+    |
+931 |             Ok(_) => bail!("source projection staging parent is a reparse point or non-directory"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/source_projection/mod.rs:155:22
+    |
+155 |                 _ => eyre::bail!("invalid projection condition root '{root}'"),
+    |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/syntax_highlight/contract.rs:370:18
+    |
+370 |             _ => eyre::bail!("syntax diagnostic range must provide both endpoints"),
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/syntax_highlight/server.rs:358:29
+    |
+358 |         Ok(Err(message)) => eyre::bail!("syntax-server engine startup failed: {message}"),
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/syntax_highlight/server.rs:359:23
+    |
+359 |         Err(error) => eyre::bail!("syntax-server engine startup channel failed: {error}"),
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/toolchain_lockfile_schema/api.rs:74:55
+   |
+74 |           version if version > LATEST_SCHEMA_VERSION => eyre::bail!(
+   |  _______________________________________________________^
+75 | |             "toolchain lockfile schema_version {version} is newer than supported schema_version {LATEST_SCHEMA_VERSION}"
+76 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/toolchain_lockfile_schema/api.rs:77:20
+   |
+77 |           version => eyre::bail!(
+   |  ____________________^
+78 | |             "toolchain lockfile schema_version {version} is older than the first supported schema_version 1"
+79 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+  --> src/toolchain_lockfile_schema/api.rs:93:52
+   |
+93 |           ToolchainLockfileDocument::V3(lockfile) => eyre::bail!(
+   |  ____________________________________________________^
+94 | |             "schema_version {} is valid but cannot be consumed by the legacy schema_version {ENGINE_SCHEMA_VERSION} engine",
+95 | |             lockfile.schema_version
+96 | |         ),
+   | |_________^
+   |
+   = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+   = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+   = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/api.rs:97:52
+    |
+ 97 |           ToolchainLockfileDocument::V4(lockfile) => eyre::bail!(
+    |  ____________________________________________________^
+ 98 | |             "schema_version {} is valid but cannot be consumed by the legacy schema_version {ENGINE_SCHEMA_VERSION} engine",
+ 99 | |             lockfile.schema_version
+100 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/api.rs:141:84
+    |
+141 |           ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+    |  ____________________________________________________________________________________^
+142 | |             "dependency commands require schema version 3 or 4; run dependency migrate --branch <branch> first"
+143 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/api.rs:170:84
+    |
+170 |           ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+    |  ____________________________________________________________________________________^
+171 | |             "source feature projection requires schema version 3 or 4; run dependency migrate --branch <branch> first"
+172 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/version/v3.rs:549:25
+    |
+549 |           (None, true) => eyre::bail!(
+    |  _________________________^
+550 | |             "component `{}` has bundle scope but no bundle policy",
+551 | |             component.id
+552 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/version/v3.rs:553:29
+    |
+553 |           (Some(_), false) => eyre::bail!(
+    |  _____________________________^
+554 | |             "component `{}` has bundle policy without bundle scope",
+555 | |             component.id
+556 | |         ),
+    | |_________^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/version/v3.rs:677:14
+    |
+677 |         _ => eyre::bail!("invalid resolved Maven coordinate `{coordinate}`"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/version/v3.rs:691:14
+    |
+691 |         _ => eyre::bail!("invalid resolved Maven coordinate `{coordinate}`"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: trailing semicolon in macro used in expression position
+   --> src/toolchain_lockfile_schema/version/v3_write.rs:353:14
+    |
+353 |         _ => eyre::bail!("source provider kind changed during resolution"),
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
+    = note: for more information, see issue #79813 <https://github.com/rust-lang/rust/issues/79813>
+    = note: this warning originates in the macro `eyre::bail` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: variable does not need to be mutable
+   --> src/jar_build/local_dependency_cache.rs:530:9
+    |
+530 |     let mut files = Vec::new();
+    |         ----^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `MAX_ENTRIES` is never used
+  --> src/jar_build/local_dependency_image.rs:18:7
+   |
+18 | const MAX_ENTRIES: u64 = 16_384;
+   |       ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `MAX_FILE_BYTES` is never used
+  --> src/jar_build/local_dependency_image.rs:19:7
+   |
+19 | const MAX_FILE_BYTES: u64 = 1024 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^
+
+warning: constant `MAX_TOTAL_BYTES` is never used
+  --> src/jar_build/local_dependency_image.rs:20:7
+   |
+20 | const MAX_TOTAL_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^
+
+warning: fields `home`, `inventory`, `input_count`, `input_bytes`, `files`, and `directories` are never read
+  --> src/jar_build/local_dependency_image.rs:25:5
+   |
+23 | pub(super) struct LocalDependencyImage {
+   |                   -------------------- fields in this struct
+24 |     identity: String,
+25 |     home: PathBuf,
+   |     ^^^^
+26 |     inventory: BTreeMap<String, bool>,
+   |     ^^^^^^^^^
+27 |     input_count: u64,
+   |     ^^^^^^^^^^^
+28 |     input_bytes: u64,
+   |     ^^^^^^^^^^^
+29 |     files: Vec<File>,
+   |     ^^^^^
+30 |     directories: BTreeMap<PathBuf, File>,
+   |     ^^^^^^^^^^^
+   |
+   = note: `LocalDependencyImage` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: constant `REFRESH_PARENT_MEMORY_LIMIT_BYTES` is never used
+  --> src/java_analysis/dependency_index_worker.rs:51:7
+   |
+51 | const REFRESH_PARENT_MEMORY_LIMIT_BYTES: usize = 1536 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `LIVE_WORKER_PROCESS_MEMORY_LIMIT_BYTES` is never used
+  --> src/java_analysis/live_definition_worker.rs:36:7
+   |
+36 | const LIVE_WORKER_PROCESS_MEMORY_LIMIT_BYTES: usize = 1536 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `LIVE_WORKER_JOB_MEMORY_LIMIT_BYTES` is never used
+  --> src/java_analysis/live_definition_worker.rs:37:7
+   |
+37 | const LIVE_WORKER_JOB_MEMORY_LIMIT_BYTES: usize = 6 * 1024 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `LIVE_WORKER_CONCURRENCY` is never used
+ --> src/java_analysis/live_worker_supervisor.rs:6:18
+  |
+6 | pub(crate) const LIVE_WORKER_CONCURRENCY: usize = 4;
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: variants `Missing`, `Unsupported`, and `Regular` are never constructed
+   --> src/release_review_capture_io.rs:165:5
+    |
+164 | pub(crate) enum DiskFile {
+    |                 -------- variants in this enum
+165 |     Missing,
+    |     ^^^^^^^
+166 |     Unsupported(String),
+    |     ^^^^^^^^^^^
+167 |     Regular { bytes: Vec<u8>, executable: bool },
+    |     ^^^^^^^
+    |
+    = note: `DiskFile` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: `sfm-propagate-changes` (lib) generated 195 warnings (run `cargo fix --lib -p sfm-propagate-changes` to apply 9 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 41.33s

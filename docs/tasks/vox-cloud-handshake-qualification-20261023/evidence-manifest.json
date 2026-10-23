@@ -1,0 +1,202 @@
+[
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-build.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-build.log",
+    "bytes": 6018,
+    "sha256": "4132be218c25847efcdefdb4bf735c448bc7d03e9ac63a6865a30bc7d301f381"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-cargo-fetch.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-cargo-fetch.log",
+    "bytes": 3900,
+    "sha256": "7a676b8c34965698b5bffab9d23a279f37ac9b5ca53b6b804e89731f9d8097b0"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-help.txt",
+    "bytes": 1295,
+    "sha256": "56eae001c29601492f401d2c6147ee9540fdc433dad09343a0812be7708319f5"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control-instances-before-launch.json",
+    "bytes": 266,
+    "sha256": "e82f8524d7412a6794341b93d60a4f5f48f229df651c71d9f20d34393c69fb75"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/control.sha256",
+    "bytes": 110,
+    "sha256": "3231d03b0d02133d5aa53d903d00472754089ca8c387a9080c232b46bdfe9a5e"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/final-state.json",
+    "bytes": 2162,
+    "sha256": "cb189e942fdac736f6b90e356ea8d4f157f0bb1aa6a3c3b64767ec8a76d0cff6"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/initial-hash-help.txt",
+    "bytes": 1542,
+    "sha256": "e0beb4ac64631bb05ff58a636385ce5ef31ea8736dcba30ddbe77ac029942287"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/initial-installed-version.txt",
+    "bytes": 105,
+    "sha256": "42cce9dd7f8eddaa4c313175c384d0c54120bdcdc50fcc589d5561634af1aed4"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/initial-missing-minecraft-inputs.json",
+    "bytes": 20713,
+    "sha256": "cf67b2f7ab11f0036bec9ecc5d3f33028c1fb355b29bf2b3f30a87e1657e6bca"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher-build.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher-build.log",
+    "bytes": 135930,
+    "sha256": "03cd207d2b4e2c2ad5f6d0cc5b95dbe12959ce1f18d136165cdbb996bd3b2a46"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher-ca-audit.json",
+    "bytes": 925,
+    "sha256": "fde3c2825ee12953755f90b9d31e957c65242eef53e79d6dfdb47ccc5d00a8d8"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher-version.txt",
+    "bytes": 149,
+    "sha256": "610b567f814ad1e92e7365ed7462a0bb420192cb54769e922f2a759608639dc9"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher-webpki-features.txt",
+    "bytes": 9498,
+    "sha256": "a5c36ed71f4205692ba16c5704e7f9e898c109aaa73ccc6e38c614e8d4f2542d"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/launcher.sha256",
+    "bytes": 128,
+    "sha256": "f423dadaacab27151c1805e199c5c708a4b1ffb4c0eef0f68abdd9404aad22c0"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/parchment-acquisition.json",
+    "bytes": 1833,
+    "sha256": "19998c043ebedd7616aa7f81a0a24abfa0368b38af7d2cbcd3d4247c3a1190a6"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/parchment-blake3.json",
+    "bytes": 350,
+    "sha256": "7941f0c731848f3d053d35b6776e5a9e5f67f9fade747cc69c703e50872e2e7d"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/parchment-cache-copy.json",
+    "bytes": 407,
+    "sha256": "67ef7078c6d7b27d4e0967ae08c12d51342158d057094a1d3d033dfdf4606a82"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/parchment-qualified.json",
+    "bytes": 2591,
+    "sha256": "2682ee6389581177477bce30e3ced2aa5e3fa1f41413aa35a8b459dae599ab34"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/parchment-zip-integrity.txt",
+    "bytes": 245,
+    "sha256": "97194e338b5c4f2bbc05acf30c622bb6104761b969568f779977bb3170a7d0ff"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/preflight.json",
+    "bytes": 371,
+    "sha256": "5666396c783408f04b5bcd66bcc0e62526629e0ace85fa89c62bbc98d7601fbe"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/projection-check-summary.json",
+    "bytes": 261826,
+    "sha256": "930ec618f64f06a485d3cf915fcf82a6ec905e4ba75f33a4cf5fd35c9ef60015"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/projection-check.json",
+    "bytes": 1655802,
+    "sha256": "2367f05f5dbae85ba5aded85331610189553a12762e92bf242acc5f1c04519c2"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/projection-sync-summary.json",
+    "bytes": 261824,
+    "sha256": "af8bedba52ba4e228a9679cc2d4c60f080474099c645067155eb3b3c268f2fe8"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/projection-sync.json",
+    "bytes": 1655802,
+    "sha256": "29b9bc94f812be888033ec75063abb10743e18dc282f96d8c6080157f27201f0"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/required-native-ca-only.patch",
+    "bytes": 1821,
+    "sha256": "dc91a5cbcd6d957dae6e2365a3025343c64f001a914c7eab1b202c1fb699b2f9"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/run-client-help.txt",
+    "bytes": 5193,
+    "sha256": "99b6139d4b5d8e2d6fce2955f9238001eddd408868d9f5d86d5b38cdfbf5f5f8"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/source-sync-help.txt",
+    "bytes": 1469,
+    "sha256": "97196cfd188a8a9c3a4f986608e3f466f50a18bb8b519802d11deb992517372c"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/temurin-acquisition.json",
+    "bytes": 1622,
+    "sha256": "54b41bccd7264f62ad883123b1e3f10d39cf712d405d6b1b0e038182aaef667b"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/temurin-official-asset-check.txt",
+    "bytes": 125,
+    "sha256": "5437c7c2b3ac1cef00015b557f9c12a6ff0b9c8b9ed211aab89ad46dd9038daf"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/temurin-official-assets-acquisition.json",
+    "bytes": 1054,
+    "sha256": "dd863ed228818451af82084d2fa9b6be00da3748eee3f593cd7dde66711e6541"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/temurin-release.txt",
+    "bytes": 1610,
+    "sha256": "93b52921a5efb10ac0dcf9e3c955fa209fc83687df897d6ab034af967e2f5088"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-jdeps.txt",
+    "bytes": 10,
+    "sha256": "cfaa392dbc965786f6893c17640414dec54f279b31e177601d77c57c277efab4"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-package-rehydrated.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-package-rehydrated.log",
+    "bytes": 7280,
+    "sha256": "68ce928237b1db69cb40d21a80aee681e09f44dba3f689323ce1f6f5a51d16be"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-package.exit",
+    "bytes": 4,
+    "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-package.log",
+    "bytes": 383,
+    "sha256": "e064375d3a36449c2795b0de60170a75cc50aff45b90dfd5288a3546cd851390"
+  },
+  {
+    "path": "/workspace/sfm-handshake-20261023/evidence/vox-qualified.json",
+    "bytes": 1504,
+    "sha256": "ea19cc4750263b5ff77f221d06504475ccced021d1d6f81a9a40b80a9cddae19"
+  }
+]

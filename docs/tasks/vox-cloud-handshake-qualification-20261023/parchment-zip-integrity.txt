@@ -1,0 +1,3 @@
+Archive:  /workspace/sfm-handshake-20261023/downloads/parchment-1.19.2-2022.11.27.zip
+    testing: parchment.json           OK
+No errors detected in compressed data of /workspace/sfm-handshake-20261023/downloads/parchment-1.19.2-2022.11.27.zip.

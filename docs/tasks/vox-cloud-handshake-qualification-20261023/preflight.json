@@ -1,0 +1,8 @@
+{
+  "processes": [],
+  "source_revision": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "branch": "task/parchment-handshake-20261023",
+  "main_refs": "refs/remotes/origin/main 122e4b31ea2875a0894d648c51c5ee5f78c589e6",
+  "dependency_posture": "frozen",
+  "environment_version_requested": "7d196139-cf87-422a-8f2b-69aebb9c4645~cecfgver_6adb7526433081998b1cfd90869595d9"
+}

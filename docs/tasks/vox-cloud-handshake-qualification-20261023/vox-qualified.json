@@ -1,0 +1,32 @@
+{
+  "result": "PASS: exact pinned Vox Java runtime reproduced",
+  "source_remote": "https://github.com/TeamDman/vox.git",
+  "source_commit": "5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+  "source_tracked_diff": "",
+  "bytes": 614530,
+  "sha256": "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062",
+  "sfm_content_hash": "blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c",
+  "zip_integrity": "PASS",
+  "jar_entries": 357,
+  "jdk_identity": "Eclipse Adoptium|21.0.8+9-LTS",
+  "jdk_home": "/workspace/sfm-handshake-20261023/sdk/jdk-21.0.8+9",
+  "rustc": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "command": "cargo run --locked --package teamy-vox-xtask -- package-java",
+  "working_directory": "/workspace/.sfm-env/cargo/git/checkouts/vox-b7ac8da40eafe192/5628c00",
+  "cargo_target_dir": "/workspace/sfm-handshake-20261023/vox-target",
+  "log": "/workspace/sfm-handshake-20261023/evidence/vox-package-rehydrated.log",
+  "retained_jar": "/workspace/sfm-handshake-20261023/downloads/teamy-vox-java-0.10.0-rc.7.jar",
+  "sfm_cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/facet/teamy-vox-java/0.10.0-rc.7/teamy-vox-java-0.10.0-rc.7.jar",
+  "tests": [
+    "codegen drift",
+    "schema bundle: 1934 assertions",
+    "Phon Java conformance: 86 assertions",
+    "StreamFramingTest",
+    "VoxRuntimeTest",
+    "GeneratedResponseIntegrationTest",
+    "consecutive deterministic assembly",
+    "fresh consumer smoke",
+    "dependency closure"
+  ],
+  "minecraft_handshake_proven": false
+}

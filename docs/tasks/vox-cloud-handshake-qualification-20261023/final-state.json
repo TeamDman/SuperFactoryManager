@@ -1,0 +1,47 @@
+{
+  "source_commit": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "main_refs": "refs/remotes/origin/main 122e4b31ea2875a0894d648c51c5ee5f78c589e6",
+  "frozen_dependencies": [
+    {
+      "path": "platform/cli/sfm/Cargo.toml",
+      "sha256": "de6f35c153143082e7677f96cb463b8d68ae0d0224a97efba1eac8932d17db5f",
+      "unchanged_from_source_pin": true
+    },
+    {
+      "path": "platform/cli/sfm/Cargo.lock",
+      "sha256": "53563a5d6022c2c21da05616e8bca65d8e773873fe983e18f41a7f37059e14a7",
+      "unchanged_from_source_pin": true
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "sha256": "40c0dff5f70fbbb0ad74a778159eda580ec90f211c9dc10fa5c69c8f06af13b1",
+      "unchanged_from_source_pin": true
+    },
+    {
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "sha256": "ed8f15f4bd15b01aedcba38fb9acaf00f4dd4520ed69b9064943461da789d3bd",
+      "unchanged_from_source_pin": true
+    },
+    {
+      "path": "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.json",
+      "sha256": "41199e442df2850a6c1b63f19d54043371ce1ea6eaa7724501950b5fe0d538a8",
+      "unchanged_from_source_pin": true
+    },
+    {
+      "path": "platform/minecraft/sfm-toolchain.lock.json",
+      "sha256": "340f71afb612074bd5870bc33b351f6b38eed72b590bf0e0e47dbdb3b75a97b1",
+      "unchanged_from_source_pin": true
+    }
+  ],
+  "vox_tracked_changes": "none",
+  "in_scope_processes": [],
+  "game_or_display_started": false,
+  "network_blocker": null,
+  "auto_review_denial": null,
+  "minecraft_compile": "not run",
+  "minecraft_handshake": "not run",
+  "launcher_network_use": "not run: saved CA policy conflict",
+  "blocker_status": "pending authorization for the two-file native-roots-only source/lock remediation; patch applies cleanly but is not applied",
+  "blocked_action": "fresh sfm-propagate-changes network-capable native preparation and run client for sfm-dev/mc-1.19.2",
+  "blocker_reason": "Pinned launcher enables rustls-tls (WebPKI roots). Additive native roots retains four emSign/eMudhra keys excluded by saved environment policy. Frozen task prohibits the required Cargo.toml/Cargo.lock changes."
+}

@@ -1,0 +1,27 @@
+{
+  "binary_sha256": "9bc34b8df215aee5b2e98dbf9dc36b03741ce78c914ee73aea0a3e1c58debf11",
+  "denied_roots": [
+    {
+      "root": "emSign_ECC_Root_CA_-_C3.crt",
+      "sha256": "bc4d809b15189d78db3e1d8cf4f9726a795da1643ca5f1358e1ddb0edc0d7eb3",
+      "embedded_key_present": true
+    },
+    {
+      "root": "emSign_ECC_Root_CA_-_G3.crt",
+      "sha256": "86a1ecba089c4a8d3bbe2734c612ba341d813e043cf9e8a862cd5c57a36bbe6b",
+      "embedded_key_present": true
+    },
+    {
+      "root": "emSign_Root_CA_-_C1.crt",
+      "sha256": "125609aa301da0a249b97a8239cb6a34216f44dcac9f3954b14292f2e8c8608f",
+      "embedded_key_present": true
+    },
+    {
+      "root": "emSign_Root_CA_-_G1.crt",
+      "sha256": "40f6af0346a99aa1cd1d555a4e9cce62c7f9634603ee406615833dc8c8d00367",
+      "embedded_key_present": true
+    }
+  ],
+  "network_use_permitted_under_environment_policy": false,
+  "network_operations_run_with_this_binary": false
+}

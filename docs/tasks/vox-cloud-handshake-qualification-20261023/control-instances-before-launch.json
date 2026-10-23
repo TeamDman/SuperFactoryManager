@@ -1,0 +1,9 @@
+{
+  "schema": "sfm.instance-list/1",
+  "descriptor_dir": "/home/agent/.local/share/teamdman/sfm/instances",
+  "default_instance_present": false,
+  "default_instance_id": "",
+  "selection_reason": "no-compatible-live-instance",
+  "live_count": 0,
+  "instances": []
+}

@@ -1,0 +1,32 @@
+{
+  "source_url": "https://github.com/adoptium/temurin21-binaries/releases/expanded_assets/jdk-21.0.8%2B9",
+  "authorized_hosts": [
+    "github.com"
+  ],
+  "started_utc": "2026-10-23T15:07:47.231147+00:00",
+  "ca_file": "/workspace/.sfm-env/trust/ca-certificates.crt",
+  "ca_path": "/workspace/.sfm-env/trust/certs",
+  "tls_verification": true,
+  "retries": 0,
+  "redirects": [
+    {
+      "http_code": 200,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 1298524,
+      "time_total": 1.076462,
+      "http_version": "2",
+      "host": "github.com",
+      "curl_exit": 0,
+      "content-type": "text/html; charset=utf-8",
+      "content-length": "1298524",
+      "etag": "W/\"167ae3e18f5a34d2de13eee661293ed9\""
+    }
+  ],
+  "result": "downloaded",
+  "bytes": 1298524,
+  "sha256": "167ae3e18f5a34d2de13eee661293ed900cf28c9947a3eaa7fcc8def6a2243d0",
+  "output": "/workspace/sfm-handshake-20261023/downloads/temurin-expanded-assets.html",
+  "final_host": "github.com",
+  "finished_utc": "2026-10-23T15:07:48.325009+00:00"
+}

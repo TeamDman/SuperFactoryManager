@@ -1,0 +1,59 @@
+{
+  "source_url": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.19.2/2022.11.27/parchment-1.19.2-2022.11.27.zip",
+  "authorized_hosts": [
+    "maven.parchmentmc.org",
+    "ldtteam.jfrog.io",
+    "storage.googleapis.com"
+  ],
+  "started_utc": "2026-10-23T15:06:24.556818+00:00",
+  "ca_file": "/workspace/.sfm-env/trust/ca-certificates.crt",
+  "ca_path": "/workspace/.sfm-env/trust/certs",
+  "tls_verification": true,
+  "retries": 0,
+  "redirects": [
+    {
+      "http_code": 302,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 138,
+      "time_total": 1.270085,
+      "http_version": "2",
+      "host": "maven.parchmentmc.org",
+      "curl_exit": 0,
+      "content-type": "text/html",
+      "content-length": "138",
+      "next_host": "ldtteam.jfrog.io"
+    },
+    {
+      "http_code": 302,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 0,
+      "time_total": 0.509488,
+      "http_version": "2",
+      "host": "ldtteam.jfrog.io",
+      "curl_exit": 0,
+      "next_host": "storage.googleapis.com"
+    },
+    {
+      "http_code": 200,
+      "http_connect": 200,
+      "ssl_verify_result": 0,
+      "size_download": 712951,
+      "time_total": 1.030214,
+      "http_version": "2",
+      "host": "storage.googleapis.com",
+      "curl_exit": 0,
+      "content-type": "application/zip",
+      "content-length": "712951",
+      "etag": "\"15ff0405b587b1e1bedd7d14e8a19baf\"",
+      "last-modified": "Thu, 08 Dec 2022 10:33:37 GMT"
+    }
+  ],
+  "result": "downloaded",
+  "bytes": 712951,
+  "sha256": "52cfb5f6c62c04a9cc870a8eaa937f3952b5076529400c633d0248217812ec9c",
+  "output": "/workspace/sfm-handshake-20261023/downloads/parchment-1.19.2-2022.11.27.zip",
+  "final_host": "storage.googleapis.com",
+  "finished_utc": "2026-10-23T15:06:27.410055+00:00"
+}

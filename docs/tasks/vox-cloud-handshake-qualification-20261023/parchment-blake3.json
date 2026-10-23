@@ -1,0 +1,10 @@
+{
+  "schema": "sfm:file_hash@1",
+  "path": "/workspace/sfm-handshake-20261023/downloads/parchment-1.19.2-2022.11.27.zip",
+  "algorithm": "blake3",
+  "digest_bytes": 20,
+  "bytes_hashed": 712951,
+  "hex_digest": "75697f5f30848c78fed5ade00ca26f3acc19e7d6",
+  "identity": "blake3:75697f5f30848c78fed5ade00ca26f3acc19e7d6",
+  "writes_performed": false
+}

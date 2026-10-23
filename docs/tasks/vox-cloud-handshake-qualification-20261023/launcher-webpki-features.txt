@@ -1,0 +1,118 @@
+webpki-roots v1.0.6
+└── webpki-roots feature "default"
+    ├── hyper-rustls v0.27.7
+    │   ├── hyper-rustls feature "aws-lc-rs"
+    │   │   └── reqwest feature "__rustls-aws-lc-rs"
+    │   │       └── reqwest feature "rustls"
+    │   │           └── gix-transport feature "http-client-reqwest-rust-tls"
+    │   │               └── gix feature "blocking-http-transport-reqwest-rust-tls"
+    │   │                   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes)
+    │   │                       └── sfm-propagate-changes feature "default" (command-line)
+    │   ├── hyper-rustls feature "http1"
+    │   │   ├── reqwest v0.12.28
+    │   │   │   ├── reqwest feature "__rustls"
+    │   │   │   │   ├── reqwest feature "rustls-tls-native-roots-no-provider"
+    │   │   │   │   │   └── reqwest feature "rustls-tls-native-roots" (command-line)
+    │   │   │   │   └── reqwest feature "rustls-tls-webpki-roots-no-provider"
+    │   │   │   │       └── reqwest feature "rustls-tls-webpki-roots"
+    │   │   │   │           └── reqwest feature "rustls-tls"
+    │   │   │   │               └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │   │   ├── reqwest feature "__rustls-ring"
+    │   │   │   │   ├── reqwest feature "rustls-tls-native-roots" (command-line)
+    │   │   │   │   └── reqwest feature "rustls-tls-webpki-roots" (*)
+    │   │   │   ├── reqwest feature "__tls"
+    │   │   │   │   └── reqwest feature "__rustls" (*)
+    │   │   │   ├── reqwest feature "blocking"
+    │   │   │   │   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │   │   ├── reqwest feature "multipart"
+    │   │   │   │   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │   │   ├── reqwest feature "rustls-tls" (*)
+    │   │   │   ├── reqwest feature "rustls-tls-native-roots" (command-line)
+    │   │   │   ├── reqwest feature "rustls-tls-native-roots-no-provider" (*)
+    │   │   │   ├── reqwest feature "rustls-tls-webpki-roots" (*)
+    │   │   │   └── reqwest feature "rustls-tls-webpki-roots-no-provider" (*)
+    │   │   └── reqwest v0.13.4
+    │   │       ├── reqwest feature "__rustls"
+    │   │       │   └── reqwest feature "rustls" (*)
+    │   │       ├── reqwest feature "__rustls-aws-lc-rs" (*)
+    │   │       ├── reqwest feature "__tls"
+    │   │       │   └── reqwest feature "__rustls" (*)
+    │   │       ├── reqwest feature "blocking"
+    │   │       │   └── gix-transport v0.57.2
+    │   │       │       ├── gix-transport feature "base64"
+    │   │       │       │   └── gix-transport feature "http-client"
+    │   │       │       │       └── gix-transport feature "http-client-reqwest"
+    │   │       │       │           ├── gix feature "blocking-http-transport-reqwest"
+    │   │       │       │           │   └── gix feature "blocking-http-transport-reqwest-rust-tls" (*)
+    │   │       │       │           └── gix-transport feature "http-client-reqwest-rust-tls" (*)
+    │   │       │       ├── gix-transport feature "blocking-client"
+    │   │       │       │   ├── gix-protocol feature "blocking-client"
+    │   │       │       │   │   └── gix feature "blocking-network-client"
+    │   │       │       │   │       └── gix feature "blocking-http-transport-reqwest" (*)
+    │   │       │       │   └── gix-transport feature "http-client" (*)
+    │   │       │       ├── gix-transport feature "default"
+    │   │       │       │   ├── gix v0.84.0
+    │   │       │       │   │   ├── gix feature "attributes"
+    │   │       │       │   │   │   ├── gix feature "blob-diff"
+    │   │       │       │   │   │   │   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │       │       │   │   │   ├── gix feature "blocking-network-client" (*)
+    │   │       │       │   │   │   └── gix feature "worktree-stream"
+    │   │       │       │   │   │       └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │       │       │   │   ├── gix feature "blob-diff" (*)
+    │   │       │       │   │   ├── gix feature "blocking-http-transport-reqwest" (*)
+    │   │       │       │   │   ├── gix feature "blocking-http-transport-reqwest-rust-tls" (*)
+    │   │       │       │   │   ├── gix feature "blocking-network-client" (*)
+    │   │       │       │   │   ├── gix feature "command"
+    │   │       │       │   │   │   └── gix feature "attributes" (*)
+    │   │       │       │   │   ├── gix feature "credentials"
+    │   │       │       │   │   │   └── gix feature "blocking-network-client" (*)
+    │   │       │       │   │   ├── gix feature "excludes"
+    │   │       │       │   │   │   └── gix feature "attributes" (*)
+    │   │       │       │   │   ├── gix feature "gix-transport"
+    │   │       │       │   │   │   ├── gix feature "blocking-http-transport-reqwest" (*)
+    │   │       │       │   │   │   └── gix feature "blocking-http-transport-reqwest-rust-tls" (*)
+    │   │       │       │   │   ├── gix feature "gix-worktree-stream"
+    │   │       │       │   │   │   └── gix feature "worktree-stream" (*)
+    │   │       │       │   │   ├── gix feature "index"
+    │   │       │       │   │   │   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │       │       │   │   │   └── gix feature "excludes" (*)
+    │   │       │       │   │   ├── gix feature "sha1"
+    │   │       │       │   │   │   └── sfm-propagate-changes v0.1.1 (/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes) (*)
+    │   │       │       │   │   └── gix feature "worktree-stream" (*)
+    │   │       │       │   └── gix-protocol v0.62.0
+    │   │       │       │       ├── gix-protocol feature "blocking-client" (*)
+    │   │       │       │       ├── gix-protocol feature "default"
+    │   │       │       │       │   └── gix v0.84.0 (*)
+    │   │       │       │       ├── gix-protocol feature "fetch"
+    │   │       │       │       │   └── gix-protocol feature "blocking-client" (*)
+    │   │       │       │       └── gix-protocol feature "handshake"
+    │   │       │       │           └── gix-protocol feature "blocking-client" (*)
+    │   │       │       ├── gix-transport feature "gix-credentials"
+    │   │       │       │   └── gix-transport feature "http-client" (*)
+    │   │       │       ├── gix-transport feature "http-client" (*)
+    │   │       │       ├── gix-transport feature "http-client-reqwest" (*)
+    │   │       │       ├── gix-transport feature "http-client-reqwest-rust-tls" (*)
+    │   │       │       └── gix-transport feature "reqwest"
+    │   │       │           ├── gix-transport feature "http-client-reqwest" (*)
+    │   │       │           └── gix-transport feature "http-client-reqwest-rust-tls" (*)
+    │   │       ├── reqwest feature "charset"
+    │   │       │   └── gix-transport v0.57.2 (*)
+    │   │       ├── reqwest feature "http2"
+    │   │       │   └── gix-transport v0.57.2 (*)
+    │   │       └── reqwest feature "rustls" (*)
+    │   ├── hyper-rustls feature "http2"
+    │   │   └── reqwest feature "http2" (*)
+    │   ├── hyper-rustls feature "native-tokio"
+    │   │   └── reqwest feature "rustls-tls-native-roots-no-provider" (*)
+    │   ├── hyper-rustls feature "ring"
+    │   │   └── reqwest feature "__rustls-ring" (*)
+    │   ├── hyper-rustls feature "rustls-native-certs"
+    │   │   └── hyper-rustls feature "native-tokio" (*)
+    │   ├── hyper-rustls feature "tls12"
+    │   │   ├── reqwest v0.12.28 (*)
+    │   │   └── reqwest v0.13.4 (*)
+    │   ├── hyper-rustls feature "webpki-roots"
+    │   │   └── hyper-rustls feature "webpki-tokio"
+    │   │       └── reqwest feature "rustls-tls-webpki-roots-no-provider" (*)
+    │   └── hyper-rustls feature "webpki-tokio" (*)
+    └── reqwest v0.12.28 (*)
