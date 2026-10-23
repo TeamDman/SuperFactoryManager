@@ -5,6 +5,14 @@ Base: `capture/sfm435-issue610-cloud` at
 `migration/vox-sfm-cloud-cutover-20261023`; no public push, merge, package
 publication, desktop update or network-policy change is included.
 
+The runtime-tested source checkpoint is
+`9857bca7b2f8b5b2ef917092a8d6f4c190e2075b`. This documentation-only follow-up
+records the provenance clarification; its commit is a report revision, not a
+newly built or game-tested runtime revision. The GameTests ran in the working
+tree subsequently committed at that checkpoint, with the same Java inputs.
+The final native launcher was rebuilt after the source commit, as distinguished
+below.
+
 The authorized mutable dependency boundary is the SFM control crate's Vox and
 coherent Facet/Phon graph, the authored per-version development Java Vox pins,
 and the native tool's exact source-built runtime contract. Other Minecraft
@@ -77,6 +85,87 @@ This avoids rewriting historical evidence when the live development lock changes
   Bin/doc targets compile and have zero tests. Direct dependency policy passed.
 - PowerShell, rustfmt and Clippy are absent. The literal `check-all.ps1` and
   formatting/lint gates are unrun; available Cargo gates were invoked directly.
+  The attempted commands and availability evidence are recorded below.
+
+## GameTest and control provenance
+
+The two FE characterizations used freshly compiled Java dedicated GameTest
+servers and the new Vox JAR. They were launched by a newly built native
+`sfm-propagate-changes`, not by the Rust `sfm` control client, and did not reuse
+previously compiled capture clients. The new JAR's presence on the classpath
+does not prove that a Vox RPC or the Minecraft control service was exercised.
+
+| Projection | Launch session | Build snapshot | Result |
+| --- | --- | --- | --- |
+| `sfm-4.34.0-issue610-visual/mc-1.21.1` | `session-Rt9bFT` | `snapshot-DTTfIQ` | Exit 0; baseline characterization passed |
+| `sfm-4.35.0-issue610-visual/mc-1.21.1` | `session-bcXjNe` | `snapshot-LEOYFV` | Exit 0; fixed characterization passed |
+
+Both launches used Temurin 21.0.8+9 and the independently reproduced Vox JAR
+identified above. Its actual launch copy was rehashed in each session. The
+compiled `OutputStatement.class` and `Issue610VisualControlsGameTest.class`
+were checked against the recorded snapshot and actual launch bytes.
+
+```text
+Baseline snapshot receipt SHA256:
+df8a493972795b7a4d33ac2070db8233348a9e66bf555a8ce9059928f57ee0d3
+Fixed snapshot receipt SHA256:
+257765bf674139319df438ff8e4fd03783843b4407c8bb50c06b99d299f947a3
+Baseline actual payload inventory SHA256:
+60441bc50a74a48a095e2982128513519bcba4f1f7f9766af3c720f834a4d24e
+Fixed actual payload inventory SHA256:
+69c8fbb0a4cfadea8413a1ec1cd1dc93b9f1327cb6627b1da7ed529a29385b3b
+```
+
+The payload inventories describe the actual session `mod` directories: 1,282
+files / 4,784,837 bytes for baseline and 1,294 files / 4,889,076 bytes for fixed.
+Each inventory is a sorted array of `{path,bytes,sha256}` records with POSIX
+relative paths, compact JSON separators and one terminating newline. The
+hashes above identify those manifests, **not release JARs**. Snapshot receipts
+use full BLAKE3 for their own per-file digests; those are distinct from these
+SHA256 inventory and receipt hashes.
+
+The Rust `sfm` control executable has SHA256
+`1ec4f40fbf21640f567f49dfb6dd5c58cd144e7be12070b805f66e744dad1ef4`.
+It was exercised only by the separate generated-Java loopback TCP fixture
+described above. Its four passing checks do not establish a real Minecraft
+control handshake.
+
+**Intermediate launcher hash limitation:** the native launcher used for the
+two GameTests was rebuilt from the cutover worktree, but its executable hash
+was not recorded before the final post-commit reinstall overwrote it. The
+intermediate build log and launch receipts are retained. Its exact executable
+hash is unknown and must not be inferred from the final binary.
+
+The final native `sfm-propagate-changes` executable has SHA256
+`071df7b200a3cbd4f340ee27066796eaba534f77f16fd10b832eb64bdd30a1ab`
+and reports version 0.1.1, revision
+`9857bca7b2f8b5b2ef917092a8d6f4c190e2075b`, built
+2026-10-23 06:18:02 UTC. This is a post-game build, not a hash of the earlier
+GameTest launcher.
+
+## Unavailable gate evidence
+
+The only installed Rust toolchain is `1.99.1-x86_64-unknown-linux-gnu`.
+`rustup component list --installed` lists only Cargo, rustc and rust-std.
+The rustfmt/Clippy names found on PATH are rustup shims, not installed
+components. Searches of the installed toolchain, standard executable and
+optional software locations found no standalone alternatives.
+
+The following commands were attempted from the cutover checkout:
+
+```sh
+cargo fmt --all --manifest-path platform/cli/sfm/Cargo.toml -- --check
+cargo clippy --locked --offline --all-features --manifest-path platform/cli/sfm/Cargo.toml -- -D warnings
+pwsh -NoLogo -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+```
+
+The first two exited 1 with, respectively, `cargo-fmt` and `cargo-clippy`
+not installed for that toolchain. PowerShell process creation failed because
+`pwsh` was absent (recorded as exit 127). These gates are **unrun due to missing
+tools**, not passing or source-code failures. No tools were installed. The
+PowerShell `check-all.ps1` and `install.ps1` scripts were not executed; the
+earlier available Cargo checks and direct native builds remain the separately
+reported evidence.
 
 ## Remaining qualification blocker
 
@@ -86,6 +175,18 @@ followed its 302 redirect to `ldtteam.jfrog.io`, where the proxy returned
 CONNECT 403. That acquisition stopped. No alternate mirror, trust relaxation,
 network change or skipped source check was used. 1.19.4 full-game compilation
 and a real Minecraft control handshake remain unverified.
+
+The cached 1.21.1 assets do not provide an existing control-handshake route.
+In `platform/minecraft/core-liquid-template/feature-definitions.json`,
+`client_control_cli` supports only 1.19.2 and 1.19.4. The authored
+`project-inputs.json` rules likewise restrict `SFMClientControlLifecycle`,
+`SFMClientControlServer` and generated control bindings to those targets.
+Neither tested 1.21.1 payload contains the control service classes. A 1.21.1
+endpoint would require a version port beyond this bounded consumer cutover.
+Thus both FE characterizations can pass while the real Minecraft control
+handshake remains unverified and the existing 1.19.2 path remains blocked at
+the denied mapping hostname. The provenance follow-up made no acquisition
+retry or network request.
 
 ## Reproduction
 
@@ -111,9 +212,19 @@ permitted tooling, then `sfm --output-format json instance list` and
 `sfm action invoke sfm:echo cutover-check` for the remaining Minecraft handshake.
 Keep the exact producer JDK in the parent environment for source-built Vox.
 
-Cloud logs, hash audits and receipts are under
-`/workspace/sfm-vox-cutover-evidence`. Operational tools are installed separately
-under `/workspace/sfm-vox-cutover-tools/bin`; the final build/hash receipt records
-the committed source revision. The Linux build uses the same existing
+The retained evidence directory is named `sfm-vox-cutover-evidence`; it is
+separate from the repository. Its `provenance-followup/assessment.json`,
+`installed-gate-probes.json`, `installed-executable-search.json` and two
+`*-actual-mod-payload.json` files preserve the detailed follow-up receipts.
+The separate tool directory is named `sfm-vox-cutover-tools/bin`. Absolute
+executor paths are omitted here for a portable handoff. The final build/hash
+receipt records the source revision, subject to the explicit intermediate
+launcher limitation above. The Linux build uses the same existing
 `reqwest/rustls-tls-native-roots` feature as the capture tool and the existing
 filtered CA store. No Cargo declaration/lock change was made to that native tool.
+
+For this documentation-only follow-up, user install required: **not applicable**.
+Runtime source, generated inputs, dependencies and installed tools are unchanged;
+no rebuild, new game test, process lifecycle action, acquisition, network-policy
+change or consumer push was performed. The remaining runtime qualification is
+still blocked as described above.
