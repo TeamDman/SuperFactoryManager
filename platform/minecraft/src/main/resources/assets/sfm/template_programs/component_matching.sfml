@@ -1,0 +1,19 @@
+NAME "Component matching"
+
+-- Item data components contain information that item IDs and tags cannot distinguish.
+-- For example, Apotheosis stores affix rarity in apotheosis:rarity.
+-- COMPONENT compares the serialized value. Absent components do not match.
+-- The corresponding WITHOUT filter does match items with absent components.
+
+EVERY 20 TICKS DO
+    -- Keep Apotheosis gear of this exact rarity. Other rarities are not included.
+    INPUT WITH COMPONENT apotheosis:rarity = "apotheosis:rare" FROM input
+    OUTPUT TO rare_gear
+    FORGET
+
+    -- Route everything else to a holding chest for inspection.
+    -- Do not connect unverified filter results directly to a trash can.
+    INPUT WITHOUT COMPONENT apotheosis:rarity = "apotheosis:rare" FROM input
+    OUTPUT TO review
+    FORGET
+END
