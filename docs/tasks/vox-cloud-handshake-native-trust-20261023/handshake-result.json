@@ -1,0 +1,63 @@
+{
+  "command": [
+    "/workspace/sfm-handshake-20261023/tools/sfm-propagate-changes-native",
+    "--output-format",
+    "json",
+    "--log-filter",
+    "info",
+    "--log-file",
+    "/workspace/sfm-handshake-20261023/continuation/game.ndjson",
+    "run",
+    "client",
+    "--repo-root",
+    "/workspace/SuperFactoryManager",
+    "--projection",
+    "sfm-dev/mc-1.19.2",
+    "--java-home",
+    "/workspace/.sfm-env/jdk17",
+    "--require-portable-artifacts"
+  ],
+  "started_utc": "2026-10-23T15:48:01.974318+00:00",
+  "source_commit": "2e8e6141dd2a339289ef91a1781c2a63cecfcfac",
+  "launcher_sha256": "7e7fb12ed75251ff9c48b61467793ee94d44e1aab528774a00b93acea74476ff",
+  "control_sha256": "1ec4f40fbf21640f567f49dfb6dd5c58cd144e7be12070b805f66e744dad1ef4",
+  "timeout_seconds": 1200,
+  "container_memory_bytes": 17179869184,
+  "container_cpu_quota": 4,
+  "display": ":93",
+  "descriptor_directory": "/workspace/sfm-handshake-20261023/continuation/xdg-data/teamdman/sfm/instances",
+  "result": "PASS: Rust sfm:echo against actual Minecraft 1.19.2 Java service",
+  "cleanup": [
+    {
+      "target_pid": 11444,
+      "signal": "SIGTERM",
+      "reason": "graceful JVM shutdown after RPC attempt"
+    }
+  ],
+  "launcher_pid": 11197,
+  "owned_process_group": 11197,
+  "game_process": {
+    "pid": "11444",
+    "ppid": "11197",
+    "pgid": "11197",
+    "comm": "java",
+    "args": "/workspace/.sfm-env/jdk17/bin/java @/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/launches/session-4FBh8m/run/launch.java.args"
+  },
+  "instance_id": "58cb88d2-1184-4b1b-bc54-aa11d71a44db",
+  "echo_command": [
+    "/workspace/sfm-handshake-20261023/tools/sfm",
+    "--output-format",
+    "json",
+    "action",
+    "invoke",
+    "--instance-id",
+    "58cb88d2-1184-4b1b-bc54-aa11d71a44db",
+    "sfm:echo",
+    "cutover-check-1792771086428394851"
+  ],
+  "echo_exit": 0,
+  "echo_request_id": "sfm-cli-11581-1792771086573564918",
+  "launcher_exit": 1,
+  "remaining_owned_processes": [],
+  "finished_utc": "2026-10-23T15:58:07.263631+00:00"
+}

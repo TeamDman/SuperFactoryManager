@@ -1,0 +1,21 @@
+{
+  "schema": "sfm:runtime-session@1",
+  "session_id": "session-4FBh8m",
+  "minecraft_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2",
+  "session_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/launches/session-4FBh8m",
+  "runtime_slot": 1,
+  "owner_id": "owner-11197-4d37179bb17aecb31bc729a544b8f69f",
+  "owner_lease": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/.sfm-owners/owner-11197-4d37179bb17aecb31bc729a544b8f69f.lock",
+  "snapshot_receipt": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/4af1fd9b6a9e765c78c9c1fda0707cb30d7d4178521fea750f36eb79084b49a6/build-snapshots/snapshot-G2p4Z8/receipt.json",
+  "java_major": 17,
+  "sdk_identity": "sha256:ff39c728235ea0dc28c1b1609890cb88a38a9eea4647a1a451444a4e76949ffa",
+  "active_roots": [
+    "staged-resources",
+    "classes",
+    "gametest/resources",
+    "gametest/classes"
+  ],
+  "run_kind": "runClient",
+  "jdwp_port": null,
+  "active": false
+}

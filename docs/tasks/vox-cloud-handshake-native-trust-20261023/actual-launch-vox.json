@@ -1,0 +1,11 @@
+{
+  "argfile": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/launches/session-4FBh8m/run/launch.java.args",
+  "argfile_sha256": "3833f9cc02f072535c43eed93272d7a155a99b608c7d8b66791aca93c299b19f",
+  "vox_artifacts": [
+    {
+      "path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/facet/teamy-vox-java/0.10.0-rc.7/teamy-vox-java-0.10.0-rc.7.jar",
+      "bytes": 614530,
+      "sha256": "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062"
+    }
+  ]
+}

@@ -1,5 +1,12 @@
 # SFM standalone Vox consumer cutover — cloud checkpoint
 
+**Later qualification:** the mapping/CA prerequisites and actual 1.19.2
+Rust-to-Minecraft handshake described as pending in this historical handoff
+were completed in a separate task. See the
+[2026-10-23 qualification report](vox-cloud-handshake-native-trust-20261023.md)
+for its exact approved trust patch, runtime identities, successful `sfm:echo`
+and cleanup evidence. The original checkpoint results below are unchanged.
+
 Base: `capture/sfm435-issue610-cloud` at
 `8e349578d18511d8d5993b66a3ad3c7c957e5db4`. Work is isolated on
 `migration/vox-sfm-cloud-cutover-20261023`; no public push, merge, package

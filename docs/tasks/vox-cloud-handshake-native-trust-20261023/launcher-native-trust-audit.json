@@ -1,0 +1,25 @@
+{
+  "status": "verified",
+  "binary": "/workspace/sfm-handshake-20261023/tools/sfm-propagate-changes-native",
+  "sha256": "7e7fb12ed75251ff9c48b61467793ee94d44e1aab528774a00b93acea74476ff",
+  "native_roots_only": true,
+  "webpki_roots_package_present": false,
+  "roots": {
+    "BC4D809B15189D78DB3E1D8CF4F9726A795DA1643CA5F1358E1DDB0EDC0D7EB3": {
+      "name": "emSign ECC Root CA - C3",
+      "embedded_key_present": false
+    },
+    "86A1ECBA089C4A8D3BBE2734C612BA341D813E043CF9E8A862CD5C57A36BBE6B": {
+      "name": "emSign ECC Root CA - G3",
+      "embedded_key_present": false
+    },
+    "125609AA301DA0A249B97A8239CB6A34216F44DCAC9F3954B14292F2E8C8608F": {
+      "name": "emSign Root CA - C1",
+      "embedded_key_present": false
+    },
+    "40F6AF0346A99AA1CD1D555A4E9CCE62C7F9634603EE406615833DC8C8D00367": {
+      "name": "emSign Root CA - G1",
+      "embedded_key_present": false
+    }
+  }
+}

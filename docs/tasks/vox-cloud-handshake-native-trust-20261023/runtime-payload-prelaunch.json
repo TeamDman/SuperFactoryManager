@@ -1,0 +1,33 @@
+{
+  "session_id": "session-4FBh8m",
+  "snapshot_id": "snapshot-G2p4Z8",
+  "snapshot_receipt": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/4af1fd9b6a9e765c78c9c1fda0707cb30d7d4178521fea750f36eb79084b49a6/build-snapshots/snapshot-G2p4Z8/receipt.json",
+  "snapshot_receipt_sha256": "5dc80a2188530a3d84abe467358e06620141c6d7320b83d31ec989f3f099aa03",
+  "session_receipt": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/launches/session-4FBh8m/session.json",
+  "runtime_mod_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-runtime/slots/1/launches/session-4FBh8m/mod",
+  "files": 4869,
+  "bytes": 25393591,
+  "inventory_sha256": "0af5ca1fd088222db49ea3b9afdd4700d65c5e320218dc5853fb01008d87fd2d",
+  "control_classes": [
+    {
+      "path": "ca/teamdman/sfm/client/action/EchoAction.class",
+      "bytes": 5470,
+      "sha256": "f713b5725469ae24f5e4c8ed3bc01a86fef61945a781af26d84ab59d4ef69836"
+    },
+    {
+      "path": "ca/teamdman/sfm/client/control/SFMClientControlLifecycle.class",
+      "bytes": 3109,
+      "sha256": "bd8cfd8f15db594cc225927ce225e21013e651b29d68de0be6f3892b5e2c9063"
+    },
+    {
+      "path": "ca/teamdman/sfm/client/control/SFMClientControlServer.class",
+      "bytes": 74346,
+      "sha256": "a238ad06e9c28df34de393e2e501a4edd2499d995a35acaa898ad17d91a73466"
+    }
+  ],
+  "runtime_java_executable": "/workspace/.sfm-env/jdk17/bin/java",
+  "runtime_java_home": "/workspace/.sfm-env/jdk17",
+  "runtime_java_version_output": "openjdk version \"17.0.20.1\" 2026-08-18\nOpenJDK Runtime Environment Temurin-17.0.20.1+1 (build 17.0.20.1+1)\nOpenJDK 64-Bit Server VM Temurin-17.0.20.1+1 (build 17.0.20.1+1, mixed mode, sharing)",
+  "sdk_identity": "sha256:ff39c728235ea0dc28c1b1609890cb88a38a9eea4647a1a451444a4e76949ffa",
+  "qualification": "prepared immutable runtime payload; actual game start and RPC not yet proven"
+}

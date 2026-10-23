@@ -1,0 +1,34 @@
+{
+  "schema": "sfm.instance-list/1",
+  "descriptor_dir": "/workspace/sfm-handshake-20261023/continuation/xdg-data/teamdman/sfm/instances",
+  "default_instance_present": true,
+  "default_instance_id": "58cb88d2-1184-4b1b-bc54-aa11d71a44db",
+  "selection_reason": "only-responsive-compatible-instance",
+  "live_count": 1,
+  "instances": [
+    {
+      "descriptor_path": "/workspace/sfm-handshake-20261023/continuation/xdg-data/teamdman/sfm/instances/58cb88d2-1184-4b1b-bc54-aa11d71a44db.json",
+      "health": "live",
+      "detail": "",
+      "default_target": true,
+      "instance_id": "58cb88d2-1184-4b1b-bc54-aa11d71a44db",
+      "process_id": 11444,
+      "sfm_version": "4.34.0",
+      "minecraft_version": "1.19.2",
+      "focused": true,
+      "focus_seen": true,
+      "last_focus_epoch_millis": 1792771085509,
+      "current_screen": "net.minecraft.client.gui.screens.TitleScreen",
+      "world_label": "",
+      "capabilities": [
+        "instance.describe",
+        "client-action.invoke",
+        "client-action.structured-result.v1",
+        "client-action.list.v1",
+        "client-logs.tail.v1",
+        "client-control.files.v1",
+        "explorer.control.v1"
+      ]
+    }
+  ]
+}

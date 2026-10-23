@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-10-23T15:57:15.426342Z",
+  "level": "INFO",
+  "fields": {
+    "message": "minecraft_assets_prepared",
+    "asset_index": "1.19",
+    "checked": 3364,
+    "downloaded": 3364,
+    "total": 3390,
+    "unique_assets": 3364,
+    "workers": 1,
+    "assets_root": "/workspace/.sfm-env/cache/minecraft-toolchain/minecraft/assets"
+  },
+  "filename": "src/jar_build/engine_run.rs",
+  "line_number": 7153,
+  "span": {
+    "mc": "1.19.2",
+    "name": "prepare_minecraft_assets"
+  },
+  "spans": [
+    {
+      "allow_local_artifact_cache": false,
+      "dry_run": false,
+      "error_action": "bail",
+      "explain_rebuild": false,
+      "kind": "runClient",
+      "parallelism": "sequential",
+      "refresh": false,
+      "require_portable_artifacts": true,
+      "selection": "Projection { selector: \"sfm-dev/mc-1.19.2\", repo_root: Some(\"/workspace/SuperFactoryManager\") }",
+      "name": "invoke_run"
+    },
+    {
+      "mc": "1.19.2",
+      "name": "prepare_minecraft_assets"
+    }
+  ]
+}

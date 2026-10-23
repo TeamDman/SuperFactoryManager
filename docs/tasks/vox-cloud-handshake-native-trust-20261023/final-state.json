@@ -1,0 +1,19 @@
+{
+  "verified_utc": "2026-10-23T16:03:10.596734+00:00",
+  "source_commit": "2e8e6141dd2a339289ef91a1781c2a63cecfcfac",
+  "branch": "task/parchment-handshake-20261023",
+  "origin_main": "122e4b31ea2875a0894d648c51c5ee5f78c589e6",
+  "platform_files_changed_vs_requested_source": [
+    "platform/cli/sfm-propagate-changes/Cargo.lock",
+    "platform/cli/sfm-propagate-changes/Cargo.toml"
+  ],
+  "tracked_worktree_clean_before_evidence": true,
+  "remaining_task_processes": [],
+  "control_port_45087_listeners": [],
+  "live_instances": 0,
+  "runtime_session_active": false,
+  "xorg_exit": 0,
+  "filtered_ca_sha256": "ee7d8a9353d49d866898ce0d49091bcdf207d71e323ebfe0af9d2020e691c99c",
+  "filtered_ca_unchanged": true,
+  "cleanup": "game SIGTERM, Xorg SIGTERM; no force-kill needed; descriptor/socket removed"
+}

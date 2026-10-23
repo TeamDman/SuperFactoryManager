@@ -1,0 +1,34 @@
+{
+  "approved_patch_sha256": "dc91a5cbcd6d957dae6e2365a3025343c64f001a914c7eab1b202c1fb699b2f9",
+  "manifest_change": "reqwest: rustls-tls -> rustls-tls-native-roots only",
+  "packages_before": 591,
+  "packages_after": 590,
+  "packages_added": [],
+  "packages_removed": [
+    "webpki-roots 1.0.6"
+  ],
+  "retained_versions_sources_checksums_changed": false,
+  "dependency_changes": [
+    {
+      "package": "hyper-rustls",
+      "version": "0.27.7",
+      "added_edges": [
+        "rustls-native-certs"
+      ],
+      "removed_edges": [
+        "webpki-roots"
+      ]
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "added_edges": [
+        "rustls-native-certs"
+      ],
+      "removed_edges": [
+        "webpki-roots"
+      ]
+    }
+  ],
+  "validation": "PASS"
+}

@@ -1,0 +1,373 @@
+{
+  "minecraft_version": "1.19.2",
+  "version_metadata_path": "/workspace/.sfm-env/cache/minecraft-toolchain/minecraft/versions/1.19.2/version.json",
+  "version_metadata_sha256": "daa5085a617194df8ab930c0b03161ef01a654ccd15cc57f97c659f4c96e986f",
+  "asset_index": {
+    "id": "1.19",
+    "sha1": "a9c8b05a8082a65678beda6dfa2b8f21fa627bce",
+    "size": 385608,
+    "totalSize": 557023211,
+    "url": "https://piston-meta.mojang.com/v1/packages/a9c8b05a8082a65678beda6dfa2b8f21fa627bce/1.19.json"
+  },
+  "official_download_metadata": {
+    "client": {
+      "sha1": "055b30d860ead928cba3849ba920c88b6950b654",
+      "size": 21644740,
+      "url": "https://piston-data.mojang.com/v1/objects/055b30d860ead928cba3849ba920c88b6950b654/client.jar"
+    },
+    "client_mappings": {
+      "sha1": "8e8c9be5dc27802caba47053d4fdea328f7f89bd",
+      "size": 7236064,
+      "url": "https://piston-data.mojang.com/v1/objects/8e8c9be5dc27802caba47053d4fdea328f7f89bd/client.txt"
+    },
+    "server": {
+      "sha1": "f69c284232d7c7580bd89a5a4931c3581eae1378",
+      "size": 45609512,
+      "url": "https://piston-data.mojang.com/v1/objects/f69c284232d7c7580bd89a5a4931c3581eae1378/server.jar"
+    },
+    "server_mappings": {
+      "sha1": "ed5e6e8334ad67f5af0150beed0f3d156d74bd57",
+      "size": 5584686,
+      "url": "https://piston-data.mojang.com/v1/objects/ed5e6e8334ad67f5af0150beed0f3d156d74bd57/server.txt"
+    }
+  },
+  "newly_downloaded_locked_artifacts": [
+    {
+      "timestamp": "2026-10-23T15:40:48.770167Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "org.spongepowered:mixin:0.8.5",
+      "repository": "sponge",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
+      "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:49.291948Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "org.spongepowered:mixin:0.8.5:processor",
+      "repository": "sponge",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
+      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:52.541988Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9:api",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9-api.jar",
+      "hash": "blake3:19100d113e6f378158c821dd4c3b8f474a0e39aa"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:54.884407Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "com.teamcofh:cofh_core:1.19.2-10.2.0.38",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/cofh_core/1.19.2-10.2.0.38/cofh_core-1.19.2-10.2.0.38.jar",
+      "hash": "blake3:05cf3c4402bb6125c4bea7eba0f4732aee9da57a"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:57.001725Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "com.teamcofh:thermal_core:1.19.2-10.2.0.5",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/thermal_core/1.19.2-10.2.0.5/thermal_core-1.19.2-10.2.0.5.jar",
+      "hash": "blake3:4a0e344e491bc5c0f6c4c3acbfe80312d3678649"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:57.464306Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "com.teamcofh:thermal_expansion:1.19.2-10.2.0.21",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/thermal_expansion/1.19.2-10.2.0.21/thermal_expansion-1.19.2-10.2.0.21.jar",
+      "hash": "blake3:ef2dad0cad29e4e89c36c3cd314ee3356375e9c6"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:58.562032Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:industrial-foregoing-266515:4459182",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/industrial-foregoing-266515/4459182/industrial-foregoing-266515-4459182.jar",
+      "hash": "blake3:e4e29239432a53a47a2032e4479dd7a779a54c7f"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:58.883460Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:patchouli-306770:4031402",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/patchouli-306770/4031402/patchouli-306770-4031402.jar",
+      "hash": "blake3:d845e7e2c434816cab6e8920610bd81f98519eb0"
+    },
+    {
+      "timestamp": "2026-10-23T15:40:59.901788Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:sophisticated-core-618298:4503931",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sophisticated-core-618298/4503931/sophisticated-core-618298-4503931.jar",
+      "hash": "blake3:8fb8e277714715c79051cea92aeaf3295208a6bf"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:01.188474Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:sophisticated-storage-619320:4503929",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sophisticated-storage-619320/4503929/sophisticated-storage-619320-4503929.jar",
+      "hash": "blake3:2073ce18e3d747f42f9d3688d07f6b4c21cc4cec"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:02.221681Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:titanium-287342:4152837",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/titanium-287342/4152837/titanium-287342-4152837.jar",
+      "hash": "blake3:3a6dfafa96f6ee2dddf0cb3e4f2cce40a1b5b750"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:04.259764Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+      "repository": "squiddev",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/squiddev/cc-tweaked-1.19.2/1.101.3/cc-tweaked-1.19.2-1.101.3.jar",
+      "hash": "blake3:e0e6920675c793817b9e063db3854b3c68ed29fd"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:06.492613Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9.jar",
+      "hash": "blake3:bc1f50c87ba5bb4279f457cf4e480fb546b97dce"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:07.631167Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:ars-nouveau-401955:5171729",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ars-nouveau-401955/5171729/ars-nouveau-401955-5171729.jar",
+      "hash": "blake3:6f4fee5987f530d69980fbbcb0b45f9a696ca255"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:08.823183Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:botania-225643:5608807",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/botania-225643/5608807/botania-225643-5608807.jar",
+      "hash": "blake3:d5641845f07f21f1ed3f47924672d26004a144a9"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:09.177928Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:curios-309927:5494603",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/curios-309927/5494603/curios-309927-5494603.jar",
+      "hash": "blake3:cab28e86f4d1cb0ac48776bf25652d48c734fc48"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:09.986873Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:dank-storage-335673:4395369",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/dank-storage-335673/4395369/dank-storage-335673-4395369.jar",
+      "hash": "blake3:e247bddf3c34615f6858189f23535d93b4a024b7"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:10.443996Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:flux-networks-248020:4620438",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/flux-networks-248020/4620438/flux-networks-248020-4620438.jar",
+      "hash": "blake3:02fe37ed7e2826b9b33e2bf90d6c2a35ef5ba6e3"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:11.357712Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:mekanism-268560:4644795",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar",
+      "hash": "blake3:76928376e435f374f99f724a1261b1964f582914"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:11.701947Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:project-e-226410:4860858",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/project-e-226410/4860858/project-e-226410-4860858.jar",
+      "hash": "blake3:4d0e76d2510f06419a74ef9164a38a059a0830e5"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:12.370065Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/mekanism/Mekanism/1.19.2-10.3.8.477/Mekanism-1.19.2-10.3.8.477-api.jar",
+      "hash": "blake3:ff405d145a5d293f7dfd08f9823022512a770109"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:14.039465Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "mezz.jei:jei-1.19.2-forge:11.6.0.1018",
+      "repository": "blamejared",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/mezz/jei/jei-1.19.2-forge/11.6.0.1018/jei-1.19.2-forge-11.6.0.1018.jar",
+      "hash": "blake3:892ba01c5a115716fff8ab08784c4d0fbfda089d"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:14.527052Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:AutoRegLib-250363:4100299",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/AutoRegLib-250363/4100299/AutoRegLib-250363-4100299.jar",
+      "hash": "blake3:8d24356d2495eb0467ba12e435614fa60c7a3732"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:14.890908Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:architectury-api-419699:5137942",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/architectury-api-419699/5137942/architectury-api-419699-5137942.jar",
+      "hash": "blake3:156c96bb774c33f0aa155618a1b147b1cfe22bf7"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:15.450195Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:ato-405593:4046926",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ato-405593/4046926/ato-405593-4046926.jar",
+      "hash": "blake3:152b686a84a34e2390f765d135d17eac44af4839"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:15.716920Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:balm-531761:4751735",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/balm-531761/4751735/balm-531761-4751735.jar",
+      "hash": "blake3:412c6c6533746e267c0920405490bc6210e2df66"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:16.277794Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:cloth-config-348521:4973444",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/cloth-config-348521/4973444/cloth-config-348521-4973444.jar",
+      "hash": "blake3:dd070d910ea8816606fd313e90eb3970d48e7d34"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:16.516657Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:construction-wand-399558:4455719",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/construction-wand-399558/4455719/construction-wand-399558-4455719.jar",
+      "hash": "blake3:8a40b4ffa44b6d1719680a278ad2bc9a7040607c"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:16.786689Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:ex-pattern-provider-892005:5250574",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ex-pattern-provider-892005/5250574/ex-pattern-provider-892005-5250574.jar",
+      "hash": "blake3:1fcdc2d8325f896a9f04789837db0958f8df7262"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:17.033696Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:extreme-sound-muffler-363363:4821189",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/extreme-sound-muffler-363363/4821189/extreme-sound-muffler-363363-4821189.jar",
+      "hash": "blake3:83c3de2e8a8be54ac3b83b49811eb6184561d34a"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:17.370982Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:ftb-library-404465:4661834",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ftb-library-404465/4661834/ftb-library-404465-4661834.jar",
+      "hash": "blake3:38f25b0d9fd68164c93a72a31c69236c6231ad51"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:17.646131Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:inventory-essentials-368825:4751198",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/inventory-essentials-368825/4751198/inventory-essentials-368825-4751198.jar",
+      "hash": "blake3:0f224e72a6c0851fb68a73076cca4145852b0ec1"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:17.971284Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:mantle-74924:6044700",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mantle-74924/6044700/mantle-74924-6044700.jar",
+      "hash": "blake3:af93ca1d438fc89e13ae07ac54ea78bf85ffdb74"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:18.214826Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:mouse-tweaks-60089:3871353",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mouse-tweaks-60089/3871353/mouse-tweaks-60089-3871353.jar",
+      "hash": "blake3:bb0c6a9d580f3fa6e183206175c20465c51582c8"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:18.538150Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:ok-zoomer-631278:4081277",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ok-zoomer-631278/4081277/ok-zoomer-631278-4081277.jar",
+      "hash": "blake3:197c834624b42b2d452685ab7aff5bdbfa6c6815"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:18.861557Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:powah-633483:4729361",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/powah-633483/4729361/powah-633483-4729361.jar",
+      "hash": "blake3:78a0c4e5f5fb3cd984c16716311952cfe04bee3d"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:19.652422Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:quark-243121:4812006",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/quark-243121/4812006/quark-243121-4812006.jar",
+      "hash": "blake3:552e4b017307bdd9851230ba1ec040ae93e09a1f"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:20.144666Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:sodium-394468:3957319",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sodium-394468/3957319/sodium-394468-3957319.jar",
+      "hash": "blake3:f5490c167bad1d74fc756a79928da474a327c560"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:20.932363Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:the-one-probe-245211:3927520",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/the-one-probe-245211/3927520/the-one-probe-245211-3927520.jar",
+      "hash": "blake3:88ed0902ca6332c874d08f1bb12cbc45a9ff43cc"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:21.631995Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:tinkers-construct-74072:6044827",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/tinkers-construct-74072/6044827/tinkers-construct-74072-6044827.jar",
+      "hash": "blake3:94e4ce6840abefe2d70211d4a680f4f9412a5d64"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:22.214339Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:tool-kit-324888:3933949",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/tool-kit-324888/3933949/tool-kit-324888-3933949.jar",
+      "hash": "blake3:36b5f9052d5afb75bc270e3889e34442c6571e43"
+    },
+    {
+      "timestamp": "2026-10-23T15:41:22.743006Z",
+      "message": "artifact downloaded from locked URL",
+      "coordinate": "curse.maven:worldedit-225608:3922622",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/worldedit-225608/3922622/worldedit-225608-3922622.jar",
+      "hash": "blake3:d20c1e66c569d09630b343f5e97ba6b2a2c2c70a"
+    }
+  ],
+  "recorded_artifact_download_count": 42
+}

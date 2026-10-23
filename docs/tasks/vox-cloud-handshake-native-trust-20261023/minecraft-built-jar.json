@@ -1,0 +1,29 @@
+{
+  "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar",
+  "bytes": 9224594,
+  "sha256": "f9c7994dca1b8f34e79d9362a4cf9245d54e020cc56c140e21950bc7e25f1139",
+  "zip_integrity": "PASS",
+  "control_classes": [
+    {
+      "path": "ca/teamdman/sfm/client/action/EchoAction.class",
+      "bytes": 5473,
+      "sha256": "d2cce8d39fddb3e15b1366bb3ddeae97d65469c2ae8fb6437e6a505eb60511ae"
+    },
+    {
+      "path": "ca/teamdman/sfm/client/control/SFMClientControlLifecycle.class",
+      "bytes": 3106,
+      "sha256": "7180978f406ed386a87071646f4def26af0a438b2804fc8d9b3b085b132064c0"
+    },
+    {
+      "path": "ca/teamdman/sfm/client/control/SFMClientControlServer.class",
+      "bytes": 74386,
+      "sha256": "7bdd9d20ff28a45e5e85b317d65011986864e4e35dbab2bd1bb132445458eaa4"
+    }
+  ],
+  "source_commit": "2e8e6141dd2a339289ef91a1781c2a63cecfcfac",
+  "source_base": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "minecraft": "1.19.2",
+  "forge": "43.4.0",
+  "java_home": "/workspace/.sfm-env/jdk17",
+  "producer_sdk_home": "/workspace/sfm-handshake-20261023/sdk/jdk-21.0.8+9"
+}

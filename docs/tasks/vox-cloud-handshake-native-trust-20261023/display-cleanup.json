@@ -1,0 +1,8 @@
+{
+  "action": "SIGTERM sent to verified task Xorg",
+  "pid": 9489,
+  "process_absent": true,
+  "x_lock_absent": true,
+  "x_socket_absent": true,
+  "task_authority_removed": true
+}

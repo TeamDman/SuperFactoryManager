@@ -1,5 +1,11 @@
 # Parchment acquisition and Vox producer qualification — 2026-10-23
 
+**Historical checkpoint:** the pending authorization and unrun game gates below
+were subsequently resolved. The approved native-roots patch, audited rebuild,
+native 1.19.2 compilation and actual Rust-to-Minecraft `sfm:echo` all passed;
+see [the continuation report](vox-cloud-handshake-native-trust-20261023.md).
+The original acquisition/producer evidence below remains valid.
+
 Parchment acquisition **passed** in this task. The exact approved Temurin SDK
 was installed in the task workspace, and the pinned Vox Java JAR reproduced
 exactly. **Minecraft compilation, launch and the Rust-to-Minecraft handshake

@@ -1,0 +1,20 @@
+{
+  "pid": 9489,
+  "pgid": 9489,
+  "command": [
+    "/usr/bin/Xorg",
+    ":93",
+    "-config",
+    "/workspace/sfm-handshake-20261023/continuation/xorg-dummy.conf",
+    "-auth",
+    "/workspace/sfm-handshake-20261023/continuation/display.Xauthority",
+    "-logfile",
+    "/workspace/sfm-handshake-20261023/continuation/xorg.log",
+    "-nolisten",
+    "tcp",
+    "-noreset"
+  ],
+  "display": ":93",
+  "maximum_seconds": 1800,
+  "authentication": "task-local Xauthority cookie; not included in evidence"
+}

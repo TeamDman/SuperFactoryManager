@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "runtime_mod_unchanged": true,
+  "inventory_sha256": "0af5ca1fd088222db49ea3b9afdd4700d65c5e320218dc5853fb01008d87fd2d",
+  "files": 4869,
+  "session_active": false,
+  "session_receipt_sha256": "261c511b62de05c34dcd15bd7bfaad7d268f3e8c94d54eab3cd718743afaeff3",
+  "snapshot_receipt_unchanged": true
+}

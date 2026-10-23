@@ -1,0 +1,376 @@
+{
+  "source_directory": "/workspace/sfm-handshake-20261023/continuation",
+  "compressed_files": "Deterministic gzip, original byte count and SHA256 retained",
+  "sensitive_material": "No Xauthority cookie, raw control descriptor, signed redirect URL, or HTTP authorization header included",
+  "files": [
+    {
+      "file": "approved-patch-verification.json",
+      "bytes": 791,
+      "sha256": "ed14697ef6ad3516cd5e8c801ccc734eaf5ab5ba4750b1ac429ae0ae45b09c43",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/approved-patch-verification.json",
+      "uncompressed_bytes": 791,
+      "uncompressed_sha256": "ed14697ef6ad3516cd5e8c801ccc734eaf5ab5ba4750b1ac429ae0ae45b09c43"
+    },
+    {
+      "file": "launcher-native-trust-audit.json",
+      "bytes": 902,
+      "sha256": "0f88143dead514448ffd5326d32ce2dd70296b4ac8541da00284cbfd00c2c572",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/launcher-native-trust-audit.json",
+      "uncompressed_bytes": 902,
+      "uncompressed_sha256": "0f88143dead514448ffd5326d32ce2dd70296b4ac8541da00284cbfd00c2c572"
+    },
+    {
+      "file": "launcher-version.txt",
+      "bytes": 156,
+      "sha256": "255dfe6a78ca6d361d86798b0c7a5d90684ac5d9718acf2c4682128d21e3771f",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/launcher-version.txt",
+      "uncompressed_bytes": 156,
+      "uncompressed_sha256": "255dfe6a78ca6d361d86798b0c7a5d90684ac5d9718acf2c4682128d21e3771f"
+    },
+    {
+      "file": "launcher-build.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/launcher-build.exit",
+      "uncompressed_bytes": 2,
+      "uncompressed_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "file": "native_roots_probe.rs",
+      "bytes": 973,
+      "sha256": "8965ff9ed801ac78d5f1a5f13196be718e70cb9dbcb98b26c2a08261040961fd",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native_roots_probe.rs",
+      "uncompressed_bytes": 973,
+      "uncompressed_sha256": "8965ff9ed801ac78d5f1a5f13196be718e70cb9dbcb98b26c2a08261040961fd"
+    },
+    {
+      "file": "native-roots-probe.txt",
+      "bytes": 9831,
+      "sha256": "ec3ee896f93d24a7db678178391689f1eb7d3deb2f444e07d5ce3f30502b50f7",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-roots-probe.txt",
+      "uncompressed_bytes": 9831,
+      "uncompressed_sha256": "ec3ee896f93d24a7db678178391689f1eb7d3deb2f444e07d5ce3f30502b50f7"
+    },
+    {
+      "file": "trust-exclusion-tests.json",
+      "bytes": 1215,
+      "sha256": "17f825acde39339ed191dd5353b84dbee1a14a6a2780228bb30c2fdbf490703b",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/trust-exclusion-tests.json",
+      "uncompressed_bytes": 1215,
+      "uncompressed_sha256": "17f825acde39339ed191dd5353b84dbee1a14a6a2780228bb30c2fdbf490703b"
+    },
+    {
+      "file": "native-jar-summary.json",
+      "bytes": 2092,
+      "sha256": "05295ac49a1592bf8221c8382dd190ab6c4e635282325db1d10d8e13262e4d7a",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar-summary.json",
+      "uncompressed_bytes": 2092,
+      "uncompressed_sha256": "05295ac49a1592bf8221c8382dd190ab6c4e635282325db1d10d8e13262e4d7a"
+    },
+    {
+      "file": "native-jar-clean-env.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar-clean-env.exit",
+      "uncompressed_bytes": 2,
+      "uncompressed_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "file": "minecraft-built-jar.json",
+      "bytes": 1178,
+      "sha256": "da09f5ad05b37ca00c6e2e2a1b4b2609563a2d391ee973ae443383c4d6ea1172",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/minecraft-built-jar.json",
+      "uncompressed_bytes": 1178,
+      "uncompressed_sha256": "da09f5ad05b37ca00c6e2e2a1b4b2609563a2d391ee973ae443383c4d6ea1172"
+    },
+    {
+      "file": "minecraft-acquisition-provenance.json",
+      "bytes": 19326,
+      "sha256": "0a4c58dd04380055304f4a3956770b7fbc8c8d82703586343d6d0c9909b21dd4",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/minecraft-acquisition-provenance.json",
+      "uncompressed_bytes": 19326,
+      "uncompressed_sha256": "0a4c58dd04380055304f4a3956770b7fbc8c8d82703586343d6d0c9909b21dd4"
+    },
+    {
+      "file": "runtime-contract-summary.json",
+      "bytes": 1992,
+      "sha256": "50316bfa1d417f2b2ece39e96001a3d79c02e4e4ab3a08c63794bbf386d4a1f8",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/runtime-contract-summary.json",
+      "uncompressed_bytes": 1992,
+      "uncompressed_sha256": "50316bfa1d417f2b2ece39e96001a3d79c02e4e4ab3a08c63794bbf386d4a1f8"
+    },
+    {
+      "file": "runtime-payload-prelaunch.json",
+      "bytes": 2017,
+      "sha256": "046c865c4b00c8e558c540627e79c4179f7f4975cd31ebfccfbbbbe88566fb46",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/runtime-payload-prelaunch.json",
+      "uncompressed_bytes": 2017,
+      "uncompressed_sha256": "046c865c4b00c8e558c540627e79c4179f7f4975cd31ebfccfbbbbe88566fb46"
+    },
+    {
+      "file": "runtime-payload-postrun.json",
+      "bytes": 324,
+      "sha256": "081fa1e330b9c79c3ef5b27161e1778f5be466b754b4d49ee75139351174f99f",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/runtime-payload-postrun.json",
+      "uncompressed_bytes": 324,
+      "uncompressed_sha256": "081fa1e330b9c79c3ef5b27161e1778f5be466b754b4d49ee75139351174f99f"
+    },
+    {
+      "file": "runtime-session-after.json",
+      "bytes": 1139,
+      "sha256": "261c511b62de05c34dcd15bd7bfaad7d268f3e8c94d54eab3cd718743afaeff3",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/runtime-session-after.json",
+      "uncompressed_bytes": 1139,
+      "uncompressed_sha256": "261c511b62de05c34dcd15bd7bfaad7d268f3e8c94d54eab3cd718743afaeff3"
+    },
+    {
+      "file": "actual-launch-vox.json",
+      "bytes": 539,
+      "sha256": "d1e85b3568236c1d4749d83e49d296e6649f75a3099e3afb7dc83f7dcb4931e3",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/actual-launch-vox.json",
+      "uncompressed_bytes": 539,
+      "uncompressed_sha256": "d1e85b3568236c1d4749d83e49d296e6649f75a3099e3afb7dc83f7dcb4931e3"
+    },
+    {
+      "file": "display-process.json",
+      "bytes": 504,
+      "sha256": "6690e542cb33a11714eed0497d7735e6fc6282eccc720415425577f5d5178769",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/display-process.json",
+      "uncompressed_bytes": 504,
+      "uncompressed_sha256": "6690e542cb33a11714eed0497d7735e6fc6282eccc720415425577f5d5178769"
+    },
+    {
+      "file": "display-cleanup.json",
+      "bytes": 180,
+      "sha256": "c3fda5ddf945fe5c1e8a6dc379433a5b481b24b98105b31c818f3c00b4dfa7b2",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/display-cleanup.json",
+      "uncompressed_bytes": 180,
+      "uncompressed_sha256": "c3fda5ddf945fe5c1e8a6dc379433a5b481b24b98105b31c818f3c00b4dfa7b2"
+    },
+    {
+      "file": "display.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/display.exit",
+      "uncompressed_bytes": 2,
+      "uncompressed_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "file": "glx-probe.json",
+      "bytes": 139,
+      "sha256": "0238d3e997052389981b5c11cdae5e2d3dfa69df969bdc7ac1c5d678b6faf448",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/glx-probe.json",
+      "uncompressed_bytes": 139,
+      "uncompressed_sha256": "0238d3e997052389981b5c11cdae5e2d3dfa69df969bdc7ac1c5d678b6faf448"
+    },
+    {
+      "file": "xorg-dummy.conf",
+      "bytes": 719,
+      "sha256": "4f34fcc1b251c77d9f3b6a452857a3aece1464da4c3c40d5055d178b80e27d85",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/xorg-dummy.conf",
+      "uncompressed_bytes": 719,
+      "uncompressed_sha256": "4f34fcc1b251c77d9f3b6a452857a3aece1464da4c3c40d5055d178b80e27d85"
+    },
+    {
+      "file": "glx_probe.py",
+      "bytes": 1803,
+      "sha256": "26da1418fe08abddf3889eba1a2045de945269724bb25782f5db52892c172b59",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/glx_probe.py",
+      "uncompressed_bytes": 1803,
+      "uncompressed_sha256": "26da1418fe08abddf3889eba1a2045de945269724bb25782f5db52892c172b59"
+    },
+    {
+      "file": "run_display.py",
+      "bytes": 1467,
+      "sha256": "0ec28ff29e659539510694d3f31f5e7f1cc72f126844db68a8ad85311e04293c",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/run_display.py",
+      "uncompressed_bytes": 1467,
+      "uncompressed_sha256": "0ec28ff29e659539510694d3f31f5e7f1cc72f126844db68a8ad85311e04293c"
+    },
+    {
+      "file": "run_handshake.py",
+      "bytes": 8298,
+      "sha256": "871db9d2a4e8623c795ddec9c8b9ef4f6c642f29259e8893bd7a103ba4892261",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/run_handshake.py",
+      "uncompressed_bytes": 8298,
+      "uncompressed_sha256": "871db9d2a4e8623c795ddec9c8b9ef4f6c642f29259e8893bd7a103ba4892261"
+    },
+    {
+      "file": "handshake-result.json",
+      "bytes": 2074,
+      "sha256": "e55821efab03289dfa344c54351e2d340336564e7e5956fb0395eda8d4d594cc",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/handshake-result.json",
+      "uncompressed_bytes": 2074,
+      "uncompressed_sha256": "e55821efab03289dfa344c54351e2d340336564e7e5956fb0395eda8d4d594cc"
+    },
+    {
+      "file": "live-instance.json",
+      "bytes": 1196,
+      "sha256": "1f309a00b3c969866588b29874d529c6895da3fb1ced785a02f5dd67782fc06c",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/live-instance.json",
+      "uncompressed_bytes": 1196,
+      "uncompressed_sha256": "1f309a00b3c969866588b29874d529c6895da3fb1ced785a02f5dd67782fc06c"
+    },
+    {
+      "file": "echo.json",
+      "bytes": 607,
+      "sha256": "4db5175334e6e047ec5e66fcbf58d2fa46b5ad4aea6b5a0e3a0b08a03863d7a6",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/echo.json",
+      "uncompressed_bytes": 607,
+      "uncompressed_sha256": "4db5175334e6e047ec5e66fcbf58d2fa46b5ad4aea6b5a0e3a0b08a03863d7a6"
+    },
+    {
+      "file": "echo.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/echo.stderr",
+      "uncompressed_bytes": 0,
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "instances-after.json",
+      "bytes": 297,
+      "sha256": "df57dbc83ba8ba14e8d67e519c5f0fb0630e382d96d8a92b99f815b4e449aa97",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/instances-after.json",
+      "uncompressed_bytes": 297,
+      "uncompressed_sha256": "df57dbc83ba8ba14e8d67e519c5f0fb0630e382d96d8a92b99f815b4e449aa97"
+    },
+    {
+      "file": "game-console-key-lines.txt",
+      "bytes": 1029,
+      "sha256": "7bc6b3a2d61259bc843c9e2353c325728785af2eb00294c4a665c9f302f51d18",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/game-console-key-lines.txt",
+      "uncompressed_bytes": 1029,
+      "uncompressed_sha256": "7bc6b3a2d61259bc843c9e2353c325728785af2eb00294c4a665c9f302f51d18"
+    },
+    {
+      "file": "final-state.json",
+      "bytes": 805,
+      "sha256": "d61cb44a5452a26abd7026aae397d8280efcdec6cb9d838d684329345e850278",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/final-state.json",
+      "uncompressed_bytes": 805,
+      "uncompressed_sha256": "d61cb44a5452a26abd7026aae397d8280efcdec6cb9d838d684329345e850278"
+    },
+    {
+      "file": "launcher-build.log.gz",
+      "bytes": 12119,
+      "sha256": "7dd344d734abf32efc19948cb8b7ea57bc1eb53c43d6d3443c055a387374440e",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/launcher-build.log",
+      "uncompressed_bytes": 135805,
+      "uncompressed_sha256": "2c91b251ae854d35da3cad92aa9c517e299f81eb8c7c62b5f1a3cd844a50373b"
+    },
+    {
+      "file": "launcher-linux-dependencies.txt.gz",
+      "bytes": 8081,
+      "sha256": "c2365683d3edeb4f4baea7477216bacb651e8311fa3656bf9fd2de9b54b46ab4",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/launcher-linux-dependencies.txt",
+      "uncompressed_bytes": 70213,
+      "uncompressed_sha256": "d841fd4e2d68cdb92fa73ef6a231349e27c3dd68e809fe2dcca5505c10c92976"
+    },
+    {
+      "file": "native-jar-clean-env.json.gz",
+      "bytes": 273190,
+      "sha256": "ed786b42878e167017979fbb2652647762e3010e538e965798cbe75ee656d6d5",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar-clean-env.json",
+      "uncompressed_bytes": 1322671,
+      "uncompressed_sha256": "8856e4aeeaea8f82909caf2f968c1e30dd6ddd0fdeefe07da7150251af3b2f24"
+    },
+    {
+      "file": "native-jar-clean-env.ndjson.gz",
+      "bytes": 581951,
+      "sha256": "269f1205b9497dfb2c380ad41ec0643cc0f4d7f308c90977ccf5bff201639bca",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar-clean-env.ndjson",
+      "uncompressed_bytes": 19191115,
+      "uncompressed_sha256": "b020f81dc97f16679ace850fdcb234ce48f0028205d783841bd3ffd5e16b8fa6"
+    },
+    {
+      "file": "native-jar-clean-env.stderr.gz",
+      "bytes": 66254,
+      "sha256": "0127ef76d85f83229d9c19f563ce8b181bd56b2333ac14e1bcd9fce6d2755e55",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar-clean-env.stderr",
+      "uncompressed_bytes": 991363,
+      "uncompressed_sha256": "c107429a6f3072255a19f5c8b550d6698ab72b582bf303b58593d41a504e171e"
+    },
+    {
+      "file": "runtime-mod-inventory.json.gz",
+      "bytes": 255304,
+      "sha256": "af6b651334023e095c847f50a977229555d6ab9eec3d6ffc09074fefac3d0ea9",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/runtime-mod-inventory.json",
+      "uncompressed_bytes": 832003,
+      "uncompressed_sha256": "0af5ca1fd088222db49ea3b9afdd4700d65c5e320218dc5853fb01008d87fd2d"
+    },
+    {
+      "file": "game.ndjson.gz",
+      "bytes": 135957,
+      "sha256": "4967824c72a5f480ebf1734aba8c047160386f667ee86c25657ada41dee4509c",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/game.ndjson",
+      "uncompressed_bytes": 1623207,
+      "uncompressed_sha256": "c3ba5622f6ac8f7bf1bbbc90a4a311dd8145382b05478e0188abaa7eff3d8660"
+    },
+    {
+      "file": "game.stderr.gz",
+      "bytes": 105776,
+      "sha256": "de9c9d3bd742f9c69b32e86dd1d5ef28b25ad78ed951ef29aa186a992384cadc",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/game.stderr",
+      "uncompressed_bytes": 901238,
+      "uncompressed_sha256": "c04a7830048981069d5b39366c32961e37917203f30b932e6093ff2aa65fe58d"
+    },
+    {
+      "file": "game-console.log.gz",
+      "bytes": 64764,
+      "sha256": "731bb7cc7f99c26448e1f4e61ff53d45b2f66a4cc3a168069ed9bdf69ae3cc27",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/game-console.log",
+      "uncompressed_bytes": 1297687,
+      "uncompressed_sha256": "ddefe42db658a5133027de53e86a02d8e3d0a26b839a43a4de7236cfc86a8456"
+    },
+    {
+      "file": "xorg.log.gz",
+      "bytes": 6995,
+      "sha256": "2aa26c0b9eb21a084fb346732ba9c778d9d92f6a610a1482d0829d35e0d53e7e",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/xorg.log",
+      "uncompressed_bytes": 61863,
+      "uncompressed_sha256": "fd8a0b394d63b5ec4752d61884a93bf9e7175fe1aca97bd2106b749e3b9b42b4"
+    },
+    {
+      "file": "xorg.stderr.gz",
+      "bytes": 916,
+      "sha256": "5569eed5d2aae3242cb3be3d21e73cf02f8c65d602ca0a6fa82a8da9e8f9d201",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/xorg.stderr",
+      "uncompressed_bytes": 1496,
+      "uncompressed_sha256": "15a3ed19b6a9a65edfdf078306c46d3387635cc70cbe4a1eaa628258331ee1eb"
+    },
+    {
+      "file": "minecraft-assets-prepared.json",
+      "bytes": 1007,
+      "sha256": "4db8b52193138e77fb1f0fee810f5bf67fe6faf60ae864a4f8b698e1dd4c43d3",
+      "source": "game.ndjson: minecraft_assets_prepared"
+    },
+    {
+      "file": "native-jar.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar.exit",
+      "uncompressed_bytes": 2,
+      "uncompressed_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "purpose": "Recovered clean-SDK diagnostic from task-added JAVA_TOOL_OPTIONS; no skipped checks"
+    },
+    {
+      "file": "native-jar.stderr.gz",
+      "bytes": 5284,
+      "sha256": "8c6adfdc09ca59fd618230c17a4e5d92b97fc14f153315331f1291acba221e81",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar.stderr",
+      "uncompressed_bytes": 63163,
+      "uncompressed_sha256": "5a71fa8494f54da3ea93dee7a87e1e856c21ceed4b3ca4fcc9072d911a0d26d7",
+      "purpose": "Recovered clean-SDK diagnostic from task-added JAVA_TOOL_OPTIONS; no skipped checks"
+    },
+    {
+      "file": "native-jar.ndjson.gz",
+      "bytes": 25985,
+      "sha256": "ea5d15c1169f0289af2e1a0f8b23ec33fc97a7bca0e9b23b3e680c7b9280bd8c",
+      "original_path": "/workspace/sfm-handshake-20261023/continuation/native-jar.ndjson",
+      "uncompressed_bytes": 306789,
+      "uncompressed_sha256": "9717b1b094514421ad1a064a4008923635604c4e00ba7392daa3f15078840aa7",
+      "purpose": "Recovered clean-SDK diagnostic from task-added JAVA_TOOL_OPTIONS; no skipped checks"
+    }
+  ]
+}

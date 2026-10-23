@@ -1,0 +1,18 @@
+{
+  "schema": "sfm.invoke/1",
+  "instance_id": "58cb88d2-1184-4b1b-bc54-aa11d71a44db",
+  "process_id": 11444,
+  "request_id": "sfm-cli-11581-1792771086573564918",
+  "canonical_action": "sfm action invoke sfm:echo cutover-check-1792771086428394851",
+  "result_code": 1,
+  "feedback": [
+    "echo: cutover-check-1792771086428394851"
+  ],
+  "structured_result_present": false,
+  "structured_result_schema": "",
+  "structured_result_json": "",
+  "resulting_screen_present": true,
+  "resulting_screen": "net.minecraft.client.gui.screens.TitleScreen",
+  "workspace_present": false,
+  "workspace_panel_count": 0
+}

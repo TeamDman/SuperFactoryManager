@@ -1,0 +1,7 @@
+[15:57:18] [main/INFO] [cp.mo.mo.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgeclientuserdev, --version, MOD_DEV, --assetIndex, 1.19, --assetsDir, /workspace/.sfm-env/cache/minecraft-toolchain/minecraft/assets, --gameDir, ., --fml.forgeVersion, 43.4.0, --fml.mcVersion, 1.19.2, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20220805.130853, --mixin.config, sfm.mixins.json]
+[15:57:18] [main/INFO] [cp.mo.mo.Launcher/MODLAUNCHER]: ModLauncher 10.0.8+10.0.8+main.0ef7e830 starting: java version 17.0.20.1 by Eclipse Adoptium; OS Linux arch amd64 version 6.18.55
+[15:57:29] [Render thread/INFO] [minecraft/Minecraft]: Backend library: LWJGL version 3.3.1 build 7
+[15:58:05] [Render thread/INFO] [sfm/]: SFM_CLIENT_CONTROL_READY instance=58cb88d2-1184-4b1b-bc54-aa11d71a44db pid=11444 endpoint=127.0.0.1:45087 descriptor=/workspace/sfm-handshake-20261023/continuation/xdg-data/teamdman/sfm/instances/58cb88d2-1184-4b1b-bc54-aa11d71a44db.json
+status=exit status: 143
+timed_out=false
+cancelled=false
