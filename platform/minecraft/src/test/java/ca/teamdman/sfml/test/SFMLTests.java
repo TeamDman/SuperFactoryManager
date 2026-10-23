@@ -31,6 +31,34 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SFMLTests {
 
     @Test
+    public void itemComponentFilterParsesWithBooleanCombinations() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT WITH COMPONENT apotheosis:rarity = "apotheosis:rare" FROM gear
+                OUTPUT TO keep
+                FORGET
+
+                INPUT WITH (TAG c:enchantables AND NOT COMPONENT "apotheosis:rarity" = "apotheosis:rare") FROM gear
+                OUTPUT TO salvage
+                FORGET
+
+                INPUT WITHOUT COMPONENT minecraft:damage = "12" FROM gear
+                OUTPUT TO keep
+            END
+            """);
+    }
+
+    @Test
+    public void componentIsStillValidAsAResourceOrLabelName() {
+        assertNoCompileErrors("""
+            EVERY 20 TICKS DO
+                INPUT component FROM component
+                OUTPUT TO storage
+            END
+            """);
+    }
+
+    @Test
     public void resourceIdentifierClassLoadingRegression() {
         new ResourceIdentifier<ItemStack, Item, IItemHandler>("stone");
     }
