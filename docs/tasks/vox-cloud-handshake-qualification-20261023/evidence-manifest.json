@@ -116,8 +116,8 @@
   },
   {
     "path": "/workspace/sfm-handshake-20261023/evidence/projection-check-summary.json",
-    "bytes": 261826,
-    "sha256": "930ec618f64f06a485d3cf915fcf82a6ec905e4ba75f33a4cf5fd35c9ef60015"
+    "bytes": 1272,
+    "sha256": "68527e78ab819826b850519bdd6558dba89c6aaf9d4e977e6064d606ee3bc973"
   },
   {
     "path": "/workspace/sfm-handshake-20261023/evidence/projection-check.json",
@@ -126,8 +126,8 @@
   },
   {
     "path": "/workspace/sfm-handshake-20261023/evidence/projection-sync-summary.json",
-    "bytes": 261824,
-    "sha256": "af8bedba52ba4e228a9679cc2d4c60f080474099c645067155eb3b3c268f2fe8"
+    "bytes": 1270,
+    "sha256": "c0870234d8eb5bd33ebe6b3ad6686be27d3945d4a7befc6b142e50be45955ec8"
   },
   {
     "path": "/workspace/sfm-handshake-20261023/evidence/projection-sync.json",
