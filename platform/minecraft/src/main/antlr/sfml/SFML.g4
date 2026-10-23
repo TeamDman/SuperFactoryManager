@@ -75,7 +75,10 @@ withClause  : LPAREN withClause RPAREN           # WithParen
             | withClause AND withClause          # WithConjunction
             | withClause OR withClause           # WithDisjunction
             | (TAG HASHTAG?|HASHTAG) tagMatcher  # WithTag
+            | COMPONENT componentId (EQ | EQ_SYMBOL) string # WithComponent
             ;
+
+componentId : identifier COLON identifier | string;
 
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
             | identifier (SLASH identifier)*
@@ -150,7 +153,7 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK | COMPONENT) ;
 
 // GENERAL
 string: STRING ;
@@ -211,6 +214,7 @@ IN      : I N ;
 WITHOUT : W I T H O U T;
 WITH    : W I T H ;
 TAG     : T A G ;
+COMPONENT : C O M P O N E N T ;
 HASHTAG : '#' ;
 
 // ROUND ROBIN
