@@ -6,7 +6,7 @@ import java.util.List;
 import org.facet.phon.*;
 
 public enum SfmControlLifecycle { STARTING, READY, STOPPING;
-  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0xeeeec2ca35ebe0afL), List.of(), new Schema.EnumKind("SfmControlLifecycle", List.of(new Schema.Variant("Starting", 0, Schema.Payload.unit()), new Schema.Variant("Ready", 1, Schema.Payload.unit()), new Schema.Variant("Stopping", 2, Schema.Payload.unit()))));
+  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0xfcaff74e3a57902cL), List.of(), new Schema.EnumKind("SfmControlLifecycle", List.of(new Schema.Variant("Starting", 0, Schema.Payload.unit()), new Schema.Variant("Ready", 1, Schema.Payload.unit()), new Schema.Variant("Stopping", 2, Schema.Payload.unit()))));
   public static final PhonAdapter<SfmControlLifecycle> ADAPTER = new PhonAdapter<>() {
     @Override public SchemaClosure schema() { return SchemaClosure.uncheckedOf(SCHEMA); }
     @Override public void encode(PhonEncoder encoder, SfmControlLifecycle value) throws PhonException { encoder.writeU32Unaligned(value.ordinal()); }

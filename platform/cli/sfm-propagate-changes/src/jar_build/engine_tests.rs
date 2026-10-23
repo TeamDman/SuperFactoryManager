@@ -1451,7 +1451,7 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     assert!(!mekanism_api.loader_managed());
     let vox_java = projected
         .iter()
-        .find(|dependency| dependency.coordinate.to_string() == "org.facet:vox-java:0.10.0-rc.5")
+        .find(|dependency| dependency.coordinate.to_string() == "org.facet:teamy-vox-java:0.10.0-rc.7")
         .expect("Vox Java projection");
     assert_eq!(vox_java.configuration, "implementation");
     assert!(!vox_java.loader_managed());
@@ -1475,7 +1475,7 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     assert!(
         solo_smoke_plain
             .iter()
-            .any(|coordinate| { coordinate == "org.facet:vox-java:0.10.0-rc.5" })
+            .any(|coordinate| { coordinate == "org.facet:teamy-vox-java:0.10.0-rc.7" })
     );
     assert!(
         !solo_smoke_plain
@@ -3453,7 +3453,7 @@ fn artifact_audit_reader_accepts_checked_in_schema_v4_lockfile() {
     );
     assert!(
         lockfile.artifacts.iter().any(
-            |artifact| artifact.coordinate.as_deref() == Some("org.facet:vox-java:0.10.0-rc.5")
+            |artifact| artifact.coordinate.as_deref() == Some("org.facet:teamy-vox-java:0.10.0-rc.7")
         )
     );
 }

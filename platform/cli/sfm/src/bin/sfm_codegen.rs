@@ -19,7 +19,7 @@ fn main() -> eyre::Result<()> {
         .ancestors()
         .nth(3)
         .ok_or_else(|| eyre::eyre!("could not resolve SFM repository root"))?;
-    let java_source_root = repository_root.join("platform/minecraft/src/main/java");
+    let java_source_root = repository_root.join("platform/minecraft/core-liquid-template/src/main/java");
     let output_dir = java_source_root.join("ca/teamdman/sfm/client/control/generated");
     let legacy_output_dir = java_source_root.join("org/facet/vox/generated");
 

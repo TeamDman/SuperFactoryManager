@@ -86,9 +86,9 @@ final class PrimitiveAdapters {
       @Override public List<T> decode(PhonDecoder decoder) throws PhonException { return readList(decoder, elementAdapter); }
     };
   }
-  static SchemaClosure schemaClosure(long rootId, byte[][] canonicalSchemas) {
+  static SchemaClosure schemaClosure(long rootId, byte[] schemaBundle) {
     try {
-      return SchemaClosure.fromCanonicalBytes(SchemaId.fromLong(rootId), canonicalSchemas, PhonLimits.defaults());
+      return SchemaClosure.fromSchemaBundleBytes(SchemaId.fromLong(rootId), schemaBundle, PhonLimits.defaults());
     } catch (PhonException error) {
       throw new ExceptionInInitializerError(error);
     }

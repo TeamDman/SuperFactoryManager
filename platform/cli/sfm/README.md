@@ -49,3 +49,24 @@ not enabled merely by launching Minecraft.
 
 Use `install.ps1` to install the CLI independently from
 `sfm-propagate-changes.exe`.
+
+## Standalone Vox wire cutover
+
+The Rust client and generated Java bindings use the same pinned standalone
+`TeamDman/vox` revision. Legacy wire compatibility is not provided. Rebuild both
+sides together; historical captures remain runnable in their original checkout.
+
+Generate/check the authored Liquid core (not the old `platform/minecraft/src`
+mirror), then synchronize the selected projection:
+
+```sh
+cargo run --locked --features codegen --bin sfm-codegen -- --write
+cargo run --locked --features codegen --bin sfm-codegen -- --check
+# From repository root:
+sfm-propagate-changes source project sync --repo-root . --projection sfm-dev/mc-1.19.2
+```
+
+The control server currently projects into Minecraft 1.19.2 and 1.19.4.
+The per-version schema-4 development locks select the new Java runtime while
+retaining each version's scopes, bundling and other dependencies. Schema-2
+release snapshots are intentionally unchanged.

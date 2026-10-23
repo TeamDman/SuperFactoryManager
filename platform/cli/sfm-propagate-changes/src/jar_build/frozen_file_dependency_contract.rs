@@ -13,6 +13,15 @@
 //! only adds SDK identity guard and stable manifest metadata; Java change handles
 //! late credit with existing JDK collections. No service/native resources; jdeps
 //! reports java.base. Exact repaired bytes and SDK recipe are matched separately.
+//! Standalone Vox 5628c00d9f3816199f324a9ccc081de8a3a1b1bc was independently rebuilt:
+//! java/README.md SHA256 9f8177895d8914c8079efc574b9223a0c8c6492f44e63f5f6a227d1fd1b3bd52;
+//! xtask/src/main.rs SHA256 221fc892e1484151f053ced426ecddb99e6c013536306dcb0249d430de1196f7.
+//! Runtime compilation still uses no external classpath. Package validation checks
+//! bundled wire/Terminal classes, excludes Testbed, checks consecutive assembly,
+//! fresh-consumer compilation and jdeps. Reviewed runtime source has no dynamic
+//! service/native loaders; exact JAR has only classes/manifest and uses java.base.
+//! Its SDK, source, recipe, BLAKE3, size and SHA256 are independently matched below.
+//! Old artifact contracts remain for historical locks, not wire compatibility.
 //! Peer/service availability is application behavior, not established by this contract.
 
 use super::ArtifactLockEntry;
@@ -28,6 +37,33 @@ impl FrozenFileDependencyContract {
     pub(crate) fn for_artifact(entry: &ArtifactLockEntry) -> Option<Self> {
         let git = entry.source_git.as_ref()?;
         let build = entry.source_build.as_ref()?;
+        if entry.coordinate.as_deref() == Some("org.facet:teamy-vox-java:0.10.0-rc.7")
+            && entry.source == ArtifactSource::SourceBuild
+            && entry.weak.is_none()
+            && git.remote_url.as_deref() == Some("https://github.com/TeamDman/vox")
+            && git.commit == "5628c00d9f3816199f324a9ccc081de8a3a1b1bc"
+            && !git.dirty
+            && entry.hash.to_string() == "blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c"
+            && build.build_system == SourceBuildSystem::CargoCommand
+            && build.tasks.iter().map(String::as_str).eq([
+                "run",
+                "--locked",
+                "--package",
+                "teamy-vox-xtask",
+                "--",
+                "package-java",
+            ])
+            && build.output_path.to_string_lossy().replace('\\', "/")
+                == "java/target/teamy-vox-java-0.10.0-rc.7.jar"
+            && build.environment.len() == 1
+            && build.environment.get("VOX_JAVA_BUILD_JDK").map(String::as_str)
+                == Some("Eclipse Adoptium|21.0.8+9-LTS")
+        {
+            return Some(Self {
+                jar_bytes: 614_530,
+                jar_sha256: "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062",
+            });
+        }
         let tasks = [
             "run",
             "--locked",
@@ -90,9 +126,8 @@ mod tests {
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
-    #[test]
-    fn reviewed_file_contract_requires_exact_artifact_commit_recipe_and_bytes() {
-        let mut entry = ArtifactLockEntry {
+    fn reviewed_legacy_entry() -> ArtifactLockEntry {
+        ArtifactLockEntry {
             coordinate: Some("org.facet:vox-java:0.10.0-rc.5".to_owned()),
             source: ArtifactSource::SourceBuild,
             repository: None,
@@ -125,7 +160,68 @@ mod tests {
             hash: ContentHash::parse("blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f")
                 .expect("fixed reviewed pin"),
             weak: None,
-        };
+        }
+    }
+
+    #[test]
+    fn standalone_contract_rejects_unreviewed_source_recipe_sdk_and_bytes() {
+        let mut standalone = reviewed_legacy_entry();
+        standalone.coordinate = Some("org.facet:teamy-vox-java:0.10.0-rc.7".to_owned());
+        standalone.hash =
+            ContentHash::parse("blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c").unwrap();
+        let git = standalone.source_git.as_mut().unwrap();
+        git.remote_url = Some("https://github.com/TeamDman/vox".to_owned());
+        git.commit = "5628c00d9f3816199f324a9ccc081de8a3a1b1bc".to_owned();
+        let build = standalone.source_build.as_mut().unwrap();
+        build.tasks[3] = "teamy-vox-xtask".to_owned();
+        build.output_path = PathBuf::from("java/target/teamy-vox-java-0.10.0-rc.7.jar");
+        build.environment.insert(
+            "VOX_JAVA_BUILD_JDK".to_owned(),
+            "Eclipse Adoptium|21.0.8+9-LTS".to_owned(),
+        );
+        let contract = FrozenFileDependencyContract::for_artifact(&standalone)
+            .expect("independently reproduced standalone runtime");
+        assert!(contract.verify_bytes(b"different bytes").is_err());
+        for mutation in 0..8 {
+            let mut invalid = standalone.clone();
+            match mutation {
+                0 => invalid.source_git.as_mut().unwrap().dirty = true,
+                1 => invalid.source_git.as_mut().unwrap().commit = "different".to_owned(),
+                2 => {
+                    invalid.source_git.as_mut().unwrap().remote_url =
+                        Some("https://example.com".to_owned());
+                }
+                3 => {
+                    invalid.source_build.as_mut().unwrap().environment.clear();
+                }
+                4 => {
+                    invalid.source_build.as_mut().unwrap().environment.insert(
+                        "VOX_JAVA_BUILD_JDK".to_owned(), "different SDK".to_owned(),
+                    );
+                }
+                5 => {
+                    invalid.source_build.as_mut().unwrap().tasks.push("extra".to_owned());
+                }
+                6 => {
+                    invalid.source_build.as_mut().unwrap().output_path = PathBuf::from("different.jar");
+                }
+                7 => {
+                    invalid.hash = ContentHash::parse(
+                        "blake3:0000000000000000000000000000000000000000",
+                    ).unwrap();
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                FrozenFileDependencyContract::for_artifact(&invalid).is_none(),
+                "mutation {mutation}"
+            );
+        }
+    }
+
+    #[test]
+    fn reviewed_file_contract_requires_exact_artifact_commit_recipe_and_bytes() {
+        let mut entry = reviewed_legacy_entry();
         let contract =
             FrozenFileDependencyContract::for_artifact(&entry).expect("exact reviewed metadata");
         assert!(

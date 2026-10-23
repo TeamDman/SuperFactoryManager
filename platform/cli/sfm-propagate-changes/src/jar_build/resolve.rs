@@ -1658,7 +1658,7 @@ impl Resolver {
             contract.verify_bytes(&raw).wrap_err_with(|| {
                 format!("reviewed file dependency contract rejected {coordinate}")
             })?;
-            tracing::debug!(coordinate = %coordinate, contract = "vox-java-0.10.0-rc.5-f2afdece-java17", "Using reviewed frozen runtime dependency contract");
+            tracing::debug!(coordinate = %coordinate, contract = "exact-reviewed-vox-java17", "Using reviewed frozen runtime dependency contract");
             return Ok(Vec::new());
         }
 

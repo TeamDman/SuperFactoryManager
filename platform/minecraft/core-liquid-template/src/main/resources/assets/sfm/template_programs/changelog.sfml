@@ -5,6 +5,12 @@ NAME "Changelog"
 -- https://github.com/sponsors/TeamDman
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
+{% if features.locked_dependency_projection %}
+{% if features.client_control_cli or features.terminal_vox_runtime %}
+-- Upgrade the Vox wire protocol; rebuild the matching control CLI and terminal service together.
+-- Peers using the previous wire protocol are not supported.
+{% endif %}
+{% endif %}
 {% if features.recipe_namespace %}
 
 ---- 4.35.0 ----

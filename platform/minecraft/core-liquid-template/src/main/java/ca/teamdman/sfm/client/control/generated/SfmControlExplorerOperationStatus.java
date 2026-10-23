@@ -6,7 +6,7 @@ import java.util.List;
 import org.facet.phon.*;
 
 public enum SfmControlExplorerOperationStatus { OBSERVED, APPLIED, UNCHANGED, NO_MATCH, REJECTED;
-  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0xb7bb6aba492f4f68L), List.of(), new Schema.EnumKind("SfmControlExplorerOperationStatus", List.of(new Schema.Variant("Observed", 0, Schema.Payload.unit()), new Schema.Variant("Applied", 1, Schema.Payload.unit()), new Schema.Variant("Unchanged", 2, Schema.Payload.unit()), new Schema.Variant("NoMatch", 3, Schema.Payload.unit()), new Schema.Variant("Rejected", 4, Schema.Payload.unit()))));
+  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0x43e2a809efcba694L), List.of(), new Schema.EnumKind("SfmControlExplorerOperationStatus", List.of(new Schema.Variant("Observed", 0, Schema.Payload.unit()), new Schema.Variant("Applied", 1, Schema.Payload.unit()), new Schema.Variant("Unchanged", 2, Schema.Payload.unit()), new Schema.Variant("NoMatch", 3, Schema.Payload.unit()), new Schema.Variant("Rejected", 4, Schema.Payload.unit()))));
   public static final PhonAdapter<SfmControlExplorerOperationStatus> ADAPTER = new PhonAdapter<>() {
     @Override public SchemaClosure schema() { return SchemaClosure.uncheckedOf(SCHEMA); }
     @Override public void encode(PhonEncoder encoder, SfmControlExplorerOperationStatus value) throws PhonException { encoder.writeU32Unaligned(value.ordinal()); }

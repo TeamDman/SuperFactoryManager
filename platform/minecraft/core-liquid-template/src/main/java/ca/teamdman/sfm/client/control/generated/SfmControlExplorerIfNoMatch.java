@@ -6,7 +6,7 @@ import java.util.List;
 import org.facet.phon.*;
 
 public enum SfmControlExplorerIfNoMatch { FAIL, OPEN_NEW;
-  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0xe6a4f838c03dda33L), List.of(), new Schema.EnumKind("SfmControlExplorerIfNoMatch", List.of(new Schema.Variant("Fail", 0, Schema.Payload.unit()), new Schema.Variant("OpenNew", 1, Schema.Payload.unit()))));
+  public static final Schema SCHEMA = new Schema(SchemaId.fromLong(0xdb2b63098cfabb2dL), List.of(), new Schema.EnumKind("SfmControlExplorerIfNoMatch", List.of(new Schema.Variant("Fail", 0, Schema.Payload.unit()), new Schema.Variant("OpenNew", 1, Schema.Payload.unit()))));
   public static final PhonAdapter<SfmControlExplorerIfNoMatch> ADAPTER = new PhonAdapter<>() {
     @Override public SchemaClosure schema() { return SchemaClosure.uncheckedOf(SCHEMA); }
     @Override public void encode(PhonEncoder encoder, SfmControlExplorerIfNoMatch value) throws PhonException { encoder.writeU32Unaligned(value.ordinal()); }

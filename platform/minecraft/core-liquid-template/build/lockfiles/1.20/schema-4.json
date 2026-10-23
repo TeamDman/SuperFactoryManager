@@ -556,15 +556,15 @@
       "kind": "library",
       "role": "library",
       "display_name": "Vox Java terminal contract",
-      "project_url": "https://github.com/TeamDman/facet",
-      "notes": "Pinned to a reviewed Facet revision; SFM materializes the Java artifact with the Cargo xtask source-build recipe.",
+      "project_url": "https://github.com/TeamDman/vox",
+      "notes": "Pinned standalone Vox source and exact Java SDK; dependency-free runtime independently reproduced before acceptance.",
       "components": [
         {
           "id": "main",
           "declaration": {
             "acquisition": {
               "source-build": {
-                "artifact_id": "org-facet-vox-java-0-10-0-rc-5-ff6894ba"
+                "artifact_id": "org-facet-teamy-vox-java-0-10-0-rc-7-4ecea477"
               }
             },
             "scopes": [
@@ -575,10 +575,10 @@
             "data_run_policy": "include"
           },
           "derived_checks": {
-            "artifact_id": "org-facet-vox-java-0-10-0-rc-5-ff6894ba",
-            "resolved_coordinate": "org.facet:vox-java:0.10.0-rc.5",
-            "expected_hash": "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f",
-            "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar"
+            "artifact_id": "org-facet-teamy-vox-java-0-10-0-rc-7-4ecea477",
+            "resolved_coordinate": "org.facet:teamy-vox-java:0.10.0-rc.7",
+            "expected_hash": "blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c",
+            "cache_path": "$sfm-cache\\maven\\org\\facet\\teamy-vox-java\\0.10.0-rc.7\\teamy-vox-java-0.10.0-rc.7.jar"
           },
           "source_providers": []
         }
@@ -1355,7 +1355,7 @@
       "weak": null
     },
     {
-      "id": "org-facet-vox-java-0-10-0-rc-5-ff6894ba",
+      "id": "org-facet-teamy-vox-java-0-10-0-rc-7-4ecea477",
       "owner": {
         "dependency_id": "vox-java",
         "component_id": "main"
@@ -1364,18 +1364,18 @@
         "build",
         "runtime"
       ],
-      "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+      "coordinate": "org.facet:teamy-vox-java:0.10.0-rc.7",
       "repository_id": null,
       "url": null,
-      "hash": "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f",
-      "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
+      "hash": "blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c",
+      "cache_path": "$sfm-cache\\maven\\org\\facet\\teamy-vox-java\\0.10.0-rc.7\\teamy-vox-java-0.10.0-rc.7.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
-        "commit": "f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
-        "branch": "teamy/terminal-selection-paste",
+        "root": "$sfm-cache\\source-builds\\vox-5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+        "commit": "5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+        "branch": "migration/phon-java-cloud-completion-2026-10-23",
         "dirty": false,
-        "remote_url": "https://github.com/TeamDman/facet"
+        "remote_url": "https://github.com/TeamDman/vox"
       },
       "source_build": {
         "build_system": "cargo-command",
@@ -1383,12 +1383,14 @@
           "run",
           "--locked",
           "--package",
-          "vox-xtask",
+          "teamy-vox-xtask",
           "--",
           "package-java"
         ],
-        "environment": {},
-        "output_path": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
+        "environment": {
+          "VOX_JAVA_BUILD_JDK": "Eclipse Adoptium|21.0.8+9-LTS"
+        },
+        "output_path": "java\\target\\teamy-vox-java-0.10.0-rc.7.jar"
       },
       "weak": null
     },

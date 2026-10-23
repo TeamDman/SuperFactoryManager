@@ -58,7 +58,9 @@ pub(super) use runtime::prepare_for_plan;
 pub(super) use runtime::write_execution_receipt;
 use test_pin::TestPin;
 
-const SOURCE: &str = "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.json";
+// Immutable authority for the already-reviewed JUnit closure; live development
+// runtime upgrades must not rewrite its historical receipt or change its bytes.
+const SOURCE: &str = "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.test-dependency-authority.json";
 const PROVENANCE: &str = "platform/minecraft/core-liquid-template/build/lockfiles/1.19.2/schema-4.test-dependency-provenance.json";
 const CONFIGURATION: &str = "platform/minecraft/build-configuration/released-native.json";
 const SOURCE_SHA: &str = "198c141c2e45ed29a90935e84565e10f861aa0895233bb9b4a10cb8d2c109d41";

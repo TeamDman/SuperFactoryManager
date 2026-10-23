@@ -15,14 +15,14 @@ autobins = false
 color-eyre = "0.6.5"
 directories-next = "2.0.0"
 eyre = "0.6.12"
-facet = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet" }
-facet-csv = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-csv" }
-facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-json" }
-facet-pretty = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-pretty" }
-figue = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "figue" }
+facet = { package = "teamy-facet", version = "=0.50.0-rc.7" }
+facet-csv = { git = "https://github.com/TeamDman/facet-format.git", rev = "642d268fc01eced0a861bded044342ff88733eec", package = "teamy-facet-csv" }
+facet-json = { package = "teamy-facet-json", version = "=0.50.0-rc.9" }
+facet-pretty = { package = "teamy-facet-pretty", version = "=0.50.0-rc.7" }
+figue = { package = "teamy-figue", version = "=6.0.0-rc.5" }
 tokio = { version = "1.49.0", features = ["macros", "net", "rt-multi-thread", "time"] }
-vox = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "vox", default-features = false, features = ["runtime", "transport-tcp"] }
-vox-codegen = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "vox-codegen", optional = true }
+vox = { git = "https://github.com/TeamDman/vox.git", rev = "5628c00d9f3816199f324a9ccc081de8a3a1b1bc", package = "teamy-vox", default-features = false, features = ["runtime", "transport-tcp"] }
+vox-codegen = { git = "https://github.com/TeamDman/vox.git", rev = "5628c00d9f3816199f324a9ccc081de8a3a1b1bc", package = "teamy-vox-codegen", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 teamy-windows = "0.9.0"
@@ -60,3 +60,10 @@ perf = { level = "warn", priority = -1 }
 style = { level = "warn", priority = -1 }
 suspicious = { level = "warn", priority = -1 }
 multiple_crate_versions = "allow"
+
+# Keep the unpublished CSV adapter on the same published reflection identity.
+[patch."https://github.com/TeamDman/facet-format.git"]
+teamy-facet = { version = "=0.50.0-rc.7" }
+teamy-facet-core = { version = "=0.50.0-rc.7" }
+teamy-facet-reflect = { version = "=0.50.0-rc.7" }
+teamy-facet-format = { version = "=0.50.0-rc.9" }
