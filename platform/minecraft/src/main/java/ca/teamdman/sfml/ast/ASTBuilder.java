@@ -655,6 +655,18 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
+    public WithComponent visitWithComponent(SFMLParser.WithComponentContext ctx) {
+
+        String id = ctx.componentId().string() != null
+                    ? visitString(ctx.componentId().string()).value()
+                    : ctx.componentId().getText();
+        String expectedValue = visitString(ctx.string()).value();
+        WithComponent rtn = new WithComponent(id, expectedValue);
+        trackNode(rtn, ctx);
+        return rtn;
+    }
+
+    @Override
     public WithConjunction visitWithConjunction(SFMLParser.WithConjunctionContext ctx) {
 
         var left = (WithClause) visit(ctx.withClause(0));
