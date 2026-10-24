@@ -684,10 +684,13 @@ fn execute_run_with_context(
     let plan = context.plan;
     if matches!(kind, RunKind::GameTestPreview) && run_options.inspection_workspace.is_some() {
         let supported = matches!(&plan.identity, BuildProjectIdentity::Development { project, .. }
-            if project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java")
+            if ["release_review", "file_explorer", "client_actions", "workspace_panels",
+                "editor_documents", "workspace_stack_controls"]
+                .into_iter().all(|feature| project.has_feature(feature))
+            && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java")
             && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java"));
         eyre::ensure!(supported,
-            "--inspection-workspace with --puppet requires a development projection with the reviewed Explorer runtime and panel");
+            "--inspection-workspace with --puppet requires a development projection with the reviewed Explorer runtime, panel and workspace controls");
     }
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;

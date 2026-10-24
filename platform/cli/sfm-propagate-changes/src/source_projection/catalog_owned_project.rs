@@ -514,6 +514,11 @@ impl CatalogOwnedProject {
         &self.collected.artifacts
     }
 
+    #[must_use]
+    pub(crate) fn has_feature(&self, feature: &str) -> bool {
+        self.collected.context.features.get(feature) == Some(&true)
+    }
+
     /// Borrow only an exact selected generated output and its authored source.
     ///
     /// # Errors
