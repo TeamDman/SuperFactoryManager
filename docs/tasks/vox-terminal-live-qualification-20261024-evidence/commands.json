@@ -1,0 +1,163 @@
+{
+  "environment_source": "/workspace/.sfm-env/env.sh",
+  "extra_environment": {
+    "CARGO_NET_RETRY": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "steps": [
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/teamy-terminal",
+      "argv": [
+        "cargo",
+        "fetch",
+        "--locked",
+        "--manifest-path",
+        "tools/vox-terminal-server/Cargo.toml",
+        "--target",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/teamy-terminal",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "tools/vox-terminal-server/Cargo.toml"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/teamy-terminal",
+      "argv": [
+        "cargo",
+        "fetch",
+        "--locked",
+        "--target",
+        "x86_64-unknown-linux-gnu"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/teamy-terminal",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "teamy-terminal-cli",
+        "--lib",
+        "shell_input"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/teamy-terminal",
+      "argv": [
+        "cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "teamy-terminal-cli",
+        "--lib",
+        "startup_tests"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/terminal-overlay",
+      "argv": [
+        "cargo",
+        "metadata",
+        "--offline",
+        "--format-version",
+        "1",
+        "--filter-platform",
+        "x86_64-unknown-linux-gnu",
+        "--manifest-path",
+        "tools/vox-terminal-server/Cargo.toml",
+        "--config",
+        "patch.\"https://github.com/TeamDman/vox.git\".teamy-vox-macros-core.path=\"/workspace/sfm-terminal-live-20261024/vox-overlay-source/rust/vox-macros-core\"",
+        "--config",
+        "patch.\"https://github.com/TeamDman/vox.git\".teamy-vox-macros-parse.path=\"/workspace/sfm-terminal-live-20261024/vox-overlay-source/rust/vox-macros-parse\""
+      ],
+      "exit": 0,
+      "note": "Scratch-only resolution followed by exact two-source graph audit"
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024/terminal-overlay",
+      "argv": [
+        "cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "tools/vox-terminal-server/Cargo.toml",
+        "--config",
+        "patch.\"https://github.com/TeamDman/vox.git\".teamy-vox-macros-core.path=\"/workspace/sfm-terminal-live-20261024/vox-overlay-source/rust/vox-macros-core\"",
+        "--config",
+        "patch.\"https://github.com/TeamDman/vox.git\".teamy-vox-macros-parse.path=\"/workspace/sfm-terminal-live-20261024/vox-overlay-source/rust/vox-macros-parse\""
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024",
+      "argv": [
+        "python3",
+        "/workspace/sfm-terminal-live-20261024/run_probe.py",
+        "--server",
+        "/workspace/sfm-terminal-live-20261024/bin/terminal-frozen",
+        "--classes",
+        "/workspace/sfm-terminal-live-20261024/probe-classes",
+        "--classpath-file",
+        "/workspace/sfm-terminal-live-20261024/schema-classpath.txt",
+        "--main",
+        "SchemaOnlyProbe",
+        "--output",
+        "/workspace/sfm-terminal-live-20261024/schema-frozen"
+      ],
+      "exit": 1
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024",
+      "argv": [
+        "python3",
+        "/workspace/sfm-terminal-live-20261024/run_probe.py",
+        "--server",
+        "/workspace/sfm-terminal-live-20261024/bin/terminal-frozen",
+        "--classes",
+        "/workspace/sfm-terminal-live-20261024/probe-classes",
+        "--classpath-file",
+        "/workspace/sfm-terminal-live-20261024/sfm-classpath.txt",
+        "--main",
+        "ca.teamdman.sfm.client.terminal.SfmMissingShellProbe",
+        "--output",
+        "/workspace/sfm-terminal-live-20261024/sfm-missing-shell"
+      ],
+      "exit": 0
+    },
+    {
+      "cwd": "/workspace/sfm-terminal-live-20261024",
+      "argv": [
+        "python3",
+        "/workspace/sfm-terminal-live-20261024/run_probe.py",
+        "--server",
+        "/workspace/sfm-terminal-live-20261024/bin/terminal-overlay",
+        "--classes",
+        "/workspace/sfm-terminal-live-20261024/probe-classes",
+        "--classpath-file",
+        "/workspace/sfm-terminal-live-20261024/schema-classpath.txt",
+        "--main",
+        "SchemaOnlyProbe",
+        "--output",
+        "/workspace/sfm-terminal-live-20261024/schema-overlay"
+      ],
+      "exit": 0
+    }
+  ]
+}

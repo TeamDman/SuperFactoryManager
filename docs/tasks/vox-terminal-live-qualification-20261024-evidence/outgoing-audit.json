@@ -1,0 +1,1127 @@
+{
+  "base": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "head": "103d8bff2bf1f17e3c08a2076c7b23ff0aaba052",
+  "blobs": [
+    {
+      "oid": "eeeaa64d4c80dc9a3d7dfded9a04ab3ab852f982",
+      "path": "docs/tasks/vox-cloud-consumer-cutover.md",
+      "bytes": 13504,
+      "sha256": "2c8d54e7745e34a2da7feeb0aec27624ee1a88b8f813efba8fc7553204a8a0ff",
+      "utf8_text": true
+    },
+    {
+      "oid": "e8726707e706c6a81c6fc05cc035808d9520a8cc",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023.md",
+      "bytes": 15244,
+      "sha256": "fc0bf627b7bc0d428f6aba66491d20c234256a3c31028ad700a80fe85d0ed019",
+      "utf8_text": true
+    },
+    {
+      "oid": "9a8a4a40ee3a40fed863e4ad5da75521e5435f20",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/actual-launch-vox.json",
+      "bytes": 539,
+      "sha256": "d1e85b3568236c1d4749d83e49d296e6649f75a3099e3afb7dc83f7dcb4931e3",
+      "utf8_text": true
+    },
+    {
+      "oid": "f9730112579425619629297df214eaa4dbcef5e4",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/approved-patch-verification.json",
+      "bytes": 791,
+      "sha256": "ed14697ef6ad3516cd5e8c801ccc734eaf5ab5ba4750b1ac429ae0ae45b09c43",
+      "utf8_text": true
+    },
+    {
+      "oid": "f6871d0a83453313dcf529c6e8919409c12ca340",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/display-cleanup.json",
+      "bytes": 180,
+      "sha256": "c3fda5ddf945fe5c1e8a6dc379433a5b481b24b98105b31c818f3c00b4dfa7b2",
+      "utf8_text": true
+    },
+    {
+      "oid": "8a8caeac3c028dbf539411e554779d2ce14feb92",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/display-process.json",
+      "bytes": 504,
+      "sha256": "6690e542cb33a11714eed0497d7735e6fc6282eccc720415425577f5d5178769",
+      "utf8_text": true
+    },
+    {
+      "oid": "573541ac9702dd3969c9bc859d2b91ec1f7e6e56",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/display.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "utf8_text": true
+    },
+    {
+      "oid": "c3d7cd0bac292864591931e49d7656ea3468b7df",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/echo.json",
+      "bytes": 607,
+      "sha256": "4db5175334e6e047ec5e66fcbf58d2fa46b5ad4aea6b5a0e3a0b08a03863d7a6",
+      "utf8_text": true
+    },
+    {
+      "oid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/echo.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "utf8_text": true
+    },
+    {
+      "oid": "96bffb059f0de3e4f3f4b46981a27ad6582e8140",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/evidence-manifest.json",
+      "bytes": 18008,
+      "sha256": "1fe19bcca239158800f561bf360c0359d4c8bf7efda29ee7783dfc4ae67fa21a",
+      "utf8_text": true
+    },
+    {
+      "oid": "32ab84a0b2a13852ecb890a2c8155e6233411eb0",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/final-state.json",
+      "bytes": 805,
+      "sha256": "d61cb44a5452a26abd7026aae397d8280efcdec6cb9d838d684329345e850278",
+      "utf8_text": true
+    },
+    {
+      "oid": "3d8087fc20a29428d5b2a35a40e288ced8c39036",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/game-console-key-lines.txt",
+      "bytes": 1029,
+      "sha256": "7bc6b3a2d61259bc843c9e2353c325728785af2eb00294c4a665c9f302f51d18",
+      "utf8_text": true
+    },
+    {
+      "oid": "28cc6dbb78677232ec64de38e6600f8e860017ae",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/game-console.log.gz",
+      "bytes": 64764,
+      "sha256": "731bb7cc7f99c26448e1f4e61ff53d45b2f66a4cc3a168069ed9bdf69ae3cc27",
+      "uncompressed_bytes": 1297687,
+      "utf8_text": true
+    },
+    {
+      "oid": "5d0694848901e80132a8317bd3c6bacbd93e6148",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/game.ndjson.gz",
+      "bytes": 135957,
+      "sha256": "4967824c72a5f480ebf1734aba8c047160386f667ee86c25657ada41dee4509c",
+      "uncompressed_bytes": 1623207,
+      "utf8_text": true
+    },
+    {
+      "oid": "ee9d975c5be8c3e5b23cffe3f8113845ab341c90",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/game.stderr.gz",
+      "bytes": 105776,
+      "sha256": "de9c9d3bd742f9c69b32e86dd1d5ef28b25ad78ed951ef29aa186a992384cadc",
+      "uncompressed_bytes": 901238,
+      "utf8_text": true
+    },
+    {
+      "oid": "0dfd78bba1f9b5e7c732c5780500ecdbbbc0bd5b",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/glx-probe.json",
+      "bytes": 139,
+      "sha256": "0238d3e997052389981b5c11cdae5e2d3dfa69df969bdc7ac1c5d678b6faf448",
+      "utf8_text": true
+    },
+    {
+      "oid": "b15d2e2ca780b3c2d5e9ebc89e9d25ed8cbb9ef7",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/glx_probe.py",
+      "bytes": 1803,
+      "sha256": "26da1418fe08abddf3889eba1a2045de945269724bb25782f5db52892c172b59",
+      "utf8_text": true
+    },
+    {
+      "oid": "cdc012a1412a7b2412402f53b53e6bb81a9ad8c3",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/handshake-result.json",
+      "bytes": 2074,
+      "sha256": "e55821efab03289dfa344c54351e2d340336564e7e5956fb0395eda8d4d594cc",
+      "utf8_text": true
+    },
+    {
+      "oid": "d23ed24c8ac6d8d8e0e7717ed9381a4603076088",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/instances-after.json",
+      "bytes": 297,
+      "sha256": "df57dbc83ba8ba14e8d67e519c5f0fb0630e382d96d8a92b99f815b4e449aa97",
+      "utf8_text": true
+    },
+    {
+      "oid": "85e481e654ba488e7b0392010de0b5c478d4ff00",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/launcher-build.log.gz",
+      "bytes": 12119,
+      "sha256": "7dd344d734abf32efc19948cb8b7ea57bc1eb53c43d6d3443c055a387374440e",
+      "uncompressed_bytes": 135805,
+      "utf8_text": true
+    },
+    {
+      "oid": "97a87e771fc5962279c72783e7ef4b68865c9bd2",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/launcher-linux-dependencies.txt.gz",
+      "bytes": 8081,
+      "sha256": "c2365683d3edeb4f4baea7477216bacb651e8311fa3656bf9fd2de9b54b46ab4",
+      "uncompressed_bytes": 70213,
+      "utf8_text": true
+    },
+    {
+      "oid": "008393731f84371dc015676cf8e693273cd8030a",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/launcher-native-trust-audit.json",
+      "bytes": 902,
+      "sha256": "0f88143dead514448ffd5326d32ce2dd70296b4ac8541da00284cbfd00c2c572",
+      "utf8_text": true
+    },
+    {
+      "oid": "6bfc972b13f8010a819ff9b76464cd15b02cf90f",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/launcher-version.txt",
+      "bytes": 156,
+      "sha256": "255dfe6a78ca6d361d86798b0c7a5d90684ac5d9718acf2c4682128d21e3771f",
+      "utf8_text": true
+    },
+    {
+      "oid": "3c7cc36055404051b7571a7296f7683a4caaf4e9",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/live-instance.json",
+      "bytes": 1196,
+      "sha256": "1f309a00b3c969866588b29874d529c6895da3fb1ced785a02f5dd67782fc06c",
+      "utf8_text": true
+    },
+    {
+      "oid": "b1b9288ab279f2e5d9ddaf43fe3782112b66a69a",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/minecraft-acquisition-provenance.json",
+      "bytes": 19326,
+      "sha256": "0a4c58dd04380055304f4a3956770b7fbc8c8d82703586343d6d0c9909b21dd4",
+      "utf8_text": true
+    },
+    {
+      "oid": "9e577725b54b3da916b15fc9772009d5437e0f55",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/minecraft-assets-prepared.json",
+      "bytes": 1007,
+      "sha256": "4db8b52193138e77fb1f0fee810f5bf67fe6faf60ae864a4f8b698e1dd4c43d3",
+      "utf8_text": true
+    },
+    {
+      "oid": "f6ae5dd156f16c398d85baca28fd76d56ac3c5ce",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/minecraft-built-jar.json",
+      "bytes": 1178,
+      "sha256": "da09f5ad05b37ca00c6e2e2a1b4b2609563a2d391ee973ae443383c4d6ea1172",
+      "utf8_text": true
+    },
+    {
+      "oid": "e50349404052629e367b48623c49c03485f083d3",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar-clean-env.json.gz",
+      "bytes": 273190,
+      "sha256": "ed786b42878e167017979fbb2652647762e3010e538e965798cbe75ee656d6d5",
+      "uncompressed_bytes": 1322671,
+      "utf8_text": true
+    },
+    {
+      "oid": "3b926b9f1f63ba8ca89328ccbd13af304401381e",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar-clean-env.ndjson.gz",
+      "bytes": 581951,
+      "sha256": "269f1205b9497dfb2c380ad41ec0643cc0f4d7f308c90977ccf5bff201639bca",
+      "uncompressed_bytes": 19191115,
+      "utf8_text": true
+    },
+    {
+      "oid": "d902368083cd7a8ca35caa2c455e1763e1045e26",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar-clean-env.stderr.gz",
+      "bytes": 66254,
+      "sha256": "0127ef76d85f83229d9c19f563ce8b181bd56b2333ac14e1bcd9fce6d2755e55",
+      "uncompressed_bytes": 991363,
+      "utf8_text": true
+    },
+    {
+      "oid": "bb0924621fb59afce52d2e486365c9bc0a01a6ec",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar-summary.json",
+      "bytes": 2092,
+      "sha256": "05295ac49a1592bf8221c8382dd190ab6c4e635282325db1d10d8e13262e4d7a",
+      "utf8_text": true
+    },
+    {
+      "oid": "d00491fd7e5bb6fa28c517a0bb32b8b506539d4d",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar.exit",
+      "bytes": 2,
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "utf8_text": true
+    },
+    {
+      "oid": "8c20152a3afe0bed061d05c5e3e8ac4a40d9947a",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar.ndjson.gz",
+      "bytes": 25985,
+      "sha256": "ea5d15c1169f0289af2e1a0f8b23ec33fc97a7bca0e9b23b3e680c7b9280bd8c",
+      "uncompressed_bytes": 306789,
+      "utf8_text": true
+    },
+    {
+      "oid": "897a1359da126cf8fde89e603b123c0930b6f59d",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-jar.stderr.gz",
+      "bytes": 5284,
+      "sha256": "8c6adfdc09ca59fd618230c17a4e5d92b97fc14f153315331f1291acba221e81",
+      "uncompressed_bytes": 63163,
+      "utf8_text": true
+    },
+    {
+      "oid": "73bc565fcb7d6fa41f099abeeb4ab0b735bdee2b",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native-roots-probe.txt",
+      "bytes": 9831,
+      "sha256": "ec3ee896f93d24a7db678178391689f1eb7d3deb2f444e07d5ce3f30502b50f7",
+      "utf8_text": true
+    },
+    {
+      "oid": "8ba1060e5e9cadcc2775b8e0dc8ba9f0c00aece3",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/native_roots_probe.rs",
+      "bytes": 973,
+      "sha256": "8965ff9ed801ac78d5f1a5f13196be718e70cb9dbcb98b26c2a08261040961fd",
+      "utf8_text": true
+    },
+    {
+      "oid": "5ac753144505903dae8978663930af0b6b563781",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/run_display.py",
+      "bytes": 1467,
+      "sha256": "0ec28ff29e659539510694d3f31f5e7f1cc72f126844db68a8ad85311e04293c",
+      "utf8_text": true
+    },
+    {
+      "oid": "60b0975576efd0f17c18fd76eb20015fbc1f1dff",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/run_handshake.py",
+      "bytes": 8298,
+      "sha256": "871db9d2a4e8623c795ddec9c8b9ef4f6c642f29259e8893bd7a103ba4892261",
+      "utf8_text": true
+    },
+    {
+      "oid": "f0e890c98fc086820165c166fe67c467fc79d33e",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/runtime-contract-summary.json",
+      "bytes": 1992,
+      "sha256": "50316bfa1d417f2b2ece39e96001a3d79c02e4e4ab3a08c63794bbf386d4a1f8",
+      "utf8_text": true
+    },
+    {
+      "oid": "78a6263a44338750cd5554d8e74fc75471086540",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/runtime-mod-inventory.json.gz",
+      "bytes": 255304,
+      "sha256": "af6b651334023e095c847f50a977229555d6ab9eec3d6ffc09074fefac3d0ea9",
+      "uncompressed_bytes": 832003,
+      "utf8_text": true
+    },
+    {
+      "oid": "07603d43a5fbf8744408184060aa8f96c9eb2350",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/runtime-payload-postrun.json",
+      "bytes": 324,
+      "sha256": "081fa1e330b9c79c3ef5b27161e1778f5be466b754b4d49ee75139351174f99f",
+      "utf8_text": true
+    },
+    {
+      "oid": "81f4db41dd60cc7a0d7a9c3f073107a32847b256",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/runtime-payload-prelaunch.json",
+      "bytes": 2017,
+      "sha256": "046c865c4b00c8e558c540627e79c4179f7f4975cd31ebfccfbbbbe88566fb46",
+      "utf8_text": true
+    },
+    {
+      "oid": "f25025cf05d110e0ae43b087fcec854c4a680740",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/runtime-session-after.json",
+      "bytes": 1139,
+      "sha256": "261c511b62de05c34dcd15bd7bfaad7d268f3e8c94d54eab3cd718743afaeff3",
+      "utf8_text": true
+    },
+    {
+      "oid": "1349371b298f0ea8f4e8a41306907128b436cc07",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/trust-exclusion-tests.json",
+      "bytes": 1215,
+      "sha256": "17f825acde39339ed191dd5353b84dbee1a14a6a2780228bb30c2fdbf490703b",
+      "utf8_text": true
+    },
+    {
+      "oid": "5d5cabfd418ec01ca12c2d55999d4d6246adaf67",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/xorg-dummy.conf",
+      "bytes": 719,
+      "sha256": "4f34fcc1b251c77d9f3b6a452857a3aece1464da4c3c40d5055d178b80e27d85",
+      "utf8_text": true
+    },
+    {
+      "oid": "9bed7ef59651248ca8e10ee492dbbf13cd40385e",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/xorg.log.gz",
+      "bytes": 6995,
+      "sha256": "2aa26c0b9eb21a084fb346732ba9c778d9d92f6a610a1482d0829d35e0d53e7e",
+      "uncompressed_bytes": 61863,
+      "utf8_text": true
+    },
+    {
+      "oid": "321626a68112ad00e9c23dd09c816269037a1f5d",
+      "path": "docs/tasks/vox-cloud-handshake-native-trust-20261023/xorg.stderr.gz",
+      "bytes": 916,
+      "sha256": "5569eed5d2aae3242cb3be3d21e73cf02f8c65d602ca0a6fa82a8da9e8f9d201",
+      "uncompressed_bytes": 1496,
+      "utf8_text": true
+    },
+    {
+      "oid": "c5d8897a504697fac51225e4d72e129ef134bd8c",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023.md",
+      "bytes": 10574,
+      "sha256": "012975a6af549f8521702df5c278eafc6274525000e877e34860d028f387b027",
+      "utf8_text": true
+    },
+    {
+      "oid": "0985bbead2b7246b4041da83515027257f19779c",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/control-build.txt",
+      "bytes": 6018,
+      "sha256": "4132be218c25847efcdefdb4bf735c448bc7d03e9ac63a6865a30bc7d301f381",
+      "utf8_text": true
+    },
+    {
+      "oid": "78e0a4d9c7258bc997d1a59032bf5164a1c015e2",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/control-cargo-fetch.txt",
+      "bytes": 3900,
+      "sha256": "7a676b8c34965698b5bffab9d23a279f37ac9b5ca53b6b804e89731f9d8097b0",
+      "utf8_text": true
+    },
+    {
+      "oid": "73f07361c88af9f6d68bf1e85ae847c7928ae20c",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/control-instances-before-launch.json",
+      "bytes": 266,
+      "sha256": "e82f8524d7412a6794341b93d60a4f5f48f229df651c71d9f20d34393c69fb75",
+      "utf8_text": true
+    },
+    {
+      "oid": "4aac0f1e853a50615f0315289d4d02e37ce8164d",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/control.sha256",
+      "bytes": 110,
+      "sha256": "3231d03b0d02133d5aa53d903d00472754089ca8c387a9080c232b46bdfe9a5e",
+      "utf8_text": true
+    },
+    {
+      "oid": "22a0f7298c0b337e3de0592bc9c959c8b29360d6",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/evidence-manifest.json",
+      "bytes": 7609,
+      "sha256": "697a003c02569735216d1668178fab37033f1ec311742de1eacf3f7b916eeab7",
+      "utf8_text": true
+    },
+    {
+      "oid": "93daa2823ff975c940c1dc10aba36339c1fb1efe",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/final-state.json",
+      "bytes": 2162,
+      "sha256": "cb189e942fdac736f6b90e356ea8d4f157f0bb1aa6a3c3b64767ec8a76d0cff6",
+      "utf8_text": true
+    },
+    {
+      "oid": "54303e7a6ecf6ed7578e012467dccdf14639d6d6",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/https_acquire.py",
+      "bytes": 4645,
+      "sha256": "c2d669c4edbc375d342dc9a7ca2457b2b3ae1c01754c1fec66c9661f0e64b4c8",
+      "utf8_text": true
+    },
+    {
+      "oid": "80a9bbc08bb6825eece9c2e315972fe97bbff9cd",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/launcher-build.txt",
+      "bytes": 135930,
+      "sha256": "03cd207d2b4e2c2ad5f6d0cc5b95dbe12959ce1f18d136165cdbb996bd3b2a46",
+      "utf8_text": true
+    },
+    {
+      "oid": "9377e9689b71e8759575678188a66e8c165eafa7",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/launcher-ca-audit.json",
+      "bytes": 925,
+      "sha256": "fde3c2825ee12953755f90b9d31e957c65242eef53e79d6dfdb47ccc5d00a8d8",
+      "utf8_text": true
+    },
+    {
+      "oid": "7ca721476dd193819b8e5a9519aa4838caa0f64a",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/launcher-version.txt",
+      "bytes": 149,
+      "sha256": "610b567f814ad1e92e7365ed7462a0bb420192cb54769e922f2a759608639dc9",
+      "utf8_text": true
+    },
+    {
+      "oid": "38f0e1b68da3a362253e1cbca8a1a89d69cd5945",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/launcher-webpki-features.txt",
+      "bytes": 9498,
+      "sha256": "a5c36ed71f4205692ba16c5704e7f9e898c109aaa73ccc6e38c614e8d4f2542d",
+      "utf8_text": true
+    },
+    {
+      "oid": "8194fef77f6a5c8c9685a8c4cca9292ae250d018",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/launcher.sha256",
+      "bytes": 128,
+      "sha256": "f423dadaacab27151c1805e199c5c708a4b1ffb4c0eef0f68abdd9404aad22c0",
+      "utf8_text": true
+    },
+    {
+      "oid": "83ad4ed1a04f787c6dfec33be0696ee14f514f3e",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/parchment-acquisition.json",
+      "bytes": 1833,
+      "sha256": "19998c043ebedd7616aa7f81a0a24abfa0368b38af7d2cbcd3d4247c3a1190a6",
+      "utf8_text": true
+    },
+    {
+      "oid": "d706b974b0bdcfc6a24c02d98d05e0ef6f94d2e1",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/parchment-blake3.json",
+      "bytes": 350,
+      "sha256": "7941f0c731848f3d053d35b6776e5a9e5f67f9fade747cc69c703e50872e2e7d",
+      "utf8_text": true
+    },
+    {
+      "oid": "3d85b008e3e9853703e6224145332c8dd9428b06",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/parchment-cache-copy.json",
+      "bytes": 407,
+      "sha256": "67ef7078c6d7b27d4e0967ae08c12d51342158d057094a1d3d033dfdf4606a82",
+      "utf8_text": true
+    },
+    {
+      "oid": "1adb4a2bb08e4930a4f8ebd52f4cb43670bb50c2",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/parchment-qualified.json",
+      "bytes": 2591,
+      "sha256": "2682ee6389581177477bce30e3ced2aa5e3fa1f41413aa35a8b459dae599ab34",
+      "utf8_text": true
+    },
+    {
+      "oid": "8816a7e38f1bfa26441d02e0c059224425a135a8",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/parchment-zip-integrity.txt",
+      "bytes": 245,
+      "sha256": "97194e338b5c4f2bbc05acf30c622bb6104761b969568f779977bb3170a7d0ff",
+      "utf8_text": true
+    },
+    {
+      "oid": "12e8498a4fc6c3e6177f1bd5cb9a6017014b12b9",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/preflight.json",
+      "bytes": 371,
+      "sha256": "5666396c783408f04b5bcd66bcc0e62526629e0ace85fa89c62bbc98d7601fbe",
+      "utf8_text": true
+    },
+    {
+      "oid": "6ec41ad5cf036ac9f664e263de9d7cb341092a71",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/projection-check-summary.json",
+      "bytes": 1272,
+      "sha256": "68527e78ab819826b850519bdd6558dba89c6aaf9d4e977e6064d606ee3bc973",
+      "utf8_text": true
+    },
+    {
+      "oid": "72bc549cdda2c8ba41ddb11cb80240bf42441909",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/projection-sync-summary.json",
+      "bytes": 1270,
+      "sha256": "c0870234d8eb5bd33ebe6b3ad6686be27d3945d4a7befc6b142e50be45955ec8",
+      "utf8_text": true
+    },
+    {
+      "oid": "b28ad6b35fd480888a0f8d404ec056b4be4bbca9",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/required-native-ca-only.patch",
+      "bytes": 1821,
+      "sha256": "dc91a5cbcd6d957dae6e2365a3025343c64f001a914c7eab1b202c1fb699b2f9",
+      "utf8_text": true
+    },
+    {
+      "oid": "61be4577e0564656027c0fc6fbe77472acf0a214",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/temurin-acquisition.json",
+      "bytes": 1622,
+      "sha256": "54b41bccd7264f62ad883123b1e3f10d39cf712d405d6b1b0e038182aaef667b",
+      "utf8_text": true
+    },
+    {
+      "oid": "3631617f7e458a963d420194ab8027312f7759b8",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/temurin-official-asset-check.txt",
+      "bytes": 125,
+      "sha256": "5437c7c2b3ac1cef00015b557f9c12a6ff0b9c8b9ed211aab89ad46dd9038daf",
+      "utf8_text": true
+    },
+    {
+      "oid": "719956b0e127701fd5c2bf8e2422ba458a67697a",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/temurin-official-assets-acquisition.json",
+      "bytes": 1054,
+      "sha256": "dd863ed228818451af82084d2fa9b6be00da3748eee3f593cd7dde66711e6541",
+      "utf8_text": true
+    },
+    {
+      "oid": "d1ee0942a5d8b47d171c5f0e8b83c3c8edcfb90c",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/temurin-release.txt",
+      "bytes": 1610,
+      "sha256": "93b52921a5efb10ac0dcf9e3c955fa209fc83687df897d6ab034af967e2f5088",
+      "utf8_text": true
+    },
+    {
+      "oid": "e8c7f0b31b63f7b3f8bb846776ff2657b36825b9",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/vox-jdeps.txt",
+      "bytes": 10,
+      "sha256": "cfaa392dbc965786f6893c17640414dec54f279b31e177601d77c57c277efab4",
+      "utf8_text": true
+    },
+    {
+      "oid": "a95af35dde57e15ec6f5100dc72c609c37446d3b",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/vox-package-rehydrated.txt",
+      "bytes": 7280,
+      "sha256": "68ce928237b1db69cb40d21a80aee681e09f44dba3f689323ce1f6f5a51d16be",
+      "utf8_text": true
+    },
+    {
+      "oid": "398050c62c882fa5ebc8d8aaa2e730e70790beeb",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/vox-package.exit",
+      "bytes": 4,
+      "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c",
+      "utf8_text": true
+    },
+    {
+      "oid": "d0829fdbcb7fa09b75c92bb31f9a998dec9bd286",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/vox-package.txt",
+      "bytes": 383,
+      "sha256": "e064375d3a36449c2795b0de60170a75cc50aff45b90dfd5288a3546cd851390",
+      "utf8_text": true
+    },
+    {
+      "oid": "b3fd4f2a6a46d1bfb207154f00d6fd1f56abf1d0",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/vox-qualified.json",
+      "bytes": 1504,
+      "sha256": "ea19cc4750263b5ff77f221d06504475ccced021d1d6f81a9a40b80a9cddae19",
+      "utf8_text": true
+    },
+    {
+      "oid": "70a6a85e70c24b36ed22437cfbd7172c3c81571a",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/LegacyReadinessProbe.java",
+      "bytes": 7234,
+      "sha256": "800466416b1c82664bf2f28bc4cf1743a2825e26ddb9ef11d40ab61da0522a30",
+      "utf8_text": true
+    },
+    {
+      "oid": "0d39f6e41814c3215f15da4ec6ce0f3daf172214",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/intermediate-attempts.json",
+      "bytes": 1748,
+      "sha256": "29958b4404ed3df6f4977bb101a9389a9999f7ebfd65a1691fa4dbf7830cd095",
+      "utf8_text": true
+    },
+    {
+      "oid": "cea952e73967370f77968ce4dbf3ab6efa9c7560",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/intermediate-ui-accessor-compile.log.gz",
+      "bytes": 696,
+      "sha256": "f76068bccbae08c9f5aa21b0354a97e40ff3c793787e49e55f3163883091a4b5",
+      "uncompressed_bytes": 2656,
+      "utf8_text": true
+    },
+    {
+      "oid": "a3c03797c8fddc90d34449afafcfbbe2c620508c",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/javac-datagen.log.gz",
+      "bytes": 43,
+      "sha256": "2b22dcec2fe840096c6cb471b787eaeb835d8813b59316aadbd182da54d1e5c1",
+      "uncompressed_bytes": 31,
+      "utf8_text": true
+    },
+    {
+      "oid": "b18c429c4a4814d0925618b48de3024348a14011",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/javac-gametest.log.gz",
+      "bytes": 261,
+      "sha256": "0cea72042d9cb0a2b1ba509f4a9ec568b8af5e99d6bbee3525b345556a37e95a",
+      "uncompressed_bytes": 401,
+      "utf8_text": true
+    },
+    {
+      "oid": "e5d1b9f490289863f819ca51f670d31c994a9245",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/javac-main.log.gz",
+      "bytes": 529,
+      "sha256": "da446a0fe84b46c953bd3111c235cbb8d585d486ab7051797db690ebcf48ae5e",
+      "uncompressed_bytes": 2277,
+      "utf8_text": true
+    },
+    {
+      "oid": "bc15ecdf2a1a603365f125cb3bea1cd6a801f06c",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/javac-test.log.gz",
+      "bytes": 1287,
+      "sha256": "deabd0b31c84af3c150be74ff00ada005ae164cb1a9a7fbfb7fedae4a39113a0",
+      "uncompressed_bytes": 25364,
+      "utf8_text": true
+    },
+    {
+      "oid": "c3f41782c9fb00be5b7f25f282722295ba2788ca",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/legacy-compiled-identities.json",
+      "bytes": 2937,
+      "sha256": "70dfd6c8bf3d58b02aac3608e010c0ab40853fc4a3c7376bba115a083aed3e48",
+      "utf8_text": true
+    },
+    {
+      "oid": "24fb9956b5b64b81620d4802d28df4f6ed8475af",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/legacy-preflight-classpath.txt.gz",
+      "bytes": 3349,
+      "sha256": "a84933ef50cca32fd9c2f44fa6e05a70361eeaa4c5d66fa1608b276e3ba7a0a0",
+      "uncompressed_bytes": 32615,
+      "utf8_text": true
+    },
+    {
+      "oid": "4d112c286ff4c5e8c412460a400c1a8f08a2b626",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/legacy-probe.log",
+      "bytes": 133,
+      "sha256": "4b2e946236016c3c3553dd3a7df2465da3738aa1f3aae06687a678830e922735",
+      "utf8_text": true
+    },
+    {
+      "oid": "ad942a3aad28461c4d719e2a1933677d8ad26a91",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/legacy-render-receipts.json",
+      "bytes": 34778,
+      "sha256": "c3e0a8abc727de5a28ee6e08bafe6b104752b8549b778bd88e576efddafd498c",
+      "utf8_text": true
+    },
+    {
+      "oid": "9a48408c6161e33efbd596e804e9f5cf9dc159a4",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/manifest.json",
+      "bytes": 5784,
+      "sha256": "a62610c89e7c3822f285c117ac961d753d73e0eac332adf34319daa813e153b8",
+      "utf8_text": true
+    },
+    {
+      "oid": "c492e19c9d8a2df0c0a058416849650a69ca3cb2",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/metadata-additional-acquisition.json",
+      "bytes": 10882,
+      "sha256": "c011582da68345857057d248f0cc30a694b7014ed9ca1d835e70013933837848",
+      "utf8_text": true
+    },
+    {
+      "oid": "85dfcb4f965f128a57ad423b421aec2ddf10f2d4",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/metadata-error-prone-acquisition.json",
+      "bytes": 752,
+      "sha256": "e4b9513a41f42143e4d3256f0606e9c9e5aef6acba9bd50355ac42db76c065de",
+      "utf8_text": true
+    },
+    {
+      "oid": "9f5203fb858af060297fa7f2706bbcaaf65a5dc5",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/metadata-guava-acquisition.json",
+      "bytes": 1353,
+      "sha256": "f53c716e567a19e68ee235afd6c98797d749f037d42d8a25e3e47b3d03f56138",
+      "utf8_text": true
+    },
+    {
+      "oid": "04285342b29960d568a1673dda4a389994debfb1",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/metadata-restoration.json",
+      "bytes": 4147,
+      "sha256": "4d73b02d4c5c48bc68b70ed0e2d221a7d447d20d80983b71233421c09dab5e53",
+      "utf8_text": true
+    },
+    {
+      "oid": "5abb7c9cf0dabf57a03fecdef5e7064704807000",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/native-build-receipts.json.gz",
+      "bytes": 486730,
+      "sha256": "37f68aba3cba0b6a3c24ce51f4fc0e5448112ae405f919ca05e811bc39c55476",
+      "uncompressed_bytes": 1709315,
+      "utf8_text": true
+    },
+    {
+      "oid": "421eb359ef9bcbae6beeb420d31889c4e5cd6902",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/projection-checks.json",
+      "bytes": 5383,
+      "sha256": "d2dbcf3ffc5fc5484f55695cf6335ec5cd0e28b21f0714c3409c74838aa7851b",
+      "utf8_text": true
+    },
+    {
+      "oid": "2417d6dd01c68146e0ef148063b68502b4e00d3c",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/qualification-receipt.json",
+      "bytes": 19715,
+      "sha256": "ff6038c4d46d350c07637a763aef264efd94c6ee93c2614466768fad99a9a085",
+      "utf8_text": true
+    },
+    {
+      "oid": "3284768c929d272bdda6e237f56605b6e372fb1b",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/reproduce-tests.sh",
+      "bytes": 1147,
+      "sha256": "d392760764529865a6da53aecbfa3300e3a2aa243491210913c1af09fe4be4af",
+      "utf8_text": true
+    },
+    {
+      "oid": "46a22f6be7d40dd9433b7f4f602a62544b278d8b",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/restore-pom.py",
+      "bytes": 2403,
+      "sha256": "06e15a7b0ec9870c2a3e3f222a45d2309f921b07747d2026d0ee5f0d3f57f964",
+      "utf8_text": true
+    },
+    {
+      "oid": "e9f2ab2a344824b4803243fbf299e25fc33768a9",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-legacy-render-parity.json",
+      "bytes": 11076,
+      "sha256": "cc43526c3bc8f028245224a230c0db00506b2f7b8a3fd1c093e2632ccb9540a3",
+      "utf8_text": true
+    },
+    {
+      "oid": "c6fe68a5270f25879dae1852b819ce4237fe7040",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-panel-console.log.gz",
+      "bytes": 1691,
+      "sha256": "4472f8ed700daacbadc22b72b25b921d1a74ba662430f63ce9a05533a5432d1c",
+      "uncompressed_bytes": 8984,
+      "utf8_text": true
+    },
+    {
+      "oid": "3b8c4b413723c25c30c48470c2e766a29797c858",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-panel-junit.java.args.gz",
+      "bytes": 3978,
+      "sha256": "517f93b518cc38dbce12352018f36958e7b502d4b08c056f52c32c397a1e685a",
+      "uncompressed_bytes": 36917,
+      "utf8_text": true
+    },
+    {
+      "oid": "aca8149b3786aaffa7d493f0b19de938630c6bd3",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-panel-testRuntimeClasspath.txt.gz",
+      "bytes": 3812,
+      "sha256": "6653ee286cc5f1933bba50a6f63a7c30f4e2c87efd9cefa6c5255ce6349fe652",
+      "uncompressed_bytes": 36137,
+      "utf8_text": true
+    },
+    {
+      "oid": "b0fc19b4bbb51118f5aa28e7430d4817ae877f45",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-panel-tests.ndjson.gz",
+      "bytes": 12164,
+      "sha256": "81bfef06e4965da55baa7c43833311fdd0c310eebaeb503fac67eee24e54c179",
+      "uncompressed_bytes": 212107,
+      "utf8_text": true
+    },
+    {
+      "oid": "c41ae8825beb38e4695cad58e2c23c2c7e78d0cc",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-panel-tests.stderr.gz",
+      "bytes": 4113,
+      "sha256": "2f19d254076f87d2605e3554ef075dcf157dc1b5f7bf5377363c7fc739a5fe6b",
+      "uncompressed_bytes": 31373,
+      "utf8_text": true
+    },
+    {
+      "oid": "0e1cfb81a6da41e5d78c2ee0fc1d0fe80c5f8b6f",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-service-console.log.gz",
+      "bytes": 1832,
+      "sha256": "b3a60dac738d3bced00990faaccc63fb5348075ac263b6822406e2d606fb34b0",
+      "uncompressed_bytes": 14943,
+      "utf8_text": true
+    },
+    {
+      "oid": "559b8587fa99d2e85df71ab8a07a318f7cb0eef2",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-service-junit.java.args.gz",
+      "bytes": 3974,
+      "sha256": "12697adb00e57cebc9507dd792b129b522293e15044d38a440189da1934ea9b7",
+      "uncompressed_bytes": 36911,
+      "utf8_text": true
+    },
+    {
+      "oid": "f0b3221e9d084b06297db8cbe19bfe2292063f5d",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-service-tests.ndjson.gz",
+      "bytes": 21173,
+      "sha256": "0258c76513b71b4fb5910c01d1f042b0a8fe8a8b294258ca911177f2995f5aad",
+      "uncompressed_bytes": 497471,
+      "utf8_text": true
+    },
+    {
+      "oid": "14d2308b457218b680630c7d5369d804a62474ea",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-service-tests.stderr.gz",
+      "bytes": 8201,
+      "sha256": "31774fca7bf43bb2caf0191fbc2ad2fdfea4473891040928b56321149a9cd59e",
+      "uncompressed_bytes": 109999,
+      "utf8_text": true
+    },
+    {
+      "oid": "5e7cc45203da5dc80fc7e33b969bf52e9cec8661",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024-evidence/verified-supported-branch-parity.json",
+      "bytes": 719,
+      "sha256": "873aa961ea016f34d5f2c3775c4f7845653b1d9ce50c1d004ed669a36fba6121",
+      "utf8_text": true
+    },
+    {
+      "oid": "2b00bd0474845af4e610c6093e14ddfc889b546a",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024.md",
+      "bytes": 9887,
+      "sha256": "8cd945e8cd875b8a1d981af615f21da8c59799f8354fdcbb66c845760ddbfe8a",
+      "utf8_text": true
+    },
+    {
+      "oid": "71cba62b12edd8d6f69774e9b2219060729b42f6",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/LegacyReadinessProbe.java",
+      "bytes": 7576,
+      "sha256": "e428bcad695aa6f9b3d8b70beca9599eba4deb381c7fe63a25a5906c45c0b87b",
+      "utf8_text": true
+    },
+    {
+      "oid": "24e9a819f07437210b1277e94ff09736e44e9217",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/baseline-aggregate-console.log.gz",
+      "bytes": 120807,
+      "sha256": "302ed1e0b535541584d10dd3f90de30652c3afe2ee304f5c0b8a112a89250371",
+      "uncompressed_bytes": 1564541,
+      "utf8_text": true
+    },
+    {
+      "oid": "a92af3fa70c4d73dc22d4d9a11b9f88ef230b4db",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/baseline-aggregate.stderr.gz",
+      "bytes": 35483,
+      "sha256": "b16687f9f6174138648ba34d347a85f6b2a074c4838a429c439817455858a824",
+      "uncompressed_bytes": 1435503,
+      "utf8_text": true
+    },
+    {
+      "oid": "1eca182867769ffa0481786a0557f08721698039",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/baseline-writable-aggregate.log.gz",
+      "bytes": 378208,
+      "sha256": "44a294bca6312b24fb8e94093084b11b4a0b6d57bbef4f7bc5073666fb733039",
+      "uncompressed_bytes": 5470192,
+      "utf8_text": true
+    },
+    {
+      "oid": "69e5cc442ef17b0e324bc2cbe0e7fe5a6eebd169",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-1.19.2-render-match.json",
+      "bytes": 15548,
+      "sha256": "b092701624970bc4174892688f50ba4db6cb4c5cdec69c503fd995be2e6341d6",
+      "utf8_text": true
+    },
+    {
+      "oid": "628b6410460d97568dda580ac8dee9c020de895e",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-aggregate-console.log.gz",
+      "bytes": 112632,
+      "sha256": "acdc5fc49d21a977a3c0a93b1f1d1b4d421d7a619d9b015d239d260f25e9140e",
+      "uncompressed_bytes": 1079827,
+      "utf8_text": true
+    },
+    {
+      "oid": "df245512ececb937e5c7527d078c4dfe48db099f",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-aggregate-junit.java.args.gz",
+      "bytes": 3946,
+      "sha256": "e4dc612c7b76411e63cfd1f7edea89bc5a9627f3509f63bed0ab806d07c3d128",
+      "uncompressed_bytes": 36875,
+      "utf8_text": true
+    },
+    {
+      "oid": "7e558476a63370676e39652b99018f2b7e6c37b8",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-aggregate-testRuntimeClasspath.txt.gz",
+      "bytes": 3810,
+      "sha256": "c13741cd604c600258150df1eeb36d73a5249d4f59423a69d2014ec9fba6d454",
+      "uncompressed_bytes": 36137,
+      "utf8_text": true
+    },
+    {
+      "oid": "fa0d4845375b5a9d73d51dac920a98ad65891e96",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-aggregate.ndjson.gz",
+      "bytes": 32191,
+      "sha256": "3af4307ac22b29c87d712262a333f1237ad281d57484947cbb32422af7b665f7",
+      "uncompressed_bytes": 950077,
+      "utf8_text": true
+    },
+    {
+      "oid": "fd0378bd7e365ae4efd707d0877bcaea908406c9",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-aggregate.stderr.gz",
+      "bytes": 11814,
+      "sha256": "9363714be092b4d380df96f2cdf7a65e9fb14c85a33227e44c0faadff3653dfe",
+      "uncompressed_bytes": 212908,
+      "utf8_text": true
+    },
+    {
+      "oid": "da5198936f98731ca17cc35eafb62e526be463f4",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-legacy-renders.json",
+      "bytes": 34778,
+      "sha256": "bfad2673405fb6f37d46490748f88f7b8223143345060da5427a52f99781ce45",
+      "utf8_text": true
+    },
+    {
+      "oid": "a9985bb43b3162740acb01351cc883281ddd7cc2",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/final-test-results.json",
+      "bytes": 66425,
+      "sha256": "ee3a7f087daa8f353b833e25ad493b754aec4c8c14e329b72e2ff6022900067c",
+      "utf8_text": true
+    },
+    {
+      "oid": "5f7ec371b74ec78dda163f0300a0ae8e11ae6539",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/legacy-compile.log.gz",
+      "bytes": 137,
+      "sha256": "860266f282623ab39f898b5b62a6ddd559b7bb0868deb848ab58b39122556fba",
+      "uncompressed_bytes": 142,
+      "utf8_text": true
+    },
+    {
+      "oid": "ee0c2414fd0faa0b77b329739695c507611f08ae",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/legacy-probe.log.gz",
+      "bytes": 125,
+      "sha256": "60c695344d56c828f3012a7b4c1916220b0ddb83a52feceb4ced8601fc17f37a",
+      "uncompressed_bytes": 133,
+      "utf8_text": true
+    },
+    {
+      "oid": "78e2a8280be1ab0f98dcbae93e648d6557c297ff",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/manifest.json",
+      "bytes": 4660,
+      "sha256": "08bb576097055080b519611526bb6bdf2ba6ba543230d2e014c9939a7994c1f2",
+      "utf8_text": true
+    },
+    {
+      "oid": "72b2c2a026da19b0bf0f2cd6750bf2f160e4f59e",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/optional-gates.json",
+      "bytes": 1555,
+      "sha256": "6a1419f4cea7864d1f8ab7b513feb70a7b8588bc05d32e2d07695434e5fa448c",
+      "utf8_text": true
+    },
+    {
+      "oid": "d58922ee3bc99a74bd3cdc567cebe16e1e29ffb0",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/projection-checks.json",
+      "bytes": 4813,
+      "sha256": "38c42164087a077d97acd850077731b9f4ed0aafd5015aa0025f972f0e43cf2b",
+      "utf8_text": true
+    },
+    {
+      "oid": "77fa66e8727a4f172767a2e419b87095bde90334",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/red-regression-result.json",
+      "bytes": 1150,
+      "sha256": "6509498afd363a0dc3df2c29b3206fae2219faceb8c41ff0172cca5c42e53381",
+      "utf8_text": true
+    },
+    {
+      "oid": "7979124c5e195412b230aa9a7199c7dc6896c6e2",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/red-service-tests.log.gz",
+      "bytes": 7548,
+      "sha256": "1a6c6ac0639480f85f74bb2b7b7f26888166ff9e6d4a62e065c463850829edae",
+      "uncompressed_bytes": 88306,
+      "utf8_text": true
+    },
+    {
+      "oid": "b65de919fb70ada4af983edaa77addadaa39e8b9",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/red-test-render-receipt.json",
+      "bytes": 15363,
+      "sha256": "108592e6a3221196a868224ee1c8c9398dee92003b1a68f2387cbd914ed962b0",
+      "utf8_text": true
+    },
+    {
+      "oid": "84ff205a175bc2ccc34cce8f6b608ebc2d014c59",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/red-test.java.args",
+      "bytes": 36845,
+      "sha256": "420c74f282d50355de52ba37bc0633aaaea6b6ade711c693c361dc578f87e6db",
+      "utf8_text": true
+    },
+    {
+      "oid": "e700739fe268ddfdc2450492b0d088012a479bb6",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/reproduce-aggregate.sh",
+      "bytes": 1148,
+      "sha256": "4c376259cff7817bbb30b7f31e828e99da8ff0692bea10c4b3bf39998d0650b8",
+      "utf8_text": true
+    },
+    {
+      "oid": "4d872254349470d5b36696e81859465285ec081f",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/review-receipt.json",
+      "bytes": 9054,
+      "sha256": "d02422624c465e313eb631357119233c38f5b5b20d23c61faa865e27f738b0cc",
+      "utf8_text": true
+    },
+    {
+      "oid": "ea527e72b9b855506efacc6d2751846879282dad",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024-evidence/supported-branch-parity.json",
+      "bytes": 900,
+      "sha256": "dc5aeb9f5610adbba0cd0f065ac89f215ae40213554ffd9a2168337e6bbd45e0",
+      "utf8_text": true
+    },
+    {
+      "oid": "712d5e025146d88abae5f2eae71e839979633604",
+      "path": "docs/tasks/vox-terminal-readiness-review-20261024.md",
+      "bytes": 8796,
+      "sha256": "0ffac7518f99955514479603a85711e5910c2589134ac182afcddf3a7f05c61e",
+      "utf8_text": true
+    },
+    {
+      "oid": "9689f15ae5f086132a81d15ae8be08f4b305d5c9",
+      "path": "platform/cli/sfm-propagate-changes/Cargo.lock",
+      "bytes": 150101,
+      "sha256": "f74aff0da09e37f24e7f676faa5a57204021fa474df2dddeff6ef8aaa5ce570f",
+      "utf8_text": true
+    },
+    {
+      "oid": "124b9cfea0c39dc7c2b9e08d8bc4f12a1ee8f340",
+      "path": "platform/cli/sfm-propagate-changes/Cargo.toml",
+      "bytes": 5775,
+      "sha256": "b974f8258f25e92bbf6df122f2d48d1a05bd05406dd301663a0dddcef0edef04",
+      "utf8_text": true
+    },
+    {
+      "oid": "bde106500ba2408f14cfa16e6e78c7040b84e267",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalConnectionSnapshot.java",
+      "bytes": 1211,
+      "sha256": "4a3b8b403e90469895f9c86c2b8ca650a44e6d1c5fec59ceccc4f10f67fd52fc",
+      "utf8_text": true
+    },
+    {
+      "oid": "df16a32a47d0407092b4686d524d5f5230314325",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+      "bytes": 139288,
+      "sha256": "f38717fa7de663d558fd1bea5236fad2b7b1218debe45ffb7c91294d5735147e",
+      "utf8_text": true
+    },
+    {
+      "oid": "2bed2cfc9c3375e795aa5ef58617ad1ddc5f85f8",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPasteResult.java",
+      "bytes": 1632,
+      "sha256": "a214d55dfac56ee1740958fa6d2e3a30806ea73151dfdb6a4baae9b90e72d41d",
+      "utf8_text": true
+    },
+    {
+      "oid": "106501ff1cea17142e8991269fd77b31603e077a",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+      "bytes": 9389,
+      "sha256": "72ed477d68c5790b1ca170c46c58f35408ead06ef6355aa523642bfdf0d58b02",
+      "utf8_text": true
+    },
+    {
+      "oid": "0c7fa7dd508b57c3eda8c405aefb792816b1d3f3",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java",
+      "bytes": 181988,
+      "sha256": "f4d291ba298aead280eed67ea50deb891ee76c01e61e1ae27b8c3ccfbf8e177d",
+      "utf8_text": true
+    },
+    {
+      "oid": "ad33dcc88ec1b5080eabb2e5dca28244e257908b",
+      "path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml",
+      "bytes": 132326,
+      "sha256": "9cb954beddf0bba800e7447ad9b552aff6c1e5e17253462b1ec49a97f5d00085",
+      "utf8_text": true
+    },
+    {
+      "oid": "0031c6625458aeafa62f0312c3f9336ce7f9457c",
+      "path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "bytes": 51266,
+      "sha256": "d3147ab784389b12d9e469014b9802a5e1d92f516afb4cf782a84a366347c6ff",
+      "utf8_text": true
+    },
+    {
+      "oid": "36df417692a359b67e3cef7250e875829bb1293c",
+      "path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "bytes": 36987,
+      "sha256": "1657c2f21f4956cc03f3cda736a7b71506e13da26fde4f871b089b0e0e04d1b0",
+      "utf8_text": true
+    },
+    {
+      "oid": "bd03784a81bb6074002c424edf313bd568740c4b",
+      "path": "docs/tasks/vox-terminal-readiness-consumer-20261024.md",
+      "bytes": 9683,
+      "sha256": "a5a810827c49e6033b6605db1c3b5ae8629cb908e1295ace3ba03b439add881e",
+      "utf8_text": true
+    },
+    {
+      "oid": "df1898e7a19e3f7f1f473f39da975faeea261a75",
+      "path": "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java",
+      "bytes": 181395,
+      "sha256": "4a04fb60ae0124d22c9c968ec3657e1f7aba5bf57504faa9ac080c6304b18fb0",
+      "utf8_text": true
+    },
+    {
+      "oid": "6f8b7523f844818d627711e1ae55dd6cc3d90665",
+      "path": "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml",
+      "bytes": 132243,
+      "sha256": "39ab45aa16d85180c3bae3af6eaa97fa79f73e8f63d837e64244c4964619a69c",
+      "utf8_text": true
+    },
+    {
+      "oid": "43f8f78e89747ceddea3a3c547cb057864902257",
+      "path": "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "bytes": 33965,
+      "sha256": "5b3b31113b9ad54b9b5c974f6a9d14f26cc94d86239aff0aa0e4d89ea80faa8c",
+      "utf8_text": true
+    },
+    {
+      "oid": "f0d22889857b9f78ebe237919329b555b5f45cf6",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023.md",
+      "bytes": 10196,
+      "sha256": "4e085c90fde89da6608910cf973aa29f5d9d637bf517ef0ce5896a7845552973",
+      "utf8_text": true
+    },
+    {
+      "oid": "7e9b04d86aba8554e6e28214759b88e05d981f18",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/evidence-manifest.json",
+      "bytes": 7613,
+      "sha256": "30a6aaa4440ad120932f39654459070cf6bd88b89df307e6c44f064e8a2690cf",
+      "utf8_text": true
+    },
+    {
+      "oid": "e2123192a167b0df53ce2cdf57148e99b9d22354",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/projection-check-summary.json",
+      "bytes": 261826,
+      "sha256": "930ec618f64f06a485d3cf915fcf82a6ec905e4ba75f33a4cf5fd35c9ef60015",
+      "utf8_text": true
+    },
+    {
+      "oid": "e4b914684eb4d137a4110a6d502c14451ee9f284",
+      "path": "docs/tasks/vox-cloud-handshake-qualification-20261023/projection-sync-summary.json",
+      "bytes": 261824,
+      "sha256": "af8bedba52ba4e228a9679cc2d4c60f080474099c645067155eb3b3c268f2fe8",
+      "utf8_text": true
+    }
+  ],
+  "scan_findings": [],
+  "decode_errors": [],
+  "extended_credential_hits": []
+}

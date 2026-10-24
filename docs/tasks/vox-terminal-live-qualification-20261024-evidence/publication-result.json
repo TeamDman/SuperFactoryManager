@@ -1,0 +1,10 @@
+{
+  "repository": "TeamDman/SuperFactoryManager",
+  "branch": "task/parchment-handshake-20261023",
+  "sha": "103d8bff2bf1f17e3c08a2076c7b23ff0aaba052",
+  "remote_verified": true,
+  "remote_main_before_and_after": "e2ba833b2b235835d69475b641e24b22bfd9551a",
+  "force": false,
+  "outgoing_commits_preserved": 8,
+  "branch_url": "https://github.com/TeamDman/SuperFactoryManager/tree/task/parchment-handshake-20261023"
+}

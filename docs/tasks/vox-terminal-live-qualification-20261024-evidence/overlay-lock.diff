@@ -1,0 +1,20 @@
+diff --git a/tools/vox-terminal-server/Cargo.lock b/tools/vox-terminal-server/Cargo.lock
+index 953681d..2701e91 100644
+--- a/tools/vox-terminal-server/Cargo.lock
++++ b/tools/vox-terminal-server/Cargo.lock
+@@ -3035,7 +3035,6 @@ dependencies = [
+ [[package]]
+ name = "teamy-vox-macros-core"
+ version = "0.10.0-rc.7"
+-source = "git+https://github.com/TeamDman/vox.git?rev=5628c00d9f3816199f324a9ccc081de8a3a1b1bc#5628c00d9f3816199f324a9ccc081de8a3a1b1bc"
+ dependencies = [
+  "heck",
+  "proc-macro2",
+@@ -3046,7 +3045,6 @@ dependencies = [
+ [[package]]
+ name = "teamy-vox-macros-parse"
+ version = "0.10.0-rc.7"
+-source = "git+https://github.com/TeamDman/vox.git?rev=5628c00d9f3816199f324a9ccc081de8a3a1b1bc#5628c00d9f3816199f324a9ccc081de8a3a1b1bc"
+ dependencies = [
+  "proc-macro2",
+  "unsynn",

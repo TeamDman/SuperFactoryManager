@@ -1,0 +1,212 @@
+[
+  {
+    "file": "SchemaOnlyProbe.java",
+    "bytes": 1828,
+    "sha256": "abe7907da5e02d479a013c70fbee397d4bbe9dfd26d738dc7ffe234742a2421e"
+  },
+  {
+    "file": "SfmMissingShellProbe.java",
+    "bytes": 2612,
+    "sha256": "b554aadab68f7cb3f5fd4fafe0dedda6c9acf34c5b51319fe3cd314424ca3312"
+  },
+  {
+    "file": "TerminalProbe.java",
+    "bytes": 8608,
+    "sha256": "6291111f9d7ecaec736c8ade79d1b93011244ddbdc7b418b449d6e73a61a5f5c"
+  },
+  {
+    "file": "commands.json",
+    "bytes": 4801,
+    "sha256": "6bea817cf01860e54d670b647df5acc76f941976075fc3691d25469762c30d0e"
+  },
+  {
+    "file": "outgoing-audit.json",
+    "bytes": 47508,
+    "sha256": "9a2dcd2dbea603e25d2be1f126eeab5fa32abbd76b7327bd9f167e7f31605568"
+  },
+  {
+    "file": "overlay-build.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "overlay-build.log.gz",
+    "bytes": 1718,
+    "sha256": "d7f443571d502e3df6d1b47070ae1b322e63ed999cbf2bc39643dd239bc0a2e7"
+  },
+  {
+    "file": "overlay-graph-audit.json",
+    "bytes": 1390,
+    "sha256": "47ac1874bc8eeb06b36cc86e50530345eb95e2eac6d5bda8763f120077cb15db"
+  },
+  {
+    "file": "overlay-lock.diff",
+    "bytes": 792,
+    "sha256": "6438504695184deebbff0109c1c4e1bb9c0f30894b4058c1b62b88ee28a69f0a"
+  },
+  {
+    "file": "probe-compile.log.gz",
+    "bytes": 137,
+    "sha256": "860266f282623ab39f898b5b62a6ddd559b7bb0868deb848ab58b39122556fba"
+  },
+  {
+    "file": "publication-result.json",
+    "bytes": 417,
+    "sha256": "9f49b455648dc53c7ae0e3a7f0643d8f6473eba6374b21798c0123edba108ba6"
+  },
+  {
+    "file": "push.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "push.log.gz",
+    "bytes": 209,
+    "sha256": "590784e5bab2d89f46b0f9a749972bfef682b668ea63c930fd84eb9e00a1bc40"
+  },
+  {
+    "file": "qualification-receipt.json",
+    "bytes": 3306,
+    "sha256": "13a61dc1acb1bd135c3ee580e772eb3aa0f96320c7488afbe352000ef8e950db"
+  },
+  {
+    "file": "remote-after.txt",
+    "bytes": 143,
+    "sha256": "0864dc22ac8325aea108e3ae34b769d4abcb02e52184c60344e2368dbe29dc44"
+  },
+  {
+    "file": "run_probe.py",
+    "bytes": 2199,
+    "sha256": "6c0aa7cbfb340bd54a273d1bb92b903addbc491e0516bcdbc9f95b4a9641952e"
+  },
+  {
+    "file": "schema-classpath.txt.gz",
+    "bytes": 106,
+    "sha256": "2a83b82afb1da45acc127fb03a38f2c4f53b0913200d277cfe487d0f2b9c2366"
+  },
+  {
+    "file": "schema-frozen/client.stderr.gz",
+    "bytes": 504,
+    "sha256": "bebfe53e13ffb26367508395d094ba717a2915c3fbdaf38d1a0b735612660f44"
+  },
+  {
+    "file": "schema-frozen/client.stdout.gz",
+    "bytes": 57,
+    "sha256": "8e9d688cccc7dc38712e53015170b7aefff53e7f274c48954a37a688183e6b8a"
+  },
+  {
+    "file": "schema-frozen/receipt.json",
+    "bytes": 381,
+    "sha256": "887bf32ef476c690555bea353372ae69dcf1e7c2aa213024cbadf2ac4f0eae56"
+  },
+  {
+    "file": "schema-frozen/server.log.gz",
+    "bytes": 111,
+    "sha256": "9a9f7a8256f0cdd05bac21aef71d4dc4af0d677566088dd21febea54c5766cb1"
+  },
+  {
+    "file": "schema-overlay/client.stderr.gz",
+    "bytes": 20,
+    "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+  },
+  {
+    "file": "schema-overlay/client.stdout.gz",
+    "bytes": 123,
+    "sha256": "581d1ab97bc8d1468c94db7986452fce1bb2a99b58d29f70fd7019a9e23d8dec"
+  },
+  {
+    "file": "schema-overlay/receipt.json",
+    "bytes": 383,
+    "sha256": "349084cb595a4d15d2e7a2f483b82f0d7ffc9802fa7d5a7165c906117370515f"
+  },
+  {
+    "file": "schema-overlay/server.log.gz",
+    "bytes": 108,
+    "sha256": "180c5b77f38e5b783c468a47bc783ef364a5b58c99d389a66ca3a8d10de501a5"
+  },
+  {
+    "file": "sfm-classpath.txt.gz",
+    "bytes": 3869,
+    "sha256": "2f71c930f8c9e60a3cdb682ba5c26487d1d12372287de91d6aaa02812886c729"
+  },
+  {
+    "file": "sfm-missing-shell/client.stderr.gz",
+    "bytes": 20,
+    "sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+  },
+  {
+    "file": "sfm-missing-shell/client.stdout.gz",
+    "bytes": 394,
+    "sha256": "7798e26d79f3aecf11c15c06e37044844a497b1aacf9a9505dc4e87a0f75ca4e"
+  },
+  {
+    "file": "sfm-missing-shell/receipt.json",
+    "bytes": 418,
+    "sha256": "63c0e72f8a2b0eaa5cc039034cf1a10d0fea350ed87dee0d775ad0157808eb88"
+  },
+  {
+    "file": "sfm-missing-shell/server.log.gz",
+    "bytes": 110,
+    "sha256": "b65cd0137bf46156daea501cb8719f1fab3352212ba1bf154b1feba7eec39d43"
+  },
+  {
+    "file": "shell-input-tests.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "shell-input-tests.log.gz",
+    "bytes": 3353,
+    "sha256": "8603759ca0686472b235cd612e917ecd6a4e84f426556b30f0c720d4cb771455"
+  },
+  {
+    "file": "startup-tests.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "startup-tests.log.gz",
+    "bytes": 1759,
+    "sha256": "3097c7f563d9b180f2320483668e2d50f6f447a40cdd363f53c7e464769d19ff"
+  },
+  {
+    "file": "terminal-build.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "terminal-build.log.gz",
+    "bytes": 3488,
+    "sha256": "b856c6cfcdf7865756224936fff172163005bfb041aafc5f1fb94222c168de3c"
+  },
+  {
+    "file": "terminal-fetch.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "terminal-fetch.log.gz",
+    "bytes": 1242,
+    "sha256": "f5cd13b17bd3a54d74bbe78f781a3e479a1972b8d8be742d16f4a5d72c8a2ae7"
+  },
+  {
+    "file": "terminal-metadata.exit",
+    "bytes": 4,
+    "sha256": "39b8dc3fc8b44765c8e6f1adee04c5b465e555ab791cc42d0d9e810d5b64297c"
+  },
+  {
+    "file": "terminal-metadata.stderr.gz",
+    "bytes": 329,
+    "sha256": "2af5669d332b6430a631486560ee6ef686ed2fcf20ee65efd1f6b5f0fc437d2f"
+  },
+  {
+    "file": "workspace-fetch.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "workspace-fetch.log.gz",
+    "bytes": 413,
+    "sha256": "afe76bb672bb65e1c060b4cd4a3cbc328244b1cdfc5ea745d392c934c511b832"
+  }
+]

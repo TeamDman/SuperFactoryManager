@@ -1,0 +1,10 @@
+{
+  "main": "ca.teamdman.sfm.client.terminal.SfmMissingShellProbe",
+  "server": "/workspace/sfm-terminal-live-20261024/bin/terminal-frozen",
+  "server_sha256": "261b9ca5a4871503d6abbaaaa75a919083be8ebdccc0a5e981e133cb44322dea",
+  "pid": 9246,
+  "client_exit": 0,
+  "server_alive_after_probe": true,
+  "scope": "real loopback Java/Rust TCP; no Minecraft or GUI; probe-specific limits apply",
+  "server_stopped": true
+}

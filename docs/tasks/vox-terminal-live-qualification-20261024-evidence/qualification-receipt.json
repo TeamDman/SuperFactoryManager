@@ -1,0 +1,81 @@
+{
+  "captured_utc": "2026-10-24T15:46:57.280310+00:00",
+  "sfm_published_head": "103d8bff2bf1f17e3c08a2076c7b23ff0aaba052",
+  "sfm_runtime_implementation": "f9b3e7e5737967d5f40aed1f6dfd187af8f7db8b",
+  "terminal_source": "44aa0a052d24615f85d475e14874918a0090d795",
+  "terminal_tested_implementation": "63a03c0a3f43e541860b7a31597d44e4bbba2c69",
+  "vox_overlay_source": "86b218a192fbe10d59377a715cee039022214cb7",
+  "vox_production_pin": "5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+  "rust": "1.99.1 (58cf8f9c3 2026-10-13)",
+  "java": "Temurin 17.0.20.1+1",
+  "binaries": [
+    {
+      "path": "/workspace/sfm-terminal-live-20261024/bin/terminal-frozen",
+      "bytes": 37159144,
+      "sha256": "261b9ca5a4871503d6abbaaaa75a919083be8ebdccc0a5e981e133cb44322dea"
+    },
+    {
+      "path": "/workspace/sfm-terminal-live-20261024/bin/terminal-overlay",
+      "bytes": 36995448,
+      "sha256": "6f9921e3d41b6877e7c11fffc8975d9c76f0e593f941b08e6fbe82efea255d27"
+    }
+  ],
+  "java_runtime": {
+    "path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/facet/teamy-vox-java/0.10.0-rc.7/teamy-vox-java-0.10.0-rc.7.jar",
+    "bytes": 614530,
+    "sha256": "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062"
+  },
+  "sfm_class": {
+    "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/83cbdb1f6a10eee8d8b9b26f64ef340aceb061e36ec5a15005b38b159b13fe56/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+    "bytes": 131431,
+    "sha256": "6819c2194068b87131f48fe6bd69cc571999f24ee0edc93d2a9a964bccbc69c2"
+  },
+  "locks": [
+    {
+      "path": "/workspace/sfm-terminal-live-20261024/teamy-terminal/Cargo.lock",
+      "bytes": 107545,
+      "sha256": "784799dfbd7c5530e926a58e50ce8286e199f3f04342cd571118e4e617eaa7bf"
+    },
+    {
+      "path": "/workspace/sfm-terminal-live-20261024/teamy-terminal/tools/vox-terminal-server/Cargo.lock",
+      "bytes": 105953,
+      "sha256": "be33581bf5e849acea36c4348fea16e59292e089f30ced0d5db7c0bcf0dc3ebf"
+    },
+    {
+      "path": "/workspace/sfm-terminal-live-20261024/terminal-overlay/tools/vox-terminal-server/Cargo.lock",
+      "bytes": 105679,
+      "sha256": "60645bd5d2fd54f093bce2d253290dd134fde94f43607d09bd79573b16985981"
+    }
+  ],
+  "cpu_tests": {
+    "shell_input": {
+      "passed": 4,
+      "failed": 0,
+      "filtered": 67
+    },
+    "startup_tests": {
+      "passed": 5,
+      "failed": 0,
+      "filtered": 66
+    }
+  },
+  "production_checkout_clean": true,
+  "production_manifest_or_lock_changes": false,
+  "scratch_overlay_only_two_macro_sources": true,
+  "remaining_processes": [],
+  "remaining_blocker": {
+    "action": "spawn the configured production PTY shell",
+    "target": "pwsh.exe; reviewed Linux x64 PowerShell 7.5.4",
+    "reason": "no executable is installed/available in PATH",
+    "status": "runtime installation/provisioning approval pending; not denied",
+    "installation_attempted": false
+  },
+  "unrun": [
+    "real PowerShell startup INVALID_REQUEST+retryable to same-session recovery",
+    "real PowerShell guarded and approved paste",
+    "live PowerShell stream/session/cancellation isolation",
+    "Minecraft/GPU/desktop rerun"
+  ],
+  "no_toolchain_install": true,
+  "no_security_settings_change": true
+}

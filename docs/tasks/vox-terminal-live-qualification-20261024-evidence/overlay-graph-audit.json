@@ -1,0 +1,51 @@
+{
+  "overlay_source": "86b218a192fbe10d59377a715cee039022214cb7",
+  "changes": [
+    {
+      "name": "teamy-vox-macros-core",
+      "before": {
+        "name": "teamy-vox-macros-core",
+        "version": "0.10.0-rc.7",
+        "source": "git+https://github.com/TeamDman/vox.git?rev=5628c00d9f3816199f324a9ccc081de8a3a1b1bc#5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+        "dependencies": [
+          "heck",
+          "proc-macro2",
+          "quote",
+          "teamy-vox-macros-parse"
+        ]
+      },
+      "after": {
+        "name": "teamy-vox-macros-core",
+        "version": "0.10.0-rc.7",
+        "dependencies": [
+          "heck",
+          "proc-macro2",
+          "quote",
+          "teamy-vox-macros-parse"
+        ]
+      }
+    },
+    {
+      "name": "teamy-vox-macros-parse",
+      "before": {
+        "name": "teamy-vox-macros-parse",
+        "version": "0.10.0-rc.7",
+        "source": "git+https://github.com/TeamDman/vox.git?rev=5628c00d9f3816199f324a9ccc081de8a3a1b1bc#5628c00d9f3816199f324a9ccc081de8a3a1b1bc",
+        "dependencies": [
+          "proc-macro2",
+          "unsynn"
+        ]
+      },
+      "after": {
+        "name": "teamy-vox-macros-parse",
+        "version": "0.10.0-rc.7",
+        "dependencies": [
+          "proc-macro2",
+          "unsynn"
+        ]
+      }
+    }
+  ],
+  "retained_graph_identical": true,
+  "production_locks_changed": false
+}

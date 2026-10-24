@@ -1,0 +1,10 @@
+{
+  "main": "SchemaOnlyProbe",
+  "server": "/workspace/sfm-terminal-live-20261024/bin/terminal-overlay",
+  "server_sha256": "6f9921e3d41b6877e7c11fffc8975d9c76f0e593f941b08e6fbe82efea255d27",
+  "pid": 10806,
+  "client_exit": 0,
+  "server_alive_after_probe": true,
+  "scope": "real loopback Java/Rust TCP; no Minecraft or GUI; probe-specific limits apply",
+  "server_stopped": true
+}

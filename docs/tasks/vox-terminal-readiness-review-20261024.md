@@ -1,5 +1,7 @@
 # Terminal consumer review and aggregate qualification
 
+**Later live follow-up:** [publication and partial live qualification](vox-terminal-live-qualification-20261024.md) records the now-available producer source and the remaining PowerShell runtime prerequisite.
+
 This follow-up reviews the local consumer checkpoint `6d44dc86faccbe7756fae25693b4e37a88b2f557`
 (implementation `bcbd4a29434ed496aa6a387842b3283d16fd0162`). The earlier
 [consumer report](vox-terminal-readiness-consumer-20261024.md) and its evidence
