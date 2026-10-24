@@ -65,7 +65,20 @@ public final class SFMInspectionRuntime {
             wrapper.add("Jar", input); input.addProperty("old", old.toString()); input.addProperty("new", newer.toString());
             input.add("class_evidence", com.google.gson.JsonNull.INSTANCE);
         } else throw new IllegalArgumentException("Show diff requires two directories/working trees or two JAR files");
-        Path requestFile = Files.createTempFile("sfm-inspection-", ".request.json");
+        // The report producer has an explicit free-space admission check. A system
+        // temporary filesystem can be much smaller than the selected game workspace.
+        Path scratch = Path.of(System.getProperty("sfm.inspection.scratch", ".sfm-inspection-work"))
+                .toAbsolutePath().normalize();
+        if (Files.isSymbolicLink(scratch)) throw new java.io.IOException("Comparison scratch directory must not be a symbolic link");
+        if (wrapper.has("Source")) {
+            Path ancestor = scratch;
+            while (!Files.exists(ancestor, LinkOption.NOFOLLOW_LINKS)) ancestor = ancestor.getParent();
+            Path resolved = ancestor.toRealPath().resolve(ancestor.relativize(scratch)).normalize();
+            if (resolved.startsWith(old.toRealPath()) || resolved.startsWith(newer.toRealPath()))
+                throw new java.io.IOException("Comparison scratch must be outside both selected trees; set sfm.inspection.scratch to a writable external directory");
+        }
+        Files.createDirectories(scratch);
+        Path requestFile = Files.createTempFile(scratch, "sfm-inspection-", ".request.json");
         Path output = requestFile.resolveSibling(requestFile.getFileName() + ".result.json");
         Path log = requestFile.resolveSibling(requestFile.getFileName() + ".log");
         Process process = null;
@@ -73,7 +86,7 @@ public final class SFMInspectionRuntime {
         try {
             String producer = System.getProperty("sfm.inspection.classProducer", "");
             if (wrapper.has("Jar") && !producer.isBlank() && Files.isRegularFile(old) && Files.isRegularFile(newer)) {
-                classDirectory = Files.createTempDirectory("sfm-inspection-classes-");
+                classDirectory = Files.createTempDirectory(scratch, "sfm-inspection-classes-");
                 boolean windows = System.getProperty("os.name", "").startsWith("Windows");
                 Path javap = Path.of(System.getProperty("java.home"), "bin", windows ? "javap.exe" : "javap");
                 process = new ProcessBuilder(System.getProperty("sfm.inspection.python", windows ? "python" : "python3"),
