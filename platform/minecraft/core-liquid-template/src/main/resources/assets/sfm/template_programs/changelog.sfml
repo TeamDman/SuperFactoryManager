@@ -13,6 +13,7 @@ NAME "Changelog"
 {% endif %}
 {% if features.terminal_vox_runtime %}
 -- Keep the terminal session open when startup rejects input; retry manually after readiness.
+-- Only a reply for the current session clears a pending terminal input rejection.
 -- Report paste failures and cancellations without opening a confirmation dialog or replaying input.
 {% endif %}
 {% if features.recipe_namespace %}

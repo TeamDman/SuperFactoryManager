@@ -2635,7 +2635,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentClient = client;
                 transport = new Transport(currentClient, currentSession, transportGeneration);
             }
-            requireSuccess(
+            TerminalInputResult result = requireSuccess(
                     await(currentClient.sendText(new TerminalTextInput(
                             currentSession, text, nextSequence())), "sending terminal text"),
 {% endcase %}
@@ -2645,7 +2645,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             acceptInteractionResult(transport, result);
         });
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-            clearInputFailureIfCurrent(transport);
+            clearInputFailureIfCurrent(transport, result.sessionId());
             return true;
         } catch (Exception error) {
             failInputIfCurrent(transport, "Vox terminal input unavailable: ", error);
@@ -2675,7 +2675,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentClient = client;
                 transport = new Transport(currentClient, currentSession, transportGeneration);
             }
-            requireSuccess(
+            TerminalInputResult result = requireSuccess(
                     await(currentClient.sendKey(new TerminalKeyInput(
                             currentSession, keyCode, modifiers, pressed, repeat, nextSequence())),
 {% endcase %}
@@ -2686,7 +2686,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             acceptInteractionResult(transport, result);
         });
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-            clearInputFailureIfCurrent(transport);
+            clearInputFailureIfCurrent(transport, result.sessionId());
             return true;
         } catch (Exception error) {
             failInputIfCurrent(transport, "Vox terminal key unavailable: ", error);
@@ -2715,7 +2715,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentClient = client;
                 transport = new Transport(currentClient, currentSession, transportGeneration);
             }
-            boolean ready = requireSuccess(
+            org.facet.vox.generated.TerminalOperationResult result = requireSuccess(
                     await(currentClient.cancel(new TerminalCancelRequest(
                             currentSession,
 {% endcase %}
@@ -2726,12 +2726,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             requestSequence, correlationId("cancel", requestSequence))),
                             "cancelling terminal operation"),
                     "cancelling terminal operation");
-            if (result.state() != TerminalState.READY) {
+            if (result.state() == TerminalState.READY) {
+                clearInputFailureIfCurrent(transport, result.sessionId());
+            } else {
                 throw new IllegalStateException("terminal cancellation did not leave the session ready");
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
                             nextSequence())), "cancelling terminal operation"),
-                    "cancelling terminal operation").state() == TerminalState.READY;
-            if (ready) clearInputFailureIfCurrent(transport);
+                    "cancelling terminal operation");
+            boolean ready = result.state() == TerminalState.READY;
+            if (ready) clearInputFailureIfCurrent(transport, result.sessionId());
             return ready;
         } catch (Exception error) {
             {
@@ -2854,6 +2857,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             ? SFMTerminalCopyResult.Disposition.COPIED
                             : SFMTerminalCopyResult.Disposition.NO_SELECTION,
                     result.text());
+            clearInputFailureIfCurrent(transport, result.sessionId());
             completeInteraction(completion, mapped);
         });
     }
@@ -2925,7 +2929,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     completePasteLocked(pending, cancelledPaste());
                     return;
                 }
-                clearInputFailureIfCurrent(transport);
+                clearInputFailureIfCurrent(transport, result.sessionId());
                 SFMTerminalPasteResult mapped = new SFMTerminalPasteResult(
                         result.disposition() == TerminalPasteDisposition.PASTED
                                 ? SFMTerminalPasteResult.Disposition.PASTED
@@ -2968,11 +2972,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void acceptInteractionResult(Transport transport, TerminalInputResult result) {
-        if (!isCurrentResult(transport, result.sessionId())) return;
-        acceptSelection(
-                result.serverSequence(),
-                result.selectionPresent(),
-                result.selection());
+        synchronized (lock) {
+            if (!isCurrentResult(transport, result.sessionId())) return;
+            acceptSelection(
+                    result.serverSequence(),
+                    result.selectionPresent(),
+                    result.selection());
+            clearInputFailureIfCurrent(transport, result.sessionId());
+        }
     }
 
     private void acceptSelection(
@@ -3048,7 +3055,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 Transport transport = requireCurrentTransport();
                 try {
                     performMouse(transport, operation);
-                    clearInputFailureIfCurrent(transport);
                 } catch (Exception error) {
                     failInputIfCurrent(transport, "Vox terminal mouse unavailable: ", error);
                 }
@@ -3133,7 +3139,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         acceptedResizeVersion = operation.version();
                     }
                 }
-                clearInputFailureIfCurrent(transport);
+                clearInputFailureIfCurrent(transport, resized.sessionId());
                 SFM.LOGGER.info(
                         "SFM_VOX_TERMINAL_RESIZE_ACCEPTED session={} version={} requested={}x{} surface={}x{} font_px={}",
                         transport.sessionId(),
@@ -3204,7 +3210,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 Transport transport = requireCurrentTransport();
                 try {
                     operation.run(transport);
-                    clearInputFailureIfCurrent(transport);
                 } catch (Exception error) {
                     if (inputOperation) failInputIfCurrent(transport, failurePrefix, error);
                     else failTransportIfCurrent(transport, failurePrefix, error);
@@ -3219,7 +3224,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         try {
             driver.execute(operation);
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
-            requireSuccess(
+            TerminalInputResult result = requireSuccess(
                     await(currentClient.sendMouse(new TerminalMouseInput(
                             currentSession,
                             Math.max(0, Math.min(239, x)),
@@ -3232,7 +3237,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             wheelY,
                             nextSequence())), "sending terminal mouse"),
                     "sending terminal mouse");
-            clearInputFailureIfCurrent(transport);
+            clearInputFailureIfCurrent(transport, result.sessionId());
 {% endcase %}
             return true;
 {% case minecraft_version %}
@@ -3273,7 +3278,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     transport.sessionId(), command + "\r", requestSequence,
                                     correlationId("execute", requestSequence))), "sending terminal text"),
                             "sending terminal text");
-                    clearInputFailureIfCurrent(transport);
+                    clearInputFailureIfCurrent(transport, input.sessionId());
                     return SFMTerminalResponse.ok(List.of(
                             "Vox terminal forwarded command input (execution not acknowledged)",
                             "frame sequence: " + input.frameSequence()), workingDirectory);
@@ -3289,7 +3294,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             transport.sessionId(), command + "\r", nextSequence())), "sending terminal text"),
                     "sending terminal text");
             inputAccepted = true;
-            clearInputFailureIfCurrent(transport);
+            clearInputFailureIfCurrent(transport, input.sessionId());
             TerminalSnapshot snapshot = requireSuccess(
                     await(client.snapshot(new TerminalSnapshotRequest(
                             sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading terminal snapshot"),
@@ -3566,9 +3571,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 && application.error.retryable();
     }
 
-    private void clearInputFailureIfCurrent(Transport transport) {
+    private void clearInputFailureIfCurrent(Transport transport, String resultSessionId) {
         synchronized (lock) {
-            if (!closed && isCurrentTransportLocked(transport)) inputFailure = null;
+            if (!closed && isCurrentTransportLocked(transport)
+                    && Objects.equals(resultSessionId, sessionId)) inputFailure = null;
         }
     }
 

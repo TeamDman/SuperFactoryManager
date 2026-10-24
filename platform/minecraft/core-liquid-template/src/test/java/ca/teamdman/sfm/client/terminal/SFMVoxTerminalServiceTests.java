@@ -186,6 +186,61 @@ class SFMVoxTerminalServiceTests {
     }
 
     @Test
+    void wrongSessionSuccessCannotClearTheCurrentInputFailure() throws Exception {
+        try (ReadinessFixture fixture = new ReadinessFixture()) {
+            fixture.rejection = new TerminalError(TerminalErrorCode.INVALID_REQUEST, "still pending", true, 81);
+            assertTrue(fixture.service.sendText("rejected"));
+            fixture.drain();
+            SFMTerminalError retained = fixture.service.inputFailure().orElseThrow();
+            fixture.rejection = null;
+            fixture.nextInput.set(CompletableFuture.completedFuture(VoxResult.success(
+                    new TerminalInputResult("unrelated-session", 1, 1))));
+            assertTrue(fixture.service.sendText("explicit user retry"));
+            fixture.drain();
+            assertEquals(Optional.of(retained), fixture.service.inputFailure());
+            assertTrue(fixture.service.isConnected());
+            assertTrue(fixture.service.sendText("valid user retry"));
+            fixture.drain();
+            assertTrue(fixture.service.inputFailure().isEmpty());
+        }
+    }
+
+    @Test
+    void pasteCallbackMayCloseTheServiceAndThrowWithoutDuplicateCompletion() throws Exception {
+        try (ReadinessFixture fixture = new ReadinessFixture()) {
+            AtomicInteger completions = new AtomicInteger();
+            CompletableFuture<SFMTerminalPasteResult> completed = new CompletableFuture<>();
+            assertTrue(fixture.service.pasteWithGuard("single", result -> {
+                completions.incrementAndGet();
+                fixture.service.close();
+                completed.complete(result);
+                throw new IllegalStateException("intentional callback failure");
+            }));
+            assertEquals(SFMTerminalPasteResult.Disposition.PASTED,
+                    completed.get(3, TimeUnit.SECONDS).disposition());
+            ((ExecutorService) field(fixture.service, "transportCleanup")).awaitTermination(3, TimeUnit.SECONDS);
+            assertEquals(1, completions.get());
+            assertEquals(List.of("paste"), fixture.requests);
+            assertFalse(fixture.service.pasteWithGuard("closed", ignored -> completions.incrementAndGet()));
+            assertEquals(1, completions.get());
+        }
+    }
+
+    @Test
+    void rejectedPasteEnqueueDoesNotRetainOrCompleteAnUnacceptedRequest() throws Exception {
+        try (ReadinessFixture fixture = new ReadinessFixture()) {
+            ((ExecutorService) field(fixture.service, "driver")).shutdown();
+            AtomicInteger completions = new AtomicInteger();
+            assertFalse(fixture.service.pasteWithGuard("unaccepted", ignored -> completions.incrementAndGet()));
+            assertTrue(((java.util.Set<?>) field(fixture.service, "pendingPastes")).isEmpty());
+            fixture.service.close();
+            ((ExecutorService) field(fixture.service, "transportCleanup")).awaitTermination(3, TimeUnit.SECONDS);
+            assertEquals(0, completions.get());
+            assertTrue(fixture.requests.isEmpty());
+        }
+    }
+
+    @Test
     void staleFailureCannotCloseOrPoisonANewerSession() throws Exception {
         try (ReadinessFixture fixture = new ReadinessFixture()) {
             CompletableFuture<VoxResult<TerminalInputResult, TerminalError>> reply = new CompletableFuture<>();
