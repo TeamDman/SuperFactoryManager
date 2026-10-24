@@ -124,6 +124,11 @@ public final class SFMGamePuppetHarness {
     private static List<PuppetExecution> selectedExecutions = new ArrayList<>();
     private static SFMGamePuppetViewportSelection viewportSelection;
     private static ActivePuppet activePuppet;
+    private static boolean userHandoffCompletionReported;
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+    private record PendingInspection(String puppet, String path, Object world) {}
+    private static PendingInspection pendingInspection;
+{% endif %}
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
     private static SFMGamePuppetInputOwnership.Lease runtimeInputLease;
     private static boolean viewportRestoreFailed;
@@ -286,16 +291,74 @@ public final class SFMGamePuppetHarness {
         completed = true;
         finalWorldHoldTicksRemaining = -1;
         exitTicksRemaining = -1;
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+        String inspectionPath = System.getProperty("sfm.inspection.puppetYieldWorkspace", "");
+        if (!inspectionPath.isBlank()) {
+            pendingInspection = new PendingInspection(active.definition.puppetName(), inspectionPath, minecraft.level);
+        }
+        if (pendingInspection == null) reportUserHandoffCompletion();
+{% else %}
+        reportUserHandoffCompletion();
+{% endif %}
+        SFM.LOGGER.info("SFM_GAME_PUPPET_YIELDED_TO_USER puppet={} world={} restored={} screen={}",
+                active.definition.puppetName(), active.worldId, restored,
+                minecraft.screen == null ? "<game>" : minecraft.screen.getClass().getSimpleName());
+    }
+
+    private static void reportUserHandoffCompletion() {
+        if (userHandoffCompletionReported) return;
+        userHandoffCompletionReported = true;
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
         reportCompletion();
 {% else %}
         SFM.LOGGER.info("SFM_GAME_PUPPET_COMPLETE failed={} total={}", failedPuppetCount, selectedExecutions.size());
 {% endcase %}
-        SFM.LOGGER.info("SFM_GAME_PUPPET_YIELDED_TO_USER puppet={} world={} restored={} screen={}",
-                active.definition.puppetName(), active.worldId, restored,
-                minecraft.screen == null ? "<game>" : minecraft.screen.getClass().getSimpleName());
     }
+
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+    /** Open prepared evidence after viewport restoration without reclaiming input or replacing a user-opened screen. */
+    private static void openInspectionAtHandoff(Minecraft minecraft, PendingInspection request) {
+        if (minecraft.level != request.world() || minecraft.player == null || minecraft.screen != null) {
+            inspectionHandoffFailed(request, new IllegalStateException("Prepared world or screen changed before inspection opening"));
+            return;
+        }
+        java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+            try {
+                return ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.read(java.nio.file.Path.of(request.path()));
+            } catch (Exception failure) {
+                throw new java.util.concurrent.CompletionException(failure);
+            }
+        }, ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.WORKER).whenComplete((prepared, error) ->
+                minecraft.execute(() -> {
+            try {
+                if (error != null) throw new IllegalStateException("Could not read prepared inspection workspace", error);
+                if (minecraft.level != request.world() || minecraft.player == null || minecraft.screen != null) {
+                    throw new IllegalStateException("Prepared world or screen changed during inspection loading");
+                }
+                ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.open(prepared,
+                        ca.teamdman.sfm.client.action.SFMClientActionContext.create(null,
+                                () -> minecraft.level == request.world() && minecraft.screen == null), false);
+                if (!(minecraft.screen instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer))
+                    throw new IllegalStateException("Inspection opening did not install the Explorer workspace screen");
+                SFM.LOGGER.info("SFM_GAME_PUPPET_INSPECTION_READY puppet={} path={} screen={}",
+                        request.puppet(), request.path(), minecraft.screen.getClass().getSimpleName());
+                reportUserHandoffCompletion();
+            } catch (Throwable failure) {
+                inspectionHandoffFailed(request, failure);
+            }
+        }));
+    }
+
+    private static void inspectionHandoffFailed(PendingInspection request, Throwable failure) {
+        failedPuppetCount++;
+        SFM.LOGGER.error("SFM_GAME_PUPPET_INSPECTION_FAILED puppet={} path={}",
+                request.puppet(), request.path(), failure);
+        SFM.LOGGER.error("SFM_GAME_PUPPET_FAILED puppet={} action=open inspection workspace error={}",
+                request.puppet(), failure.toString());
+        reportUserHandoffCompletion();
+    }
+{% endif %}
 
     private static void startNextPuppet() {
         if (activePuppet != null || awaitingTitleScreen || completed) {
@@ -517,6 +580,13 @@ public final class SFMGamePuppetHarness {
 {% else %}
         if (!SFMGamePuppetViewportController.tickRestore(Minecraft.getInstance())) {
             return;
+        }
+{% endif %}
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+        if (pendingInspection != null) {
+            PendingInspection request = pendingInspection;
+            pendingInspection = null;
+            openInspectionAtHandoff(Minecraft.getInstance(), request);
         }
 {% endif %}
         if (exitTicksRemaining < 0) {

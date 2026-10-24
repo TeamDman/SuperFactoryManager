@@ -11,6 +11,7 @@ pub struct RunOptions {
     pub java_max_heap_mib: Option<super::JavaMaxHeapMib>,
     pub control_cli_source_root: Option<PathBuf>,
     pub inspection_workspace: Option<PathBuf>,
+    pub inspection_python: Option<PathBuf>,
     pub game_test_filter: Option<String>,
     pub game_puppet_filter: Option<String>,
     pub game_puppet_game_test: Option<String>,

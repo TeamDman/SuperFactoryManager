@@ -25,9 +25,12 @@ pub struct RunClientArgs {
     /// SFM checkout containing platform/cli/sfm to build with its existing lockfile. Also enables the worker in an interactive client.
     #[facet(default, args::named)]
     pub control_cli_source_root: Option<PathBuf>,
-    /// Open a prepared Explorer comparison workspace on the first title screen.
+    /// Open a prepared Explorer workspace at the title screen, or after a puppet yields in-world.
     #[facet(default, args::named)]
     pub inspection_workspace: Option<PathBuf>,
+    /// Existing Python executable for optional on-demand JAR class evidence.
+    #[facet(default, args::named)]
+    pub inspection_python: Option<PathBuf>,
     /// Open the SFM text editor when the client first reaches the title screen.
     #[facet(default, args::named)]
     pub text_editor: bool,
@@ -102,6 +105,7 @@ impl RunClientArgs {
             share_runtime,
             control_cli_source_root,
             inspection_workspace,
+            inspection_python,
             text_editor,
             input_diag,
             title_screen,
@@ -120,12 +124,21 @@ impl RunClientArgs {
             !share_runtime || runtime_slot.is_some(),
             "--share-runtime requires explicit --runtime-slot"
         );
-        if inspection_workspace.is_some() && (smoke || puppet.is_some() || text_editor || input_diag || title_screen.is_some()) {
-            eyre::bail!("--inspection-workspace requires an interactive client without another launch screen");
-        }
+        validate_inspection_launch(
+            inspection_workspace.is_some(),
+            inspection_python.is_some(),
+            puppet.is_some(),
+            smoke,
+            text_editor || input_diag || title_screen.is_some(),
+            keep_open.as_ref(),
+        )?;
         let inspection_workspace = inspection_workspace.map(std::fs::canonicalize).transpose()?;
         if let Some(path) = &inspection_workspace {
             eyre::ensure!(path.is_file(), "--inspection-workspace requires a prepared JSON file");
+        }
+        let inspection_python = inspection_python.map(std::fs::canonicalize).transpose()?;
+        if let Some(path) = &inspection_python {
+            eyre::ensure!(path.is_file(), "--inspection-python requires an existing executable file");
         }
         let client_hotswap_port = resolve_hotswap_port(hotswap, hotswap_port)?;
         if smoke && puppet.is_some() {
@@ -155,6 +168,8 @@ impl RunClientArgs {
                     preview_height,
                     client_hotswap_port,
                     control_cli_source_root,
+                    inspection_workspace,
+                    inspection_python,
                     ..RunOptions::default()
                 },
                 cancellation_token,
@@ -190,6 +205,7 @@ impl RunClientArgs {
                 share_runtime,
                 client_title_screen: title_screen,
                 inspection_workspace,
+                inspection_python,
                 control_cli_source_root,
                 client_solo: solo,
                 client_hotswap_port,
@@ -215,11 +231,29 @@ impl RunClientArgs {
                 && self.keep_open.is_none()
                 && self.game_test.is_none()
                 && self.control_cli_source_root.is_none()
-                && self.inspection_workspace.is_none(),
+                && self.inspection_workspace.is_none()
+                && self.inspection_python.is_none(),
             "--smoke cannot be combined with interactive or puppet-only flags."
         );
         Ok(())
     }
+}
+
+fn validate_inspection_launch(
+    workspace: bool, python: bool, puppet: bool, smoke: bool, another_screen: bool,
+    keep_open: Option<&Option<String>>,
+) -> eyre::Result<()> {
+    if workspace && (smoke || another_screen) {
+        eyre::bail!("--inspection-workspace cannot be combined with --smoke or another launch screen");
+    }
+    if python && puppet && !workspace {
+        eyre::bail!("--inspection-python with --puppet requires --inspection-workspace");
+    }
+    if workspace && puppet {
+        eyre::ensure!(keep_open.is_some_and(|value| value.is_none()),
+            "--inspection-workspace with --puppet requires bare --keep-open so handoff stays open");
+    }
+    Ok(())
 }
 
 fn resolve_hotswap_port(enabled: bool, port: Option<u16>) -> eyre::Result<Option<u16>> {
@@ -230,6 +264,23 @@ fn resolve_hotswap_port(enabled: bool, port: Option<u16>) -> eyre::Result<Option
         eyre::bail!("--hotswap-port must be greater than zero.");
     }
     Ok(enabled.then_some(port.unwrap_or(5005)))
+}
+
+#[cfg(test)]
+mod inspection_launch_tests {
+    use super::validate_inspection_launch;
+
+    #[test]
+    fn prepared_workspace_opens_only_in_supported_client_handoffs() {
+        assert!(validate_inspection_launch(true, false, false, false, false, None).is_ok());
+        assert!(validate_inspection_launch(true, true, true, false, false, Some(&None)).is_ok());
+        assert!(validate_inspection_launch(true, false, true, false, false, None).is_err());
+        assert!(validate_inspection_launch(true, false, true, false, false, Some(&Some("5m".into()))).is_err());
+        assert!(validate_inspection_launch(true, false, false, true, false, None).is_err());
+        assert!(validate_inspection_launch(true, false, false, false, true, None).is_err());
+        assert!(validate_inspection_launch(false, true, true, false, false, None).is_err());
+        assert!(validate_inspection_launch(false, false, true, false, false, None).is_ok());
+    }
 }
 
 #[cfg(test)]

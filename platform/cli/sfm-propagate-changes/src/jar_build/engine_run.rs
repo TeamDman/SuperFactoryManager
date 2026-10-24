@@ -682,6 +682,13 @@ fn execute_run_with_context(
 ) -> eyre::Result<()> {
     *owned_console_log = None;
     let plan = context.plan;
+    if matches!(kind, RunKind::GameTestPreview) && run_options.inspection_workspace.is_some() {
+        let supported = matches!(&plan.identity, BuildProjectIdentity::Development { project, .. }
+            if project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java")
+            && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java"));
+        eyre::ensure!(supported,
+            "--inspection-workspace with --puppet requires a development projection with the reviewed Explorer runtime and panel");
+    }
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;
     }
@@ -906,13 +913,21 @@ fn execute_run_with_context(
         );
     }
     apply_client_title_screen_property(&mut properties, kind, run_options);
-    if matches!(kind, RunKind::Client) {
+    if matches!(kind, RunKind::Client) || run_options.inspection_workspace.is_some() {
         let executable = std::env::current_exe()?.to_string_lossy().into_owned();
         properties.insert("sfm.inspection.executable".into(), executable.clone());
         properties.insert("sfm.inspection.classProducer".into(),
             plan.repository_root().join("scripts/release-inspection/classes.py").to_string_lossy().into_owned());
+        if let Some(path) = &run_options.inspection_python {
+            properties.insert("sfm.inspection.python".into(), path.to_string_lossy().into_owned());
+        }
         if let Some(path) = &run_options.inspection_workspace {
-            properties.insert("sfm.inspection.workspace".into(), path.to_string_lossy().into_owned());
+            let property = if matches!(kind, RunKind::GameTestPreview) {
+                "sfm.inspection.puppetYieldWorkspace"
+            } else {
+                "sfm.inspection.workspace"
+            };
+            properties.insert(property.into(), path.to_string_lossy().into_owned());
             properties.insert("sfm.syntax.workerExecutable".into(), executable);
         }
     }
