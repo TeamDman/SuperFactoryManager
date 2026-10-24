@@ -1,0 +1,30 @@
+[
+  {
+    "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4@pom",
+    "reason": "Exact locked JAR has byte-identical embedded POM; use native fallback",
+    "lockedJarHash": "blake3:c9f31de9dc51d72c8f1173842455542005d524e5",
+    "embeddedPomSha256": "6a67763b76afcd9c80b95e5c5e24782d18cc1b0e3d9b454ad3f8754c76b76815",
+    "bytesAvoided": 13968
+  },
+  {
+    "coordinate": "org.apache.commons:commons-math3:3.6.1@pom",
+    "reason": "Exact locked JAR has byte-identical embedded POM; use native fallback",
+    "lockedJarHash": "blake3:55249fe2627f0fb2b1376fa97b2d622325271ff4",
+    "embeddedPomSha256": "fad72336ea7d7dd06da103144e3740db508fa4b17d9c54d7847737edc24a7e60",
+    "bytesAvoided": 28697
+  },
+  {
+    "coordinate": "org.openjdk.jmh:jmh-generator-asm:1.37@pom",
+    "reason": "Exact locked JAR has byte-identical embedded POM; use native fallback",
+    "lockedJarHash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4",
+    "embeddedPomSha256": "4e79c255b998e0df0bf7b5d9f9cf8ae4dd1c4bd0a462860aaa3598bc09a7f69b",
+    "bytesAvoided": 4005
+  },
+  {
+    "coordinate": "org.openjdk.jmh:jmh-generator-reflection:1.37@pom",
+    "reason": "Exact locked JAR has byte-identical embedded POM; use native fallback",
+    "lockedJarHash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948",
+    "embeddedPomSha256": "2d3bdaa7eba020e642e033fba62a3f0c70b2f351c503729189a0686ceced93f4",
+    "bytesAvoided": 3674
+  }
+]

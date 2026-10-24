@@ -1,0 +1,215 @@
+{
+  "scope": "Analytical native-parser execution; not metadata admission or aggregate tests",
+  "roots": 13,
+  "reachedLockedArtifacts": 24,
+  "runtimeEdges": 29,
+  "parserErrors": 0,
+  "versionConflicts": 0,
+  "unlockedCoordinates": 0,
+  "outsideExpectedCoordinates": 0,
+  "uniqueMetadataReadsByKind": {
+    "verified-embedded": 16,
+    "approved-live-catalog": 1,
+    "staged-external-analysis-only": 18
+  },
+  "stagedExternalPomsActuallyRead": 18,
+  "stagedExternalBytes": 185009,
+  "byteIdenticalEmbeddedReplacements": [
+    {
+      "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4@pom",
+      "preferredSource": "verified-embedded",
+      "byteIdentical": true
+    },
+    {
+      "coordinate": "org.apache.commons:commons-math3:3.6.1@pom",
+      "preferredSource": "verified-embedded",
+      "byteIdentical": true
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-asm:1.37@pom",
+      "preferredSource": "verified-embedded",
+      "byteIdentical": true
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-generator-reflection:1.37@pom",
+      "preferredSource": "verified-embedded",
+      "byteIdentical": true
+    }
+  ],
+  "leaveOneOut": [
+    {
+      "withheld": "com.google.errorprone:error_prone_parent:2.36.0@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "com.google.errorprone:error_prone_annotations:2.36.0"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "com.google.guava:guava-parent:26.0-android@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "com.google.guava:failureaccess:1.0.2",
+        "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=2 staged_external_reads=16"
+    },
+    {
+      "withheld": "com.google.guava:guava-parent:33.4.0-jre@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "com.google.guava:guava:33.4.0-jre"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=23 edges=23 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.apache.commons:commons-parent:39@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.apache.commons:commons-math3:3.6.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=16"
+    },
+    {
+      "withheld": "org.apache:apache:16@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.apache.commons:commons-math3:3.6.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.apiguardian:apiguardian-api:1.1.2@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.apiguardian:apiguardian-api:1.1.2"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.checkerframework:checker-qual:3.43.0@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.checkerframework:checker-qual:3.43.0"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.junit.jupiter:junit-jupiter-api:5.8.1@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.junit.jupiter:junit-jupiter-api:5.8.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=26 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.junit.jupiter:junit-jupiter-engine:5.8.1@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=23 edges=23 parser_errors=1 staged_external_reads=16"
+    },
+    {
+      "withheld": "org.junit.platform:junit-platform-commons:1.8.1@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.junit.platform:junit-platform-commons:1.8.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=28 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.junit.platform:junit-platform-engine:1.8.1@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.junit.platform:junit-platform-engine:1.8.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=26 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.junit:junit-bom:5.8.1@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.junit.jupiter:junit-jupiter-api:5.8.1",
+        "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=20 edges=19 parser_errors=2 staged_external_reads=13"
+    },
+    {
+      "withheld": "org.openjdk.jmh:jmh-parent:1.37@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.openjdk.jmh:jmh-core:1.37",
+        "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+        "org.openjdk.jmh:jmh-generator-bytecode:1.37"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=19 edges=19 parser_errors=3 staged_external_reads=13"
+    },
+    {
+      "withheld": "org.opentest4j:opentest4j:1.2.0@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.opentest4j:opentest4j:1.2.0"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.ow2.asm:asm:9.0@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.ow2.asm:asm:9.0"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=16"
+    },
+    {
+      "withheld": "org.ow2:ow2:1.5@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "org.ow2.asm:asm:9.0"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=1 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.sonatype.oss:oss-parent:7@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "com.google.code.findbugs:jsr305:3.0.2",
+        "net.sf.jopt-simple:jopt-simple:5.0.4"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=2 staged_external_reads=17"
+    },
+    {
+      "withheld": "org.sonatype.oss:oss-parent:9@pom",
+      "missingReadObserved": true,
+      "parserRejectedArtifacts": [
+        "com.google.guava:failureaccess:1.0.2",
+        "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava"
+      ],
+      "exit": 0,
+      "stdout": "roots=13 artifacts=24 edges=29 parser_errors=2 staged_external_reads=17"
+    }
+  ],
+  "nativeSourceHashesUnchanged": true,
+  "metadataSourceHashesUnchanged": true,
+  "liveCatalogUnchanged": true,
+  "candidateCacheFilesAbsent": true,
+  "candidateGraphSha256": "7f2f0d8dd54825edfe61df731b97f5ff3088598b4c1a03add07ca4c27ec4a13f",
+  "proposedCatalogSha256": "76be4cbc67e4bd6d780b00523bed173249a9d7dfec799294f3b0969f2d60358d"
+}

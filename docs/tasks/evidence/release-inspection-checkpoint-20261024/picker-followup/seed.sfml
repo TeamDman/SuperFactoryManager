@@ -1,0 +1,7 @@
+-- Picker fixture Ω 🧭
+NAME "Picker QA"
+
+EVERY 20 TICKS DO
+    INPUT FROM chest
+    OUTPUT TO barrel
+END

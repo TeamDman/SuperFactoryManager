@@ -1,0 +1,49 @@
+sfm-propagate-changes source project jar
+
+Package an exact release recipe or declared development profile; no app launch.
+
+USAGE:
+    sfm-propagate-changes source project jar [OPTIONS]
+
+OPTIONS:
+        --[no-]debug
+            Enable debug logging, including backtraces on panics.
+        --log-filter <STRING>
+            Log level filter directive.
+        --log-file <PATHBUF>
+            Write structured ndjson logs to this file or directory. If a
+            directory is provided, a filename will be generated there. If
+            omitted, no JSON log file will be written.
+        --stop-after <STRING>
+            Request graceful cancellation after the named tracing/Tracy zone
+            closes.
+        --output-format <text,json,csv>
+            Render typed command output as text, JSON, or CSV.
+    -h, --[no-]help
+            Show help message and exit.
+        --[no-]html-help
+            Open HTML help in the browser and exit.
+    -V, --[no-]version
+            Show version and exit.
+        --completions <bash,zsh,fish>
+            Generate shell completions.
+        --export-jsonschemas <DIR>
+            Export JSON Schema files for all config roots.
+        --repo-root <PATHBUF> [Required]
+            Repository root containing projections.json and the core Liquid
+            tree.
+        --projection <STRING> [Required]
+            Exact catalog key; its values, not its spelling, select the context.
+        --released-recipe <STRING>
+            Explicit reviewed frozen recipe identity; never a dependency
+            profile.
+        --dependency-profile <STRING>
+            Exact declared schema-4 development profile; excludes
+            released-recipe.
+        --java-home <PATHBUF> [Required]
+            Existing SDK home; compiler release and tool JVM remain separate.
+        --cache-root <PATHBUF>
+            Compile-only root for isolated derived outputs; pinned downloads
+            stay shared.
+        --[no-]explain-rebuild
+        --[no-]wait-for-build-lock

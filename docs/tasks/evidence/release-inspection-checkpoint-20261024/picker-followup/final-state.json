@@ -1,0 +1,78 @@
+{
+  "head": "704ddb5485173093cad42c07975fa5aabfc247ed",
+  "worktreeClean": true,
+  "pushOrMergeThisContinuation": false,
+  "productionChanges": false,
+  "sessions": {
+    "session-9xW5D9": {
+      "purpose": "picker UI",
+      "exit": 0
+    },
+    "session-tpyGPY": {
+      "purpose": "preference restart",
+      "exit": 0
+    }
+  },
+  "prematureRestartLauncher": {
+    "pid": 35990,
+    "terminatedDuringPreparation": true,
+    "exit": 143,
+    "noJavaSpawn": true
+  },
+  "cloudDisplay": {
+    "pid": 34600,
+    "exit": 0,
+    "socketRemoved": true
+  },
+  "remainingOwnedProcesses": [],
+  "fixtureRemovedFromRuntimeSlot2": true,
+  "fixtureSourceAndJarPreserved": true,
+  "finalPreference": "sfm:v1",
+  "restartPreferenceVerified": "sfm_picker_fixture:external_alt",
+  "qualifiedZip": {
+    "path": "/workspace/scratch/release-inspection/recording-workspace-qualified.zip",
+    "sha256": "e3fa10f11af037133398b832714b3fb98362a1e6371392b596d8c1338102e80e",
+    "bytes": 10029860,
+    "entries": 44,
+    "integrity": "passed"
+  },
+  "acceptedScreenshots": [
+    {
+      "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/69-accepted-changed-java-lines.png",
+      "sha256": "6f1efebe10241a002de27e423b928047985e63214fdb0a37efcfe6b3858bc111"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/76-accepted-source-changes-clear.png",
+      "sha256": "9169086204893865309ba11a2c277ed1c601b7192ce6cd3d41ccf922b977d73a"
+    }
+  ],
+  "followupScreenshots": [
+    {
+      "path": "screenshots/108-picker-persistence-confirmed.png",
+      "sha256": "f0072c629018266f8ac1957ad9d3501bde92fdce1c7b59e5d4ea8d3bbaad7f42"
+    },
+    {
+      "path": "screenshots/84-picker-registered.png",
+      "sha256": "588b38e0a38166dc171fdd9415c0580cb21c153d4697fd43aecf7cb057e46916"
+    },
+    {
+      "path": "screenshots/85-picker-cancel-preserved.png",
+      "sha256": "3caa6a5578d69267426a281b90516b927917019727270fa14f334adb8f49fa4d"
+    },
+    {
+      "path": "screenshots/86-picker-apply-preserved.png",
+      "sha256": "94f792dd7e20b2d309077a5132bfdf802b2d8ffeac30bf6cec965a8b40db4e1e"
+    },
+    {
+      "path": "screenshots/96-picker-no-results.png",
+      "sha256": "a25d68e15fe6b599daf6ad8d9614972b0603b16372cbd5cebac7c08a09dec5fc"
+    },
+    {
+      "path": "screenshots/97-picker-v3-reopen.png",
+      "sha256": "33c4f4e1500cadaadb6597150aca3ef64646f2d20f8ff4a232b6a2c0c89f86a0"
+    }
+  ],
+  "trustStoreUnchanged": true,
+  "metadataCatalogStillAbsent": true,
+  "library_file_ids": []
+}

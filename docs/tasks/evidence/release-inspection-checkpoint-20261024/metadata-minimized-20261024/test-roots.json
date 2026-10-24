@@ -1,0 +1,15 @@
+[
+  "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+  "org.checkerframework:checker-qual:3.43.0",
+  "com.google.errorprone:error_prone_annotations:2.36.0",
+  "com.google.guava:failureaccess:1.0.2",
+  "com.google.guava:guava:33.4.0-jre",
+  "com.google.j2objc:j2objc-annotations:3.0.0",
+  "org.javassist:javassist:3.30.2-GA",
+  "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+  "org.openjdk.jmh:jmh-core:1.37",
+  "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+  "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+  "org.junit.jupiter:junit-jupiter-api:5.8.1",
+  "org.junit.jupiter:junit-jupiter-engine:5.8.1"
+]

@@ -1,0 +1,267 @@
+{
+  "events": 134,
+  "pickerCycles": [
+    {
+      "firstLine": 13,
+      "lastLine": 15,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": false,
+      "preferredAfter": "sfm:v1",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 18,
+      "lastLine": 20,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": false,
+      "preferredAfter": "sfm:v1",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 23,
+      "lastLine": 25,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm_picker_fixture:external",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 39,
+      "lastLine": 41,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm:v2",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 48,
+      "lastLine": 50,
+      "editor": "SFMTextEditScreenV2",
+      "preferenceChanged": false,
+      "preferredAfter": "sfm:v2",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 55,
+      "lastLine": 57,
+      "editor": "SFMTextEditScreenV2",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm_picker_fixture:external_alt",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 67,
+      "lastLine": 69,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm:v1",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 76,
+      "lastLine": 78,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm:text_editor_v3",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 87,
+      "lastLine": 89,
+      "editor": "SFMTextEditorV3Screen",
+      "preferenceChanged": false,
+      "preferredAfter": "sfm:text_editor_v3",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 92,
+      "lastLine": 94,
+      "editor": "SFMTextEditorV3Screen",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm_picker_fixture:external",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 104,
+      "lastLine": 106,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm:text_editor_v3",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 117,
+      "lastLine": 119,
+      "editor": "SFMTextEditorV3Screen",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm_picker_fixture:external_alt",
+      "documentAndObservedStatePreserved": true
+    },
+    {
+      "firstLine": 129,
+      "lastLine": 131,
+      "editor": "SFMTextEditScreenV1",
+      "preferenceChanged": true,
+      "preferredAfter": "sfm:v1",
+      "documentAndObservedStatePreserved": true
+    }
+  ],
+  "opens": [
+    {
+      "line": 1,
+      "preferred": "sfm:v1",
+      "exact": true
+    },
+    {
+      "line": 29,
+      "preferred": "sfm_picker_fixture:external",
+      "exact": true
+    },
+    {
+      "line": 45,
+      "preferred": "sfm:v2",
+      "exact": false
+    },
+    {
+      "line": 63,
+      "preferred": "sfm_picker_fixture:external_alt",
+      "exact": true
+    },
+    {
+      "line": 73,
+      "preferred": "sfm:v1",
+      "exact": true
+    },
+    {
+      "line": 82,
+      "preferred": "sfm:text_editor_v3",
+      "exact": false
+    },
+    {
+      "line": 100,
+      "preferred": "sfm_picker_fixture:external",
+      "exact": true
+    },
+    {
+      "line": 110,
+      "preferred": "sfm:text_editor_v3",
+      "exact": false
+    },
+    {
+      "line": 114,
+      "preferred": "sfm:text_editor_v3",
+      "exact": true
+    },
+    {
+      "line": 125,
+      "preferred": "sfm_picker_fixture:external_alt",
+      "exact": true
+    }
+  ],
+  "extensionFactories": [
+    {
+      "line": 30,
+      "id": "sfm_picker_fixture:external",
+      "exactInput": true
+    },
+    {
+      "line": 64,
+      "id": "sfm_picker_fixture:external_alt",
+      "exactInput": true
+    },
+    {
+      "line": 101,
+      "id": "sfm_picker_fixture:external",
+      "exactInput": true
+    },
+    {
+      "line": 126,
+      "id": "sfm_picker_fixture:external_alt",
+      "exactInput": true
+    }
+  ],
+  "saves": [
+    {
+      "line": 27,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 43,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 71,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 80,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 98,
+      "editor": "SFMTextEditorV3Screen",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 108,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 112,
+      "editor": "SFMTextEditorV3Screen",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 121,
+      "editor": "SFMTextEditorV3Screen",
+      "exactCurrentDocument": true
+    },
+    {
+      "line": 133,
+      "editor": "SFMTextEditScreenV1",
+      "exactCurrentDocument": true
+    }
+  ],
+  "failedInitializationPreservation": [
+    {
+      "line": 45,
+      "editor": "SFMTextEditScreenV2",
+      "failure": "one_terminal_LF_lost",
+      "beforeSha256": "79def94567ed45a1fc7f71c4c462947e3269efe75d73da2bdc820207d04faf86",
+      "afterSha256": "d34a124d1218442d3e2cf06f3a123d4db2c57777a7d6a043372e29811e8db074"
+    },
+    {
+      "line": 82,
+      "editor": "SFMTextEditorV3Screen",
+      "failure": "one_terminal_LF_lost",
+      "beforeSha256": "79def94567ed45a1fc7f71c4c462947e3269efe75d73da2bdc820207d04faf86",
+      "afterSha256": "d34a124d1218442d3e2cf06f3a123d4db2c57777a7d6a043372e29811e8db074"
+    },
+    {
+      "line": 110,
+      "editor": "SFMTextEditorV3Screen",
+      "failure": "one_terminal_LF_lost",
+      "beforeSha256": "67884ddd4056d41c0ae39e75e3e4582f26222acb99eddfaa41d2ef5e257aacbe",
+      "afterSha256": "8e4e403a0309f6bb7b21b7eb889b53369f94285d63721ce9707793fb16948b56"
+    }
+  ],
+  "failedUneditedV3SavePreservation": [
+    {
+      "openLine": 110,
+      "saveLine": 112,
+      "beforeSha256": "67884ddd4056d41c0ae39e75e3e4582f26222acb99eddfaa41d2ef5e257aacbe",
+      "afterSha256": "8e4e403a0309f6bb7b21b7eb889b53369f94285d63721ce9707793fb16948b56"
+    }
+  ],
+  "limitations": [
+    "V3 cursor/undo not observed",
+    "V2 save not qualified",
+    "file-backed context, not server inventory",
+    "extension registrations delegate production V1 renderer"
+  ]
+}

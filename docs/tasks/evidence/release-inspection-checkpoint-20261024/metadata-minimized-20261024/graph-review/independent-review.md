@@ -1,0 +1,24 @@
+Independent minimized-metadata graph review — 2026-10-24.
+
+The unchanged native POM parser successfully resolved the 13 declared Dev unit-test roots into 24 JAR coordinates and 29 runtime dependency edges. Every reached coordinate/version matches the existing lock and the verified 24-artifact inventory. There were zero parser rejections, unresolved managed versions, unlocked coordinates, unexpected coordinates, missing inventory coordinates or version conflicts. No exclusion/profile/ranged-version rejection occurred for this graph.
+
+The harness compiles the repository's unchanged maven_pom_model.rs, maven_pom_dependency.rs, maven_pom_resolution.rs and xml_node.rs. MavenCoordinate is extracted without code changes from engine_model.rs. It uses existing rustc 1.99.1 and cached eyre/serde_json rlibs. Compilation exited 0 with two preexisting eyre macro future-incompatibility warnings. No installation or retrieval was needed.
+
+The reader used 16 verified embedded POMs first, the single approved live JavaParser parent next, and 18 staged external POMs solely as analytical inputs. JAR SHA-256/size, locked-hash receipt identity and extracted ZIP-member equality were independently rechecked; the parent's native verifier established the locked BLAKE3 verification. The four omitted original own-POMs—jopt-simple 5.0.4, commons-math3 3.6.1, jmh-generator-asm 1.37 and jmh-generator-reflection 1.37—are byte-identical to their verified embedded counterparts. The remaining external set is 18 POMs totaling 185,009 bytes, reducing the original proposal by 50,344 bytes.
+
+Each of 18 additional analytical runs withheld exactly one remaining external POM. Every run encountered the withheld coordinate and rejected at least one reachable artifact. Thus every remaining POM is needed by this parser for this graph with the currently verified embedded/approved sources. Individual results are retained in withheld-metadata/ and summarized in verification.json. No output was admitted into the runtime cache.
+
+The minimized proposed catalog contains exactly 19 unique entries, preserves the approved JavaParser entry unchanged, and matches all 18 receipt hashes, sizes, canonical paths, URLs and retrieval times. Its SHA-256 is 76be4cbc67e4bd6d780b00523bed173249a9d7dfec799294f3b0969f2d60358d. The live catalog remains the single approved entry with SHA-256 bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd. All 18 external candidate cache paths remain absent. Repository parser sources and all metadata input bytes were rechecked after the leave-one-out runs.
+
+This demonstrates consistency of the proposed effective graph with the locked intended test closure. There is no previously executable external-metadata baseline here, so it does not demonstrate universal resolution equivalence. This is not a full Resolver/artifact-acquisition run, metadata admission, JUnit execution or aggregate-test pass. It also does not authorize executable build plugins or third-party test-scoped dependencies. The only actual aggregate-run blocker remains the separately recorded error_prone_parent:2.36.0 failure; additional findings here come from analytical native-parser execution.
+
+Reproduction in this existing environment, without Cargo or dependency retrieval:
+
+```bash
+python3 /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/prepare_inputs.py
+/workspace/.sfm-env/rustup/toolchains/1.99.1-x86_64-unknown-linux-gnu/bin/rustc --edition=2024 /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/native_graph.rs --extern eyre=/workspace/.sfm-env/target/debug/deps/libeyre-38f2901c6c9c071a.rlib --extern serde_json=/workspace/.sfm-env/target/debug/deps/libserde_json-cb572b5107702932.rlib -L dependency=/workspace/.sfm-env/target/debug/deps -o /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/native_graph
+/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/native_graph /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/inputs.json /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/candidate-graph.json
+python3 /workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/verify_graph.py
+```
+
+Source/harness/result hashes are bound in provenance.json. Exact per-artifact edges, metadata reads and parser outcomes are in candidate-graph.json; independent checks and minimality results are in verification.json. No cache/catalog/repository/lock changes, external metadata admission, network request, JAR restoration, publish, push or merge was performed by this reviewer. Only authorized scratch harness/results were written. External metadata admission remains unperformed under the current directive.

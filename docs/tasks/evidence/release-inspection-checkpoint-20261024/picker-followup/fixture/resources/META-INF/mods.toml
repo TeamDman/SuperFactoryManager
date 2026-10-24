@@ -1,0 +1,14 @@
+modLoader="javafml"
+loaderVersion="[43,)"
+license="MIT"
+[[mods]]
+modId="sfm_picker_fixture"
+version="1.0-test"
+displayName="Local SFM picker qualification fixture"
+description='''Test-only normal Forge editor registration and read-only state observer.'''
+[[dependencies.sfm_picker_fixture]]
+modId="sfm"
+mandatory=true
+versionRange="[4.34.0,)"
+ordering="AFTER"
+side="CLIENT"

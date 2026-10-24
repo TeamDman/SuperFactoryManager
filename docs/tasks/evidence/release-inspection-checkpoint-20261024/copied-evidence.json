@@ -1,0 +1,356 @@
+{
+  "scope": "Historical evidence copied without modifications except explicitly recorded CLI-help presentation normalization. Scratch paths and historical no-push/pending statements describe capture-time state; current status is in ../../release-inspection-cloud-checkpoint.md. These files are not active dependency catalogs or installed test fixtures.",
+  "files": [
+    {
+      "path": "release-readiness-20261024/README.md",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/README.md",
+      "bytes": 9510,
+      "sha256": "973d5642bb2bc803fccc7f78deae6bd0723fb83e2c239073b925c4c0cf21310a"
+    },
+    {
+      "path": "release-readiness-20261024/independent-review.md",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/independent-review.md",
+      "bytes": 8602,
+      "sha256": "13a5f682c9d6a8df554bfd710fecd566f03e9d71d17019962b32c87ccbb549d1"
+    },
+    {
+      "path": "release-readiness-20261024/integrity.json",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/integrity.json",
+      "bytes": 1788,
+      "sha256": "aab0b67d59fbe9171c9a0611d72efca6ea8e301954d9f5cd5feebda1561eddb2"
+    },
+    {
+      "path": "release-readiness-20261024/help-commands.json",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/help-commands.json",
+      "bytes": 1542,
+      "sha256": "706e6d38fe9610839a30354d684407ff3ccbfb2ebc102abac137f8d01de9ad55"
+    },
+    {
+      "path": "release-readiness-20261024/jar-build.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/jar-build.help.txt",
+      "bytes": 3171,
+      "sha256": "643cf66e52a82c3c998cd2ed8541ac2579c5a9689c210c776350d1e0f34081f4",
+      "sourceBytes": 3209,
+      "sourceSha256": "76f020c119f171c752037f6ec170078dd8fc75b8d1e6f4e260e6b3cb6b1e5328",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/source-project-jar.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/source-project-jar.help.txt",
+      "bytes": 2017,
+      "sha256": "3258745c1e6495490fcef0053138f7197fe4d93216f614f4a66b16cda23af456",
+      "sourceBytes": 2055,
+      "sourceSha256": "4599910d9d2c6d53c8db309e0eaa77a29dbcbcbbf7cb851148ffb8377ff1c91b",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/jar-collect.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/jar-collect.help.txt",
+      "bytes": 1158,
+      "sha256": "de8967073002af79dc375f141fc5e4296b4382596ebe6a85425a56187f7984d4",
+      "sourceBytes": 1196,
+      "sourceSha256": "263106f188387891accdbe1edd4b5394c799baeaebebc48851d995e2fcc67675",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/curseforge-release-now.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/curseforge-release-now.help.txt",
+      "bytes": 1682,
+      "sha256": "e5b613fcb07c81a4550bc17de4b4b7c44d0b6c9d48210b21c171e95186ae1b0b",
+      "sourceBytes": 1720,
+      "sourceSha256": "508010c546a6abd1dbdbaeef3ca0c80d529e43f36ad583611d02af18bc2b8cf6",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/modrinth-release-now.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/modrinth-release-now.help.txt",
+      "bytes": 1682,
+      "sha256": "05a0cbe98a0f8f99d0ef146a5c71ada337cff699d3ed1c2a1e5290dd05499e33",
+      "sourceBytes": 1720,
+      "sourceSha256": "8b423000ad572863811a6be7c8531db18d41f38eeb6f068a12ebd575bbb2d62f",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/source-legacy-release-provider-plan.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/source-legacy-release-provider-plan.help.txt",
+      "bytes": 2463,
+      "sha256": "4373ce02a3c712e18aa84988a5523c576077e7a660005ad84ffb07749b627969",
+      "sourceBytes": 2501,
+      "sourceSha256": "4a73a5ba94b8eb79845cb6659d8a0c4f2d6c7ada883f7f30d5a5a99b5050457f",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "release-readiness-20261024/source-legacy-release-modrinth.help.txt",
+      "source": "/workspace/scratch/release-inspection/release-readiness-20261024/source-legacy-release-modrinth.help.txt",
+      "bytes": 2995,
+      "sha256": "fd73a77c5930476bd2be8d082f14b5e26cab537149f6e625469182dd4175ac53",
+      "sourceBytes": 3033,
+      "sourceSha256": "d167b8533ab8be3b4e4ab42fc7fa229edade6b6b781252263232476dee9293c0",
+      "transformation": "Strip ANSI SGR presentation escapes and normalize EOF to one newline; source receipt preserved in scratch."
+    },
+    {
+      "path": "metadata-minimized-20261024/README.md",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/README.md",
+      "bytes": 5514,
+      "sha256": "eb0c0a38103d0e9e9af08df20b781dda56689c72b0f62c7bdb88a1d737d8d868"
+    },
+    {
+      "path": "metadata-minimized-20261024/artifacts.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/artifacts.json",
+      "bytes": 20214,
+      "sha256": "ca22aeec732bca32c9764acfb6558071667cd7433c3343d21efdbd643ba19cbc"
+    },
+    {
+      "path": "metadata-minimized-20261024/omitted-external-poms.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/omitted-external-poms.json",
+      "bytes": 1410,
+      "sha256": "a9860a95e6c6a53cbd049df7c4cc02b1ba41f13f8441c107fa7c041f0f41917b"
+    },
+    {
+      "path": "metadata-minimized-20261024/test-roots.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/test-roots.json",
+      "bytes": 652,
+      "sha256": "bc60bd0b58ba30e0421e171d2811e47dcb8cfd307f1b61785b8a88f2a14d127c"
+    },
+    {
+      "path": "metadata-minimized-20261024/minimal-receipts.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/minimal-receipts.json",
+      "bytes": 16652,
+      "sha256": "d174859a29610ac7c5465a981fbe34c6ae3f9b300248dcb726a4df6f5e455fbf"
+    },
+    {
+      "path": "metadata-minimized-20261024/restore_locked.py",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/restore_locked.py",
+      "bytes": 7042,
+      "sha256": "563b3481946718568c121caafcf17dace7678f4ce04a08043c916cfc1ec974e8"
+    },
+    {
+      "path": "metadata-minimized-20261024/proposed-catalog-NOT-APPLIED.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/proposed-catalog-NOT-APPLIED.json",
+      "bytes": 8259,
+      "sha256": "76be4cbc67e4bd6d780b00523bed173249a9d7dfec799294f3b0969f2d60358d"
+    },
+    {
+      "path": "metadata-minimized-20261024/restoration-summary.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/restoration-summary.json",
+      "bytes": 321,
+      "sha256": "2d3893062085054adb393c32d253690af7967129ac4a4dbc6272f4ebd24343f0"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/coordinate.rs",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/coordinate.rs",
+      "bytes": 2568,
+      "sha256": "e46839551afab7da1215d609416165c088c59fbf4ebd3f2b62af928b082ba1e0"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/verification.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/verification.json",
+      "bytes": 7429,
+      "sha256": "46bb4098350da8f4643368d30305564950c230f4ed7dc0d1635288bda2d6a9e3"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/verify_graph.py",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/verify_graph.py",
+      "bytes": 4438,
+      "sha256": "105c956bc4ee2184d13ff2cb55c86548a0498da3dd3a942da159860946e0266d"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/independent-review.md",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/independent-review.md",
+      "bytes": 4808,
+      "sha256": "3324ff9e44c303362a3f44eeca6735c9382f72e628fd6fba0973f258ff7ae722"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/native_graph.rs",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/native_graph.rs",
+      "bytes": 5241,
+      "sha256": "7a8dec473702623b35be48e3648db72ea23d9591fa832fed70d499eb021aba17"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/provenance.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/provenance.json",
+      "bytes": 2235,
+      "sha256": "7862c5b0c9911395fb064bd3c884289a0cfc0a1de758594c8a5924064b68d578"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/candidate-graph.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/candidate-graph.json",
+      "bytes": 54018,
+      "sha256": "7f2f0d8dd54825edfe61df731b97f5ff3088598b4c1a03add07ca4c27ec4a13f"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/inputs.json",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/inputs.json",
+      "bytes": 22133,
+      "sha256": "49cd5a4737a6aafd42e7fb0306becfbc1973641f8e81d949b75b322e9a3eef24"
+    },
+    {
+      "path": "metadata-minimized-20261024/graph-review/prepare_inputs.py",
+      "source": "/workspace/scratch/release-inspection/metadata-minimized-20261024/graph-review/prepare_inputs.py",
+      "bytes": 4440,
+      "sha256": "d8b720a51382053f8b55b2c3c5fe671fa4b6fd66280d18f9fb3daaa611748466"
+    },
+    {
+      "path": "metadata-admission-20261024/admission.json",
+      "source": "/workspace/scratch/release-inspection/metadata-admission-20261024/admission.json",
+      "bytes": 902,
+      "sha256": "c145f222d7836e8225d5a4ba37e4ce352db7dd74628a69c07098bf9904ad1bd9"
+    },
+    {
+      "path": "metadata-admission-20261024/result.json",
+      "source": "/workspace/scratch/release-inspection/metadata-admission-20261024/result.json",
+      "bytes": 1674,
+      "sha256": "0e68f047907d1824cdf0fd33449070081f1bae6df378a6bdad87cb1eaa5ef311"
+    },
+    {
+      "path": "metadata-admission-20261024/independent-review.md",
+      "source": "/workspace/scratch/release-inspection/metadata-admission-20261024/independent-review.md",
+      "bytes": 4002,
+      "sha256": "c25e2e1867c134813147ce091c592d11bba537406221aef72c1178519c2d5292"
+    },
+    {
+      "path": "picker-followup/README.md",
+      "source": "/workspace/scratch/release-inspection/picker-followup/README.md",
+      "bytes": 10277,
+      "sha256": "54183c9a14e726a57c246c97143cc594d45041a435d0441aaaecc4c4a384dfc7"
+    },
+    {
+      "path": "picker-followup/event-assertions.json",
+      "source": "/workspace/scratch/release-inspection/picker-followup/event-assertions.json",
+      "bytes": 6699,
+      "sha256": "0355b05e059fc08cc36e3f5d65dfba1e4f379a511b3a7e4d6d2ec9950da41551"
+    },
+    {
+      "path": "picker-followup/events.jsonl",
+      "source": "/workspace/scratch/release-inspection/picker-followup/events.jsonl",
+      "bytes": 84397,
+      "sha256": "c139fac07ae568e3e6745043b95618743a4a1772cbedf608f8d946784674066e"
+    },
+    {
+      "path": "picker-followup/input-events.jsonl",
+      "source": "/workspace/scratch/release-inspection/picker-followup/input-events.jsonl",
+      "bytes": 9636,
+      "sha256": "da0d0424ad5e76f54918cd204710fd46b9f35d13e8da23bdd2cefa4ab4683497"
+    },
+    {
+      "path": "picker-followup/final-state.json",
+      "source": "/workspace/scratch/release-inspection/picker-followup/final-state.json",
+      "bytes": 2565,
+      "sha256": "c6c662d6d0d1aefb2bf00192e3ba8155795fcbe7dd17b11add391eb05090d930"
+    },
+    {
+      "path": "picker-followup/analyze_events.py",
+      "source": "/workspace/scratch/release-inspection/picker-followup/analyze_events.py",
+      "bytes": 4685,
+      "sha256": "5d7482beb2e3e3cb63d2d0f4f351e14fe027fa17ed347c593906f269590596e9"
+    },
+    {
+      "path": "picker-followup/seed.sfml",
+      "source": "/workspace/scratch/release-inspection/picker-followup/seed.sfml",
+      "bytes": 108,
+      "sha256": "9bb5fadea7e0e25506fa55c42111989d8823a50e9d9a73c59df1d03df1802121"
+    },
+    {
+      "path": "picker-followup/final-program.sfml",
+      "source": "/workspace/scratch/release-inspection/picker-followup/final-program.sfml",
+      "bytes": 160,
+      "sha256": "8e4e403a0309f6bb7b21b7eb889b53369f94285d63721ce9707793fb16948b56"
+    },
+    {
+      "path": "picker-followup/independent-review.md",
+      "source": "/workspace/scratch/release-inspection/picker-followup/independent-review.md",
+      "bytes": 5581,
+      "sha256": "4a1a39ec0a0388adecee736f71fd4b0279cb0bf018259069ae9e4de630d71e47"
+    },
+    {
+      "path": "picker-followup/library-blocker.json",
+      "source": "/workspace/scratch/release-inspection/picker-followup/library-blocker.json",
+      "bytes": 1022,
+      "sha256": "4ca0c81f9cb918149ced5d4957880970a54720ade9f22c3038cc30541d113e8a"
+    },
+    {
+      "path": "picker-followup/fixture/src/qa/sfm/PickerFixture.java",
+      "source": "/workspace/scratch/release-inspection/picker-followup/fixture/src/qa/sfm/PickerFixture.java",
+      "bytes": 8344,
+      "sha256": "dcb6d3501e233214236890ac467db5fe62cec189aaecd7cb3b8729f9874826ac"
+    },
+    {
+      "path": "picker-followup/fixture/resources/META-INF/mods.toml",
+      "source": "/workspace/scratch/release-inspection/picker-followup/fixture/resources/META-INF/mods.toml",
+      "bytes": 374,
+      "sha256": "142371a9b16f3b175f1eab2b4c037abf656914b49dbe3b3b6563b00dfc12ef12"
+    },
+    {
+      "path": "picker-followup/fixture/resources/pack.mcmeta",
+      "source": "/workspace/scratch/release-inspection/picker-followup/fixture/resources/pack.mcmeta",
+      "bytes": 84,
+      "sha256": "3642602c5c8a68873c64a1c5458b78c47834fe8aaf848b4752af092234549158"
+    },
+    {
+      "path": "picker-followup/fixture/resources/assets/sfm_picker_fixture/lang/en_us.json",
+      "source": "/workspace/scratch/release-inspection/picker-followup/fixture/resources/assets/sfm_picker_fixture/lang/en_us.json",
+      "bytes": 159,
+      "sha256": "961b821a3bea11ce82ff301a4402175d1346b22eb5cbca42629b08e05b7135ae"
+    },
+    {
+      "path": "picker-followup/screenshots/84-picker-registered.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/84-picker-registered.png",
+      "bytes": 51292,
+      "sha256": "588b38e0a38166dc171fdd9415c0580cb21c153d4697fd43aecf7cb057e46916"
+    },
+    {
+      "path": "picker-followup/screenshots/85-picker-cancel-preserved.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/85-picker-cancel-preserved.png",
+      "bytes": 27259,
+      "sha256": "3caa6a5578d69267426a281b90516b927917019727270fa14f334adb8f49fa4d"
+    },
+    {
+      "path": "picker-followup/screenshots/86-picker-apply-preserved.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/86-picker-apply-preserved.png",
+      "bytes": 27310,
+      "sha256": "94f792dd7e20b2d309077a5132bfdf802b2d8ffeac30bf6cec965a8b40db4e1e"
+    },
+    {
+      "path": "picker-followup/screenshots/96-picker-no-results.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/96-picker-no-results.png",
+      "bytes": 26812,
+      "sha256": "a25d68e15fe6b599daf6ad8d9614972b0603b16372cbd5cebac7c08a09dec5fc"
+    },
+    {
+      "path": "picker-followup/screenshots/97-picker-v3-reopen.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/97-picker-v3-reopen.png",
+      "bytes": 10574,
+      "sha256": "33c4f4e1500cadaadb6597150aca3ef64646f2d20f8ff4a232b6a2c0c89f86a0"
+    },
+    {
+      "path": "picker-followup/screenshots/108-picker-persistence-confirmed.png",
+      "source": "/workspace/scratch/release-inspection/picker-followup/screenshots/108-picker-persistence-confirmed.png",
+      "bytes": 52363,
+      "sha256": "f0072c629018266f8ac1957ad9d3501bde92fdce1c7b59e5d4ea8d3bbaad7f42"
+    },
+    {
+      "path": "approval-receipt-20261024/receipt.md",
+      "source": "/workspace/scratch/release-inspection/approval-receipt-20261024/receipt.md",
+      "bytes": 5559,
+      "sha256": "6c77507b46b9c4005adf2f79848b1a27cf81114ebd573a6273ab1f74f1a0f516"
+    },
+    {
+      "path": "approval-receipt-20261024/run_repro.py",
+      "source": "/workspace/scratch/release-inspection/approval-receipt-20261024/run_repro.py",
+      "bytes": 1031,
+      "sha256": "1b8dfce2ec665407949d7120dfb17b5eb46ba9c2c51d570bf6f73528912c1ce8"
+    },
+    {
+      "path": "approval-receipt-20261024/TrailingNewlineRepro.java",
+      "source": "/workspace/scratch/release-inspection/approval-receipt-20261024/TrailingNewlineRepro.java",
+      "bytes": 938,
+      "sha256": "4de585044c2cc62618c77f8c251c438fe7b7a5fd39f1e7e0f033f6d7e2081355"
+    },
+    {
+      "path": "approval-receipt-20261024/repro.stdout",
+      "source": "/workspace/scratch/release-inspection/approval-receipt-20261024/repro.stdout",
+      "bytes": 152,
+      "sha256": "64ac801f4455fc6d99aeef70822729065e8c5b7e33df2915830b2981df97a71a"
+    }
+  ]
+}

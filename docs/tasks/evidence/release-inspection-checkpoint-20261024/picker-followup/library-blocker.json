@@ -1,0 +1,20 @@
+{
+  "action": "save two accepted PNG screenshots to ChatGPT Library with current skill prepared-upload helper",
+  "result": "blocked before upload preparation",
+  "reason": "hosted apps tools/list request failed with HTTP status 401",
+  "direct_library_read_probe": "succeeded; issue is helper bridge authorization, not confirmed general Library account disconnection",
+  "library_file_ids": [],
+  "retried": false,
+  "fallback_upload_attempted": false,
+  "files": [
+    {
+      "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/69-accepted-changed-java-lines.png",
+      "sha256": "6f1efebe10241a002de27e423b928047985e63214fdb0a37efcfe6b3858bc111"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/76-accepted-source-changes-clear.png",
+      "sha256": "9169086204893865309ba11a2c277ed1c601b7192ce6cd3d41ccf922b977d73a"
+    }
+  ],
+  "qualified_zip_sha256": "e3fa10f11af037133398b832714b3fb98362a1e6371392b596d8c1338102e80e"
+}

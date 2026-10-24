@@ -1,0 +1,17 @@
+{
+  "status": "admitted",
+  "timeUtc": "2026-10-24T18:59:02.204501+00:00",
+  "coordinate": "com.github.javaparser:javaparser-parent:3.26.4@pom",
+  "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+  "sha256": "0316ad7574a30bdacae02e45d88edda46578bb5a469cbd65d783787eeb82cca8",
+  "bytes": 25473,
+  "pomPath": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+  "catalogPath": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/maven-metadata-pins.json",
+  "catalogSha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd",
+  "catalogEntries": 1,
+  "preexistingTargets": false,
+  "publication": "exclusive hard-link publication; no overwrite",
+  "networkRequests": 0,
+  "executableArtifactsAdded": 0,
+  "dependencyLockChanges": false
+}

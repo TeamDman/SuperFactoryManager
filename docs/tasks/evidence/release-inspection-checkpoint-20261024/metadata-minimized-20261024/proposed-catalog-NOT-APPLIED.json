@@ -1,0 +1,158 @@
+{
+  "schema": "sfm:maven_metadata_provision@1",
+  "repository": "https://repo1.maven.org/maven2",
+  "artifacts": [
+    {
+      "coordinate": "com.github.javaparser:javaparser-parent:3.26.4@pom",
+      "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+      "sha256": "sha256:0316ad7574a30bdacae02e45d88edda46578bb5a469cbd65d783787eeb82cca8",
+      "bytes": 25473,
+      "path": "com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+      "retrievedUtc": "2026-10-24T18:14:02.552318+00:00"
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_parent:2.36.0@pom",
+      "url": "https://repo1.maven.org/maven2/com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+      "sha256": "sha256:3a4cfc8a6bed61eb48e969796fc31ea0d270b63e670599946a61883adb7094dc",
+      "bytes": 15958,
+      "path": "com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.639884+00:00"
+    },
+    {
+      "coordinate": "com.google.guava:guava-parent:26.0-android@pom",
+      "url": "https://repo1.maven.org/maven2/com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "sha256": "sha256:f8698ab46ca996ce889c1afc8ca4f25eb8ac6b034dc898d4583742360016cc04",
+      "bytes": 10180,
+      "path": "com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.742392+00:00"
+    },
+    {
+      "coordinate": "com.google.guava:guava-parent:33.4.0-jre@pom",
+      "url": "https://repo1.maven.org/maven2/com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom",
+      "sha256": "sha256:3a499ed34a0d9ee0f1bcc39230021a1cd4e2f7dd0426ab6844f585465d41dcd7",
+      "bytes": 21100,
+      "path": "com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.706171+00:00"
+    },
+    {
+      "coordinate": "org.apache.commons:commons-parent:39@pom",
+      "url": "https://repo1.maven.org/maven2/org/apache/commons/commons-parent/39/commons-parent-39.pom",
+      "sha256": "sha256:87cd27e1a02a5c3eb6d85059ce98696bb1b44c2b8b650f0567c86df60fa61da7",
+      "bytes": 61975,
+      "path": "org/apache/commons/commons-parent/39/commons-parent-39.pom",
+      "retrievedUtc": "2026-10-24T19:02:10.236217+00:00"
+    },
+    {
+      "coordinate": "org.apache:apache:16@pom",
+      "url": "https://repo1.maven.org/maven2/org/apache/apache/16/apache-16.pom",
+      "sha256": "sha256:9f85ff2fd7d6cb3097aa47fb419ee7f0ebe869109f98aba9f4eca3f49e74a40e",
+      "bytes": 15397,
+      "path": "org/apache/apache/16/apache-16.pom",
+      "retrievedUtc": "2026-10-24T19:02:18.421847+00:00"
+    },
+    {
+      "coordinate": "org.apiguardian:apiguardian-api:1.1.2@pom",
+      "url": "https://repo1.maven.org/maven2/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.pom",
+      "sha256": "sha256:32355081d109095c3d5d374d5a43b4f4c1b75d549e983ef50723e2772e5302a0",
+      "bytes": 1526,
+      "path": "org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.552478+00:00"
+    },
+    {
+      "coordinate": "org.checkerframework:checker-qual:3.43.0@pom",
+      "url": "https://repo1.maven.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.pom",
+      "sha256": "sha256:9313bf53b3efd8aaca266eea8b96e307976b65c0b16510cc6f02319fbaebed43",
+      "bytes": 2096,
+      "path": "org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.797431+00:00"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1@pom",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-api/5.8.1/junit-jupiter-api-5.8.1.pom",
+      "sha256": "sha256:77ad7ed4a630bad1fc8746a0a6e675c23fb6940b27ab62cccb34e4fcfcfe39bf",
+      "bytes": 3181,
+      "path": "org/junit/jupiter/junit-jupiter-api/5.8.1/junit-jupiter-api-5.8.1.pom",
+      "retrievedUtc": "2026-10-24T19:00:54.027206+00:00"
+    },
+    {
+      "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1@pom",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.8.1/junit-jupiter-engine-5.8.1.pom",
+      "sha256": "sha256:aa320a318a7271e33262c480fcf39965b9a86daa76666eb775342b80e9cdd45e",
+      "bytes": 3199,
+      "path": "org/junit/jupiter/junit-jupiter-engine/5.8.1/junit-jupiter-engine-5.8.1.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.839166+00:00"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-commons:1.8.1@pom",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.8.1/junit-platform-commons-1.8.1.pom",
+      "sha256": "sha256:e197282e52e700d12b88989edc5489874693502e4aa8907acf0829801aba6d44",
+      "bytes": 2831,
+      "path": "org/junit/platform/junit-platform-commons/1.8.1/junit-platform-commons-1.8.1.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.671278+00:00"
+    },
+    {
+      "coordinate": "org.junit.platform:junit-platform-engine:1.8.1@pom",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.pom",
+      "sha256": "sha256:86aad4e657754e43a00df226dd54c8aec1ec6ab6533f50121907e4662de2e5f2",
+      "bytes": 3202,
+      "path": "org/junit/platform/junit-platform-engine/1.8.1/junit-platform-engine-1.8.1.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.706335+00:00"
+    },
+    {
+      "coordinate": "org.junit:junit-bom:5.8.1@pom",
+      "url": "https://repo1.maven.org/maven2/org/junit/junit-bom/5.8.1/junit-bom-5.8.1.pom",
+      "sha256": "sha256:ef7dc47f8e4a16864f4779728e87ed78539819e4fb892768a9da6b8ef903f863",
+      "bytes": 5630,
+      "path": "org/junit/junit-bom/5.8.1/junit-bom-5.8.1.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.585539+00:00"
+    },
+    {
+      "coordinate": "org.openjdk.jmh:jmh-parent:1.37@pom",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-parent/1.37/jmh-parent-1.37.pom",
+      "sha256": "sha256:0c24f216f3637dde7639114f70273a697f8546f7a4c6d5acd4cc6daee9bef4c9",
+      "bytes": 11704,
+      "path": "org/openjdk/jmh/jmh-parent/1.37/jmh-parent-1.37.pom",
+      "retrievedUtc": "2026-10-24T19:00:53.715706+00:00"
+    },
+    {
+      "coordinate": "org.opentest4j:opentest4j:1.2.0@pom",
+      "url": "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.pom",
+      "sha256": "sha256:a96e671816c1ff8803bdec74c9241f025bdfb277da5d2b4ee02266405936f994",
+      "bytes": 1683,
+      "path": "org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.549532+00:00"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.0@pom",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.pom",
+      "sha256": "sha256:de0355590dd1bfcccdc8d79024ae992972e855268acedb9ad682d085e03a94ad",
+      "bytes": 2724,
+      "path": "org/ow2/asm/asm/9.0/asm-9.0.pom",
+      "retrievedUtc": "2026-10-24T19:01:58.004105+00:00"
+    },
+    {
+      "coordinate": "org.ow2:ow2:1.5@pom",
+      "url": "https://repo1.maven.org/maven2/org/ow2/ow2/1.5/ow2-1.5.pom",
+      "sha256": "sha256:0f8a1b116e760b8fe6389c51b84e4b07a70fc11082d4f936e453b583dd50b43b",
+      "bytes": 11230,
+      "path": "org/ow2/ow2/1.5/ow2-1.5.pom",
+      "retrievedUtc": "2026-10-24T19:02:10.184478+00:00"
+    },
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:7@pom",
+      "url": "https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom",
+      "sha256": "sha256:b51f8867c92b6a722499557fc3a1fdea77bdf9ef574722fe90ce436a29559454",
+      "bytes": 4824,
+      "path": "org/sonatype/oss/oss-parent/7/oss-parent-7.pom",
+      "retrievedUtc": "2026-10-24T19:02:10.177676+00:00"
+    },
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:9@pom",
+      "url": "https://repo1.maven.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "sha256": "sha256:fb40265f982548212ff82e362e59732b2187ec6f0d80182885c14ef1f982827a",
+      "bytes": 6569,
+      "path": "org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "retrievedUtc": "2026-10-24T19:01:57.605831+00:00"
+    }
+  ]
+}

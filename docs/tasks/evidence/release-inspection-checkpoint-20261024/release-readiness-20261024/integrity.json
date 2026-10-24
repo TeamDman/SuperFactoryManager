@@ -1,0 +1,42 @@
+{
+  "native_cli": {
+    "path": "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+    "bytes": 178293000,
+    "sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7"
+  },
+  "live_metadata_catalog": {
+    "path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/maven-metadata-pins.json",
+    "bytes": 593,
+    "sha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd"
+  },
+  "proposed_metadata_catalog": {
+    "path": "/workspace/scratch/release-inspection/metadata-minimized-20261024/proposed-catalog-NOT-APPLIED.json",
+    "bytes": 8259,
+    "sha256": "76be4cbc67e4bd6d780b00523bed173249a9d7dfec799294f3b0969f2d60358d"
+  },
+  "qualified_recording_zip": {
+    "path": "/workspace/scratch/release-inspection/recording-workspace-qualified.zip",
+    "bytes": 10029860,
+    "sha256": "e3fa10f11af037133398b832714b3fb98362a1e6371392b596d8c1338102e80e"
+  },
+  "picker_evidence_zip": {
+    "path": "/workspace/scratch/release-inspection/picker-followup-evidence.zip",
+    "bytes": 187860,
+    "sha256": "5eac6b9ae8cf98dea8dee39af26a7ef5f34476404bc5698849d8b50d30adf391"
+  },
+  "accepted_changed_java": {
+    "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/69-accepted-changed-java-lines.png",
+    "bytes": 45446,
+    "sha256": "6f1efebe10241a002de27e423b928047985e63214fdb0a37efcfe6b3858bc111"
+  },
+  "accepted_source_changes": {
+    "path": "/workspace/SuperFactoryManager/docs/tasks/evidence/release-inspection-20261024/76-accepted-source-changes-clear.png",
+    "bytes": 27209,
+    "sha256": "9169086204893865309ba11a2c277ed1c601b7192ce6cd3d41ccf922b977d73a"
+  },
+  "repo": {
+    "head": "704ddb5485173093cad42c07975fa5aabfc247ed",
+    "status": "",
+    "cliSourceChangedSinceBuiltCommit": ""
+  }
+}

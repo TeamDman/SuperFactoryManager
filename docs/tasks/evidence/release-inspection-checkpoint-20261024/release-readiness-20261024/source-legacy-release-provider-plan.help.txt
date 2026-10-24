@@ -1,0 +1,55 @@
+sfm-propagate-changes source legacy release-provider-plan
+
+Preflight reviewed GitHub, Modrinth and `CurseForge` intent from the verified
+package.
+
+USAGE:
+    sfm-propagate-changes source legacy release-provider-plan [OPTIONS]
+
+OPTIONS:
+        --[no-]debug
+            Enable debug logging, including backtraces on panics.
+        --log-filter <STRING>
+            Log level filter directive.
+        --log-file <PATHBUF>
+            Write structured ndjson logs to this file or directory. If a
+            directory is provided, a filename will be generated there. If
+            omitted, no JSON log file will be written.
+        --stop-after <STRING>
+            Request graceful cancellation after the named tracing/Tracy zone
+            closes.
+        --output-format <text,json,csv>
+            Render typed command output as text, JSON, or CSV.
+    -h, --[no-]help
+            Show help message and exit.
+        --[no-]html-help
+            Open HTML help in the browser and exit.
+    -V, --[no-]version
+            Show version and exit.
+        --completions <bash,zsh,fish>
+            Generate shell completions.
+        --export-jsonschemas <DIR>
+            Export JSON Schema files for all config roots.
+        --package-root <PATHBUF> [Required]
+            Existing absolute directory created by source release-package.
+        --completion-manifest-sha256 <STRING> [Required]
+            Separately reviewed SHA-256 of the exact release-package.json bytes.
+        --reviewed-source-commit <STRING> [Required]
+            Full source commit reviewed for this package, including if
+            historical.
+        --reviewed-tag <STRING> [Required]
+            Reviewer-selected GitHub release tag; existence and target are not
+            checked.
+        --github-repo <STRING> [Required]
+            Explicit GitHub repository in owner/name form.
+        --modrinth-project <STRING> [Required]
+            Explicit Modrinth project ID or slug.
+        --curseforge-project <U64> [Required]
+            Explicit positive `CurseForge` project ID.
+        --changelog-file <PATHBUF> [Required]
+            Absolute path to the exact reviewed UTF-8 release notes body.
+        --changelog-sha256 <STRING> [Required]
+            Separately reviewed SHA-256 of the exact changelog file bytes.
+        --modrinth-1201-loader-policy <STRING> [Required]
+            Explicit 1.20.1 Modrinth choice: dual-forge-neoforge or
+            neoforge-only.

@@ -1,0 +1,31 @@
+sfm-propagate-changes jar collect
+
+Collect jars from each MC version based on that version's `mod_version`
+
+USAGE:
+    sfm-propagate-changes jar collect [OPTIONS]
+
+OPTIONS:
+        --[no-]debug
+            Enable debug logging, including backtraces on panics.
+        --log-filter <STRING>
+            Log level filter directive.
+        --log-file <PATHBUF>
+            Write structured ndjson logs to this file or directory. If a
+            directory is provided, a filename will be generated there. If
+            omitted, no JSON log file will be written.
+        --stop-after <STRING>
+            Request graceful cancellation after the named tracing/Tracy zone
+            closes.
+        --output-format <text,json,csv>
+            Render typed command output as text, JSON, or CSV.
+    -h, --[no-]help
+            Show help message and exit.
+        --[no-]html-help
+            Open HTML help in the browser and exit.
+    -V, --[no-]version
+            Show version and exit.
+        --completions <bash,zsh,fish>
+            Generate shell completions.
+        --export-jsonschemas <DIR>
+            Export JSON Schema files for all config roots.

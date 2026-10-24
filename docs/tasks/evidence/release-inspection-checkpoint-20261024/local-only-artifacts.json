@@ -1,0 +1,37 @@
+{
+  "warning": "Hashes and reconstruction evidence are preserved in Git; these artifact bytes are not. The older 22-POM proposal is superseded by the 18-POM evidence in this checkpoint.",
+  "artifacts": [
+    {
+      "path": "/workspace/scratch/release-inspection/recording-workspace-qualified.zip",
+      "bytes": 10029860,
+      "sha256": "e3fa10f11af037133398b832714b3fb98362a1e6371392b596d8c1338102e80e",
+      "gitPreserved": false
+    },
+    {
+      "path": "/workspace/scratch/release-inspection/picker-followup-evidence.zip",
+      "bytes": 187860,
+      "sha256": "5eac6b9ae8cf98dea8dee39af26a7ef5f34476404bc5698849d8b50d30adf391",
+      "gitPreserved": false
+    },
+    {
+      "path": "/workspace/scratch/release-inspection/additional-maven-metadata-proposal.zip",
+      "bytes": 81963,
+      "sha256": "a843ae7f0b67d6db421673dd76c870aefbc742247fa9031ee740ccd7a6e8ed7a",
+      "gitPreserved": false
+    },
+    {
+      "path": "/workspace/scratch/release-inspection/release-built-combined/release.sfm-inspection.json",
+      "bytes": 59058825,
+      "sha256": "7c3df317f9f71d8f763618d95b661e9284f0ef917f8129bb0a1fe78a74608f78",
+      "gitPreserved": false
+    }
+  ],
+  "alsoExcluded": [
+    "compiled fixture JARs/classes",
+    "downloaded or extracted third-party POM/JAR bytes",
+    "toolchains and artifact cache",
+    "raw game/Xorg logs",
+    "private display authorization/configuration",
+    "Library helper authorization state"
+  ]
+}

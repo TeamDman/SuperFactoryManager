@@ -1,0 +1,48 @@
+{
+  "head": "704ddb5485173093cad42c07975fa5aabfc247ed",
+  "worktreeClean": true,
+  "approvedAdmission": "completed and verified",
+  "liveCatalogEntries": 1,
+  "liveCatalogSha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd",
+  "nativeAggregate": {
+    "exit": 1,
+    "filter": null,
+    "junitExecuted": false,
+    "nextBlocker": "com.google.errorprone:error_prone_parent:2.36.0@pom",
+    "mainGameTestDatagen": "reused verified compiled outputs",
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "test",
+      "run",
+      "--repo-root",
+      "/workspace/SuperFactoryManager",
+      "--projection",
+      "sfm-dev/mc-1.19.2",
+      "--java-home",
+      "/workspace/.sfm-env/jdk17",
+      "--log-file",
+      "/workspace/scratch/release-inspection/metadata-admission-20261024/aggregate.ndjson",
+      "--log-filter",
+      "info"
+    ]
+  },
+  "lockedArtifactRehydration": {
+    "coordinate": "com.github.javaparser:javaparser-core:3.26.4",
+    "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.jar",
+    "nativeVerifiedLockedHash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b",
+    "sha256": "3b2d6c4451b2c675d4f4be10784c5681049529d11f3c4e5936f08ba90dd45c27",
+    "bytes": 1434171,
+    "dependencyGraphChange": false
+  },
+  "additionalMetadata": {
+    "candidates": 22,
+    "bytes": 235353,
+    "admitted": 0,
+    "status": "pending separate approval"
+  },
+  "recordingAndPickerEvidenceUnchanged": true,
+  "pushOrMerge": false,
+  "libraryRetry": false,
+  "dependencyDeclarationsOrArtifactLockChanges": false,
+  "networkPolicyOrTrustChanges": false
+}

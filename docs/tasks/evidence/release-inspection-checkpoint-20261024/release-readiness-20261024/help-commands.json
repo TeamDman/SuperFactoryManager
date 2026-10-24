@@ -1,0 +1,77 @@
+[
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "jar",
+      "build",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "jar-build.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "jar",
+      "collect",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "jar-collect.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "source",
+      "project",
+      "jar",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "source-project-jar.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "curseforge",
+      "release",
+      "now",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "curseforge-release-now.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "modrinth",
+      "release",
+      "now",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "modrinth-release-now.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "source",
+      "legacy",
+      "release-provider-plan",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "source-legacy-release-provider-plan.help.txt"
+  },
+  {
+    "command": [
+      "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+      "source",
+      "legacy",
+      "release-modrinth",
+      "--help"
+    ],
+    "exit": 0,
+    "output": "source-legacy-release-modrinth.help.txt"
+  }
+]

@@ -1,0 +1,33 @@
+# Release inspection cloud checkpoint — 2026-10-24
+
+This checkpoint preserves follow-up qualification and release-readiness evidence after `704ddb5485173093cad42c07975fa5aabfc247ed`. It changes documentation and test evidence only. It does not assert release acceptance, merge main, upload a package, admit additional Maven metadata, or change production source/dependency pins. Desktop main integration remains owned by the separate desktop task.
+
+The feature branch is `feature/release-inspection-qualification-checkpoint-20261024`, based on the remotely verified `feature/release-inspection-combined-20261024` at `704ddb5485173093cad42c07975fa5aabfc247ed`. Qualified production implementation remains `e192e234e0a3019537cb3e23240ac8e5ff886480`.
+
+## Current status
+
+- **Explorer and recording workspace:** real release JARs and source projections, in-game comparison navigation/rendering/scroll checks and screenshots were qualified on Minecraft 1.19.2. The [launch and qualification guide](release-inspection-live-qualification.md) remains authoritative. No newer-Minecraft runtime or full release matrix is claimed.
+- **Picker follow-up:** actual client exercised 13 picker cycles, repeated built-in and extension registrations, cancellation, open-document preservation and restart preference persistence. Existing V2/V3 terminal-newline losses were reproduced and left unfixed; full details and six screenshots are in the [historical picker report](evidence/release-inspection-checkpoint-20261024/picker-followup/README.md). Its earlier metadata-pending and no-push statements describe capture-time state and are superseded below.
+- **Approved metadata:** only `com.github.javaparser:javaparser-parent:3.26.4@pom` was admitted to the offline cache/catalog under the user's exact approval. [Admission receipt](evidence/release-inspection-checkpoint-20261024/metadata-admission-20261024/admission.json). Aggregate native testing then failed before JUnit at `com.google.errorprone:error_prone_parent:2.36.0@pom`.
+- **Minimal remaining metadata:** 24 existing hash-locked JARs were verified/restored using their locked sources; four external POMs were replaced by byte-identical embedded copies. The proposal is now **18 POMs / 185,009 bytes**, all `repo1.maven.org`: 10 parents/BOMs and 8 own POMs absent from verified JARs. They remain **unadmitted**. [Exact list, hashes, URLs and graph evidence](evidence/release-inspection-checkpoint-20261024/metadata-minimized-20261024/README.md). The staged native-parser analysis reached 24 locked coordinates and 29 runtime edges, with no new coordinates or version conflicts. This establishes compatibility for the examined graph, not universal dependency-resolution equivalence or aggregate-test completion. Parent/BOM metadata can affect expansion.
+- **Release commands:** native JAR builds select projections. Live CurseForge/Modrinth commands still select worktrees, root version/changelog and legacy shared-directory filenames; they lack complete-target and reviewed-digest binding. [Read-only audit with exact command syntax](evidence/release-inspection-checkpoint-20261024/release-readiness-20261024/README.md) and [independent review](evidence/release-inspection-checkpoint-20261024/release-readiness-20261024/independent-review.md). Publishing integration, full matrix and live provider checks remain unqualified. No publication command or publisher dry-run was executed. The identified Linux preflight test mismatch remains unfixed.
+- **Library:** official screenshot upload helper failed before preparation with hosted-apps HTTP401. No file IDs were obtained and no retry/alternate upload was attempted. The accepted PNGs already reside in Git; the live Library-delivery blocker remains separate.
+
+## Preservation boundary
+
+[Copied evidence manifest](evidence/release-inspection-checkpoint-20261024/copied-evidence.json) records preserved hashes; seven CLI-help copies additionally record their original hashes and normalization of ANSI presentation escapes/trailing blank lines. Historical reports retain their original capture-time descriptions. Scratch paths in reports/harnesses are environment-specific; preserving a script does not claim it is portable or that all referenced inputs are included. The minimal newline reproduction source and observed stdout are included; its 33 KB resolved-classpath command receipt and empty stderr remain in scratch. The launcher still needs the qualified production classpath receipt named in its source. The graph harness requires the recorded production source revision, cached Rust libraries, locked JAR embedded metadata and separately authorized external metadata; do not run the restoration script as a substitute for metadata approval.
+
+[Local-only artifact inventory](evidence/release-inspection-checkpoint-20261024/local-only-artifacts.json) identifies bytes not covered by Git preservation:
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `recording-workspace-qualified.zip` | 10,029,860 | `e3fa10f11af037133398b832714b3fb98362a1e6371392b596d8c1338102e80e` |
+| `picker-followup-evidence.zip` | 187,860 | `5eac6b9ae8cf98dea8dee39af26a7ef5f34476404bc5698849d8b50d30adf391` |
+
+Those ZIPs, the 59 MB generated workspace, raw recordings/logs, runtime caches, SDKs and compiled fixture artifacts remain local. The checkpoint preserves selected small screenshots, fixture sources, events, receipts and reconstruction commands. It does not install the test fixture into a normal recording runtime or publish third-party binary dependencies. The old 22-POM proposal is superseded and not copied into Git.
+
+## Operational readiness
+
+No tooling, runtime input or production source changed in this checkpoint; installer/build reruns are not applicable. The previously qualified explicit CLI remains `/workspace/.sfm-env/target/debug/sfm-propagate-changes`, built at `c5fd329f19c0280cbe4c375c240a783e73ee2224`, SHA-256 `f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7`. Its source is unchanged through the checkpoint base. User must run install script: no for that explicit cloud command; no desktop installer freshness is claimed.
+
+The task-owned game, helper and display were stopped after qualification. This checkpoint does not start them or modify runtime state. Dependencies remain frozen, no additional metadata is admitted, and no network/trust settings are changed. Checkpoint checks verify copied-file hashes, parse JSON/JSONL, parse Python syntax, inspect all six PNGs, and replay the picker event assertions against the recorded output. Tests already run, failed and unrun remain distinguished in the copied reports; documentation/fixture preservation is not a new runtime test.

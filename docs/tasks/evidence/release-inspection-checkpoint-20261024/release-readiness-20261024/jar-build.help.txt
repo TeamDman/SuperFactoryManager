@@ -1,0 +1,72 @@
+sfm-propagate-changes jar build
+
+Build an SFM mod jar without invoking Gradle
+
+USAGE:
+    sfm-propagate-changes jar build [OPTIONS]
+
+OPTIONS:
+        --[no-]debug
+            Enable debug logging, including backtraces on panics.
+        --log-filter <STRING>
+            Log level filter directive.
+        --log-file <PATHBUF>
+            Write structured ndjson logs to this file or directory. If a
+            directory is provided, a filename will be generated there. If
+            omitted, no JSON log file will be written.
+        --stop-after <STRING>
+            Request graceful cancellation after the named tracing/Tracy zone
+            closes.
+        --output-format <text,json,csv>
+            Render typed command output as text, JSON, or CSV.
+    -h, --[no-]help
+            Show help message and exit.
+        --[no-]html-help
+            Open HTML help in the browser and exit.
+    -V, --[no-]version
+            Show version and exit.
+        --completions <bash,zsh,fish>
+            Generate shell completions.
+        --export-jsonschemas <DIR>
+            Export JSON Schema files for all config roots.
+        --projection <STRING> [Required]
+            Projection key or glob from projections.json.
+        --repo-root <PATHBUF>
+            Repository containing the core templates; defaults to the current
+            Git root.
+        --[no-]refresh
+            Ignore reusable SFM-owned cache state and recompute resolved
+            metadata.
+        --[no-]skip-source-checks
+            Skip initial comprehensive source checks for development
+            projections.
+        --[no-]explain-rebuild
+            Print the reason each graph node is considered dirty.
+        --plan-json <PATHBUF>
+            Optional path to write the resolved build plan JSON.
+        --java-home <PATHBUF>
+            Explicit Java home. Otherwise discover installed SDKs, preferring
+            JBR and the newest patch of the lowest compatible Java major.
+        --[no-]dry-run
+            Resolve and prepare as much as possible, then skip the final build
+            or launch action.
+        --[no-]allow-local-artifact-cache
+            Allow bootstrapping missing artifacts from local .m2 or Gradle
+            module caches.
+        --artifact-sources <PATHBUF> [Default: `list[0]`]
+            Explicit local artifact sources, such as Maven repository roots,
+            project roots, or build/libs directories.
+            aliases: artifact-source
+        --[no-]require-portable-artifacts
+            Fail if any locked artifact depends on local-only or unknown
+            provenance.
+        --error-action <bail,continue> [Default: `bail`]
+            Failure behavior for multi-target selectors: `bail` or `continue`.
+        --parallel[=<USIZE>]
+            Run matching targets in parallel. Bare `--parallel` defaults to 10.
+        --[no-]wait-for-build-lock
+            Wait for another SFM build/run using the same projection cache
+            instead of failing fast.
+        --output-name <STRING>
+            Create-only .jar filename in one projection's existing build/libs
+            directory; existing outputs are refused.

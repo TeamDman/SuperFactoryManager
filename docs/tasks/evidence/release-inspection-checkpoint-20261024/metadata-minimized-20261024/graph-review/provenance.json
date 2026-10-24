@@ -1,0 +1,27 @@
+{
+  "scope": "scratch-only native-parser analysis; no external metadata admission or aggregate execution",
+  "productionHead": "704ddb5485173093cad42c07975fa5aabfc247ed",
+  "compiler": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "compileExit": 0,
+  "compileWarnings": "Two existing eyre::bail macro future-incompatibility warnings; no compile errors",
+  "parserSourceSha256": {
+    "/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/src/jar_build/engine_model.rs": "ad9d6213bcf50c7e626abe7a840d6a51c169ad84aad09acb89e2ef5637de4cfc",
+    "/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/src/jar_build/maven_pom_model.rs": "8fdfbd60e8f70a94ef370f36939d5e375228fa01be21a16f4e970023bc697f11",
+    "/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/src/jar_build/maven_pom_dependency.rs": "d9139f5224fe2bf62a8aa73a00720fd3aed5db1aaf072dcf3abc07994a28488c",
+    "/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/src/jar_build/maven_pom_resolution.rs": "939fa3ce83d1965d56b2074cc346de0c25a14fc90b5283778bb4c04bd45e8b37",
+    "/workspace/SuperFactoryManager/platform/cli/sfm-propagate-changes/src/jar_build/xml_node.rs": "05f26ad39d39b336e39e46ed86033b08856572e779e2cd5c27ae45c38404a48d"
+  },
+  "harnessAndResultSha256": {
+    "native_graph.rs": "7a8dec473702623b35be48e3648db72ea23d9591fa832fed70d499eb021aba17",
+    "coordinate.rs": "e46839551afab7da1215d609416165c088c59fbf4ebd3f2b62af928b082ba1e0",
+    "prepare_inputs.py": "d8b720a51382053f8b55b2c3c5fe671fa4b6fd66280d18f9fb3daaa611748466",
+    "verify_graph.py": "105c956bc4ee2184d13ff2cb55c86548a0498da3dd3a942da159860946e0266d",
+    "inputs.json": "49cd5a4737a6aafd42e7fb0306becfbc1973641f8e81d949b75b322e9a3eef24",
+    "candidate-graph.json": "7f2f0d8dd54825edfe61df731b97f5ff3088598b4c1a03add07ca4c27ec4a13f",
+    "verification.json": "46bb4098350da8f4643368d30305564950c230f4ed7dc0d1635288bda2d6a9e3"
+  },
+  "nativeBinarySha256": "e9b1d3c1fe1137130230c772fd108f0fa6f3a35f56af0f44e59120794b3536c0",
+  "liveCatalogSha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd",
+  "lockSha256": "41199e442df2850a6c1b63f19d54043371ce1ea6eaa7724501950b5fe0d538a8",
+  "sourcesRecheckedAfterLeaveOneOut": true
+}
