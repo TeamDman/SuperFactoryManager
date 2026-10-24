@@ -88,9 +88,24 @@ fn write_locator(path: &Path, receipt: &RuntimeSessionReceipt) -> eyre::Result<(
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("session locator has no parent"))?;
+    #[cfg(windows)]
+    let (parent, path) = {
+        let canonical = fs::canonicalize(parent)?;
+        ensure!(
+            super::build_snapshot_receipt::same_path_spelling(parent, &canonical),
+            "session locator directory spelling changed"
+        );
+        let name = path
+            .file_name()
+            .ok_or_else(|| eyre::eyre!("session locator has no filename"))?;
+        let target = canonical.join(name);
+        (canonical, target)
+    };
+    #[cfg(not(windows))]
+    let path = path.to_path_buf();
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
     temporary.write_all(facet_json::to_string_pretty(receipt)?.as_bytes())?;
-    temporary.persist(path).map_err(|error| error.error)?;
+    temporary.persist(&path).map_err(|error| error.error)?;
     Ok(())
 }
 
@@ -99,6 +114,42 @@ mod tests {
     use super::*;
     use crate::artifact_lock::ArtifactLock;
     use crate::jdk::ResolvedJava;
+
+    #[cfg(windows)]
+    #[test]
+    fn long_windows_latest_session_locator_is_replaced_atomically() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let padding = 245usize
+            .checked_sub(temporary.path().as_os_str().len() + 1)
+            .expect("fixture root must fit below the Windows legacy limit");
+        let parent = temporary.path().join("x".repeat(padding));
+        fs::create_dir(&parent)?;
+        let path = parent.join("latest-session.json");
+        assert!(path.as_os_str().len() > 260);
+        let mut receipt = RuntimeSessionReceipt {
+            schema: "sfm:runtime-session@1".to_owned(),
+            session_id: "session-fixture".to_owned(),
+            minecraft_dir: temporary.path().to_path_buf(),
+            session_dir: temporary.path().join("session-fixture"),
+            runtime_slot: 1,
+            owner_id: "fixture".to_owned(),
+            owner_lease: temporary.path().join("owner.lease"),
+            snapshot_receipt: temporary.path().join("snapshot.json"),
+            java_major: 21,
+            sdk_identity: "fixture".to_owned(),
+            active_roots: vec!["classes".to_owned()],
+            run_kind: "runGameTestServer".to_owned(),
+            jdwp_port: None,
+            active: true,
+        };
+        write_locator(&path, &receipt)?;
+        let readable = fs::canonicalize(&parent)?.join("latest-session.json");
+        assert_eq!(fs::read(&readable)?, facet_json::to_string_pretty(&receipt)?.as_bytes());
+        receipt.active = false;
+        write_locator(&path, &receipt)?;
+        assert_eq!(fs::read(&readable)?, facet_json::to_string_pretty(&receipt)?.as_bytes());
+        Ok(())
+    }
 
     #[test]
     fn live_session_keeps_its_code_and_game_data_while_another_candidate_is_built()
