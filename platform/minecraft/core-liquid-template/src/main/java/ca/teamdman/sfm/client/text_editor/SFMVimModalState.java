@@ -7,6 +7,20 @@ import java.util.Objects;
 /** Small Vim-style command subset; this is not a Neovim engine or compatibility layer. */
 public final class SFMVimModalState {
     public enum Mode { NORMAL, INSERT }
+    public enum HistoryShortcut { NONE, UNDO, REDO }
+
+    /** Only unmodified Ctrl shortcuts own history; AltGr and platform shortcuts must not undo text. */
+    public static HistoryShortcut historyShortcut(
+            char command, boolean control, boolean shift, boolean alt, boolean superKey
+    ) {
+        if (!control || shift || alt || superKey) return HistoryShortcut.NONE;
+        return switch (command) {
+            case 'z' -> HistoryShortcut.UNDO;
+            case 'r' -> HistoryShortcut.REDO;
+            default -> HistoryShortcut.NONE;
+        };
+    }
+
     public record Snapshot(String text, int cursor) {
         public Snapshot {
             Objects.requireNonNull(text);
@@ -33,6 +47,7 @@ public final class SFMVimModalState {
     public Snapshot snapshot() { return current; }
     public Mode mode() { return mode; }
     public boolean pendingDelete() { return pendingDelete; }
+    public void cancelPendingCommand() { pendingDelete = false; }
 
     /** Accept native widget edits verbatim. One Insert session is one undo step. */
     public void acceptWidgetValue(String text, int cursor) {
@@ -41,7 +56,10 @@ public final class SFMVimModalState {
             if (!current.text().equals(text)) recordChange(current);
             next = normal(next);
         }
-        if (current.cursor() != next.cursor()) desiredColumn = -1;
+        if (current.cursor() != next.cursor() || !current.text().equals(next.text())) {
+            desiredColumn = -1;
+            pendingDelete = false;
+        }
         current = next;
     }
 

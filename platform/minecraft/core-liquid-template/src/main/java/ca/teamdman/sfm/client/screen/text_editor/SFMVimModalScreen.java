@@ -64,17 +64,22 @@ public final class SFMVimModalScreen extends SFMTextEditScreenV1 {
             restoreWidget();
             return true;
         }
-        if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0
-                && (key == GLFW.GLFW_KEY_R || key == GLFW.GLFW_KEY_Z)) {
+        char historyKey = key == GLFW.GLFW_KEY_R ? 'r' : key == GLFW.GLFW_KEY_Z ? 'z' : '\0';
+        var history = SFMVimModalState.historyShortcut(historyKey,
+                (modifiers & GLFW.GLFW_MOD_CONTROL) != 0,
+                (modifiers & GLFW.GLFW_MOD_SHIFT) != 0,
+                (modifiers & GLFW.GLFW_MOD_ALT) != 0,
+                (modifiers & GLFW.GLFW_MOD_SUPER) != 0);
+        if (history != SFMVimModalState.HistoryShortcut.NONE) {
             if (!openContext().readOnly()) {
-                if (key == GLFW.GLFW_KEY_R) modal.redo();
+                if (history == SFMVimModalState.HistoryShortcut.REDO) modal.redo();
                 else modal.undo();
                 restoreWidget();
             }
             return true;
         }
         if (isSaveAndCloseShortcut(key, modifiers)) {
-            if (!openContext().readOnly()) saveAndClose();
+            saveAndClose();
             return true;
         }
         if (modal.mode() == SFMVimModalState.Mode.INSERT) {
@@ -82,6 +87,10 @@ public final class SFMVimModalScreen extends SFMTextEditScreenV1 {
             boolean handled = super.keyPressed(key, scanCode, modifiers);
             captureWidget();
             return handled;
+        }
+        if (key >= GLFW.GLFW_KEY_ESCAPE
+                || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
+            modal.cancelPendingCommand();
         }
         char motion = switch (key) {
             case GLFW.GLFW_KEY_LEFT -> 'h';
@@ -101,6 +110,12 @@ public final class SFMVimModalScreen extends SFMTextEditScreenV1 {
         // Printable normal commands arrive through charTyped, once per character.
         // Suppress native paste/delete/tab/completion edits in Normal mode.
         return true;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        modal.cancelPendingCommand();
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

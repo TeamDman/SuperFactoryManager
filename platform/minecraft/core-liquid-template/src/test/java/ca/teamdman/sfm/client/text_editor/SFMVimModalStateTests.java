@@ -163,4 +163,84 @@ class SFMVimModalStateTests {
         assertEquals(SFMVimModalState.Mode.NORMAL, editor.mode());
         editor.redo(); assertEquals("hello", editor.snapshot().text());
     }
+    @Test
+    void externalCursorMoveOrReplacementCancelsPendingDelete() {
+        var editor = new SFMVimModalState("first\nsecond");
+        commands(editor, "d");
+        editor.acceptWidgetValue("first\nsecond", 6);
+        assertFalse(editor.pendingDelete());
+        commands(editor, "d");
+        assertEquals("first\nsecond", editor.snapshot().text());
+        assertTrue(editor.pendingDelete(), "The next d begins a new command, not a stale dd");
+        editor.acceptWidgetValue("changed\nsecond", 6);
+        assertFalse(editor.pendingDelete());
+        editor.undo();
+        assertEquals("first\nsecond", editor.snapshot().text());
+    }
+
+    @Test
+    void unsupportedNonTextInputCancelsPendingDeleteWithoutChangingModeTextOrHistory() {
+        var editor = new SFMVimModalState("keep me");
+        commands(editor, "d");
+        editor.cancelPendingCommand();
+        commands(editor, "d");
+        assertEquals("keep me", editor.snapshot().text());
+        assertTrue(editor.pendingDelete());
+        editor.cancelPendingCommand();
+        editor.undo();
+        assertEquals("keep me", editor.snapshot().text());
+        assertEquals(SFMVimModalState.Mode.NORMAL, editor.mode());
+    }
+
+    @Test
+    void unchangedWidgetCaptureDoesNotCancelPendingDeleteOrDesiredColumn() {
+        var editor = new SFMVimModalState("abcdef\nx\nabcdef");
+        commands(editor, "llllj");
+        editor.acceptWidgetValue(editor.snapshot().text(), editor.snapshot().cursor());
+        commands(editor, "j");
+        assertEquals(13, editor.snapshot().cursor());
+        commands(editor, "d");
+        editor.acceptWidgetValue(editor.snapshot().text(), editor.snapshot().cursor());
+        commands(editor, "d");
+        assertEquals("abcdef\nx", editor.snapshot().text());
+    }
+
+    @Test
+    void historyShortcutRequiresPlainControlAndNeverAcceptsAltGr() {
+        for (int modifiers = 0; modifiers < 16; modifiers++) {
+            boolean control = (modifiers & 1) != 0;
+            boolean shift = (modifiers & 2) != 0;
+            boolean alt = (modifiers & 4) != 0;
+            boolean superKey = (modifiers & 8) != 0;
+            assertEquals(modifiers == 1 ? SFMVimModalState.HistoryShortcut.UNDO : SFMVimModalState.HistoryShortcut.NONE,
+                    SFMVimModalState.historyShortcut('z', control, shift, alt, superKey));
+            assertEquals(modifiers == 1 ? SFMVimModalState.HistoryShortcut.REDO : SFMVimModalState.HistoryShortcut.NONE,
+                    SFMVimModalState.historyShortcut('r', control, shift, alt, superKey));
+            assertEquals(SFMVimModalState.HistoryShortcut.NONE,
+                    SFMVimModalState.historyShortcut('i', control, shift, alt, superKey));
+        }
+    }
+
+    @Test
+    void noOpInsertAfterUndoKeepsRedoButActualInsertionReplacesItsBranch() {
+        var editor = new SFMVimModalState("abc");
+        commands(editor, "x");
+        editor.undo();
+        commands(editor, "i");
+        editor.acceptWidgetValue("abc", 0);
+        editor.escape();
+        editor.redo();
+        assertEquals("bc", editor.snapshot().text());
+        editor.undo();
+        commands(editor, "i");
+        editor.acceptWidgetValue("new abc", 4);
+        editor.escape();
+        editor.redo();
+        assertEquals("new abc", editor.snapshot().text());
+        editor.undo();
+        assertEquals("abc", editor.snapshot().text());
+        editor.redo();
+        assertEquals("new abc", editor.snapshot().text());
+    }
+
 }
