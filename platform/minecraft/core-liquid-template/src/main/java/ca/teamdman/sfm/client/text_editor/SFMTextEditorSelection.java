@@ -6,12 +6,14 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.TreeSet;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** A staged preference, keyed by stable registry IDs. No editor or document is replaced. */
 public final class SFMTextEditorSelection {
     private final Supplier<? extends Collection<String>> registeredIds;
     private final String configuredId;
+    private final Function<String, String> displayName;
     private List<String> available = List.of();
     private List<String> filtered = List.of();
     private String selectedId;
@@ -20,6 +22,15 @@ public final class SFMTextEditorSelection {
     private int pageSize = 1;
 
     public SFMTextEditorSelection(String configuredId, Supplier<? extends Collection<String>> registeredIds) {
+        this(configuredId, registeredIds, Function.identity());
+    }
+
+    public SFMTextEditorSelection(
+            String configuredId,
+            Supplier<? extends Collection<String>> registeredIds,
+            Function<String, String> displayName
+    ) {
+        this.displayName = Objects.requireNonNull(displayName);
         this.configuredId = Objects.requireNonNull(configuredId);
         this.selectedId = configuredId;
         this.registeredIds = Objects.requireNonNull(registeredIds);
@@ -80,7 +91,8 @@ public final class SFMTextEditorSelection {
 
     private void filter() {
         String needle = query.strip().toLowerCase(Locale.ROOT);
-        filtered = available.stream().filter(id -> id.toLowerCase(Locale.ROOT).contains(needle)).toList();
+        filtered = available.stream().filter(id -> id.toLowerCase(Locale.ROOT).contains(needle)
+                || displayName.apply(id).toLowerCase(Locale.ROOT).contains(needle)).toList();
         setPage(page);
     }
 }

@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -28,7 +29,7 @@ public final class SFMTextEditorSelectionScreen extends Screen {
             "gui.sfm.editor_selection.next_open", "Applies to the next editor opened. Your current text stays here.");
     @SFMLocalizationDatagen
     public static final LocalizationEntry SEARCH = new LocalizationEntry(
-            "gui.sfm.editor_selection.search", "Search editor IDs");
+            "gui.sfm.editor_selection.search", "Search editors or IDs");
     @SFMLocalizationDatagen
     public static final LocalizationEntry CURRENT = new LocalizationEntry(
             "gui.sfm.editor_selection.current", "Current: {}");
@@ -51,6 +52,17 @@ public final class SFMTextEditorSelectionScreen extends Screen {
     public static final LocalizationEntry SAVE_FAILED = new LocalizationEntry(
             "gui.sfm.editor_selection.save_failed", "Could not save the editor preference: {}");
 
+    // Saereth's PR #581 established these extension keys for editor display names.
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry V1_NAME = new LocalizationEntry(
+            "gui.sfm.preferred_editor.sfm.v1", "V1 (Default)");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry V2_NAME = new LocalizationEntry(
+            "gui.sfm.preferred_editor.sfm.v2", "V2");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry V3_NAME = new LocalizationEntry(
+            "gui.sfm.preferred_editor.sfm.text_editor_v3", "Text Editor v3");
+
     private final SFMClientTextEditorConfig config;
     private final SFMTextEditorSelection selection;
     private final List<Button> rows = new ArrayList<>();
@@ -65,7 +77,8 @@ public final class SFMTextEditorSelectionScreen extends Screen {
         super(CHOOSE_EDITOR.getComponent());
         this.config = config;
         selection = new SFMTextEditorSelection(config.preferredEditor.get(),
-                () -> SFMTextEditors.registry().keys().stream().map(Object::toString).toList());
+                () -> SFMTextEditors.registry().keys().stream().map(Object::toString).toList(),
+                id -> displayName(id).getString());
     }
 
     @Override
@@ -90,7 +103,7 @@ public final class SFMTextEditorSelectionScreen extends Screen {
             rows.add(addRenderableWidget(new SFMButtonBuilder()
                     .setPosition(left, 86 + index * 22).setSize(contentWidth, 20)
                     .setText(Component.empty())
-                    .setTooltipSupplier(this, font, () -> Component.literal(rowId(row)))
+                    .setTooltipSupplier(this, font, () -> Component.literal(rowLabel(rowId(row))))
                     .setOnPress(button -> {
                         if (selection.select(rowId(row))) diagnostic = null;
                         else diagnostic = STALE.getComponent();
@@ -118,12 +131,23 @@ public final class SFMTextEditorSelectionScreen extends Screen {
         return row < visible.size() ? visible.get(row) : "";
     }
 
+    /** Translation convention from Saereth's PR #581; IDs remain visible and authoritative. */
+    private static Component displayName(String id) {
+        String key = "gui.sfm.preferred_editor." + id.replace(':', '.');
+        return I18n.exists(key) ? Component.translatable(key) : Component.literal(id);
+    }
+
+    private static String rowLabel(String id) {
+        String name = displayName(id).getString();
+        return name.equals(id) ? id : name + " [" + id + "]";
+    }
+
     private void updateRows() {
         for (int index = 0; index < rows.size(); index++) {
             Button button = rows.get(index);
             String id = rowId(index);
             button.visible = !id.isEmpty();
-            String label = id.equals(selection.selectedId()) ? "> " + id : id;
+            String label = (id.equals(selection.selectedId()) ? "> " : "") + rowLabel(id);
             button.setMessage(Component.literal(font.plainSubstrByWidth(label, button.getWidth() - 12)));
         }
         if (previous != null) previous.active = selection.page() > 0;
