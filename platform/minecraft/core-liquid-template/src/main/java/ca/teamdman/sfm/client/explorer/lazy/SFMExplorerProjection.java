@@ -302,10 +302,18 @@ public final class SFMExplorerProjection {
                                  SFMChildRelationRepository.Snapshot relations,
                                  Map<SFMPath, SFMExplorerEntry> entries,
                                  Map<SFMPath, SFMExplorerEntryMatch> preparedMatches) {
+        return project(session, relations, entries, preparedMatches, () -> false);
+    }
+
+    public static Result project(SFMExplorerSession.Snapshot session,
+                                 SFMChildRelationRepository.Snapshot relations,
+                                 Map<SFMPath, SFMExplorerEntry> entries,
+                                 Map<SFMPath, SFMExplorerEntryMatch> preparedMatches,
+                                 java.util.function.BooleanSupplier cancelled) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(relations, "relations");
         Objects.requireNonNull(entries, "entries");
-        Projection projection = new Projection(session, relations, entries, preparedMatches);
+        Projection projection = new Projection(session, relations, entries, preparedMatches, cancelled);
         return projection.project();
     }
 
@@ -329,18 +337,22 @@ public final class SFMExplorerProjection {
         private boolean matchingIncomplete;
         private final Map<SFMPath, MatchEvidence> matchEvidence = new HashMap<>();
         private final Map<SFMPath, SFMExplorerEntryMatch> preparedMatches;
-        private final ca.teamdman.sfm.client.search.SFMMatchBudget matchBudget = new ca.teamdman.sfm.client.search.SFMMatchBudget(1_000_000);
+        private final ca.teamdman.sfm.client.search.SFMMatchBudget matchBudget;
+        private final java.util.function.BooleanSupplier cancelled;
 
         private Projection(
                 SFMExplorerSession.Snapshot session,
                 SFMChildRelationRepository.Snapshot relations,
                 Map<SFMPath, SFMExplorerEntry> entries,
-                Map<SFMPath, SFMExplorerEntryMatch> preparedMatches
+                Map<SFMPath, SFMExplorerEntryMatch> preparedMatches,
+                java.util.function.BooleanSupplier cancelled
         ) {
             this.session = session;
             this.relations = relations;
             this.entries = entries;
             this.preparedMatches = Objects.requireNonNull(preparedMatches);
+            this.cancelled = Objects.requireNonNull(cancelled);
+            this.matchBudget = new ca.teamdman.sfm.client.search.SFMMatchBudget(1_000_000, cancelled);
             this.childrenByParent = indexChildren(relations.relation().edges());
         }
 
@@ -349,6 +361,7 @@ public final class SFMExplorerProjection {
         }
 
         private Result project() {
+            checkCancelled();
             List<SFMPath> roots = orderedRoots();
             boolean showRoots = session.settings().hoist() == Hoist.SHOW_ROOTS
                     || roots.size() != 1
@@ -414,8 +427,10 @@ public final class SFMExplorerProjection {
             if (session.settings().group() == Group.NONE) {
                 candidates.stream()
                         .filter(MaterializedNode::matches)
-                        .sorted(Comparator
-                                .comparingDouble((MaterializedNode node) -> node.directScore())
+                        .sorted(preserveTreeOrder() ? Comparator.comparingInt((MaterializedNode node) ->
+                                        node.row().root() ? roots.indexOf(node.row().path()) : roots.size())
+                                .thenComparing(node -> node.row().path(), comparator())
+                                : Comparator.comparingDouble((MaterializedNode node) -> node.directScore())
                                 .thenComparing(node -> node.row().path().canonical()))
                         .map(this::flatFilteredRow)
                         .forEach(rows::add);
@@ -456,6 +471,7 @@ public final class SFMExplorerProjection {
                 return;
             }
             for (SFMPath child : sorted(childrenOf(parent))) {
+                checkCancelled();
                 if (ancestry.contains(child)) {
                     diagnostics.add("cycle suppressed below " + parent.canonical()
                             + " through " + child.canonical());
@@ -480,6 +496,7 @@ public final class SFMExplorerProjection {
         }
 
         private float score(MaterializedNode node, SFMTextMatcher matcher) {
+            checkCancelled();
             SFMExplorerEntryMatch match = preparedMatches.get(node.row().path());
             if (match == null) match = SFMExplorerEntryMatch.evaluate(node.row().entry(), matcher, matchBudget);
             if (!match.complete()) {
@@ -503,9 +520,20 @@ public final class SFMExplorerProjection {
         }
 
         private Comparator<MaterializedNode> filteredSubtreeComparator() {
+            // Nodes were captured in normal tree order. Stable sorting with equal keys preserves it.
+            if (preserveTreeOrder()) return (left, right) -> 0;
             return Comparator
                     .comparingDouble((MaterializedNode node) -> node.bestDescendantScore())
                     .thenComparing(node -> node.row().path().canonical());
+        }
+
+        private boolean preserveTreeOrder() {
+            return session.settings().filterOptions().mode() == SFMTextMatchOptions.Mode.NUCLEO;
+        }
+
+        private void checkCancelled() {
+            if (Thread.currentThread().isInterrupted() || cancelled.getAsBoolean())
+                throw new java.util.concurrent.CancellationException("Explorer projection cancelled");
         }
 
         private void emitFilteredHierarchy(MaterializedNode node) {

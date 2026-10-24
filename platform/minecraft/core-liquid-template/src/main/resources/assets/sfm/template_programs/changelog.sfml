@@ -16,6 +16,10 @@ NAME "Changelog"
 -- Expand strategies, file pairs and source/structured/instruction representations with retained provenance.
 -- Explorer pointer selection preserves scroll; external reveal and keyboard navigation may scroll.
 {% endif %}
+{% if features.explorer_search %}
+-- Explorer: add an optional Nucleo fuzzy mode with Unicode highlights, background filtering and preserved tree order.
+-- Keep substring, legacy fuzzy, regex and independent highlight controls; Nucleo whole-word matching reports unsupported.
+{% endif %}
 {% if features.recipe_namespace %}
 
 ---- 4.35.0 ----

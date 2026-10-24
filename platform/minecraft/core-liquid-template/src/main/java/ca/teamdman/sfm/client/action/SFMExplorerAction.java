@@ -162,6 +162,7 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                             builder.suggest("literal");
                             builder.suggest("fuzzy");
                             builder.suggest("regex");
+                            builder.suggest("nucleo");
                             return builder.buildFuture();
                         })
                         .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("match_case", BoolArgumentType.bool())
@@ -316,7 +317,8 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
             case "literal" -> SFMTextMatchOptions.Mode.LITERAL;
             case "fuzzy" -> SFMTextMatchOptions.Mode.FUZZY;
             case "regex" -> SFMTextMatchOptions.Mode.REGEX;
-            default -> throw new IllegalArgumentException("Supported match modes: literal, fuzzy, regex");
+            case "nucleo" -> SFMTextMatchOptions.Mode.NUCLEO;
+            default -> throw new IllegalArgumentException("Supported match modes: literal, fuzzy, regex, nucleo");
         };
         return new SFMTextMatchOptions(mode, BoolArgumentType.getBool(context, "match_case"),
                 BoolArgumentType.getBool(context, "whole_word"), BoolArgumentType.getBool(context, "dot_all"));

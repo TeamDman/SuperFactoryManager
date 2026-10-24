@@ -30,6 +30,7 @@ public final class SFMTextMatcher {
     private final int[] queryPoints;
     private final SFMTextMatchOptions options;
     private final SFMRegexPattern regex;
+    private final SFMExplorerNucleoAdapter nucleo;
     private SFMTextMatcher(String query, SFMTextMatchOptions options) {
         this.query = Objects.requireNonNull(query);
         this.options = Objects.requireNonNull(options);
@@ -37,6 +38,10 @@ public final class SFMTextMatcher {
         this.queryPoints = query.codePoints().toArray();
         if (queryPoints.length > MAX_QUERY_CODEPOINTS) throw new LimitExceeded("Query exceeds code-point limit");
         regex = options.mode() == SFMTextMatchOptions.Mode.REGEX ? new SFMRegexPattern(query, options) : null;
+        if (options.mode() == SFMTextMatchOptions.Mode.NUCLEO && options.wholeWord())
+            throw new LimitExceeded("Whole-word matching is unavailable in Nucleo mode; turn off W or choose another mode");
+        nucleo = options.mode() == SFMTextMatchOptions.Mode.NUCLEO
+                ? SFMExplorerNucleoAdapter.compile(query, options.matchCase()) : null;
     }
     public static SFMTextMatcher compile(String query, SFMTextMatchOptions options) { return new SFMTextMatcher(query, options); }
     public Match match(String candidate) {
@@ -45,6 +50,15 @@ public final class SFMTextMatcher {
     public Match match(String candidate, SFMMatchBudget budget) {
         Objects.requireNonNull(candidate);
         budget.spend(0); // Do not allocate candidate arrays after a query was cancelled/exhausted.
+        if (nucleo != null) {
+            try {
+                var hit = nucleo.match(candidate, budget::spend);
+                return hit.matches() ? new Match(true, 0, hit.utf16Spans().stream()
+                        .map(span -> new Fragment(span.start(), span.end())).toList(), false) : Match.absent();
+            } catch (IllegalArgumentException failure) {
+                throw new LimitExceeded(failure.getMessage());
+            }
+        }
         if (candidate.length() > MAX_CANDIDATE_CODEPOINTS * 2) throw new LimitExceeded("Candidate is too long");
         int[] points = candidate.codePoints().toArray();
         if (points.length > MAX_CANDIDATE_CODEPOINTS) throw new LimitExceeded("Candidate exceeds code-point limit");

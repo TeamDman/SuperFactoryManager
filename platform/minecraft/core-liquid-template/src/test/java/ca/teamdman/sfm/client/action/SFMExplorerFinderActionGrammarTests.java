@@ -16,7 +16,7 @@ public class SFMExplorerFinderActionGrammarTests {
                 Map.entry(new ResourceLocation("sfm", "explorer/filter/match"), new SFMExplorerAction(SFMExplorerAction.Operation.FILTER_MATCH)),
                 Map.entry(new ResourceLocation("sfm", "explorer/filter/set"), new SFMExplorerAction(SFMExplorerAction.Operation.FILTER_SET))));
         var source = new SFMClientActionSource(SFMClientActionContext.create(new Object(), () -> true));
-        for (String mode : List.of("literal", "fuzzy", "regex")) {
+        for (String mode : List.of("literal", "fuzzy", "regex", "nucleo")) {
             for (String lane : List.of("find", "filter")) {
                 String prefix = "sfm action invoke sfm:explorer/" + lane + "/match focused " + mode;
                 assertTrue(SFMClientActionExecutor.isExecutable(tree.parse(prefix + " false true false MyFile.java", source)));

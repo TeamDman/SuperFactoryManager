@@ -1,3 +1,8 @@
+> Consumer import: this branch retains the reviewed matcher, notices, API and CoreChecks.
+> The full Rust parity harness and original evidence referenced below live on
+> `feature/nucleo-java-parity` at `9378a217e254bfd601d8cc47a9b7e8a7839d8084`.
+> Use `scripts/release-inspection/qualify.py` for the local consumer checks.
+
 # Java Nucleo matcher: parity contract and integration handoff
 
 This is an optional, dependency-free Java 17 port of Nucleo's **literal fuzzy

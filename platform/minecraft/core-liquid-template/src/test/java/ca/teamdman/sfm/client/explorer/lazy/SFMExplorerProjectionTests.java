@@ -20,6 +20,23 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMExplorerProjectionTests {
+    @Test void nucleoRetainsNormalHierarchyAndFlatOrderingInsteadOfCanonicalPathTies() {
+        var relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(ALPHA, ZETA), 1);
+        var entries = entries(entry(ALPHA, "z_open_open", false, Optional.empty()),
+                entry(ZETA, "a_open", false, Optional.empty()));
+        var session = new SFMExplorerSession(new SFMExplorerId("nucleo-order"), FILE_ROOT, new SFMSelectionRepository());
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleNucleo());
+        for (var group : SFMExplorerProjection.Group.values()) {
+            session.setGroup(group);
+            session.setFilterQuery("");
+            var before = paths(SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries));
+            session.setFilterQuery("open");
+            var after = paths(SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries));
+            assertEquals(List.of(ZETA, ALPHA), before);
+            assertEquals(before, after);
+        }
+    }
     @Test
     void childIndexVisitsEdgesOnceAndQueriesDoNotRescanTheRelation() {
         ArrayList<SFMChildEdge> edges = new ArrayList<>();

@@ -2,8 +2,9 @@ package ca.teamdman.sfm.client.search;
 
 import java.util.List;
 import java.util.Objects;
+import ca.teamdman.sfm.client.search.nucleo.NucleoMatcher;
 
-/** Integration boundary only. No matcher implementation is bundled or selected implicitly. */
+/** Bounded Explorer integration. Native ranking never changes tree order. One matcher per worker. */
 public final class SFMExplorerNucleoAdapter {
     public static final int MAX_QUERY_CODEPOINTS = 1024, MAX_CANDIDATE_CODEPOINTS = 32768, MAX_FRAGMENTS = 4096;
     public static final long MAX_COMPARISONS = 1_000_000;
@@ -27,6 +28,18 @@ public final class SFMExplorerNucleoAdapter {
     }
     private final Compiled matcher;
     private final int queryPoints;
+    public static SFMExplorerNucleoAdapter compile(String query, boolean matchCase) {
+        return new SFMExplorerNucleoAdapter(query, matchCase, (text, respectCase) -> {
+            var nativeMatcher = new NucleoMatcher(text, new NucleoMatcher.Options(
+                    respectCase ? NucleoMatcher.CaseMode.RESPECT : NucleoMatcher.CaseMode.IGNORE,
+                    NucleoMatcher.Normalization.SMART, NucleoMatcher.Boundaries.DEFAULT, false));
+            return candidate -> {
+                var hit = nativeMatcher.match(candidate);
+                return hit == null ? null : new NativeMatch(hit.score(), hit.utf16Spans().stream()
+                        .map(span -> new Span(span.start(), span.end())).toList());
+            };
+        });
+    }
     public SFMExplorerNucleoAdapter(String query, boolean matchCase, Factory factory) {
         Objects.requireNonNull(query, "query");
         if (factory == null) throw new IllegalStateException("Nucleo source/provider is not installed in this projection");

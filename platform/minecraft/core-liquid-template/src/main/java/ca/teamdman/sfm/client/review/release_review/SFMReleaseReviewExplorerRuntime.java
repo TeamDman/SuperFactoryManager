@@ -334,11 +334,12 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             return new ChildSlice(page, end, children.size());
         }
 
-        private synchronized FilterDomain completeFilterDomain(
+        private FilterDomain completeFilterDomain(
                 SFMReleaseReviewV1 review,
                 FilterDomainRequest request
         ) {
-            SFMReviewExplorerModel.Node modelRoot = nodes.get(root);
+            SFMReviewExplorerModel.Node modelRoot;
+            synchronized (this) { modelRoot = nodes.get(root); }
             if (modelRoot == null) throw new IllegalArgumentException("Unknown release-review row " + root);
             ArrayList<SearchNode> directMatches = new ArrayList<>();
             ArrayList<String> matchDiagnostics = new ArrayList<>();
@@ -357,7 +358,8 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
                     matchEvidence,
                     false
             );
-            directMatches.sort(Comparator
+            if (request.options().mode() != ca.teamdman.sfm.client.search.SFMTextMatchOptions.Mode.NUCLEO)
+                directMatches.sort(Comparator
                     .comparingDouble(SearchNode::score)
                     .thenComparing(node -> node.path().canonical()));
             Set<SearchNode> selectedMatches = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
@@ -367,14 +369,15 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             ArrayList<SFMExplorerEntry> publishedEntries = new ArrayList<>();
             ArrayList<SFMChildPage> pages = new ArrayList<>();
             TreeSet<SFMPath> matchedPaths = new TreeSet<>();
-            materializeSearchTree(
+            request.cancellation().throwIfCancelled();
+            synchronized (this) { materializeSearchTree(
                     searchRoot,
                     review,
                     selectedMatches,
                     publishedEntries,
                     pages,
                     matchedPaths
-            );
+            ); }
             boolean complete = directMatches.size() <= request.maximumMatches() && matchDiagnostics.isEmpty();
             var publishedPaths = publishedEntries.stream().map(SFMExplorerEntry::path).collect(java.util.stream.Collectors.toSet());
             matchEvidence.entrySet().removeIf(e -> !publishedPaths.contains(e.getKey())

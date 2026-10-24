@@ -8,6 +8,21 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SFMTextMatcherTests {
+    @Test void nucleoIsExplicitKeepsOriginalSpansAndDoesNotExposeRanking() {
+        var options = SFMTextMatchOptions.defaults().toggleNucleo();
+        var matcher = SFMTextMatcher.compile("😀e", options);
+        assertEquals(List.of(new SFMTextMatcher.Fragment(1, 3), new SFMTextMatcher.Fragment(4, 5)),
+                matcher.match("a😀_é").fragments());
+        assertEquals(0, matcher.match("😀e").score());
+        assertFalse(SFMTextMatcher.compile("papar", options).match("paper").matches());
+        assertTrue(SFMTextMatcher.compile("E", options).match("e").matches());
+        assertFalse(SFMTextMatcher.compile("E", options.withCase(true)).match("e").matches());
+        assertThrows(SFMTextMatcher.LimitExceeded.class,
+                () -> SFMTextMatcher.compile("e", options.withWholeWord(true)));
+        assertThrows(SFMTextMatcher.LimitExceeded.class, () -> matcher.match("\ud800"));
+        assertThrows(java.util.concurrent.CancellationException.class,
+                () -> matcher.match("😀e", new SFMMatchBudget(1000, () -> true)));
+    }
     @Test void literalDefaultDoesNotInventSimilarFilenameMatches() {
         String query = "ExploreReviewInteractivelyPuppetAction.java";
         var literal = SFMTextMatcher.compile(query, SFMTextMatchOptions.defaults());

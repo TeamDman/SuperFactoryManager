@@ -135,42 +135,35 @@ and after, Ctrl-select two inputs, Show diff, change representations, then use e
 Reveal to verify intentional scrolling. Test a long diff and a long strategy separately.
 Do not report this checklist as passed until the real client has executed it.
 
-## Nucleo integration boundary
+## Nucleo integration
 
-A separate matcher task owns Nucleo parity. Current Explorer already has literal,
-legacy fuzzy (`~`) and regex, with independent filter and highlight options.
-The integration entry points are `SFMExplorerSearchAction.OPTIONS`,
-`SFMExplorerSearchBar`, `SFMTextMatchOptions.Mode`, and `SFMTextMatcher.compile`.
-Do not relabel the legacy fuzzy implementation as Nucleo or silently replace it.
+The optional **N** button selects the reviewed Nucleo matcher. Literal/default,
+legacy fuzzy (`~`), regex, and independent Find/Filter highlight switches remain.
+Nucleo uses RESPECT/IGNORE from the case switch, SMART normalization, DEFAULT
+boundaries and no prefix preference. It matches literal subsequences, not typo edit
+distance or parsed Nucleo query syntax. Whole-word plus Nucleo is explicitly unsupported;
+turn off W or use another mode. It does not silently reinterpret that option.
 
-The required matcher contract is a distinct explicit mode, deterministic match/score
-and sorted non-overlapping UTF-16 fragments in the original candidate, Unicode-safe
-case handling, whole-word policy, and `SFMMatchBudget` cancellation/limit reporting.
-Current `Match.score` sorts lower-first; a Nucleo higher-is-better score needs an explicit
-adapter. Tests must cover astral text, repeated matches, cancellation and no-match versus
-unsupported/limited results. UI tests must preserve the existing substring/regex modes,
-independent filter versus highlight state, selection and scroll across mode switches.
-The Nucleo button wiring is pending actual matcher source and provider binding; no
-Nucleo behavior or parity is claimed here.
+The three matcher sources and all MPL/Unicode notices were imported unchanged from
+verified `feature/nucleo-java-parity` commit `9378a217e254bfd601d8cc47a9b7e8a7839d8084`.
+Production source was authored in `eaf0350b84deae772b01b95d486e8c23546c6bc5`; its Rust
+pin is `8c16d47cdfa9607d3e44df5f81c635c6f43c65ee`. Catalog additions were reconciled
+individually; no baseline catalog or dependency pin was replaced.
 
-The parent has now supplied the API contract. `SFMExplorerNucleoAdapter` is an isolated,
-contract-tested boundary with no provider registered: its Factory must construct
-`NucleoMatcher.Options(RESPECT or IGNORE, SMART, DEFAULT, false)`. Native null means
-absent; returned spans must be ordered original-string UTF-16 boundaries. RowMatch
-deliberately exposes no ranking score. Budget/cancellation are checked before and
-after each bounded provider call; the caller must retain generation/context checks
-before UI publication. Existing substring/fuzzy/regex and filter/highlight behavior
-has not been changed.
+Matching returns original UTF-16 spans. Native scores are excluded from Explorer
+ordering. Hierarchy and flat views preserve their normal order. Materialized Nucleo
+filtering runs on a worker with bounded per-row work and cancellation between rows.
+Publication checks the full roots/options/layout/loader-generation context and closure.
+Compatible prior rows remain while pending; changed roots get a pending placeholder.
+Existing complete-domain and Finder stale-generation guards remain. Compaction scroll
+anchors are deferred until the new layout is accepted and invalidated by user scrolling.
+These are implementation contracts; in-game acceptance remains pending the SDK/build gate.
 
-Minimum transfer prerequisite is the intact source of these three files, including
-their MPL notices and any accompanying notice/catalog entries:
-
-- `ca/teamdman/sfm/client/search/nucleo/NucleoMatcher.java`
-- `ca/teamdman/sfm/client/search/nucleo/NucleoSearch.java`
-- `ca/teamdman/sfm/client/search/nucleo/NucleoUnicode.java`
-
-The handoff names production commit `eaf0350b84deae772b01b95d486e8c23546c6bc5`, reviewed
-checkpoint `9378a217e254bfd601d8cc47a9b7e8a7839d8084`, Rust pin
-`8c16d47cdfa9607d3e44df5f81c635c6f43c65ee`. Those unpublished objects are absent here.
-No real matcher implementation, parity result, optional button or live integration
-is claimed by the adapter tests.
+`NucleoIntegrationProbe` and the imported `CoreChecks` exercise the actual matcher,
+including original spans, case/normalization, limits and cancelled/stale work. The fake
+provider probe remains for malformed-provider cases. Add `--codec-jar` to the qualification
+command to compile and run the production common matcher, legacy modes, field highlights,
+normal projection ordering and partial-budget evidence. This requires the already-declared
+Minecraft Commons Codec dependency, not a new dependency or version upgrade. No downloads
+are performed by the qualification script. Fresh full Rust parity is owned by the matcher
+branch; local binding checks are not described as a new parity run.

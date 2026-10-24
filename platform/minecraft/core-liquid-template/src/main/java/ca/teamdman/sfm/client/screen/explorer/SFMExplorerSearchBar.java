@@ -12,18 +12,18 @@ final class SFMExplorerSearchBar {
     record Button(String option, String label, SFMExplorerPanelViewport.Rect bounds) { }
     record Layout(SFMExplorerPanelViewport.Rect input, List<Button> buttons) { }
     static Layout layout(SFMExplorerPanelViewport.Rect row) {
-        int count = row.width() >= 210 ? 7 : row.width() >= 80 ? 1 : 0;
+        int count = row.width() >= 226 ? 8 : row.width() >= 80 ? 1 : 0;
         int inputWidth = Math.max(0, row.width() - count * 16);
         var buttons = new ArrayList<Button>();
         for (int i = 0; i < count; i++) {
 {% if features.client_actions and features.workspace_panel_actions %}
-            String option = count == 1 || i == 6 ? "menu" : SFMExplorerSearchAction.OPTIONS.get(i);
+            String option = count == 1 || i == 7 ? "menu" : SFMExplorerSearchAction.OPTIONS.get(i);
 {% else %}
-            String option = count == 1 || i == 6 ? "menu" : List.of("case", "whole-word", "regex", "fuzzy", "dot-all", "highlight").get(i);
+            String option = count == 1 || i == 7 ? "menu" : List.of("case", "whole-word", "regex", "fuzzy", "nucleo", "dot-all", "highlight").get(i);
 {% endif %}
             String label = switch (option) {
                 case "case" -> "Aa"; case "whole-word" -> "W"; case "regex" -> ".*";
-                case "fuzzy" -> "~"; case "dot-all" -> "S"; case "highlight" -> "H"; default -> "…";
+                case "fuzzy" -> "~"; case "nucleo" -> "N"; case "dot-all" -> "S"; case "highlight" -> "H"; default -> "…";
             };
             buttons.add(new Button(option, label, new SFMExplorerPanelViewport.Rect(
                     row.x() + inputWidth + i * 16, row.y(), 16, row.height())));
@@ -35,6 +35,7 @@ final class SFMExplorerSearchBar {
             case "case" -> options.matchCase(); case "whole-word" -> options.wholeWord();
             case "regex" -> options.mode() == SFMTextMatchOptions.Mode.REGEX;
             case "fuzzy" -> options.mode() == SFMTextMatchOptions.Mode.FUZZY;
+            case "nucleo" -> options.mode() == SFMTextMatchOptions.Mode.NUCLEO;
             case "dot-all" -> options.dotAll(); case "highlight" -> highlight; default -> false;
         };
     }

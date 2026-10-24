@@ -58,6 +58,9 @@ public final class SFMExplorerSearchText {
     public static final LocalizationEntry FUZZY = new LocalizationEntry(
             "gui.sfm.explorer.search.fuzzy", "Fuzzy matching (Alt+F)");
     @SFMLocalizationDatagen
+    public static final LocalizationEntry NUCLEO = new LocalizationEntry(
+            "gui.sfm.explorer.search.nucleo", "Nucleo fuzzy matching (literal subsequence; whole-word unavailable)");
+    @SFMLocalizationDatagen
     public static final LocalizationEntry DOT_ALL = new LocalizationEntry(
             "gui.sfm.explorer.search.dot_all", "Dot-all (dot includes line breaks)");
     @SFMLocalizationDatagen
@@ -96,6 +99,9 @@ public final class SFMExplorerSearchText {
     @SFMLocalizationDatagen
     public static final LocalizationEntry MODE_FUZZY = new LocalizationEntry(
             "gui.sfm.explorer.search.mode_fuzzy", "fuzzy");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MODE_NUCLEO = new LocalizationEntry(
+            "gui.sfm.explorer.search.mode_nucleo", "Nucleo fuzzy");
     @SFMLocalizationDatagen
     public static final LocalizationEntry ACTION_FOCUS = new LocalizationEntry(
             "gui.sfm.explorer.search.action_focus", "Focus Explorer search");
@@ -238,14 +244,14 @@ public final class SFMExplorerSearchText {
     public static LocalizationEntry option(String option) {
         return switch (option) {
             case "case" -> CASE; case "whole-word" -> WHOLE_WORD; case "regex" -> REGEX;
-            case "fuzzy" -> FUZZY; case "dot-all" -> DOT_ALL; case "highlight" -> HIGHLIGHT;
+            case "fuzzy" -> FUZZY; case "nucleo" -> NUCLEO; case "dot-all" -> DOT_ALL; case "highlight" -> HIGHLIGHT;
             default -> throw new IllegalArgumentException("Unknown search option: " + option);
         };
     }
 
     public static String mode(SFMTextMatchOptions options) {
         return value(switch (options.mode()) {
-            case LITERAL -> LITERAL; case REGEX -> MODE_REGEX; case FUZZY -> MODE_FUZZY;
+            case LITERAL -> LITERAL; case REGEX -> MODE_REGEX; case FUZZY -> MODE_FUZZY; case NUCLEO -> MODE_NUCLEO;
         });
     }
     private SFMExplorerSearchText() { }

@@ -492,6 +492,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public void closed() {
         if (closed) return;
         closed = true;
+        model.close();
         scrollbarDragging = false;
         panelContext = null;
 {% if features.explorer_search %}
@@ -2223,6 +2224,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             case "whole-word" -> before.withWholeWord(!before.wholeWord());
             case "regex" -> before.toggleRegex();
             case "fuzzy" -> before.toggleFuzzy();
+            case "nucleo" -> before.toggleNucleo();
             case "dot-all" -> {
                 if (before.mode() != SFMTextMatchOptions.Mode.REGEX)
                     throw new IllegalArgumentException("Dot-all applies only in Regex mode");

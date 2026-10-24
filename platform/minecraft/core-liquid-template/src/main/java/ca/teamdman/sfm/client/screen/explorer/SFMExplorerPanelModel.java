@@ -136,6 +136,12 @@ public final class SFMExplorerPanelModel {
     private ProjectionCacheKey cachedProjectionKey;
     private SFMExplorerProjection.Result cachedProjection;
     private SFMChildRelationRepository.Snapshot cachedRelations;
+    private final ca.teamdman.sfm.client.search.SFMLatestSearchTask<ProjectionCacheKey, BackgroundProjection> searchTask;
+    private record BackgroundProjection(SFMExplorerProjection.Result result, SFMChildRelationRepository.Snapshot relations) { }
+{% if features.explorer_compaction %}
+    private record PendingAnchor(ProjectionCacheKey key, SFMExplorerScrollAnchor anchor, int scroll) { }
+    private PendingAnchor pendingAnchor;
+{% endif %}
     private SFMExplorerProjection.Result cachedInlineLoadingBase;
     private List<SFMExplorerSession.RequestObservation> cachedInlineLoadingRequests = List.of();
     private SFMExplorerProjection.Result cachedInlineLoadingProjection;
@@ -173,31 +179,75 @@ public final class SFMExplorerPanelModel {
             SFMExplorerSemanticActionSink actionSink,
             int paginationPageSize
     ) {
+        this(session, loader, actionSink, paginationPageSize, java.util.concurrent.ForkJoinPool.commonPool());
+    }
+
+    SFMExplorerPanelModel(SFMExplorerSession session, SFMLazyExplorerLoader loader,
+                         SFMExplorerSemanticActionSink actionSink, int paginationPageSize,
+                         java.util.concurrent.Executor searchExecutor) {
         this.session = Objects.requireNonNull(session, "session");
         this.loader = Objects.requireNonNull(loader, "loader");
         this.actionSink = Objects.requireNonNull(actionSink, "actionSink");
         if (paginationPageSize <= 0) throw new IllegalArgumentException("Pagination page size must be positive");
         this.paginationPageSize = paginationPageSize;
+        this.searchTask = new ca.teamdman.sfm.client.search.SFMLatestSearchTask<>(searchExecutor);
     }
 
     public State state(SFMScreenPanelBounds bounds) {
         SFMExplorerSession.Snapshot sessionSnapshot = session.snapshot();
-        ProjectionCacheKey projectionKey = new ProjectionCacheKey(
-                sessionSnapshot.roots(),
-                sessionSnapshot.manualRootOrder(),
-                sessionSnapshot.expanded(),
-                sessionSnapshot.settings(),
-                loader.projectionGeneration()
-        );
+        ProjectionCacheKey projectionKey = projectionKey(sessionSnapshot);
         SFMChildRelationRepository.Snapshot relationSnapshot;
         SFMExplorerProjection.Result projection;
+        boolean pendingProjection = false;
+        boolean backgroundFilter = !sessionSnapshot.closed() && sessionSnapshot.settings().filterActive()
+                && sessionSnapshot.settings().filterOptions().mode() == ca.teamdman.sfm.client.search.SFMTextMatchOptions.Mode.NUCLEO;
+        boolean domainPending = backgroundFilter && loader.hasPendingFilterDomain(sessionSnapshot.roots(),
+                sessionSnapshot.settings().filterQuery(), sessionSnapshot.settings().filterOptions());
+        if (!backgroundFilter) searchTask.cancel();
         // Check identity before copying/merging a complete filter domain.
-        if (projectionKey.equals(cachedProjectionKey)
+        if (!domainPending && projectionKey.equals(cachedProjectionKey)
                 && cachedProjection != null
                 && cachedRelations != null) {
             relationSnapshot = cachedRelations;
             projection = cachedProjection;
             projectionCacheHits++;
+        } else if (backgroundFilter) {
+            if (domainPending) searchTask.cancel();
+            if (!domainPending && !searchTask.current(projectionKey)) {
+                var capturedSession = sessionSnapshot;
+                var domain = loader.filterProjection(sessionSnapshot.roots(), sessionSnapshot.settings().filterQuery(),
+                        sessionSnapshot.expanded(), sessionSnapshot.settings().filterOptions());
+                var capturedRelations = domain.map(SFMLazyExplorerLoader.FilterProjection::relations).orElseGet(loader::relationSnapshot);
+                var capturedEntries = domain.map(SFMLazyExplorerLoader.FilterProjection::entries).orElseGet(loader::entrySnapshot);
+                searchTask.submit(projectionKey, cancelled -> {
+                    var result = SFMExplorerProjection.project(capturedSession, capturedRelations, capturedEntries,
+                            domain.map(SFMLazyExplorerLoader.FilterProjection::matchEvidence).orElse(Map.of()), cancelled);
+                    if (domain.isPresent()) result = result.withDomainEvidence(domain.get().complete(), domain.get().diagnostics());
+                    return new BackgroundProjection(result, capturedRelations);
+                });
+            }
+            // Read only the result for the complete current context on the UI thread.
+            var ready = searchTask.result(projectionKey);
+            var publicationSnapshot = session.snapshot();
+            if (ready.isPresent() && ready.get().value() != null && !publicationSnapshot.closed()
+                    && projectionKey.equals(projectionKey(publicationSnapshot))) {
+                projection = ready.get().value().result();
+                relationSnapshot = ready.get().value().relations();
+                cachedProjectionKey = projectionKey;
+                cachedProjection = projection;
+                cachedRelations = relationSnapshot;
+                projectionBuilds++;
+            } else {
+                pendingProjection = true;
+                boolean compatibleRoots = cachedProjectionKey != null && cachedProjectionKey.roots().equals(sessionSnapshot.roots());
+                relationSnapshot = compatibleRoots && cachedRelations != null ? cachedRelations : loader.relationSnapshot();
+                String diagnostic = ready.isPresent() ? "Nucleo search unavailable: " + ready.get().failure()
+                        : domainPending ? "Nucleo complete-domain search pending" : "Nucleo search pending";
+                projection = compatibleRoots && cachedProjection != null ? cachedProjection.withDomainEvidence(false, List.of(diagnostic))
+                        : new SFMExplorerProjection.Result(sessionSnapshot.settings(), relationSnapshot.relation().id(),
+                        List.of(), List.of(diagnostic), new SFMExplorerProjection.FilterEvidence(
+                        sessionSnapshot.settings().filterQuery(), 0, 0, 0, 0, true));
+            }
         } else {
             Optional<SFMLazyExplorerLoader.FilterProjection> filterProjection =
                     sessionSnapshot.settings().filterActive()
@@ -246,7 +296,7 @@ public final class SFMExplorerPanelModel {
                 sessionSnapshot,
                 session.activeRequestEvidence()
         );
-        retainOrChooseSelection(sessionSnapshot, projection);
+        if (!pendingProjection) retainOrChooseSelection(sessionSnapshot, projection);
         sessionSnapshot = session.snapshot();
         SFMExplorerPanelViewport.Snapshot viewport = SFMExplorerPanelViewport.calculate(
                 bounds,
@@ -255,7 +305,21 @@ public final class SFMExplorerPanelModel {
                 sessionSnapshot.scrollOffset(),
                 toolbarHeight.getAsInt(), findVisible, searchRowsVisible.getAsBoolean()
         );
-        if (!projection.filter().active()
+{% if features.explorer_compaction %}
+        if (pendingAnchor != null) {
+            if (!pendingAnchor.key().equals(projectionKey) || pendingAnchor.scroll() != sessionSnapshot.scrollOffset()) {
+                pendingAnchor = null;
+            } else if (!pendingProjection) {
+                session.setScrollOffset(Math.min(viewport.maximumScrollRow(),
+                        pendingAnchor.anchor().restore(projection.rows(), viewport.columns())));
+                pendingAnchor = null;
+                sessionSnapshot = session.snapshot();
+                viewport = SFMExplorerPanelViewport.calculate(bounds, projection.settings().view(), projection.rows(),
+                        sessionSnapshot.scrollOffset(), toolbarHeight.getAsInt(), findVisible, searchRowsVisible.getAsBoolean());
+            }
+        }
+{% endif %}
+        if (!pendingProjection && !projection.filter().active()
                 && viewport.scrollRow() != sessionSnapshot.scrollOffset()) {
             session.setScrollOffset(viewport.scrollRow());
             sessionSnapshot = session.snapshot();
@@ -263,8 +327,15 @@ public final class SFMExplorerPanelModel {
         State state = new State(sessionSnapshot, projection, viewport);
         latestProjectionRows = projection.rows().size();
         latestViewportCells = viewport.cells().size();
-        if (!projection.filter().active()) requestNextPageNearViewport(state, relationSnapshot);
+        if (!pendingProjection && !projection.filter().active()) requestNextPageNearViewport(state, relationSnapshot);
         return state;
+    }
+
+    public void close() { searchTask.close(); }
+
+    private ProjectionCacheKey projectionKey(SFMExplorerSession.Snapshot snapshot) {
+        return new ProjectionCacheKey(snapshot.roots(), snapshot.manualRootOrder(), snapshot.expanded(),
+                snapshot.settings(), loader.projectionGeneration());
     }
 
     public void select(SFMPath path, SFMScreenPanelBounds bounds) {
@@ -281,6 +352,9 @@ public final class SFMExplorerPanelModel {
     }
 
     private void select(SFMPath path, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture, boolean reveal) {
+{% if features.explorer_compaction %}
+        pendingAnchor = null;
+{% endif %}
         Objects.requireNonNull(path, "path");
         State state = state(bounds);
         int index = indexOf(state.projection().rows(), path);
@@ -345,6 +419,12 @@ public final class SFMExplorerPanelModel {
         for (var row : before.projection().rows()) for (int i = 0; i + 1 < row.segments().size(); i++)
             if (!options.allows(row.segments().get(i).path())) session.expand(row.segments().get(i).path());
         session.setSettings(session.snapshot().settings().withCompaction(options));
+        if (session.snapshot().settings().filterActive()
+                && session.snapshot().settings().filterOptions().mode() == ca.teamdman.sfm.client.search.SFMTextMatchOptions.Mode.NUCLEO) {
+            pendingAnchor = new PendingAnchor(projectionKey(session.snapshot()), anchor, session.snapshot().scrollOffset());
+            state(bounds); // The anchor is applied only when this context's new layout is accepted.
+            return;
+        }
         var after = state(bounds);
         session.setScrollOffset(Math.min(after.viewport().maximumScrollRow(),
                 anchor.restore(after.projection().rows(), after.viewport().columns())));
@@ -352,6 +432,9 @@ public final class SFMExplorerPanelModel {
 
 {% endif %}
     public synchronized ScrollTrace scrollRows(int delta, SFMScreenPanelBounds bounds) {
+{% if features.explorer_compaction %}
+        pendingAnchor = null;
+{% endif %}
         long callbackNanoTime = System.nanoTime();
         State state = state(bounds);
         int before = state.viewport().scrollRow();

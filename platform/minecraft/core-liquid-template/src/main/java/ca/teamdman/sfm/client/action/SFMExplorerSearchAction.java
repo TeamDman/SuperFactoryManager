@@ -41,7 +41,7 @@ public final class SFMExplorerSearchAction {
     }
 {% if features.explorer_search %}
     public static final List<String> FIELDS = List.of("find", "filter", "focused");
-    public static final List<String> OPTIONS = List.of("case", "whole-word", "regex", "fuzzy", "dot-all", "highlight");
+    public static final List<String> OPTIONS = List.of("case", "whole-word", "regex", "fuzzy", "nucleo", "dot-all", "highlight");
     public static final List<String> MOVES = List.of("next", "previous", "next-wrapping", "previous-wrapping");
 {% endif %}
     public record Target(SFMClientActionContext context, SFMScreenMultiplexer workspace,

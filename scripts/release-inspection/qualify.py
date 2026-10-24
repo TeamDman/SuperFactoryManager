@@ -13,6 +13,7 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--cli', type=Path, required=True)
 p.add_argument('--java-home', type=Path, required=True)
 p.add_argument('--gson-jar', type=Path, required=True, help='Existing Gson classpath; never downloaded')
+p.add_argument('--codec-jar', type=Path, help='Existing Minecraft-pinned Commons Codec for full production matcher/projection checks')
 p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
@@ -34,9 +35,12 @@ run([sys.executable, scripts/'verify.py', '--cli', a.cli.resolve(), '--java-home
 checks.append('native/JAR/source regressions including method identity and exact base64 evidence')
 source = repo / 'platform/minecraft/projections/sfm-dev/mc-1.19.2/src/main/java'
 classes = out / 'java-classes'; classes.mkdir()
-run([java/'bin/javac', '-proc:none', '-cp', a.gson_jar.resolve(), '-sourcepath', source,
-     '-d', classes, scripts/'InspectionProbe.java', scripts/'QualificationProbe.java', scripts/'NucleoAdapterProbe.java', scripts/'DecorationProbe.java'], 'compile')
-classpath = str(classes) + os.pathsep + str(a.gson_jar.resolve())
+dependencies = str(a.gson_jar.resolve()) + (os.pathsep + str(a.codec_jar.resolve()) if a.codec_jar else '')
+extra = [scripts/'NucleoProjectionProbe.java'] if a.codec_jar else []
+run([java/'bin/javac', '-proc:none', '-cp', dependencies, '-sourcepath', source,
+     '-d', classes, scripts/'InspectionProbe.java', scripts/'QualificationProbe.java', scripts/'NucleoAdapterProbe.java',
+     scripts/'NucleoIntegrationProbe.java', scripts/'DecorationProbe.java', repo/'scripts/nucleo-parity/CoreChecks.java', *extra], 'compile')
+classpath = str(classes) + os.pathsep + dependencies
 run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'InspectionProbe', out/'fixtures/fixture.sfm-inspection.json',
      out/'fixtures/missing.sfm-inspection.json'], 'tree')
 run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'QualificationProbe', out/'fixtures/fixture.sfm-inspection.json'], 'strict')
@@ -45,6 +49,12 @@ run([java/'bin/java', '-Xmx128m', '-cp', classpath, 'ca.teamdman.sfm.client.revi
 checks.append('linear coordinate scan: UTF-8/astral/CRLF boundaries and 60001 endpoints')
 run([java/'bin/java', '-Xmx128m', '-cp', classpath, 'NucleoAdapterProbe'], 'nucleo-adapter')
 checks.append('optional Nucleo adapter contract with fake provider only; existing matcher unchanged')
+run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'NucleoIntegrationProbe'], 'nucleo-integration')
+run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'CoreChecks'], 'nucleo-core')
+checks.append('real reviewed Nucleo binding and worker context/cancellation checks; no fresh Rust parity or UI claim')
+if a.codec_jar:
+    run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'NucleoProjectionProbe'], 'nucleo-projection')
+    checks.append('production shared matcher, legacy modes, hierarchy/flat order, field highlights and partial-budget evidence')
 
 valid = out/'valid-capture'; valid.mkdir()
 run([sys.executable, scripts/'classes.py', '--old', out/'fixtures/old.jar', '--new', out/'fixtures/new.jar',
@@ -76,7 +86,8 @@ if hasattr(os, 'mkfifo'):
     linked = out/'linked-workspace.json'; linked.symlink_to(out/'fixtures/fixture.sfm-inspection.json')
     run([java/'bin/java', '-Xmx128m', '-cp', classpath, 'QualificationProbe', '--reject-open', linked], 'symlink')
     checks.append('FIFO and symlink workspace rejected before blocking read')
-summary = dict(result='passed', checks=checks, output=str(out), package=str(out/'replay-inputs.zip'), ui='not run; no screenshot claim')
+summary = dict(result='passed', checks=checks, skipped=[] if a.codec_jar else ['production matcher/projection probe requires --codec-jar'],
+               output=str(out), package=str(out/'replay-inputs.zip'), ui='not run; no screenshot claim')
 (out/'summary.json').write_text(json.dumps(summary, indent=2))
 # Keep executable inputs/receipts reusable without archiving special files or symlinks.
 files = [path for path in out.rglob('*') if path.is_file() and not path.is_symlink()

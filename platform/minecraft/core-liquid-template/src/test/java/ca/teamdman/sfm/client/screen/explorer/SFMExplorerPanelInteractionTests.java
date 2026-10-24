@@ -30,6 +30,134 @@ public class SFMExplorerPanelInteractionTests {
     private static final SFMPath ROOT = SFMPath.parse("registry://minecraft/item/");
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
 
+{% if features.explorer_search %}
+    @Test void nucleoPendingAndSupersededProjectionPreserveRowsSelectionAndScroll() {
+        var fixture = fixture(70);
+        var jobs = new ArrayList<Runnable>();
+        var model = new SFMExplorerPanelModel(fixture.session(), fixture.loader(), fixture.actions()::add, 128, jobs::add);
+        var before = model.state(BOUNDS);
+        var selected = before.projection().rows().get(20).path();
+        model.select(selected, BOUNDS);
+        model.scrollRows(5, BOUNDS);
+        before = model.state(BOUNDS);
+        int scroll = fixture.session().snapshot().scrollOffset();
+        var selectedPaths = fixture.session().selectedPaths();
+        fixture.session().setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleNucleo());
+        fixture.session().setFilterQuery("item");
+        var pending = model.state(BOUNDS);
+        assertEquals(before.projection().rows(), pending.projection().rows());
+        assertEquals(scroll, fixture.session().snapshot().scrollOffset());
+        assertEquals(selectedPaths, fixture.session().selectedPaths());
+        fixture.session().setFilterOptions(fixture.session().snapshot().settings().filterOptions().withCase(true));
+        model.state(BOUNDS);
+        assertEquals(2, jobs.size());
+        jobs.get(1).run(); jobs.get(0).run();
+        var ready = model.state(BOUNDS);
+        assertTrue(ready.projection().settings().filterOptions().matchCase());
+        assertEquals(selectedPaths, fixture.session().selectedPaths());
+        assertEquals(scroll, fixture.session().snapshot().scrollOffset());
+        fixture.session().setFilterQuery("absent query");
+        model.state(BOUNDS);
+        model.close(); fixture.session().close();
+        jobs.get(2).run();
+        assertTrue(fixture.session().snapshot().closed());
+        assertEquals(scroll, fixture.session().snapshot().scrollOffset());
+    }
+
+    @Test void nucleoPendingLocationChangeDoesNotLeaveOldRowsClickable() {
+        var fixture = fixture(20);
+        var jobs = new ArrayList<Runnable>();
+        var model = new SFMExplorerPanelModel(fixture.session(), fixture.loader(), fixture.actions()::add, 128, jobs::add);
+        var before = model.state(BOUNDS);
+        var old = before.projection().rows().get(0).path();
+        fixture.session().setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleNucleo());
+        fixture.session().setFilterQuery("item"); model.state(BOUNDS);
+        var next = SFMPath.parse("registry://minecraft/block/");
+        fixture.session().replaceLocation(new ca.teamdman.sfm.client.explorer.SFMPathExpression.Literal(next), java.util.Set.of(next));
+        assertTrue(model.state(BOUNDS).projection().rows().isEmpty());
+        model.selectWithoutReveal(old, BOUNDS, ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.REPLACE);
+        assertFalse(fixture.session().selectedPaths().contains(old));
+        model.close(); fixture.session().close();
+        jobs.forEach(Runnable::run);
+    }
+
+    @Test void nucleoWaitsForCompleteDomainInsteadOfPublishingMaterializedFallback() {
+        var child = SFMPath.parse("registry://minecraft/item/minecraft/paper");
+        var delegate = new SFMInMemoryRegistryExplorerResolver(List.of(
+                new SFMInMemoryRegistryExplorerResolver.Node(SFMExplorerEntry.simple(ROOT,"Items",true,Optional.empty()),List.of(child)),
+                new SFMInMemoryRegistryExplorerResolver.Node(SFMExplorerEntry.simple(child,"Paper",false,Optional.empty()),List.of())), Runnable::run,32);
+        var gate = new java.util.concurrent.CompletableFuture<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerFilterDomainResolver.FilterDomain>();
+        var resolver = new ca.teamdman.sfm.client.explorer.lazy.SFMExplorerFilterDomainResolver() {
+            public String scheme() { return delegate.scheme(); }
+            public long generation() { return delegate.generation(); }
+            public java.util.concurrent.CompletableFuture<SFMExplorerEntry> describe(SFMPath path,
+                    ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken cancellation) { return delegate.describe(path,cancellation); }
+            public java.util.concurrent.CompletableFuture<ChildPage> resolveChildren(ChildRequest request) { return delegate.resolveChildren(request); }
+            public java.util.concurrent.CompletableFuture<FilterDomain> resolveFilterDomain(FilterDomainRequest request) { return gate; }
+        };
+        var registry = new SFMExplorerResolverRegistry(); registry.register(resolver);
+        var loader = new SFMLazyExplorerLoader(registry,new SFMChildRelationRepository());
+        loader.openRoot(ROOT).join(); loader.refresh(ROOT,32).completion().join();
+        var session = new SFMExplorerSession(new SFMExplorerId("domain-pending"),ROOT,new SFMSelectionRepository());
+        var jobs = new ArrayList<Runnable>();
+        var model = new SFMExplorerPanelModel(session,loader,ignored->{},128,jobs::add);
+        var before = model.state(BOUNDS);
+        var options = ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleNucleo();
+        session.setFilterOptions(options); session.setFilterQuery("pp");
+        model.state(BOUNDS); jobs.remove(0).run();
+        before = model.state(BOUNDS); // Cache is already current before the provider request begins.
+        loader.ensureFilterDomain(ROOT,"pp",options).orElseThrow();
+        var pending = model.state(BOUNDS);
+        assertEquals(before.projection().rows(),pending.projection().rows());
+        assertTrue(jobs.isEmpty(),"complete-domain work must not be replaced by a materialized-only task");
+        assertTrue(pending.projection().diagnostics().contains("Nucleo complete-domain search pending"));
+        model.close(); session.close(); gate.cancel(false);
+    }
+{% endif %}
+
+{% if features.explorer_search and features.explorer_compaction %}
+    @Test void nucleoCompactionAppliesAnchorAtPublicationAndUserScrollCancelsIt() {
+        var nodes = new ArrayList<SFMInMemoryRegistryExplorerResolver.Node>();
+        var parents = new ArrayList<SFMPath>();
+        for (int i=0;i<30;i++) {
+            var parent = SFMPath.parse("registry://minecraft/item/row_"+i);
+            var inner = SFMPath.parse(parent.canonical()+"/inner"); parents.add(parent);
+            String label = String.format(java.util.Locale.ROOT,"row %02d",i);
+            for (var path : List.of(parent,inner)) {
+                var entry = SFMExplorerEntry.simple(path,label+(path.equals(inner)?" inner":""),true,Optional.empty());
+                var keys = new java.util.TreeMap<>(entry.sortKeys());
+                keys.put(SFMExplorerEntry.SUBJECT_KIND,SFMExplorerEntry.SortKey.available("container"));
+                nodes.add(new SFMInMemoryRegistryExplorerResolver.Node(new SFMExplorerEntry(path,entry.label(),true,keys,
+                        entry.searchTerms(),List.of()),path.equals(parent)?List.of(inner):List.of()));
+            }
+        }
+        nodes.add(new SFMInMemoryRegistryExplorerResolver.Node(SFMExplorerEntry.simple(ROOT,"Items",true,Optional.empty()),parents));
+        var registry = new SFMExplorerResolverRegistry(); registry.register(new SFMInMemoryRegistryExplorerResolver(nodes,Runnable::run,128));
+        var loader = new SFMLazyExplorerLoader(registry,new SFMChildRelationRepository());
+        loader.openRoot(ROOT).join(); loader.refresh(ROOT,128).completion().join();
+        for (var node:nodes) if (!node.entry().path().equals(ROOT)) loader.refresh(node.entry().path(),128).completion().join();
+        var session = new SFMExplorerSession(new SFMExplorerId("anchor-pending"),ROOT,new SFMSelectionRepository());
+        var jobs = new ArrayList<Runnable>();
+        var model = new SFMExplorerPanelModel(session,loader,ignored->{},128,jobs::add);
+        model.state(BOUNDS);
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleNucleo());
+        session.setFilterQuery("row"); model.state(BOUNDS); jobs.remove(0).run(); model.state(BOUNDS);
+        model.scrollRows(10,BOUNDS);
+        var before = model.state(BOUNDS);
+        var anchor = before.viewport().cells().get(0).row().paths().get(0);
+        assertTrue(before.projection().rows().stream().anyMatch(row->row.segments().size()>1));
+        model.changeCompaction(session.snapshot().settings().compaction().enabled(false),Optional.empty(),BOUNDS);
+        assertEquals(before.viewport().scrollRow(),session.snapshot().scrollOffset());
+        jobs.remove(0).run();
+        assertTrue(model.state(BOUNDS).viewport().cells().get(0).row().contains(anchor));
+        model.changeCompaction(session.snapshot().settings().compaction().enabled(true),Optional.empty(),BOUNDS);
+        model.scrollRows(1,BOUNDS); int userScroll=session.snapshot().scrollOffset();
+        jobs.remove(0).run(); model.state(BOUNDS);
+        assertEquals(userScroll,session.snapshot().scrollOffset(),"late anchor must not override a newer user scroll");
+        model.close();session.close();
+    }
+{% endif %}
+
 {% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
     @Test
     public void inspectionRepresentationClickOpensOwnedPreviewWithoutReveal() {
