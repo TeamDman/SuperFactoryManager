@@ -1,0 +1,143 @@
+{
+  "base_commit": "704ddb5485173093cad42c07975fa5aabfc247ed",
+  "implementation_commit": "1c122afc96c0616eb51427f5f176c10685e04e74",
+  "built_source_note": "implementation commit plus the two final existing size-display source mappings and inspection shortcut test; input hashes below identify the exact tree",
+  "builds": {
+    "4.34.0": {
+      "schema": "sfm:development_native_build@1",
+      "java_release": 21,
+      "tool_jvm_major": 21,
+      "actual_sdk_identity": "sha256:dea5b753d6422eb908a9ea3948dea38bc9b58105318074572e87e20fcbe2c5c6",
+      "cache_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.34.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/429aaf49d2c01e2a6e822995205eacf961ceeb615d1f763798a83b44a6532b41",
+      "output_jar": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.34.0-issue610-visual/mc-1.21.1/build/libs/Super Factory Manager (SFM)-MC1.21.1-4.34.0-rust.jar",
+      "compilation": "completed",
+      "jar_packaging": "not_performed",
+      "application_execution": "not_performed",
+      "immutable_source_lock": true,
+      "exit_code": 0,
+      "report_sha256": "b21bd66c08960ebefea85cea9fe3326be20df045d74d45b77bba59755d80f5d0",
+      "preparation": {
+        "projection_key": "sfm-4.34.0-issue610-visual/mc-1.21.1",
+        "dependency_profile": "rust-toolchain",
+        "context_identity": "blake3:23731ae420b0b87d1dbd583c2f5699386d1ae918753c7a3c3358c609eaa1c8bd",
+        "catalog_sha256": "sha256:32f00cabd7d5ab92d04601a5e3ff23286e711e20cfd1cfaba601d6ea61bbdbf3",
+        "feature_definitions_sha256": "sha256:1ad2cec258ee09ba02da9c52e7f4cc6ebacb0655874217a7177632f360f01646",
+        "project_inputs_sha256": "sha256:afb7348da4f92f30a0fa9ac1de71fb0b1d9f3105fc571b3dd119d5ddbe40879e",
+        "lockfile_sha256": "sha256:84cd54972613a7da51d7b1338b602e4c7018d67c3d842afc5fedd854f654e105",
+        "effective_dependencies_sha256": "sha256:30200e5e0707666c5b4262aec74a76310ba7384433c92d765cc52d18d2d01611"
+      },
+      "source_sets": {
+        "javac-datagen.args": {
+          "source_files": 15,
+          "args_sha256": "2aaa87999d96e67cdd4e2a3905ef6d9eb5258eb729810b9ebc787d14061ef946",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.34.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/429aaf49d2c01e2a6e822995205eacf961ceeb615d1f763798a83b44a6532b41/project/datagen/classes"
+        },
+        "javac-gametest.args": {
+          "source_files": 220,
+          "args_sha256": "25b87a0156099c191a56e80cca387cb8aebd20cd2982a279e731d796cd140f04",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.34.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/429aaf49d2c01e2a6e822995205eacf961ceeb615d1f763798a83b44a6532b41/project/gametest/classes"
+        },
+        "javac-main.args": {
+          "source_files": 868,
+          "args_sha256": "b0dd0bfd3129b781b478bc864f4d5f55055f76fc5b0defe4c0f3b500a87b3b65",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.34.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/429aaf49d2c01e2a6e822995205eacf961ceeb615d1f763798a83b44a6532b41/project/classes"
+        }
+      }
+    },
+    "4.35.0": {
+      "schema": "sfm:development_native_build@1",
+      "java_release": 21,
+      "tool_jvm_major": 21,
+      "actual_sdk_identity": "sha256:dea5b753d6422eb908a9ea3948dea38bc9b58105318074572e87e20fcbe2c5c6",
+      "cache_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.35.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/d2f060d92194e74dd7ed950641c3b76a70b308a945920bcfa02f7125aa6d2ccd",
+      "output_jar": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.35.0-issue610-visual/mc-1.21.1/build/libs/Super Factory Manager (SFM)-MC1.21.1-4.35.0-rust.jar",
+      "compilation": "completed",
+      "jar_packaging": "not_performed",
+      "application_execution": "not_performed",
+      "immutable_source_lock": true,
+      "exit_code": 0,
+      "report_sha256": "0770a045ecdf388341a45c45deb38745c79e43ac30ecf1f53d43494b4feb2b91",
+      "preparation": {
+        "projection_key": "sfm-4.35.0-issue610-visual/mc-1.21.1",
+        "dependency_profile": "rust-toolchain",
+        "context_identity": "blake3:d375e96e5e689f039e29f56b94a0b479edc1440c0674ba88ef2e0763600831e7",
+        "catalog_sha256": "sha256:32f00cabd7d5ab92d04601a5e3ff23286e711e20cfd1cfaba601d6ea61bbdbf3",
+        "feature_definitions_sha256": "sha256:1ad2cec258ee09ba02da9c52e7f4cc6ebacb0655874217a7177632f360f01646",
+        "project_inputs_sha256": "sha256:afb7348da4f92f30a0fa9ac1de71fb0b1d9f3105fc571b3dd119d5ddbe40879e",
+        "lockfile_sha256": "sha256:84cd54972613a7da51d7b1338b602e4c7018d67c3d842afc5fedd854f654e105",
+        "effective_dependencies_sha256": "sha256:30200e5e0707666c5b4262aec74a76310ba7384433c92d765cc52d18d2d01611"
+      },
+      "source_sets": {
+        "javac-datagen.args": {
+          "source_files": 15,
+          "args_sha256": "62fd2045f202b2468f6b4a4f516470fd2a314a7d1aef4a38bbbb4f5e47369a6f",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.35.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/d2f060d92194e74dd7ed950641c3b76a70b308a945920bcfa02f7125aa6d2ccd/project/datagen/classes"
+        },
+        "javac-gametest.args": {
+          "source_files": 224,
+          "args_sha256": "2408857e1700bfe8326e93cc835311f640835b8445a9ed428acea19f01a71eba",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.35.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/d2f060d92194e74dd7ed950641c3b76a70b308a945920bcfa02f7125aa6d2ccd/project/gametest/classes"
+        },
+        "javac-main.args": {
+          "source_files": 870,
+          "args_sha256": "3e03c82b07831e28948111cf860aac3fc7b26e15ef8224eea63d2e0bad906a8e",
+          "class_output": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-4.35.0-issue610-visual/mc-1.21.1/build/sfm-toolchain/native-project/d2f060d92194e74dd7ed950641c3b76a70b308a945920bcfa02f7125aa6d2ccd/project/classes"
+        }
+      }
+    }
+  },
+  "energy_identity": {
+    "sfm-4.34.0/mc-1.21.1": {
+      "bytes": 34602,
+      "sha256": "38c34a06467ee9f693716f40a630f2b242237fdfa857b4f1863f804bf87a4de2"
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1": {
+      "bytes": 34602,
+      "sha256": "38c34a06467ee9f693716f40a630f2b242237fdfa857b4f1863f804bf87a4de2"
+    },
+    "sfm-4.35.0/mc-1.21.1": {
+      "bytes": 34685,
+      "sha256": "15a99b59b2408c9e45e5a12abe76f409cd789f11785eacf0ed91f0a8add888ab"
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1": {
+      "bytes": 34685,
+      "sha256": "15a99b59b2408c9e45e5a12abe76f409cd789f11785eacf0ed91f0a8add888ab"
+    }
+  },
+  "metadata_catalog_sha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd",
+  "cli_sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7",
+  "cli_source_revision": "c5fd329f19c0280cbe4c375c240a783e73ee2224",
+  "focused_checks": {
+    "status": "passed",
+    "tests_found": 46,
+    "tests_passed": 46,
+    "tests_failed": 0,
+    "phases": {
+      "compile": "passed",
+      "tests": "passed",
+      "runtime": "passed"
+    },
+    "main_classes": {
+      "files": 1858,
+      "path_sha256_lines_sha256": "bf92eb1e241b9622d36871b6f149d5d1bd56e29984f0dcfdf8549880d4c32e9f"
+    },
+    "receipt_sha256": "0b080ea1b008e1719ebd5681045ea052e9935e36d14c46c3f143d9eed3f58962"
+  },
+  "runtime_smoke": {
+    "roots": 2,
+    "representations": 412,
+    "missing_input_rejected": true,
+    "java_syntax_spans": 11,
+    "worker_closed": true,
+    "worker_process_alive": false,
+    "inspection_workspace_sha256": "7c3df317f9f71d8f763618d95b661e9284f0ef917f8129bb0a1fe78a74608f78",
+    "note": "Existing prepared actual1.19.2 release workspace loaded on the1.21.1 port; not a1.21.1 release-JAR comparison or client rendering check."
+  },
+  "unrun": [
+    "Minecraft1.21.1 client/rendering/handoff",
+    "GameTest execution",
+    "release JAR packaging",
+    "full matrix",
+    "aggregate unit-test graph beyond approved metadata"
+  ]
+}

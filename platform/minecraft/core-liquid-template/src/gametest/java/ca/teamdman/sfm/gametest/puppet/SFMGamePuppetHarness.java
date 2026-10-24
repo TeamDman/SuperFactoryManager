@@ -125,9 +125,11 @@ public final class SFMGamePuppetHarness {
     private static SFMGamePuppetViewportSelection viewportSelection;
     private static ActivePuppet activePuppet;
     private static boolean userHandoffCompletionReported;
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+{% if features.release_review or features.inspection_workspace %}
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
     private record PendingInspection(String puppet, String path, Object world) {}
     private static PendingInspection pendingInspection;
+{% endif %}
 {% endif %}
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
     private static SFMGamePuppetInputOwnership.Lease runtimeInputLease;
@@ -291,7 +293,8 @@ public final class SFMGamePuppetHarness {
         completed = true;
         finalWorldHoldTicksRemaining = -1;
         exitTicksRemaining = -1;
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+{% if features.release_review or features.inspection_workspace %}
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
         String inspectionPath = System.getProperty("sfm.inspection.puppetYieldWorkspace", "");
         if (!inspectionPath.isBlank()) {
             pendingInspection = new PendingInspection(active.definition.puppetName(), inspectionPath, minecraft.level);
@@ -299,6 +302,7 @@ public final class SFMGamePuppetHarness {
         if (pendingInspection == null) reportUserHandoffCompletion();
 {% else %}
         reportUserHandoffCompletion();
+{% endif %}
 {% endif %}
         SFM.LOGGER.info("SFM_GAME_PUPPET_YIELDED_TO_USER puppet={} world={} restored={} screen={}",
                 active.definition.puppetName(), active.worldId, restored,
@@ -316,7 +320,8 @@ public final class SFMGamePuppetHarness {
 {% endcase %}
     }
 
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+{% if features.release_review or features.inspection_workspace %}
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
     /** Open prepared evidence after viewport restoration without reclaiming input or replacing a user-opened screen. */
     private static void openInspectionAtHandoff(Minecraft minecraft, PendingInspection request) {
         if (minecraft.level != request.world() || minecraft.player == null || minecraft.screen != null) {
@@ -358,6 +363,7 @@ public final class SFMGamePuppetHarness {
                 request.puppet(), failure.toString());
         reportUserHandoffCompletion();
     }
+{% endif %}
 {% endif %}
 
     private static void startNextPuppet() {
@@ -582,12 +588,14 @@ public final class SFMGamePuppetHarness {
             return;
         }
 {% endif %}
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
+{% if features.release_review or features.inspection_workspace %}
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.workspace_stack_controls %}
         if (pendingInspection != null) {
             PendingInspection request = pendingInspection;
             pendingInspection = null;
             openInspectionAtHandoff(Minecraft.getInstance(), request);
         }
+{% endif %}
 {% endif %}
         if (exitTicksRemaining < 0) {
             return;

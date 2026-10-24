@@ -665,6 +665,10 @@ public final class SFMCommandPaletteScreen extends Screen {
         }
     }
 
+{% elsif features.inspection_workspace %}
+    public static void openChoices(SFMClientActionContext context, Component title, List<SFMActionChoice> choices) {
+        SFMInspectionChoiceScreen.open(context, title, choices);
+    }
 {% endif %}
     @Override
     public boolean isPauseScreen() {
@@ -3414,6 +3418,11 @@ public final class SFMCommandPaletteScreen extends Screen {
         }
     }
 
+    /** Captured origin used when a palette action opens a persistent workspace. */
+    public SFMClientActionContext originatingActionContext() {
+        return actionContext;
+    }
+
 {% if features.typed_command_palette %}
     /** Exact canonical actions exposed by an active constrained palette. */
     public List<String> choiceCommandsForAutomation() {
@@ -3425,11 +3434,6 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     /** Immutable originating context retained while automation drives a pushed palette. */
     public SFMClientActionContext actionContextForAutomation() {
-        return actionContext;
-    }
-
-    /** Captured origin used when a palette action opens a persistent workspace. */
-    public SFMClientActionContext originatingActionContext() {
         return actionContext;
     }
 

@@ -1,8 +1,8 @@
 package ca.teamdman.sfm.client.action;
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% if features.workspace_panels %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or features.workspace_panels and targets.mc_1_19_2 or features.workspace_panels and targets.mc_1_19_4 %}
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 {% endif %}
@@ -19,8 +19,8 @@ import java.util.function.BooleanSupplier;
 public record SFMClientActionContext(
         @Nullable Object originatingHost,
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% if features.workspace_panels %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or features.workspace_panels and targets.mc_1_19_2 or features.workspace_panels and targets.mc_1_19_4 %}
         BooleanSupplier originatingHostIsCurrent,
         @Nullable SFMWorkspacePanelId originatingPanelId
 {% else %}
@@ -45,8 +45,8 @@ public record SFMClientActionContext(
             BooleanSupplier originatingHostIsCurrent
     ) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% if features.workspace_panels %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or features.workspace_panels and targets.mc_1_19_2 or features.workspace_panels and targets.mc_1_19_4 %}
         SFMWorkspacePanelId panelId = originatingHost instanceof SFMScreenMultiplexer workspace
                 ? workspace.focusedPanelId()
                 : null;

@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.screen.workspace;
 
 import java.util.ArrayList;
 import java.util.Collections;
-{% if features.workspace_dividers %}
+{% if features.workspace_dividers or features.workspace_stack_controls %}
 import java.util.Comparator;
 {% endif %}
 import java.util.IdentityHashMap;

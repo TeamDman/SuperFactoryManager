@@ -10,7 +10,11 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
@@ -210,7 +214,11 @@ class SFMExplorerPreviewPlacementTests {
         }
 
         @Override public void render(
+{% if targets.mc_1_21_1 %}
+                GuiGraphics poseStack,
+{% else %}
                 PoseStack poseStack,
+{% endif %}
                 Minecraft minecraft,
                 SFMScreenPanelBounds bounds,
                 int mouseX,

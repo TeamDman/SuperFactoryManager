@@ -241,6 +241,9 @@ public final class SFMClientRegistrations {
 {% endcase %}
 {% if features.client_actions %}
         SFMCommandPaletteActions.register(bus);
+{% if features.inspection_workspace and targets.mc_1_21_1 %}
+        ca.teamdman.sfm.client.action.SFMExplorerActions.register(bus);
+{% endif %}
 {% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}

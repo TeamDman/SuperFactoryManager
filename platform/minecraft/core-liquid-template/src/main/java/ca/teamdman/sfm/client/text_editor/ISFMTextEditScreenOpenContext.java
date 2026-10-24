@@ -38,7 +38,7 @@ public interface ISFMTextEditScreenOpenContext {
 
     String initialValue();
 
-{% if features.editor_overlay_push %}
+{% if features.editor_overlay_push or features.inspection_workspace %}
     /**
      * Whether the preferred editor should be layered over the current screen
      * instead of replacing it. This is useful for read-only/help documents

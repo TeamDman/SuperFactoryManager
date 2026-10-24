@@ -1,0 +1,5 @@
+[20:55:25] [sfm-syntax-state-1/INFO]: SFM_SYNTAX_WORKER_START pid=50281 epoch=1
+[20:55:25] [sfm-syntax-state-1/INFO]: SFM_SYNTAX_WORKER_READY pid=50281 epoch=1 frame_limit=16777216 pending_limit=8
+roots=2 representations=412 missing_input_rejected=true syntax_spans=11 parser=arborium-source-grammars/2.18.1+arborium-highlight/2.18.1+sfm-chat-formatting/2 source_sha256=1e22bb08ca6c8ae84644742f2051ddc688fe57e2a2107882bfdf2f4a35a6976a
+[20:55:25] [sfm-syntax-state-1/INFO]: SFM_SYNTAX_WORKER_CLOSED launches=1 ready=1 completed=1 failures=0
+worker_closed=true worker_process_alive=false

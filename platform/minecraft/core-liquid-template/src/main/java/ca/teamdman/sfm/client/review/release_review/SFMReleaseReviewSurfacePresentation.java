@@ -27,6 +27,7 @@ public final class SFMReleaseReviewSurfacePresentation {
 
     public record Slice(String revisionId, int sourceStart, int surfaceStart, int length) {}
 
+{% if features.release_review %}
     public static Map<String, SFMReviewSessionV1.DocumentRevision> sources(
             SFMReleaseReviewV1 review, SFMReleaseReviewSurfaceV1.Surface surface) {
         var required = surface.mappings().stream().flatMap(mapping -> mapping.sourceRanges().stream())
@@ -37,6 +38,7 @@ public final class SFMReleaseReviewSurfacePresentation {
                 .filter(document -> required.contains(document.id())).forEach(document -> answer.put(document.id(), document));
         return answer;
     }
+{% endif %}
 
     /** One authoritative copy per surface byte; context may reference both identical source sides. */
     public static List<Slice> slices(SFMReleaseReviewSurfaceV1.Surface surface,
@@ -81,6 +83,7 @@ public final class SFMReleaseReviewSurfacePresentation {
 
 {% endif %}
 {% if features.editor_documents %}
+{% if features.release_review %}
     public static List<SFMTextDocumentDecoration> decorations(SFMReleaseReviewV1 review,
                                                               SFMReleaseReviewSurfaceV1.Surface surface) {
         ArrayList<SFMTextDocumentDecoration> answer = new ArrayList<>(diffDecorations(surface));
@@ -110,6 +113,7 @@ public final class SFMReleaseReviewSurfacePresentation {
         }
         return List.copyOf(answer);
     }
+{% endif %}
 
     /** Diff backgrounds can be used without opening or mutating a review/comment session. */
     public static List<SFMTextDocumentDecoration> diffDecorations(SFMReleaseReviewSurfaceV1.Surface surface) {

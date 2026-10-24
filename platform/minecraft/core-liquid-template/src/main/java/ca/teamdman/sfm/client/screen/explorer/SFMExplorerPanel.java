@@ -13,7 +13,7 @@ import ca.teamdman.sfm.client.action.SFMExplorerCollectionCopySummaryAction;
 {% if features.explorer_search and features.client_actions %}
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 {% endif %}
-{% if features.explorer_search and features.client_actions and features.workspace_panel_actions %}
+{% if features.explorer_search and features.client_actions %}
 import ca.teamdman.sfm.client.action.SFMExplorerSearchAction;
 {% endif %}
 {% if features.explorer_navigation and features.client_actions %}
@@ -26,7 +26,9 @@ import ca.teamdman.sfm.client.action.SFMRevealHereAction;
 import ca.teamdman.sfm.client.action.SFMReviewLensSetAction;
 {% endif %}
 {% if features.context_actions or features.editor_documents or features.java_symbols %}
+{% if features.release_review %}
 import ca.teamdman.sfm.client.action.SFMReviewWorkQueueControls;
+{% endif %}
 import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextContributor;
@@ -45,12 +47,12 @@ import ca.teamdman.sfm.client.input.SFMSingleLineInputView;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
-{% if features.release_review %}
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
-{% endif %}
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
-{% if features.command_palette %}
+{% if features.command_palette and features.release_review %}
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
+{% endif %}
+{% if features.command_palette %}
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 {% endif %}
 {% if features.client_actions or features.client_theme %}
@@ -68,10 +70,17 @@ import ca.teamdman.sfm.client.screen.workspace.SFMPanelTooltip;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
+{% if targets.mc_1_21_1 %}
+{% else %}
 import net.minecraft.client.gui.GuiComponent;
+{% endif %}
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -130,7 +139,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private final Runnable closeObserver;
     private final Consumer<String> clipboardSink;
     private final Runnable revealActivationSound;
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private final SFMExplorerContextActionRegistry contextActions =
             SFMExplorerContextActionRegistry.minecraftDefaults();
 {% endif %}
@@ -141,6 +150,16 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private long lastClickTime;
     private boolean wasFocused;
     private boolean closed;
+    private String comparisonStatus = "";
+    private boolean comparisonFailed;
+
+    /** UI-thread feedback retained after the transient action menu closes. */
+    public void comparisonStatus(String message, boolean failed) {
+        if (closed) return;
+        comparisonStatus = java.util.Objects.requireNonNull(message);
+        comparisonFailed = failed;
+    }
+
     private final long panelCreatedNanos = System.nanoTime();
     private boolean firstEntriesRendered;
     private KeyboardFocus keyboardFocus = KeyboardFocus.BODY;
@@ -410,7 +429,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         String filter = "";
 {% endif %}
         return Component.literal(
-                "Explorer location " + state.session().location().canonical() + ". "
+                (comparisonStatus.isEmpty() ? "" : comparisonStatus + ". ")
+                        + "Explorer location " + state.session().location().canonical() + ". "
                         + state.projection().rows().size() + " entries" + filter + selection
                         + ". " + state.selectedPaths().size() + " selected paths (including hidden rows)"
 {% if features.explorer_search %}
@@ -490,6 +510,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     @Override
     public void closed() {
+        comparisonStatus = "";
         if (closed) return;
         closed = true;
         model.close();
@@ -556,6 +577,20 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         normalizeKeyboardFocus();
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
         boolean alt = (modifiers & GLFW.GLFW_MOD_ALT) != 0;
+{% if features.inspection_workspace %}
+        // The native1.21 profile is intentionally unscoped. Route Explorer-local
+        // search keys through the same registered actions as its visible controls.
+        boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+        if (control && !alt && keyCode == GLFW.GLFW_KEY_F) {
+            submitSearch(SFMExplorerSearchAction.Kind.FOCUS, shift ? "filter" : "find");
+            return true;
+        }
+        if (!alt && (keyCode == GLFW.GLFW_KEY_F3
+                || keyboardFocus == KeyboardFocus.FIND && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER))) {
+            submitSearch(SFMExplorerSearchAction.Kind.MOVE, shift ? "previous-wrapping" : "next-wrapping");
+            return true;
+        }
+{% endif %}
         if (keyCode == GLFW.GLFW_KEY_TAB && !control) {
             cycleKeyboardFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
             return true;
@@ -649,7 +684,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 keyboardFocus = KeyboardFocus.BODY;
                 return true;
             }
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
             if (keyCode == GLFW.GLFW_KEY_MENU || (alt && keyCode == GLFW.GLFW_KEY_ENTER)) {
                 openSearchContextActions(true);
                 return true;
@@ -661,7 +696,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             return handled;
         }
         if (keyboardFocus == KeyboardFocus.FILTER) {
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
             if (keyCode == GLFW.GLFW_KEY_MENU || (alt && keyCode == GLFW.GLFW_KEY_ENTER)) {
                 openSearchContextActions(false);
                 return true;
@@ -684,7 +719,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             return handled;
         }
 {% endif %}
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
         if (alt && !control
                 && (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
             openSelectedContextActions();
@@ -708,7 +743,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                             ? SFMExplorerPreviewPlacement.Mode.ADJACENT
                             : SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW
             );
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
             case GLFW.GLFW_KEY_MENU -> openSelectedContextActions();
             case GLFW.GLFW_KEY_F10 -> {
                 if ((modifiers & GLFW.GLFW_MOD_SHIFT) == 0) return false;
@@ -806,7 +841,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             model.emitLocationEdit();
             return true;
         }
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
         if (right && layout.locationControl().contains(mouseX, mouseY)) {
             keyboardFocus = KeyboardFocus.LOCATION;
             openLocationContextActions();
@@ -831,7 +866,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (hit.isEmpty()) {
             if (layout.bodyFrame().contains(mouseX, mouseY)) {
                 keyboardFocus = KeyboardFocus.BODY;
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
                 if (right) openLocationContextActions();
 {% endif %}
                 return true;
@@ -841,7 +876,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         keyboardFocus = KeyboardFocus.BODY;
         SFMExplorerPanelViewport.Cell cell = hit.orElseThrow();
         if (cell.row().loading()) {
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
             if (right) openContextActions(cell.row(), SFMExplorerContextActionProvider.Target.ROW);
 {% endif %}
             return true;
@@ -861,7 +896,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                     ? ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.CURSOR
                     : ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.REPLACE
                 : selectionGesture(control, shift, false));
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
         if (right) {
             openContextActions(cell.row(), SFMExplorerPanelViewport.iconBounds(cell,state.viewport().view()).contains(mouseX,mouseY)
                     ? SFMExplorerContextActionProvider.Target.ICON : SFMExplorerContextActionProvider.Target.ROW);
@@ -878,7 +913,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (lastClickPath.equals(Optional.of(cell.row().path())) && now - lastClickTime <= 300L) {
             if (!cell.row().entry().opensOnActivate()) model.emitToggleSelected(bounds);
             else model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW);
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+{% if features.inspection_workspace or features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
         } else if (cell.row().path().scheme().equals(ca.teamdman.sfm.client.inspection.SFMInspectionTree.SCHEME)
                 && !cell.row().entry().expandable() && cell.row().entry().opensOnActivate()) {
             model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.PREVIEW);
@@ -898,7 +933,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 : ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.REPLACE;
     }
 
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private void openContextActions(SFMExplorerProjection.Row row) {
         openContextActions(row,SFMExplorerContextActionProvider.Target.KEYBOARD);
     }
@@ -1045,7 +1080,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         );
     }
 
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private void openLocationContextActions() {
         if (panelContext == null || closed) return;
         SFMClientActionContext actionContext = new SFMClientActionContext(
@@ -1062,6 +1097,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 {% else %}
         List<SFMActionChoice> choices = new ArrayList<>();
 {% endif %}
+{% if features.clipboard_action_commands and features.workspace_panel_reopening and features.workspace_panel_actions %}
         choices.addAll(List.of(
                         SFMActionChoice.invoke(
                                 SFMExplorerActions.LOCATION_COPY.getId().orElseThrow().location(),
@@ -1074,11 +1110,12 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                                 "Edit location"
                         )
                 ));
+{% endif %}
         SFMCommandPaletteScreen.openChoices(actionContext, Component.literal("Explorer location"), choices);
     }
 {% endif %}
 
-{% if features.explorer_search and features.client_actions and features.typed_command_palette %}
+{% if features.explorer_search and features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private void openFilterContextActions() {
         if (panelContext == null || closed) return;
         // The field yields focus while its contextual action runs; returning to it adopts
@@ -1094,7 +1131,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 {% endif %}
 
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private void openSelectedContextActions() {
         model.state(bounds).selectedRow().ifPresent(this::openContextActions);
     }
@@ -1190,7 +1227,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     @Override
     public void render(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,
@@ -1296,7 +1337,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         ));
     }
 
+{% if targets.mc_1_21_1 %}
+    private void renderScrollbar(GuiGraphics poseStack, SFMExplorerPanelModel.State state) {
+{% else %}
     private void renderScrollbar(PoseStack poseStack, SFMExplorerPanelModel.State state) {
+{% endif %}
         scrollbarGeometry(state).ifPresent(geometry -> {
             fill(poseStack, geometry.track(), SCROLLBAR_TRACK);
             boolean hovered = geometry.thumb().contains(mouseX, mouseY) || scrollbarDragging;
@@ -1580,7 +1625,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private void renderHeader(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             boolean locationFocused,
@@ -1819,7 +1868,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 {% endif %}
 
 {% if features.release_review %}
+{% if targets.mc_1_21_1 %}
+    private void renderFreshness(GuiGraphics poseStack, Minecraft minecraft, SFMExplorerPanelViewport.Layout layout) {
+{% else %}
     private void renderFreshness(PoseStack poseStack, Minecraft minecraft, SFMExplorerPanelViewport.Layout layout) {
+{% endif %}
         var area = freshnessBounds(layout);
         if (area.height() == 0) return;
         var evidence = freshnessEvidence();
@@ -1862,7 +1915,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return accepted;
     }
 
+{% if targets.mc_1_21_1 %}
+    private void renderWorkControls(GuiGraphics poseStack, Minecraft minecraft,
+{% else %}
     private void renderWorkControls(PoseStack poseStack, Minecraft minecraft,
+{% endif %}
                                     SFMExplorerPanelViewport.Layout layout, boolean focused) {
         if (workToolbarHeight() == 0) return;
         var cells = workCells(layout);
@@ -1881,7 +1938,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
 {% if features.explorer_search and features.single_line_input %}
     private void renderFilter(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             boolean focused
@@ -1891,7 +1952,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 {% endif %}
 
     private void renderCell(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             SFMExplorerPanelViewport.Cell cell
@@ -1930,7 +1995,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private void renderListCell(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             SFMExplorerPanelViewport.Cell cell,
@@ -1972,7 +2041,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private void renderSmallIconCell(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             SFMExplorerPanelViewport.Cell cell,
@@ -2023,7 +2096,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private void renderStatus(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             SFMExplorerPanelModel.State state
     ) {
@@ -2065,6 +2142,10 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                     .filter(state.selectedPaths()::contains).distinct().count();
             summary = state.selectedPaths().size() + " selected (" + (state.selectedPaths().size() - visible)
                     + " off-screen) · " + summary;
+        }
+        if (!comparisonStatus.isEmpty()) {
+            summary = comparisonStatus + " · " + summary;
+            colour = comparisonFailed ? DIAGNOSTIC : TEXT;
         }
         drawTrimmed(
                 poseStack,
@@ -2281,7 +2362,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         var bar = SFMExplorerSearchBar.layout(row);
         for (var button : bar.buttons()) {
             if (!button.bounds().contains(x, y)) continue;
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
             if (right || button.option().equals("menu")) openSearchContextActions(find);
             else {
                 var options = find ? finder.options() : session.snapshot().settings().filterOptions();
@@ -2298,7 +2379,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             revealActivationSound.run();
             return true;
         }
-{% if features.client_actions and features.typed_command_palette %}
+{% if features.inspection_workspace or features.client_actions and features.typed_command_palette %}
         if (right) openSearchContextActions(find);
         else if (left) {
             // Refocusing within the same Find input must not recapture its frozen anchor.
@@ -2320,7 +2401,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 {% endif %}
 
-{% if features.explorer_search and features.single_line_input and features.client_actions and features.typed_command_palette %}
+{% if features.explorer_search and features.single_line_input and features.inspection_workspace or features.client_actions and features.typed_command_palette %}
     private void openSearchContextActions(boolean find) {
         if (panelContext == null || closed) return;
         String field = find ? "find" : "filter";
@@ -2376,7 +2457,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 {% endif %}
 
 {% if features.explorer_search and features.single_line_input %}
+{% if targets.mc_1_21_1 %}
+    private void renderSearchBar(GuiGraphics pose, Minecraft client, SFMExplorerPanelViewport.Rect row,
+{% else %}
     private void renderSearchBar(PoseStack pose, Minecraft client, SFMExplorerPanelViewport.Rect row,
+{% endif %}
                                  boolean find, boolean focused) {
         var bar = SFMExplorerSearchBar.layout(row);
         var control = bar.input();
@@ -2422,8 +2507,12 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 {% endif %}
 
+{% if targets.mc_1_21_1 %}
+    private static void fill(GuiGraphics poseStack, SFMExplorerPanelViewport.Rect rect, int colour) {
+{% else %}
     private static void fill(PoseStack poseStack, SFMExplorerPanelViewport.Rect rect, int colour) {
-        GuiComponent.fill(
+{% endif %}
+        fillGraphics(
                 poseStack,
                 rect.x(),
                 rect.y(),
@@ -2433,18 +2522,26 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         );
     }
 
+{% if targets.mc_1_21_1 %}
+    private static void border(GuiGraphics poseStack, SFMExplorerPanelViewport.Rect rect, int colour) {
+{% else %}
     private static void border(PoseStack poseStack, SFMExplorerPanelViewport.Rect rect, int colour) {
+{% endif %}
         if (rect.width() <= 0 || rect.height() <= 0) return;
         int right = rect.x() + rect.width();
         int bottom = rect.y() + rect.height();
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), right, rect.y() + 1, colour);
-        GuiComponent.fill(poseStack, rect.x(), bottom - 1, right, bottom, colour);
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + 1, bottom, colour);
-        GuiComponent.fill(poseStack, right - 1, rect.y(), right, bottom, colour);
+        fillGraphics(poseStack, rect.x(), rect.y(), right, rect.y() + 1, colour);
+        fillGraphics(poseStack, rect.x(), bottom - 1, right, bottom, colour);
+        fillGraphics(poseStack, rect.x(), rect.y(), rect.x() + 1, bottom, colour);
+        fillGraphics(poseStack, right - 1, rect.y(), right, bottom, colour);
     }
 
 {% if features.explorer_search and features.client_theme %}
+{% if targets.mc_1_21_1 %}
+    private void drawMatchLabel(GuiGraphics pose, Minecraft client, String label, int x, int y, int width,
+{% else %}
     private void drawMatchLabel(PoseStack pose, Minecraft client, String label, int x, int y, int width,
+{% endif %}
                                 int colour, SFMExplorerPanelModel.State state, SFMExplorerPanelViewport.Cell cell) {
         if (width <= 0) return;
         boolean clipped = client.font.width(label) > width;
@@ -2496,14 +2593,22 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         }
     }
 {% else %}
+{% if targets.mc_1_21_1 %}
+    private void drawMatchLabel(GuiGraphics pose, Minecraft client, String label, int x, int y, int width,
+{% else %}
     private void drawMatchLabel(PoseStack pose, Minecraft client, String label, int x, int y, int width,
+{% endif %}
                                 int colour, SFMExplorerPanelModel.State state, SFMExplorerPanelViewport.Cell cell) {
         drawTrimmed(pose, client, label, x, y, width, colour);
     }
 {% endif %}
 
     private static void drawTrimmed(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             Minecraft minecraft,
             String text,
             int x,
@@ -2519,4 +2624,15 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         }
         SFMFontUtils.draw(poseStack, minecraft.font, rendered, x, y, colour, true);
     }
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+{% if targets.mc_1_21_1 %}
+    private static void fillGraphics(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
+        graphics.fill(x1, y1, x2, y2, color);
+    }
+{% else %}
+    private static void fillGraphics(PoseStack graphics, int x1, int y1, int x2, int y2, int color) {
+        GuiComponent.fill(graphics, x1, y1, x2, y2, color);
+    }
+{% endif %}
+
 }

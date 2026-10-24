@@ -11,7 +11,7 @@ import java.util.concurrent.CompletableFuture;
 
 /** Provider-neutral facade over the supervised local {@code syntax serve} worker. */
 public final class SFMSyntaxServerHighlightProvider implements SFMSyntaxHighlightProvider {
-    public static final ResourceLocation ID = new ResourceLocation("sfm", "syntax_server");
+    public static final ResourceLocation ID = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "syntax_server");
 
     private final SFMSyntaxServerSupervisor supervisor;
 

@@ -684,8 +684,9 @@ fn execute_run_with_context(
     let plan = context.plan;
     if matches!(kind, RunKind::GameTestPreview) && run_options.inspection_workspace.is_some() {
         let supported = matches!(&plan.identity, BuildProjectIdentity::Development { project, .. }
-            if ["release_review", "file_explorer", "client_actions", "workspace_panels",
-                "editor_documents", "workspace_stack_controls"]
+            if (project.has_feature("release_review") || project.has_feature("inspection_workspace"))
+            && ["file_explorer", "client_actions", "workspace_panels", "editor_documents",
+                "workspace_stack_controls"]
                 .into_iter().all(|feature| project.has_feature(feature))
             && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java")
             && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java"));

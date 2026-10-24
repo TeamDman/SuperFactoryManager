@@ -26,7 +26,7 @@ import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceRuntime;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfacePresentation;
 {% endif %}
-{% if features.canvas_text_editor and features.release_review and features.syntax_languages %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.syntax_languages and features.release_review %}
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceSyntaxSession;
 import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightRuntime;
 {% endif %}
@@ -98,7 +98,11 @@ import ca.teamdman.sfm.client.symbol.SFMSymbolInspectionSnapshot;
 import ca.teamdman.sfm.client.symbol.SFMSymbolNavigationRuntime;
 {% endif %}
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -186,11 +190,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% if features.canvas_text_editor and features.release_review %}
     private long observedReviewGeneration = -1L;
     private long observedReviewOpenEpoch = -1L;
-{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+{% endif %}
+{% if features.inspection_workspace or features.release_review and features.canvas_text_editor and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
     private ca.teamdman.sfm.client.inspection.SFMInspectionTree.Surface observedInspectionSurface;
 {% endif %}
-{% endif %}
-{% if features.canvas_text_editor and features.release_review and features.syntax_languages %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.syntax_languages and features.release_review %}
     private SFMReleaseReviewSurfaceSyntaxSession surfaceSyntaxSession;
 {% endif %}
 {% if features.canvas_text_editor and features.editor_search %}
@@ -1153,6 +1157,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% endif %}
 {% if features.canvas_text_editor and features.release_review %}
             refreshReviewCommentDecorations(drawCanvas);
+{% elsif features.inspection_workspace %}
+            refreshInspectionDecorations(drawCanvas);
 {% endif %}
 {% if features.canvas_text_editor and features.java_symbols %}
             refreshInteractionMap(drawCanvas);
@@ -1184,7 +1190,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% if features.canvas_text_editor and features.editor_search %}
         matchGeneration++;
 {% endif %}
-{% if features.canvas_text_editor and features.release_review and features.syntax_languages %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.syntax_languages and features.release_review %}
         if (surfaceSyntaxSession != null) {
             surfaceSyntaxSession.close();
             surfaceSyntaxSession = null;
@@ -1240,7 +1246,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     }
 
     @Override
+{% if targets.mc_1_21_1 %}
+    public void render(GuiGraphics poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% else %}
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% endif %}
                        int mouseX, int mouseY, float partialTick, boolean focused) {
 {% if features.canvas_text_editor and features.document_history and features.keyboard_profiles %}
         updateDocumentHistoryFocus(focused);
@@ -1347,6 +1357,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
             refreshReviewCommentDecorations(drawCanvas);
         }
+{% elsif features.inspection_workspace %}
+        if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
+            refreshInspectionDecorations(drawCanvas);
+        }
 {% endif %}
 {% if features.canvas_text_editor and features.java_symbols %}
         observeDocumentMutation();
@@ -1365,14 +1379,12 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     }
 {% endif %}
 
-{% if features.canvas_text_editor and features.release_review %}
-    private void refreshReviewCommentDecorations(SFMDrawCanvasScreen drawCanvas) {
-        SFMReleaseReviewSurfaceRuntime.get().splitDocument(presentedDocument).ifPresent(drawCanvas::setSplitDocument);
-{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+{% if features.inspection_workspace or features.release_review and features.canvas_text_editor and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+    private boolean refreshInspectionDecorations(SFMDrawCanvasScreen drawCanvas) {
         var inspection = ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.surface(presentedDocument);
         if (inspection.isPresent()) {
             var captured = inspection.orElseThrow();
-            if (observedInspectionSurface == captured) return;
+            if (observedInspectionSurface == captured) return true;
             observedInspectionSurface = captured;
             drawCanvas.setDocumentDecorations(captured.decorations());
 {% if features.syntax_languages %}
@@ -1383,8 +1395,17 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                     spans -> drawCanvas.setSourceMappedSyntaxStyles(captured.surface().text(), spans),
                     failure -> SFM.LOGGER.warn("Inspection source highlighting unavailable", failure), drawCanvas::setSyntaxStatus);
 {% endif %}
-            return;
+            return true;
         }
+        return false;
+    }
+{% endif %}
+
+{% if features.canvas_text_editor and features.release_review %}
+    private void refreshReviewCommentDecorations(SFMDrawCanvasScreen drawCanvas) {
+        SFMReleaseReviewSurfaceRuntime.get().splitDocument(presentedDocument).ifPresent(drawCanvas::setSplitDocument);
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+        if (refreshInspectionDecorations(drawCanvas)) return;
 {% endif %}
         SFMReleaseReviewRuntime.Snapshot review = SFMReleaseReviewRuntime.get().snapshot();
         if (review.generation() == observedReviewGeneration
@@ -1799,7 +1820,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+{% if targets.mc_1_21_1 %}
+        return screen.mouseScrolled(mouseX, mouseY, 0, delta);
+{% else %}
         return screen.mouseScrolled(mouseX, mouseY, delta);
+{% endif %}
     }
 
     private void requestClose() {
@@ -2028,7 +2053,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     private void rememberPointer(double mouseX, double mouseY) {
         lastMouseX = mouseX;
+{% if features.canvas_text_editor and features.java_symbols %}
         lastMouseY = mouseY;
+{% endif %}
         pointerInside = true;
     }
 

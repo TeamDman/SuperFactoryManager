@@ -557,6 +557,19 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 {% if features.workspace_directional_opening %}
 
+{% if features.inspection_workspace %}
+{% if features.workspace_panel_reopening %}
+{% else %}
+    public SFMWorkspacePanelIntentResult openToSide(
+            SFMWorkspacePanelId source, SFMWorkspaceSide side,
+            SFMScreenPanel panel, SFMWorkspacePanelMetadata metadata) {
+        if (layout.panel(source) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        return submit(source, new SFMWorkspacePanelIntent.OpenToSide(side, panel,
+                Objects.requireNonNull(metadata, "metadata")));
+    }
+{% endif %}
+{% endif %}
+
     public SFMWorkspacePanelIntentResult openToSide(
             SFMWorkspacePanelId source,
             SFMWorkspaceSide side,
@@ -675,7 +688,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 {% endif %}
 {% endif %}
-{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_stack_controls %}
+{% if features.inspection_workspace or features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_stack_controls %}
 
     public boolean focusPanel(SFMWorkspacePanelId panelId) {
         Objects.requireNonNull(panelId, "panelId");
@@ -752,7 +765,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return true;
     }
 {% endif %}
-{% if features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.workspace_panel_actions %}
 
     public boolean containsPanel(SFMWorkspacePanelId panelId) {
         return layout.panel(panelId) != null;
@@ -764,7 +777,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.Close());
     }
 {% endif %}
-{% if features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.workspace_panel_actions %}
 
     public SFMWorkspacePanelIntentResult closePanel(SFMWorkspacePanelId panelId) {
         if (layout.panel(panelId) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
@@ -1041,7 +1054,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return changed;
     }
 {% endif %}
-{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_stack_controls %}
+{% if features.inspection_workspace or features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_stack_controls %}
 
     public List<SFMWorkspaceLayout.PanelEntry> visiblePanelEntries() {
 {% if features.workspace_panel_metadata or features.workspace_stack_controls or features.workspace_dividers or features.workspace_directional_resize or features.workspace_layout_focus_fix %}
@@ -1117,15 +1130,15 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return keyboardFocusRevision;
     }
 {% endif %}
-{% if features.workspace_focus_tracking or features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.workspace_focus_tracking or features.workspace_panel_actions %}
 
     /** Exact visible panel targeted by focused-panel actions. */
     public @Nullable SFMScreenPanel focusedPanelInstance() {
         return layout.panel(layout.focusedPanel());
     }
 {% endif %}
-{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_toast_path_actions %}
-{% if features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_notifications %}
+{% if features.inspection_workspace or features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_toast_path_actions %}
+{% if features.inspection_workspace or features.workspace_focus_tracking or features.workspace_panel_actions or features.workspace_panel_reopening or features.workspace_notifications %}
 
     public @Nullable SFMScreenPanel panelInstance(SFMWorkspacePanelId panelId) {
         return layout.panel(panelId);
@@ -1665,7 +1678,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return showWorkspaceToast("sfm:workspace-status", message, shake);
     }
 {% endif %}
-{% if features.workspace_lifecycle or features.workspace_notifications or features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.workspace_lifecycle or features.workspace_notifications or features.workspace_panel_actions %}
 
     public boolean isClosing() {
         return closing;
@@ -2024,11 +2037,19 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_panel_metadata or features.workspace_widget_hosts or features.workspace_panel_entry_controls or features.workspace_panel_move_gestures or features.workspace_dividers or features.client_overlay_scenes or features.workspace_notifications or features.workspace_panel_tooltips or features.workspace_stack_controls %}
 
     @Override
+{% if targets.mc_1_21_1 %}
+    public void render(GuiGraphics poseStack, int mouseX, int mouseY, float partialTick) {
+{% else %}
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+{% endif %}
 {% if features.workspace_widget_hosts %}
         synchronizeWidgetHostActivation();
 {% endif %}
+{% if targets.mc_1_21_1 %}
+        this.renderBackground(poseStack, mouseX, mouseY, partialTick);
+{% else %}
         this.renderBackground(poseStack);
+{% endif %}
 {% if features.workspace_panel_entry_controls %}
         ArrayList<SFMPanelEntryAffordanceLayout.HitRegion> entryHitRegions = new ArrayList<>();
 {% endif %}
@@ -2047,7 +2068,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
 {% if features.workspace_panel_metadata or features.workspace_widget_hosts %}
             SFMScreenPanelBounds contentBounds = bounds.inset(1);
-            SFMScissorStack.pushGui(
+            pushWorkspaceScissor(poseStack,
                     contentBounds.x(),
                     contentBounds.y(),
                     contentBounds.x() + contentBounds.width(),
@@ -2056,7 +2077,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             try {
                 renderPanelEntry(poseStack, entry, contentBounds, mouseX, mouseY, partialTick);
             } finally {
-                SFMScissorStack.pop();
+                popWorkspaceScissor(poseStack);
             }
 {% else %}
             enableScissor(bounds.inset(1));
@@ -2119,8 +2140,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% when "1.19.2", "1.19.4" %}
 
     @Override
+{% if targets.mc_1_21_1 %}
+    public void render(GuiGraphics poseStack, int mouseX, int mouseY, float partialTick) {
+{% else %}
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+{% endif %}
+{% if targets.mc_1_21_1 %}
+        this.renderBackground(poseStack, mouseX, mouseY, partialTick);
+{% else %}
         this.renderBackground(poseStack);
+{% endif %}
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
             if (bounds == null) continue;
@@ -2795,7 +2824,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_notifications or features.workspace_focus_tracking or features.workspace_keyboard_context or features.context_actions or features.workspace_panel_metadata or features.workspace_widget_hosts %}
 
     @Override
+{% if targets.mc_1_21_1 %}
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalDelta, double delta) {
+{% else %}
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+{% endif %}
 {% if features.workspace_notifications %}
         if (workspaceToastAt(mouseX, mouseY).isPresent()) return true;
 {% endif %}
@@ -2825,14 +2858,26 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return focused != null && (focused.widgetHost()
                 .map(host -> host.mouseScrolled(local[0], local[1], delta)).orElse(false)
                 || !focused.widgetHostOwnsInput() && focused.mouseScrolled(local[0], local[1], delta)
-                || super.mouseScrolled(mouseX, mouseY, delta));
+{% if targets.mc_1_21_1 %}
+                || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta));
 {% else %}
-        return focused != null && (focused.mouseScrolled(local[0], local[1], delta)
                 || super.mouseScrolled(mouseX, mouseY, delta));
 {% endif %}
 {% else %}
-        return focused != null && (focused.mouseScrolled(mouseX, mouseY, delta)
+        return focused != null && (focused.mouseScrolled(local[0], local[1], delta)
+{% if targets.mc_1_21_1 %}
+                || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta));
+{% else %}
                 || super.mouseScrolled(mouseX, mouseY, delta));
+{% endif %}
+{% endif %}
+{% else %}
+        return focused != null && (focused.mouseScrolled(mouseX, mouseY, delta)
+{% if targets.mc_1_21_1 %}
+                || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta));
+{% else %}
+                || super.mouseScrolled(mouseX, mouseY, delta));
+{% endif %}
 {% endif %}
     }
 {% else %}
@@ -2987,7 +3032,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% endif %}
 {% if features.workspace_panel_move_gestures %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderPanelMoveAffordance(GuiGraphics poseStack) {
+{% else %}
     private void renderPanelMoveAffordance(PoseStack poseStack) {
+{% endif %}
         SFMWorkspacePanelMoveInteraction interaction = panelMoveInteraction;
         if (interaction == null) return;
         interaction.snapshot().destination().ifPresent(target -> {
@@ -3027,7 +3076,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_panel_metadata or features.workspace_widget_hosts %}
 
     private void renderPanelEntry(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             SFMWorkspaceLayout.PanelEntry entry,
             SFMScreenPanelBounds physicalBounds,
             int mouseX,
@@ -3037,9 +3090,21 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         double scale = panelRenderScale(entry);
         SFMScreenPanelBounds logicalBounds = contentBounds(entry);
         int[] local = localMouse(entry, mouseX, mouseY);
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().pushPose();
+{% else %}
         poseStack.pushPose();
+{% endif %}
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().translate(physicalBounds.x(), physicalBounds.y(), 0.0D);
+{% else %}
         poseStack.translate(physicalBounds.x(), physicalBounds.y(), 0.0D);
+{% endif %}
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().scale((float) scale, (float) scale, 1.0F);
+{% else %}
         poseStack.scale((float) scale, (float) scale, 1.0F);
+{% endif %}
         entry.panel().render(
                 poseStack,
                 this.minecraft,
@@ -3052,7 +3117,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_widget_hosts %}
         entry.panel().widgetHost().ifPresent(host -> host.render(poseStack, local[0], local[1], partialTick));
 {% endif %}
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().popPose();
+{% else %}
         poseStack.popPose();
+{% endif %}
     }
 {% endif %}
 {% if features.workspace_panel_metadata or features.workspace_widget_hosts or features.workspace_panel_measurement %}
@@ -3208,7 +3277,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
 
     private List<SFMPanelEntryAffordanceLayout.HitRegion> renderEntryAffordances(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             SFMWorkspaceLayout.PanelEntry entry,
             SFMScreenPanelBounds bounds
     ) {
@@ -3303,7 +3376,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% endif %}
 {% if features.workspace_panel_entry_controls %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderPanelEntryTooltip(GuiGraphics poseStack, int mouseX, int mouseY) {
+{% else %}
     private void renderPanelEntryTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+{% endif %}
 {% if features.workspace_notifications %}
         if (workspaceToastAt(mouseX, mouseY).isPresent()) return;
 {% endif %}
@@ -3323,7 +3400,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% endif %}
 {% if features.workspace_panel_tooltips %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderPanelTooltip(GuiGraphics poseStack, int mouseX, int mouseY) {
+{% else %}
     private void renderPanelTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+{% endif %}
 {% if features.workspace_notifications %}
 {% if features.workspace_panel_entry_controls %}
         if (workspaceToastAt(mouseX, mouseY).isPresent()
@@ -3370,7 +3451,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% endif %}
 {% if features.workspace_dividers %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderDividerAffordances(GuiGraphics poseStack) {
+{% else %}
     private void renderDividerAffordances(PoseStack poseStack) {
+{% endif %}
         if (dividerInteraction == null) return;
         SFMWorkspaceDividerInteraction.Snapshot snapshot = dividerInteraction.snapshot();
         Set<SFMWorkspaceDividerId> hovered = new HashSet<>(snapshot.hoveredDividerIds());
@@ -3385,7 +3470,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% endif %}
 {% if features.workspace_notifications %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderWorkspaceToasts(GuiGraphics poseStack, int mouseX, int mouseY) {
+{% else %}
     private void renderWorkspaceToasts(PoseStack poseStack, int mouseX, int mouseY) {
+{% endif %}
         List<SFMWorkspaceToastQueue.Snapshot> snapshots = toastQueue().snapshots();
         if (snapshots.isEmpty()) {
             workspaceToastHitRegions = List.of();
@@ -3464,7 +3553,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_notifications %}
 
     private void renderWorkspaceToast(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<FormattedCharSequence> lines,
             SFMWorkspaceToastQueue.Snapshot snapshot,
             SFMWorkspaceToastLayout.Bounds bounds
@@ -3660,4 +3753,28 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% if features.workspace_panel_metadata or features.workspace_widget_hosts %}
 
 {% endif %}
+{% if targets.mc_1_21_1 and features.inspection_workspace %}
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void fill(GuiGraphics graphics, int left, int top, int right, int bottom, int color) {
+        graphics.fill(left, top, right, bottom, color);
+    }
+    private static void pushWorkspaceScissor(GuiGraphics graphics, int left, int top, int right, int bottom) {
+        SFMScissorStack.pushGui(graphics, left, top, right, bottom);
+    }
+    private static void popWorkspaceScissor(GuiGraphics graphics) {
+        graphics.disableScissor();
+    }
+{% else %}
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+    private static void pushWorkspaceScissor(PoseStack graphics, int left, int top, int right, int bottom) {
+        SFMScissorStack.pushGui(left, top, right, bottom);
+    }
+    private static void popWorkspaceScissor(PoseStack graphics) {
+        SFMScissorStack.pop();
+    }
+{% else %}
+{% endcase %}
+{% endif %}
+
 }

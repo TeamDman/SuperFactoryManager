@@ -5,7 +5,11 @@ import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 {% endif %}
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.Minecraft;
 
 import java.util.Objects;
@@ -24,13 +28,21 @@ public record SFMExplorerPresentation(String label, Icon icon) {
 {% else %}
     public sealed interface Icon permits MarkerIcon, DegradedIcon {
 {% endif %}
+{% if targets.mc_1_21_1 %}
+        void render(GuiGraphics poseStack, Minecraft minecraft, int x, int y, int height, int colour);
+{% else %}
         void render(PoseStack poseStack, Minecraft minecraft, int x, int y, int height, int colour);
+{% endif %}
     }
 
     /** The exclamation is an inspectable warning, not merely a colour distinction. */
     public record DegradedIcon(Icon baseline) implements Icon {
         public DegradedIcon { Objects.requireNonNull(baseline); }
+{% if targets.mc_1_21_1 %}
+        @Override public void render(GuiGraphics poseStack, Minecraft minecraft, int x, int y, int height, int colour) {
+{% else %}
         @Override public void render(PoseStack poseStack, Minecraft minecraft, int x, int y, int height, int colour) {
+{% endif %}
             baseline.render(poseStack,minecraft,x,y,height,colour);
             SFMFontUtils.draw(poseStack,minecraft.font,"!",x+11,y,0xFFFFFF55,true);
         }
@@ -45,7 +57,11 @@ public record SFMExplorerPresentation(String label, Icon icon) {
 
         @Override
         public void render(
+{% if targets.mc_1_21_1 %}
+                GuiGraphics poseStack,
+{% else %}
                 PoseStack poseStack,
+{% endif %}
                 Minecraft minecraft,
                 int x,
                 int y,
@@ -66,7 +82,11 @@ public record SFMExplorerPresentation(String label, Icon icon) {
 
         @Override
         public void render(
+{% if targets.mc_1_21_1 %}
+                GuiGraphics poseStack,
+{% else %}
                 PoseStack poseStack,
+{% endif %}
                 Minecraft minecraft,
                 int x,
                 int y,

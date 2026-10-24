@@ -1,7 +1,11 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.workspace.*;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
@@ -42,7 +46,11 @@ class SFMClientActionContinuationTests {
 
     private static final class Panel implements SFMScreenPanel {
         @Override public Component title() { return Component.literal("Test panel"); }
+{% if targets.mc_1_21_1 %}
+        @Override public void render(GuiGraphics stack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% else %}
         @Override public void render(PoseStack stack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% endif %}
                                      int x, int y, float partialTick, boolean focused) { }
     }
 }

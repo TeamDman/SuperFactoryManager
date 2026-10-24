@@ -1,4 +1,22 @@
 {
+  "inspection_workspace": {
+    "supported_targets": [
+      "1.21.1"
+    ],
+    "requires": [
+      "file_explorer",
+      "client_actions",
+      "workspace_panels",
+      "editor_documents",
+      "editor_document_panels",
+      "canvas_text_editor",
+      "canvas_indexed_document",
+      "syntax_languages",
+      "workspace_directional_opening",
+      "workspace_panel_metadata",
+      "workspace_stack_controls"
+    ]
+  },
   "dynamic_editor_picker": {"supported_targets": ["1.19.2", "1.19.4"], "requires": []},
   "issue_610_visual_evidence": {"supported_targets":["1.21.1"],"requires":["issue_610_progress_tests","game_puppet_runtime"]},
   "quantity_sensitive_extraction_progress": {"supported_targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"requires":[]},
@@ -78,7 +96,8 @@
   "workspace_directional_opening": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": [
       "workspace_panels"
@@ -161,14 +180,16 @@
   "workspace_panel_metadata": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
   "workspace_stack_controls": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": [
       "workspace_panels",
@@ -287,7 +308,8 @@
   "explorer_navigation": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
@@ -417,7 +439,8 @@
   "syntax_languages": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
@@ -896,14 +919,16 @@
   "explorer_search": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
   "file_explorer": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
@@ -1002,7 +1027,8 @@
   "single_line_input": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
@@ -1131,14 +1157,16 @@
   "editor_documents": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": []
   },
   "editor_document_panels": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": [
       "workspace_panels",
@@ -1409,7 +1437,8 @@
   "canvas_indexed_document": {
     "supported_targets": [
       "1.19.2",
-      "1.19.4"
+      "1.19.4",
+      "1.21.1"
     ],
     "requires": [
       "canvas_text_editor"

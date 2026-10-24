@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
-{% if features.editor_document_panels and features.workspace_directional_opening and features.workspace_panel_metadata and features.workspace_panel_reopening and features.workspace_stack_controls and features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.editor_document_panels and features.workspace_directional_opening and features.workspace_panel_metadata and features.workspace_panel_reopening and features.workspace_stack_controls and features.workspace_panel_actions %}
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -31,7 +31,7 @@ public final class SFMExplorerPreviewPlacement {
         ADJACENT
     }
 
-{% if features.editor_document_panels and features.workspace_directional_opening and features.workspace_panel_metadata and features.workspace_panel_reopening and features.workspace_stack_controls and features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.editor_document_panels and features.workspace_directional_opening and features.workspace_panel_metadata and features.workspace_panel_reopening and features.workspace_stack_controls and features.workspace_panel_actions %}
     public record Result(
             SFMWorkspacePanelIntentResult outcome,
             @Nullable SFMWorkspacePanelId openedPanelId,
@@ -250,7 +250,11 @@ public final class SFMExplorerPreviewPlacement {
                 SFMWorkspacePanelMetadata metadata,
                 @Nullable SFMPanelReopenRecipe reopenRecipe
         ) {
+{% if features.workspace_panel_reopening %}
             return delegate.openToSide(source, side, panel, metadata, reopenRecipe);
+{% else %}
+            return delegate.openToSide(source, side, panel, metadata);
+{% endif %}
         }
 
         @Override public SFMWorkspacePanelIntentResult openIntoSlot(
@@ -259,7 +263,11 @@ public final class SFMExplorerPreviewPlacement {
                 SFMWorkspacePanelMetadata metadata,
                 @Nullable SFMPanelReopenRecipe reopenRecipe
         ) {
+{% if features.workspace_panel_reopening %}
             return delegate.openIntoSlot(slot, panel, metadata, reopenRecipe);
+{% else %}
+            return delegate.openIntoSlot(slot, panel, metadata);
+{% endif %}
         }
 
         @Override public SFMWorkspacePanelIntentResult closePanel(SFMWorkspacePanelId panelId) {
