@@ -588,6 +588,16 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                         )
                         .build()
         );
+{% if features.dynamic_editor_picker %}
+        this.addRenderableWidget(new SFMButtonBuilder()
+                .setPosition((this.width - this.imageWidth) / 2 - buttonWidth,
+                        (this.height - this.imageHeight) / 2 + 98)
+                .setSize(buttonWidth, 14)
+                .setText(SFMTextEditorSelectionScreen.CHOOSE_EDITOR)
+                .setOnPress(button -> SFMScreenChangeHelpers.setOrPushScreen(
+                        new SFMTextEditorSelectionScreen(ca.teamdman.sfm.common.config.SFMConfig.CLIENT_TEXT_EDITOR_CONFIG)))
+                .build());
+{% endif %}
         discordButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(

@@ -20,6 +20,12 @@ NAME "Changelog"
 -- Explorer: add an optional Nucleo fuzzy mode with Unicode highlights, background filtering and preserved tree order.
 -- Keep substring, legacy fuzzy, regex and independent highlight controls; Nucleo whole-word matching reports unsupported.
 {% endif %}
+{% if features.dynamic_editor_picker %}
+-- Report editor factory failures without replacing the current screen; offer the editor picker for recovery.
+-- Choose any registered editor from the manager or editor settings, including third-party editors.
+-- Search and page through editor IDs; Apply changes the next editor opened without replacing unsaved work.
+-- Keep unavailable configured editor IDs while using V1 as a fallback.
+{% endif %}
 {% if features.recipe_namespace %}
 
 ---- 4.35.0 ----
