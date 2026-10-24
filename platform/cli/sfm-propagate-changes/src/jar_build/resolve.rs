@@ -653,7 +653,7 @@ impl Resolver {
             &repository_dir,
         )?;
         self.cancellation_token.bail_if_cancelled()?;
-        let source_output = checkout_dir.join(&source_build.output_path);
+        let source_output = source_build_output_path(&checkout_dir, &source_build.output_path);
         if !source_output.is_file() {
             eyre::bail!(
                 "Source build for {} completed but did not produce {}",
@@ -2747,6 +2747,64 @@ mod producer_native_tests {
                 .is_some()
             );
         }
+        Ok(())
+    }
+}
+
+// Locked recipe paths use either host's separators. Resolve them without rewriting
+// the recipe, source provenance, or the expected artifact hash.
+fn source_build_output_path(checkout_dir: &Path, output_path: &Path) -> PathBuf {
+    match output_path.to_str() {
+        Some(portable) => checkout_dir.join(portable.replace('\\', "/")),
+        None => checkout_dir.join(output_path),
+    }
+}
+
+#[cfg(test)]
+mod source_build_output_path_tests {
+    use super::*;
+
+    #[test]
+    fn portable_recipe_resolves_real_output_and_preserves_locked_path() -> eyre::Result<()> {
+        let root = tempfile::tempdir()?;
+        let actual = root.path().join("vox/java/target/editor.jar");
+        fs::create_dir_all(actual.parent().unwrap())?;
+        fs::write(&actual, b"locked artifact bytes")?;
+        for text in [
+            "vox/java/target/editor.jar",
+            r"vox\java\target\editor.jar",
+            r"vox/java\target/editor.jar",
+        ] {
+            let locked_path = PathBuf::from(text);
+            let resolved = source_build_output_path(root.path(), &locked_path);
+            assert_eq!(resolved, actual);
+            assert_eq!(fs::read(&resolved)?, b"locked artifact bytes");
+            assert_eq!(locked_path, PathBuf::from(text));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn portable_output_still_requires_exact_locked_bytes() -> eyre::Result<()> {
+        let root = tempfile::tempdir()?;
+        let output = source_build_output_path(root.path(), Path::new(r"vox\java\editor.jar"));
+        fs::create_dir_all(output.parent().unwrap())?;
+        let expected = ContentHash::from_bytes(b"locked artifact bytes", ContentHashAlgorithm::Blake3);
+        let destination = root.path().join("cache/editor.jar");
+        fs::write(&output, b"different host artifact bytes")?;
+        let error =
+            copy_file_to_path_checked_locked(&output, &destination, Some(&expected)).unwrap_err();
+        assert!(error.to_string().contains("expected"));
+        assert!(!destination.exists());
+        assert!(read_artifact_provenance(&destination)?.is_none());
+
+        fs::write(&output, b"locked artifact bytes")?;
+        copy_file_to_path_checked_locked(&output, &destination, Some(&expected))?;
+        assert_eq!(fs::read(&destination)?, b"locked artifact bytes");
+        assert_eq!(
+            ContentHash::from_path(&destination, expected.algorithm)?,
+            expected
+        );
         Ok(())
     }
 }
