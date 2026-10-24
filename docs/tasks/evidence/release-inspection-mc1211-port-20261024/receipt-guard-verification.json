@@ -1,0 +1,12 @@
+[
+  {
+    "case": "timed_out",
+    "old_success_replaced": true,
+    "unrun_tests_not_passed": true
+  },
+  {
+    "case": "start_error",
+    "old_success_replaced": true,
+    "unrun_tests_not_passed": true
+  }
+]

@@ -385,12 +385,41 @@ public class SFMExplorerPanelInteractionTests {
     }
 
 {% if features.explorer_search and features.single_line_input %}
+{% if features.inspection_workspace %}
+    @Test
+    public void inspectionLocalSearchKeysEmitCanonicalActionsWithoutChangingScrollOrSelection() {
+        Fixture fixture = fixture(30);
+        SFMExplorerPanel panel = fixture.panel();
+        panel.model().scrollRows(3, BOUNDS);
+        var before = fixture.session().snapshot();
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_F, 0, GLFW.GLFW_MOD_CONTROL));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_F, 0, GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SHIFT));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_F3, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_F3, 0, GLFW.GLFW_MOD_SHIFT));
+        panel.focusSearch("find");
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, GLFW.GLFW_MOD_SHIFT));
+        assertEquals(List.of(
+                "sfm action invoke sfm:explorer/search/focus find",
+                "sfm action invoke sfm:explorer/search/focus filter",
+                "sfm action invoke sfm:explorer/search/move next-wrapping",
+                "sfm action invoke sfm:explorer/search/move previous-wrapping",
+                "sfm action invoke sfm:explorer/search/move next-wrapping",
+                "sfm action invoke sfm:explorer/search/move previous-wrapping"), fixture.actions());
+        assertEquals(before.scrollOffset(), fixture.session().snapshot().scrollOffset());
+        assertEquals(before.selectedPaths(), fixture.session().snapshot().selectedPaths());
+    }
+{% endif %}
+
     @Test
     public void filterControlEmitsSelfContainedSetAndClearActions() {
         Fixture fixture = fixture(4);
         SFMExplorerPanel panel = fixture.panel();
+{% if features.inspection_workspace %}
+{% else %}
         assertFalse(panel.keyPressed(GLFW.GLFW_KEY_F, 0, GLFW.GLFW_MOD_CONTROL),
                 "Find/Filter focus chords are dispatched by remappable actions, not hard-coded in the panel");
+{% endif %}
         panel.focusSearch("filter");
         assertTrue(panel.filterControlHasKeyboardFocus());
         assertFalse(panel.charTyped('f', GLFW.GLFW_MOD_CONTROL),
