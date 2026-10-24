@@ -106,7 +106,11 @@ public class SFMTextEditorConfigScreen extends Screen {
 
     private final Runnable closeCallback;
 
+{% if features.dynamic_editor_picker %}
+    private final boolean editorSelectorFeatureFlag = true;
+{% else %}
     private final boolean editorSelectorFeatureFlag = SFMEnvironmentUtils.isInIDE();
+{% endif %}
 
     private Button lineNumbersOnButton;
 
@@ -118,6 +122,8 @@ public class SFMTextEditorConfigScreen extends Screen {
 
     private Button intellisenseAdvancedButton;
 
+{% if features.dynamic_editor_picker %}
+{% else %}
     private Button preferredEditorV1Button;
 
     private Button preferredEditorV2Button;
@@ -135,6 +141,7 @@ public class SFMTextEditorConfigScreen extends Screen {
 {% endif %}
 {% else %}
 {% endcase %}
+{% endif %}
     public SFMTextEditorConfigScreen(
             ISFMTextEditScreen parent,
             SFMClientTextEditorConfig config,
@@ -472,6 +479,15 @@ public class SFMTextEditorConfigScreen extends Screen {
         this.addRenderableWidget(intellisenseBasicButton);
         this.addRenderableWidget(intellisenseAdvancedButton);
 
+{% if features.dynamic_editor_picker %}
+        this.addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(x, y + 2 * spacing)
+                .setSize(3 * buttonWidth + 2 * buttonSpacing, buttonHeight)
+                .setText(SFMTextEditorSelectionScreen.CHOOSE_EDITOR)
+                .setOnPress(button -> SFMScreenChangeHelpers.setOrPushScreen(
+                        new SFMTextEditorSelectionScreen(config)))
+                .build());
+{% else %}
         // Preferred Editor Buttons
         preferredEditorV1Button =
                 new SFMButtonBuilder()
@@ -554,6 +570,7 @@ public class SFMTextEditorConfigScreen extends Screen {
         }
 
 
+{% endif %}
         // Done Button
         this.addRenderableWidget(
                 new SFMButtonBuilder()
@@ -578,6 +595,8 @@ public class SFMTextEditorConfigScreen extends Screen {
         intellisenseAdvancedButton.active =
                 config.intellisenseLevel.get() != SFMTextEditorIntellisenseLevel.ADVANCED;
 
+{% if features.dynamic_editor_picker %}
+{% else %}
         String currentEditor = config.preferredEditor.get();
         //noinspection OptionalGetWithoutIsPresent
 {% case minecraft_version %}
@@ -603,6 +622,7 @@ public class SFMTextEditorConfigScreen extends Screen {
 {% else %}
         preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().identifier().toString());
 {% endcase %}
+{% endif %}
     }
 
 }

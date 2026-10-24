@@ -1,4 +1,16 @@
 {
+{% if features.dynamic_editor_picker %}
+  "gui.sfm.editor_selection.title": "Choose editor",
+  "gui.sfm.editor_selection.next_open": "Applies to the next editor opened. Your current text stays here.",
+  "gui.sfm.editor_selection.search": "Search editor IDs",
+  "gui.sfm.editor_selection.current": "Current: %s",
+  "gui.sfm.editor_selection.unavailable": "Unavailable (using sfm:v1): %s",
+  "gui.sfm.editor_selection.selected": "Selected: %s",
+  "gui.sfm.editor_selection.apply": "Apply",
+  "gui.sfm.editor_selection.empty": "No matching registered editors",
+  "gui.sfm.editor_selection.stale": "That editor is unavailable. Choose another editor or cancel.",
+  "gui.sfm.editor_selection.save_failed": "Could not save the editor preference: %s",
+{% endif %}
   "block.sfm.buffer": "Resource Buffer",
   "block.sfm.cable": "Inventory Cable",
   "block.sfm.cable_facade": "Inventory Cable Facade",

@@ -70,6 +70,8 @@ public class SFMClientTextEditorConfig {
         @Nullable ResourceLocation id = SFMResourceLocation.tryParse(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get());
 {% endcase %}
         if (id == null) {
+{% if features.dynamic_editor_picker %}
+{% else %}
             // Clobber the invalid ID
             SFMTextEditors.V1.getId().ifPresent(defaultId -> {
 {% case minecraft_version %}
@@ -79,6 +81,7 @@ public class SFMClientTextEditorConfig {
                 SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(defaultId.location().toString());
 {% endcase %}
             });
+{% endif %}
             return SFMTextEditors.V1.get();
         } else {
 {% case minecraft_version %}
