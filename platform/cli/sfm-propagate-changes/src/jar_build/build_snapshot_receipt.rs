@@ -516,6 +516,17 @@ impl BuildSnapshotReceipt {
         cancellation_token.bail_if_cancelled()?;
         let state = self.cache_dir.join("state");
         ensure_owned_directory(&self.cache_dir, &state)?;
+        #[cfg(windows)]
+        let state = {
+            // The owned directory may fit MAX_PATH while its latest file does not.
+            // Keep Windows' verbatim canonical prefix for the atomic rename target.
+            let verbatim = fs::canonicalize(&state)?;
+            ensure!(
+                same_path_spelling(&state, &verbatim),
+                "latest success directory spelling changed"
+            );
+            verbatim
+        };
         let latest = state.join("latest-successful-build.json");
         match fs::symlink_metadata(&latest) {
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
@@ -995,6 +1006,28 @@ mod tests {
             receipt
         );
         receipt.recheck()?;
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn long_windows_latest_path_publishes_atomically() -> Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let (minecraft, cache) = project(temporary.path(), "projection-latest")?;
+        let mut receipt = publish(&minecraft, &cache)?;
+        let padding = 240usize
+            .checked_sub(cache.as_os_str().len() + 1)
+            .expect("fixture cache path must fit below the Windows legacy limit");
+        let long_cache = cache.join("x".repeat(padding));
+        fs::create_dir_all(&long_cache)?;
+        receipt.cache_dir = canonical_directory(&long_cache)?;
+        let latest = long_cache.join("state/latest-successful-build.json");
+        assert!(latest.as_os_str().len() > 260);
+        let token = CancellationToken::new();
+        receipt.publish_latest(b"first", &token)?;
+        assert_eq!(read_bounded(&latest, 64)?, b"first");
+        receipt.publish_latest(b"second", &token)?;
+        assert_eq!(read_bounded(&latest, 64)?, b"second");
         Ok(())
     }
 
