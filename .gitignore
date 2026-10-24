@@ -88,3 +88,7 @@ run_client_puppet
 /platform/minecraft/projections/sfm-4.35.0-issue610-visual/
 
 __pycache__
+
+# Generated portable issue610 fixture projections (source catalog is tracked).
+/platform/minecraft/projections/sfm-4.34.0-issue610-portable/
+/platform/minecraft/projections/sfm-4.35.0-issue610-portable/

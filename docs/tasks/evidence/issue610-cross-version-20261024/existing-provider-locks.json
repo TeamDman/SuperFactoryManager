@@ -1,0 +1,184 @@
+{
+  "1.19.2": {
+    "target": {
+      "java_major": 17,
+      "loader": "forge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "curse.maven:mekanism-268560:4644795",
+        "source": "remote-maven",
+        "hash": "blake3:76928376e435f374f99f724a1261b1964f582914",
+        "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar",
+        "source_git": null
+      },
+      {
+        "coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+        "source": "remote-maven",
+        "hash": "blake3:ff405d145a5d293f7dfd08f9823022512a770109",
+        "url": "https://modmaven.dev/mekanism/Mekanism/1.19.2-10.3.8.477/Mekanism-1.19.2-10.3.8.477-api.jar",
+        "source_git": null
+      }
+    ],
+    "lock_sha256": "4e25ec4540fb6feecba27836c90ec7eab6a0109bc21f193ef358c64f558567ae"
+  },
+  "1.19.4": {
+    "target": {
+      "java_major": 17,
+      "loader": "forge"
+    },
+    "locked_providers": [],
+    "lock_sha256": "ab0ad620449f524ffeaaee7db21ca4f967e34a728a1a90c51823d5eb9d0c6616"
+  },
+  "1.20": {
+    "target": {
+      "java_major": 17,
+      "loader": "forge"
+    },
+    "locked_providers": [],
+    "lock_sha256": "687924ae50658639c45b17b167c25e6186cd384dd00ef0120484b5dade67b01c"
+  },
+  "1.20.1": {
+    "target": {
+      "java_major": 17,
+      "loader": "neoforge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "curse.maven:mekanism-268560:4807067",
+        "source": "remote-maven",
+        "hash": "blake3:ae963b0fea6df1e00aa9450b6b25db4238415fa3",
+        "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/4807067/mekanism-268560-4807067.jar",
+        "source_git": null
+      },
+      {
+        "coordinate": "mekanism:Mekanism:1.20.1-10.4.2.16:api",
+        "source": "remote-maven",
+        "hash": "blake3:285ff3d7bb7ed2db85a5f2ef4e9fa53a141aa2ca",
+        "url": "https://modmaven.dev/mekanism/Mekanism/1.20.1-10.4.2.16/Mekanism-1.20.1-10.4.2.16-api.jar",
+        "source_git": null
+      }
+    ],
+    "lock_sha256": "7bf92855b47d5a407f03e80cc34234aedcd7312708b8a06818c840cc0dc82c8a"
+  },
+  "1.20.2": {
+    "target": {
+      "java_major": 17,
+      "loader": "neoforge"
+    },
+    "locked_providers": [],
+    "lock_sha256": "df4fd41c7bde7b3c622e68e92c0fa3c6f7eee8895be847ff57f11a3a5503bdd9"
+  },
+  "1.20.3": {
+    "target": {
+      "java_major": 17,
+      "loader": "neoforge"
+    },
+    "locked_providers": [],
+    "lock_sha256": "fd21086bbb41c797325c5fbacfe38c7861b0179f8901fd799526a2b01d21186d"
+  },
+  "1.20.4": {
+    "target": {
+      "java_major": 17,
+      "loader": "neoforge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "curse.maven:mekanism-268560:5316226",
+        "source": "remote-maven",
+        "hash": "blake3:9f4f31ccc07bddc93526c0d4a920f66dd9fbb071",
+        "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/5316226/mekanism-268560-5316226.jar",
+        "source_git": null
+      },
+      {
+        "coordinate": "mekanism:Mekanism:1.20.4-10.5.20.41:api",
+        "source": "remote-maven",
+        "hash": "blake3:84336a9a7e28cea3139a7338254b4c17f280bce2",
+        "url": "https://modmaven.dev/mekanism/Mekanism/1.20.4-10.5.20.41/Mekanism-1.20.4-10.5.20.41-api.jar",
+        "source_git": null
+      }
+    ],
+    "lock_sha256": "565fbfedcb830c76cb1ba9791cc70e16f4eec9cea9229ffc707b58cc93487406"
+  },
+  "1.21.0": {
+    "target": {
+      "java_major": 21,
+      "loader": "neoforge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "curse.maven:mekanism-268560:5552293",
+        "source": "remote-maven",
+        "hash": "blake3:fa231d6b25c59947eec311684fd59ed685537591",
+        "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/5552293/mekanism-268560-5552293.jar",
+        "source_git": null
+      },
+      {
+        "coordinate": "mekanism:Mekanism:1.21-10.6.6.53:api",
+        "source": "remote-maven",
+        "hash": "blake3:afab6c7f435b1b94f47134bb4f50c389d6bcc262",
+        "url": "https://modmaven.dev/mekanism/Mekanism/1.21-10.6.6.53/Mekanism-1.21-10.6.6.53-api.jar",
+        "source_git": null
+      }
+    ],
+    "lock_sha256": "2b6930878897d7cf1db94badbd98ba58f0fe21cca61e3656c298421c3cea32c4"
+  },
+  "1.21.1": {
+    "target": {
+      "java_major": 21,
+      "loader": "neoforge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "curse.maven:mekanism-268560:5656332",
+        "source": "remote-maven",
+        "hash": "blake3:1a7f3e07579cd712e3d8599a696f51119107889b",
+        "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/5656332/mekanism-268560-5656332.jar",
+        "source_git": null
+      },
+      {
+        "coordinate": "mekanism:Mekanism:1.21.1-10.7.4.60:api",
+        "source": "remote-maven",
+        "hash": "blake3:c48b7e9499083bc203bd68cbef8eecc8423ad968",
+        "url": "https://modmaven.dev/mekanism/Mekanism/1.21.1-10.7.4.60/Mekanism-1.21.1-10.7.4.60-api.jar",
+        "source_git": null
+      }
+    ],
+    "lock_sha256": "2e06a563528734c0b3cb8396d8f151e2f69e782ef19721568906157380b2a876"
+  },
+  "26.1.2": {
+    "target": {
+      "java_major": 25,
+      "loader": "neoforge"
+    },
+    "locked_providers": [
+      {
+        "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86",
+        "source": "source-build",
+        "hash": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62",
+        "url": "https://github.com/mekanism/Mekanism/",
+        "source_git": {
+          "root": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254",
+          "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+          "branch": "26.1",
+          "dirty": false,
+          "remote_url": "https://github.com/mekanism/Mekanism/"
+        }
+      },
+      {
+        "coordinate": "mekanism:Mekanism:26.1.2-10.8.0.86:api",
+        "source": "source-build",
+        "hash": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d",
+        "url": "https://github.com/mekanism/Mekanism/",
+        "source_git": {
+          "root": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254",
+          "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+          "branch": "26.1",
+          "dirty": false,
+          "remote_url": "https://github.com/mekanism/Mekanism/"
+        }
+      }
+    ],
+    "lock_sha256": "2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f"
+  }
+}
