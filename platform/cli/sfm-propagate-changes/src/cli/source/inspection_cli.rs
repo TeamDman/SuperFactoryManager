@@ -186,16 +186,20 @@ fn text_views(views: &mut Vec<Representation>, path: &str, before: Option<&str>,
 fn instruction_bodies(view: &str) -> String {
     let mut output = String::new();
     let mut in_code = false;
+    let mut in_switch = false;
     for line in view.lines() {
         let line = line.trim();
         if line == "Code:" {
             output.push_str("Code:\n");
             in_code = true;
+            in_switch = false;
         } else if in_code {
             let offset = line.split_once(':').is_some_and(|(offset, _)|
                 !offset.is_empty() && offset.chars().all(|c| c.is_ascii_digit() || c == '-'));
-            if offset || line.starts_with("default:") || line == "}" {
+            if offset || in_switch && (line.starts_with("default:") || line == "}") {
                 output.push_str(line); output.push('\n');
+                if line.contains("lookupswitch {") || line.contains("tableswitch {") { in_switch = true; }
+                if line == "}" { in_switch = false; }
             } else { in_code = false; }
         }
     }
@@ -286,6 +290,7 @@ mod tests {
     fn instruction_strategy_excludes_declarations_but_keeps_switch_targets() {
         let a = "Compiled from \"A.java\"\npublic class A {\n  public void f();\n    Code:\n       0: return\n}\n";
         assert_eq!(instruction_bodies(a), instruction_bodies(&a.replace("public", "private")));
+        assert_eq!(instruction_bodies(a), instruction_bodies(&a.replace("\n}", "\n  public abstract void added();\n}")));
         assert_ne!(instruction_bodies(a), instruction_bodies(&a.replace("return", "nop")));
         let switch = "Code:\n0: lookupswitch { // 1\n-1: 20\ndefault: 30\n}\n20: return\nException table:\nfrom to target type\n";
         assert!(instruction_bodies(switch).contains("default: 30"));
