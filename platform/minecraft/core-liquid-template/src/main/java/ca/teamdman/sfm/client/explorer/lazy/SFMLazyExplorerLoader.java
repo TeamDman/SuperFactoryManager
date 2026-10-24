@@ -399,8 +399,17 @@ public final class SFMLazyExplorerLoader {
                 mergedEdges.add(new SFMChildEdge(parent, child));
                 SFMExplorerEntry entry = ordinaryEntries.get(child);
                 if (entry != null) {
-                    if (!entry.equals(mergedEntries.get(child))) mergedEvidence.remove(child);
-                    mergedEntries.put(child, entry);
+                    SFMExplorerEntry prepared = mergedEntries.get(child);
+                    // Complete query domains attest topology separately from searchable fields.
+                    // Ordinary pages must not erase suppressed/limited match evidence just
+                    // because they lack that attestation.
+                    boolean sameSearch = prepared != null && prepared.label().equals(entry.label())
+                            && prepared.searchTerms().equals(entry.searchTerms())
+                            && prepared.sortKey(SFMExplorerEntry.SUBJECT_NAME).equals(entry.sortKey(SFMExplorerEntry.SUBJECT_NAME));
+                    if (!sameSearch) {
+                        mergedEvidence.remove(child);
+                        mergedEntries.put(child, entry);
+                    }
                 }
                 if (expanded.contains(child)) pending.addLast(child);
             }

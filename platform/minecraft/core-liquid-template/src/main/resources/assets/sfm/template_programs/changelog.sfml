@@ -14,6 +14,7 @@ NAME "Changelog"
 {% if features.release_review and features.file_explorer %}
 -- Explorer: select two JARs or working trees and Show diff to add a comparison root.
 -- Expand strategies, file pairs and source/structured/instruction representations with retained provenance.
+-- Search collapsed comparison entries with bounded Find/Filter; comparison progress and failures remain visible after row actions close.
 -- Explorer pointer selection preserves scroll; external reveal and keyboard navigation may scroll.
 {% endif %}
 {% if features.explorer_search %}

@@ -22,7 +22,7 @@ import java.util.concurrent.Executor;
  * Bounded contributed resolver for leased, UTF-8 in-memory document trees.
  * Mounts never expose a native {@code Path} or any host-write capability.
  */
-public final class SFMInMemoryTextExplorerResolver implements SFMExplorerResolver {
+public final class SFMInMemoryTextExplorerResolver implements SFMExplorerFilterDomainResolver {
     public record Node(SFMExplorerEntry entry, List<SFMPath> children, Optional<String> text) {
         public Node {
             Objects.requireNonNull(entry, "entry");
@@ -182,6 +182,84 @@ public final class SFMInMemoryTextExplorerResolver implements SFMExplorerResolve
                     List.of(),
                     paths.size()
             );
+        }, executor);
+    }
+
+    @Override
+    public CompletableFuture<FilterDomain> resolveFilterDomain(FilterDomainRequest request) {
+        requireScheme(request.root());
+        return CompletableFuture.supplyAsync(() -> {
+            request.cancellation().throwIfCancelled();
+            Snapshot snapshot = capture(request.root(), request.expectedResolverGeneration());
+            if (!snapshot.nodes().containsKey(request.root()))
+                throw new IllegalArgumentException("Unknown in-memory filter root " + request.root());
+            // Traverse immutable presentation metadata only. Never read or copy document bodies.
+            var pending = new java.util.ArrayDeque<SFMPath>();
+            var visited = new java.util.LinkedHashSet<SFMPath>();
+            var childPaths = new java.util.HashMap<SFMPath, List<SFMPath>>();
+            int remainingEdges = MAXIMUM_FILTER_DOMAIN_ENTRIES * 2;
+            visited.add(request.root());
+            pending.add(request.root());
+            while (!pending.isEmpty()) {
+                request.cancellation().throwIfCancelled();
+                var path = pending.removeFirst();
+                var children = snapshot.nodes().get(path).children();
+                if (children.size() > remainingEdges)
+                    throw new IllegalArgumentException("In-memory filter domain exceeds edge budget");
+                remainingEdges -= children.size();
+                var sorted = new java.util.TreeSet<SFMPath>();
+                for (var child : children) {
+                    request.cancellation().throwIfCancelled();
+                    sorted.add(child);
+                }
+                childPaths.put(path, List.copyOf(sorted));
+                for (var child : sorted) {
+                    request.cancellation().throwIfCancelled();
+                    if (!visited.add(child)) continue;
+                    if (visited.size() > MAXIMUM_FILTER_DOMAIN_ENTRIES)
+                        throw new IllegalArgumentException("In-memory filter domain exceeds entry budget");
+                    pending.addLast(child);
+                }
+            }
+            var entries = new ArrayList<SFMExplorerEntry>();
+            var pages = new ArrayList<ca.teamdman.sfm.client.explorer.SFMChildPage>();
+            var matched = new java.util.TreeSet<SFMPath>();
+            var evidence = new java.util.HashMap<SFMPath, SFMExplorerEntryMatch>();
+            var diagnostics = new java.util.LinkedHashSet<String>();
+            var matcher = ca.teamdman.sfm.client.search.SFMTextMatcher.compile(request.query(), request.options());
+            var budget = new ca.teamdman.sfm.client.search.SFMMatchBudget(20_000_000, request.cancellation()::isCancelled);
+            int total = 0;
+            for (var path : visited) {
+                request.cancellation().throwIfCancelled();
+                Node node = snapshot.nodes().get(path);
+                var topology = new TreeMap<>(node.entry().sortKeys());
+                topology.put(SFMExplorerEntry.SUBJECT_COMPLETE_CHILD_COUNT,
+                        SFMExplorerEntry.SortKey.available(Integer.toString(childPaths.get(path).size())));
+                entries.add(new SFMExplorerEntry(path, node.entry().label(), node.entry().expandable(),
+                        topology, node.entry().searchTerms(), node.entry().diagnostics()));
+                if (node.entry().expandable() || path.equals(request.root())) pages.add(new ca.teamdman.sfm.client.explorer.SFMChildPage(
+                        path, childPaths.get(path).stream()
+                                .map(child -> new ca.teamdman.sfm.client.explorer.SFMChildEdge(path, child)).toList(),
+                        Optional.empty(), ca.teamdman.sfm.client.explorer.SFMChildPage.Completeness.COMPLETE,
+                        snapshot.generation(), List.of()));
+                var match = path.equals(request.root())
+                        ? new SFMExplorerEntryMatch(false, Float.POSITIVE_INFINITY, List.of(), List.of(), true, List.of())
+                        : SFMExplorerEntryMatch.evaluate(node.entry(), matcher, budget);
+                if (!match.complete() && diagnostics.size() < 16) diagnostics.addAll(match.diagnostics());
+                if (match.matches()) {
+                    total++;
+                    if (matched.size() < request.maximumMatches()) matched.add(path);
+                }
+                evidence.put(path, match.matches() && !matched.contains(path)
+                        ? new SFMExplorerEntryMatch(false, Float.POSITIVE_INFINITY, List.of(), List.of(), false,
+                                List.of("Match omitted by the filter result limit"))
+                        : match);
+            }
+            if (total > matched.size()) diagnostics.add("Filter result was bounded to " + matched.size() + " of " + total + " matches");
+            request.cancellation().throwIfCancelled();
+            assertGeneration(request.expectedResolverGeneration());
+            return new FilterDomain(request.root(), request.query(), entries, pages, matched, total,
+                    diagnostics.isEmpty(), snapshot.generation(), List.copyOf(diagnostics), request.options(), evidence);
         }, executor);
     }
 

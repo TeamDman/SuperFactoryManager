@@ -13,7 +13,8 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--cli', type=Path, required=True)
 p.add_argument('--java-home', type=Path, required=True)
 p.add_argument('--gson-jar', type=Path, required=True, help='Existing Gson classpath; never downloaded')
-p.add_argument('--codec-jar', type=Path, help='Existing Minecraft-pinned Commons Codec for full production matcher/projection checks')
+p.add_argument('--codec-jar', type=Path, required=True, help='Existing Minecraft-pinned Commons Codec for full production matcher/projection checks')
+p.add_argument('--guava-jar', type=Path, required=True, help='Existing Minecraft-pinned Guava for the preserved legacy matcher')
 p.add_argument('--output', type=Path, required=True)
 a = p.parse_args()
 repo = Path(__file__).resolve().parents[2]
@@ -35,15 +36,17 @@ run([sys.executable, scripts/'verify.py', '--cli', a.cli.resolve(), '--java-home
 checks.append('native/JAR/source regressions including method identity and exact base64 evidence')
 source = repo / 'platform/minecraft/projections/sfm-dev/mc-1.19.2/src/main/java'
 classes = out / 'java-classes'; classes.mkdir()
-dependencies = str(a.gson_jar.resolve()) + (os.pathsep + str(a.codec_jar.resolve()) if a.codec_jar else '')
+dependencies = str(a.guava_jar.resolve()) + os.pathsep + str(a.gson_jar.resolve()) + (os.pathsep + str(a.codec_jar.resolve()) if a.codec_jar else '')
 extra = [scripts/'NucleoProjectionProbe.java'] if a.codec_jar else []
 run([java/'bin/javac', '-proc:none', '-cp', dependencies, '-sourcepath', source,
      '-d', classes, scripts/'InspectionProbe.java', scripts/'QualificationProbe.java', scripts/'NucleoAdapterProbe.java',
-     scripts/'NucleoIntegrationProbe.java', scripts/'DecorationProbe.java', repo/'scripts/nucleo-parity/CoreChecks.java', *extra], 'compile')
+     scripts/'NucleoIntegrationProbe.java', scripts/'InspectionSearchProbe.java', scripts/'DecorationProbe.java', repo/'scripts/nucleo-parity/CoreChecks.java', *extra], 'compile')
 classpath = str(classes) + os.pathsep + dependencies
 run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'InspectionProbe', out/'fixtures/fixture.sfm-inspection.json',
      out/'fixtures/missing.sfm-inspection.json'], 'tree')
 run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'QualificationProbe', out/'fixtures/fixture.sfm-inspection.json'], 'strict')
+run([java/'bin/java', '-Xmx256m', '-cp', classpath, 'InspectionSearchProbe', out/'fixtures/fixture.sfm-inspection.json'], 'inspection-search')
+checks.append('complete contributed inspection search with actual Nucleo, literal mode, truncation, cancellation and stale generations')
 checks.append('production tree, alias sharing, cached decorations, malformed input and nonblocking mount publication')
 run([java/'bin/java', '-Xmx128m', '-cp', classpath, 'ca.teamdman.sfm.client.review.release_review.DecorationProbe'], 'coordinates')
 checks.append('linear coordinate scan: UTF-8/astral/CRLF boundaries and 60001 endpoints')

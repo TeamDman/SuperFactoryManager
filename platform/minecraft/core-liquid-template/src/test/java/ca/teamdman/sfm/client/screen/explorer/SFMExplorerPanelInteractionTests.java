@@ -195,8 +195,11 @@ public class SFMExplorerPanelInteractionTests {
         var before = panel.model().state(BOUNDS);
         int scroll = before.viewport().scrollRow();
         var cell = before.viewport().cells().get(before.viewport().cells().size() - 1);
-        assertTrue(panel.mouseClicked(cell.bounds().x() + cell.bounds().width() - 2,
-                cell.bounds().y() + 1, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+        double clickX = cell.bounds().x() + cell.bounds().width() / 2.0;
+        double clickY = cell.bounds().y() + 1;
+        assertFalse(SFMExplorerPanel.scrollbarGeometry(before).orElseThrow().track().contains(clickX, clickY),
+                "Exercise row selection, not the scrollbar track that intentionally changes scroll");
+        assertTrue(panel.mouseClicked(clickX, clickY, GLFW.GLFW_MOUSE_BUTTON_LEFT));
         assertEquals(scroll, panel.model().state(BOUNDS).viewport().scrollRow(), "pointer click must preserve scroll");
         assertTrue(fixture.session().selectedPaths().contains(cell.row().path()));
         panel.model().selectWithoutReveal(before.projection().rows().get(0).path(), BOUNDS,

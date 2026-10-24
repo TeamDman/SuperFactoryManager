@@ -41,7 +41,7 @@ public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientAct
         final Path newer = workspace == null ? Path.of(StringArgumentType.getString(command, "new")) : null;
         if (!BUSY.compareAndSet(false, true)) { command.getSource().sendFeedback(Component.literal("A comparison is already preparing")); return 0; }
         var continuation = SFMClientActionContinuation.capture(target);
-        command.getSource().sendFeedback(Component.literal("Preparing Explorer comparison…"));
+        feedback(command, target, "Preparing Explorer comparison…", false);
         CompletableFuture.supplyAsync(() -> {
             try { return workspace == null ? SFMInspectionRuntime.compare(old, newer) : SFMInspectionRuntime.read(Path.of(workspace)); }
             catch (Exception failure) { throw new java.util.concurrent.CompletionException(failure); }
@@ -50,11 +50,24 @@ public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientAct
                 if (!continuation.isCurrent()) { command.getSource().sendFeedback(Component.literal("Origin closed; comparison discarded")); return; }
                 if (error != null) throw new IllegalStateException(error.getCause() == null ? error : error.getCause());
                 SFMInspectionRuntime.open(trees, continuation.context(), workspace == null);
-                command.getSource().sendFeedback(Component.literal("Comparison roots ready. Expand a strategy, then a file pair and representation."));
-            } catch (RuntimeException failure) { command.getSource().sendFeedback(Component.literal("Comparison unavailable: " + failure.getMessage())); }
+                feedback(command, continuation.context(), "Comparison roots ready. Expand a strategy, then a file pair and representation.", false);
+            } catch (RuntimeException failure) {
+                ca.teamdman.sfm.SFM.LOGGER.warn("SFM_INSPECTION_COMPARISON_FAILED", failure);
+                feedback(command, continuation.context(), "Comparison unavailable: " + failure.getMessage(), true);
+            }
             finally { BUSY.set(false); }
         }));
         return 1;
+    }
+    private static void feedback(CommandContext<SFMClientActionSource> command, SFMClientActionContext context,
+                                 String message, boolean failed) {
+        command.getSource().sendFeedback(Component.literal(message));
+        ca.teamdman.sfm.SFM.LOGGER.info("SFM_INSPECTION_COMPARISON_STATUS {}", message);
+{% if features.workspace_notifications %}
+        if (context.originatingHostIsCurrent().getAsBoolean()
+                && context.originatingHost() instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer workspace)
+            workspace.showWorkspaceToast("sfm:explorer-inspection", Component.literal(message.lines().findFirst().orElse(message)), failed);
+{% endif %}
     }
     public static List<SFMActionChoice> choices(SFMExplorerContextActionProvider.Request request) {
         var context = request.actionContext();
