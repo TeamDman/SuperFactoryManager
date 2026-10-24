@@ -1,7 +1,7 @@
 {
   "base_commit": "e2ba833b2b235835d69475b641e24b22bfd9551a",
-  "combined_source_commit": "ef4569c2a10e3de7ac7d4225a514a1597d647265",
-  "picker_only_commit": "24bd3fcee310dcee5d592aae94d460241227ff96",
+  "combined_source_commit": "3cde0795fe0012ec092acd4c6cbe3cb549ac18c1",
+  "picker_only_commit": "46d14c9afba3fdbd03baf4517fa26b7bd4b85f0d",
   "primary_checkpoint": "ce78469bd7f572c6b5f7ccd4853539b2d60b4611",
   "modal_checkpoint": "48832f7455fb685c36036a4f211e4d278a2e2adf",
   "pr581": {
@@ -150,6 +150,30 @@
         "updated": 0,
         "unchanged": 2926
       }
+    },
+    "portable-ui-1192-check": {
+      "projection_key": "sfm-dev/mc-1.19.2",
+      "operation": "check",
+      "context_identity": "blake3:eaac8ad9420b9a89851bd391f109628b31c0aa5e3514f8f1ee302aa5aa5e5e0d",
+      "writes_performed": false,
+      "compilation": "not_performed",
+      "files": {
+        "created": 0,
+        "updated": 0,
+        "unchanged": 2963
+      }
+    },
+    "portable-ui-1194-check": {
+      "projection_key": "sfm-dev/mc-1.19.4",
+      "operation": "check",
+      "context_identity": "blake3:f883d919441bee3ca87c22f3bbc63a03778aab6c9bdbde97e271e62a11558fc5",
+      "writes_performed": false,
+      "compilation": "not_performed",
+      "files": {
+        "created": 0,
+        "updated": 0,
+        "unchanged": 2926
+      }
     }
   },
   "source_sha256": {
@@ -159,7 +183,7 @@
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java": "sha256:959997077f31d557d901dc9f544fbe48c14324bd8b7b27f50fe0426e26d91655",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java": "sha256:71fae9c32ce2ad337dc6d8c6f1364690e9815a8b27ddeeea42791cddfd851304",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorConfigScreen.java": "sha256:022ea6a6f32c7c1c236aa8ccf528aabacf35ba255f64af3fa247aad15b0dfe04",
-    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java": "sha256:d6f0ddf68938284362553841d9af1bb4f8536909b48990d1c987bf0c5953d2e7",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java": "sha256:fdd6279cd4836ee59c41042f41ed7531d03e0e06e10b5d520497cfde61c5544d",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMVimModalScreen.java": "sha256:83a5eac4c586fc5d5f1793b5f0532a6f4d55938f9f6a50b1d037bc268cd3746f",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java": "sha256:403e4f80e6183326ea83accd0f28b0c0519842146500e960a584f1deccb18fe5",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalRegistration.java": "sha256:0086f58dbdfbbb237bda6c6f81782ef0633551e5cb2d47757846ebcbf9229163",
@@ -169,5 +193,58 @@
     "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java": "sha256:23a8af2343d6e79b19e205a6d96f631ba40f2d10ee725a2f9cb7430cd31648c3",
     "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMVimModalStateTests.java": "sha256:e5cc3fed14992db8084ad301a90ab1bf155ed091bfb3521cfccdcd9262c183cb",
     "platform/minecraft/projections.json": "sha256:f7fe1a39b194b4b501aa2db6d52f8a603344affbf356e3647c1fc99dfac550e8"
+  },
+  "initial_combined_source_commit": "ef4569c2a10e3de7ac7d4225a514a1597d647265",
+  "portable_path_followup": {
+    "branch": "fix/portable-source-build-output",
+    "worktree": "/workspace/SFM-path-fix",
+    "base_commit": "e2ba833b2b235835d69475b641e24b22bfd9551a",
+    "commit": "f9831eb1aa4ba440845a1002aa055de2acbda081",
+    "change": "Resolve slash, backslash and mixed locked source output separators without modifying recipe, provenance, source revision, expected hash or checked copy",
+    "test_command": "cargo test --offline --locked --lib source_build_output_path_tests -- --nocapture",
+    "tests": {
+      "passed": 2,
+      "failed": 0,
+      "filtered_out": 2075,
+      "scope": "Actual CLI library path resolver and checked artifact copy, using temporary fixture bytes; not Minecraft or actual Vox resolver execution"
+    },
+    "test_log_sha256": "50d8317580e4e21c25423733eccb7254e6b3e991615163bfb9f21da9eafdfc18",
+    "full_gate": "check-all.ps1 unrun: pwsh missing; rustfmt and cargo-clippy attempts failed because components missing; no installation attempted",
+    "operational_cli_rebuilt_or_installed": false,
+    "editor_branch_cli_source_unchanged": true,
+    "dependency_and_security_changes": false,
+    "artifact": {
+      "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+      "remote": "https://github.com/TeamDman/facet",
+      "source_commit": "f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
+      "source_marker": "/tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56/.sfm-git-commit",
+      "expected": "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f",
+      "actual": {
+        "schema": "sfm:file_hash@1",
+        "path": "/tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56/vox/java/target/vox-java-0.10.0-rc.5.jar",
+        "algorithm": "blake3",
+        "digest_bytes": 20,
+        "bytes_hashed": 1326016,
+        "hex_digest": "cc19e740cf1c08970c23b2446781829106d9ab8c",
+        "identity": "blake3:cc19e740cf1c08970c23b2446781829106d9ab8c",
+        "writes_performed": false
+      },
+      "host_java": "Temurin 17.0.20.1+1; jar 17.0.20.1",
+      "manifest_created_by": "17.0.20.1 (Eclipse Adoptium)",
+      "producer_recipe": "vox/xtask/src/main.rs: JAVA_HOME jar --create with fixed --date but no fixed Created-By; javac --release 17; source_build.environment is empty",
+      "pinned_sdk": "schema-4.json lists JetBrains JBRSDK 17.0.14 b1367.22 windows-x64 only, not a Linux producer SDK",
+      "inference": "Host-specific manifest proves a reproducibility gap. Original locked JAR unavailable, so exact cause of all differing bytes and original producer JDK are not established."
+    },
+    "remaining_blocker": {
+      "action": "Compile sfm-dev/mc-1.19.2 and execute actual editor registry/UI tests",
+      "target": "Locked org.facet:vox-java:0.10.0-rc.5 input",
+      "reason": "Produced Linux JAR does not match pinned BLAKE3-160; path normalization cannot make different bytes acceptable",
+      "required": "Exact artifact matching existing lock at the same source revision, or a separately approved producer toolchain/artifact decision; no evidence that an existing supported override can reproduce it",
+      "status": "blocked by frozen artifact bytes, not denied or pending",
+      "denied": false,
+      "pending": false,
+      "outcome_uncertain": false
+    },
+    "process_cleanup": "Stopped own accidental pre-edit filtered cargo build (cargo23521/rustc23809); actual changed-source build cargo23855 completed normally. No active task helper or game remains."
   }
 }

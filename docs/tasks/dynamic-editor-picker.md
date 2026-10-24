@@ -161,7 +161,7 @@ there is no pending operation.
 ## Final source validation and review branches
 
 - Picker-only branch: `feat/dynamic-editor-picker-only`,
-  `24bd3fcee310dcee5d592aae94d460241227ff96` (includes PR #581 naming attribution).
+  `46d14c9afba3fdbd03baf4517fa26b7bd4b85f0d` (includes PR #581 naming attribution).
 - Combined source: `ef4569c2a10e3de7ac7d4225a514a1597d647265`,
   with modal checkpoint `48832f7455fb685c36036a4f211e4d278a2e2adf`.
 - Final source consistency: 2,963 files on development 1.19.2 and 2,926 on
@@ -174,5 +174,58 @@ there is no pending operation.
   [the test log](../task-evidence/editor-selection/isolated-tests.log) and
   [the native failure](../task-evidence/editor-selection/native-test-error.txt).
 - Both in-scope native commands exited; there is no game or helper running.
-  No automatic approval rejection occurred. The exact unresolved action is
-  native dependency resolution for the locked Vox output path described above.
+  No automatic approval rejection occurred. The follow-up below refines the
+  blocker from path resolution to the produced artifact bytes.
+
+
+## Linux portability follow-up
+
+The editor baseline remains `e2ba833b2b235835d69475b641e24b22bfd9551a`;
+no switch to the newer Vox migration branch was made. The picker follow-up
+`3cde0795fe0012ec092acd4c6cbe3cb549ac18c1` removes its accidental dependency
+on the canvas-only dynamic-tooltip builder method. Each supported Minecraft
+version now uses the existing tooltip constructor and refreshes the ID tooltip.
+No shared editor widget or Explorer implementation was changed. Development
+source checks passed again: 2,963 inputs for 1.19.2 and 2,926 for 1.19.4.
+These checks do not compile Java or render the UI.
+
+The separately reviewable CLI branch `fix/portable-source-build-output`, commit
+`f9831eb1aa4ba440845a1002aa055de2acbda081`, resolves the locked output using
+portable separators. It preserves the literal recipe and source provenance,
+and calls the same checked copy with the same expected hash. Both focused
+Rust tests passed against the actual CLI library: real-file lookup with three
+separator forms and rejection of wrong bytes before cache publication followed
+by acceptance of exact bytes. No dependency/lock/security file was changed,
+and no CLI executable was installed or substituted. The required full Rust
+gate could not run: PowerShell, rustfmt and Clippy are absent. They were not
+installed. See [the test/gate results](../task-evidence/editor-selection/portable-path-results.txt).
+
+The path was not the only blocker. The existing pinned Facet recipe at
+`f2afdece6c79e64085d2f8c047e22fe16b2c8c54` produced a 1,326,016-byte JAR:
+
+- Expected BLAKE3-160: `4d1e88353f941be926fdf84f1dd8da9bd594b60f`.
+- Actual BLAKE3-160: `cc19e740cf1c08970c23b2446781829106d9ab8c`.
+- Manifest: `Created-By: 17.0.20.1 (Eclipse Adoptium)`.
+
+The producer runs the host `jar --create` with a fixed timestamp but leaves
+`Created-By` host-dependent, and its locked environment is empty. The lock
+lists only a Windows JetBrains JBRSDK 17.0.14 artifact; it does not provide a
+Linux producer SDK override. This establishes a reproducibility gap, but the
+original locked JAR is unavailable, so it does not prove that the manifest is
+the only difference or identify the original producer JDK.
+
+Compilation and actual registry/UI qualification require the exact existing
+locked artifact from the same source revision, or a separately approved
+producer toolchain/artifact decision. The incompatible output was not copied
+into the cache, rewritten to guess a hash, or hidden behind a filename with
+backslashes. Full native compilation, third-party in-client round trips,
+document persistence, modal input ordering and rendered checks remain unrun.
+The failed native attempts still refer to the original path failure; the
+follow-up establishes the byte mismatch by hashing the actual output, not by
+claiming a successful rerun of the native build.
+
+No action was denied or left pending. The changed-source Rust test process
+completed normally. An accidental pre-edit filtered Cargo build was stopped
+by its exact owned PIDs before the real run; no active task helper or game
+remains. Source and detailed evidence are preserved in both worktrees and
+`/workspace/editor-picker-evidence/`.

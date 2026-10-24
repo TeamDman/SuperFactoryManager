@@ -1,0 +1,24 @@
+Command: cargo test --offline --locked --lib source_build_output_path_tests -- --nocapture
+Source: f9831eb1aa4ba440845a1002aa055de2acbda081 (whitespace-only formatting after test)
+Full log retained at /workspace/editor-picker-evidence/portable-path-tests.log
+
+    Finished `test` profile [unoptimized] target(s) in 2m 35s
+     Running unittests src/lib.rs (/workspace/.sfm-env/target/debug/deps/sfm_propagate_changes-31b5e1ac8757d58e)
+
+running 2 tests
+test jar_build::engine::resolve::source_build_output_path_tests::portable_recipe_resolves_real_output_and_preserves_locked_path ... ok
+test jar_build::engine::resolve::source_build_output_path_tests::portable_output_still_requires_exact_locked_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2075 filtered out; finished in 0.00s
+
+
+check-all.ps1 attempt (exit 127):
+/bin/bash: line 14: pwsh: command not found
+
+rustfmt attempt (exit 1):
+error: 'rustfmt' is not installed for the toolchain '1.99.1-x86_64-unknown-linux-gnu'.
+help: run `rustup component add rustfmt` to install it
+
+clippy attempt (exit 1):
+error: 'cargo-clippy' is not installed for the toolchain '1.99.1-x86_64-unknown-linux-gnu'.
+help: run `rustup component add clippy` to install it

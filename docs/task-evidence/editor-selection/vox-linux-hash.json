@@ -1,0 +1,10 @@
+{
+  "schema": "sfm:file_hash@1",
+  "path": "/tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56/vox/java/target/vox-java-0.10.0-rc.5.jar",
+  "algorithm": "blake3",
+  "digest_bytes": 20,
+  "bytes_hashed": 1326016,
+  "hex_digest": "cc19e740cf1c08970c23b2446781829106d9ab8c",
+  "identity": "blake3:cc19e740cf1c08970c23b2446781829106d9ab8c",
+  "writes_performed": false
+}
