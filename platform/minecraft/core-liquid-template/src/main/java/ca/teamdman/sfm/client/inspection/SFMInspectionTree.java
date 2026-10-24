@@ -143,7 +143,7 @@ public record SFMInspectionTree(SFMPath root, List<SFMInMemoryTextExplorerResolv
                 for (int j = 0; j < representations.size(); j++) {
                     var representation = representations.get(j);
                     String filename = representation.filename();
-                    SFMPath view = child(pairPath, String.format(Locale.ROOT, "%02d-", j) + filename); views.add(view);
+                    SFMPath view = child(pairPath, String.format(Locale.ROOT, "%02d-", j) + filename, false); views.add(view);
                     nodes.add(leaf(view, representation.label(), representation.text()));
                     if (representation.surface() != null) surfaces.put(view, representation.surface());
                 }
@@ -152,12 +152,12 @@ public record SFMInspectionTree(SFMPath root, List<SFMInMemoryTextExplorerResolv
             nodes.add(directory(group, strategy.label() + " (" + matches.size() + ")", matches));
         }
         SFMPath provenance = child(root, "09-provenance"); children.add(provenance);
-        SFMPath details = child(provenance, "identity.txt");
+        SFMPath details = child(provenance, "identity.txt", false);
         nodes.add(leaf(details, "Input identities and limitations", input.get("identity").getAsString() + "\n" + input.get("provenance").getAsString()));
         var evidence = new ArrayList<SFMPath>(List.of(details));
         boolean failed = input.has("error") && !input.get("error").isJsonNull();
         if (failed) {
-            SFMPath error = child(provenance, "error.txt"); evidence.add(error);
+            SFMPath error = child(provenance, "error.txt", false); evidence.add(error);
             nodes.add(leaf(error, "Comparison unavailable · missing or invalid input", input.get("error").getAsString()));
         }
         nodes.add(directory(provenance, failed ? "ERROR · comparison unavailable" : "Provenance and limitations", evidence));
@@ -233,9 +233,13 @@ public record SFMInspectionTree(SFMPath root, List<SFMInMemoryTextExplorerResolv
         return SFMInMemoryTextExplorerResolver.Node.text(SFMExplorerEntry.simple(path, label, false, Optional.of("minecraft:paper")), text);
     }
     private static SFMPath child(SFMPath root, String segment) {
-        var segments = new ArrayList<>(root.segments()); segments.add(segment); return path(root.authority(), segments);
+        return child(root, segment, true);
+    }
+    private static SFMPath child(SFMPath root, String segment, boolean container) {
+        var segments = new ArrayList<>(root.segments()); segments.add(segment);
+        return new SFMPath(SFMPath.Kind.CONTRIBUTED, SCHEME, root.authority(), segments, Optional.empty(), container);
     }
     private static SFMPath path(String authority, List<String> segments) {
-        return new SFMPath(SFMPath.Kind.CONTRIBUTED, SCHEME, authority, segments, Optional.empty(), false);
+        return new SFMPath(SFMPath.Kind.CONTRIBUTED, SCHEME, authority, segments, Optional.empty(), true);
     }
 }

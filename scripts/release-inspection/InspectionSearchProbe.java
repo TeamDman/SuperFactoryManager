@@ -30,6 +30,17 @@ public class InspectionSearchProbe {
         queue.remove().run();
         var domain = future.join();
         check(domain.complete() && !domain.matchedPaths().isEmpty(), "complete real Nucleo domain");
+        var revealResolver = new SFMInMemoryTextExplorerResolver("inspection",Runnable::run,2);
+        try (var revealLease = revealResolver.mount(tree.root().authority(),tree.nodes())) {
+            var revealRegistry = new SFMExplorerResolverRegistry();revealRegistry.register(revealResolver);
+            var revealLoader = new SFMLazyExplorerLoader(revealRegistry,new SFMChildRelationRepository(),Runnable::run);
+            revealLoader.openRoot(tree.root()).join();
+            var revealSession = new SFMExplorerSession(new SFMExplorerId("inspection-reveal"),tree.root(),new SFMSelectionRepository());
+            var target = tree.surfaces().keySet().stream().sorted().findFirst().orElseThrow();
+            var revealed = SFMExplorerPathReveal.reveal(revealSession,revealLoader,tree.root(),target,2,()->{}).toCompletableFuture().join();
+            check(revealSession.snapshot().navigationCursor().equals(Optional.of(target)), "external lazy reveal reaches representation through exact container identities");
+            check(revealed.loadedPages()>0 && revealed.expanded().size()==3, "reveal materializes root, strategy and pair ancestors");
+        }
         check(domain.entries().size()==tree.nodes().size(), "uncollapsed mount metadata is searchable");
         check(!domain.matchedPaths().contains(tree.root()), "containing root is not a direct match");
         check(domain.matchedPaths().stream().anyMatch(path -> !domain.matchEvidence().get(path).labelFragments().isEmpty()),
