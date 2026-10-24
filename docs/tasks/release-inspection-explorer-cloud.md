@@ -159,7 +159,7 @@ coordinates. The actual Portuguese locale diff previously implied roughly 52.4 M
 full-text UTF-8 allocations per tick; that repeated work was removed. This is source
 analysis, not a measured game-frame-rate claim.
 
-Current headless evidence is under `qualification-v2` within the evidence directory:
+The intermediate headless evidence is under `qualification-v2` within the evidence directory:
 112 production tree/source-map assertions, 11 strict-input/mount-publication assertions,
 10 Nucleo adapter assertions using a fake provider, real admitted javap capture, and
 pre-javap rejection of unsafe/duplicate/oversized archives. FIFO and symlink workspace
@@ -218,3 +218,54 @@ The exact remaining prerequisites are:
 
 These states are pending/unrun prerequisites, not approval denials. No SDK, dependency,
 environment or network configuration changed during the continuation.
+
+## Final qualification checkpoint
+
+Implementation commits, oldest first:
+
+- `df377bec29b3e5605fa49062249f928f12bab20c` — Explorer comparison roots and release preparation.
+- `d5aafa2ce1d6004415ea17e64f852b295f53444e` — class closing-brace classification correction.
+- `50a8d0eda96f244eb40eebb66953aed27e2ccf5b` — independent-review fixes, bounded admission,
+  method-aware instruction filtering, cached decorations and optional matcher contract.
+
+The final locked offline rebuild reports revision `50a8d0ed`. The executable used for
+qualification is `/workspace/.sfm-env/target/debug/sfm-propagate-changes`, SHA-256
+`0f6be5a3c584babae528511ff97ccbb7345e7a0bb2de5cfce37aaf73ea38cfd4`.
+The installed `/workspace/.sfm-env/libexec/sfm-propagate-changes` remains unchanged at
+SHA-256 `35374239ffa5562ee5452d884f09ea1fef07f2121fccdd0575c44d9e3472e405`.
+User must run install.ps1: **no**, when using the explicit tested executable path.
+The final projection check passes without writes; the CLI syntax check produces 496
+Java spans. Neither is a claim that the game compiled or displayed those colors.
+
+`qualification-final/summary.json` records the passing complete headless command:
+112 tree/source-map assertions, 11 strict-input/publication assertions, 12 fake-provider
+Nucleo adapter assertions, 60,001 coordinate endpoints, real admitted javap capture,
+and archive/FIFO/symlink rejection checks. `qualification-final/replay-inputs.zip`
+contains 97 regular files (136,005 bytes); ZIP integrity was checked. Its SHA-256 is
+`dd019dcaeb49d33c79d86b754b09acec3d2c6342f5062eaaa71e827f5a5e3617`.
+
+`release-qualified/release.sfm-inspection.json` was freshly prepared with this executable.
+Preparation returned the expected status 2 for missing release JARs and preserved the
+actual projection comparison. The production Java reader accepted both roots, 3,825
+projection nodes and 108 mapped views with `-Xmx256m`: 2.520 seconds and 306,620 KiB
+peak child RSS. The 33,770,721-byte workspace has SHA-256
+`8b05b504db488103855b2d6f5368249f280baf388c89b5e6abcc3a8ec478acec`.
+See `qualified-memory.json`, `qualified-memory.log` and `qualified-tooling.json` for
+commands and receipts. Heap size is not an RSS limit; these are headless measurements.
+
+The final manual launch command uses the latest prepared workspace:
+
+```bash
+/workspace/.sfm-env/target/debug/sfm-propagate-changes run client \
+  --repo-root /workspace/SuperFactoryManager --projection sfm-dev/mc-1.19.2 \
+  --java-home /workspace/.sfm-env/jdk17 \
+  --inspection-workspace /workspace/scratch/release-inspection/release-qualified/release.sfm-inspection.json
+```
+
+This remains blocked at the previously confirmed pinned Vox SDK prerequisite; it was
+not retried with the same missing prerequisite. After SDK routing and client startup are
+qualified, expect two comparison roots, with the JAR root explicitly unavailable until
+real release artifacts are supplied. Actual screenshots and interaction checks remain
+unrun. With `prepare.py --javap`, archive admission or producer failure stops preparation
+and reports the failure; omit JAR arguments to prepare the independent projection root.
+All final owned qualification processes exited. No game was started or left running.
