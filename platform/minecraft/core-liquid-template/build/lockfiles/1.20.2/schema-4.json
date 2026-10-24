@@ -1489,7 +1489,7 @@
           "package-java"
         ],
         "environment": {
-          "VOX_JAVA_BUILD_JDK": "Eclipse Adoptium|21.0.8+9-LTS"
+          "VOX_JAVA_BUILD_JDK": "JetBrains s.r.o.|21.0.11+1-b1163.116"
         },
         "output_path": "java\\target\\teamy-vox-java-0.10.0-rc.7.jar"
       },

@@ -57,7 +57,7 @@ impl FrozenFileDependencyContract {
                 == "java/target/teamy-vox-java-0.10.0-rc.7.jar"
             && build.environment.len() == 1
             && build.environment.get("VOX_JAVA_BUILD_JDK").map(String::as_str)
-                == Some("Eclipse Adoptium|21.0.8+9-LTS")
+                == Some("JetBrains s.r.o.|21.0.11+1-b1163.116")
         {
             return Some(Self {
                 jar_bytes: 614_530,
@@ -177,7 +177,7 @@ mod tests {
         build.output_path = PathBuf::from("java/target/teamy-vox-java-0.10.0-rc.7.jar");
         build.environment.insert(
             "VOX_JAVA_BUILD_JDK".to_owned(),
-            "Eclipse Adoptium|21.0.8+9-LTS".to_owned(),
+            "JetBrains s.r.o.|21.0.11+1-b1163.116".to_owned(),
         );
         let contract = FrozenFileDependencyContract::for_artifact(&standalone)
             .expect("independently reproduced standalone runtime");
