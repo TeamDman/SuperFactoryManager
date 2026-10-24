@@ -11,6 +11,10 @@ NAME "Changelog"
 -- Peers using the previous wire protocol are not supported.
 {% endif %}
 {% endif %}
+{% if features.terminal_vox_runtime %}
+-- Keep the terminal session open when startup rejects input; retry manually after readiness.
+-- Report paste failures and cancellations without opening a confirmation dialog or replaying input.
+{% endif %}
 {% if features.recipe_namespace %}
 
 ---- 4.35.0 ----

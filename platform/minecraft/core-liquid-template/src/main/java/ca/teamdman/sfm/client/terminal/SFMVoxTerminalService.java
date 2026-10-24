@@ -37,6 +37,7 @@ import org.facet.vox.generated.TerminalCopySelectionRequest;
 {% endcase %}
 import org.facet.vox.generated.TerminalDisconnectRequest;
 import org.facet.vox.generated.TerminalError;
+import org.facet.vox.generated.TerminalErrorCode;
 import org.facet.vox.generated.TerminalFrameEncoding;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
@@ -104,6 +105,8 @@ import java.util.Objects;
 import java.util.Optional;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
@@ -191,6 +194,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private TerminalClient client;
     private String sessionId;
     private String failure;
+    private TerminalError inputFailure;
+    private long transportGeneration;
     private TerminalSnapshot latestSnapshot;
     private TerminalContentResult latestContent;
 {% case minecraft_version %}
@@ -246,7 +251,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private SFMTerminalSelection latestSelection;
     private long latestInteractionSequence;
     private boolean connectionInFlight;
-    private long transportGeneration;
+    private final Set<PendingPaste> pendingPastes = new LinkedHashSet<>();
     private volatile Thread driverThread;
     private long nextConnectionAttemptNanos;
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
@@ -255,9 +260,19 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 {% endcase %}
     private boolean closed;
 
+    private record Transport(TerminalClient client, String sessionId, long generation) {}
+
+    private static final class TerminalApplicationException extends IllegalStateException {
+        private final TerminalError error;
+
+        private TerminalApplicationException(String operation, TerminalError error) {
+            super(operation + ": " + error.message());
+            this.error = error;
+        }
+    }
+
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-    private record Transport(TerminalClient client, String sessionId, long generation) {}
 
     private record DetachedSubscription(
             VoxRx<TerminalFrameEvent> receiver,
@@ -359,12 +374,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             SFMTerminalTuningSettings tuning,
             long version) {}
 
-    private static final class TerminalApplicationException extends IllegalStateException {
-        private final SFMTerminalError terminalError;
+    private static final class PendingPaste {
+        private final long generation;
+        private final Consumer<SFMTerminalPasteResult> completion;
+        private boolean completed;
 
-        private TerminalApplicationException(String operation, TerminalError error) {
-            super(operation + ": " + error.message());
-            this.terminalError = SFMVoxTerminalPresentationAdapter.terminalError(error);
+        private PendingPaste(long generation, Consumer<SFMTerminalPasteResult> completion) {
+            this.generation = generation;
+            this.completion = completion;
         }
     }
 
@@ -544,13 +561,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     @Override
-    public Optional<String> failureMessage() {
-        synchronized (lock) {
-            return Optional.ofNullable(failure);
-        }
-    }
-
-    @Override
     public SFMTerminalConnectionSnapshot connectionSnapshot() {
         synchronized (lock) {
             RasterStream stream = rasterHandoff.active();
@@ -561,7 +571,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     connectionInFlight,
                     presentationReady,
                     transportGeneration,
-                    Optional.ofNullable(failure));
+                    Optional.ofNullable(failure),
+                    Optional.ofNullable(inputFailure).map(SFMVoxTerminalPresentationAdapter::terminalError));
+        }
+    }
+
+    /** Last rejected input, retained until a current-session operation succeeds. */
+    public Optional<SFMTerminalError> inputFailure() {
+        synchronized (lock) {
+            return Optional.ofNullable(inputFailure).map(SFMVoxTerminalPresentationAdapter::terminalError);
         }
     }
 
@@ -2600,13 +2618,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         if (text == null || text.isEmpty()) return true;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-        return enqueueRemoteOperation("Vox terminal input unavailable: ", transport -> {
+        return enqueueInputOperation("Vox terminal input unavailable: ", transport -> {
             long requestSequence = nextSequence();
             TerminalInputResult result = requireSuccess(
                     await(transport.client().sendText(new TerminalTextInput(
                             transport.sessionId(), text, requestSequence,
                             correlationId("text", requestSequence))), "sending terminal text"),
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        Transport transport = null;
         try {
             ensureConnected();
             String currentSession;
@@ -2614,6 +2633,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             synchronized (lock) {
                 currentSession = sessionId;
                 currentClient = client;
+                transport = new Transport(currentClient, currentSession, transportGeneration);
             }
             requireSuccess(
                     await(currentClient.sendText(new TerminalTextInput(
@@ -2625,12 +2645,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             acceptInteractionResult(transport, result);
         });
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            clearInputFailureIfCurrent(transport);
             return true;
         } catch (Exception error) {
-            synchronized (lock) {
-                failure = "Vox terminal input unavailable: " + describe(error);
-                closeTransportLocked();
-            }
+            failInputIfCurrent(transport, "Vox terminal input unavailable: ", error);
             return false;
         }
 {% endcase %}
@@ -2640,13 +2658,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     public boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat) {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-        return enqueueRemoteOperation("Vox terminal key unavailable: ", transport -> {
+        return enqueueInputOperation("Vox terminal key unavailable: ", transport -> {
             long requestSequence = nextSequence();
             TerminalInputResult result = requireSuccess(
                     await(transport.client().sendKey(new TerminalKeyInput(
                             transport.sessionId(), keyCode, modifiers, pressed, repeat, requestSequence,
                             correlationId("key", requestSequence))),
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        Transport transport = null;
         try {
             ensureConnected();
             String currentSession;
@@ -2654,6 +2673,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             synchronized (lock) {
                 currentSession = sessionId;
                 currentClient = client;
+                transport = new Transport(currentClient, currentSession, transportGeneration);
             }
             requireSuccess(
                     await(currentClient.sendKey(new TerminalKeyInput(
@@ -2666,12 +2686,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             acceptInteractionResult(transport, result);
         });
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            clearInputFailureIfCurrent(transport);
             return true;
         } catch (Exception error) {
-            synchronized (lock) {
-                failure = "Vox terminal key unavailable: " + describe(error);
-                closeTransportLocked();
-            }
+            failInputIfCurrent(transport, "Vox terminal key unavailable: ", error);
             return false;
         }
 {% endcase %}
@@ -2681,12 +2699,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     public boolean cancel() {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-        return enqueueRemoteOperation("Vox terminal cancellation unavailable: ", transport -> {
+        return enqueueInputOperation("Vox terminal cancellation unavailable: ", transport -> {
             long requestSequence = nextSequence();
             TerminalOperationResult result = requireSuccess(
                     await(transport.client().cancel(new TerminalCancelRequest(
                             transport.sessionId(),
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        Transport transport = null;
         try {
             ensureConnected();
             String currentSession;
@@ -2694,8 +2713,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             synchronized (lock) {
                 currentSession = sessionId;
                 currentClient = client;
+                transport = new Transport(currentClient, currentSession, transportGeneration);
             }
-            return requireSuccess(
+            boolean ready = requireSuccess(
                     await(currentClient.cancel(new TerminalCancelRequest(
                             currentSession,
 {% endcase %}
@@ -2711,10 +2731,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
                             nextSequence())), "cancelling terminal operation"),
                     "cancelling terminal operation").state() == TerminalState.READY;
+            if (ready) clearInputFailureIfCurrent(transport);
+            return ready;
         } catch (Exception error) {
-            synchronized (lock) {
-                failure = "Vox terminal cancellation unavailable: " + describe(error);
-                closeTransportLocked();
+            {
+                failInputIfCurrent(transport, "Vox terminal cancellation unavailable: ", error);
 {% endcase %}
             }
 {% case minecraft_version %}
@@ -2769,7 +2790,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 wheelX,
                 wheelY);
         if (motion && completion == null) return enqueueLatestMouseMotion(operation);
-        return enqueueRemoteOperation("Vox terminal mouse unavailable: ", transport -> {
+        return enqueueInputOperation("Vox terminal mouse unavailable: ", transport -> {
             TerminalInputResult result = performMouse(transport, operation);
             if (completion != null && isCurrentResult(transport, result.sessionId())) {
                 completeInteraction(completion, mapInputDisposition(result));
@@ -2861,28 +2882,89 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         Objects.requireNonNull(completion, "completion");
         String suppliedText = text == null ? "" : text;
         String contentId = approvedContentId == null ? "" : approvedContentId;
-        return enqueueRemoteOperation("Vox terminal paste unavailable: ", transport -> {
+        synchronized (lock) {
+            if (closed) return false;
+            PendingPaste pending = new PendingPaste(transportGeneration, completion);
+            pendingPastes.add(pending);
+            if (submitDriver(() -> runPaste(pending, suppliedText, contentId, policy))) return true;
+            pendingPastes.remove(pending);
+            return false;
+        }
+    }
+
+    private void runPaste(
+            PendingPaste pending, String text, String contentId, TerminalPastePolicy policy) {
+        Transport transport = null;
+        try {
+            synchronized (lock) {
+                if (pending.completed) return;
+                if (closed || pending.generation != transportGeneration) {
+                    completePasteLocked(pending, cancelledPaste());
+                    return;
+                }
+            }
+            ensureConnected();
+            transport = requireCurrentTransport();
+            synchronized (lock) {
+                if (pending.completed) return;
+                if (closed || pending.generation != transport.generation()
+                        || !isCurrentTransportLocked(transport)) {
+                    completePasteLocked(pending, cancelledPaste());
+                    return;
+                }
+            }
             long requestSequence = nextSequence();
             org.facet.vox.generated.TerminalPasteResult result = requireSuccess(
                     await(transport.client().paste(new TerminalPasteRequest(
-                            transport.sessionId(),
-                            policy,
-                            TerminalPasteSource.SUPPLIED,
-                            suppliedText,
-                            contentId,
-                            requestSequence,
-                            correlationId("paste", requestSequence))),
+                            transport.sessionId(), policy, TerminalPasteSource.SUPPLIED,
+                            text, contentId, requestSequence, correlationId("paste", requestSequence))),
                             "pasting terminal text"),
                     "pasting terminal text");
-            if (!isCurrentResult(transport, result.sessionId())) return;
-            SFMTerminalPasteResult mapped = new SFMTerminalPasteResult(
-                    result.disposition() == TerminalPasteDisposition.PASTED
-                            ? SFMTerminalPasteResult.Disposition.PASTED
-                            : SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
-                    result.preview(),
-                    result.contentId());
-            completeInteraction(completion, mapped);
-        });
+            synchronized (lock) {
+                if (!isCurrentResult(transport, result.sessionId())) {
+                    completePasteLocked(pending, cancelledPaste());
+                    return;
+                }
+                clearInputFailureIfCurrent(transport);
+                SFMTerminalPasteResult mapped = new SFMTerminalPasteResult(
+                        result.disposition() == TerminalPasteDisposition.PASTED
+                                ? SFMTerminalPasteResult.Disposition.PASTED
+                                : SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                        result.preview(), result.contentId());
+                completePasteLocked(pending, mapped);
+            }
+        } catch (Exception error) {
+            synchronized (lock) {
+                if (closed || pending.generation != transportGeneration) {
+                    completePasteLocked(pending, cancelledPaste());
+                } else {
+                    // Complete the failed request before transport retirement cancels queued work.
+                    // A timeout/transport loss has ambiguous acceptance and must never be replayed.
+                    SFMTerminalError detail = error instanceof TerminalApplicationException application
+                            ? SFMVoxTerminalPresentationAdapter.terminalError(application.error)
+                            : new SFMTerminalError(SFMTerminalErrorCode.DISCONNECTED,
+                                    "Paste outcome unavailable: " + describe(error), false, 0);
+                    completePasteLocked(pending, SFMTerminalPasteResult.failed(detail));
+                    failInputIfCurrent(transport, "Vox terminal paste unavailable: ", error);
+                }
+            }
+            if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+        }
+    }
+
+    private static SFMTerminalPasteResult cancelledPaste() {
+        return SFMTerminalPasteResult.failed(new SFMTerminalError(
+                SFMTerminalErrorCode.CANCELLED,
+                "Paste cancelled because the terminal session changed or closed; it will not be replayed",
+                false, 0));
+    }
+
+    /** Called with lock held; callbacks run outside it, including during shutdown. */
+    private void completePasteLocked(PendingPaste pending, SFMTerminalPasteResult result) {
+        if (pending.completed) return;
+        pending.completed = true;
+        pendingPastes.remove(pending);
+        scheduleTransportCleanup(() -> completeInteraction(pending.completion, result));
     }
 
     private void acceptInteractionResult(Transport transport, TerminalInputResult result) {
@@ -2966,8 +3048,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 Transport transport = requireCurrentTransport();
                 try {
                     performMouse(transport, operation);
+                    clearInputFailureIfCurrent(transport);
                 } catch (Exception error) {
-                    failTransportIfCurrent(transport, "Vox terminal mouse unavailable: ", error);
+                    failInputIfCurrent(transport, "Vox terminal mouse unavailable: ", error);
                 }
             } catch (Exception ignored) {
                 // ensureConnected records the current connection failure.
@@ -2999,6 +3082,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     resizeVersion);
         }
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+        Transport transport = null;
 {% endcase %}
         try {
             ensureConnected();
@@ -3049,6 +3133,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         acceptedResizeVersion = operation.version();
                     }
                 }
+                clearInputFailureIfCurrent(transport);
                 SFM.LOGGER.info(
                         "SFM_VOX_TERMINAL_RESIZE_ACCEPTED session={} version={} requested={}x{} surface={}x{} font_px={}",
                         transport.sessionId(),
@@ -3079,6 +3164,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             synchronized (lock) {
                 currentSession = sessionId;
                 currentClient = client;
+                transport = new Transport(currentClient, currentSession, transportGeneration);
 {% endcase %}
             }
 {% case minecraft_version %}
@@ -3098,7 +3184,17 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
+    // true acknowledges local enqueue only, never remote forwarding or command execution.
+    private boolean enqueueInputOperation(String failurePrefix, RemoteOperation operation) {
+        return enqueueRemoteOperation(failurePrefix, operation, true);
+    }
+
     private boolean enqueueRemoteOperation(String failurePrefix, RemoteOperation operation) {
+        return enqueueRemoteOperation(failurePrefix, operation, false);
+    }
+
+    private boolean enqueueRemoteOperation(
+            String failurePrefix, RemoteOperation operation, boolean inputOperation) {
         synchronized (lock) {
             if (closed) return false;
         }
@@ -3108,8 +3204,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 Transport transport = requireCurrentTransport();
                 try {
                     operation.run(transport);
+                    clearInputFailureIfCurrent(transport);
                 } catch (Exception error) {
-                    failTransportIfCurrent(transport, failurePrefix, error);
+                    if (inputOperation) failInputIfCurrent(transport, failurePrefix, error);
+                    else failTransportIfCurrent(transport, failurePrefix, error);
                 }
             } catch (Exception ignored) {
                 // ensureConnected records the current connection failure.
@@ -3134,6 +3232,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             wheelY,
                             nextSequence())), "sending terminal mouse"),
                     "sending terminal mouse");
+            clearInputFailureIfCurrent(transport);
 {% endcase %}
             return true;
 {% case minecraft_version %}
@@ -3141,10 +3240,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         } catch (RejectedExecutionException error) {
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
         } catch (Exception error) {
-            synchronized (lock) {
-                failure = "Vox terminal mouse unavailable: " + describe(error);
-                closeTransportLocked();
-            }
+            failInputIfCurrent(transport, "Vox terminal mouse unavailable: ", error);
 {% endcase %}
             return false;
         }
@@ -3157,6 +3253,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private SFMTerminalResponse execute(String command, SFMTerminalSession fallbackSession) {
 {% endcase %}
         String workingDirectory = workingDirectory();
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+{% else %}
+        Transport transport = null;
+        boolean inputAttempted = false;
+        boolean inputAccepted = false;
+{% endcase %}
         try {
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
@@ -3170,18 +3273,23 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     transport.sessionId(), command + "\r", requestSequence,
                                     correlationId("execute", requestSequence))), "sending terminal text"),
                             "sending terminal text");
+                    clearInputFailureIfCurrent(transport);
                     return SFMTerminalResponse.ok(List.of(
-                            "Vox terminal accepted command",
+                            "Vox terminal forwarded command input (execution not acknowledged)",
                             "frame sequence: " + input.frameSequence()), workingDirectory);
                 } catch (Exception error) {
-                    failTransportIfCurrent(transport, "Vox terminal input unavailable: ", error);
+                    failInputIfCurrent(transport, "Vox terminal input unavailable: ", error);
                     throw error;
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
             ensureConnected();
+            transport = requireCurrentTransport();
+            inputAttempted = true;
             TerminalInputResult input = requireSuccess(
-                    await(client.sendText(new TerminalTextInput(
-                            sessionId, command + "\r", nextSequence())), "sending terminal text"),
+                    await(transport.client().sendText(new TerminalTextInput(
+                            transport.sessionId(), command + "\r", nextSequence())), "sending terminal text"),
                     "sending terminal text");
+            inputAccepted = true;
+            clearInputFailureIfCurrent(transport);
             TerminalSnapshot snapshot = requireSuccess(
                     await(client.snapshot(new TerminalSnapshotRequest(
                             sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading terminal snapshot"),
@@ -3198,19 +3306,24 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
             }
             return SFMTerminalResponse.ok(List.of(
-                    "Vox terminal accepted command",
+                    "Vox terminal forwarded command input (execution not acknowledged)",
                     "frame sequence: " + input.frameSequence()), workingDirectory);
 {% endcase %}
         } catch (Exception error) {
-            synchronized (lock) {
-                latestSnapshot = null;
-                latestContent = null;
-            }
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
             return SFMTerminalResponse.error(
                     "Rust terminal unavailable: " + describe(error), workingDirectory);
 {% when '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1', '26.1.2' %}
+            if (!inputAccepted) failInputIfCurrent(transport, "Vox terminal input unavailable: ", error);
+            if (inputAttempted || error instanceof TerminalApplicationException) {
+                // Once sending starts, even transport failure can mean accepted input. Do not replay locally.
+                return SFMTerminalResponse.error("Rust terminal request failed: " + describe(error), workingDirectory);
+            }
+            synchronized (lock) {
+                latestSnapshot = null;
+                latestContent = null;
+            }
             SFMTerminalResponse local = fallbackSession.execute(command);
             List<String> lines = new ArrayList<>();
             lines.add("Vox unavailable; Java-local fallback active");
@@ -3346,22 +3459,6 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
-    private Transport requireCurrentTransport() {
-        synchronized (lock) {
-            if (client == null || sessionId == null) {
-                throw new IllegalStateException("Vox terminal transport is not connected");
-            }
-            return new Transport(client, sessionId, transportGeneration);
-        }
-    }
-
-    private boolean isCurrentTransportLocked(Transport transport) {
-        return transport != null
-                && transport.generation() == transportGeneration
-                && transport.client() == client
-                && Objects.equals(transport.sessionId(), sessionId);
-    }
-
     private void failTransportIfCurrent(Transport transport, String prefix, Throwable error) {
         synchronized (lock) {
             if (!isCurrentTransportLocked(transport)) return;
@@ -3435,10 +3532,67 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 .build();
     }
 
+    private Transport requireCurrentTransport() {
+        synchronized (lock) {
+            if (client == null || sessionId == null) {
+                throw new IllegalStateException("Vox terminal transport is not connected");
+            }
+            return new Transport(client, sessionId, transportGeneration);
+        }
+    }
+
+    private boolean isCurrentTransportLocked(Transport transport) {
+        return transport != null
+                && transport.generation() == transportGeneration
+                && transport.client() == client
+                && Objects.equals(transport.sessionId(), sessionId);
+    }
+
+    @Override
+    public Optional<String> failureMessage() {
+        synchronized (lock) {
+            return Optional.ofNullable(failure != null ? failure : inputFailureMessage());
+        }
+    }
+
+    private String inputFailureMessage() {
+        return inputFailure == null ? null
+                : "Terminal input rejected: " + inputFailure.message() + " (retry manually)";
+    }
+
+    private static boolean isStartupInputRejection(Throwable error) {
+        return error instanceof TerminalApplicationException application
+                && application.error.code() == TerminalErrorCode.INVALID_REQUEST
+                && application.error.retryable();
+    }
+
+    private void clearInputFailureIfCurrent(Transport transport) {
+        synchronized (lock) {
+            if (!closed && isCurrentTransportLocked(transport)) inputFailure = null;
+        }
+    }
+
+    private void failInputIfCurrent(Transport transport, String prefix, Throwable error) {
+        synchronized (lock) {
+            if (closed || !isCurrentTransportLocked(transport)) return;
+            if (isStartupInputRejection(error)) {
+                inputFailure = ((TerminalApplicationException) error).error;
+                return; // Rejected before forwarding. Only a new user action may retry.
+            }
+{% case minecraft_version %}
+{% when '1.19.2', '1.19.4' %}
+            failTransportIfCurrent(transport, prefix, error);
+{% else %}
+            failure = prefix + describe(error);
+            closeTransportLocked();
+{% endcase %}
+        }
+    }
+
     private static <T> T requireSuccess(VoxResult<T, TerminalError> result, String operation) {
         if (result.isSuccess()) return result.success();
         if (result.isApplicationError()) {
-            throw new IllegalStateException(operation + ": " + result.applicationError().message());
+            throw new TerminalApplicationException(operation, result.applicationError());
         }
         throw new IllegalStateException(operation + ": " + result.detail());
     }
@@ -3450,7 +3604,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             Exception failure
     ) {
         SFMTerminalError error = failure instanceof TerminalApplicationException application
-                ? application.terminalError
+                ? SFMVoxTerminalPresentationAdapter.terminalError(application.error)
                 : new SFMTerminalError(
                         SFMTerminalErrorCode.INTERNAL,
                         describe(failure),
@@ -3485,9 +3639,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void closeTransportLocked(boolean requestDisconnect) {
+        transportGeneration = Math.incrementExact(transportGeneration);
+        inputFailure = null;
 {% case minecraft_version %}
 {% when '1.19.2', '1.19.4' %}
-        transportGeneration = incrementGeneration(transportGeneration, "terminal transport generation");
+        for (PendingPaste pending : List.copyOf(pendingPastes)) {
+            completePasteLocked(pending, cancelledPaste());
+        }
         closeFrameSubscriptionLocked();
         closeRasterSubscriptionLocked();
         DetachedTransport detached = new DetachedTransport(

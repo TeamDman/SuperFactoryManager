@@ -9,6 +9,11 @@ import java.util.function.Consumer;
 
 /** Optional remote-terminal capability kept free of the Vox generated API. */
 public interface SFMTerminalRemoteService extends SFMTerminalService, AutoCloseable {
+    /** Current transport or input rejection, independent from whether the session is connected. */
+    default Optional<String> failureMessage() {
+        return Optional.empty();
+    }
+
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
     /** Request a non-blocking connection attempt for a panel that is already open. */
@@ -17,8 +22,6 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
     boolean isConnected();
 
     boolean isConnecting();
-
-    Optional<String> failureMessage();
 
     /**
      * Captures lifecycle fields as one UI observation. Implementations with a
@@ -148,7 +151,11 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-    /** Paste immediately when safe, or return an opaque confirmation identity for multiline text. */
+    /**
+     * Enqueue a guarded paste. true acknowledges local enqueue only. Each accepted
+     * request completes once with forwarding, confirmation, or structured failure;
+     * forwarding does not acknowledge command execution. No automatic replay.
+     */
 {% if features.terminal_clipboard %}
     default boolean pasteWithGuard(String text, Consumer<SFMTerminalPasteResult> completion) {
         return false;
@@ -160,7 +167,10 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
-    /** Release exactly one retained multiline paste after explicit Java-side confirmation. */
+    /**
+     * Enqueue one explicitly approved paste, with the same completion/failure
+     * contract as guarded paste. A failed request requires a new user action.
+     */
 {% if features.terminal_clipboard %}
 {% if features.terminal_paste_confirmation %}
     default boolean pasteWithoutGuard(

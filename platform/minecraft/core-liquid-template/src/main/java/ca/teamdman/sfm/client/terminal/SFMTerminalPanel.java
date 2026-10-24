@@ -2478,11 +2478,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private boolean requestGuardedPaste(String text) {
         if (remoteService == null || text == null || text.isEmpty()) return true;
         Minecraft requestMinecraft = minecraft;
+        long requestEpoch = remoteService.interactionEpoch();
         return remoteService.pasteWithGuard(text, result -> runOnMinecraftThread(requestMinecraft, () -> {
-            if (result.disposition() == SFMTerminalPasteResult.Disposition.PASTED) {
+            if (remoteService.interactionEpoch() != requestEpoch) return;
+            if (result.disposition() != SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED) {
 {% if features.terminal_paste_confirmation %}
                 pendingPaste = null;
 {% endif %}
+                reportPasteFailure(result);
                 focusTerminalInput();
                 return;
             }
@@ -2520,9 +2523,26 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         remoteService.pasteWithoutGuard(
                 pending.text(),
                 pending.contentId(),
-                ignored -> runOnMinecraftThread(requestMinecraft, this::focusTerminalInput));
+                result -> runOnMinecraftThread(requestMinecraft, () -> {
+                    if (remoteService.interactionEpoch() != pending.interactionEpoch()) return;
+                    reportPasteFailure(result);
+                    if (result.disposition() == SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED) {
+                        recordConnectionEvent("Approved paste was not forwarded: confirmation is still required", true);
+                    }
+                    focusTerminalInput();
+                }));
     }
 {% endif %}
+{% endif %}
+{% endif %}
+
+{% if features.terminal_remote or features.terminal_vox_runtime %}
+{% if features.terminal_clipboard %}
+    private void reportPasteFailure(SFMTerminalPasteResult result) {
+        result.error().ifPresent(error -> recordConnectionEvent(
+                "Terminal paste failed: " + error.message()
+                        + (error.retryable() ? " (retry manually)" : ""), true));
+    }
 {% endif %}
 {% endif %}
 
@@ -2832,7 +2852,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             }
         }
         lastObservedConnection = connected;
-        connection.failure().ifPresent(failure -> {
+        if (connection.displayFailure().isEmpty()) lastObservedConnectionFailure = "";
+        connection.displayFailure().ifPresent(failure -> {
             String normalized = failure == null ? "" : failure.trim();
             if (!normalized.isEmpty() && !normalized.equals(lastObservedConnectionFailure)) {
                 lastObservedConnectionFailure = normalized;

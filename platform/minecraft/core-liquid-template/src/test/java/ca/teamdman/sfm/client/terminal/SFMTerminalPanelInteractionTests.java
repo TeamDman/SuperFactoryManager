@@ -351,6 +351,29 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void startupInputFailureBeforeTheFirstFrameDoesNotOfferAConnectionRetry() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.presentationReady = false;
+        service.inputFailure = new SFMTerminalError(
+                SFMTerminalErrorCode.INVALID_REQUEST, "not ready yet", true, 91);
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.tick();
+
+        assertEquals(SFMTerminalPanel.RustLifecycleRequest.PRESENTATION_PENDING,
+                panel.requestStartOrRetryRustServer());
+        assertEquals(0, service.reconnectRequests);
+        assertTrue(service.connected);
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(message -> message.contains("not ready yet") && message.contains("retry manually")));
+        assertTrue(service.connectionSnapshot().failure().isEmpty());
+
+        service.inputFailure = null; // A later successful current-session operation clears it.
+        panel.tick();
+        assertTrue(service.connectionSnapshot().displayFailure().isEmpty());
+        assertEquals(0, service.reconnectRequests);
+    }
+
+    @Test
     void connectionBoundarySwapsDisjointLandingAndTerminalWidgetTrees() {
         RecordingRemoteService service = new RecordingRemoteService();
         service.connected = false;
@@ -561,6 +584,56 @@ class SFMTerminalPanelInteractionTests {
         panel.pasteForAutomation("safe single line");
 
         assertEquals(List.of("safe single line"), service.guardedPastes);
+    }
+
+    @Test
+    void structuredPasteFailureIsVisibleAndNeverBecomesConfirmation() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.pasteResult = SFMTerminalPasteResult.failed(new SFMTerminalError(
+                SFMTerminalErrorCode.INVALID_REQUEST, "arbitrary rejection", true, 17));
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        panel.pasteForAutomation("one\ntwo");
+
+        assertTrue(panel.pendingPasteContentIdForAutomation().isEmpty());
+        assertTrue(service.approvedPastes.isEmpty());
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(event -> event.contains("arbitrary rejection") && event.contains("retry manually")));
+        assertEquals(0, service.reconnectRequests);
+    }
+
+    @Test
+    void approvedPasteFailureIsReportedAndDoesNotReopenConfirmation() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.pasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED, "one\ntwo", "guard");
+        service.approvedPasteResult = SFMTerminalPasteResult.failed(new SFMTerminalError(
+                SFMTerminalErrorCode.DISCONNECTED, "closed before forwarding", false, 18));
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.pasteForAutomation("one\ntwo");
+
+        panel.resolvePendingPasteForAutomation("guard", true);
+        panel.resolvePendingPasteForAutomation("guard", true);
+
+        assertEquals(1, service.approvedPastes.size());
+        assertTrue(panel.pendingPasteContentIdForAutomation().isEmpty());
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(event -> event.contains("closed before forwarding")));
+    }
+
+    @Test
+    void delayedOldSessionPasteCannotOpenConfirmationInTheNewSession() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.deferPaste = true;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.pasteForAutomation("one\ntwo");
+        service.interactionEpoch++;
+
+        service.pendingPasteCompletion.accept(new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED, "one\ntwo", "old-guard"));
+
+        assertTrue(panel.pendingPasteContentIdForAutomation().isEmpty());
+        assertTrue(service.approvedPastes.isEmpty());
     }
 
     @Test
@@ -838,10 +911,15 @@ class SFMTerminalPanelInteractionTests {
         private final List<ApprovedPaste> approvedPastes = new ArrayList<>();
         private SFMTerminalPasteResult pasteResult = new SFMTerminalPasteResult(
                 SFMTerminalPasteResult.Disposition.PASTED, "", "");
+        private SFMTerminalPasteResult approvedPasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.PASTED, "", "");
+        private boolean deferPaste;
+        private java.util.function.Consumer<SFMTerminalPasteResult> pendingPasteCompletion;
         private boolean connected = true;
         private boolean connecting;
         private boolean presentationReady = true;
         private String failure;
+        private SFMTerminalError inputFailure;
         private int reconnectRequests;
         private long interactionEpoch;
         private List<SFMTerminalRendererOption> rendererOptions = List.of();
@@ -893,7 +971,7 @@ class SFMTerminalPanelInteractionTests {
                     connecting,
                     connected && presentationReady,
                     interactionEpoch,
-                    Optional.ofNullable(failure));
+                    Optional.ofNullable(failure), Optional.ofNullable(inputFailure));
         }
 
         @Override
@@ -971,7 +1049,8 @@ class SFMTerminalPanelInteractionTests {
                 java.util.function.Consumer<SFMTerminalPasteResult> completion
         ) {
             guardedPastes.add(text);
-            completion.accept(pasteResult);
+            pendingPasteCompletion = completion;
+            if (!deferPaste) completion.accept(pasteResult);
             return true;
         }
 
@@ -982,8 +1061,7 @@ class SFMTerminalPanelInteractionTests {
                 java.util.function.Consumer<SFMTerminalPasteResult> completion
         ) {
             approvedPastes.add(new ApprovedPaste(text, approvedContentId));
-            completion.accept(new SFMTerminalPasteResult(
-                    SFMTerminalPasteResult.Disposition.PASTED, "", ""));
+            completion.accept(approvedPasteResult);
             return true;
         }
 
