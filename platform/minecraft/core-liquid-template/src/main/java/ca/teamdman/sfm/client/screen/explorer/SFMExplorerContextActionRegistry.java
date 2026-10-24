@@ -93,6 +93,10 @@ public final class SFMExplorerContextActionRegistry {
             if(request.target()==SFMExplorerContextActionProvider.Target.ICON) return List.copyOf(answer);
         }
 {% endif %}
+{% if features.release_review and features.file_explorer %}
+        if (request.target() != SFMExplorerContextActionProvider.Target.ICON)
+            answer.addAll(ca.teamdman.sfm.client.action.SFMExplorerDiffAction.choices(request));
+{% endif %}
         for (SFMExplorerContextActionProvider provider : providers) {
 {% if features.theme_preview_rules and features.client_theme and features.clipboard_action_commands %}
             if(request.iconInspection().isPresent() && provider instanceof ExplorerRowDetailsProvider) continue;

@@ -1,3 +1,4 @@
+mod inspection_cli;
 mod candidate_lock_cli;
 mod catalog_commands;
 mod comparison_cli;

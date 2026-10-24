@@ -1,5 +1,5 @@
 //! Conservative review partition; raw bytes and comparison policy remain intact.
-pub(super) fn basis(path: &str, before: &str, after: &str) -> Option<String> {
+pub(crate) fn basis(path: &str, before: &str, after: &str) -> Option<String> {
     if before == after
         || !std::path::Path::new(path)
             .extension()

@@ -14,7 +14,7 @@ use std::fmt::Write as _;
 use std::io::Cursor;
 use std::io::Read as _;
 use std::path::Path;
-fn entries(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
+pub(crate) fn entries(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
     let bytes = read_bounded(Path::new(path), 128 * 1024 * 1024)?;
     ensure!(sha256(&bytes) == expected, "archive raw identity mismatch");
     let mut zip = zip::ZipArchive::new(Cursor::new(bytes))?;

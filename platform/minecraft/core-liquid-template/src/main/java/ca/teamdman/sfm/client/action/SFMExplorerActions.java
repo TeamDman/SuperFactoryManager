@@ -136,6 +136,11 @@ public final class SFMExplorerActions {
 
 {% endif %}
 {% endif %}
+{% if features.release_review and features.file_explorer %}
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerDiffAction> DIFF =
+            REGISTERER.register("explorer/diff", SFMExplorerDiffAction::new);
+{% endif %}
+
     private SFMExplorerActions() {
     }
 

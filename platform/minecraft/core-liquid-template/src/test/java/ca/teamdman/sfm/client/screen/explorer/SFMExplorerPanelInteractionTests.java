@@ -30,7 +30,54 @@ public class SFMExplorerPanelInteractionTests {
     private static final SFMPath ROOT = SFMPath.parse("registry://minecraft/item/");
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
 
+{% if features.release_review and features.client_actions and features.workspace_panels %}
+    @Test
+    public void inspectionRepresentationClickOpensOwnedPreviewWithoutReveal() {
+        var root = new SFMPath(SFMPath.Kind.CONTRIBUTED, "inspection", "click", List.of(), Optional.empty(), false);
+        var view = new SFMPath(SFMPath.Kind.CONTRIBUTED, "inspection", "click", List.of("view.diff"), Optional.empty(), false);
+        var resolver = new ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryTextExplorerResolver("inspection", Runnable::run, 32);
+        var lease = resolver.mount("click", List.of(
+                ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryTextExplorerResolver.Node.directory(
+                        SFMExplorerEntry.simple(root, "comparison", true, Optional.empty()), List.of(view)),
+                ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryTextExplorerResolver.Node.text(
+                        SFMExplorerEntry.simple(view, "Text diff", false, Optional.empty()), "diff")));
+        var resolvers = new SFMExplorerResolverRegistry(); resolvers.register(resolver);
+        var loader = new SFMLazyExplorerLoader(resolvers, new SFMChildRelationRepository());
+        loader.openRoot(root).join(); loader.refresh(root, 32).completion().join();
+        var session = new SFMExplorerSession(new SFMExplorerId("inspection-click"), root, new SFMSelectionRepository());
+        var actions = new ArrayList<String>();
+        var panel = new SFMExplorerPanel(session, loader, actions::add, () -> {}, () -> {},
+                SFMExplorerPresentationRegistry.minecraftDefaults(), ignored -> {});
+        panel.resized(null, BOUNDS);
+        var state = panel.model().state(BOUNDS);
+        var cell = state.viewport().cells().stream().filter(c -> c.row().path().equals(view)).findFirst().orElseThrow();
+        assertTrue(panel.mouseClicked(cell.bounds().x() + cell.bounds().width() - 2, cell.bounds().y() + 1, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+        assertEquals(List.of(SFMExplorerPanelActions.pathOpen(view, SFMExplorerPreviewPlacement.Mode.PREVIEW)), actions);
+        assertEquals(state.viewport().scrollRow(), panel.model().state(BOUNDS).viewport().scrollRow());
+        lease.close();
+    }
+{% endif %}
+
 {% if features.explorer_search and features.single_line_input and features.keyboard_profiles %}
+    @Test
+    public void pointerSelectionPreservesScrollWhileExternalSelectionReveals() {
+        Fixture fixture = fixture(70);
+        var panel = fixture.panel();
+        panel.model().scrollRows(12, BOUNDS);
+        var before = panel.model().state(BOUNDS);
+        int scroll = before.viewport().scrollRow();
+        var cell = before.viewport().cells().get(before.viewport().cells().size() - 1);
+        assertTrue(panel.mouseClicked(cell.bounds().x() + cell.bounds().width() - 2,
+                cell.bounds().y() + 1, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+        assertEquals(scroll, panel.model().state(BOUNDS).viewport().scrollRow(), "pointer click must preserve scroll");
+        assertTrue(fixture.session().selectedPaths().contains(cell.row().path()));
+        panel.model().selectWithoutReveal(before.projection().rows().get(0).path(), BOUNDS,
+                ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.REPLACE);
+        assertEquals(scroll, panel.model().state(BOUNDS).viewport().scrollRow());
+        panel.model().select(before.projection().rows().get(0).path(), BOUNDS);
+        assertEquals(0, panel.model().state(BOUNDS).viewport().scrollRow(), "explicit external reveal still scrolls");
+    }
+
     @Test
     public void unavailableRevealControlIsAbsentFromTheFocusCycle() {
         Fixture fixture = fixture(20);

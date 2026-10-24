@@ -904,6 +904,16 @@ fn execute_run_with_context(
         );
     }
     apply_client_title_screen_property(&mut properties, kind, run_options);
+    if matches!(kind, RunKind::Client) {
+        let executable = std::env::current_exe()?.to_string_lossy().into_owned();
+        properties.insert("sfm.inspection.executable".into(), executable.clone());
+        properties.insert("sfm.inspection.classProducer".into(),
+            plan.repository_root().join("scripts/release-inspection/classes.py").to_string_lossy().into_owned());
+        if let Some(path) = &run_options.inspection_workspace {
+            properties.insert("sfm.inspection.workspace".into(), path.to_string_lossy().into_owned());
+            properties.insert("sfm.syntax.workerExecutable".into(), executable);
+        }
+    }
     apply_client_automation_timing_properties(&mut properties, kind, run_options);
     let launch_timeout = kind.launch_timeout(run_options);
 

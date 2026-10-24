@@ -699,6 +699,14 @@ public final class SFMExplorerRuntime implements AutoCloseable {
             throw new IllegalStateException("Explorer already owns a projection lease");
     }
 
+    /** Add an independently owned comparison mount without replacing an existing review lease. */
+    public synchronized void appendProjectionLease(SFMExplorerId id, Runnable disposer) {
+        ensureOpen();
+        Objects.requireNonNull(disposer, "disposer");
+        if (explorers.find(id).isEmpty()) throw new IllegalArgumentException("Unknown explorer: " + id.value());
+        projectionDisposers.merge(id, disposer, (previous, added) -> () -> { try { previous.run(); } finally { added.run(); } });
+    }
+
     private void disposeProjection(SFMExplorerId id) {
         Runnable disposer = projectionDisposers.remove(id);
         if (disposer != null) disposer.run();

@@ -21,7 +21,15 @@ public final class SFMReleaseReviewSurfaceSyntaxSession implements AutoCloseable
             SFMReleaseReviewSurfaceV1.Surface surface, SFMSyntaxHighlightService service,
             Executor publicationExecutor, Consumer<List<FormattingSpan>> publish, Consumer<Throwable> failure,
             Consumer<String> status) {
-        var sources = SFMReleaseReviewSurfacePresentation.sources(review, surface);
+        this(origin, SFMReleaseReviewSurfacePresentation.sources(review, surface), surface, service,
+                publicationExecutor, publish, failure, status);
+    }
+
+    public SFMReleaseReviewSurfaceSyntaxSession(String origin,
+            java.util.Map<String, ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.DocumentRevision> sources,
+            SFMReleaseReviewSurfaceV1.Surface surface, SFMSyntaxHighlightService service,
+            Executor publicationExecutor, Consumer<List<FormattingSpan>> publish, Consumer<Throwable> failure,
+            Consumer<String> status) {
         var slices = SFMReleaseReviewSurfacePresentation.slices(surface, sources);
         ca.teamdman.sfm.SFM.LOGGER.info("SFM_REVIEW_SURFACE_SYNTAX_STARTED origin={} sources={} slices={}",
                 origin, sources.size(), slices.size());

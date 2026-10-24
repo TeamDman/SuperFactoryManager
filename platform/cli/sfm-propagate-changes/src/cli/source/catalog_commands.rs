@@ -26,6 +26,8 @@ pub struct SourceArgs {
 #[derive(Debug, Facet)]
 #[repr(u8)]
 pub enum SourceCommand {
+    /// Prepare comparison roots and representation children for the in-game Explorer.
+    InspectPrepare(super::inspection_cli::InspectionArgs),
     /// Prepare reusable comparison evidence, captured sides and the HTML viewer.
     ComparePrepare(SourceComparisonArgs),
     /// Query declared issue relevance for one file in an explicitly selected input.
@@ -61,6 +63,7 @@ impl SourceArgs {
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
         match self.command {
+            SourceCommand::InspectPrepare(args) => args.invoke(cancellation),
             SourceCommand::ComparePrepare(args) => args.invoke(cancellation),
             SourceCommand::References(args) => args.invoke(cancellation),
             SourceCommand::ReleaseReport(args) => args.invoke(cancellation),

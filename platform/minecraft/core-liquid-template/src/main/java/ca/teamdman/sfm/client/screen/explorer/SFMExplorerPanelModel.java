@@ -272,12 +272,21 @@ public final class SFMExplorerPanelModel {
     }
 
     public void select(SFMPath path, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture) {
+        select(path, bounds, gesture, true);
+    }
+
+    /** Pointer selection retains the viewport; reveal is reserved for external/keyboard navigation. */
+    public void selectWithoutReveal(SFMPath path, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture) {
+        select(path, bounds, gesture, false);
+    }
+
+    private void select(SFMPath path, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture, boolean reveal) {
         Objects.requireNonNull(path, "path");
         State state = state(bounds);
         int index = indexOf(state.projection().rows(), path);
         if (index < 0 || state.projection().rows().get(index).loading()) return;
         session.selectRow(path, selectableOrder(state), gesture);
-        revealIndex(index, state.viewport());
+        if (reveal) revealIndex(index, state.viewport());
     }
 
     /** Scroll a preview into view without changing the document/row selection. */

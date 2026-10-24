@@ -855,7 +855,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         boolean control = Minecraft.getInstance() != null && net.minecraft.client.gui.screens.Screen.hasControlDown();
         boolean shift = Minecraft.getInstance() != null && net.minecraft.client.gui.screens.Screen.hasShiftDown();
 {% endif %}
-        model.select(cell.row().path(), bounds, right
+        model.selectWithoutReveal(cell.row().path(), bounds, right
                 ? cell.row().paths().stream().anyMatch(state.selectedPaths()::contains)
                     ? ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.CURSOR
                     : ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection.Gesture.REPLACE
@@ -877,6 +877,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (lastClickPath.equals(Optional.of(cell.row().path())) && now - lastClickTime <= 300L) {
             if (!cell.row().entry().opensOnActivate()) model.emitToggleSelected(bounds);
             else model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW);
+{% if features.release_review and features.client_actions and features.workspace_panels %}
+        } else if (cell.row().path().scheme().equals(ca.teamdman.sfm.client.inspection.SFMInspectionTree.SCHEME)
+                && !cell.row().entry().expandable() && cell.row().entry().opensOnActivate()) {
+            model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.PREVIEW);
+{% endif %}
         }
         lastClickPath = Optional.of(cell.row().path());
         lastClickTime = now;

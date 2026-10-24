@@ -34,6 +34,23 @@ public class TitleScreenOpenTextEditorOnLaunchHandler {
 {% endif %}
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
+{% if features.release_review and features.file_explorer and features.client_launch_screen %}
+        String inspection = System.getProperty("sfm.inspection.workspace", "");
+        if (firstTime && !inspection.isBlank() && event.getNewScreen() instanceof TitleScreen title) {
+            firstTime = false;
+            // Queue from a worker so the Opening event finishes installing the title screen first.
+            ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.WORKER.execute(() ->
+                    net.minecraft.client.Minecraft.getInstance().execute(() -> {
+                try {
+                    ca.teamdman.sfm.client.action.SFMClientActionExecutor.execute(
+                            "sfm action invoke sfm:explorer/diff open " + com.mojang.brigadier.arguments.StringArgumentType.escapeIfRequired(inspection),
+                            ca.teamdman.sfm.client.action.SFMClientActionContext.create(title, () -> net.minecraft.client.Minecraft.getInstance().screen == title),
+                            message -> ca.teamdman.sfm.SFM.LOGGER.info("SFM_INSPECTION_OPEN {}", message.getString()));
+                } catch (Exception failure) { ca.teamdman.sfm.SFM.LOGGER.error("SFM_INSPECTION_OPEN_FAILED", failure); }
+            }));
+            return;
+        }
+{% endif %}
 {% if features.client_launch_screen %}
         var launchScreen = SFMProperties.clientRunTitleScreen();
         if (launchScreen.isEmpty()) return;

@@ -1365,6 +1365,21 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% if features.canvas_text_editor and features.release_review %}
     private void refreshReviewCommentDecorations(SFMDrawCanvasScreen drawCanvas) {
         SFMReleaseReviewSurfaceRuntime.get().splitDocument(presentedDocument).ifPresent(drawCanvas::setSplitDocument);
+{% if features.file_explorer %}
+        var inspection = ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.surface(presentedDocument);
+        if (inspection.isPresent()) {
+            var captured = inspection.orElseThrow();
+            drawCanvas.setDocumentDecorations(SFMReleaseReviewSurfacePresentation.diffDecorations(captured.surface()));
+{% if features.syntax_languages %}
+            if (surfaceSyntaxSession == null) surfaceSyntaxSession = new SFMReleaseReviewSurfaceSyntaxSession(
+                    historySessionId, ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.sources(captured),
+                    captured.surface(), SFMSyntaxHighlightRuntime.get(), Minecraft.getInstance()::execute,
+                    spans -> drawCanvas.setSourceMappedSyntaxStyles(captured.surface().text(), spans),
+                    failure -> SFM.LOGGER.warn("Inspection source highlighting unavailable", failure), drawCanvas::setSyntaxStatus);
+{% endif %}
+            return;
+        }
+{% endif %}
         SFMReleaseReviewRuntime.Snapshot review = SFMReleaseReviewRuntime.get().snapshot();
         if (review.generation() == observedReviewGeneration
                 && review.openEpoch() == observedReviewOpenEpoch) return;

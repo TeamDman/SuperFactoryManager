@@ -44,12 +44,12 @@ mod review_file;
 mod review_payload;
 
 pub mod reference_evidence;
-mod whitespace_review;
+pub(crate) mod whitespace_review;
 
 pub mod source_paths;
 
 mod archive_resource_pair;
-mod archive_tree;
+pub(crate) mod archive_tree;
 
 mod fonts;
 
