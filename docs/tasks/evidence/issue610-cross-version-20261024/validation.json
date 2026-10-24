@@ -1,0 +1,43 @@
+{
+  "base_commit": "e85c68e4e9ec562d1b0921b9eb95e637fed6b5c1",
+  "verified_remote_main_at_start": "e2ba833b2b235835d69475b641e24b22bfd9551a",
+  "branch": "feature/issue610-cross-version-fixtures-20261024",
+  "source_checks": {
+    "generation_and_identity": 20,
+    "static_test_discovery": 20,
+    "rust_catalog_tests": {
+      "catalog-test-executed": {
+        "passed": 1,
+        "failed": 0,
+        "exit": 0,
+        "full_log_sha256": "fa3f7d570f6b46946d55dbdff1036c0ce966ea8ac66b5d096511fe7f527e5ecd"
+      },
+      "catalog-witness-test": {
+        "passed": 1,
+        "failed": 0,
+        "exit": 0,
+        "full_log_sha256": "2cf3d84ad205cff9b07ecd5cbe140eacc061716d4f18b99134cbd36fe65b838e"
+      }
+    }
+  },
+  "authored_input_sha256": {
+    "platform/cli/sfm-propagate-changes/src/cli/source/projection_catalog_cli.rs": "73bc9206f3a218858b04467631153ccb7f8b5a1b719ba44db308008351bf6ff3",
+    "platform/cli/sfm-propagate-changes/src/source_projection/core_slice_test_support.rs": "785963f843501bdb8d4024e1cff18b8fd04ff378e4c0c7ddf8ba4c8e75161ba6",
+    "platform/minecraft/core-liquid-template/feature-definitions.json": "f74cc0aab5d7a30d1bf4698188f2847018c188ec6442468acf64679c04fc08a3",
+    "platform/minecraft/core-liquid-template/project-inputs.json": "24fdb5556fc2bbc6a36fb6d6cdacd32bdb75ee0284057ee84da057c0fa00b4d7",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": "ec9d7e6a0f05a02aa3c85cedcf37b3c1957cfbd0dadec3ea42f1709f4c95bbe1",
+    "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml": "02ef06a838a13fc4c7a2ba3f4e35741e9d5eb8689a34d12a3087dc2b66d6030b",
+    "platform/minecraft/projections.json": "f6e5107cb293eb383174b5773c4a8b2bf35ea300717552b92e7c0b81be256111",
+    "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java": "09c77a036c1d68065583d92eca333928b5952c9652a61000422b3b30c60d29fb",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/capability/Issue610FixtureEnergyProvider.java": "95571731c0f3bcc93bab5e3142422e912df4e956a43e38aae8d7d4a880506983"
+  },
+  "java_compile": "unrun_pending_JBRSDK_handoff",
+  "automatic_world": "unrun",
+  "manual_live": "unrun",
+  "full_check_all": "unrun_PowerShell_and_nightly_rustfmt_unavailable",
+  "formatter_attempt": "failed_rustfmt_not_installed_no_install_attempted",
+  "metadata_catalog_sha256": "bd9ce82e5f34a251b472178cea292d3739faaf1595682e9371cdf124dd2b05fd",
+  "SDK_mutations": false,
+  "dependency_pin_mutations": false,
+  "review": "Independent source review; sign collision fixed; no remaining concrete source issue; compile/runtime remain unverified."
+}

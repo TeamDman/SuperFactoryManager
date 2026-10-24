@@ -5,6 +5,10 @@ NAME "Changelog"
 -- https://github.com/sponsors/TeamDman
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
+{% if features.issue_610_portable_fixture %}
+-- Add a deterministic FE starvation/refill GameTest with Run Manager, Drain Second and Manual Mode controls across all supported targets.
+-- Fixture signs show measured FE and completed bodies; external Mekanism/JDT integration remains a separate check.
+{% endif %}
 {% if features.locked_dependency_projection %}
 {% if features.client_control_cli or features.terminal_vox_runtime %}
 -- Upgrade the Vox wire protocol; rebuild the matching control CLI and terminal service together.

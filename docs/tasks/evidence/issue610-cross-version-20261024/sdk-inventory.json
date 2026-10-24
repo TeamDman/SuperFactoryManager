@@ -1,0 +1,28 @@
+{
+  "searched_roots": [
+    "/opt",
+    "/usr/lib/jvm",
+    "/usr/local/lib/jvm",
+    "/workspace/.sfm-env"
+  ],
+  "sdks": [
+    {
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64",
+      "implementor": "\"Debian\"",
+      "version": "\"21.0.12.1+1-1-deb13u1-Debian\"",
+      "has_javac": false
+    },
+    {
+      "path": "/workspace/.sfm-env/jdk17",
+      "implementor": "\"Eclipse Adoptium\"",
+      "version": "\"17.0.20.1+1\"",
+      "has_javac": true
+    },
+    {
+      "path": "/workspace/.sfm-env/approved-temurin21/jdk-21.0.8+9",
+      "implementor": "\"Eclipse Adoptium\"",
+      "version": "\"21.0.8+9-LTS\"",
+      "has_javac": true
+    }
+  ]
+}

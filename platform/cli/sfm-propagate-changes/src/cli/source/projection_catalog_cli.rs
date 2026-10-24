@@ -736,8 +736,8 @@ mod tests {
         let loaded = load_catalog(repo, repo).unwrap();
         assert_eq!(
             loaded.catalog.0.len(),
-            34,
-            "catalog must cover dev and both named releases for all ten versions plus the two retained issue610 controls and two separate visual harnesses"
+            54,
+            "catalog must cover dev and both named releases for all ten versions plus the retained issue610 controls, visual harnesses and twenty portable fixture projections"
         );
         let mut contexts = BTreeMap::<String, usize>::new();
         let mut targets = BTreeMap::<String, BTreeSet<String>>::new();
@@ -809,7 +809,9 @@ mod tests {
                 ("sfm-4.34.0-issue610".to_owned(), 1),
                 ("sfm-4.35.0-issue610".to_owned(), 1),
                 ("sfm-4.34.0-issue610-visual".to_owned(), 1),
-                ("sfm-4.35.0-issue610-visual".to_owned(), 1)
+                ("sfm-4.35.0-issue610-visual".to_owned(), 1),
+                ("sfm-4.34.0-issue610-portable".to_owned(), 10),
+                ("sfm-4.35.0-issue610-portable".to_owned(), 10)
             ])
         );
         assert_eq!(contexts["sfm-dev"] + contexts["sfm-4.34.0"], 20);

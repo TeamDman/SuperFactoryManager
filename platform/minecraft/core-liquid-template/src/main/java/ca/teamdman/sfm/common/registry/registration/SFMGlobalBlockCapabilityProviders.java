@@ -76,6 +76,11 @@ public class SFMGlobalBlockCapabilityProviders {
 //            CAULDRON_MAPPER = REGISTERER.register("cauldron", CauldronBlockCapabilityProvider::new);
 {% endcase %}
 
+{% if features.issue_610_portable_fixture %}
+    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, ca.teamdman.sfm.common.capability.Issue610FixtureEnergyProvider>
+            ISSUE_610_FIXTURE = REGISTERER.register("issue_610_fixture_energy", ca.teamdman.sfm.common.capability.Issue610FixtureEnergyProvider::new);
+{% endif %}
+
     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>
             BLOCK_ENTITY = REGISTERER.register("block_entity", BlockEntityCapabilityProvider::new);
 
