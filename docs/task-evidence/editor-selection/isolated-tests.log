@@ -1,0 +1,43 @@
+
+Thanks for using JUnit! Support its development at https://junit.org/sponsoring
+
+╷
+├─ JUnit Jupiter ✔
+│  ├─ SFMTextEditorSelectionTests ✔
+│  │  ├─ cancellationAndRefreshDoNotWriteOrRepairThePreference() ✔
+│  │  ├─ thirdPartyRoundTripsStageAndPersistStableIds() ✔
+│  │  ├─ longListsAreSortedDeduplicatedSearchedAndPagedWithoutLosingSelection() ✔
+│  │  ├─ translatedNamesAreSearchableButDuplicateLabelsNeverBecomeIdentities() ✔
+│  │  ├─ unavailableChoiceCannotBeCommittedAndLateRegistrationRecoversIt() ✔
+│  │  └─ failedPersistenceKeepsTheSessionAvailableForRetry() ✔
+│  └─ SFMVimModalStateTests ✔
+│     ├─ undoWhileInInsertCommitsTheSessionThenRevertsIt() ✔
+│     ├─ newEditAfterUndoInvalidatesRedo() ✔
+│     ├─ verticalMotionsRememberDesiredColumnAcrossShortLines() ✔
+│     ├─ escapeAtLineStartDoesNotCrossToPreviousLine() ✔
+│     ├─ nativeWidgetChangesAreUndoableAndCursorClampsAtUnicodeBoundaries() ✔
+│     ├─ readOnlyCommandsCannotChangeTextOrEnterInsert() ✔
+│     ├─ insertionEntryPointsUseGapPositions() ✔
+│     ├─ lineDeletionHandlesFirstMiddleLastAndOnlyLines() ✔
+│     ├─ wordMotionsDistinguishWordsPunctuationAndWhitespace() ✔
+│     ├─ insertEscapeAndUndoPreserveExactWhitespaceAndUnicode() ✔
+│     ├─ horizontalMotionsAndDeleteRespectCodePointsAndLineBounds() ✔
+│     ├─ normalCommandsDoNotInsertTheirCharacters() ✔
+│     ├─ pendingDeleteIsCancelledByEscapeAndUnsupportedMotions() ✔
+│     └─ emptyInsertIsNotAnUndoStepAndHistoryIsBounded() ✔
+└─ JUnit Vintage ✔
+
+Test run finished after 256 ms
+[         4 containers found      ]
+[         0 containers skipped    ]
+[         4 containers started    ]
+[         0 containers aborted    ]
+[         4 containers successful ]
+[         0 containers failed     ]
+[        20 tests found           ]
+[         0 tests skipped         ]
+[        20 tests started         ]
+[         0 tests aborted         ]
+[        20 tests successful      ]
+[         0 tests failed          ]
+

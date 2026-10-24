@@ -1,0 +1,14 @@
+Error: 
+   0: projection operations failed:
+      sfm-dev/mc-1.19.2: Failed to resolve dependency: Failed to resolve dependency implementation org.facet:vox-java:0.10.0-rc.5: Source build for org.facet:vox-java:0.10.0-rc.5 completed but did not produce /tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56/vox\java\target\vox-java-0.10.0-rc.5.jar
+
+Location:
+   src/jar_build/engine_projection_operation.rs:123
+
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ SPANTRACE ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+   0: sfm_propagate_changes::jar_build::engine::invoke_run_test with selection=Projection { selector: "sfm-dev/mc-1.19.2", repo_root: Some(".") } action=Run filter="SFMTextEditorSelection" no_capture=false refresh=false explain_rebuild=false dry_run=false allow_local_artifact_cache=false require_portable_artifacts=false error_action=bail parallelism=sequential
+      at src/jar_build/engine.rs:279
+
+Backtrace omitted. Run with RUST_BACKTRACE=1 environment variable to display it.
+Run with RUST_BACKTRACE=full to include source snippets.

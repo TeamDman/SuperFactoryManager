@@ -157,3 +157,22 @@ failed during dependency preparation at the same locked Vox output path; it did
 not reach Java compilation or run native JUnit. That process (PID 12609) and its
 managed Cargo build completed and exited. This was not an approval denial and
 there is no pending operation.
+
+## Final source validation and review branches
+
+- Picker-only branch: `feat/dynamic-editor-picker-only`,
+  `24bd3fcee310dcee5d592aae94d460241227ff96` (includes PR #581 naming attribution).
+- Combined source: `ef4569c2a10e3de7ac7d4225a514a1597d647265`,
+  with modal checkpoint `48832f7455fb685c36036a4f211e4d278a2e2adf`.
+- Final source consistency: 2,963 files on development 1.19.2 and 2,926 on
+  development 1.19.4 passed. The 4.35.0/1.19.2 release check passed with 1,150
+  unchanged files. An intermediate check caught a changed historical changelog
+  line ending; it was restored in `ef4569c2`, without rewriting release output.
+- All 20 isolated controller tests passed. Full runtime checks remain blocked,
+  not passed. Logs, hashes, commands and scope are preserved in
+  [verification.json](../task-evidence/editor-selection/verification.json),
+  [the test log](../task-evidence/editor-selection/isolated-tests.log) and
+  [the native failure](../task-evidence/editor-selection/native-test-error.txt).
+- Both in-scope native commands exited; there is no game or helper running.
+  No automatic approval rejection occurred. The exact unresolved action is
+  native dependency resolution for the locked Vox output path described above.
