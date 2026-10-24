@@ -30,7 +30,7 @@ public class SFMExplorerPanelInteractionTests {
     private static final SFMPath ROOT = SFMPath.parse("registry://minecraft/item/");
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
 
-{% if features.release_review and features.client_actions and features.workspace_panels %}
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
     @Test
     public void inspectionRepresentationClickOpensOwnedPreviewWithoutReveal() {
         var root = new SFMPath(SFMPath.Kind.CONTRIBUTED, "inspection", "click", List.of(), Optional.empty(), false);

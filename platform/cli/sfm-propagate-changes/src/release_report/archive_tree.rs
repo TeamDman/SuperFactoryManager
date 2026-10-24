@@ -15,6 +15,13 @@ use std::io::Cursor;
 use std::io::Read as _;
 use std::path::Path;
 pub(crate) fn entries(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
+    entries_bounded(path, expected, 16 * 1024 * 1024, 512 * 1024 * 1024)
+}
+/// Interactive inspections use tighter admission before retaining two complete sides.
+pub(crate) fn entries_for_inspection(path: &str, expected: &str) -> Result<BTreeMap<String, Vec<u8>>> {
+    entries_bounded(path, expected, 4 * 1024 * 1024, 32 * 1024 * 1024)
+}
+fn entries_bounded(path: &str, expected: &str, member_limit: u64, expanded_limit: u64) -> Result<BTreeMap<String, Vec<u8>>> {
     let bytes = read_bounded(Path::new(path), 128 * 1024 * 1024)?;
     ensure!(sha256(&bytes) == expected, "archive raw identity mismatch");
     let mut zip = zip::ZipArchive::new(Cursor::new(bytes))?;
@@ -30,19 +37,19 @@ pub(crate) fn entries(path: &str, expected: &str) -> Result<BTreeMap<String, Vec
             "duplicate archive entry: {name}"
         );
         ensure!(
-            entry.size() <= 16 * 1024 * 1024,
-            "archive member exceeds 16 MiB: {name}"
+            entry.size() <= member_limit,
+            "archive member exceeds {member_limit} bytes: {name}"
         );
         total = total
             .checked_add(entry.size())
             .ok_or_else(|| eyre::eyre!("archive size overflow"))?;
         ensure!(
-            total <= 512 * 1024 * 1024,
+            total <= expanded_limit,
             "archive expanded budget exceeded"
         );
         let expected = entry.size();
         let mut bytes = Vec::new();
-        entry.take(16 * 1024 * 1024 + 1).read_to_end(&mut bytes)?;
+        entry.take(member_limit + 1).read_to_end(&mut bytes)?;
         ensure!(
             bytes.len() as u64 == expected,
             "archive member size mismatch: {name}"

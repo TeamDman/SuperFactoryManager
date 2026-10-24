@@ -52,6 +52,15 @@ public final class SFMInMemoryTextExplorerResolver implements SFMExplorerResolve
     private record Mount(long id, String authority, Map<SFMPath, Node> nodes) {
     }
 
+    /** Immutable validated graph; expensive preparation does not hold the resolver monitor. */
+    public static final class PreparedMount {
+        private final String scheme, authority;
+        private final Map<SFMPath, Node> nodes;
+        private PreparedMount(String scheme, String authority, Map<SFMPath, Node> nodes) {
+            this.scheme = scheme; this.authority = authority; this.nodes = nodes;
+        }
+    }
+
     private final String scheme;
     private final Executor executor;
     private final int maximumPageSize;
@@ -80,14 +89,24 @@ public final class SFMInMemoryTextExplorerResolver implements SFMExplorerResolve
         return generation;
     }
 
-    public synchronized MountLease mount(String authority, Collection<Node> nodes) {
+    public PreparedMount prepareMount(String authority, Collection<Node> nodes) {
         authority = requireAuthority(authority);
+        return new PreparedMount(scheme, authority, canonicalNodes(authority, nodes));
+    }
+
+    public MountLease mount(String authority, Collection<Node> nodes) {
+        return mount(prepareMount(authority, nodes));
+    }
+
+    public synchronized MountLease mount(PreparedMount prepared) {
+        Objects.requireNonNull(prepared, "prepared");
+        if (!scheme.equals(prepared.scheme)) throw new IllegalArgumentException("Prepared mount belongs to another scheme");
+        String authority = prepared.authority;
         if (mounts.containsKey(authority)) {
             throw new IllegalArgumentException("An in-memory tree is already mounted at " + authority);
         }
-        Map<SFMPath, Node> canonical = canonicalNodes(authority, nodes);
         long id = nextMountId++;
-        mounts.put(authority, new Mount(id, authority, canonical));
+        mounts.put(authority, new Mount(id, authority, prepared.nodes));
         generation++;
         String retainedAuthority = authority;
         return new MountLease() {

@@ -257,7 +257,7 @@ fn is_java_identifier_part(character: char) -> bool {
     is_java_identifier_start(character) || character.is_ascii_digit()
 }
 
-fn validate_method_descriptor(descriptor: &str) -> eyre::Result<()> {
+pub(crate) fn validate_method_descriptor(descriptor: &str) -> eyre::Result<()> {
     let bytes = descriptor.as_bytes();
     if bytes.first() != Some(&b'(') {
         bail!("method descriptor must begin with '('");

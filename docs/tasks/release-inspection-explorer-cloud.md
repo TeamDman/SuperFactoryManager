@@ -139,4 +139,82 @@ Nucleo task `01a16cac-37e4-75ad-919c-7e25f7574037`: the UI/API boundary is recor
 script README. Existing `~` is legacy fuzzy and remains unchanged. A distinct matcher
 mode with original UTF-16 spans, explicit score direction and budget/cancellation behavior
 is needed before wiring an honest Nucleo option. Nucleo button integration/parity tests
-remain pending that matcher API; no parity is claimed here.
+remain pending actual matcher source/provider transfer; no parity is claimed here.
+
+## Independent review and qualification continuation
+
+An independent read-only reviewer audited the implementation and the fixes. The review
+found and corrected shared comparison/read queues, expensive synchronized mount
+preparation, per-tick decoration reconstruction, special-file reads, late memory limits,
+javap before archive admission, contradictory class status evidence and quadratic row
+lookup. It also found method-order and real javap switch-spacing bugs in instruction
+classification. Native instruction comparison now keys bodies by method name and full
+descriptor, distinguishes reordering from swapped bodies, excludes declaration-only
+changes, recognizes real table/lookup switches and treats unsupported printed forms
+as unknown. Existing descriptor validation is reused.
+
+Mount validation and cached decorations now run off-thread; publication is short.
+The pure decoration helper performs one coordinate scan and preserves UTF-8/astral/CRLF
+coordinates. The actual Portuguese locale diff previously implied roughly 52.4 MB of
+full-text UTF-8 allocations per tick; that repeated work was removed. This is source
+analysis, not a measured game-frame-rate claim.
+
+Current headless evidence is under `qualification-v2` within the evidence directory:
+112 production tree/source-map assertions, 11 strict-input/mount-publication assertions,
+10 Nucleo adapter assertions using a fake provider, real admitted javap capture, and
+pre-javap rejection of unsafe/duplicate/oversized archives. FIFO and symlink workspace
+inputs are rejected before reading. `audit-coordinates.log` records the UTF-8/astral/
+CRLF check and 60,001 endpoints. Rust inspection (3), archive (8) and descriptor (5)
+focused tests pass. The first combined probe compilation exposed an unavailable legacy
+commons-codec classpath; the new optional adapter was then made independent of that
+legacy implementation, and the current qualification command passes without installing
+anything. This does not claim the legacy matcher or complete game was compiled.
+
+`release-audit/release.sfm-inspection.json` still compares the real catalog projections,
+with the same 1,151 pairs/38 non-identical pairs and an honest missing-release-JAR root.
+Original bytes are retained as base64 with complete metadata. Artifact size decreased
+from 48,711,871 to 33,770,721 bytes. The production streaming reader accepted this actual
+workspace with `-Xmx256m` in 3.956 seconds; child peak RSS was 323,204 KiB (heap limit is
+not an RSS limit). The previous whole-string probe failed at that heap limit.
+See `audit-memory.json`/`audit-memory.log`. No claim about live Minecraft memory is made.
+
+The actual `OutputStatement.java` projection diff removes `source.setDone()` from the
+empty-extraction branch and changes its log message to describe skipping that quantity.
+Other changed pairs include recipe/loot datagen and locale/configuration sources. These
+are inspected source changes; no missing release JAR was synthesized or substituted.
+
+Reproduce the complete qualification and retain a regular-file-only input ZIP:
+
+```bash
+source /workspace/.sfm-env/env.sh
+python3 scripts/release-inspection/qualify.py \
+  --cli /workspace/.sfm-env/target/debug/sfm-propagate-changes \
+  --java-home /workspace/.sfm-env/jdk17 \
+  --gson-jar /workspace/.sfm-env/cache/minecraft-toolchain/maven/net/minecraftforge/installertools/1.3.0/installertools-1.3.0-fatjar.jar \
+  --output /workspace/scratch/release-inspection/new-qualification
+```
+
+The ZIP contains actual fixture sources/classes/JARs, requests and receipts; symlinks,
+FIFOs and generated probe classes are excluded. Run the checked-out repository scripts
+to reproduce it. Independent review does not substitute for the blocked game gates.
+
+The exact remaining prerequisites are:
+
+1. The pinned Vox producer SDK `Eclipse Adoptium|21.0.8+9-LTS` must be available. It is
+   absent, and earlier installation approval belonged to another task. No installation
+   approval is inferred. Full compile/JUnit/client launch remains pending this prerequisite.
+2. The actual 4.34.0 and 4.35.0 release JAR paths are required for the release JAR root.
+   Their absence is confirmed locally; source projection inspection is complete independently.
+3. A usable authorized cloud game display/capture path must be qualified after startup
+   is possible. Navigation/rendering/scroll screenshots remain unrun, not successful.
+4. Transfer the three intact `client/search/nucleo` Java files and notices/catalog entries
+   from production `eaf0350b84deae772b01b95d486e8c23546c6bc5` / reviewed checkpoint
+   `9378a217e254bfd601d8cc47a9b7e8a7839d8084`. The commit is not present here.
+   `SFMExplorerNucleoAdapter` supplies a tested boundary for original UTF-16 spans and
+   case options, excludes ranking from tree results, and checks budget/cancellation
+   before/after bounded row calls. It registers no provider and changes no existing
+   search behavior. Actual source integration, the optional button and parity remain pending.
+5. PowerShell/rustfmt/clippy are absent, so the complete repository gate remains unrun.
+
+These states are pending/unrun prerequisites, not approval denials. No SDK, dependency,
+environment or network configuration changed during the continuation.

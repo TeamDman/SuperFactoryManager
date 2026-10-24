@@ -113,22 +113,7 @@ public final class SFMReleaseReviewSurfacePresentation {
 
     /** Diff backgrounds can be used without opening or mutating a review/comment session. */
     public static List<SFMTextDocumentDecoration> diffDecorations(SFMReleaseReviewSurfaceV1.Surface surface) {
-        ArrayList<SFMTextDocumentDecoration> answer = new ArrayList<>();
-        for (var mapping : surface.mappings()) {
-            Integer colour = switch (mapping.kind()) {
-                case ADDITION, STRUCTURAL_AFTER -> 0x704FAF69;
-                case DELETION, STRUCTURAL_BEFORE -> 0x70D66B6B;
-                default -> null;
-            };
-            if (colour == null) continue;
-            boolean addition = mapping.kind() == SFMReleaseReviewSurfaceV1.MappingKind.ADDITION
-                    || mapping.kind() == SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_AFTER;
-            answer.add(new SFMTextDocumentDecoration("diff:" + mapping.surfaceRange().startByte(),
-                    range(surface.text(), mapping.surfaceRange().startByte(), mapping.surfaceRange().endByte()),
-                    OptionalInt.of(colour), OptionalInt.empty(), Optional.empty(),
-                    addition ? "Added source" : "Removed source", Optional.empty()));
-        }
-        return List.copyOf(answer);
+        return SFMReleaseReviewDiffDecorations.create(surface);
     }
 
     private static SFMTextDocumentRange range(String text, int start, int end) {

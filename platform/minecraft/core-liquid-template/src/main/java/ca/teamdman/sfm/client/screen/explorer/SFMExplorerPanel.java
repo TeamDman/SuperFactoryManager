@@ -877,7 +877,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (lastClickPath.equals(Optional.of(cell.row().path())) && now - lastClickTime <= 300L) {
             if (!cell.row().entry().opensOnActivate()) model.emitToggleSelected(bounds);
             else model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW);
-{% if features.release_review and features.client_actions and features.workspace_panels %}
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
         } else if (cell.row().path().scheme().equals(ca.teamdman.sfm.client.inspection.SFMInspectionTree.SCHEME)
                 && !cell.row().entry().expandable() && cell.row().entry().opensOnActivate()) {
             model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.PREVIEW);

@@ -20,14 +20,11 @@ def prepare(args):
     if args.javap:
         if not args.old_jar or not args.new_jar:
             raise ValueError('--javap requires both explicit JAR paths')
-        manifest = output / 'jars.json'
-        manifest.write_text(json.dumps({'jars': [{'id': args.minecraft, 'baseline_path': str(args.old_jar.resolve()),
-                                                'candidate_path': str(args.new_jar.resolve())}]}))
-        producer = repo / 'platform/cli/sfm-propagate-changes/src/release_report/scripts/prepare_class_evidence.py'
-        subprocess.run([sys.executable, str(producer), '--manifest', str(manifest), '--output', str(output / 'classes'),
-                        '--output-manifest', str(output / 'class-manifest.json'), '--asset-prefix', 'classes',
-                        '--javap', str(args.javap.resolve())], check=True)
-        evidence = str(output / 'classes' / f'{args.minecraft}.json')
+        producer = repo / 'scripts/release-inspection/classes.py'
+        capture = output / 'class-capture'; capture.mkdir()
+        subprocess.run([sys.executable, str(producer), '--old', str(args.old_jar), '--new', str(args.new_jar),
+                        '--output', str(capture), '--javap', str(args.javap.resolve())], check=True)
+        evidence = str(capture / 'classes/pair.json')
     policy = dict(schema_version=1, allow_generated_banner=False, normalize_crlf=False,
                   allow_final_newline_difference=False, allow_settings_project_identity_override=False)
     request = {'schema': 'sfm:explorer-inspection-request@1', 'comparisons': [

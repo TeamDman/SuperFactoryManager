@@ -93,7 +93,7 @@ public final class SFMExplorerContextActionRegistry {
             if(request.target()==SFMExplorerContextActionProvider.Target.ICON) return List.copyOf(answer);
         }
 {% endif %}
-{% if features.release_review and features.file_explorer %}
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
         if (request.target() != SFMExplorerContextActionProvider.Target.ICON)
             answer.addAll(ca.teamdman.sfm.client.action.SFMExplorerDiffAction.choices(request));
 {% endif %}

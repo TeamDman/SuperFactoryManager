@@ -9,7 +9,7 @@ public class InspectionProbe {
     static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); checks++; }
     public static void main(String[] args) throws Exception {
         if (args[0].equals("--workspace")) {
-            var release = SFMInspectionTree.parse(Files.readString(Path.of(args[1])), "release");
+            var release = SFMInspectionTree.read(Path.of(args[1]), "release");
             check(release.size() == 2, "two release comparison roots");
             for (var root : release) {
                 var node = root.nodes().stream().filter(n -> n.entry().path().equals(root.root())).findFirst().orElseThrow();
@@ -19,26 +19,34 @@ public class InspectionProbe {
             System.out.println("PASS production parser accepted actual release workspace; no UI claim");
             return;
         }
-        var trees = SFMInspectionTree.parse(Files.readString(Path.of(args[0])), "fixture");
+        var trees = SFMInspectionTree.read(Path.of(args[0]), "fixture");
         check(trees.size() == 2, "two focused roots");
         var resolver = new SFMInMemoryTextExplorerResolver(SFMInspectionTree.SCHEME, Runnable::run, 2);
-        var tree = trees.get(0); var lease = resolver.mount(tree.root().authority(), tree.nodes());
+        var tree = trees.get(0); var prepared = resolver.prepareMount(tree.root().authority(), tree.nodes());
+        long generation = resolver.generation();
+        check(resolver.root(tree.root().authority()).isEmpty(), "preparing a mount does not publish it");
+        check(resolver.generation() == generation, "preparation preserves resolver generation");
+        var lease = resolver.mount(prepared);
         var root = resolver.describe(tree.root(), new SFMExplorerCancellationToken()).join();
         check(root.expandable(), "comparison root expandable");
         var page = resolver.resolveChildren(new SFMExplorerResolver.ChildRequest(tree.root(), Optional.empty(), 2,
                 resolver.generation(), new SFMExplorerCancellationToken())).join();
         check(page.entries().size() == 2 && page.continuation().isPresent(), "bounded pagination");
         var instruction = tree.nodes().stream().filter(n -> n.entry().label().startsWith("Instruction changes only")).findFirst().orElseThrow();
-        check(instruction.children().size() == 1, "instruction strategy excludes debug/exact/unknown/resources");
+        check(instruction.children().size() == 4, "instruction strategy includes switches but excludes debug/exact/unknown/resources/reorder");
         var otherClass = tree.nodes().stream().filter(n -> n.entry().label().startsWith("Other printed class changes")).findFirst().orElseThrow();
-        check(otherClass.children().size() == 1, "declaration-only class has a separate strategy");
+        check(otherClass.children().size() == 3, "declaration/descriptor-only and reordered class have a separate strategy");
         var pair = tree.nodes().stream().filter(n -> n.entry().path().equals(instruction.children().get(0))).findFirst().orElseThrow();
         check(pair.entry().label().contains("A.class") && pair.entry().expandable(), "file pair expandable");
         check(pair.children().size() >= 3, "representation children");
         for (var sourceTree : trees) for (var surface : sourceTree.surfaces().values()) {
             surface.surface().validateAgainst(surface.request());
             check(!surface.surface().algorithm().isEmpty(), "real algorithm provenance");
+            for (var decoration : surface.decorations()) decoration.range().validateAgainst(surface.surface().text());
         }
+        var aliases = new IdentityHashMap<Object, Integer>();
+        trees.forEach(t -> t.surfaces().values().forEach(s -> aliases.merge(s, 1, Integer::sum)));
+        check(aliases.values().stream().anyMatch(count -> count > 1), "strategy aliases share parsed surfaces and cached decorations");
         var firstSurface = tree.surfaces().entrySet().iterator().next();
         var request = new SFMResolverTextRequest(firstSurface.getKey(), tree.root(), Optional.empty(), 8 * 1024 * 1024, resolver.generation(), new SFMExplorerCancellationToken());
         var text = resolver.readText(request).join();

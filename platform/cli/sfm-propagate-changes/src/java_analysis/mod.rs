@@ -20,6 +20,7 @@ mod live_worker_supervisor;
 mod report;
 mod scenario_fixture;
 mod selector;
+pub(crate) use selector::validate_method_descriptor;
 mod source_excludes;
 mod symbol_server;
 mod symbol_server_protocol;

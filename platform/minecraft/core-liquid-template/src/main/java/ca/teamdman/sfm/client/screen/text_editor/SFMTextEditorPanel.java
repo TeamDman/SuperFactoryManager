@@ -186,6 +186,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% if features.canvas_text_editor and features.release_review %}
     private long observedReviewGeneration = -1L;
     private long observedReviewOpenEpoch = -1L;
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+    private ca.teamdman.sfm.client.inspection.SFMInspectionTree.Surface observedInspectionSurface;
+{% endif %}
 {% endif %}
 {% if features.canvas_text_editor and features.release_review and features.syntax_languages %}
     private SFMReleaseReviewSurfaceSyntaxSession surfaceSyntaxSession;
@@ -1365,13 +1368,16 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 {% if features.canvas_text_editor and features.release_review %}
     private void refreshReviewCommentDecorations(SFMDrawCanvasScreen drawCanvas) {
         SFMReleaseReviewSurfaceRuntime.get().splitDocument(presentedDocument).ifPresent(drawCanvas::setSplitDocument);
-{% if features.file_explorer %}
+{% if features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
         var inspection = ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.surface(presentedDocument);
         if (inspection.isPresent()) {
             var captured = inspection.orElseThrow();
-            drawCanvas.setDocumentDecorations(SFMReleaseReviewSurfacePresentation.diffDecorations(captured.surface()));
+            if (observedInspectionSurface == captured) return;
+            observedInspectionSurface = captured;
+            drawCanvas.setDocumentDecorations(captured.decorations());
 {% if features.syntax_languages %}
-            if (surfaceSyntaxSession == null) surfaceSyntaxSession = new SFMReleaseReviewSurfaceSyntaxSession(
+            if (surfaceSyntaxSession != null) surfaceSyntaxSession.close();
+            surfaceSyntaxSession = new SFMReleaseReviewSurfaceSyntaxSession(
                     historySessionId, ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.sources(captured),
                     captured.surface(), SFMSyntaxHighlightRuntime.get(), Minecraft.getInstance()::execute,
                     spans -> drawCanvas.setSourceMappedSyntaxStyles(captured.surface().text(), spans),

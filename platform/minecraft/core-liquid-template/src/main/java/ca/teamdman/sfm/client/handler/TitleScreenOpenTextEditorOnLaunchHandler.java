@@ -34,7 +34,7 @@ public class TitleScreenOpenTextEditorOnLaunchHandler {
 {% endif %}
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onTitleScreenOpen(ScreenEvent.Opening event) {
-{% if features.release_review and features.file_explorer and features.client_launch_screen %}
+{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents and features.client_launch_screen %}
         String inspection = System.getProperty("sfm.inspection.workspace", "");
         if (firstTime && !inspection.isBlank() && event.getNewScreen() instanceof TitleScreen title) {
             firstTime = false;

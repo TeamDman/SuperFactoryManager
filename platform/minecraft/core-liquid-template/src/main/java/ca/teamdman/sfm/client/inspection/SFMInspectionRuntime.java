@@ -18,7 +18,11 @@ public final class SFMInspectionRuntime {
     public static final ExecutorService WORKER = Executors.newSingleThreadExecutor(task -> {
         Thread thread = new Thread(task, "sfm-explorer-inspection"); thread.setDaemon(true); return thread;
     });
-    private static final SFMInMemoryTextExplorerResolver RESOLVER = new SFMInMemoryTextExplorerResolver(SFMInspectionTree.SCHEME, WORKER, 128);
+    // Browsing an existing result must not queue behind a native comparison process.
+    private static final ExecutorService READS = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "sfm-inspection-read"); thread.setDaemon(true); return thread;
+    });
+    private static final SFMInMemoryTextExplorerResolver RESOLVER = new SFMInMemoryTextExplorerResolver(SFMInspectionTree.SCHEME, READS, 128);
     private static final Map<SFMPath, SFMInspectionTree.Surface> SURFACES = new ConcurrentHashMap<>();
     private SFMInspectionRuntime() {}
 
@@ -32,14 +36,14 @@ public final class SFMInspectionRuntime {
                         source.documentRevisionId(), source.path(), "utf-8", source.sha256().substring(7), source.text())));
         return result;
     }
-    public static List<SFMInspectionTree> read(Path path) throws Exception {
-        byte[] bytes;
-        try (var stream = Files.newInputStream(path)) { bytes = stream.readNBytes(128 * 1024 * 1024 + 1); }
-        if (bytes.length > 128 * 1024 * 1024) throw new IllegalArgumentException("Workspace exceeds 128 MiB");
-        String json = StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString();
-        return SFMInspectionTree.parse(json, UUID.randomUUID().toString());
+    public record PreparedWorkspace(List<SFMInspectionTree> trees,
+                                    List<SFMInMemoryTextExplorerResolver.PreparedMount> mounts) {}
+    public static PreparedWorkspace read(Path path) throws Exception {
+        var trees = SFMInspectionTree.read(path, UUID.randomUUID().toString());
+        var mounts = trees.stream().map(tree -> RESOLVER.prepareMount(tree.root().authority(), tree.nodes())).toList();
+        return new PreparedWorkspace(trees, mounts);
     }
-    public static List<SFMInspectionTree> compare(Path old, Path newer) throws Exception {
+    public static PreparedWorkspace compare(Path old, Path newer) throws Exception {
         old = old.toAbsolutePath().normalize(); newer = newer.toAbsolutePath().normalize();
         if (old.equals(newer)) throw new IllegalArgumentException("Select two distinct inputs");
         if (Files.isSymbolicLink(old) || Files.isSymbolicLink(newer)) throw new IllegalArgumentException("Comparison inputs must not be symbolic links");
@@ -111,13 +115,14 @@ public final class SFMInspectionRuntime {
         var wrapper = new com.google.gson.JsonObject(); var body = new com.google.gson.JsonObject();
         body.addProperty("root", path.toString()); wrapper.add("Directory", body); return wrapper;
     }
-    public static void open(List<SFMInspectionTree> trees, SFMClientActionContext context, boolean append) {
+    public static void open(PreparedWorkspace prepared, SFMClientActionContext context, boolean append) {
+        var trees = prepared.trees();
         var runtime = SFMExplorerRuntime.get(); runtime.registerResolverIfAbsent(RESOLVER);
         var leases = new ArrayList<SFMInMemoryTextExplorerResolver.MountLease>();
         Runnable dispose = () -> { trees.forEach(tree -> tree.surfaces().keySet().forEach(SURFACES::remove)); leases.forEach(SFMInMemoryTextExplorerResolver.MountLease::close); };
         SFMExplorerPanel panel = null; boolean owned = false;
         try {
-            for (var tree : trees) { leases.add(RESOLVER.mount(tree.root().authority(), tree.nodes())); SURFACES.putAll(tree.surfaces()); }
+            for (int i = 0; i < trees.size(); i++) { leases.add(RESOLVER.mount(prepared.mounts().get(i))); SURFACES.putAll(trees.get(i).surfaces()); }
             if (append && context.originatingHost() instanceof SFMScreenMultiplexer workspace && context.originatingPanelId() != null
                     && workspace.panelInstance(context.originatingPanelId()) instanceof SFMExplorerPanel existing) {
                 panel = existing;
