@@ -1,0 +1,8 @@
+prepare 1000 entries: 41.240 ms
+cancel after 100 checks at 1000 entries: 3.086 ms
+prepare 10000 entries: 25.773 ms
+cancel after 100 checks at 10000 entries: 1.317 ms
+prepare 50000 entries: 38.619 ms
+cancel after 100 checks at 50000 entries: 0.131 ms
+prepare 100000 entries: 64.413 ms
+cancel after 100 checks at 100000 entries: 0.223 ms

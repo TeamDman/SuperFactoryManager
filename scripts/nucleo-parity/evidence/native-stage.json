@@ -1,0 +1,305 @@
+{
+  "native_junit": "FAILED BEFORE COMPILATION: locked org.facet:vox-java:0.10.0-rc.5 source build produced a Linux path, resolver expected a path containing Windows backslashes. No lock edits or copied-artifact substitute.",
+  "initial_native_junit": "FAILED: automatic Java discovery had no pinned linux-x64 JBRSDK; rerun explicitly used the existing /workspace/.sfm-env/jdk17.",
+  "logs": {
+    "native-junit.log": {
+      "path": "/workspace/nucleo-parity-build/native-junit.log",
+      "bytes": 19849,
+      "sha256": "32c3ce95299ab701e572c5b0a67589b3e76dca5504d2f8f6e411744ee58bf1d0"
+    },
+    "native-junit-final.log": {
+      "path": "/workspace/nucleo-parity-build/native-junit-final.log",
+      "bytes": 56236,
+      "sha256": "8ac882f2680903f58e7bf7dd8dc2a755b1c1136c8ddb7935ac6a7989641e0996"
+    },
+    "native-junit-final.ndjson": {
+      "path": "/workspace/nucleo-parity-build/native-junit-final.ndjson",
+      "bytes": 188053,
+      "sha256": "d5801443a4f9b56cfb679949d294948ba43d053d6f5fedf04582de0a0d2085bb"
+    },
+    "source-sync.log": {
+      "path": "/workspace/nucleo-parity-build/source-sync.log",
+      "bytes": 1659380,
+      "sha256": "a245385b5937e238a22b6debf2d1d922735fe3836669309b49789912c5f0ff52"
+    },
+    "source-check.log": {
+      "path": "/workspace/nucleo-parity-build/source-check.log",
+      "bytes": 1659380,
+      "sha256": "2cd63d11f6010b1a5f776726f7b8b4e32887ed8882809dd8a4a0400bc0b507c9"
+    }
+  },
+  "locked_cache_rehydration": [
+    {
+      "coordinate": "org.spongepowered:mixin:0.8.5:processor",
+      "repository": "sponge",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
+      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6"
+    },
+    {
+      "coordinate": "org.spongepowered:mixin:0.8.5",
+      "repository": "sponge",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
+      "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd"
+    },
+    {
+      "coordinate": "org.parchmentmc.data:parchment-1.19.2:2022.11.27@zip",
+      "repository": "parchment",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/parchmentmc/data/parchment-1.19.2/2022.11.27/parchment-1.19.2-2022.11.27.zip",
+      "hash": "blake3:75697f5f30848c78fed5ade00ca26f3acc19e7d6"
+    },
+    {
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9:api",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9-api.jar",
+      "hash": "blake3:19100d113e6f378158c821dd4c3b8f474a0e39aa"
+    },
+    {
+      "coordinate": "curse.maven:patchouli-306770:4031402",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/patchouli-306770/4031402/patchouli-306770-4031402.jar",
+      "hash": "blake3:d845e7e2c434816cab6e8920610bd81f98519eb0"
+    },
+    {
+      "coordinate": "curse.maven:botania-225643:5608807",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/botania-225643/5608807/botania-225643-5608807.jar",
+      "hash": "blake3:d5641845f07f21f1ed3f47924672d26004a144a9"
+    },
+    {
+      "coordinate": "curse.maven:sophisticated-core-618298:4503931",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sophisticated-core-618298/4503931/sophisticated-core-618298-4503931.jar",
+      "hash": "blake3:8fb8e277714715c79051cea92aeaf3295208a6bf"
+    },
+    {
+      "coordinate": "curse.maven:sophisticated-storage-619320:4503929",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sophisticated-storage-619320/4503929/sophisticated-storage-619320-4503929.jar",
+      "hash": "blake3:2073ce18e3d747f42f9d3688d07f6b4c21cc4cec"
+    },
+    {
+      "coordinate": "curse.maven:curios-309927:5494603",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/curios-309927/5494603/curios-309927-5494603.jar",
+      "hash": "blake3:cab28e86f4d1cb0ac48776bf25652d48c734fc48"
+    },
+    {
+      "coordinate": "curse.maven:titanium-287342:4152837",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/titanium-287342/4152837/titanium-287342-4152837.jar",
+      "hash": "blake3:3a6dfafa96f6ee2dddf0cb3e4f2cce40a1b5b750"
+    },
+    {
+      "coordinate": "curse.maven:dank-storage-335673:4395369",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/dank-storage-335673/4395369/dank-storage-335673-4395369.jar",
+      "hash": "blake3:e247bddf3c34615f6858189f23535d93b4a024b7"
+    },
+    {
+      "coordinate": "com.teamcofh:thermal_expansion:1.19.2-10.2.0.21",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/thermal_expansion/1.19.2-10.2.0.21/thermal_expansion-1.19.2-10.2.0.21.jar",
+      "hash": "blake3:ef2dad0cad29e4e89c36c3cd314ee3356375e9c6"
+    },
+    {
+      "coordinate": "curse.maven:flux-networks-248020:4620438",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/flux-networks-248020/4620438/flux-networks-248020-4620438.jar",
+      "hash": "blake3:02fe37ed7e2826b9b33e2bf90d6c2a35ef5ba6e3"
+    },
+    {
+      "coordinate": "com.teamcofh:cofh_core:1.19.2-10.2.0.38",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/cofh_core/1.19.2-10.2.0.38/cofh_core-1.19.2-10.2.0.38.jar",
+      "hash": "blake3:05cf3c4402bb6125c4bea7eba0f4732aee9da57a"
+    },
+    {
+      "coordinate": "curse.maven:AutoRegLib-250363:4100299",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/AutoRegLib-250363/4100299/AutoRegLib-250363-4100299.jar",
+      "hash": "blake3:8d24356d2495eb0467ba12e435614fa60c7a3732"
+    },
+    {
+      "coordinate": "curse.maven:architectury-api-419699:5137942",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/architectury-api-419699/5137942/architectury-api-419699-5137942.jar",
+      "hash": "blake3:156c96bb774c33f0aa155618a1b147b1cfe22bf7"
+    },
+    {
+      "coordinate": "curse.maven:mekanism-268560:4644795",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar",
+      "hash": "blake3:76928376e435f374f99f724a1261b1964f582914"
+    },
+    {
+      "coordinate": "curse.maven:ato-405593:4046926",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ato-405593/4046926/ato-405593-4046926.jar",
+      "hash": "blake3:152b686a84a34e2390f765d135d17eac44af4839"
+    },
+    {
+      "coordinate": "curse.maven:balm-531761:4751735",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/balm-531761/4751735/balm-531761-4751735.jar",
+      "hash": "blake3:412c6c6533746e267c0920405490bc6210e2df66"
+    },
+    {
+      "coordinate": "curse.maven:project-e-226410:4860858",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/project-e-226410/4860858/project-e-226410-4860858.jar",
+      "hash": "blake3:4d0e76d2510f06419a74ef9164a38a059a0830e5"
+    },
+    {
+      "coordinate": "curse.maven:cloth-config-348521:4973444",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/cloth-config-348521/4973444/cloth-config-348521-4973444.jar",
+      "hash": "blake3:dd070d910ea8816606fd313e90eb3970d48e7d34"
+    },
+    {
+      "coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/mekanism/Mekanism/1.19.2-10.3.8.477/Mekanism-1.19.2-10.3.8.477-api.jar",
+      "hash": "blake3:ff405d145a5d293f7dfd08f9823022512a770109"
+    },
+    {
+      "coordinate": "curse.maven:construction-wand-399558:4455719",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/construction-wand-399558/4455719/construction-wand-399558-4455719.jar",
+      "hash": "blake3:8a40b4ffa44b6d1719680a278ad2bc9a7040607c"
+    },
+    {
+      "coordinate": "curse.maven:ex-pattern-provider-892005:5250574",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ex-pattern-provider-892005/5250574/ex-pattern-provider-892005-5250574.jar",
+      "hash": "blake3:1fcdc2d8325f896a9f04789837db0958f8df7262"
+    },
+    {
+      "coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+      "repository": "squiddev",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/squiddev/cc-tweaked-1.19.2/1.101.3/cc-tweaked-1.19.2-1.101.3.jar",
+      "hash": "blake3:e0e6920675c793817b9e063db3854b3c68ed29fd"
+    },
+    {
+      "coordinate": "curse.maven:extreme-sound-muffler-363363:4821189",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/extreme-sound-muffler-363363/4821189/extreme-sound-muffler-363363-4821189.jar",
+      "hash": "blake3:83c3de2e8a8be54ac3b83b49811eb6184561d34a"
+    },
+    {
+      "coordinate": "curse.maven:ftb-library-404465:4661834",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ftb-library-404465/4661834/ftb-library-404465-4661834.jar",
+      "hash": "blake3:38f25b0d9fd68164c93a72a31c69236c6231ad51"
+    },
+    {
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9",
+      "repository": "modmaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9.jar",
+      "hash": "blake3:bc1f50c87ba5bb4279f457cf4e480fb546b97dce"
+    },
+    {
+      "coordinate": "com.teamcofh:thermal_core:1.19.2-10.2.0.5",
+      "repository": "thermal",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/teamcofh/thermal_core/1.19.2-10.2.0.5/thermal_core-1.19.2-10.2.0.5.jar",
+      "hash": "blake3:4a0e344e491bc5c0f6c4c3acbfe80312d3678649"
+    },
+    {
+      "coordinate": "curse.maven:ars-nouveau-401955:5171729",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ars-nouveau-401955/5171729/ars-nouveau-401955-5171729.jar",
+      "hash": "blake3:6f4fee5987f530d69980fbbcb0b45f9a696ca255"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.2-forge:11.6.0.1018",
+      "repository": "blamejared",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/mezz/jei/jei-1.19.2-forge/11.6.0.1018/jei-1.19.2-forge-11.6.0.1018.jar",
+      "hash": "blake3:892ba01c5a115716fff8ab08784c4d0fbfda089d"
+    },
+    {
+      "coordinate": "curse.maven:industrial-foregoing-266515:4459182",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/industrial-foregoing-266515/4459182/industrial-foregoing-266515-4459182.jar",
+      "hash": "blake3:e4e29239432a53a47a2032e4479dd7a779a54c7f"
+    },
+    {
+      "coordinate": "curse.maven:mouse-tweaks-60089:3871353",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mouse-tweaks-60089/3871353/mouse-tweaks-60089-3871353.jar",
+      "hash": "blake3:bb0c6a9d580f3fa6e183206175c20465c51582c8"
+    },
+    {
+      "coordinate": "curse.maven:inventory-essentials-368825:4751198",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/inventory-essentials-368825/4751198/inventory-essentials-368825-4751198.jar",
+      "hash": "blake3:0f224e72a6c0851fb68a73076cca4145852b0ec1"
+    },
+    {
+      "coordinate": "curse.maven:ok-zoomer-631278:4081277",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/ok-zoomer-631278/4081277/ok-zoomer-631278-4081277.jar",
+      "hash": "blake3:197c834624b42b2d452685ab7aff5bdbfa6c6815"
+    },
+    {
+      "coordinate": "curse.maven:mantle-74924:6044700",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/mantle-74924/6044700/mantle-74924-6044700.jar",
+      "hash": "blake3:af93ca1d438fc89e13ae07ac54ea78bf85ffdb74"
+    },
+    {
+      "coordinate": "curse.maven:the-one-probe-245211:3927520",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/the-one-probe-245211/3927520/the-one-probe-245211-3927520.jar",
+      "hash": "blake3:88ed0902ca6332c874d08f1bb12cbc45a9ff43cc"
+    },
+    {
+      "coordinate": "curse.maven:powah-633483:4729361",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/powah-633483/4729361/powah-633483-4729361.jar",
+      "hash": "blake3:78a0c4e5f5fb3cd984c16716311952cfe04bee3d"
+    },
+    {
+      "coordinate": "curse.maven:quark-243121:4812006",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/quark-243121/4812006/quark-243121-4812006.jar",
+      "hash": "blake3:552e4b017307bdd9851230ba1ec040ae93e09a1f"
+    },
+    {
+      "coordinate": "curse.maven:tinkers-construct-74072:6044827",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/tinkers-construct-74072/6044827/tinkers-construct-74072-6044827.jar",
+      "hash": "blake3:94e4ce6840abefe2d70211d4a680f4f9412a5d64"
+    },
+    {
+      "coordinate": "curse.maven:sodium-394468:3957319",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/sodium-394468/3957319/sodium-394468-3957319.jar",
+      "hash": "blake3:f5490c167bad1d74fc756a79928da474a327c560"
+    },
+    {
+      "coordinate": "curse.maven:tool-kit-324888:3933949",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/tool-kit-324888/3933949/tool-kit-324888-3933949.jar",
+      "hash": "blake3:36b5f9052d5afb75bc270e3889e34442c6571e43"
+    },
+    {
+      "coordinate": "curse.maven:worldedit-225608:3922622",
+      "repository": "cursemaven",
+      "cache_path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/curse/maven/worldedit-225608/3922622/worldedit-225608-3922622.jar",
+      "hash": "blake3:d20c1e66c569d09630b343f5e97ba6b2a2c2c70a"
+    },
+    {
+      "remote": "https://github.com/TeamDman/facet",
+      "commit": "f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
+      "checkout": "/tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56",
+      "tasks": "[\"run\", \"--locked\", \"--package\", \"vox-xtask\", \"--\", \"package-java\"]",
+      "output": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
+    },
+    {
+      "remote": "https://github.com/TeamDman/facet",
+      "commit": "f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
+      "checkout": "/tmp/sfm-source-builds/d5d331c1dfe191f51d07a9676626ecc11f4cda56",
+      "tasks": "[\"run\", \"--locked\", \"--package\", \"vox-xtask\", \"--\", \"package-java\"]",
+      "output": "vox\\java\\target\\vox-java-0.10.0-rc.5.jar"
+    }
+  ]
+}

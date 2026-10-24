@@ -1,0 +1,17 @@
+{
+  "seed": 1397116238,
+  "compared": 29338,
+  "groups": {
+    "upstream-inputs": 1896,
+    "targeted": 624,
+    "exhaustive": 2548,
+    "random": 20000,
+    "unicode-scalars": 2498,
+    "boundaries": 1272,
+    "random-long": 500
+  },
+  "mismatches": 0,
+  "first_errors": [],
+  "ranking_lists": 768,
+  "ranking_mismatches": 0
+}

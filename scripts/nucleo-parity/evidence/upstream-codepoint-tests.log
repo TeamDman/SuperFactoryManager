@@ -1,0 +1,57 @@
+   Compiling sfm-nucleo-oracle v0.0.0 (/workspace/nucleo-parity-final)
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> /workspace/reference-nucleo/matcher/src/utf32_str.rs:338:18
+    |
+338 |     pub fn slice(&self, range: impl RangeBounds<usize>) -> Utf32Str {
+    |                  ^^^^^ the lifetime is elided here         ^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+    = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+    |
+338 |     pub fn slice(&self, range: impl RangeBounds<usize>) -> Utf32Str<'_> {
+    |                                                                    ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> /workspace/reference-nucleo/matcher/src/utf32_str.rs:358:22
+    |
+358 |     pub fn slice_u32(&self, range: impl RangeBounds<u32>) -> Utf32Str {
+    |                      ^^^^^ the lifetime is elided here       ^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+358 |     pub fn slice_u32(&self, range: impl RangeBounds<u32>) -> Utf32Str<'_> {
+    |                                                                      ++++
+
+warning: `sfm-nucleo-oracle` (lib test) generated 2 warnings (run `cargo fix --lib -p sfm-nucleo-oracle --tests` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 2.24s
+     Running unittests /workspace/reference-nucleo/matcher/src/lib.rs (/workspace/nucleo-parity-final/target/release/deps/nucleo_matcher-ca66884ff2c9e026)
+
+running 24 tests
+test chars::normalize::tests::general ... ok
+test chars::normalize::tests::boundary_cases ... ok
+test chars::normalize::tests::unchanged_outside_blocks ... ok
+test chars::normalize::tests::invisible_chars ... ok
+test pattern::tests::case_matching ... ok
+test pattern::tests::escape ... ok
+test pattern::tests::negative ... ok
+test pattern::tests::pattern_kinds ... ok
+test tests::empty_needle ... ok
+test pattern::tests::pattern_atoms ... ok
+test tests::test_casing ... ok
+test tests::test_fuzzy_case_sensitive ... ok
+test tests::test_fuzzy ... ok
+test tests::test_long_str ... ok
+test tests::test_optimal ... ok
+test tests::test_normalize ... ok
+test tests::test_prefer_prefix ... ok
+test tests::test_single_char_needle ... ok
+test tests::test_reject ... ok
+test tests::test_substring_case_sensitive ... ok
+test tests::test_substring ... ok
+test tests::umlaut ... ok
+test utf32_str::tests::test_utf32str_ascii ... ok
+test tests::test_unicode ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
