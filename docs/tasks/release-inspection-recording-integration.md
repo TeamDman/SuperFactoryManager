@@ -1,5 +1,8 @@
 # Recording integration continuation
 
+> Historical checkpoint. See [live cloud qualification](release-inspection-live-qualification.md)
+> for the resolved SDK/TLS prerequisites, real builds, combined branch and client evidence.
+
 The Explorer checkpoint is preserved remotely. The recording workspace remains **not
 ready for in-game acceptance**: SDK retrieval and the native Minecraft download have
 separate network/trust prerequisites. No substitute screenshots or invented release

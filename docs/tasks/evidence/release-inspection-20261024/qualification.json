@@ -1,0 +1,42 @@
+{
+  "production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480",
+  "native_cli_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224",
+  "runtime": "Minecraft 1.19.2, task-owned authenticated Xorg :94, Mesa software renderer; no desktop attachment",
+  "client_session": "session-8NVSTT",
+  "workspace_sha256": "7c3df317f9f71d8f763618d95b661e9284f0ef917f8129bb0a1fe78a74608f78",
+  "passed": [
+    "full Dev main/gametest/datagen compile and JAR packaging",
+    "60 focused Explorer JUnit tests with actual Minecraft language resources and no production overlays",
+    "13 picker model/guard tests (earlier combined integration)",
+    "22 complete-domain/search/reveal assertions with actual Nucleo",
+    "launch flag opens exactly two prepared comparison roots",
+    "comparison -> strategies -> pairs -> representations",
+    "Nucleo Find OutputSttm reveals nested class pair, complete 61 matches",
+    "Nucleo Filter and H highlight switch preserve filter rows; literal OutputSttm has zero hits; literal OutputStatement matches",
+    "row selection, bottom-row expansion and preview opening preserve top visible Explorer anchor",
+    "external Find reveals ancestors and intentionally scrolls",
+    "825-line Java structured diff renders actual syntax and changed extraction lines; wheel scroll after Z control toggle leaves Explorer anchor unchanged",
+    "two JAR selection and actual runtime comparison on 2c9bca6e",
+    "two actual src directory selections and Show diff on e192e234; distinct direction labels and 47 changed pairs",
+    "missing-input/error root and malformed workspace UI on c5fd329f; strict/negative parser tests thereafter"
+  ],
+  "failed_then_corrected": [
+    "system /tmp below unchanged class producer 12 GiB admission limit; capture scratch moved to game workspace and real comparisons passed",
+    "incomplete contributed query domains and leaf-like container identities prevented Find; final complete-domain UI reveal passed",
+    "test harness omitted Minecraft language resources; corrected classpath passed",
+    "scroll test originally clicked scrollbar track; corrected test coordinate passed",
+    "source changes interrupted earlier immutable build snapshots; final full e192e234 build completed"
+  ],
+  "unrun_or_pending": [
+    "native aggregate test runner: missing reviewed javaparser-parent 3.26.4 POM and origin pin",
+    "full check-all.ps1: PowerShell/rustfmt/clippy unavailable",
+    "actual picker screen interaction and newer Minecraft client versions",
+    "forced process-tree termination and exceptional scratch cleanup failure paths"
+  ],
+  "interaction_notes": [
+    "Canvas PageDown did not scroll during attempted shortcut check; existing Z/S wheel toggle provided successful scrolling. Default wheel behavior is zoom.",
+    "Instruction printed text has no language syntax provider; Java mapped views use the real syntax worker."
+  ],
+  "screenshots_manifest": "screenshots.json",
+  "local_replay_inputs": "/workspace/scratch/release-inspection/qualification-navigation/replay-inputs.zip"
+}

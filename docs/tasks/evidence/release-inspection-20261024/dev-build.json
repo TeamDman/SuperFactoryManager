@@ -1,0 +1,12 @@
+{
+  "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/libs/Super Factory Manager (SFM)-MC1.19.2-4.34.0-rust.jar",
+  "bytes": 9345605,
+  "sha256": "46a9b6de8081f6da98d7eb5edce876422a7d3f70b9f5aefd4c1bf498adefa237",
+  "zip_integrity": "passed",
+  "entries": 4259,
+  "compilation": "completed",
+  "jar_packaging": "completed",
+  "source_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480",
+  "native_cli_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224",
+  "cache_dir": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/207d064b51debfb765ddd274da971ed6fa41f9a3ec821bf0a1417af4de930c39"
+}

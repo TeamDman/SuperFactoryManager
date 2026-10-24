@@ -96,7 +96,9 @@ The complete headless qualification command uses existing local tools/classpaths
 
 ```bash
 python3 scripts/release-inspection/qualify.py --cli "$CLI" --java-home "$JDK" \
-  --gson-jar "$EXISTING_GSON_CLASSPATH_JAR" --output "$EVIDENCE/new-qualification"
+  --gson-jar "$EXISTING_GSON_CLASSPATH_JAR" \
+  --codec-jar "$EXISTING_COMMONS_CODEC_JAR" --guava-jar "$EXISTING_GUAVA_JAR" \
+  --output "$EVIDENCE/new-qualification"
 ```
 
 It retains real javac/JAR inputs, requests, receipts and command stdout/stderr under
@@ -104,7 +106,8 @@ that fresh directory. Checks include method reorder/swapped-body/descriptor/swit
 classification, original-byte recovery, contradictory evidence, malicious archive
 admission before javap, strict JSON, FIFO/symlink input rejection, alias sharing,
 mount preparation without holding the publication monitor, and linear UTF-8/CRLF
-decoration coordinates. Nucleo adapter tests use an explicit fake provider only.
+decoration coordinates. Nucleo checks exercise both the actual reviewed matcher and
+a fake provider for malformed-provider contract cases.
 
 ## Interactive bounds and threading
 
@@ -157,12 +160,13 @@ Publication checks the full roots/options/layout/loader-generation context and c
 Compatible prior rows remain while pending; changed roots get a pending placeholder.
 Existing complete-domain and Finder stale-generation guards remain. Compaction scroll
 anchors are deferred until the new layout is accepted and invalidated by user scrolling.
-These are implementation contracts; in-game acceptance remains pending the SDK/build gate.
+See [the live qualification receipt](../../docs/tasks/release-inspection-live-qualification.md)
+for executed client checks, captures and remaining test boundaries.
 
 `NucleoIntegrationProbe` and the imported `CoreChecks` exercise the actual matcher,
 including original spans, case/normalization, limits and cancelled/stale work. The fake
-provider probe remains for malformed-provider cases. Add `--codec-jar` to the qualification
-command to compile and run the production common matcher, legacy modes, field highlights,
+provider probe remains for malformed-provider cases. The required `--codec-jar` and
+`--guava-jar` arguments let the qualification command compile and run the production common matcher, legacy modes, field highlights,
 normal projection ordering and partial-budget evidence. This requires the already-declared
 Minecraft Commons Codec dependency, not a new dependency or version upgrade. No downloads
 are performed by the qualification script. Fresh full Rust parity is owned by the matcher

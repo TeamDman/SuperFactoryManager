@@ -1,0 +1,13 @@
+{
+  "intentionally_stopped": {
+    "game": 32968,
+    "display": 16137
+  },
+  "observed_syntax_workers": [
+    33332
+  ],
+  "remaining_pids": [],
+  "display_socket_exists": false,
+  "client_launcher_exit": 1,
+  "client_launcher_exit_reason": "requested SIGTERM after acceptance; not launch failure"
+}

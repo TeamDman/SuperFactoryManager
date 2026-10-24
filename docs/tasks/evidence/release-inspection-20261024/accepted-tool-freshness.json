@@ -1,0 +1,10 @@
+{
+  "handoff_executable": "/workspace/.sfm-env/target/debug/sfm-propagate-changes",
+  "sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7",
+  "version_smoke": "/workspace/.sfm-env/target/debug/sfm-propagate-changes 0.1.1 (rev c5fd329f19c0280cbe4c375c240a783e73ee2224, built 2026-10-24 16:29:10 +00:00)",
+  "native_source_diff_since_build": "",
+  "old_installed_executable": "/workspace/.sfm-env/libexec/sfm-propagate-changes",
+  "old_installed_sha256": "35374239ffa5562ee5452d884f09ea1fef07f2121fccdd0575c44d9e3472e405",
+  "user_must_run_install_ps1": false,
+  "reason": "handoff uses explicitly built verified executable; installed wrapper intentionally preserved"
+}

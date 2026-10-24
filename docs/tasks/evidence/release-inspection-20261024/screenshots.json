@@ -1,0 +1,170 @@
+[
+  {
+    "file": "01-two-roots.png",
+    "sha256": "62b8fa6a85f3d674d57e3c018afc47867b31a65f54e2a9bbc14c78c6fbe36307",
+    "bytes": 11064,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "02-jar-strategies.png",
+    "sha256": "7c3a3dfd12e998165cc4007e81395afd88d27fd5e3685ac92711ca68a0817f74",
+    "bytes": 16480,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "06b-instruction-diff-loaded.png",
+    "sha256": "591ccbf0b20f3d5b5c2dac7f78e583d97ae40f61f1a8dafb94f960f942596e67",
+    "bytes": 43989,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "12-java-highlighted.png",
+    "sha256": "a3043126027cebac7b6c47257482a358976c66640e9ffd04368912f1aacb6020",
+    "bytes": 47048,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "17-missing-input-detail.png",
+    "sha256": "032fb3f01c3f0bee5560c7bdf9c87fae2b014b5ba18a538284a3a25dc7a66b5a",
+    "bytes": 41349,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "18-malformed-error.png",
+    "sha256": "aeb5fae3e06652c38a563693519a5be270cc9112ccee9b0d13ada4ff41dddc0c",
+    "bytes": 50965,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "21-two-jar-context-menu.png",
+    "sha256": "648af387496bbaaae39b0402674d258aa8a70646c2da04566309e24dfb57529b",
+    "bytes": 31140,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "c5fd329f19c0280cbe4c375c240a783e73ee2224"
+  },
+  {
+    "file": "38-interactive-jar-success.png",
+    "sha256": "da37acb39a8a93d492f6675b77e7c6c9fbc9b1146ab36ecf8446238dce4ef324",
+    "bytes": 13134,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "2c9bca6e830eaeea4b81d4d64fbad5105721fa00"
+  },
+  {
+    "file": "39-interactive-jar-strategies.png",
+    "sha256": "8a1e5fb0844b1e2a8d9983063de51420e9cabe2e70572461f205774972227b85",
+    "bytes": 18338,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "2c9bca6e830eaeea4b81d4d64fbad5105721fa00"
+  },
+  {
+    "file": "46-working-tree-changes.png",
+    "sha256": "b91c424680cfce5f0d927e6525315bc3277e0432ada0ae8ba30e13b44931d69f",
+    "bytes": 25581,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "2c9bca6e830eaeea4b81d4d64fbad5105721fa00"
+  },
+  {
+    "file": "53-accepted-two-roots.png",
+    "sha256": "b385c6f18a106164098cbd71322b8c237eaa193705d86271d0cd35eded745aa6",
+    "bytes": 11082,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "55-accepted-nucleo-reveal.png",
+    "sha256": "48bc922706553ab5f6cb6eb91e04bd87fef0627cd39f8f0f07461744da438752",
+    "bytes": 23573,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "56-accepted-click-scroll.png",
+    "sha256": "85a394f5c3bccd758ac3600a8cd3306d268ad7f5bfc5dd5ceaba7de3e7e773fa",
+    "bytes": 22896,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "58-accepted-filter-highlight.png",
+    "sha256": "b10ce6a654dac7865778671326802cd5a0c69a0d8dec7e37cdcddbb424a92465",
+    "bytes": 25460,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "59-accepted-highlight-off.png",
+    "sha256": "c621804c62ac5aac4d3fd7e9dcb633c42fd72d2f57094d55a762882e4afdae92",
+    "bytes": 24253,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "60-accepted-literal-no-match.png",
+    "sha256": "32fed77d7d1250b8c790f4783e7a9a0b3f555d7cae2e061364db0e43ff0e2e4f",
+    "bytes": 11649,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "61-accepted-literal-match.png",
+    "sha256": "8cf21f1427f7170219dd89506c46058de6498eba3efc32aa1f61bd0e8aceca34",
+    "bytes": 21777,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "62-accepted-source-find.png",
+    "sha256": "29448e7d891c6b1e7e9b3e520979088888d2de7f973a37946444e26b8218c2bf",
+    "bytes": 25110,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "63-accepted-expand-preserves-scroll.png",
+    "sha256": "2ed3e4affa6b8d59f547aecec2275c5815a9d089e71f86b1e5d3f9fc62679ccb",
+    "bytes": 24468,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "65-accepted-java-diff.png",
+    "sha256": "dd8ed7d1a26d4e9fed6eb1660332904e5572f60735601c29a0d98c5dbc3b2f02",
+    "bytes": 50585,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "69-accepted-changed-java-lines.png",
+    "sha256": "6f1efebe10241a002de27e423b928047985e63214fdb0a37efcfe6b3858bc111",
+    "bytes": 45446,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "72-accepted-direction-labels.png",
+    "sha256": "42571671c929ce84028ff09e159bcca56d2ec0674ac72fcbfa9c729e5a45d266",
+    "bytes": 28625,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "74-accepted-source-comparison.png",
+    "sha256": "3157d1966a4dbe25b6bc2992fd3fc652e72fed4cf0ed0916333443700e8c42cc",
+    "bytes": 21077,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  },
+  {
+    "file": "76-accepted-source-changes-clear.png",
+    "sha256": "9169086204893865309ba11a2c277ed1c601b7192ce6cd3d41ccf922b977d73a",
+    "bytes": 27209,
+    "kind": "actual cloud Xorg Minecraft screenshot",
+    "source_production_commit": "e192e234e0a3019537cb3e23240ac8e5ff886480"
+  }
+]

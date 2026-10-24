@@ -1,5 +1,8 @@
 # Release inspection Explorer — cloud handoff
 
+> Historical checkpoint. See [live cloud qualification](release-inspection-live-qualification.md)
+> for the resolved SDK/TLS prerequisites, real builds, combined branch and client evidence.
+
 Status: implementation and headless evidence available; **not recording-ready**.
 The native game build/launch has a toolchain prerequisite, so UI screenshots and live
 interaction acceptance are still outstanding. No screenshot or simulated UI is offered

@@ -1,0 +1,38 @@
+[
+  {
+    "check": "row selection preserves upper Explorer rows",
+    "before": "55-accepted-nucleo-reveal.png",
+    "after": "56-accepted-click-scroll.png",
+    "rectangle": [
+      80,
+      140,
+      1000,
+      570
+    ],
+    "pixel_identical": true
+  },
+  {
+    "check": "bottom-row expansion preserves upper Explorer rows",
+    "before": "62-accepted-source-find.png",
+    "after": "63-accepted-expand-preserves-scroll.png",
+    "rectangle": [
+      80,
+      140,
+      1000,
+      630
+    ],
+    "pixel_identical": true
+  },
+  {
+    "check": "long preview scrolling preserves Explorer rows",
+    "before": "65-accepted-java-diff.png",
+    "after": "69-accepted-changed-java-lines.png",
+    "rectangle": [
+      20,
+      140,
+      620,
+      665
+    ],
+    "pixel_identical": true
+  }
+]

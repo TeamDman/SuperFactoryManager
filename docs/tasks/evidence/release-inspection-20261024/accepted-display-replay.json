@@ -1,0 +1,7 @@
+{
+  "start_command": "/usr/bin/Xorg :94 -config /workspace/scratch/release-inspection/cloud-display/xorg-dummy.conf -auth /workspace/scratch/release-inspection/cloud-display/display.Xauthority -nolisten tcp -noreset -logfile /workspace/scratch/release-inspection/cloud-display/replay-xorg.log",
+  "authenticated_XOpenDisplay": "passed",
+  "task_owned_pid": 33885,
+  "shutdown_requested": "SIGTERM",
+  "timestamp": 1792865103.7473633
+}
