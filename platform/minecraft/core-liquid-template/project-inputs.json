@@ -43,6 +43,8 @@
     }
   },
   "source_rules": {
+    "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttempt.java": [{"input":"src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttempt.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
+    "src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttemptTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttemptTests.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
     "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java": [{"input":"src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
     "src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java": [{"input":"src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
     "src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],

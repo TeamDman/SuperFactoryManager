@@ -1,5 +1,7 @@
 {
 {% if features.dynamic_editor_picker %}
+  "gui.sfm.editor_selection.open_failed": "Could not open editor",
+  "gui.sfm.editor_selection.open_failed_message": "Editor %s could not be created: %s. Choose another editor and try again.",
   "gui.sfm.preferred_editor.sfm.v1": "V1 (Default)",
   "gui.sfm.preferred_editor.sfm.v2": "V2",
   "gui.sfm.preferred_editor.sfm.text_editor_v3": "Text Editor v3",

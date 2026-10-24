@@ -6,6 +6,7 @@ NAME "Changelog"
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 {% if features.dynamic_editor_picker %}
+-- Report editor factory failures without replacing the current screen; offer the editor picker for recovery.
 -- Choose any registered editor from the manager or editor settings, including third-party editors.
 -- Search and page through editor IDs; Apply changes the next editor opened without replacing unsaved work.
 -- Keep unavailable configured editor IDs while using V1 as a fallback.

@@ -104,4 +104,45 @@ class SFMTextEditorSelectionTests {
         assertEquals("second:editor", selection.selectedId());
     }
 
+    @Test
+    void lateInsertionBeforeDisplayedRowCannotChangeItsSelectedIdentity() {
+        var ids = new ArrayList<>(List.of("addon:b", "addon:d", "addon:f"));
+        var selection = new SFMTextEditorSelection("addon:f", () -> ids);
+        selection.setPageSize(1);
+        selection.setPage(1);
+        String displayedId = selection.visibleIds().get(0);
+        assertEquals("addon:d", displayedId);
+        ids.add("addon:a");
+        assertTrue(selection.select(displayedId));
+        assertEquals("addon:d", selection.selectedId());
+        ids.remove("addon:d");
+        assertFalse(selection.apply(id -> fail("Removed staged ID must not be replaced by its row neighbour")));
+        assertEquals("addon:d", selection.selectedId());
+        ids.add("addon:d");
+        assertTrue(selection.apply(id -> assertEquals("addon:d", id)));
+    }
+
+    @Test
+    void searchResizeAndLateRegistrationClampPagesWithoutErasingStagedChoice() {
+        var ids = new ArrayList<>(List.of("addon:a", "addon:b", "addon:c", "addon:d", "addon:e"));
+        var selection = new SFMTextEditorSelection("addon:a", () -> ids);
+        selection.setPageSize(2);
+        selection.setPage(2);
+        selection.select("addon:e");
+        selection.setPageSize(4);
+        assertEquals(1, selection.page());
+        assertEquals(List.of("addon:e"), selection.visibleIds());
+        selection.setQuery("NEW:");
+        assertEquals(0, selection.page());
+        assertTrue(selection.visibleIds().isEmpty());
+        ids.add("new:editor");
+        selection.refresh();
+        assertEquals(List.of("new:editor"), selection.visibleIds());
+        assertEquals("addon:e", selection.selectedId());
+        assertTrue(selection.apply(id -> assertEquals("addon:e", id)));
+        selection.setQuery("");
+        assertEquals(0, selection.page());
+        assertEquals(2, selection.pageCount());
+    }
+
 }
