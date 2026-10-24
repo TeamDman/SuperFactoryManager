@@ -1,0 +1,30 @@
+{
+  "compiled_consumer_commit": "bcbd4a29434ed496aa6a387842b3283d16fd0162",
+  "summary": [
+    "24",
+    "24",
+    "23",
+    "1",
+    "0",
+    "0",
+    "3",
+    "0"
+  ],
+  "failures": [
+    {
+      "test": "SFMVoxTerminalServiceTests::wrongSessionSuccessCannotClearTheCurrentInputFailure",
+      "type": "org.opentest4j.AssertionFailedError",
+      "message": "expected: <Optional[SFMTerminalError[code=INVALID_REQUEST, message=still pending, retryable=true, serverSequence=81]]> but was: <Optional.empty>"
+    }
+  ],
+  "test_source": {
+    "path": "/workspace/sfm-terminal-readiness-review-20261024/SFMVoxTerminalServiceTests.java",
+    "bytes": 35581,
+    "sha256": "8408415c4f67c1869b85734021576d0eec444a96d5f05b2a148d5114111a5f04"
+  },
+  "prior_compiled_consumer": {
+    "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+    "bytes": 131199,
+    "sha256": "7f1420ddd854614876d6e231929934ff6da0f8eb394c69f519d57cc024ae3559"
+  }
+}

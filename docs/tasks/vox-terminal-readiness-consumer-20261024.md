@@ -1,5 +1,7 @@
 # Terminal startup input rejection — SFM consumer qualification
 
+**Later review:** [review correction and full aggregate qualification](vox-terminal-readiness-review-20261024.md) supersede the final checkpoint below. This report retains the original 61-test evidence.
+
 ## Scope and source
 
 Cloud-only consumer implementation on `task/parchment-handshake-20261023`, based

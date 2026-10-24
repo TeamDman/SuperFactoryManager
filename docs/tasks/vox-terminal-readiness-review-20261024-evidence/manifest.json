@@ -1,0 +1,157 @@
+[
+  {
+    "file": "LegacyReadinessProbe.java",
+    "bytes": 7576,
+    "sha256": "e428bcad695aa6f9b3d8b70beca9599eba4deb381c7fe63a25a5906c45c0b87b"
+  },
+  {
+    "file": "baseline-aggregate-console.log.gz",
+    "bytes": 120807,
+    "sha256": "302ed1e0b535541584d10dd3f90de30652c3afe2ee304f5c0b8a112a89250371"
+  },
+  {
+    "file": "baseline-aggregate.exit",
+    "bytes": 2,
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  {
+    "file": "baseline-aggregate.stderr.gz",
+    "bytes": 35483,
+    "sha256": "b16687f9f6174138648ba34d347a85f6b2a074c4838a429c439817455858a824"
+  },
+  {
+    "file": "baseline-writable-aggregate.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "baseline-writable-aggregate.log.gz",
+    "bytes": 378208,
+    "sha256": "44a294bca6312b24fb8e94093084b11b4a0b6d57bbef4f7bc5073666fb733039"
+  },
+  {
+    "file": "final-1.19.2-render-match.json",
+    "bytes": 15548,
+    "sha256": "b092701624970bc4174892688f50ba4db6cb4c5cdec69c503fd995be2e6341d6"
+  },
+  {
+    "file": "final-aggregate-console.log.gz",
+    "bytes": 112632,
+    "sha256": "acdc5fc49d21a977a3c0a93b1f1d1b4d421d7a619d9b015d239d260f25e9140e"
+  },
+  {
+    "file": "final-aggregate-junit.java.args.gz",
+    "bytes": 3946,
+    "sha256": "e4dc612c7b76411e63cfd1f7edea89bc5a9627f3509f63bed0ab806d07c3d128"
+  },
+  {
+    "file": "final-aggregate-testRuntimeClasspath.txt.gz",
+    "bytes": 3810,
+    "sha256": "c13741cd604c600258150df1eeb36d73a5249d4f59423a69d2014ec9fba6d454"
+  },
+  {
+    "file": "final-aggregate.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "final-aggregate.ndjson.gz",
+    "bytes": 32191,
+    "sha256": "3af4307ac22b29c87d712262a333f1237ad281d57484947cbb32422af7b665f7"
+  },
+  {
+    "file": "final-aggregate.stderr.gz",
+    "bytes": 11814,
+    "sha256": "9363714be092b4d380df96f2cdf7a65e9fb14c85a33227e44c0faadff3653dfe"
+  },
+  {
+    "file": "final-legacy-renders.json",
+    "bytes": 34778,
+    "sha256": "bfad2673405fb6f37d46490748f88f7b8223143345060da5427a52f99781ce45"
+  },
+  {
+    "file": "final-test-results.json",
+    "bytes": 66425,
+    "sha256": "ee3a7f087daa8f353b833e25ad493b754aec4c8c14e329b72e2ff6022900067c"
+  },
+  {
+    "file": "legacy-compile.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "legacy-compile.log.gz",
+    "bytes": 137,
+    "sha256": "860266f282623ab39f898b5b62a6ddd559b7bb0868deb848ab58b39122556fba"
+  },
+  {
+    "file": "legacy-preflight-classpath.txt.gz",
+    "bytes": 3349,
+    "sha256": "a84933ef50cca32fd9c2f44fa6e05a70361eeaa4c5d66fa1608b276e3ba7a0a0"
+  },
+  {
+    "file": "legacy-probe.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "legacy-probe.log.gz",
+    "bytes": 125,
+    "sha256": "60c695344d56c828f3012a7b4c1916220b0ddb83a52feceb4ced8601fc17f37a"
+  },
+  {
+    "file": "optional-gates.json",
+    "bytes": 1555,
+    "sha256": "6a1419f4cea7864d1f8ab7b513feb70a7b8588bc05d32e2d07695434e5fa448c"
+  },
+  {
+    "file": "projection-checks.json",
+    "bytes": 4813,
+    "sha256": "38c42164087a077d97acd850077731b9f4ed0aafd5015aa0025f972f0e43cf2b"
+  },
+  {
+    "file": "red-regression-result.json",
+    "bytes": 1150,
+    "sha256": "6509498afd363a0dc3df2c29b3206fae2219faceb8c41ff0172cca5c42e53381"
+  },
+  {
+    "file": "red-service-tests.exit",
+    "bytes": 2,
+    "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  {
+    "file": "red-service-tests.log.gz",
+    "bytes": 7548,
+    "sha256": "1a6c6ac0639480f85f74bb2b7b7f26888166ff9e6d4a62e065c463850829edae"
+  },
+  {
+    "file": "red-test-compile.log.gz",
+    "bytes": 137,
+    "sha256": "860266f282623ab39f898b5b62a6ddd559b7bb0868deb848ab58b39122556fba"
+  },
+  {
+    "file": "red-test-render-receipt.json",
+    "bytes": 15363,
+    "sha256": "108592e6a3221196a868224ee1c8c9398dee92003b1a68f2387cbd914ed962b0"
+  },
+  {
+    "file": "red-test.java.args",
+    "bytes": 36845,
+    "sha256": "420c74f282d50355de52ba37bc0633aaaea6b6ade711c693c361dc578f87e6db"
+  },
+  {
+    "file": "reproduce-aggregate.sh",
+    "bytes": 1148,
+    "sha256": "4c376259cff7817bbb30b7f31e828e99da8ff0692bea10c4b3bf39998d0650b8"
+  },
+  {
+    "file": "review-receipt.json",
+    "bytes": 9054,
+    "sha256": "d02422624c465e313eb631357119233c38f5b5b20d23c61faa865e27f738b0cc"
+  },
+  {
+    "file": "supported-branch-parity.json",
+    "bytes": 900,
+    "sha256": "dc5aeb9f5610adbba0cd0f065ac89f215ae40213554ffd9a2168337e6bbd45e0"
+  }
+]

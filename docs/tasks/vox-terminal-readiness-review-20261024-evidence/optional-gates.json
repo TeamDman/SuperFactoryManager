@@ -1,0 +1,32 @@
+[
+  {
+    "test": "SFMItemstackPreviewCoverageTests::repositoryCoverage",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: Run scripts/analyze-itemstack-icon-coverage.ps1 for a real repository audit"
+  },
+  {
+    "test": "SFMSymbolServerInstalledIntegrationTests::installedWorkerResolvesDefinitionsAndDecodesTheLargeInteractionMap",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: Set -Dsfm.symbol.workerExecutable=<path> and -Dsfm.symbol.workerBranch=<branch> to run this integration test"
+  },
+  {
+    "test": "SFMReleaseReviewScaleTests::completeSearchOnCapturedReleaseReview",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: Set SFM_TEST_REVIEW_SCALE_FIXTURE to a disposable captured review"
+  },
+  {
+    "test": "SFMSyntaxServerInstalledWorkerIntegrationTests::javaFramesRoundTripThroughTheInstalledRustWorker",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: Installed syntax worker is unavailable: IOException"
+  },
+  {
+    "test": "SFMReleaseReviewLedgerStoreTests::installedCompanionRetainsDisplayedBytesAfterDiskChanges",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: assumption is not true"
+  },
+  {
+    "test": "SFMReviewChangesCacheTests::optionalReleaseScaleProjectionMeasurements",
+    "type": "org.opentest4j.TestAbortedException",
+    "reason": "Assumption failed: Set SFM_TEST_REVIEW_PROJECTION_FIXTURE for read-only release-scale measurements"
+  }
+]

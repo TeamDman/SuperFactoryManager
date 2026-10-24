@@ -1,0 +1,192 @@
+{
+  "captured_utc": "2026-10-24T08:34:39.751590+00:00",
+  "branch": "task/parchment-handshake-20261023",
+  "reviewed_checkpoint": "6d44dc86faccbe7756fae25693b4e37a88b2f557",
+  "correction_commit": "f9b3e7e5737967d5f40aed1f6dfd187af8f7db8b",
+  "origin_main": "122e4b31ea2875a0894d648c51c5ee5f78c589e6",
+  "launcher": {
+    "path": "/workspace/sfm-handshake-20261023/tools/sfm-propagate-changes-native",
+    "bytes": 177721600,
+    "sha256": "7e7fb12ed75251ff9c48b61467793ee94d44e1aab528774a00b93acea74476ff"
+  },
+  "filtered_ca_bundle": {
+    "path": "/workspace/.sfm-env/trust/ca-certificates.crt",
+    "bytes": 226017,
+    "sha256": "ee7d8a9353d49d866898ce0d49091bcdf207d71e323ebfe0af9d2020e691c99c"
+  },
+  "vox_java": {
+    "path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/facet/teamy-vox-java/0.10.0-rc.7/teamy-vox-java-0.10.0-rc.7.jar",
+    "bytes": 614530,
+    "sha256": "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062"
+  },
+  "test_process_storage_override": {
+    "LOCALAPPDATA": "/workspace/sfm-terminal-readiness-review-20261024/localappdata"
+  },
+  "aggregate": {
+    "found": 2576,
+    "started": 2576,
+    "passed": 2570,
+    "failed": 0,
+    "skipped": 0,
+    "aborted": 6,
+    "containers": 461,
+    "failed_containers": 0
+  },
+  "terminal_package_passed": 211,
+  "service_passed": 24,
+  "panel_passed": 40,
+  "source_files": [
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java",
+      "bytes": 181988,
+      "sha256": "f4d291ba298aead280eed67ea50deb891ee76c01e61e1ae27b8c3ccfbf8e177d"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml",
+      "bytes": 132326,
+      "sha256": "9cb954beddf0bba800e7447ad9b552aff6c1e5e17253462b1ec49a97f5d00085"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "bytes": 36987,
+      "sha256": "1657c2f21f4956cc03f3cda736a7b71506e13da26fde4f871b089b0e0e04d1b0"
+    }
+  ],
+  "compiled_main": {
+    "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/83cbdb1f6a10eee8d8b9b26f64ef340aceb061e36ec5a15005b38b159b13fe56/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+    "bytes": 131431,
+    "sha256": "6819c2194068b87131f48fe6bd69cc571999f24ee0edc93d2a9a964bccbc69c2"
+  },
+  "compiled_test": {
+    "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/83cbdb1f6a10eee8d8b9b26f64ef340aceb061e36ec5a15005b38b159b13fe56/project/test/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.class",
+    "bytes": 31139,
+    "sha256": "45c2b0c39e1d6bc1e9d02b0ae0615b36bc1a7366b41216e1fc21d63a2f3202cd"
+  },
+  "native_cache": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/83cbdb1f6a10eee8d8b9b26f64ef340aceb061e36ec5a15005b38b159b13fe56",
+  "native_snapshot_receipts": [
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/83cbdb1f6a10eee8d8b9b26f64ef340aceb061e36ec5a15005b38b159b13fe56/build-snapshots/snapshot-Nc9Xx3/receipt.json",
+      "bytes": 844373,
+      "sha256": "925f3b2505b707c09aebe88afaff1b44b29d8041595c0b8599cf61c4450d6fcd"
+    }
+  ],
+  "legacy_rendered_classes": [
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe$Fixture$1.class",
+      "bytes": 1416,
+      "sha256": "80f977d3235b1584fab7e105196b9c1e322feef3b95e9e83a517bc0975a9beac"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe$Fixture.class",
+      "bytes": 6871,
+      "sha256": "ad67cc2c260bf88b788037216c2470c8165ba0fde982b385350abefb49a2d3a6"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe.class",
+      "bytes": 6780,
+      "sha256": "f984856ecf4b67e90ea7345cd7ece489c080c770b5951d24666f173bfe73bc92"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMTerminalFrame.class",
+      "bytes": 1708,
+      "sha256": "cf4c0f6d1e829b700bbf2068958a0824d08ef1cd05fb0f0990655b789c69b4f3"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.class",
+      "bytes": 875,
+      "sha256": "af1fd8932df2978bb6aa437c0383abb47bb857280bfdb8a0cd01c95c39db04bc"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Session.class",
+      "bytes": 1725,
+      "sha256": "9c726abf7271af6b7ff7847e6ba6325f9e3899cc8ca81c005a5eaa058c5b8526"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$TerminalApplicationException.class",
+      "bytes": 1135,
+      "sha256": "4296c81792b0dd55226d97d7426d5da209312f302658be133e82d2fb40808df9"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Transport.class",
+      "bytes": 1791,
+      "sha256": "60a686925b30a268032b95377b315af6dc4e1b65db92f7b550f9d5ca066c6850"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+      "bytes": 26208,
+      "sha256": "c5f5122fcfbb3e22c0a59f3b2c74f3749369906a0ffe496351cd54b9f55a16a4"
+    }
+  ],
+  "final_java_launcher_display_processes": [],
+  "full_working_logs": [
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/baseline-aggregate.stderr",
+      "bytes": 1435503,
+      "sha256": "985a68a292b211bb719da543bb09c9778bba0e6c638444686f617770c2716b6c"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/baseline-aggregate-console.log",
+      "bytes": 1564541,
+      "sha256": "2d48b94ecb57215fb92a8965b34308507f63b473aa8b18aa7ef174ed5dc94a9d"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/baseline-writable-aggregate.log",
+      "bytes": 5470192,
+      "sha256": "18044e837cd1fa69032b2326ca46771c37f412b2574cca07e55e05adda79b7d2"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/red-service-tests.log",
+      "bytes": 88306,
+      "sha256": "ecba5b5d620817d3c0df20f364e26710be096e4de7e75a302a59b52e5f1d20d7"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/red-test-compile.log",
+      "bytes": 142,
+      "sha256": "79dec2e1a8633d160a6cf8e553b934794a0607645169bc8d6a759d0c702d3058"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/final-aggregate.stderr",
+      "bytes": 212908,
+      "sha256": "a26053aa9dca568d2193494d554e73deb3644f877aa7fb340659e1822117377e"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/final-aggregate.ndjson",
+      "bytes": 950077,
+      "sha256": "93fbfb7f433e9c8f985c559a85e8fb5080bfba38f268cd510d94da94452a95f2"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/final-aggregate-console.log",
+      "bytes": 1079827,
+      "sha256": "d6e781a20c365cb8ceef4bf066dd294769dad2ca70ccce34027ef9dc7aa2d7f7"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/final-aggregate-junit.java.args",
+      "bytes": 36875,
+      "sha256": "447653ba7b1a8faf2484eb2d7aa1beef5adb13658291473b6239364997215ef0"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/final-aggregate-testRuntimeClasspath.txt",
+      "bytes": 36137,
+      "sha256": "1b3fa164514b7c2c57da312b874c417bf28ff5b35746ced854820124ae0c7b31"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy-compile.log",
+      "bytes": 142,
+      "sha256": "79dec2e1a8633d160a6cf8e553b934794a0607645169bc8d6a759d0c702d3058"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-review-20261024/legacy-probe.log",
+      "bytes": 133,
+      "sha256": "4b2e946236016c3c3553dd3a7df2465da3738aa1f3aae06687a678830e922735"
+    }
+  ],
+  "dependency_changes": false,
+  "new_installs": false,
+  "pushes_or_publication": false,
+  "live_terminal_prerequisite": {
+    "source": "63a03c0a3f43e541860b7a31597d44e4bbba2c69",
+    "report": "44aa0a052d24615f85d475e14874918a0090d795",
+    "owning_task": "01a1671f-225d-7536-89bc-ebebf799b0f9",
+    "status": "source or verified runnable artifact transfer pending; live gate not run"
+  }
+}

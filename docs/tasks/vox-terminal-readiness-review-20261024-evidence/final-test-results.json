@@ -1,0 +1,1113 @@
+{
+  "summary": {
+    "found": 2576,
+    "started": 2576,
+    "passed": 2570,
+    "failed": 0,
+    "skipped": 0,
+    "aborted": 6,
+    "containers": 461,
+    "failed_containers": 0
+  },
+  "terminal": [
+    {
+      "test": "SFMTerminalPresentationTransitionTests::rejectedTuplePreservesRequestedActiveGenerationAndRetainedFrame",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationTransitionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationTransitionTests::rendererAndTransportRequestsUseTheSameAtomicRequestedPendingPath",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationTransitionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationTransitionTests::aNewPresentationGenerationRequiresFullResyncBeforeReplacingPixels",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationTransitionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMUnavailableTerminalServiceTests::javaOnlyArtifactReportsAnExplicitDisconnectedRustScene",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMUnavailableTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalActionTests::effectScopesAreTheExactStaticBindingAndChannelNotTheTouchPayload",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalActionTests::inputCannotBorrowReadConsentOrDirectlyInvokeDescriptorOnlyEffect",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalActionTests::idleStatusReadsDoNotConsumeSharedDesktopEffectBudget",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalActionTests::ambientFixtureClientDeclarationParsesAndLinksItsExactCapabilities",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalActionTests::ambientFixtureChannelUsesSfmlSafeUuidHexInsteadOfHyphens",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsWrongContractMetadataAndTransportShape",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsInvalidRegionShapeStrideLengthCountAndTrailingPayload",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsArithmeticOverflowBeforeNarrowingPayloadRanges",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::negotiatedLimitsCannotExceedContractVersionOneHardBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::acceptsVersionOneTopLeftStraightAlphaFullAndOrderedDirtyFrames",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsInvalidDirtyBaseSequenceAndGenerationMetadata",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsMalformedDimensionsStrideAndPayloadLength",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::acceptsGeometricallyAdjacentRegionsAndRejectsInvalidFrameShapes",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRasterFrameValidatorTests::rejectsOutOfBoundsUnorderedOverlappingAndUnpackedRegions",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRasterFrameValidatorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalCleanupTests::rollbackPreservesOriginalFailureAndAttemptsEveryCleanup",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalCleanupTests::cleanupAttemptsLaterOwnedResourcesAfterEarlierFailures",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalCleanupTests::repeatedSameFailureDoesNotSelfSuppressOrStopCleanup",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalCleanupTests::emptyAndSuccessfulCleanupPreserveOrdering",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFocusSequenceTests::tripleTabEscapesToJavaFocusWithinTheSameWindow",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFocusSequenceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFocusSequenceTests::hintExpiresAndTheOtherGestureClearsIt",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFocusSequenceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFocusSequenceTests::singleAndDoubleEscapeForwardButTripleEscapeDelegatesToTheHost",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFocusSequenceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::multiRowRegionUsesTopLeftRowMajorRgbaByteOrderExactly",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::expectedGenerationRejectsRetiredFramesWithoutChangingRetainedState",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::baseMismatchIsRejectedWithoutChangingPixelsOrSequence",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::frameAndCompositorDefensivelyOwnTheirPixelArraysAndRegionList",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::generationChangesAreNeverAdoptedWithoutExplicitExpectation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::expectedGenerationFullResyncCanRestartSequenceAndRejectLateOldGeneration",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::sameGenerationFullFramesAdvanceButDimensionChangesRequireResync",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalRgbaCompositorTests::fullRawPlusOrderedDirtyUpdatesEqualExpectedFullPixelsExactly",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalRgbaCompositorTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::generatedNegativeCapabilitiesRemainTypedDiagnosticOnlyExactTuples",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::subscribeRequestCarriesTheAtomicTupleAndACompletePresentationGeneration",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::generatedContractMapsAllSixServerOwnedTuplesWithoutCollapsingTransportIds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::invalidOwnerAndRendererTransportShapesRemainUnavailableWithoutFallback",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::negativeCapabilityLookupRequiresExactOwnerDamageAndTransportVersion",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPresentationContractTests::unknownOwnerRendererAndTransportAreRejectedWithActionableReasons",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPresentationContractTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTuningOperationTests::outOfRangeChangesAreRejectedRatherThanClamped",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTuningOperationTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTuningOperationTests::autoOperationsOnlyClearTheirOwnAxis",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTuningOperationTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTuningOperationTests::incrementsPromoteAutomaticDimensionsToExplicitOverrides",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTuningOperationTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVirtualFileSystemTests::enforcesFileAndAggregateBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVirtualFileSystemTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVirtualFileSystemTests::normalizesPathsAndListsImmediateChildrenInStableOrder",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVirtualFileSystemTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::repeatedSequenceInDifferentStreamRequiresUploadAndPresentationLog",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::advancingWithinOneStreamRequiresUpload",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::compatibilityConstructorUsesCorrelationAsStreamIdentity",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::lowerSequenceInSameStreamIsRejectedAsStale",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::lowerSequenceInReplacementStreamStillRequiresFullUpload",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::duplicateWithinOneStreamRetainsTextureAndDoesNotRelog",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalFrameIdentityTests::propertiesKeepNativePayloadAndTargetSurfaceDimensionsDistinct",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalFrameIdentityTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::closeCompletesInFlightAndQueuedPastesExactlyOnceWithoutForwardingQueuedWork",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::wrongSessionSuccessCannotClearTheCurrentInputFailure",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::pasteRejectionIsTypedCompletesOnceAndAllowsAnExplicitRetry",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::typedTuningPreservesAutomaticAxesWithEffectiveCompatibilityValues",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::ordinaryInvalidDisconnectedAndOtherRetryableErrorsStillRetireTheTransport",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::interactiveInputAndResizeNeverWaitForTheUnavailableEndpoint",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::retryableInvalidOnANonInputOperationDoesNotBecomeStartupReadiness",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::startupInputRejectionKeepsTheSameSessionAndStreamUntilUserRetry",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::unavailableEndpointStaysRustDisconnectedInsteadOfFallingBack",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::guardedAndApprovedPasteRetainTheirNormalDistinctResults",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::reconnectCancelsAcceptedPastesAndStaleSuccessCannotOpenConfirmation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::gpuPixelTelemetryDistinguishesFullTargetsFromDirtyRegions",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::staleSuccessCannotClearANewerSessionsInputFailure",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::acceptsOnlyPayloadsWithThePngSignature",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::capabilityIntersectionRequiresTheExactStableContractTuples",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::rasterEvidenceAllowsOnlySupersededReceiverFailuresDuringExpectedReconnect",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::blankCommandsRemainNoOpsWhenVoxIsUnavailable",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::keyMouseCoalescedMotionCancelAndExecuteUseTheTypedInputPolicy",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::pasteFailureCannotContainConfirmationDataOrLoseItsError",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::pasteCallbackMayCloseTheServiceAndThrowWithoutDuplicateCompletion",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::typedTuningMarksPartiallyOverriddenAxesManual",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::rejectedPasteEnqueueDoesNotRetainOrCompleteAnUnacceptedRequest",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::pasteTimeoutHasAmbiguousAcceptanceAndIsNeverReplayed",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalServiceTests::staleFailureCannotCloseOrPoisonANewerSession",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::readOnlyUnmountLeavesOtherViewerAliveButInputOwnerUnmountClosesSession",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::boundedSessionsAndMountsDoNotReplaceExistingOwnership",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::cleanupFailureCannotLeakLaterMountsOrSessions",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::destructiveFrameHandoffIsDrainedOnceAndFannedOutWithNewestRetry",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::pumpCleanupFailureCannotStarveOtherSessionsAcrossAllFailurePaths",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::inputRevocationClosesSessionAndOldLeaseCannotRevive",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::creationRequiresDeclaredAndCurrentlyGrantedSessionPermissionBeforeFactoryRuns",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::mountRequiresExactIdentityAndUniqueWorldDisplayAddress",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::hiddenMountAuthorityIsMaintainedWithoutFrameOrInputCalls",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::inputNeedsSeparatePermissionAndSingleOpaqueWriterLease",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::brokerRejectsOtherThreadAndOtherBrokerHandles",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalBrokerTests::inactiveOrInvalidFullFrameTransportReleasesEveryMount",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::onlyMatchingStructuredAckReleasesTheSinglePendingInput",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::localSelectionRejectsRemoteOrUnresolvedEndpointsAndQuotesFixedExecutable",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::boundedRawFramesAreDrainedOnlyAfterReadinessAndIgnoreOldSequences",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::startupAndAcknowledgementWaitsHaveMonotonicBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::pngDirtyOversizedAndInvalidPayloadsAreRejected",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::serviceCreationBootstrapAndContentReadsAreQueuedNotRunByClientPump",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::workerQueueRejectionIsBoundedAndCloseCancelsQueuedStartup",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::reconnectStreamReplacementOrDimensionChangeRequiresFreshSessionAndLease",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::interactiveModeKeepsConfiguredShellAndForwardsPairedCellClicks",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::closeDuringBackgroundCreationReleasesLateServiceWithoutClientBlocking",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::unsolicitedAckOrProtocolErrorEndsOwnedSession",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::rejectedInteractiveReleaseClosesSessionInsteadOfLeavingInputHeld",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::factoryOrTuningFailureReleasesWhatWasActuallyCreated",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalServiceTransportTests::wrongIdCounterOrCoordinatesFailClosedRatherThanAcceptingAnotherReply",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::activeStreamSurvivesPendingFailureUntilAValidFullResyncExists",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::newerRequestsSupersedeOnlyPendingAttempts",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::firstValidFullResyncAtomicallyPromotesPendingAndRetiresOldActive",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::connectionCloseRetiresActiveAndPendingExactlyOnce",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::activeFailurePreservesAnIndependentPendingReplacement",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::independentPanelsDoNotShareActiveOrPendingState",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalRasterHandoffTests::activeFailureRetiresTheExactStreamAndAllowsAReplacementAttempt",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalRasterHandoffTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalServiceFactoryTests::parsesLoopbackShorthandAndBarePorts",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalServiceFactoryTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalServiceFactoryTests::rejectsMalformedEndpoint",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalServiceFactoryTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalServiceFactoryTests::observesEndpointListenerTeardown",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalServiceFactoryTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::presentationHeadersAndPanelChromeDoNotBecomeTerminalMouseInput",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::automationPasteUsesTheGuardedPasteRpcInsteadOfRawTextInput",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::structuredPasteFailureIsVisibleAndNeverBecomesConfirmation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::staleLandingActivationCannotStartASecondServerAfterAsyncConnection",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::tabEntersOpenPresentationChoicesAndEscapeReturnsToSelector",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::terminalPixelsInvalidateTheOldDisconnectedStartButtonBeforeMouseRouting",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::provisionalTransportConnectionNeverInstallsTerminalControlsOrLosesLandingHistory",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::physicalTargetClampPreservesAspectRatio",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::hostedHighGuiScaleUsesTheMeasuredPhysicalViewport",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::presentationKeyboardSelectionInvokesTheRegisteredActionDraft",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::cancelAndStaleConfirmationNeverReleaseMultilinePaste",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::disconnectedStartControlInvokesTheRegisteredServerActionDraft",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::ordinaryShellRightClickUsesTheAuthoritativeCopyPath",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::disconnectedLandingOwnsOnlyItsStartControlAndRetainsFailureHistory",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::multilinePasteWritesNothingUntilTheMatchingConfirmationIsApprovedOnce",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::disconnectedStartControlUsesTheExactVanillaAtlasRowHeight",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::presentationChoicesCloseWhenFocusLeavesTheirScope",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::ctrlCWithoutSelectionForwardsOneCompleteInterruptChord",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::liveWidgetHostCannotRouteFormerStartButtonPixelsToAHiddenButton",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::successfulTypedTuningRemainsPendingUntilTheRemoteResizeIsAccepted",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::typedTuningActionsShareOnePanelLocalRequestPath",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::rightClickRespectsChildMouseReportingBeforeCopying",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::connectionBoundarySwapsDisjointLandingAndTerminalWidgetTrees",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::presentationControlUsesVanillaHeightAndOutsideClickDismissesItsChoices",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::connectedPresentationFailureEnablesRetryWithoutLaunchingAnotherServer",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::tripleTabTransfersViewportFocusToTheMinecraftPresentationControl",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::viewportClickLeavesPresentationControlBeforeForwardingMouseAndKeyboard",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::firstTwoEscapesReachThePtyAndTheThirdFallsThroughToTheWorkspace",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::unhostedResizeFallsBackToTheLogicalDrawViewport",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::asynchronousRustRejectionRollsBackWithoutClosingTheTerminal",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::startupInputFailureBeforeTheFirstFrameDoesNotOfferAConnectionRetry",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::normalGuiScaleResizeUsesTheExactPaddedTitleAdjustedNativeViewport",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::approvedPasteFailureIsReportedAndDoesNotReopenConfirmation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::reconnectOrDisconnectInvalidatesPendingConfirmation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::delayedOldSessionPasteCannotOpenConfirmationInTheNewSession",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::keypadEnterIsForwardedAsTerminalEnter",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::invalidLocalTuningRetainsThePreviousRequest",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::ctrlCCopiesSelectionAndSuppressesThePhysicalKeyRelease",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::propertiesPanelKeepsItsStableOwnerIdentity",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPanelInteractionTests::disconnectedStartButtonDoesNotAcceptNonPrimaryClicks",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMJavaLocalTerminalServiceTests::supportsDeterministicSafeCommandsWithoutAHostShell",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMJavaLocalTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMJavaLocalTerminalServiceTests::supportsBoundedEditsAndTypedErrors",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMJavaLocalTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMJavaLocalTerminalServiceTests::capturesPowerShellRangeAndCyanWriteHostSemantics",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMJavaLocalTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMJavaLocalTerminalServiceTests::scrollbackIsBoundedAndKeepsTheViewedRowsStableWhileOutputArrives",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMJavaLocalTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMJavaLocalTerminalServiceTests::scrollbackSupportsNavigationResizeAndStaleSnapshotDetection",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMJavaLocalTerminalServiceTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::declarationRoundTripsWithoutAnyProcessOrSessionFields",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::malformedEntryIsDroppedWithoutInvokingTheEffect",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::explicitEnableSkipsRetainedHistoryButEqualFuturePacketsRemainDistinctEvents",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::rejectedOrBusyEffectIsConsumedOnceWithoutRetry",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::absentInboxCannotInventAnEmptySuccessfulSubscription",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::exactAddressFaceActionSchemaAndFiniteUvAreRequired",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalInputQueueTests::evictionOrSessionChangeSuspendsInputWithoutReplayingRetainedPackets",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::resizeAToBToAReplacesIncompatibleTextureAndClosesExactlyOnceAtShutdown",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::rendererIdentityDoesNotInvalidateCompatibleTextureStorage",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::telemetryExposesAllocationReuseReplacementAndCloseCounts",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::splitPanelRenderersUseIndependentTextureRegistrations",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::repeatedSameSizeFramesReuseTextureAndEncodedCapacity",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPngResourceStateTests::grownEncodedBufferIsReusedWhenPayloadReturnsToItsOriginalSize",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPngResourceStateTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::generatedInputIsBoundedFiniteAndCanonicalAtSignedZero",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::newestCounterWinsWithinVisibleSnapshot",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::physicalRowWrapsAreJoinedAndIncompleteTrailingReplyWaitsForLaterSnapshot",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::contentRecordAndCountBoundsRejectWithoutUnboundedAccumulation",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::endAndErrorAreExplicitObservations",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::structuredTranscriptUsesRepliesRatherThanPromptsOrEchoedInput",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "TouchDisplayTerminalWorkerProtocolTests::strictScalarSchemaRejectsMalformedOrSpoofedWorkerReplies",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::oneRowSelectionIncludesBothEndpoints",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::invalidNativeGridIsRejected",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::collapsedSelectionProducesNoHighlights",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::guiAndPanelScaleAreRetainedByMeasuredImageBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::endpointsAreClampedBeforeOrdering",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::reverseOneRowSelectionMatchesForwardSelection",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::nativeImagePaddingIsNotHighlightedAsCellContent",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::endpointRoundingUsesTheExactTransformRatherThanRoundedOuterBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::logicalHighlightsRemainPanelLocalForTheActivePoseTransform",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::rectanglesAreClippedPerRowAndEmptyRowsAreOmitted",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::logicalHighlightsClipWithoutIncludingNativePadding",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::fractionalCellEdgesRoundOutward",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::multiRowSelectionProducesFirstMiddleAndLastRowRuns",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::reverseMultiRowSelectionMatchesForwardSelection",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalSelectionLayoutTests::mismatchedMeasurementIsRejected",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalSelectionLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::activeSubscriptionRejectsSessionAndEpochChanges",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::currentDisconnectClearsPendingStateButStaleDisconnectDoesNot",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::malformedOrOutOfBoundsFramesNeverReachTheHandoff",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::separateSessionsHaveIndependentEpochsSequencesAndHandoffs",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::reconnectRejectsLateOldReceiverAndRequiresAnotherFullFrame",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::handoffKeepsOnlyTheNewestUnconsumedFrame",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::firstEventMustBeAFullResynchronization",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::negotiatedBoundAndCorrelationMetadataAreValidated",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalFrameInboxTests::terminalSequenceNeverRegressesAndFrameSequenceStrictlyAdvances",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalFrameInboxTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalImageLayoutTests::physicalRasterIsReducedToItsInverseGuiQuadAndCentered",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalImageLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalImageLayoutTests::physicalFitInvertsGuiScaleAndLeavesSubCellRemainderAsLetterbox",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalImageLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalImageLayoutTests::smallerRasterIsNeverEnlarged",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalImageLayoutTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalTelemetryTests::idleSubscriptionEvidenceStartsWithZeroPollsAndZeroSnapshots",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalTelemetryTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMVoxTerminalTelemetryTests::subscriptionAndExplicitSnapshotCountersRemainDistinct",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalTelemetryTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTransportIdTests::wireIdsAreStableAndRoundTripExactly",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTransportIdTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTransportIdTests::unknownAndNonCanonicalIdsAreRejected",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTransportIdTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPropertiesPanelTests::everyVisibleTuningControlHasStableFocusNarrationAndAnExistingActionDraft",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanelTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalPropertiesPanelTests::actionDraftVocabularyMatchesRegisteredHierarchicalActions",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanelTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTuningSettingsTests::manualDimensionsRemainExactWhenAutomaticAllocationIsLarger",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTuningSettingsTests.java",
+      "result": "SUCCESSFUL"
+    },
+    {
+      "test": "SFMTerminalTuningSettingsTests::automaticDimensionsClampToProtocolBounds",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalTuningSettingsTests.java",
+      "result": "SUCCESSFUL"
+    }
+  ],
+  "optional_gates": [
+    {
+      "test": "SFMItemstackPreviewCoverageTests::repositoryCoverage",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/theme/preview/SFMItemstackPreviewCoverageTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: Run scripts/analyze-itemstack-icon-coverage.ps1 for a real repository audit"
+    },
+    {
+      "test": "SFMSymbolServerInstalledIntegrationTests::installedWorkerResolvesDefinitionsAndDecodesTheLargeInteractionMap",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/symbol/SFMSymbolServerInstalledIntegrationTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: Set -Dsfm.symbol.workerExecutable=<path> and -Dsfm.symbol.workerBranch=<branch> to run this integration test"
+    },
+    {
+      "test": "SFMReleaseReviewScaleTests::completeSearchOnCapturedReleaseReview",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewScaleTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: Set SFM_TEST_REVIEW_SCALE_FIXTURE to a disposable captured review"
+    },
+    {
+      "test": "SFMSyntaxServerInstalledWorkerIntegrationTests::javaFramesRoundTripThroughTheInstalledRustWorker",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/syntax/process/SFMSyntaxServerInstalledWorkerIntegrationTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: Installed syntax worker is unavailable: IOException"
+    },
+    {
+      "test": "SFMReleaseReviewLedgerStoreTests::installedCompanionRetainsDisplayedBytesAfterDiskChanges",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewLedgerStoreTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: assumption is not true"
+    },
+    {
+      "test": "SFMReviewChangesCacheTests::optionalReleaseScaleProjectionMeasurements",
+      "source": "platform/minecraft/projections/sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfm/client/review/release_review/SFMReviewChangesCacheTests.java",
+      "result": "ABORTED",
+      "type": "org.opentest4j.TestAbortedException",
+      "message": "Assumption failed: Set SFM_TEST_REVIEW_PROJECTION_FIXTURE for read-only release-scale measurements"
+    }
+  ]
+}
