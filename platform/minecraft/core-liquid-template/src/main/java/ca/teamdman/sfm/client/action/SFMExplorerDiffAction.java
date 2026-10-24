@@ -83,6 +83,7 @@ public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientAct
     private static SFMActionChoice choice(SFMPath old, SFMPath newer) {
         return SFMActionChoice.invoke(ID, "compare " + StringArgumentType.escapeIfRequired(old.toNativePath().toString()) + " "
                 + StringArgumentType.escapeIfRequired(newer.toNativePath().toString()),
-                "Show diff · old: " + old.toNativePath().getFileName() + " → new: " + newer.toNativePath().getFileName());
+                "Show diff · old: " + SFMInspectionRuntime.inputLabel(old.toNativePath(), newer.toNativePath())
+                        + " → new: " + SFMInspectionRuntime.inputLabel(newer.toNativePath(), old.toNativePath()));
     }
 }

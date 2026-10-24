@@ -52,7 +52,7 @@ public final class SFMInspectionRuntime {
         var comparisons = new com.google.gson.JsonArray(); request.add("comparisons", comparisons);
         var wrapper = new com.google.gson.JsonObject(); comparisons.add(wrapper);
         var input = new com.google.gson.JsonObject();
-        input.addProperty("label", old.getFileName() + " → " + newer.getFileName());
+        input.addProperty("label", inputLabel(old, newer) + " → " + inputLabel(newer, old));
         if (Files.isDirectory(old) && Files.isDirectory(newer)) {
             wrapper.add("Source", input);
             var source = new com.google.gson.JsonObject(); input.add("request", source);
@@ -127,6 +127,15 @@ public final class SFMInspectionRuntime {
     private static com.google.gson.JsonObject directory(Path path) {
         var wrapper = new com.google.gson.JsonObject(); var body = new com.google.gson.JsonObject();
         body.addProperty("root", path.toString()); wrapper.add("Directory", body); return wrapper;
+    }
+    /** Keep both directions distinguishable when projection roots share a basename. */
+    public static String inputLabel(Path value, Path other) {
+        value = value.toAbsolutePath().normalize(); other = other.toAbsolutePath().normalize();
+        if (value.getFileName() == null || other.getFileName() == null) return value.toString();
+        if (!value.getFileName().equals(other.getFileName())) return value.getFileName().toString();
+        Path common = value.getParent();
+        while (common != null && !other.getParent().startsWith(common)) common = common.getParent();
+        return common == null ? value.toString() : common.relativize(value).toString();
     }
     public static void open(PreparedWorkspace prepared, SFMClientActionContext context, boolean append) {
         var trees = prepared.trees();
