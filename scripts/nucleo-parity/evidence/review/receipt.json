@@ -1,0 +1,22 @@
+{
+  "upstream": "8c16d47cdfa9607d3e44df5f81c635c6f43c65ee",
+  "rust": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+  "sfm_commit": "36c9388a3423ad4300e35409becd7bd3bd982c96",
+  "sfm_dirty": false,
+  "inputs_sha256": {
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/search/nucleo/NucleoMatcher.java": "0d99118a4f227011cacf1fd848127f70e48aff99fc3b6077d470011aee82d3f4",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/search/nucleo/NucleoSearch.java": "47540bc771b0f9891603e4773b7da57ca5481656cc0218f1e1e6e38d41427cf7",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/search/nucleo/NucleoUnicode.java": "f4b5429b66c1464d7c270a7db2bb289c9c09f459607f53d471c8d60eca62854f",
+    "scripts/nucleo-parity/Benchmark.java": "5fcebd15913ed002f16d0312625d4db00451cb985533c9fef6f4a5102937e71b",
+    "scripts/nucleo-parity/Cargo.lock": "37f2c81b332112483b648be683b028fa40137d91a940312c807f83e2326e0aea",
+    "scripts/nucleo-parity/CoreChecks.java": "3afcf7061f3db6c13aa6da1af7d60e79b39c6f95e42cd24e7268fe397d637806",
+    "scripts/nucleo-parity/JavaOracle.java": "7d6fdb6f7389b354e8799caea6eceadf1094c3393708ad9fb68f4c6cc3f90a0d",
+    "scripts/nucleo-parity/compare.py": "89dd23b31f665edd49b076d08a3c1cecf3528381ec01dcaa82ff8e74e2de447f",
+    "scripts/nucleo-parity/generate_tables.py": "e41b12e93d596c88d6684be057515267853a307d5f9d26de0d732524e51b90fd",
+    "scripts/nucleo-parity/oracle.rs": "6fd13ffea0973e83ed48568a3a2a60fb935541c2ccb34cd26c081a83a941585f",
+    "scripts/nucleo-parity/run.py": "d110e889ff2a6cb95d5aa096eaee878dd6b1ca0bfbaa6a29bbc7dc09ceef26c5"
+  },
+  "java": "javac 17.0.20.1",
+  "inputs_unchanged_during_run": true,
+  "benchmarks": false
+}

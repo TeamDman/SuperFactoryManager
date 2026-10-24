@@ -1,0 +1,13 @@
+{
+  "PYTHONOPTIMIZE": "1",
+  "python_flag": "-O",
+  "wrong_revision": {
+    "returncode": 1,
+    "stderr": "Upstream revision must be 8c16d47cdfa9607d3e44df5f81c635c6f43c65ee"
+  },
+  "wrong_unicode_version": {
+    "returncode": 1,
+    "stderr": "Unicode snapshot requires Rust Unicode 17.0.0"
+  },
+  "outcome": "PASS: both rejected before producing a parity receipt/table"
+}

@@ -1,0 +1,28 @@
+{
+  "seed": 1397116238,
+  "compared": 69563,
+  "groups": {
+    "upstream-inputs": 1896,
+    "targeted": 624,
+    "exhaustive": 2548,
+    "random": 20000,
+    "unicode-scalars": 2498,
+    "unicode-table-pairs": 38880,
+    "boundaries": 1272,
+    "adversarial-slab": 192,
+    "adversarial-cell-limit": 192,
+    "prefix-arithmetic": 504,
+    "query-maximum": 96,
+    "utf16-boundaries": 25,
+    "ties-and-representations": 336,
+    "random-long": 500
+  },
+  "unicode_table_entries": {
+    "F": 1454,
+    "N": 706
+  },
+  "mismatches": 0,
+  "first_errors": [],
+  "ranking_lists": 768,
+  "ranking_mismatches": 0
+}

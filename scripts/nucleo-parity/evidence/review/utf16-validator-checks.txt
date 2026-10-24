@@ -1,0 +1,1 @@
+UTF-16 validator: PASS (split-surrogate, wrong-start, out-of-bounds and extra-character ranges rejected)

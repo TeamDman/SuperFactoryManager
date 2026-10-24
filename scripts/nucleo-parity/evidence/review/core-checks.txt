@@ -1,0 +1,1 @@
+CoreChecks: PASS (mapping, limits, identity, tiers, top-K, cancellation, stale-generation model)
