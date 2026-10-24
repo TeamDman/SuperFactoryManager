@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorSelection;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -12,6 +13,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
+{% case minecraft_version %}
+{% when "1.19.4" %}
+import net.minecraft.client.gui.components.Tooltip;
+{% endcase %}
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -82,6 +87,7 @@ public final class SFMTextEditorSelectionScreen extends Screen {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     protected void init() {
         selection.refresh();
         rows.clear();
@@ -100,15 +106,22 @@ public final class SFMTextEditorSelectionScreen extends Screen {
         selection.setPageSize(count);
         for (int index = 0; index < count; index++) {
             final int row = index;
-            rows.add(addRenderableWidget(new SFMButtonBuilder()
-                    .setPosition(left, 86 + index * 22).setSize(contentWidth, 20)
-                    .setText(Component.empty())
-                    .setTooltipSupplier(this, font, () -> Component.literal(rowLabel(rowId(row))))
-                    .setOnPress(button -> {
+            rows.add(addRenderableWidget(new SFMExtendedButtonWithTooltip(
+                    left, 86 + index * 22, contentWidth, 20, Component.empty(),
+                    button -> {
                         if (selection.select(rowId(row))) diagnostic = null;
                         else diagnostic = STALE.getComponent();
                         updateRows();
-                    }).build()));
+                    },
+{% case minecraft_version %}
+{% when "1.19.2" %}
+                    (button, pose, mouseX, mouseY) -> renderTooltip(pose,
+                            font.split(Component.literal(rowLabel(rowId(row))), Math.max(170, width / 2)),
+                            mouseX, mouseY)
+{% when "1.19.4" %}
+                    Tooltip.create(Component.literal(rowLabel(rowId(row))))
+{% endcase %}
+            )));
         }
         previous = addRenderableWidget(new SFMButtonBuilder()
                 .setPosition(left, height - 52).setSize(45, 20).setText(Component.literal("<"))
@@ -142,11 +155,16 @@ public final class SFMTextEditorSelectionScreen extends Screen {
         return name.equals(id) ? id : name + " [" + id + "]";
     }
 
+    @MCVersionDependentBehaviour
     private void updateRows() {
         for (int index = 0; index < rows.size(); index++) {
             Button button = rows.get(index);
             String id = rowId(index);
             button.visible = !id.isEmpty();
+{% case minecraft_version %}
+{% when "1.19.4" %}
+            button.setTooltip(Tooltip.create(Component.literal(rowLabel(id))));
+{% endcase %}
             String label = (id.equals(selection.selectedId()) ? "> " : "") + rowLabel(id);
             button.setMessage(Component.literal(font.plainSubstrByWidth(label, button.getWidth() - 12)));
         }
