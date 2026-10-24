@@ -4,6 +4,10 @@ The new `issue_610_visual_controls` GameTest is available only in the two MC1.21
 visual projections. It leaves the existing `issue_610_visual_fixture`, its capture
 puppet, saved evidence and production transfer code unchanged.
 
+For the separate deterministic fixture across all ten supported targets, see
+[the cross-version fixture matrix and commands](issue-610-cross-version-fixtures.md).
+That fixture does not replace the real-provider evidence described here.
+
 ## Controls and sequence
 
 After setup, there is a 60-server-tick selection window (three seconds at20TPS).

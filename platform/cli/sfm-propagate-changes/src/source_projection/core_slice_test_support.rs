@@ -378,7 +378,7 @@ fn fixture_selection_never_hides_changed_metadata_or_invalid_inputs() -> Result<
 #[test]
 fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls() -> Result<()> {
     let fixture = CoreTestFixture::load()?;
-    assert_eq!(fixture.catalog.catalog.0.len(), 34);
+    assert_eq!(fixture.catalog.catalog.0.len(), 54);
     let counts =
         fixture
             .catalog
@@ -399,6 +399,8 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
             ("sfm-4.35.0-issue610", 1),
             ("sfm-4.34.0-issue610-visual", 1),
             ("sfm-4.35.0-issue610-visual", 1),
+            ("sfm-4.34.0-issue610-portable", 10),
+            ("sfm-4.35.0-issue610-portable", 10),
         ])
     );
     assert_eq!(counts["sfm-dev"] + counts["sfm-4.34.0"], 20);
@@ -462,9 +464,27 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
             .map(String::as_str)
             .collect::<BTreeSet<_>>();
         expected.extend([
-            "game_puppet_runtime",
-            "issue_610_visual_evidence",
+            "canvas_indexed_document",
+            "canvas_text_editor",
+            "client_actions",
             "client_properties",
+            "client_theme",
+            "command_palette",
+            "editor_document_panels",
+            "editor_documents",
+            "explorer_navigation",
+            "explorer_search",
+            "file_explorer",
+            "game_puppet_runtime",
+            "inspection_workspace",
+            "issue_610_visual_evidence",
+            "keyboard_profiles",
+            "single_line_input",
+            "syntax_languages",
+            "workspace_directional_opening",
+            "workspace_panel_metadata",
+            "workspace_panels",
+            "workspace_stack_controls",
         ]);
         assert_eq!(
             visual
