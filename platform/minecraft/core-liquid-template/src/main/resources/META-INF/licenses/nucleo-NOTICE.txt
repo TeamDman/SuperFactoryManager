@@ -1,0 +1,21 @@
+SFM Java Nucleo matcher
+
+Derived from nucleo-matcher 0.3.1 by Pascal Kuthe and contributors:
+https://github.com/helix-editor/nucleo/tree/8c16d47cdfa9607d3e44df5f81c635c6f43c65ee
+
+The Java files in ca.teamdman.sfm.client.search.nucleo are licensed under
+Mozilla Public License 2.0. The full license accompanies this notice in
+nucleo-MPL-2.0.txt. Source and modifications are available with SFM's source:
+https://github.com/TeamDman/SuperFactoryManager
+at platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/search/nucleo/.
+
+This is a Java port with a bounded, literal codepoint fuzzy-matching contract,
+not the upstream Nucleo frontend or concurrency engine. The algorithm, scoring,
+normalization and case-folding tables derive from the pinned source above.
+Unicode case folding is Nucleo's Unicode 15.0.0 table. Character classifications
+were generated from Rust 1.99.1's Unicode 17.0.0 predicates and are frozen so
+JDK updates do not change scores. See scripts/nucleo-parity/README.md in source
+for settings, known upstream quirks, provenance and reproducible oracle checks.
+
+The Unicode data notice is included in nucleo-UNICODE-LICENSE.txt, obtained
+from https://www.unicode.org/license.txt (Unicode License V3, 24 October 2026).
