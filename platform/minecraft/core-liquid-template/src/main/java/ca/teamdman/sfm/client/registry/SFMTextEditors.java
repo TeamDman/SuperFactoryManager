@@ -2,6 +2,9 @@ package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
+{% if features.vim_modal_editor %}
+import ca.teamdman.sfm.client.text_editor.SFMVimModalRegistration;
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV1Registration;
@@ -70,6 +73,11 @@ public class SFMTextEditors {
             SFMDrawCanvasTextEditorRegistration::new
 {% endcase %}
     );
+
+{% endif %}
+{% if features.vim_modal_editor %}
+    public static final SFMRegistryObject<ISFMTextEditorRegistration, SFMVimModalRegistration> VIM_MODAL_EXPERIMENTAL =
+            REGISTERER.register("vim_modal_experimental", SFMVimModalRegistration::new);
 
 {% endif %}
     public static void register(IEventBus bus) {

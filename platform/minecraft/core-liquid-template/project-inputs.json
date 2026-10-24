@@ -43,6 +43,10 @@
     }
   },
   "source_rules": {
+    "src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalState.java": [{"input":"src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalState.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["vim_modal_editor"]}}],
+    "src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalRegistration.java": [{"input":"src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalRegistration.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["vim_modal_editor"]}}],
+    "src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMVimModalScreen.java": [{"input":"src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMVimModalScreen.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["vim_modal_editor"]}}],
+    "src/test/java/ca/teamdman/sfm/client/text_editor/SFMVimModalStateTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/text_editor/SFMVimModalStateTests.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["vim_modal_editor"]}}],
     "src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java": [{"input":"src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
     "src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java": [{"input":"src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],
     "src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["dynamic_editor_picker"]}}],

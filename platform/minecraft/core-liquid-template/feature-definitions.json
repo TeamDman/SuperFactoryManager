@@ -1,4 +1,5 @@
 {
+  "vim_modal_editor": {"supported_targets": ["1.19.2", "1.19.4"], "requires": ["dynamic_editor_picker", "editor_documents", "editor_v1_event_modifiers"]},
   "dynamic_editor_picker": {"supported_targets": ["1.19.2", "1.19.4"], "requires": []},
   "issue_610_visual_evidence": {"supported_targets":["1.21.1"],"requires":["issue_610_progress_tests","game_puppet_runtime"]},
   "quantity_sensitive_extraction_progress": {"supported_targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"requires":[]},

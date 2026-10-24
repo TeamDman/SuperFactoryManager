@@ -1,4 +1,7 @@
 {
+{% if features.vim_modal_editor %}
+  "gui.sfm.vim_modal.status": "Vim-style (experimental): %s | i: Insert, Esc: Normal, u: Undo, Ctrl+R: Redo",
+{% endif %}
 {% if features.dynamic_editor_picker %}
   "gui.sfm.editor_selection.title": "Choose editor",
   "gui.sfm.editor_selection.next_open": "Applies to the next editor opened. Your current text stays here.",
