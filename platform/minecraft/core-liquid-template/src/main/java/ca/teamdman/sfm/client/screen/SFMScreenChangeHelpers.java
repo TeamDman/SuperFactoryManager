@@ -8,7 +8,13 @@ import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenExampleProgramOpenContext;
+{% if features.dynamic_editor_picker %}
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorOpenAttempt;
+{% endif %}
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
+{% if features.dynamic_editor_picker %}
+import ca.teamdman.sfm.common.config.SFMConfig;
+{% endif %}
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -24,15 +30,33 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 {% endcase %}
 import net.minecraft.nbt.CompoundTag;
+{% if features.dynamic_editor_picker %}
+import net.minecraft.network.chat.CommonComponents;
+{% endif %}
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+{% if features.dynamic_editor_picker %}
+import java.util.Objects;
+{% endif %}
 import java.util.function.Consumer;
 
 public class SFMScreenChangeHelpers {
+{% if features.dynamic_editor_picker %}
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry EDITOR_OPEN_FAILED = new LocalizationEntry(
+            "gui.sfm.editor_selection.open_failed", "Could not open editor");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry EDITOR_OPEN_FAILED_MESSAGE = new LocalizationEntry(
+            "gui.sfm.editor_selection.open_failed_message",
+            "Editor {} could not be created: {}. Choose another editor and try again.");
+
+    private record PreparedEditor(ISFMTextEditScreen.OpenBehaviour behaviour, Screen screen) { }
+
+{% endif %}
     @SFMLocalizationDatagen
     public static final LocalizationEntry ITEM_INSPECTOR_COPIED_TO_CLIPBOARD = new LocalizationEntry(
             "gui.sfm.item_inspector.copied_to_clipboard",
@@ -85,7 +109,31 @@ public class SFMScreenChangeHelpers {
             ISFMTextEditScreenOpenContext context
     ) {
 
+{% if features.dynamic_editor_picker %}
+        SFMTextEditorOpenAttempt.open(() -> {
+            ISFMTextEditScreen editor = Objects.requireNonNull(createProgramEditScreen(context),
+                    "Editor factory returned no screen");
+            return new PreparedEditor(Objects.requireNonNull(editor.openBehaviour()),
+                    Objects.requireNonNull(editor.asScreen()));
+        }, prepared -> {
+            switch (prepared.behaviour()) {
+                case Push -> setOrPushScreen(prepared.screen());
+                case Replace -> setScreen(prepared.screen());
+            }
+        }, failure -> {
+            String preferredId = SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get();
+            SFM.LOGGER.error("Could not create preferred editor {}", preferredId, failure);
+            setOrPushScreen(new SFMConfirmationScreen(
+                    () -> setOrPushScreen(new SFMTextEditorSelectionScreen(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG)),
+                    EDITOR_OPEN_FAILED.getComponent(),
+                    EDITOR_OPEN_FAILED_MESSAGE.getComponent(Component.literal(preferredId),
+                            Component.literal(String.valueOf(failure.getMessage()))),
+                    SFMTextEditorSelectionScreen.CHOOSE_EDITOR.getComponent(),
+                    CommonComponents.GUI_CANCEL.copy(), 0));
+        });
+{% else %}
         showTextEditScreen(createProgramEditScreen(context));
+{% endif %}
     }
 
     public static void showTextEditScreen(
