@@ -34,7 +34,8 @@ is outside this checkpoint.
 ## Shared surfaces
 
 Authored changes are in core Liquid templates, feature/source catalogs, manager
-controls, editor settings, preferred-editor resolution and English localization.
+controls, editor settings, preferred-editor resolution, the ordinary program-open
+helper and English localization.
 There are no Explorer implementation or completion-ranking changes. The picker
 uses ordinary buttons and EditBox; it does not alter V3, PickList, or V1 editing
 widgets. Existing editor IDs and registration interfaces are unchanged.
@@ -229,3 +230,67 @@ completed normally. An accidental pre-edit filtered Cargo build was stopped
 by its exact owned PIDs before the real run; no active task helper or game
 remains. Source and detailed evidence are preserved in both worktrees and
 `/workspace/editor-picker-evidence/`.
+
+
+## Independent source/model review while native qualification is blocked
+
+Status: **not client validated; blocked pending the existing Vox prerequisite**.
+No further native build was started and no hash/toolchain change was made.
+
+The review covered preservation of unsaved text, factory failure boundaries,
+stale IDs, late-registration ordering, search/page resizing and modal input and
+history invariants. The picker does not construct an editor during selection
+or Apply. It never receives or replaces the active document. Registration keys
+are captured as stable IDs before refresh, so a late insertion before a visible
+row cannot redirect the selection to its new neighbour. Missing IDs are not
+substituted during Apply; restoring the same ID recovers the staged choice.
+Additional regression tests exercise these ordering and page/search transitions.
+
+The shared `SFMScreenChangeHelpers.showProgramEditScreen` path used by the
+manager and disk now guards construction before screen presentation. A throwing
+or null third-party factory displays an error with Choose editor/Cancel; it
+does not silently choose V1, rewrite the preference, retry the factory or save
+the program. Context is forwarded unchanged. The guard also validates the
+returned screen and open behaviour before presenting it. This is a bounded
+failure recovery, not an isolation layer for arbitrary add-on side effects.
+Factories must obey their existing create-but-do-not-display contract. Failures
+after presentation begins and direct factory callers (including Explorer) are
+outside this guard. No Explorer implementation or completion ranking was edited.
+The shared helper touchpoint was reported before the edit.
+
+Review source commits:
+
+- Picker guard and extra selection tests:
+  `082144d83052dd5d2f78c575d96950f79e8d1ca9` on the combined branch;
+  `01ec21a269d5d0a64314163801f0f49fcd96b7c2` on picker-only.
+- Optional modal input/history fix:
+  `befccafa2c9fd7bf446422d026d42ddff80bc03a`.
+
+The modal review reproduced a stale pending `d`: after an external caret move,
+a second `d` could delete a different line. The same Java harness fails against
+the prior controller and passes after the fix. External caret/text changes and
+unsupported non-text inputs now cancel that pending command; unchanged widget
+capture still preserves intentional `dd` and the desired vertical column.
+History shortcuts require plain Ctrl, excluding AltGr/Shift/Super combinations.
+Read-only Shift+Enter now follows the same close-only override as Done.
+
+All **32 isolated Java tests pass**: 8 selection, 5 opening-guard and 19 modal.
+The opening tests run the production prepare/present guard and fake callbacks,
+not a real third-party registration or Minecraft screen. The input-policy tests
+run the production modifier policy, not GLFW event delivery. Source generation
+passed on development 1.19.2/1.19.4 (2,965/2,928 files), and release
+4.35.0/1.19.2 remains unchanged (1,150 files). Full client compilation,
+Forge integration, UI rendering, on-disk preference persistence and in-client
+document round trips remain unrun. See [review tests](../task-evidence/editor-selection/review-tests.txt)
+and [before/after reproduction](../task-evidence/editor-selection/pending-delete-repro.json).
+
+The existing lock records JetBrains `jbrsdk` 17.0.14, build `b1367.22`,
+Windows x64; its exact URL/SHA-512 are preserved in verification.json. The
+source-build recipe has an empty environment, so that SDK pin does not establish
+the original producer JDK. The only exact required input identity derivable
+here remains `org.facet:vox-java:0.10.0-rc.5` at Facet revision
+`f2afdece6c79e64085d2f8c047e22fe16b2c8c54`, matching
+`blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f`.
+No usable producer toolchain identity or supported Linux override can be inferred
+from the existing metadata. Further dependent validation is stopped pending
+that prerequisite. There is no denied, pending or uncertain operation.

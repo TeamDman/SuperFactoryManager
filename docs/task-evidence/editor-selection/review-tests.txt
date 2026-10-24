@@ -1,0 +1,56 @@
+
+Thanks for using JUnit! Support its development at https://junit.org/sponsoring
+
+[36m╷[0m
+[36m├─[0m [36mJUnit Jupiter[0m [32m✔[0m
+[36m│  ├─[0m [36mSFMTextEditorSelectionTests[0m [32m✔[0m
+[36m│  │  ├─[0m [34msearchResizeAndLateRegistrationClampPagesWithoutErasingStagedChoice()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mcancellationAndRefreshDoNotWriteOrRepairThePreference()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mthirdPartyRoundTripsStageAndPersistStableIds()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mlateInsertionBeforeDisplayedRowCannotChangeItsSelectedIdentity()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mlongListsAreSortedDeduplicatedSearchedAndPagedWithoutLosingSelection()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mtranslatedNamesAreSearchableButDuplicateLabelsNeverBecomeIdentities()[0m [32m✔[0m
+[36m│  │  ├─[0m [34munavailableChoiceCannotBeCommittedAndLateRegistrationRecoversIt()[0m [32m✔[0m
+[36m│  │  └─[0m [34mfailedPersistenceKeepsTheSessionAvailableForRetry()[0m [32m✔[0m
+[36m│  ├─[0m [36mSFMVimModalStateTests[0m [32m✔[0m
+[36m│  │  ├─[0m [34mundoWhileInInsertCommitsTheSessionThenRevertsIt()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mnewEditAfterUndoInvalidatesRedo()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mnoOpInsertAfterUndoKeepsRedoButActualInsertionReplacesItsBranch()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mverticalMotionsRememberDesiredColumnAcrossShortLines()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mescapeAtLineStartDoesNotCrossToPreviousLine()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mnativeWidgetChangesAreUndoableAndCursorClampsAtUnicodeBoundaries()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mhistoryShortcutRequiresPlainControlAndNeverAcceptsAltGr()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mreadOnlyCommandsCannotChangeTextOrEnterInsert()[0m [32m✔[0m
+[36m│  │  ├─[0m [34minsertionEntryPointsUseGapPositions()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mlineDeletionHandlesFirstMiddleLastAndOnlyLines()[0m [32m✔[0m
+[36m│  │  ├─[0m [34munsupportedNonTextInputCancelsPendingDeleteWithoutChangingModeTextOrHistory()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mwordMotionsDistinguishWordsPunctuationAndWhitespace()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mexternalCursorMoveOrReplacementCancelsPendingDelete()[0m [32m✔[0m
+[36m│  │  ├─[0m [34minsertEscapeAndUndoPreserveExactWhitespaceAndUnicode()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mhorizontalMotionsAndDeleteRespectCodePointsAndLineBounds()[0m [32m✔[0m
+[36m│  │  ├─[0m [34munchangedWidgetCaptureDoesNotCancelPendingDeleteOrDesiredColumn()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mnormalCommandsDoNotInsertTheirCharacters()[0m [32m✔[0m
+[36m│  │  ├─[0m [34mpendingDeleteIsCancelledByEscapeAndUnsupportedMotions()[0m [32m✔[0m
+[36m│  │  └─[0m [34memptyInsertIsNotAnUndoStepAndHistoryIsBounded()[0m [32m✔[0m
+[36m│  └─[0m [36mSFMTextEditorOpenAttemptTests[0m [32m✔[0m
+[36m│     ├─[0m [34mpresentationFailureIsNotMisreportedAsSafeFactoryRecovery()[0m [32m✔[0m
+[36m│     ├─[0m [34mfatalVmErrorsAreNotSwallowed()[0m [32m✔[0m
+[36m│     ├─[0m [34mnullFactoryResultIsReportedWithoutPresentation()[0m [32m✔[0m
+[36m│     ├─[0m [34mfailingFactoryDoesNotReplaceTheCallerRetryOrChangeItsDocument()[0m [32m✔[0m
+[36m│     └─[0m [34msuccessfulFactoryPresentsExactlyItsPreparedScreenOnce()[0m [32m✔[0m
+[36m└─[0m [36mJUnit Vintage[0m [32m✔[0m
+
+Test run finished after 265 ms
+[         5 containers found      ]
+[         0 containers skipped    ]
+[         5 containers started    ]
+[         0 containers aborted    ]
+[         5 containers successful ]
+[         0 containers failed     ]
+[        32 tests found           ]
+[         0 tests skipped         ]
+[        32 tests started         ]
+[         0 tests aborted         ]
+[        32 tests successful      ]
+[         0 tests failed          ]
+

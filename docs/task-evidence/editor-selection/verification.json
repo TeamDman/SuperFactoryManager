@@ -1,7 +1,7 @@
 {
   "base_commit": "e2ba833b2b235835d69475b641e24b22bfd9551a",
-  "combined_source_commit": "3cde0795fe0012ec092acd4c6cbe3cb549ac18c1",
-  "picker_only_commit": "46d14c9afba3fdbd03baf4517fa26b7bd4b85f0d",
+  "combined_source_commit": "befccafa2c9fd7bf446422d026d42ddff80bc03a",
+  "picker_only_commit": "01ec21a269d5d0a64314163801f0f49fcd96b7c2",
   "primary_checkpoint": "ce78469bd7f572c6b5f7ccd4853539b2d60b4611",
   "modal_checkpoint": "48832f7455fb685c36036a4f211e4d278a2e2adf",
   "pr581": {
@@ -19,14 +19,15 @@
     "code_copied": false
   },
   "isolated_tests": {
-    "picker": 6,
-    "modal": 14,
-    "passed": 20,
+    "picker": 8,
+    "modal": 19,
+    "passed": 32,
     "failed": 0,
     "compiler": "/workspace/.sfm-env/jdk17/bin/javac --release 17",
     "junit_console": "1.8.1",
     "locked_junit_hash": "blake3:1b806456ca8a7a09bd65ef672af0b4344611fa3d",
-    "scope": "Production Java controller classes and their JUnit tests, not Minecraft GUI or Forge registries"
+    "scope": "Production Java selection model, factory prepare/present guard, and modal controller/input policy; not Minecraft GUI, screen construction or Forge registries",
+    "opening_guard": 5
   },
   "native_test": {
     "status": "failed_before_java_compilation",
@@ -174,25 +175,88 @@
         "updated": 0,
         "unchanged": 2926
       }
+    },
+    "review-1192-sync": {
+      "projection_key": "sfm-dev/mc-1.19.2",
+      "operation": "sync",
+      "context_identity": "blake3:eaac8ad9420b9a89851bd391f109628b31c0aa5e3514f8f1ee302aa5aa5e5e0d",
+      "writes_performed": true,
+      "compilation": "not_performed",
+      "files": {
+        "created": 2,
+        "updated": 7,
+        "unchanged": 2956
+      }
+    },
+    "review-1194-sync": {
+      "projection_key": "sfm-dev/mc-1.19.4",
+      "operation": "sync",
+      "context_identity": "blake3:f883d919441bee3ca87c22f3bbc63a03778aab6c9bdbde97e271e62a11558fc5",
+      "writes_performed": true,
+      "compilation": "not_performed",
+      "files": {
+        "created": 2,
+        "updated": 7,
+        "unchanged": 2919
+      }
+    },
+    "review-release-435-check": {
+      "projection_key": "sfm-4.35.0/mc-1.19.2",
+      "operation": "check",
+      "context_identity": "blake3:a0bb8f036e68e7838d838d2738830c4d698600365e6508ded1b42038125bb247",
+      "writes_performed": false,
+      "compilation": "not_performed",
+      "files": {
+        "created": 0,
+        "updated": 0,
+        "unchanged": 1150
+      }
+    },
+    "review-1192-check": {
+      "projection_key": "sfm-dev/mc-1.19.2",
+      "operation": "check",
+      "context_identity": "blake3:eaac8ad9420b9a89851bd391f109628b31c0aa5e3514f8f1ee302aa5aa5e5e0d",
+      "writes_performed": false,
+      "compilation": "not_performed",
+      "files": {
+        "created": 0,
+        "updated": 0,
+        "unchanged": 2965
+      }
+    },
+    "review-1194-check": {
+      "projection_key": "sfm-dev/mc-1.19.4",
+      "operation": "check",
+      "context_identity": "blake3:f883d919441bee3ca87c22f3bbc63a03778aab6c9bdbde97e271e62a11558fc5",
+      "writes_performed": false,
+      "compilation": "not_performed",
+      "files": {
+        "created": 0,
+        "updated": 0,
+        "unchanged": 2928
+      }
     }
   },
   "source_sha256": {
     "platform/minecraft/core-liquid-template/feature-definitions.json": "sha256:e31766d3118e832865b9e6fd03367afb6798f7e5d677d86ac45082e9bd5937a7",
-    "platform/minecraft/core-liquid-template/project-inputs.json": "sha256:d3a7ca73b63dc829c3b656167cfbb48c7d4702b839b9ce6af03877b8874e5245",
-    "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/lang/en_us.json": "sha256:f9238bd1f39d5217f21b960c4b3264a9dc2a10edbd3391a1329a2319955f8bb3",
+    "platform/minecraft/core-liquid-template/project-inputs.json": "sha256:259f3c82c51992e36b1670d79ef3fd16b98db1ccc85930cbee2e579480ddfc44",
+    "platform/minecraft/core-liquid-template/src/generated/resources/assets/sfm/lang/en_us.json": "sha256:4e0d5c2ec1a492543923470bdf2233cc0202e9f520872c210a46387eb0a0c423",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/registry/SFMTextEditors.java": "sha256:959997077f31d557d901dc9f544fbe48c14324bd8b7b27f50fe0426e26d91655",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/ManagerScreen.java": "sha256:71fae9c32ce2ad337dc6d8c6f1364690e9815a8b27ddeeea42791cddfd851304",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorConfigScreen.java": "sha256:022ea6a6f32c7c1c236aa8ccf528aabacf35ba255f64af3fa247aad15b0dfe04",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMTextEditorSelectionScreen.java": "sha256:fdd6279cd4836ee59c41042f41ed7531d03e0e06e10b5d520497cfde61c5544d",
-    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMVimModalScreen.java": "sha256:83a5eac4c586fc5d5f1793b5f0532a6f4d55938f9f6a50b1d037bc268cd3746f",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/text_editor/SFMVimModalScreen.java": "sha256:f017e372bbcd40309a1a377b1ea808260e4e2ce835a0468a94a068dfde78642b",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelection.java": "sha256:403e4f80e6183326ea83accd0f28b0c0519842146500e960a584f1deccb18fe5",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalRegistration.java": "sha256:0086f58dbdfbbb237bda6c6f81782ef0633551e5cb2d47757846ebcbf9229163",
-    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalState.java": "sha256:b7fdd52c8b88bc9ffd2aae4ee554d410106d59e2fd7126caaf95915d609ea54c",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMVimModalState.java": "sha256:08f25737b18a590298d66df8997458e55307ab3f0cbd52d151392344a46fbeee",
     "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/common/config/SFMClientTextEditorConfig.java": "sha256:314360495112bee8b7f5fd64097ba0cb251756ffc92754bdbfb107b09b701930",
-    "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml": "sha256:5e591a116bb15c5989d212e23c80c291360a0f1f164b3d60bd34c41e7b6aaaa8",
-    "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java": "sha256:23a8af2343d6e79b19e205a6d96f631ba40f2d10ee725a2f9cb7430cd31648c3",
-    "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMVimModalStateTests.java": "sha256:e5cc3fed14992db8084ad301a90ab1bf155ed091bfb3521cfccdcd9262c183cb",
-    "platform/minecraft/projections.json": "sha256:f7fe1a39b194b4b501aa2db6d52f8a603344affbf356e3647c1fc99dfac550e8"
+    "platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml": "sha256:4c14683809a874f1c57a6ba0a0871b5aed8dbd4bb309a2551a4552429020e303",
+    "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorSelectionTests.java": "sha256:e9ec22f0cfbd26cb1ac39d9ff48592660118f295dab180e80f7e74cd365ce920",
+    "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMVimModalStateTests.java": "sha256:5525db59aa782e6b744fa960d29eda0611071cec0c1a0dbc8f68f8b0e16b0ffc",
+    "platform/minecraft/projections.json": "sha256:f7fe1a39b194b4b501aa2db6d52f8a603344affbf356e3647c1fc99dfac550e8",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenChangeHelpers.java": "sha256:d4df0c9e082b6d61a29d1173da903d1184f73fb116eb8d50a9a0c3e424f381a6",
+    "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttempt.java": "sha256:3b48c2009e68b72baf11d4db9666282178868d03f3e83f5ed01dcda820a2c066",
+    "platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/text_editor/SFMTextEditorOpenAttemptTests.java": "sha256:fd90eadf1e0b7d80521a25e301f658e4417830edbb21d4b4baeb412dfa4f18ae"
   },
   "initial_combined_source_commit": "ef4569c2a10e3de7ac7d4225a514a1597d647265",
   "portable_path_followup": {
@@ -233,7 +297,22 @@
       "manifest_created_by": "17.0.20.1 (Eclipse Adoptium)",
       "producer_recipe": "vox/xtask/src/main.rs: JAVA_HOME jar --create with fixed --date but no fixed Created-By; javac --release 17; source_build.environment is empty",
       "pinned_sdk": "schema-4.json lists JetBrains JBRSDK 17.0.14 b1367.22 windows-x64 only, not a Linux producer SDK",
-      "inference": "Host-specific manifest proves a reproducibility gap. Original locked JAR unavailable, so exact cause of all differing bytes and original producer JDK are not established."
+      "inference": "Host-specific manifest proves a reproducibility gap. Original locked JAR unavailable, so exact cause of all differing bytes and original producer JDK are not established.",
+      "existing_sdk_pin_metadata": {
+        "major": 17,
+        "vendor": "JetBrains",
+        "version": "17.0.14",
+        "build": "b1367.22",
+        "flavor": "jbrsdk",
+        "artifacts": [
+          {
+            "platform": "windows-x64",
+            "url": "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-windows-x64-b1367.22.zip",
+            "sha512": "3b5101101a46778c5b1cc572adef03bffceb338284d4e03d2fe70a72fb52fb2e1ee1d2e1c0b548c86e9092f776d3ca910669326531d1a5f8ab4521ad1b6d868c"
+          }
+        ]
+      },
+      "producer_toolchain_identity": "Not derivable from existing producer metadata: recipe environment empty; existing Windows SDK pin is not proof of the original source-build JDK"
     },
     "remaining_blocker": {
       "action": "Compile sfm-dev/mc-1.19.2 and execute actual editor registry/UI tests",
@@ -246,5 +325,30 @@
       "outcome_uncertain": false
     },
     "process_cleanup": "Stopped own accidental pre-edit filtered cargo build (cargo23521/rustc23809); actual changed-source build cargo23855 completed normally. No active task helper or game remains."
+  },
+  "previous_combined_source_commit": "3cde0795fe0012ec092acd4c6cbe3cb549ac18c1",
+  "independent_review": {
+    "picker_fix_commit": "082144d83052dd5d2f78c575d96950f79e8d1ca9",
+    "modal_fix_commit": "befccafa2c9fd7bf446422d026d42ddff80bc03a",
+    "factory_boundary": "SFMScreenChangeHelpers.showProgramEditScreen prepares/validates before presentation; RuntimeException/LinkageError or null factory output produce a visible recovery choice without rewriting preference or retrying. Does not catch errors after presentation starts or change direct Explorer factory calls.",
+    "modal_changes": [
+      "Plain Ctrl-only history shortcuts exclude AltGr/Shift/Super combinations",
+      "External widget cursor/text changes, pointer clicks and unsupported non-text input cancel pending d",
+      "Read-only save shortcut uses the same close-only override as Done"
+    ],
+    "tests": [
+      "8 picker: stable IDs, failure/retry, search/page resize, late insertion/removal ordering",
+      "5 factory guard: exact prepared identity, exceptions/linkage/null, no presentation/retry on failure, no swallowing VM/presentation errors",
+      "19 modal: history/input policy, whitespace/Unicode, pending command cancellation and unchanged capture, existing mode/motion/history tests"
+    ],
+    "status": "not-client-validated; native builds stopped pending exact frozen Vox artifact",
+    "new_native_build_attempts": false,
+    "shared_touchpoints_reported": "SFMScreenChangeHelpers.showProgramEditScreen; no Explorer or completion ranking implementation edits",
+    "limits": [
+      "Registration factories must obey create-but-do-not-display contract; no sandbox for arbitrary addon side effects",
+      "Screen init/render/presentation failure and direct factory callers remain outside this guard",
+      "Minecraft event ordering, UI, config file persistence and in-client document round trips remain unrun"
+    ],
+    "test_log_sha256": "76551d8debdc0b69e4c65fb31f519c24093a0d5afddb9ebb10f003868640a862"
   }
 }

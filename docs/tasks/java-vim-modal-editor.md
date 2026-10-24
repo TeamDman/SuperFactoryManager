@@ -96,17 +96,21 @@ visual modes, text objects, dot repeat, macros, search, Ex commands (`:w`, `:q`)
 mappings, options/`iskeyword`, marks, splits, persistent or branching undo,
 Neovim RPC, Lua, plugins, terminal emulation, or full Unicode grapheme/display
 semantics. Unknown Normal commands do nothing; no compatibility is implied.
+Plain Ctrl+Z/Ctrl+R alone invoke history; Shift/Alt/Super combinations do not.
+Pointer clicks and unsupported non-text inputs cancel a pending `d`.
 Normal mode currently uses mouse access for footer controls rather than Tab
 focus traversal. The ordinary selection/caret is rendered, not a Vim block
 cursor. Unsupported multi-key command sequences are not parsed as Vim grammar.
 
 ## Validation and next decision
 
-Fourteen pure Java JUnit regressions pass: grouping and undo/redo, exact
+Nineteen pure Java JUnit regressions pass: grouping and undo/redo, exact
 whitespace and Unicode retention, surrogate boundaries, line motions, word
 classes, first/middle/last/empty-line deletion, pending-command cancellation,
 read-only commands, redo invalidation, native widget result capture and the
-100-entry history bound. These run the production controller. They do not run
+100-entry history bound. The follow-up also covers external-caret pending-command
+cancellation, unchanged captures, no-op Insert redo retention and all modifier
+combinations for history shortcuts. These run the production controller. They do not run
 Minecraft input dispatch or rendering, and no differential parity with a running
 Neovim executable is claimed.
 
@@ -125,3 +129,10 @@ Vim-style subset with a published behavior contract, or actual Neovim process
 integration. The latter needs separate explicit approval for a native runtime,
 dependencies and distribution strategy. No runtime or dependency was installed
 for this exploration.
+
+
+The independent review fix is `befccafa2c9fd7bf446422d026d42ddff80bc03a`.
+The stale-delete reproduction is recorded alongside the picker evidence. The
+prototype remains **not client validated**. Native builds are stopped pending
+the exact locked Vox artifact; no additional runtime or toolchain decision was
+made as part of this review.

@@ -1,0 +1,15 @@
+{
+  "old": {
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "Exception in thread \"main\" java.lang.AssertionError: Pending d survived external caret move: first\n\tat PendingDeleteRepro.main(PendingDeleteRepro.java:9)\n"
+  },
+  "fixed": {
+    "exit_code": 0,
+    "stdout": "PASS: external caret move cancels the prior pending d\n",
+    "stderr": ""
+  },
+  "old_source_commit": "edfb0f3df63875dc4e29d8542658d69bf6d5216f",
+  "fixed_source_commit": "befccafa2c9fd7bf446422d026d42ddff80bc03a",
+  "scope": "Same pure-Java d / external caret move / d harness against both production controller versions, not Minecraft input events"
+}
