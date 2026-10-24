@@ -338,6 +338,21 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void yieldToUser() {
+        if (minecraft.level == null || minecraft.player == null) {
+            throw new IllegalStateException("Cannot yield a puppet without a loaded player and world");
+        }
+        active.yieldToUserRequested = true;
+    }
+
+    @Override
+    public boolean startGameTestForUser(String testName) {
+        runGameTest(testName);
+        return active.gameTestTracker != null && active.gameTestInfo != null
+                && active.gameTestOrigin != null;
+    }
+
+    @Override
     @MCVersionDependentBehaviour
     public boolean createFreshFlatWorld() {
 

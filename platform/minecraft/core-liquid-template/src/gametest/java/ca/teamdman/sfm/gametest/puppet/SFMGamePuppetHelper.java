@@ -86,6 +86,21 @@ public final class SFMGamePuppetHelper {
         add(new CreateFreshWorldPuppetAction());
     }
 
+    /** Start a GameTest but leave it running so a person can operate its controls. */
+    public void startGameTestForUser(String testName) {
+        add(new StartGameTestForUserPuppetAction(Objects.requireNonNull(testName, "testName")));
+    }
+
+    /** Position the player at a useful overview without taking a screenshot. */
+    public void positionGameTestOrbit(double angleRadians) {
+        add(new PositionGameTestOrbitCameraPuppetAction(angleRadians));
+    }
+
+    /** Terminal action: leave this client, its world and its current screen to the user. */
+    public void yieldToUser() {
+        add(new YieldToUserPuppetAction());
+    }
+
 {% case minecraft_version %}
 {% when "1.19.2" %}
     /** Leaves the puppet-owned save and loads it again through vanilla world opening. */
@@ -2423,6 +2438,9 @@ public final class SFMGamePuppetHelper {
     private void add(SFMPuppetAction action) {
         if (currentAction != 0) {
             throw new IllegalStateException("Cannot add game puppet actions after execution has begun");
+        }
+        if (!actions.isEmpty() && actions.get(actions.size() - 1) instanceof YieldToUserPuppetAction) {
+            throw new IllegalStateException("yieldToUser must be the last declared puppet action");
         }
         actions.add(action);
     }

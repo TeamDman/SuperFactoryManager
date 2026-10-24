@@ -70,6 +70,8 @@ public class Issue610VisualControlsGameTest extends SFMGameTestDefinition {
             END
             """;
 
+    protected boolean initialManualMode() { return false; }
+
     @Override public String template() { return "11x5x7"; }
     @Override public String testName() { return "issue_610_visual_controls"; }
     @Override public int maxTicks() { return RECORDING_TICKS; }
@@ -90,14 +92,18 @@ public class Issue610VisualControlsGameTest extends SFMGameTestDefinition {
         helper.setBlock(DRAIN_BUTTON.below(), Blocks.STONE);
         helper.setBlock(DRAIN_BUTTON, Blocks.STONE_BUTTON.defaultBlockState().setValue(ButtonBlock.FACE, AttachFace.FLOOR));
         helper.setBlock(MANUAL_LEVER.below(), Blocks.STONE);
-        helper.setBlock(MANUAL_LEVER, Blocks.LEVER.defaultBlockState().setValue(LeverBlock.FACE, AttachFace.FLOOR));
+        helper.setBlock(MANUAL_LEVER, Blocks.LEVER.defaultBlockState()
+                .setValue(LeverBlock.FACE, AttachFace.FLOOR)
+                .setValue(LeverBlock.POWERED, initialManualMode()));
         for (BlockPos lamp : List.of(FIRST_LAMP, SECOND_LAMP)) {
             helper.setBlock(lamp.below(), Blocks.STONE);
             helper.setBlock(lamp, Blocks.REDSTONE_LAMP);
         }
         sign(helper, new BlockPos(1, 1, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
         sign(helper, new BlockPos(6, 1, 1), "DRAIN SECOND", "After run 1", "Healthy only", "Then run again");
-        sign(helper, new BlockPos(9, 1, 1), "MANUAL MODE", "Flick within 3s", "Otherwise auto", "Choice is latched");
+        sign(helper, new BlockPos(9, 1, 1), "MANUAL MODE",
+                initialManualMode() ? "Preselected" : "Flick within 3s",
+                initialManualMode() ? "Ready for you" : "Otherwise auto", "Choice is latched");
         sign(helper, new BlockPos(7, 1, 5), "RUNS >= 1", "Off/off: none", "On/off: one", "On/on: two+");
         sign(helper, new BlockPos(9, 1, 5), "RUNS >= 2", "Counted tokens", "Not button taps", "Reset: rerun test");
         sign(helper, STATUS, "PREPARING", "Do not press yet", "", "");

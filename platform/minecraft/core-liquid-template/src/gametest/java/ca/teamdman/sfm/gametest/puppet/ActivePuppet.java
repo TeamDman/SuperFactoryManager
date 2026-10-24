@@ -113,6 +113,8 @@ public final class ActivePuppet {
     public boolean failureRecorded;
 
     public boolean success;
+
+    public boolean yieldToUserRequested;
     public boolean declared;
     public boolean viewportPrepared;
     public SFMGamePuppetViewportObservation viewportObservation;

@@ -150,6 +150,34 @@ class SFMGamePuppetInputOwnershipTests {
         assertTrue(host.pause);
     }
 
+    @Test
+    void yieldingOneInstanceDoesNotReleaseAnotherInstancesCapture() {
+        var before = new SFMGamePuppetInputOwnership();
+        var fixed = new SFMGamePuppetInputOwnership();
+        var beforeHost = new FakeHost(true, false, true, 60);
+        var fixedHost = new FakeHost(true, true, true, 90);
+        var beforeLease = before.acquire(beforeHost);
+        var fixedLease = fixed.acquire(fixedHost);
+        beforeHost.active = false;
+        beforeLease.close(SFMGamePuppetInputOwnership.End.HANDOFF);
+        beforeLease.close(SFMGamePuppetInputOwnership.End.HANDOFF);
+        assertFalse(before.suppressMouseGrab());
+        assertTrue(beforeHost.pause);
+        assertTrue(beforeHost.vsync);
+        beforeHost.active = true;
+        beforeHost.nativeUserClick(before);
+        assertTrue(beforeHost.grabbed);
+        assertTrue(fixed.suppressMouseGrab());
+        fixedHost.nativeUserClick(fixed);
+        assertFalse(fixedHost.grabbed);
+        fixedLease.maintain();
+        assertFalse(fixedHost.pause);
+        fixedLease.close(SFMGamePuppetInputOwnership.End.HANDOFF);
+        assertTrue(fixedHost.pause);
+        assertTrue(fixedHost.vsync);
+        assertEquals(90, fixedHost.fps);
+    }
+
     private static final class FakeHost implements SFMGamePuppetInputOwnership.Host {
         boolean pause;
         boolean hud;

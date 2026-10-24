@@ -7,6 +7,8 @@ import ca.teamdman.sfm.client.overlay.scene.SFMClientOverlayRuntime;
 import ca.teamdman.sfm.properties.SFMProperties;
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetInputOwnership;
+{% else %}
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetMouseOwnership;
 {% endif %}
 {% endif %}
 {% if features.pointer_modifier_ingress or features.client_overlay_input and features.client_overlay_scenes and features.workspace_panels %}
@@ -102,14 +104,15 @@ public class MouseHandlerMixin {
     @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true, remap = false)
 {% endcase %}
     private void preventPuppetMouseGrab(CallbackInfo ci) {
-{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
         var mode = SFMProperties.clientRunMode();
         if (mode == SFMProperties.ClientRunMode.PUPPET
                 || (mode == SFMProperties.ClientRunMode.GAME_PUPPET
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
                     && SFMGamePuppetInputOwnership.INSTANCE.suppressMouseGrab())) {
 {% else %}
-        if (SFMProperties.clientRunMode().isPuppet()) {
+                    && SFMGamePuppetMouseOwnership.suppressMouseGrab())) {
 {% endif %}
+
             ci.cancel();
         }
     }

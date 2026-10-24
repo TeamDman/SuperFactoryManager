@@ -52,6 +52,11 @@ public final class ManagedSessionPuppetAction implements SFMPuppetAction {
                 if (!request.has("sequence") || request.get("sequence").getAsInt() != sequence) throw new IllegalArgumentException("Sequence mismatch");
                 operation = request.get("op").getAsString();
                 if ("stop".equals(operation)) { publish("completed", null); return true; }
+                if ("yield_to_user".equals(operation)) {
+                    publish("completed", null);
+                    runtime.yieldToUser();
+                    return true;
+                }
                 if ("run_game_test".equals(operation) || "reset".equals(operation)) {
                     String test = request.has("game_test") ? request.get("game_test").getAsString() : defaultTest;
                     if (!test.matches("[a-zA-Z0-9_]+")) throw new IllegalArgumentException("Invalid test id");

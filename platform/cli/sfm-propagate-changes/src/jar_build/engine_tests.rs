@@ -446,10 +446,18 @@ fn preview_runtime_option_ownership_requires_the_exact_selected_development_leas
         true,
         true,
     ));
+    assert!(preview_runtime_owns_capture_options(
+        RunKind::GameTestPreview,
+        "1.21.1",
+        true,
+        true,
+    ));
     for (kind, version, development, selected_lease) in [
         (RunKind::GameTestPreview, "1.19.2", false, true),
         (RunKind::GameTestPreview, "1.19.4", true, true),
         (RunKind::GameTestPreview, "1.19.2", true, false),
+        (RunKind::GameTestPreview, "1.21.1", true, false),
+        (RunKind::GameTestPreview, "1.21.1", false, true),
         (RunKind::ClientSmoke, "1.19.2", true, true),
         (RunKind::ClientPuppet, "1.19.2", true, true),
         (RunKind::Client, "1.19.2", true, true),

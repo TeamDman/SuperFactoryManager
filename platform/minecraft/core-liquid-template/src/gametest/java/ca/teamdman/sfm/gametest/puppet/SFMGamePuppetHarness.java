@@ -2,6 +2,10 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+{% else %}
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetMouseOwnership;
+{% endif %}
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
@@ -232,7 +236,12 @@ public final class SFMGamePuppetHarness {
         }
 
         try {
-            if (active.helper.tick(new SFMGamePuppetMinecraftRuntime(active, minecraft))) {
+            boolean actionsComplete = active.helper.tick(new SFMGamePuppetMinecraftRuntime(active, minecraft));
+            if (active.yieldToUserRequested) {
+                finishUserHandoff(minecraft, active);
+                return;
+            }
+            if (actionsComplete) {
                 active.success = true;
                 SFM.LOGGER.info("SFM_GAME_PUPPET_SUCCEEDED puppet={}", active.definition.puppetName());
                 completeSuccessfulPuppet(minecraft, active);
@@ -241,6 +250,51 @@ public final class SFMGamePuppetHarness {
             failActivePuppet(active, throwable);
             returnToTitle(minecraft);
         }
+    }
+
+    /** Stop only this client puppet. Never disconnect the world or close its current screen. */
+    private static void finishUserHandoff(Minecraft minecraft, ActivePuppet active) {
+        if (completed || activePuppet != active) return;
+        boolean restored = true;
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+        SFMGamePuppetRenderHarness.clear();
+{% endif %}
+        try {
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+            restoreRuntimeOptions(minecraft, SFMGamePuppetInputOwnership.End.HANDOFF);
+{% else %}
+            restoreRuntimeOptions(minecraft);
+{% endif %}
+        } catch (Throwable failure) {
+            restored = false;
+            failedPuppetCount++;
+            SFM.LOGGER.error("SFM_GAME_PUPPET_HANDOFF_OPTIONS_FAILED", failure);
+        }
+        try {
+            SFMGamePuppetViewportController.requestRestore(minecraft);
+        } catch (Throwable failure) {
+            restored = false;
+            if (failedPuppetCount == 0) failedPuppetCount++;
+            SFM.LOGGER.error("SFM_GAME_PUPPET_HANDOFF_VIEWPORT_FAILED", failure);
+        }
+        active.success = restored;
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+{% else %}
+        SFMGamePuppetMouseOwnership.end();
+{% endif %}
+        activePuppet = null;
+        completed = true;
+        finalWorldHoldTicksRemaining = -1;
+        exitTicksRemaining = -1;
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+        reportCompletion();
+{% else %}
+        SFM.LOGGER.info("SFM_GAME_PUPPET_COMPLETE failed={} total={}", failedPuppetCount, selectedExecutions.size());
+{% endcase %}
+        SFM.LOGGER.info("SFM_GAME_PUPPET_YIELDED_TO_USER puppet={} world={} restored={} screen={}",
+                active.definition.puppetName(), active.worldId, restored,
+                minecraft.screen == null ? "<game>" : minecraft.screen.getClass().getSimpleName());
     }
 
     private static void startNextPuppet() {
@@ -257,6 +311,10 @@ public final class SFMGamePuppetHarness {
             return;
         }
 
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+{% else %}
+        SFMGamePuppetMouseOwnership.begin();
+{% endif %}
         PuppetExecution execution = selectedExecutions.get(nextPuppetIndex++);
         SFMDiscoveredGamePuppet definition = execution.definition();
         SFMGamePuppetHelper helper = new SFMGamePuppetHelper();
@@ -299,6 +357,10 @@ public final class SFMGamePuppetHarness {
         }
 
         int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+{% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
+{% else %}
+        SFMGamePuppetMouseOwnership.end();
+{% endif %}
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
         restoreRuntimeOptions(minecraft, keepOpenSeconds == 0
                 ? SFMGamePuppetInputOwnership.End.FINISHED : SFMGamePuppetInputOwnership.End.HANDOFF);
@@ -406,6 +468,7 @@ public final class SFMGamePuppetHarness {
         completed = true;
 {% else %}
         completed = true;
+        SFMGamePuppetMouseOwnership.end();
         SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
 {% endif %}

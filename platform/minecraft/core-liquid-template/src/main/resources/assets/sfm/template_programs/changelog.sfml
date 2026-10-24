@@ -5,6 +5,9 @@ NAME "Changelog"
 -- https://github.com/sponsors/TeamDman
 -- SFM submit new issue:
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
+{% if features.game_puppet_runtime %}
+-- Game puppets may explicitly yield a prepared world to the user, restoring normal input and pause behavior without closing the client.
+{% endif %}
 {% if features.locked_dependency_projection %}
 {% if features.client_control_cli or features.terminal_vox_runtime %}
 -- Upgrade the Vox wire protocol; rebuild the matching control CLI and terminal service together.

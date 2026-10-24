@@ -722,11 +722,13 @@ fn execute_run_with_context(
     {
         clean_client_automation_world(&plan.minecraft_dir, &working_dir, kind)?;
     }
-    let (is_development, selected_runtime_lease) = match &plan.identity {
+    let (is_development, selected_runtime_restoration) = match &plan.identity {
         BuildProjectIdentity::Development { project, .. } => (
             true,
             project.artifacts().contains_key(
                 "src/main/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetInputOwnership.java",
+            ) || project.artifacts().contains_key(
+                "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/Issue610ManualReadyGamePuppet.java",
             ),
         ),
         _ => (false, false),
@@ -735,7 +737,7 @@ fn execute_run_with_context(
         kind,
         plan.minecraft_version.as_str(),
         is_development,
-        selected_runtime_lease,
+        selected_runtime_restoration,
     );
     let automation_options_path = prepare_client_automation_options(
         &plan.minecraft_dir,
@@ -3132,14 +3134,14 @@ fn preview_runtime_owns_capture_options(
     kind: RunKind,
     minecraft_version: &str,
     is_development: bool,
-    selected_runtime_lease: bool,
+    selected_runtime_restoration: bool,
 ) -> bool {
-    // The checked owner's selected class is gated by both game_puppet_runtime
-    // and client_automation_pause_restore; directory names cannot grant it.
+    // Only selected source classes that restore runtime options may own them.
+    // A projection directory name alone cannot grant this behavior.
     matches!(kind, RunKind::GameTestPreview)
-        && minecraft_version == "1.19.2"
+        && matches!(minecraft_version, "1.19.2" | "1.21.1")
         && is_development
-        && selected_runtime_lease
+        && selected_runtime_restoration
 }
 
 fn prepare_client_automation_options(

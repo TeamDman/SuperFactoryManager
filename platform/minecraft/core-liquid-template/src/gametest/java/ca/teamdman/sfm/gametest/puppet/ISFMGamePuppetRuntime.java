@@ -45,6 +45,12 @@ public interface ISFMGamePuppetRuntime {
     /** Identifier of the puppet-owned disposable save. */
     String puppetWorldId();
 
+    /** Mark this client for an immediate handoff after the current action returns. */
+    void yieldToUser();
+
+    /** Return once a fresh GameTest has a structure and tracker; do not wait for completion. */
+    boolean startGameTestForUser(String testName);
+
 {% case minecraft_version %}
 {% when "1.19.2" %}
     /** Publishes the owned integrated server to LAN and waits for the live state transition. */
