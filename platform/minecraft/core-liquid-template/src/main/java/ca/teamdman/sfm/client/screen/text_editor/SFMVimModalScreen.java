@@ -16,6 +16,9 @@ public final class SFMVimModalScreen extends SFMTextEditScreenV1 {
     @SFMLocalizationDatagen
     public static final LocalizationEntry STATUS = new LocalizationEntry(
             "gui.sfm.vim_modal.status", "Vim-style (experimental): {} | i: Insert, Esc: Normal, u: Undo, Ctrl+R: Redo");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry NAME = new LocalizationEntry(
+            "gui.sfm.preferred_editor.sfm.vim_modal_experimental", "Vim-style (experimental)");
     private final SFMVimModalState modal;
 
     public SFMVimModalScreen(ISFMTextEditScreenOpenContext context) {

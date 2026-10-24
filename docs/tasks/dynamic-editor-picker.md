@@ -19,7 +19,7 @@ is outside this checkpoint.
 - The manager offers Choose editor independently of the selected implementation
   and even without a disk. A third-party editor need not implement settings to
   allow switching back to it later.
-- IDs are sorted and deduplicated; search is case-insensitive and pages resize
+- IDs are sorted and deduplicated; search matches names and IDs case-insensitively, and pages resize
   with the screen. Full IDs appear in row tooltips. No translated label is used
   as an identity, and no editor factory runs while browsing the picker.
 - Registry keys are re-read on opening, once per second while open, on selection,
@@ -111,3 +111,49 @@ In a development client with a third-party editor registered:
   dry-run. No release outputs were rewritten.
 - Native build failed before Java compilation as described above; full native
   JUnit, actual Forge registry events, rendered UI and gameplay remain unrun.
+
+## Relationship to Saereth's PR #581
+
+Read-only inspection of [PR #581](https://github.com/TeamDman/SuperFactoryManager/pull/581)
+found Saereth's existing work at head
+`f185a15f4aba48efe920f512bc6853d011b574a2`, based on 26.1.2 commit
+`431066a30420ba135b6eaad493e780f1e12a7a14`. At inspection the PR was open,
+unmerged and GitHub reported `mergeable: false`. The existing contribution is
+preserved; this branch does not merge it, rewrite its commits or modify the PR.
+
+The PR already proposes registry enumeration, a manager selector, an
+in-editor selector, explicit preference persistence, display-name localization,
+a changed event, immediate content-carrying switches, and using the preference
+for examples/changelog. The picker checkpoint was written before the parent
+identified that PR. The follow-up explicitly reuses its add-on display-name
+convention: `gui.sfm.preferred_editor.<namespace>.<path>`, falling back to the
+registry ID. Saereth is credited for this design. Translated labels retain the
+ID alongside them; duplicate names remain independently selectable, and search
+matches both names and IDs. No hardcoded registration list is introduced.
+
+The chosen integration retains the PR's registry-driven manager access and
+explicit persistence intent. Its small anchored popup is replaced with staged
+selection, search, bounded pages, cancellation and stale-ID diagnostics for the
+requirements of this task. The 26.1.2 implementation is not copied wholesale
+into the 1.19.2 canonical source.
+
+The PR's immediate-switch context forwards content, close/save and labels, but
+this branch also has read-only metadata, asynchronous save lifecycle, document
+snapshots and panel disposal state. An immediate transplant must preserve those
+contracts and provide a transfer API for third-party screens. This change keeps
+the current document alive and explicitly applies the preference on next open.
+It does not adopt the changed event or change examples/changelog routing; those
+are independent integration decisions. This should be reconciled with #581,
+not landed as a competing replacement without reviewing the contributor's work.
+
+PR metadata and full patch evidence are retained in
+`/workspace/editor-picker-evidence/pr581-{metadata,patch}.json`. No tracker write
+or communication to the contributor was performed.
+
+The final name-search regression increases the isolated picker suite to six
+passing tests (20 including the modal controller suite). A native test attempt
+against the implementation, using `test run --filter SFMTextEditorSelection`,
+failed during dependency preparation at the same locked Vox output path; it did
+not reach Java compilation or run native JUnit. That process (PID 12609) and its
+managed Cargo build completed and exited. This was not an approval denial and
+there is no pending operation.

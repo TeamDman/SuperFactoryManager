@@ -1,11 +1,15 @@
 {
 {% if features.vim_modal_editor %}
+  "gui.sfm.preferred_editor.sfm.vim_modal_experimental": "Vim-style (experimental)",
   "gui.sfm.vim_modal.status": "Vim-style (experimental): %s | i: Insert, Esc: Normal, u: Undo, Ctrl+R: Redo",
 {% endif %}
 {% if features.dynamic_editor_picker %}
+  "gui.sfm.preferred_editor.sfm.v1": "V1 (Default)",
+  "gui.sfm.preferred_editor.sfm.v2": "V2",
+  "gui.sfm.preferred_editor.sfm.text_editor_v3": "Text Editor v3",
   "gui.sfm.editor_selection.title": "Choose editor",
   "gui.sfm.editor_selection.next_open": "Applies to the next editor opened. Your current text stays here.",
-  "gui.sfm.editor_selection.search": "Search editor IDs",
+  "gui.sfm.editor_selection.search": "Search editors or IDs",
   "gui.sfm.editor_selection.current": "Current: %s",
   "gui.sfm.editor_selection.unavailable": "Unavailable (using sfm:v1): %s",
   "gui.sfm.editor_selection.selected": "Selected: %s",

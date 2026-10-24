@@ -89,4 +89,19 @@ class SFMTextEditorSelectionTests {
         assertEquals("addon:editor", selection.selectedId());
         assertTrue(selection.apply(id -> assertEquals("addon:editor", id)));
     }
+    @Test
+    void translatedNamesAreSearchableButDuplicateLabelsNeverBecomeIdentities() {
+        var selection = new SFMTextEditorSelection("sfm:v1",
+                () -> List.of("sfm:v1", "first:editor", "second:editor"),
+                id -> id.equals("sfm:v1") ? "V1" : "Same Editor Name");
+        selection.setPageSize(10);
+        selection.setQuery("same EDITOR name");
+        assertEquals(List.of("first:editor", "second:editor"), selection.visibleIds());
+        assertTrue(selection.select("second:editor"));
+        assertTrue(selection.apply(id -> assertEquals("second:editor", id)));
+        selection.setQuery("first:");
+        assertEquals(List.of("first:editor"), selection.visibleIds());
+        assertEquals("second:editor", selection.selectedId());
+    }
+
 }
