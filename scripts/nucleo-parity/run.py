@@ -19,13 +19,28 @@ args = parser.parse_args()
 here = Path(__file__).resolve().parent
 root = here.parent.parent
 source = root / "platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/search/nucleo"
+def input_identity():
+    inputs = [*source.glob("*.java"), *here.glob("*.java"), *here.glob("*.py"), here / "oracle.rs", here / "Cargo.lock"]
+    return {
+        "sfm_commit": subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip(),
+        "sfm_dirty": bool(subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True)),
+        "inputs_sha256": {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(inputs)},
+    }
+
+before = input_identity()
 upstream = args.upstream.resolve()
 build = args.build_dir.resolve()
 build.mkdir(parents=True, exist_ok=True)
-assert subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"], text=True).strip() == PIN
-assert not subprocess.check_output(["git", "-C", str(upstream), "diff", "HEAD", "--", "matcher", "LICENSE"], text=True)
+def verify_upstream():
+    if subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "HEAD"], text=True).strip() != PIN:
+        raise SystemExit("Upstream revision must be " + PIN)
+    if subprocess.check_output(["git", "-C", str(upstream), "diff", "HEAD", "--", "matcher", "LICENSE"], text=True):
+        raise SystemExit("Upstream matcher/license has tracked modifications")
+
+verify_upstream()
 rust_version = subprocess.check_output(["rustc", "--version"], text=True).strip()
-assert rust_version == "rustc 1.99.1 (58cf8f9c3 2026-10-13)", "Use the existing pinned Rust 1.99.1; do not install/upgrade automatically"
+if rust_version != "rustc 1.99.1 (58cf8f9c3 2026-10-13)":
+    raise SystemExit("Use the existing pinned Rust 1.99.1; do not install/upgrade automatically")
 java_home = os.environ.get("JAVA_HOME")
 java = Path(java_home) / "bin/java" if java_home else Path(shutil.which("java"))
 javac = Path(java_home) / "bin/javac" if java_home else Path(shutil.which("javac"))
@@ -68,11 +83,13 @@ run("upstream-codepoint-tests", [cargo[0], "test", *cargo[1:], "--lib", "--", "-
 run("rust-build", [cargo[0], "build", *cargo[1:]])
 oracle = build / "target/release/oracle"
 run("unicode-regenerate", [sys.executable, here / "generate_tables.py", oracle, build / "NucleoUnicode.java"])
-assert (build / "NucleoUnicode.java").read_bytes() == (source / "NucleoUnicode.java").read_bytes(), "Unicode snapshot drift"
+if (build / "NucleoUnicode.java").read_bytes() != (source / "NucleoUnicode.java").read_bytes():
+    raise SystemExit("Unicode snapshot drift")
 (build / "classes").mkdir(exist_ok=True)
 run("javac", [javac, "--release", "17", "-Xlint:all", "-d", build / "classes", *sorted(source.glob("*.java")),
               here / "JavaOracle.java", here / "CoreChecks.java", here / "Benchmark.java"])
 run("core-checks", [java, "-ea", "-cp", build / "classes", "CoreChecks"])
+run("utf16-validator-checks", [java, "-cp", build / "classes", "JavaOracle", "validator-checks"])
 run("differential", [sys.executable, here / "compare.py", upstream, build, java])
 
 if args.benchmarks:
@@ -89,17 +106,20 @@ if args.benchmarks:
         subprocess.run([str(oracle), "bench", str(fixture)], stdout=out, check=True, timeout=300)
     java_rows = [r for r in csv.DictReader((build / "java-benchmark.csv").open()) if r["mode"] == "java-score"]
     rust_rows = list(csv.DictReader((build / "rust-benchmark.csv").open()))
-    assert len(java_rows) == len(rust_rows) == 32
+    if len(java_rows) != 32 or len(rust_rows) != 32:
+        raise SystemExit("Incomplete benchmark output")
     for j, r in zip(java_rows, rust_rows):
-        assert (j["count"], j["query"], j["checksum"]) == (r["count"], r["query"], r["checksum"])
+        if (j["count"], j["query"], j["checksum"]) != (r["count"], r["query"], r["checksum"]):
+            raise SystemExit("Benchmark score checksum mismatch")
 
-inputs = [*source.glob("*.java"), *here.glob("*.java"), *here.glob("*.py"), here / "oracle.rs", here / "Cargo.lock"]
+if input_identity() != before:
+    raise SystemExit("Source or checkout identity changed during verification; this run cannot certify a tested commit")
+verify_upstream()
 receipt = {
     "upstream": PIN, "rust": rust_version,
-    "sfm_commit": subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip(),
-    "sfm_dirty": bool(subprocess.check_output(["git", "-C", str(root), "status", "--porcelain"], text=True)),
+    **before,
     "java": subprocess.check_output([str(javac), "-version"], text=True).strip(),
-    "inputs_sha256": {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(inputs)},
+    "inputs_unchanged_during_run": True,
     "benchmarks": args.benchmarks,
 }
 (build / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n")

@@ -26,7 +26,9 @@ public class CoreChecks {
         rejected(() -> new NucleoMatcher("\ud800"));
         rejected(() -> new NucleoMatcher.Candidate("\udc00"));
         rejected(() -> new NucleoMatcher("a".repeat(2049)));
+        rejected(() -> new NucleoMatcher("😀".repeat(2049)));
         rejected(() -> new NucleoMatcher.Candidate("a".repeat(65536)));
+        rejected(() -> new NucleoMatcher.Candidate("😀".repeat(65536)));
         check(new NucleoMatcher("a".repeat(2048)).match("a".repeat(2048)).score() == 53258, "maximum exact score");
 
         Object action1 = new Object(), action2 = new Object(), action3 = new Object();
@@ -48,6 +50,15 @@ public class CoreChecks {
                 new NucleoSearch.Entry<>("context action", new NucleoMatcher.Candidate("open focused file"), 0),
                 new NucleoSearch.Entry<>("global action", new NucleoMatcher.Candidate("open"), 1)));
         check(palette.search("open", defaults, 10, () -> false).get(0).entry().value().equals("context action"), "priority tiers");
+        var extremes = new NucleoSearch<>(List.of(
+                new NucleoSearch.Entry<>(0, new NucleoMatcher.Candidate("unrelated"), Integer.MIN_VALUE),
+                new NucleoSearch.Entry<>(1, new NucleoMatcher.Candidate("open"), Integer.MAX_VALUE),
+                new NucleoSearch.Entry<>(2, new NucleoMatcher.Candidate("x_open_open"), Integer.MIN_VALUE),
+                new NucleoSearch.Entry<>(3, new NucleoMatcher.Candidate("x_open_open"), Integer.MIN_VALUE)));
+        check(extremes.search("open", defaults, 4, () -> false).stream().map(NucleoSearch.Result::inputIndex)
+                .toList().equals(List.of(2, 3, 1)), "priority comparison must not overflow or admit nonmatches");
+        check(extremes.search("", defaults, 4, () -> false).stream().map(NucleoSearch.Result::inputIndex)
+                .toList().equals(List.of(0, 2, 3, 1)), "empty queries preserve input order inside priority tier");
 
         // Top-K equals a complete stable sort, not merely a plausible set of candidates.
         var random = new Random(0x53464d4e);
@@ -76,6 +87,32 @@ public class CoreChecks {
         check(!old.isEmpty() && captured != generation.get(), "caller must reject stale publication");
         try { search.search("iron", defaults, 10, () -> generation.get() != captured); throw new AssertionError("stale job ran"); }
         catch (CancellationException expected) { }
+
+        // A shared immutable candidate snapshot can serve independent queries on distinct workers.
+        var workers = Executors.newFixedThreadPool(2);
+        try {
+            var first = workers.submit(() -> all.search("i", defaults, 50, () -> false));
+            var second = workers.submit(() -> all.search("mod_1", defaults, 50, () -> false));
+            check(first.get(10, TimeUnit.SECONDS).equals(full.subList(0, 50)), "independent worker scratch");
+            check(second.get(10, TimeUnit.SECONDS).equals(all.search("mod_1", defaults, 50, () -> false)), "concurrent snapshot");
+            var entered = new CountDownLatch(1);
+            var proceed = new CountDownLatch(1);
+            var oldGeneration = new AtomicInteger(1);
+            var cancelledJob = workers.submit(() -> all.search("i", defaults, 50, () -> {
+                entered.countDown();
+                try { if (!proceed.await(10, TimeUnit.SECONDS)) throw new AssertionError("cancel test timed out"); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); return true; }
+                return oldGeneration.get() != 1;
+            }));
+            check(entered.await(10, TimeUnit.SECONDS), "worker reached cancellation boundary");
+            oldGeneration.incrementAndGet();
+            proceed.countDown();
+            try { cancelledJob.get(10, TimeUnit.SECONDS); throw new AssertionError("superseded job returned results"); }
+            catch (ExecutionException expected) { check(expected.getCause() instanceof CancellationException, "cancellation signal"); }
+        } finally {
+            workers.shutdownNow();
+            check(workers.awaitTermination(10, TimeUnit.SECONDS), "test workers exited");
+        }
         System.out.println("CoreChecks: PASS (mapping, limits, identity, tiers, top-K, cancellation, stale-generation model)");
     }
 }

@@ -9,7 +9,8 @@ groups = {key: [] for key in "FNC"}
 for line in raw.splitlines():
     parts = line.split("\t")
     if parts[0] == "VERSION":
-        assert parts[1] == "(17, 0, 0)", "Unicode snapshot requires Rust Unicode 17.0.0"
+        if parts[1] != "(17, 0, 0)":
+            raise SystemExit("Unicode snapshot requires Rust Unicode 17.0.0")
     else:
         groups[parts[0]].extend(parts[1:])
 text = '''/* SPDX-License-Identifier: MPL-2.0

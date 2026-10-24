@@ -135,7 +135,10 @@ The script checks the exact commit and absence of tracked matcher changes, uses
 the unchanged upstream Rust library source directly, regenerates and byte-checks
 Java Unicode tables, compiles the Java core, runs behavioral checks, compares
 real oracle scores/positions/ordering, and optionally benchmarks sequentially.
-It records source hashes and the tested SFM commit/dirty status in `receipt.json`.
+It captures source hashes and SFM commit/dirty status before running, rejects
+input/checkout changes during the run, rechecks the upstream pin afterward, and
+records that unchanged identity in `receipt.json`. Provenance, output-count and
+table checks remain active under `PYTHONOPTIMIZE`/`python -O`.
 
 `comparison.json` separates official source input pairs, targeted cases,
 exhaustive small-alphabet cases, deterministic random cases, broad Unicode scalar
@@ -148,9 +151,19 @@ truncation test because its premise is outside this contract. Earlier running
 that test without segmentation produced the expected CRLF mismatch; it was not
 counted as a passing test or patched away.
 
+The extended review suite enumerates all 1,454 folding and 706 normalization
+entries in both directions and in competing-occurrence contexts. Adversarial
+slab/cell-limit cases make optimal and greedy paths choose different matches,
+so a wrong threshold cannot hide behind a unique alignment. It covers both
+prefix-penalty wrap points, maximum-length supplementary queries/candidates,
+and deterministic endpoint ties. Returned UTF-16 ranges are compared exactly
+against independently constructed merged `offsetByCodePoints` ranges; a harness
+self-check also rejects split-surrogate and other malformed ranges.
+
 `CoreChecks` additionally tests UTF-16 mapping, malformed/oversized input,
 payload identity, priority ordering, top-K equality with full sorting,
-cancellation/interruption and a stale-generation publication model. These
+cancellation/interruption, extreme priority integers, shared snapshots on two
+workers, cross-thread cancellation and a stale-generation publication model. These
 checks do not simulate Minecraft rendering or Brigadier/ANTLR execution.
 The ordinary repository test class is `NucleoMatcherTests`:
 

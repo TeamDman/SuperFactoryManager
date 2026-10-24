@@ -6,12 +6,41 @@ import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class JavaOracle {
+    static void verifyUtf16(String original, NucleoMatcher.Match match) {
+        var expectedSpans = new ArrayList<NucleoMatcher.Span>();
+        int previous = -1;
+        for (int point : match.codePointPositions()) {
+            if (point <= previous) throw new AssertionError("positions not strictly increasing");
+            int start = original.offsetByCodePoints(0, point);
+            int end = original.offsetByCodePoints(0, point + 1);
+            if (!expectedSpans.isEmpty() && expectedSpans.get(expectedSpans.size() - 1).end() == start) {
+                var last = expectedSpans.remove(expectedSpans.size() - 1);
+                expectedSpans.add(new NucleoMatcher.Span(last.start(), end));
+            } else expectedSpans.add(new NucleoMatcher.Span(start, end));
+            previous = point;
+        }
+        if (!expectedSpans.equals(match.utf16Spans())) throw new AssertionError("wrong UTF-16 spans: " + match);
+    }
+
+    static void validatorChecks() {
+        var points = java.util.List.of(1);
+        verifyUtf16("a😀", new NucleoMatcher.Match(0, points, java.util.List.of(new NucleoMatcher.Span(1, 3))));
+        for (var wrong : java.util.List.of(new NucleoMatcher.Span(1, 2), new NucleoMatcher.Span(2, 3),
+                new NucleoMatcher.Span(1, 4), new NucleoMatcher.Span(0, 3))) {
+            boolean rejected = false;
+            try { verifyUtf16("a😀", new NucleoMatcher.Match(0, points, java.util.List.of(wrong))); }
+            catch (AssertionError expected) { rejected = true; }
+            if (!rejected) throw new AssertionError("validator accepted malformed range " + wrong);
+        }
+        System.out.println("UTF-16 validator: PASS (split-surrogate, wrong-start, out-of-bounds and extra-character ranges rejected)");
+    }
     static String decode(String text) {
         var result = new StringBuilder();
         if (!text.isEmpty()) for (String s : text.split(",")) result.appendCodePoint(Integer.parseInt(s, 16));
         return result.toString();
     }
     public static void main(String[] args) throws Exception {
+        if (args.length > 0 && args[0].equals("validator-checks")) { validatorChecks(); return; }
         try (var reader = new BufferedReader(new InputStreamReader(System.in));
              var writer = new BufferedWriter(new OutputStreamWriter(System.out))) {
             for (String line; (line = reader.readLine()) != null;) {
@@ -35,17 +64,7 @@ public class JavaOracle {
                 if (match == null) writer.write("-\n");
                 else {
                     // Validate UTF-16 translation independently of the matcher.
-                    String original = candidate.text();
-                    var starts = match.codePointPositions().stream()
-                            .map(i -> original.offsetByCodePoints(0, i)).collect(Collectors.toSet());
-                    int count = 0;
-                    for (var span : match.utf16Spans()) {
-                        for (int i = span.start(); i < span.end(); i += Character.charCount(original.codePointAt(i))) {
-                            if (!starts.contains(i)) throw new AssertionError("wrong UTF-16 span");
-                            count++;
-                        }
-                    }
-                    if (count != starts.size()) throw new AssertionError("missing UTF-16 span: " + line + " " + match);
+                    verifyUtf16(candidate.text(), match);
                     writer.write(match.score() + "\t" + match.codePointPositions().stream().map(Object::toString)
                             .collect(Collectors.joining(",")) + "\n");
                 }

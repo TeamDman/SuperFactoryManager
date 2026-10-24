@@ -64,6 +64,23 @@ for i in range(2500):
     c = chr(cp)
     add("unicode-scalars", "a" + c, "x_a" + c + "_a" + c, rng.choice(settings))
 
+# Exercise every entry in the pinned fold/normalization tables, not only random
+# codepoints. Both directions expose query-preparation asymmetry; the third
+# construction exercises classes, gaps and competing occurrences together.
+table_counts = {"F": 0, "N": 0}
+table_output = subprocess.check_output([str(build / "target/release/oracle"), "tables"], text=True)
+for line in table_output.splitlines():
+    fields = line.split("\t")
+    if fields[0] not in table_counts:
+        continue
+    table_counts[fields[0]] += 1
+    src, dst = (chr(int(value, 16)) for value in fields[1:])
+    for q, h in [(dst, src), (src, dst), ("a" + dst, "x_a_" + src + "_" + dst)]:
+        for case, norm in itertools.product(["RESPECT", "IGNORE", "SMART"], ["NEVER", "SMART"]):
+            add("unicode-table-pairs", q, h, (case, norm, "DEFAULT", "false"))
+if table_counts != {"F": 1454, "N": 706}:
+    raise SystemExit(f"Unexpected pinned table coverage: {table_counts}")
+
 # Slab/cell limits, exact vs optimal vs greedy routes, long gaps and u16 prefix arithmetic.
 for n, m in [(2047, 2), (2048, 2), (2049, 2), (255, 400), (256, 400), (257, 400),
              (400, 255), (400, 256), (401, 256), (2048, 2047), (2049, 2048),
@@ -74,6 +91,40 @@ for n, m in [(2047, 2), (2048, 2), (2049, 2), (255, 400), (256, 400), (257, 400)
         add("boundaries", prefix + "a" * (m - 1), prefix + "x" * (n - m) + "a" * (m - 1))
 for start in [21844, 21845, 21846, 32767, 65530]:
     add("boundaries", "aa", "x" * start + "aa")
+
+# Earlier length tests often had a unique alignment, so the greedy and optimal
+# routes could agree even if the transition was wrong. These fixtures force a
+# poor first greedy alignment and a much better final contiguous alignment.
+# The exact 133120-byte slab boundary differs for ASCII and Unicode storage.
+for n in [11092, 11093, 11094, 11095]:
+    add("adversarial-slab", "aa", "a" + "x" * (n - 4) + " aa")
+for n in [8873, 8874, 8875, 8876]:
+    # The leading emoji chooses Unicode storage; prefilter trims it, leaving n.
+    add("adversarial-slab", "aa", "😀a" + "x" * (n - 4) + " aa")
+for n in [1023, 1024, 1025, 1026]:
+    for leading in ["", "😀"]:
+        add("adversarial-cell-limit", "a" * 100,
+            leading + "a" * 99 + "x" * (n - 200) + " " + "a" * 100)
+
+# The u16 release penalty wraps at both 3*start == 65536 and == 131072.
+# Include exact/full, tight-window, optimal and greedy contexts near the bounds.
+for start in [0, 1, 2, 21844, 21845, 21846, 43689, 43690, 43691, 65532, 65533]:
+    for tail in ["aa", "a_a"]:
+        if start + len(tail) <= 65535:
+            add("prefix-arithmetic", "aa", "x" * start + tail)
+for n in [2047, 2048]:
+    add("query-maximum", "a" * n, "a" * n)
+    add("query-maximum", "a" * n, "a" * (n - 1) + "_a")
+add("utf16-boundaries", "😀" * 2048, "😀" * 2048)
+add("utf16-boundaries", "😀a", "😀" * 65534 + "a", ("SMART", "SMART", "DEFAULT", "false"))
+
+# Deterministic endpoint ties and representation/normalization asymmetries.
+for q, h in [("aa", "aa aa"), ("ab", "x_ab_ab"), ("a", "a a"),
+             ("K", "k"), ("K", "K"), ("ſ", "s"), ("µ", "μ"),
+             ("µa", "µa"), ("μa", "µa"), ("𐐨µ", "𐐨µàſ"),
+             ("a😀b", "😀a😀b😀a😀b"), ("👩💻", "👩\u200d💻👩💻"),
+             ("ab", "a\u0301b_a\u0301b"), ("\r\n", "\r\n_\r\n")]:
+    add("ties-and-representations", q, h)
 
 for i in range(500):
     alphabet = alphabets[i % 2]
@@ -92,13 +143,15 @@ for cmd in commands:
         print(p.stderr, file=sys.stderr)
         raise SystemExit(f"Failed: {cmd}")
     outputs.append(p.stdout.splitlines())
-    assert len(outputs[-1]) == len(cases), (len(outputs[-1]), len(cases))
+    if len(outputs[-1]) != len(cases):
+        raise SystemExit(f"Incomplete oracle output: {len(outputs[-1])} rows for {len(cases)} cases")
 errors = []
 for i, (rust, java_result) in enumerate(zip(*outputs)):
     if rust != java_result:
         mode, q, h, group = cases[i]
         errors.append(dict(index=i, settings=mode, query=q, candidate=h, group=group, rust=rust, java=java_result))
-report = dict(seed=seed, compared=len(cases), groups=counts, mismatches=len(errors), first_errors=errors[:20])
+report = dict(seed=seed, compared=len(cases), groups=counts, unicode_table_entries=table_counts,
+              mismatches=len(errors), first_errors=errors[:20])
 (build / "comparison.json").write_text(json.dumps(report, indent=2, ensure_ascii=True) + "\n")
 print(json.dumps({k: v for k, v in report.items() if k != "first_errors"}, indent=2))
 for error in errors[:8]:
@@ -123,7 +176,8 @@ for i in range(600):
 payload = "".join("\t".join((*mode, encode(q), *(encode(s) for s in h))) + "\n" for mode, q, h in lists)
 ranked = [subprocess.run(cmd + ["rank"], input=payload, text=True, capture_output=True, check=True).stdout.splitlines()
           for cmd in commands]
-assert len(ranked[0]) == len(ranked[1]) == len(lists)
+if len(ranked[0]) != len(lists) or len(ranked[1]) != len(lists):
+    raise SystemExit("Incomplete ranking output")
 rank_errors = [i for i, (a, b) in enumerate(zip(*ranked)) if a != b]
 report["ranking_lists"] = len(lists)
 report["ranking_mismatches"] = len(rank_errors)
