@@ -1,0 +1,114 @@
+[
+  {
+    "schema": "sfm:core_project_generation@1",
+    "scope": "core_owned_source_generation_not_compilation_or_release_acceptance",
+    "operation": "sync",
+    "projection_key": "sfm-dev/mc-1.19.2",
+    "target_id": "1.19.2",
+    "minecraft_version": "1.19.2",
+    "environment": "dev",
+    "context_identity": "blake3:ef1e2120e5790c9bc34de8b2a2be2c21bd935e792121346e9eae148698095471",
+    "project_dir": "platform/minecraft/projections/sfm-dev/mc-1.19.2",
+    "catalog_sha256": "sha256:75251f87544e8831ab8037b0b76ae78b7a193136d15dcd1e226b87c9fabc74cf",
+    "feature_definitions_sha256": "sha256:6211fcd8a93e2ddb5b715a02125169fa820bba4e4172a2c3b672eb225d359d31",
+    "project_inputs_sha256": "sha256:fc1a57994bea9b6d31d664232eca1c2d20fa87744307e82fa79eec8cc83480a6",
+    "created": [],
+    "updated": [
+      "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java"
+    ],
+    "manifest_changed": false,
+    "writes_performed": true,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed",
+    "unchanged_count": 2955,
+    "full_receipt_identity": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-source-sync.json",
+      "bytes": 1655804,
+      "sha256": "f6701a98511e14a4f51475c85fda115d9b1017a60eea8a5c94a26ce8d3b33d13"
+    }
+  },
+  {
+    "schema": "sfm:core_project_generation@1",
+    "scope": "core_owned_source_generation_not_compilation_or_release_acceptance",
+    "operation": "check",
+    "projection_key": "sfm-dev/mc-1.19.2",
+    "target_id": "1.19.2",
+    "minecraft_version": "1.19.2",
+    "environment": "dev",
+    "context_identity": "blake3:ef1e2120e5790c9bc34de8b2a2be2c21bd935e792121346e9eae148698095471",
+    "project_dir": "platform/minecraft/projections/sfm-dev/mc-1.19.2",
+    "catalog_sha256": "sha256:75251f87544e8831ab8037b0b76ae78b7a193136d15dcd1e226b87c9fabc74cf",
+    "feature_definitions_sha256": "sha256:6211fcd8a93e2ddb5b715a02125169fa820bba4e4172a2c3b672eb225d359d31",
+    "project_inputs_sha256": "sha256:fc1a57994bea9b6d31d664232eca1c2d20fa87744307e82fa79eec8cc83480a6",
+    "created": [],
+    "updated": [],
+    "manifest_changed": false,
+    "writes_performed": false,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed",
+    "unchanged_count": 2956,
+    "full_receipt_identity": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-1.19.2-check.json",
+      "bytes": 1655804,
+      "sha256": "1ea8a80de81d9b66889a63f97aa69f404ba939416d5bfd53d8d6affd895cb019"
+    }
+  },
+  {
+    "schema": "sfm:core_project_generation@1",
+    "scope": "core_owned_source_generation_not_compilation_or_release_acceptance",
+    "operation": "sync",
+    "projection_key": "sfm-dev/mc-1.19.4",
+    "target_id": "1.19.4",
+    "minecraft_version": "1.19.4",
+    "environment": "dev",
+    "context_identity": "blake3:b86355444cd9e496984b9e3a73d6a85f2d0b0a1530a9df0e50bf759e9b8e04b0",
+    "project_dir": "platform/minecraft/projections/sfm-dev/mc-1.19.4",
+    "catalog_sha256": "sha256:75251f87544e8831ab8037b0b76ae78b7a193136d15dcd1e226b87c9fabc74cf",
+    "feature_definitions_sha256": "sha256:6211fcd8a93e2ddb5b715a02125169fa820bba4e4172a2c3b672eb225d359d31",
+    "project_inputs_sha256": "sha256:fc1a57994bea9b6d31d664232eca1c2d20fa87744307e82fa79eec8cc83480a6",
+    "created": [],
+    "updated": [
+      "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalConnectionSnapshot.java",
+      "src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+      "src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java",
+      "src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java"
+    ],
+    "manifest_changed": false,
+    "writes_performed": true,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed",
+    "unchanged_count": 2914,
+    "full_receipt_identity": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-1.19.4-sync.json",
+      "bytes": 1639781,
+      "sha256": "fef05f977e4244ab31ec4371172eac543af27e02ff91794c4d90bd3d94a131ea"
+    }
+  },
+  {
+    "schema": "sfm:core_project_generation@1",
+    "scope": "core_owned_source_generation_not_compilation_or_release_acceptance",
+    "operation": "check",
+    "projection_key": "sfm-dev/mc-1.19.4",
+    "target_id": "1.19.4",
+    "minecraft_version": "1.19.4",
+    "environment": "dev",
+    "context_identity": "blake3:b86355444cd9e496984b9e3a73d6a85f2d0b0a1530a9df0e50bf759e9b8e04b0",
+    "project_dir": "platform/minecraft/projections/sfm-dev/mc-1.19.4",
+    "catalog_sha256": "sha256:75251f87544e8831ab8037b0b76ae78b7a193136d15dcd1e226b87c9fabc74cf",
+    "feature_definitions_sha256": "sha256:6211fcd8a93e2ddb5b715a02125169fa820bba4e4172a2c3b672eb225d359d31",
+    "project_inputs_sha256": "sha256:fc1a57994bea9b6d31d664232eca1c2d20fa87744307e82fa79eec8cc83480a6",
+    "created": [],
+    "updated": [],
+    "manifest_changed": false,
+    "writes_performed": false,
+    "compilation": "not_performed",
+    "release_compatibility": "not_performed",
+    "unchanged_count": 2919,
+    "full_receipt_identity": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-1.19.4-check.json",
+      "bytes": 1639781,
+      "sha256": "a55a24dffb808c50efd225902ebdb90018babd9166a931a17dd480fe546f9b06"
+    }
+  }
+]

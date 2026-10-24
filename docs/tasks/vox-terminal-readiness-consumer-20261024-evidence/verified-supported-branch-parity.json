@@ -1,0 +1,22 @@
+[
+  {
+    "file": "SFMVoxTerminalService.java",
+    "identical_in_1_19_2_and_1_19_4": true,
+    "sha256": "9faa64113cee670ffb326bf5f5a47442146f40d1e6c8f1cd0f120e426f2947aa"
+  },
+  {
+    "file": "SFMTerminalRemoteService.java",
+    "identical_in_1_19_2_and_1_19_4": true,
+    "sha256": "a883b2ed310da7f1ce28049e1f901155ad29eccc4532e7245849cad8b38e8c8c"
+  },
+  {
+    "file": "SFMTerminalPasteResult.java",
+    "identical_in_1_19_2_and_1_19_4": true,
+    "sha256": "a40942311ba0e5327e941bd976cb260226399d6b20f822f9370dddcba25279da"
+  },
+  {
+    "file": "SFMTerminalConnectionSnapshot.java",
+    "identical_in_1_19_2_and_1_19_4": true,
+    "sha256": "7ae3a51c8bf64d367f263cad270f148580ce3a4348768cdb98f6238b41872e22"
+  }
+]

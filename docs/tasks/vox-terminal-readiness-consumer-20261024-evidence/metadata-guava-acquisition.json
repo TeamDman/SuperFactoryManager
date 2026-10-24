@@ -1,0 +1,30 @@
+[
+  {
+    "artifact": {
+      "coordinate": "com.google.guava:guava-parent:26.0-android@pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "sha256": "sha256:f8698ab46ca996ce889c1afc8ca4f25eb8ac6b034dc898d4583742360016cc04",
+      "bytes": 10180,
+      "path": "com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "retrievedUtc": "2026-10-24T07:48:48.413222+00:00"
+    },
+    "http_status": 200,
+    "tls_verification_result": 0,
+    "official_sha1_match": true,
+    "purpose": "Parent chain referenced by locked failureaccess/listenablefuture embedded POMs; native JUnit metadata closure"
+  },
+  {
+    "artifact": {
+      "coordinate": "org.sonatype.oss:oss-parent:9@pom",
+      "url": "https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "sha256": "sha256:fb40265f982548212ff82e362e59732b2187ec6f0d80182885c14ef1f982827a",
+      "bytes": 6569,
+      "path": "org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "retrievedUtc": "2026-10-24T07:48:48.422016+00:00"
+    },
+    "http_status": 200,
+    "tls_verification_result": 0,
+    "official_sha1_match": true,
+    "purpose": "Parent chain referenced by locked failureaccess/listenablefuture embedded POMs; native JUnit metadata closure"
+  }
+]

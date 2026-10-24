@@ -1,0 +1,52 @@
+[
+  {
+    "attempt": "initial-tests",
+    "resolved_reason": "Missing JavaParser parent POM before JUnit",
+    "exit": 1,
+    "log": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/initial-tests.stderr",
+      "bytes": 114501,
+      "sha256": "fa08b9b10505acbd910343e3529e8988b62b5dc8a383551f093a342e9a9ac157"
+    }
+  },
+  {
+    "attempt": "regression-tests",
+    "resolved_reason": "Missing error_prone_parent POM before JUnit",
+    "exit": 1,
+    "log": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/regression-tests.stderr",
+      "bytes": 107659,
+      "sha256": "9c1889ab9b22babf0f9b052d535f3bbbee0967aa8aebc639ed5f45385db314a0"
+    }
+  },
+  {
+    "attempt": "final-service-tests",
+    "resolved_reason": "Missing checker-qual POM before JUnit",
+    "exit": 1,
+    "log": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/final-service-tests.stderr",
+      "bytes": 107032,
+      "sha256": "1d4f7be2582f310b4f6ac461b88203045ea27abd7dd883464adf3755d25b19a7"
+    }
+  },
+  {
+    "attempt": "service-tests-rehydrated",
+    "resolved_reason": "Missing junit-jupiter-api POM before JUnit",
+    "exit": 1,
+    "log": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/service-tests-rehydrated.stderr",
+      "bytes": 28621,
+      "sha256": "45dd5c1ec5e994cbe3c732b3ac7828270504beacc21f923fcaf53d15fc2e0ad5"
+    }
+  },
+  {
+    "attempt": "lifecycle-service-tests",
+    "resolved_reason": "Incorrect UI accessor; compile failed before JUnit; corrected in final source",
+    "exit": 1,
+    "log": {
+      "path": "/workspace/sfm-terminal-readiness-20261024/lifecycle-service-tests.stderr",
+      "bytes": 105037,
+      "sha256": "0a3ba8c7a068aae90de4b86d3213100990d9d7554127636db269d19a7c6babdc"
+    }
+  }
+]

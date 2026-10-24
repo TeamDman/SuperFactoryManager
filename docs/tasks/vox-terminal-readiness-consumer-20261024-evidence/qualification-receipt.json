@@ -1,0 +1,316 @@
+{
+  "captured_utc": "2026-10-24T08:15:27.484757+00:00",
+  "branch": "task/parchment-handshake-20261023",
+  "base_commit": "8632d22e89476eaad87f80261e2916e690da8674",
+  "implementation_commit": "bcbd4a29434ed496aa6a387842b3283d16fd0162",
+  "preserved_native_roots_commit": "2e8e6141dd2a339289ef91a1781c2a63cecfcfac",
+  "origin_main": "122e4b31ea2875a0894d648c51c5ee5f78c589e6",
+  "cli_tree": "53d543e83eddd5c4ed6fe70ba162920e9d5df82e",
+  "launcher": {
+    "path": "/workspace/sfm-handshake-20261023/tools/sfm-propagate-changes-native",
+    "bytes": 177721600,
+    "sha256": "7e7fb12ed75251ff9c48b61467793ee94d44e1aab528774a00b93acea74476ff"
+  },
+  "filtered_ca_bundle": {
+    "path": "/workspace/.sfm-env/trust/ca-certificates.crt",
+    "bytes": 226017,
+    "sha256": "ee7d8a9353d49d866898ce0d49091bcdf207d71e323ebfe0af9d2020e691c99c"
+  },
+  "native_cache": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90",
+  "source_identities": [
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalConnectionSnapshot.java",
+      "bytes": 1211,
+      "sha256": "4a3b8b403e90469895f9c86c2b8ca650a44e6d1c5fec59ceccc4f10f67fd52fc"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java",
+      "bytes": 139288,
+      "sha256": "f38717fa7de663d558fd1bea5236fad2b7b1218debe45ffb7c91294d5735147e"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPasteResult.java",
+      "bytes": 1632,
+      "sha256": "a214d55dfac56ee1740958fa6d2e3a30806ea73151dfdb6a4baae9b90e72d41d"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.java",
+      "bytes": 9389,
+      "sha256": "72ed477d68c5790b1ca170c46c58f35408ead06ef6355aa523642bfdf0d58b02"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java",
+      "bytes": 181395,
+      "sha256": "4a04fb60ae0124d22c9c968ec3657e1f7aba5bf57504faa9ac080c6304b18fb0"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/main/resources/assets/sfm/template_programs/changelog.sfml",
+      "bytes": 132243,
+      "sha256": "39ab45aa16d85180c3bae3af6eaa97fa79f73e8f63d837e64244c4964619a69c"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanelInteractionTests.java",
+      "bytes": 51266,
+      "sha256": "d3147ab784389b12d9e469014b9802a5e1d92f516afb4cf782a84a366347c6ff"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/core-liquid-template/src/test/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalServiceTests.java",
+      "bytes": 33965,
+      "sha256": "5b3b31113b9ad54b9b5c974f6a9d14f26cc94d86239aff0aa0e4d89ea80faa8c"
+    }
+  ],
+  "compiled_classes": [
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalConnectionSnapshot.class",
+      "bytes": 4878,
+      "sha256": "3a1bb2530355bff640fe5d270f91623fa3b454572b71377519e4c1b7e6153caa"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$ConnectionEvent.class",
+      "bytes": 1964,
+      "sha256": "9207eced471813e18686142fe1e89245af4a5ba271ae435d7316e4ea32713395"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$LocalReplScene.class",
+      "bytes": 1566,
+      "sha256": "e3b5f91c115c01c499d56e58482806a10a9204f6aef53257a44814fed6a26723"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$PanelActionInvoker.class",
+      "bytes": 404,
+      "sha256": "b3aa01f9f97d8fe8a6f2574be1b01c8a28f08d66682ee89cd2f0cc5b4b57de8e"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$PendingPaste.class",
+      "bytes": 2106,
+      "sha256": "5e6f539dfea1eb3c61940580f71ae8adf35f713c4a1ec1f7671ff64abf7adfb0"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$PresentationAxis.class",
+      "bytes": 1403,
+      "sha256": "cbce09032b760f833abaa9586a10801ffeceeb9b7f71b2fe84e31e013e77790f"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$RustLandingScene.class",
+      "bytes": 2780,
+      "sha256": "2692bd6fb6dc7b41e46834676bd57b7f9c3feeac19c49a7670ddd0dd619d7722"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$RustLifecycleRequest.class",
+      "bytes": 1871,
+      "sha256": "e5ae88e88cdc4acf16077dd36d8e5f62ff6ae58681f8d735bf0509c3ab0b2c0d"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$RustServerStarter.class",
+      "bytes": 431,
+      "sha256": "f152d5fac61476007902f0ae06b38617c0fcf9e7a2fb76505d823581ac760434"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$RustTerminalScene.class",
+      "bytes": 1751,
+      "sha256": "0ff8770c2d0258431c90079888177805ce5bc5c2db9a45050070a4adff55f367"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$StartButtonHitState.class",
+      "bytes": 1861,
+      "sha256": "eb933d2eef01455591020c2e1d33d696f474616ecb70ddf71d52403e67cc293b"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$TerminalCellPoint.class",
+      "bytes": 1765,
+      "sha256": "5f63752f21895278f61da99e833b5fe1c0767f1d34ea8a81d67109b141997fed"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$TerminalScene.class",
+      "bytes": 607,
+      "sha256": "83db96352a44d96fdec6d50d0d43a4e9ee378a16995ee955f2e53598829739ec"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$TerminalViewportWidget.class",
+      "bytes": 5015,
+      "sha256": "f51838ded037215efc8ce3f0a5ca90a32ff762433715f992346be08c14b8d172"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel$ViewportGeometry.class",
+      "bytes": 2676,
+      "sha256": "b9e1080a6d47e786c85e10fe35f8f17402e8418ed437fb29b61306560cc9f1f9"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.class",
+      "bytes": 85511,
+      "sha256": "f2ff429684a1ace82a9a38eb6acd479ab79a1623d9340e3d3c5f072e4626a81e"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPasteResult$Disposition.class",
+      "bytes": 1479,
+      "sha256": "6b172edcaf3e67eb9c63ed7f02541f39f0b9a072c46c5a48c0dfde139055d479"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalPasteResult.class",
+      "bytes": 4060,
+      "sha256": "80020753963ed0d6a80c1787642d7c99718ce0f2e34cda85092b906512817c2a"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.class",
+      "bytes": 8388,
+      "sha256": "19e45471bc1c55533ef9ea4ac621bf58a91cbeaf970072f8e632ede1d5a13b8b"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$1.class",
+      "bytes": 920,
+      "sha256": "aab4d6b6526048c6ff38767f625383c0bd6e51033e22ac3b80482e1e3ee68879"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$DetachedSubscription.class",
+      "bytes": 2840,
+      "sha256": "53b59a11e9ad6eaf7f52c28b921e867f48f09c52aa2c470be855a18410a98bae"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$DetachedTransport.class",
+      "bytes": 2582,
+      "sha256": "cccefa228b6aa44d7fa9618f1ef867242d546bcbb7ef200d0551384d16b3de43"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$MouseOperation.class",
+      "bytes": 2557,
+      "sha256": "6a8bfde0694987f5156b3df7458decebf183bdd7208a2e00511d330e331ec51f"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$PendingPaste.class",
+      "bytes": 957,
+      "sha256": "66b7bf4a1fb88f463b9c28bdb8eed7111f62e4337cac50a61abc38b3d3e0c6a7"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$RasterStream.class",
+      "bytes": 4426,
+      "sha256": "4fa38162087c6f4f4471cd20331d11c34d322ae9c013cd9a63df72a24c527eb0"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$RasterSubscription.class",
+      "bytes": 2675,
+      "sha256": "f878190761a061fd8f70d30c4ab51e07cc6dc3306bd46ab39d2640dee4e3a8cc"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$RemoteOperation.class",
+      "bytes": 594,
+      "sha256": "ae0786c48c051087a2ff3a9ede4c051baf36b0582b2a941b5303ac8d6164d36a"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$ResizeOperation.class",
+      "bytes": 2667,
+      "sha256": "d5fd949e8841f7659540455bfae584ff6d96e0a63189804d5c332cfac96f3f49"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Session.class",
+      "bytes": 1447,
+      "sha256": "9e8abcab2c924ff7acf31a74937bb47646d09eafb3a8a46d388965df7edc8288"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$TerminalApplicationException.class",
+      "bytes": 1321,
+      "sha256": "df70853e80ba83b373c979a3978b9b99c021907e829c32bb01314558653d6b16"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Transport.class",
+      "bytes": 2078,
+      "sha256": "bf931bb09dc2922725ded773b0908de1cd6a2dee2ebbf73dc09923058254b2c8"
+    },
+    {
+      "path": "/workspace/SuperFactoryManager/platform/minecraft/projections/sfm-dev/mc-1.19.2/build/sfm-toolchain/native-project/679f29e08b52cbb9b55c2a4d75c32a67676b39a0b4b9a609eb6d160763b14a90/project/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+      "bytes": 131199,
+      "sha256": "7f1420ddd854614876d6e231929934ff6da0f8eb394c69f519d57cc024ae3559"
+    }
+  ],
+  "vox_classpath_artifacts": [
+    {
+      "path": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/facet/teamy-vox-java/0.10.0-rc.7/teamy-vox-java-0.10.0-rc.7.jar",
+      "bytes": 614530,
+      "sha256": "be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062"
+    }
+  ],
+  "tests": {
+    "SFMVoxTerminalServiceTests": {
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    "SFMTerminalPanelInteractionTests": {
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0
+    },
+    "legacy_rendered_input_probe": "passed"
+  },
+  "post_test_java_launcher_display_processes": [],
+  "dependencies_and_pins_changed": false,
+  "new_game_or_rust_terminal_launched": false,
+  "toolchain_installed": false,
+  "push_or_publication": false,
+  "retained_full_log_identities": [
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-tests.stderr",
+      "bytes": 109999,
+      "sha256": "9ca8ee0ceed0560eb86ce66bbad6743ba0317f28a26d85bf9c6d6d67a8cad684"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-tests.ndjson",
+      "bytes": 497471,
+      "sha256": "f3aa24c1955c1d8f06393e325c27d5fdd6264956b93be943b395d8d8754c5346"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-tests.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-console.log",
+      "bytes": 14943,
+      "sha256": "ffd0e208e1b0e30bc111f46ac05ea7acf97bfbddf815de1a7d7d17ab2916dfba"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-junit.java.args",
+      "bytes": 36911,
+      "sha256": "3caae84453e51e2cc842bc728b12e6bcb07d25bdf970ae68faa7eba156d08db3"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-service-testRuntimeClasspath.txt",
+      "bytes": 36137,
+      "sha256": "ceb85685127dad4c6cf85dbe6b802674e6b5637cf53e64727f23e4260ba54f96"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-tests.stderr",
+      "bytes": 31373,
+      "sha256": "53acb22efa1b4d80eb1a03f655b0f74bd66b9124a6db4d493def8e519c3f6f0d"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-tests.ndjson",
+      "bytes": 212107,
+      "sha256": "6e78d818a98518857ffd3f46466ffb0eff895237e48003ef8d7268c75c425222"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-tests.exit",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-console.log",
+      "bytes": 8984,
+      "sha256": "7a361655db3ce6eb2ac5c4e35731180f54a6bfe270dcd23625df40457152d2bb"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-junit.java.args",
+      "bytes": 36917,
+      "sha256": "326de79399dc1e761df555c5a7905a430318fb796a4b0a1a87f7cecb1b317d94"
+    },
+    {
+      "path": "/workspace/sfm-terminal-readiness-20261024/verified-panel-testRuntimeClasspath.txt",
+      "bytes": 36137,
+      "sha256": "ceb85685127dad4c6cf85dbe6b802674e6b5637cf53e64727f23e4260ba54f96"
+    }
+  ],
+  "limitations": [
+    "Loopback Java contract fixture, not actual Rust Terminal",
+    "No new Minecraft game run or GameTest execution",
+    "1.19.4 source/parity only; legacy single-file input probe only"
+  ]
+}

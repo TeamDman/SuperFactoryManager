@@ -1,0 +1,56 @@
+{
+  "source_commit": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "manifest_source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/metadata-pins.json",
+  "manifest_sha256": "e7f90b1541cc555405b6a738de85b08738eeec106b98a23365ad05e785ee33dc",
+  "method": "Restore unchanged checked-in public metadata; verify existing SHA256 and byte count; no network or dependency declaration changes",
+  "artifacts": [
+    {
+      "coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/com/github/javaparser/javaparser-symbol-solver-core/3.26.4/javaparser-symbol-solver-core-3.26.4.pom",
+      "origin": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-symbol-solver-core/3.26.4/javaparser-symbol-solver-core-3.26.4.pom",
+      "sha256": "sha256:dbc5ba930c777aa3e594333f6b32a0ba72ebc65db7393409dac693df8363ad54",
+      "bytes": 2380,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/github/javaparser/javaparser-symbol-solver-core/3.26.4/javaparser-symbol-solver-core-3.26.4.pom"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-parent:3.26.4@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+      "origin": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom",
+      "sha256": "sha256:0316ad7574a30bdacae02e45d88edda46578bb5a469cbd65d783787eeb82cca8",
+      "bytes": 25473,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/github/javaparser/javaparser-parent/3.26.4/javaparser-parent-3.26.4.pom"
+    },
+    {
+      "coordinate": "com.github.javaparser:javaparser-core:3.26.4@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.pom",
+      "origin": "https://repo.maven.apache.org/maven2/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.pom",
+      "sha256": "sha256:bc328cae6bc72c716fe6536b0940242a90959576642d9e625fa65073e9e1576e",
+      "bytes": 4885,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.pom"
+    },
+    {
+      "coordinate": "org.javassist:javassist:3.30.2-GA@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.pom",
+      "origin": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.pom",
+      "sha256": "sha256:4227851cb70e43f73aced8bffe692de3ae4412c4a62dcdff055e513ee3d801a3",
+      "bytes": 10960,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.pom"
+    },
+    {
+      "coordinate": "com.google.guava:guava:33.4.0-jre@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.pom",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.pom",
+      "sha256": "sha256:fa94db40022ddfc775af9ecfb130cce515b96f740daf82f20af846d95054134b",
+      "bytes": 8785,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.pom"
+    },
+    {
+      "coordinate": "com.google.guava:guava-parent:33.4.0-jre@pom",
+      "source": "platform/cli/sfm-propagate-changes/src/jar_build/fixtures/maven/com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom",
+      "origin": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom",
+      "sha256": "sha256:3a499ed34a0d9ee0f1bcc39230021a1cd4e2f7dd0426ab6844f585465d41dcd7",
+      "bytes": 21100,
+      "target": "/workspace/.sfm-env/cache/minecraft-toolchain/maven/com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom"
+    }
+  ]
+}

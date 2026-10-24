@@ -1,0 +1,192 @@
+[
+  {
+    "file": "LegacyReadinessProbe.java",
+    "bytes": 7234,
+    "sha256": "800466416b1c82664bf2f28bc4cf1743a2825e26ddb9ef11d40ab61da0522a30"
+  },
+  {
+    "file": "intermediate-attempts.json",
+    "bytes": 1748,
+    "sha256": "29958b4404ed3df6f4977bb101a9389a9999f7ebfd65a1691fa4dbf7830cd095"
+  },
+  {
+    "file": "intermediate-ui-accessor-compile.log.gz",
+    "bytes": 696,
+    "sha256": "f76068bccbae08c9f5aa21b0354a97e40ff3c793787e49e55f3163883091a4b5"
+  },
+  {
+    "file": "javac-datagen.log.gz",
+    "bytes": 43,
+    "sha256": "2b22dcec2fe840096c6cb471b787eaeb835d8813b59316aadbd182da54d1e5c1"
+  },
+  {
+    "file": "javac-gametest.log.gz",
+    "bytes": 261,
+    "sha256": "0cea72042d9cb0a2b1ba509f4a9ec568b8af5e99d6bbee3525b345556a37e95a"
+  },
+  {
+    "file": "javac-main.log.gz",
+    "bytes": 529,
+    "sha256": "da446a0fe84b46c953bd3111c235cbb8d585d486ab7051797db690ebcf48ae5e"
+  },
+  {
+    "file": "javac-test.log.gz",
+    "bytes": 1287,
+    "sha256": "deabd0b31c84af3c150be74ff00ada005ae164cb1a9a7fbfb7fedae4a39113a0"
+  },
+  {
+    "file": "legacy-compile.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "legacy-compile.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "legacy-compiled-identities.json",
+    "bytes": 2937,
+    "sha256": "70dfd6c8bf3d58b02aac3608e010c0ab40853fc4a3c7376bba115a083aed3e48"
+  },
+  {
+    "file": "legacy-preflight-classpath.txt.gz",
+    "bytes": 3349,
+    "sha256": "a84933ef50cca32fd9c2f44fa6e05a70361eeaa4c5d66fa1608b276e3ba7a0a0"
+  },
+  {
+    "file": "legacy-probe-compile.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "legacy-probe.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "legacy-probe.log",
+    "bytes": 133,
+    "sha256": "4b2e946236016c3c3553dd3a7df2465da3738aa1f3aae06687a678830e922735"
+  },
+  {
+    "file": "legacy-render-receipts.json",
+    "bytes": 34778,
+    "sha256": "c3e0a8abc727de5a28ee6e08bafe6b104752b8549b778bd88e576efddafd498c"
+  },
+  {
+    "file": "metadata-additional-acquisition.json",
+    "bytes": 10882,
+    "sha256": "c011582da68345857057d248f0cc30a694b7014ed9ca1d835e70013933837848"
+  },
+  {
+    "file": "metadata-error-prone-acquisition.json",
+    "bytes": 752,
+    "sha256": "e4b9513a41f42143e4d3256f0606e9c9e5aef6acba9bd50355ac42db76c065de"
+  },
+  {
+    "file": "metadata-guava-acquisition.json",
+    "bytes": 1353,
+    "sha256": "f53c716e567a19e68ee235afd6c98797d749f037d42d8a25e3e47b3d03f56138"
+  },
+  {
+    "file": "metadata-restoration.json",
+    "bytes": 4147,
+    "sha256": "4d73b02d4c5c48bc68b70ed0e2d221a7d447d20d80983b71233421c09dab5e53"
+  },
+  {
+    "file": "native-build-receipts.json.gz",
+    "bytes": 486730,
+    "sha256": "37f68aba3cba0b6a3c24ce51f4fc0e5448112ae405f919ca05e811bc39c55476"
+  },
+  {
+    "file": "projection-checks.json",
+    "bytes": 5383,
+    "sha256": "d2dbcf3ffc5fc5484f55695cf6335ec5cd0e28b21f0714c3409c74838aa7851b"
+  },
+  {
+    "file": "qualification-receipt.json",
+    "bytes": 19715,
+    "sha256": "ff6038c4d46d350c07637a763aef264efd94c6ee93c2614466768fad99a9a085"
+  },
+  {
+    "file": "reproduce-tests.sh",
+    "bytes": 1147,
+    "sha256": "d392760764529865a6da53aecbfa3300e3a2aa243491210913c1af09fe4be4af"
+  },
+  {
+    "file": "restore-pom.py",
+    "bytes": 2403,
+    "sha256": "06e15a7b0ec9870c2a3e3f222a45d2309f921b07747d2026d0ee5f0d3f57f964"
+  },
+  {
+    "file": "verified-legacy-render-parity.json",
+    "bytes": 11076,
+    "sha256": "cc43526c3bc8f028245224a230c0db00506b2f7b8a3fd1c093e2632ccb9540a3"
+  },
+  {
+    "file": "verified-panel-console.log.gz",
+    "bytes": 1691,
+    "sha256": "4472f8ed700daacbadc22b72b25b921d1a74ba662430f63ce9a05533a5432d1c"
+  },
+  {
+    "file": "verified-panel-junit.java.args.gz",
+    "bytes": 3978,
+    "sha256": "517f93b518cc38dbce12352018f36958e7b502d4b08c056f52c32c397a1e685a"
+  },
+  {
+    "file": "verified-panel-testRuntimeClasspath.txt.gz",
+    "bytes": 3812,
+    "sha256": "6653ee286cc5f1933bba50a6f63a7c30f4e2c87efd9cefa6c5255ce6349fe652"
+  },
+  {
+    "file": "verified-panel-tests.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "verified-panel-tests.ndjson.gz",
+    "bytes": 12164,
+    "sha256": "81bfef06e4965da55baa7c43833311fdd0c310eebaeb503fac67eee24e54c179"
+  },
+  {
+    "file": "verified-panel-tests.stderr.gz",
+    "bytes": 4113,
+    "sha256": "2f19d254076f87d2605e3554ef075dcf157dc1b5f7bf5377363c7fc739a5fe6b"
+  },
+  {
+    "file": "verified-service-console.log.gz",
+    "bytes": 1832,
+    "sha256": "b3a60dac738d3bced00990faaccc63fb5348075ac263b6822406e2d606fb34b0"
+  },
+  {
+    "file": "verified-service-junit.java.args.gz",
+    "bytes": 3974,
+    "sha256": "12697adb00e57cebc9507dd792b129b522293e15044d38a440189da1934ea9b7"
+  },
+  {
+    "file": "verified-service-testRuntimeClasspath.txt.gz",
+    "bytes": 3812,
+    "sha256": "6653ee286cc5f1933bba50a6f63a7c30f4e2c87efd9cefa6c5255ce6349fe652"
+  },
+  {
+    "file": "verified-service-tests.exit",
+    "bytes": 2,
+    "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  {
+    "file": "verified-service-tests.ndjson.gz",
+    "bytes": 21173,
+    "sha256": "0258c76513b71b4fb5910c01d1f042b0a8fe8a8b294258ca911177f2995f5aad"
+  },
+  {
+    "file": "verified-service-tests.stderr.gz",
+    "bytes": 8201,
+    "sha256": "31774fca7bf43bb2caf0191fbc2ad2fdfea4473891040928b56321149a9cd59e"
+  },
+  {
+    "file": "verified-supported-branch-parity.json",
+    "bytes": 719,
+    "sha256": "873aa961ea016f34d5f2c3775c4f7845653b1d9ce50c1d004ed669a36fba6121"
+  }
+]

@@ -1,0 +1,62 @@
+[
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/SFMTerminalFrame.java",
+    "bytes": 510,
+    "sha256": "0dee3cd1cce0b90a444a7033bd2df1fd27e386c32df1a88bde9a2c166a716100"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/SFMTerminalRemoteService.java",
+    "bytes": 942,
+    "sha256": "3e09d7a710bd053b0682d9c1f14aa29f6a0170de216f4d6327c18a04c09f21e6"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/SFMVoxTerminalService.java",
+    "bytes": 32621,
+    "sha256": "4ccf1d41ae69b5bfead676f4bc97c054dda928f0e19d6692e9eeb5641c823d99"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe$Fixture$1.class",
+    "bytes": 1416,
+    "sha256": "65d239d2b51ae14ebce3bbd87d4631dea2272db853ab9371532be566b0675348"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe$Fixture.class",
+    "bytes": 6804,
+    "sha256": "7dd5f020fc92908431cf489354501b85d54559574c35bf74e820ea282799e45e"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/LegacyReadinessProbe.class",
+    "bytes": 6525,
+    "sha256": "b85c2b10bb071382527ddb513ef802e47011c3ed137f1c0540fe9f94d16a5039"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMTerminalFrame.class",
+    "bytes": 1708,
+    "sha256": "cf4c0f6d1e829b700bbf2068958a0824d08ef1cd05fb0f0990655b789c69b4f3"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMTerminalRemoteService.class",
+    "bytes": 875,
+    "sha256": "af1fd8932df2978bb6aa437c0383abb47bb857280bfdb8a0cd01c95c39db04bc"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Session.class",
+    "bytes": 1725,
+    "sha256": "f130d4be6e66261e7c47a9f04a7f81f4f133a7245c69e317ec1ecf2a83e5ae75"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$TerminalApplicationException.class",
+    "bytes": 1135,
+    "sha256": "4296c81792b0dd55226d97d7426d5da209312f302658be133e82d2fb40808df9"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService$Transport.class",
+    "bytes": 1791,
+    "sha256": "60a686925b30a268032b95377b315af6dc4e1b65db92f7b550f9d5ca066c6850"
+  },
+  {
+    "path": "/workspace/sfm-terminal-readiness-20261024/legacy-compile/classes/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.class",
+    "bytes": 26117,
+    "sha256": "d8de0b0585f26d58d8f3ad4e460c596a2baf1a946a0765ed482f187865e62011"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "artifact": {
+    "coordinate": "com.google.errorprone:error_prone_parent:2.36.0@pom",
+    "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+    "sha256": "sha256:3a4cfc8a6bed61eb48e969796fc31ea0d270b63e670599946a61883adb7094dc",
+    "bytes": 15958,
+    "path": "com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+    "retrievedUtc": "2026-10-24T07:47:20.034651+00:00"
+  },
+  "http_status": 200,
+  "tls_verification_result": 0,
+  "official_sha1_match": true,
+  "purpose": "Parent POM referenced by the locked error_prone_annotations 2.36.0 JAR embedded POM; native JUnit metadata closure",
+  "dependency_declarations_or_locks_changed": false
+}
