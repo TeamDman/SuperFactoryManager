@@ -21,8 +21,12 @@ public final class SFMHeadlessWorkspaceTestSupport {
                     (SFMScreenMultiplexer) unsafe.allocateInstance(SFMScreenMultiplexer.class);
             setField(SFMScreenMultiplexer.class, workspace, "layout", layout);
             setField(SFMScreenMultiplexer.class, workspace, "openedPanels", new HashSet<>());
+{% if features.workspace_lifecycle %}
             setField(SFMScreenMultiplexer.class, workspace, "openedPanelInstances", new HashMap<>());
+{% endif %}
+{% if features.workspace_panel_reopening %}
             setField(SFMScreenMultiplexer.class, workspace, "reopenRecipes", new SFMPanelReopenCatalog());
+{% endif %}
             setField(
                     SFMScreenMultiplexer.class,
                     workspace,

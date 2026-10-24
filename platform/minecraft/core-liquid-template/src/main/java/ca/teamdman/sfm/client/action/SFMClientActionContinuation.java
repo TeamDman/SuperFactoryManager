@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.action;
 
-{% if features.typed_command_palette %}
+{% if features.typed_command_palette or features.inspection_workspace %}
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 {% endif %}
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -19,9 +19,16 @@ public record SFMClientActionContinuation(Object host, SFMWorkspacePanelId panel
 
     public boolean isCurrent() {
         Object active = Minecraft.getInstance().screen;
-{% if features.typed_command_palette %}
-        for (int depth = 0; depth < 16 && active instanceof SFMCommandPaletteScreen palette; depth++) {
-            Object parent = palette.originatingActionContext().originatingHost();
+{% if features.typed_command_palette or features.inspection_workspace %}
+        for (int depth = 0; depth < 16; depth++) {
+            Object parent;
+            if (active instanceof SFMCommandPaletteScreen palette) {
+                parent = palette.originatingActionContext().originatingHost();
+{% if features.inspection_workspace %}
+            } else if (active instanceof ca.teamdman.sfm.client.screen.SFMInspectionChoiceScreen choices) {
+                parent = choices.originatingActionContext().originatingHost();
+{% endif %}
+            } else break;
             if (parent == active) return false;
             active = parent;
         }

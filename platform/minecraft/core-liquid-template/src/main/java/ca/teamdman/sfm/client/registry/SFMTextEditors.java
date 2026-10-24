@@ -12,6 +12,9 @@ import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenV2Registration;
 {% when "1.19.2", "1.19.4" %}
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorV3Registration;
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% if features.inspection_workspace %}
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorV3Registration;
+{% endif %}
 import ca.teamdman.sfm.client.text_editor.SFMDrawCanvasTextEditorRegistration;
 {% endcase %}
 {% endif %}
@@ -65,6 +68,10 @@ public class SFMTextEditors {
             "text_editor_v3",
             SFMTextEditorV3Registration::new
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% if features.inspection_workspace %}
+    public static final SFMRegistryObject<ISFMTextEditorRegistration, SFMTextEditorV3Registration> V3 = REGISTERER.register(
+            "text_editor_v3", SFMTextEditorV3Registration::new);
+{% endif %}
     public static final SFMRegistryObject<ISFMTextEditorRegistration, SFMDrawCanvasTextEditorRegistration> DRAW = REGISTERER.register(
             "draw",
             SFMDrawCanvasTextEditorRegistration::new

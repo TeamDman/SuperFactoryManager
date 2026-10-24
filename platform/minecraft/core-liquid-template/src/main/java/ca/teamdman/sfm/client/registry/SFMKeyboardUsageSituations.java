@@ -12,7 +12,11 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+{% if targets.mc_1_21_1 %}
+import net.neoforged.bus.api.IEventBus;
+{% else %}
 import net.minecraftforge.eventbus.api.IEventBus;
+{% endif %}
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,17 +24,17 @@ import java.util.Map;
 
 /** Contributor registry and stable built-in ids for keyboard usage situations. */
 public final class SFMKeyboardUsageSituations {
-    public static final ResourceLocation GLOBAL = new ResourceLocation(SFM.MOD_ID, "global");
-    public static final ResourceLocation WORKSPACE = new ResourceLocation(SFM.MOD_ID, "workspace");
-    public static final ResourceLocation DEFAULT = new ResourceLocation(SFM.MOD_ID, "default");
-    public static final ResourceLocation TEXT_EDITOR = new ResourceLocation(SFM.MOD_ID, "text_editor");
-    public static final ResourceLocation TEMPORAL_DOCUMENT = new ResourceLocation(SFM.MOD_ID, "temporal_document");
-    public static final ResourceLocation COMMAND_PALETTE = new ResourceLocation(SFM.MOD_ID, "command_palette");
-    public static final ResourceLocation TERMINAL = new ResourceLocation(SFM.MOD_ID, "terminal");
-    public static final ResourceLocation EXPLORER = new ResourceLocation(SFM.MOD_ID, "explorer");
-    public static final ResourceLocation EXPLORER_SEARCH = new ResourceLocation(SFM.MOD_ID, "explorer_search");
-    public static final ResourceLocation EXPLORER_FIND = new ResourceLocation(SFM.MOD_ID, "explorer_find");
-    public static final ResourceLocation EXPLORER_FILTER = new ResourceLocation(SFM.MOD_ID, "explorer_filter");
+    public static final ResourceLocation GLOBAL = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "global");
+    public static final ResourceLocation WORKSPACE = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "workspace");
+    public static final ResourceLocation DEFAULT = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "default");
+    public static final ResourceLocation TEXT_EDITOR = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "text_editor");
+    public static final ResourceLocation TEMPORAL_DOCUMENT = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "temporal_document");
+    public static final ResourceLocation COMMAND_PALETTE = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "command_palette");
+    public static final ResourceLocation TERMINAL = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "terminal");
+    public static final ResourceLocation EXPLORER = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "explorer");
+    public static final ResourceLocation EXPLORER_SEARCH = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "explorer_search");
+    public static final ResourceLocation EXPLORER_FIND = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "explorer_find");
+    public static final ResourceLocation EXPLORER_FILTER = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "explorer_filter");
 
     private SFMKeyboardUsageSituations() {
     }

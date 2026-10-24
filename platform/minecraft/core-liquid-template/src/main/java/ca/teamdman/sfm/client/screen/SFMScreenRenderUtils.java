@@ -110,4 +110,13 @@ public class SFMScreenRenderUtils {
 {% endcase %}
     }
 
+{% if features.inspection_workspace and targets.mc_1_21_1 %}
+    @MCVersionDependentBehaviour
+    public static void renderHighlight(net.minecraft.client.gui.GuiGraphics graphics,
+                                       double left, double top, double right, double bottom) {
+        renderHighlight(graphics, (int) Math.floor(left), (int) Math.floor(top),
+                (int) Math.ceil(right), (int) Math.ceil(bottom));
+    }
+{% endif %}
+
 }

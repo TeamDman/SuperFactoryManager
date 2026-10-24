@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 public final class SFMReleaseReviewSurfaceSyntaxSession implements AutoCloseable {
     private final List<SFMTextEditorSyntaxSession> sessions = new ArrayList<>();
 
+{% if features.release_review %}
     public SFMReleaseReviewSurfaceSyntaxSession(String origin, SFMReleaseReviewV1 review,
             SFMReleaseReviewSurfaceV1.Surface surface, SFMSyntaxHighlightService service,
             Executor publicationExecutor, Consumer<List<FormattingSpan>> publish, Consumer<Throwable> failure,
@@ -24,6 +25,7 @@ public final class SFMReleaseReviewSurfaceSyntaxSession implements AutoCloseable
         this(origin, SFMReleaseReviewSurfacePresentation.sources(review, surface), surface, service,
                 publicationExecutor, publish, failure, status);
     }
+{% endif %}
 
     public SFMReleaseReviewSurfaceSyntaxSession(String origin,
             java.util.Map<String, ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.DocumentRevision> sources,

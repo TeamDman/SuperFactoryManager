@@ -1,9 +1,9 @@
 package ca.teamdman.sfm.client.action;
 
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.SFM;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
 {% endif %}
 import ca.teamdman.sfm.client.explorer.SFMPath;
@@ -11,28 +11,28 @@ import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 {% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening and features.workspace_counterfactuals %}
 import ca.teamdman.sfm.client.history.workspace.SFMWorkspaceCounterfactualRuntime;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 {% endif %}
 {% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening and features.release_review %}
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 {% endif %}
 {% if features.workspace_panels %}
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 {% endif %}
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 {% endif %}
 {% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening and features.java_symbols %}
@@ -48,7 +48,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
 import net.minecraft.resources.ResourceLocation;
 {% endif %}
 
@@ -71,7 +71,7 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
 
     @Override
     public SFMClientActionRequirement<SFMClientActionContext> requirement() {
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
         return context -> context.originatingHostIsCurrent().getAsBoolean()
                 ? SFMClientActionAvailability.available(context)
                 : SFMClientActionAvailability.unavailable(
@@ -83,7 +83,7 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
 {% endif %}
     }
 
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
     @Override
     public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
         RequiredArgumentBuilder<SFMClientActionSource, String> path = RequiredArgumentBuilder
@@ -105,7 +105,7 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
         throw new SimpleCommandExceptionType(Component.literal("Provide one concrete resolver path")).create();
     }
 
-{% if features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
+{% if features.inspection_workspace or features.canvas_text_editor and features.editor_document_panels and features.workspace_panel_actions and features.workspace_panel_reopening %}
     private int invokeOpen(
             CommandContext<SFMClientActionSource> commandContext,
             SFMExplorerPreviewPlacement.Mode mode
@@ -171,7 +171,7 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
             if (sourceExplorer != null && path.kind() != SFMPath.Kind.FILE)
                 title = sourceExplorer.publishedLabel(path).orElse(title);
             SFMTextEditorPanelRecipe recipe = new SFMTextEditorPanelRecipe(
-                    new ResourceLocation(SFM.MOD_ID, "text_editor"),
+                    ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "text_editor"),
                     editorId,
                     new SFMTextDocumentSource.PathAddress(path, authorizedRoot),
                     true,
@@ -186,21 +186,33 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                         sourceExplorer.explorerId().value(),
                         mode,
                         panel,
+{% if features.workspace_panel_reopening %}
                         recipe
+{% else %}
+                        null
+{% endif %}
                 );
                 opened = result.applied() ? 1 : 0;
             } else {
                 OpenPanelAction.Direction direction = mode == SFMExplorerPreviewPlacement.Mode.ADJACENT
                         ? OpenPanelAction.Direction.RIGHT
                         : OpenPanelAction.Direction.FOCUSED;
+{% if features.workspace_panel_reopening %}
                 opened = OpenPanelAction.openPanel(actionContext, panel, direction, recipe);
+{% else %}
+                opened = OpenPanelAction.openPanel(actionContext, panel, direction);
+{% endif %}
             }
             if (opened == 0) {
                 throw new IllegalStateException("The addressed document could not be placed in the panel workspace");
             }
+{% if features.inspection_workspace %}
+            commandContext.getSource().sendFeedback(Component.literal("Opening " + path.canonical()));
+{% else %}
             commandContext.getSource().sendFeedback(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
                     "Opening ", path, ""
             ));
+{% endif %}
             return opened;
         } catch (RuntimeException failure) {
             throw new SimpleCommandExceptionType(Component.literal(

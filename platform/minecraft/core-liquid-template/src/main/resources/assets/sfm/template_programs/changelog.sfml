@@ -11,7 +11,7 @@ NAME "Changelog"
 -- Peers using the previous wire protocol are not supported.
 {% endif %}
 {% endif %}
-{% if features.release_review and features.file_explorer %}
+{% if features.inspection_workspace or features.release_review and features.file_explorer %}
 -- Explorer: select two JARs or working trees and Show diff to add a comparison root.
 -- Expand strategies, file pairs and source/structured/instruction representations with retained provenance.
 -- Search collapsed comparison entries with bounded Find/Filter; comparison progress and failures remain visible after row actions close.

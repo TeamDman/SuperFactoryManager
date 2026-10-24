@@ -47,6 +47,13 @@
     "KeyboardHandlerInvoker"
 {% endif %}
 {% else %}
+{% if features.single_line_input %}
+{% if features.game_puppet_runtime or features.issue_610_visual_evidence %}
+    "EditBoxAccessor",
+{% else %}
+    "EditBoxAccessor"
+{% endif %}
+{% endif %}
 {% if features.issue_610_visual_evidence %}
     "MouseHandlerInvoker",
 {% endif %}

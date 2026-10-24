@@ -4,7 +4,11 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageSituation;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import net.minecraft.network.chat.Component;
+{% if targets.mc_1_21_1 %}
+import net.neoforged.bus.api.IEventBus;
+{% else %}
 import net.minecraftforge.eventbus.api.IEventBus;
+{% endif %}
 
 import java.util.List;
 

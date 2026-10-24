@@ -2,8 +2,9 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
 import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
 {% endif %}
@@ -16,6 +17,8 @@ import ca.teamdman.sfm.client.context.SFMContextPosition;
 {% if features.editor_documents %}
 import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
@@ -23,8 +26,9 @@ import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 {% endif %}
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPointerSelection;
 {% endif %}
@@ -52,11 +56,14 @@ import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 {% if features.java_symbols and features.editor_documents %}
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
 import ca.teamdman.sfm.client.text_editor.SFMExactDocumentSelectionPublication;
 {% endif %}
@@ -80,6 +87,8 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 {% endif %}
 {% if features.editor_documents %}
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -132,8 +141,13 @@ import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+import java.io.BufferedReader;
+import java.io.IOException;
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
 import java.io.BufferedReader;
 import java.io.IOException;
 {% endcase %}
@@ -141,14 +155,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 import java.util.Objects;
 import java.util.Optional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+{% else %}
+{% endif %}
 {% endcase %}
 import java.util.stream.Collectors;
 
@@ -159,19 +176,25 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
     @SFMLocalizationDatagen
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     public static final LocalizationEntry DRAW_CANVAS_READ_ONLY_DOCUMENT = new LocalizationEntry(
             "gui.sfm.draw_canvas.read_only",
             "Read-only document"
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     public static final LocalizationEntry TEXT_EDITOR_V3_READ_ONLY_DOCUMENT = new LocalizationEntry(
             "gui.sfm.text_editor_v3.read_only",
             "Read-only"
+{% else %}
+    public static final LocalizationEntry DRAW_CANVAS_READ_ONLY_DOCUMENT = new LocalizationEntry(
+            "gui.sfm.draw_canvas.read_only",
+            "Read-only document"
+{% endif %}
 {% endcase %}
     );
     @SFMLocalizationDatagen
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     public static final LocalizationEntry DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
             "gui.sfm.draw_canvas.sfml_button.tooltip.prefix",
             "Drag onto the canvas to insert "
@@ -179,31 +202,49 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     @SFMLocalizationDatagen
     public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
             "gui.sfm.draw_canvas.done_button.tooltip.prefix",
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     public static final LocalizationEntry TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
             "gui.sfm.text_editor_v3.done_button.tooltip.prefix",
+{% else %}
+    public static final LocalizationEntry DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
+            "gui.sfm.draw_canvas.sfml_button.tooltip.prefix",
+            "Drag onto the canvas to insert "
+    );
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
+            "gui.sfm.draw_canvas.done_button.tooltip.prefix",
+{% endif %}
 {% endcase %}
             "Press "
     );
     @SFMLocalizationDatagen
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX = new LocalizationEntry(
             "gui.sfm.draw_canvas.done_button.tooltip.suffix",
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     public static final LocalizationEntry TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_SUFFIX = new LocalizationEntry(
             "gui.sfm.text_editor_v3.done_button.tooltip.suffix",
+{% else %}
+    public static final LocalizationEntry DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX = new LocalizationEntry(
+            "gui.sfm.draw_canvas.done_button.tooltip.suffix",
+{% endif %}
 {% endcase %}
             " to save"
     );
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     @SFMLocalizationDatagen
     public static final LocalizationEntry TEXT_EDITOR_V3_COPIED_SELECTION = new LocalizationEntry(
             "gui.sfm.text_editor_v3.copied_selection",
             "Copied selection to clipboard"
     );
+{% else %}
+{% endif %}
 {% endcase %}
 
     private static final int BACKGROUND = 0xFF15191E;
@@ -219,9 +260,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private static final int HUD_TEXT = 0xFFE6EDF3;
     private static final int HUD_MUTED = 0xFF9CA3AF;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private static final int READ_ONLY_CHROME_BACKGROUND = 0xFF181D23;
+{% else %}
+{% endif %}
 {% endcase %}
     private static final int INPUT_LOG_LIMIT = 8;
     private static final double MIN_ZOOM = 0.05D;
@@ -236,9 +280,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private static final double KEYBOARD_PAN_SCREEN_PIXELS = 64.0D;
     private static final int FIT_CONTENT_MARGIN = 32;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private static final AtomicLong NEXT_SYNTAX_ORIGIN = new AtomicLong();
+{% else %}
+{% endif %}
 {% endcase %}
     private static final int FOCUS_BORDER = 0xFF60A5FA;
     private static final int PANEL_BACKGROUND = 0xF01A2028;
@@ -276,21 +323,28 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private final List<EmbeddedDocument> embeddedDocuments = new ArrayList<>();
     private Button canvasFocusTarget;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private Button sfmlButton;
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private SFMTextEditorReadOnlyChrome.Rect configButtonBounds;
     private SFMTextEditorReadOnlyChrome.Rect doneButtonBounds;
+{% else %}
+    private Button sfmlButton;
+{% endif %}
 {% endcase %}
     private double cameraX;
     private double cameraY;
     private double zoom = 1.0D;
     private boolean cameraInitialized;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private int cameraViewportWidth;
     private int cameraViewportHeight;
+{% else %}
+{% endif %}
 {% endcase %}
     private boolean diagnosticControlsVisible = false;
     private boolean showGrid = false;
@@ -300,8 +354,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private boolean hideSelection = false;
     private boolean panning;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.canvas_pointer_defaults %}
     private ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings pointerSettings =
             ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings.DEFAULT;
@@ -343,12 +398,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         SFMConfig.CLIENT_TEXT_EDITOR_CONFIG_SPEC.save();
     }
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
     private boolean suppressNextNumpadPanChar;
     private boolean initialContentLoaded;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
     private String initialCanvasProjectionText = "";
     private String baselineExactText = "";
@@ -364,6 +422,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private List<ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry.Rect> paintedSelectionRectangles = List.of();
 {% endif %}
     private long contextGeneration;
+{% else %}
+{% endif %}
 {% endcase %}
     private double panAnchorMouseX;
     private double panAnchorMouseY;
@@ -384,8 +444,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private double grammarPanAnchorCameraY;
     private boolean draggingGrammarInsert;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private Optional<Component> saveDiagnostic = Optional.empty();
 {% if features.editor_async_save %}
     private final ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession asyncSave =
@@ -416,6 +477,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
     private Optional<Component> syntaxDiagnostic = Optional.empty();
     private Optional<SyntaxPresentationEvidence> syntaxPresentationEvidence = Optional.empty();
+{% else %}
+{% endif %}
 {% endcase %}
     private double grammarInsertStartX;
     private double grammarInsertStartY;
@@ -424,8 +487,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private double resizeAnchorX;
     private double resizeAnchorY;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private final SFMDrawCanvasPerformanceTracker performanceTracker = new SFMDrawCanvasPerformanceTracker();
     private ViewportGlyphCache viewportGlyphCache;
     private SelectionHighlightCache selectionHighlightCache;
@@ -436,6 +500,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private List<SFMTextDocumentDecoration> documentDecorations = List.of();
     private final TextHighlightCache textHighlightCache = new TextHighlightCache();
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
 
     public SFMDrawCanvasScreen(Screen previousScreen) {
@@ -444,10 +510,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     public SFMDrawCanvasScreen(Screen previousScreen, boolean pushed) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         super(Component.literal("SFM Draw Canvas"));
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         super(Component.literal("Text Editor v3"));
+{% else %}
+        super(Component.literal("SFM Draw Canvas"));
+{% endif %}
 {% endcase %}
         this.previousScreen = previousScreen;
         this.openContext = null;
@@ -467,10 +537,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             boolean pushed
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         super(Component.literal("SFM Draw Canvas"));
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         super(Component.literal("Text Editor v3"));
+{% else %}
+        super(Component.literal("SFM Draw Canvas"));
+{% endif %}
 {% endcase %}
         this.previousScreen = previousScreen;
         this.openContext = openContext;
@@ -512,10 +586,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         SFMScreenRenderUtils.enableKeyRepeating();
         loadInitialContent();
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.syntax_languages and features.editor_documents %}
         ensureRemoteSyntaxHighlighting();
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
         initializeCamera();
@@ -525,8 +602,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         this.setFocused(canvasFocusTarget);
         canvasFocusTarget.setFocused(true);
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        grammarFocusTarget = new CanvasFocusTarget(grammarPanelLeft(), grammarPanelTop(), grammarPanelWidth(), grammarPanelHeight(), false);
+        grammarFocusTarget.visible = grammarPanelVisible;
+        grammarFocusTarget.active = grammarPanelVisible;
+        this.addRenderableWidget(grammarFocusTarget);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         grammarFocusTarget = new CanvasFocusTarget(grammarPanelLeft(), grammarPanelTop(), grammarPanelWidth(), grammarPanelHeight(), false);
         grammarFocusTarget.visible = grammarPanelVisible;
         grammarFocusTarget.active = grammarPanelVisible;
@@ -534,14 +618,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         diagnosticButtons.clear();
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.canvas_pointer_defaults %}
         if (!pointerDefaultsLoaded) {
             setPointerSettings(new ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings(
                     SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasWheelZooms.get(),
                     SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasMiddlePans.get()));
         }
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
         addDiagnosticButton(8, 8, () -> showCrosshairCoordinates, value -> showCrosshairCoordinates = value, "Coords");
@@ -550,24 +637,35 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         addDiagnosticButton(8, 80, () -> showGrid, value -> showGrid = value, "Grid");
         addDiagnosticButton(8, 104, () -> hideSelection, value -> hideSelection = value, "Hide Selection");
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         configButtonBounds = null;
+{% else %}
+{% endif %}
 {% endcase %}
         if (openContext != null) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             configButtonBounds = new SFMTextEditorReadOnlyChrome.Rect(4, this.height - 24, 16, 20);
+{% else %}
+{% endif %}
 {% endcase %}
             this.addRenderableWidget(new SFMButtonBuilder()
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                     .setPosition(4, this.height - 24)
                     .setSize(16, 20)
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                     .setPosition(configButtonBounds.x(), configButtonBounds.y())
                     .setSize(configButtonBounds.width(), configButtonBounds.height())
+{% else %}
+                    .setPosition(4, this.height - 24)
+                    .setSize(16, 20)
+{% endif %}
 {% endcase %}
                     .setText(Component.literal("#"))
                     .setOnPress(button -> SFMScreenChangeHelpers.setOrPushScreen(new SFMTextEditorConfigScreen(
@@ -578,7 +676,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                     .build());
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.canvas_pointer_defaults and features.client_actions and features.editor_pointer_actions %}
         if (openContext != null) {
             wheelButton = new SFMButtonBuilder().setPosition(22, this.height - 24).setSize(20, 20)
@@ -602,7 +701,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
 {% endif %}
         doneButtonBounds = new SFMTextEditorReadOnlyChrome.Rect(this.width - 88, this.height - 24, 80, 20);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        sfmlButton = new SFMButtonBuilder()
+                .setPosition(this.width - 140, this.height - 24)
+                .setSize(48, 20)
+                .setText(Component.literal("SFML"))
+                .setOnPress(button -> { })
+                .setTooltip(this, font, sfmlButtonTooltip())
+                .build();
+        this.addRenderableWidget(sfmlButton);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         sfmlButton = new SFMButtonBuilder()
                 .setPosition(this.width - 140, this.height - 24)
                 .setSize(48, 20)
@@ -614,10 +723,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         this.addRenderableWidget(new SFMButtonBuilder()
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                 .setPosition(doneButtonBounds.x(), doneButtonBounds.y())
                 .setSize(doneButtonBounds.width(), doneButtonBounds.height())
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+                .setPosition(this.width - 88, this.height - 24)
+                .setSize(80, 20)
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                 .setPosition(this.width - 88, this.height - 24)
                 .setSize(80, 20)
 {% endcase %}
@@ -634,47 +748,64 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     @MCVersionDependentBehaviour
     public void extractRenderState(
             GuiGraphicsExtractor guiGraphics,
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     public void render(
             GuiGraphics guiGraphics,
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     public void render(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
+{% else %}
+    public void render(
+            GuiGraphics guiGraphics,
+{% endif %}
 {% endcase %}
             int mouseX,
             int mouseY,
             float partialTick
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( 0, 0, this.width, this.height, BACKGROUND);
         if (showGrid) {
             renderGrid(guiGraphics);
         }
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         long frameStartedNanos = System.nanoTime();
         long frameAllocatedBefore = performanceTracker.allocationCheckpoint();
 {% if features.release_review and features.editor_documents %}
         if (splitCanvas != null) {
             fill(poseStack, 0, 0, this.width, this.height, BACKGROUND);
-            SFMScissorStack.pushGui(poseStack, 0, 0, width, Math.max(0, height - 28));
+            pushCanvasScissor(poseStack, 0, 0, width, Math.max(0, height - 28));
             try {
                 splitCanvas.render(poseStack, canvasToScreenX(0), canvasToScreenY(0), zoom, Math.max(0, height - 28));
             } finally {
-                SFMScissorStack.pop();
+                popCanvasScissor(poseStack);
             }
             renderReadOnlyChrome(poseStack);
             super.render(poseStack, mouseX, mouseY, partialTick);
             return;
         }
 {% endif %}
+{% else %}
+        guiGraphics.fill( 0, 0, this.width, this.height, BACKGROUND);
+        if (showGrid) {
+            renderGrid(guiGraphics);
+        }
+{% endif %}
 {% endcase %}
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         ResolvedViewportGlyphs viewport = resolveViewportGlyphs();
         List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs = viewport.slice().glyphs();
         fill(poseStack, 0, 0, this.width, this.height, BACKGROUND);
-        SFMScissorStack.pushGui(poseStack, 0, 0, width, Math.max(0, height - 28));
+        pushCanvasScissor(poseStack, 0, 0, width, Math.max(0, height - 28));
         try {
             if (showGrid) {
                 renderGrid(poseStack);
@@ -703,15 +834,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
             renderCanvasCursor(poseStack);
         } finally {
-            SFMScissorStack.pop();
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+            popCanvasScissor(poseStack);
+{% else %}
+        if (showCursorTrail) {
+            renderCursorTrail(guiGraphics);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (showCursorTrail) {
             renderCursorTrail(guiGraphics);
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        renderEmbeddedDocuments(guiGraphics);
+        renderGlyphs(guiGraphics);
+        if (!hideSelection) {
+            renderGlyphSelectionHighlights(guiGraphics);
+        }
+        if (showGlyphBoundingBoxes) {
+            renderGlyphBoundingBoxes(guiGraphics);
+        }
+        renderCanvasCursor(guiGraphics);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         renderEmbeddedDocuments(guiGraphics);
         renderGlyphs(guiGraphics);
         if (!hideSelection) {
@@ -724,10 +871,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         if (showCrosshairCoordinates) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             renderHud(guiGraphics);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             renderHud(poseStack);
+{% else %}
+            renderHud(guiGraphics);
+{% endif %}
 {% endcase %}
         }
         if (diagnosticControlsVisible) {
@@ -744,7 +895,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         if (grammarPanelVisible && isGrammarPanelFocused()) {
             renderReadOnlyMessage(guiGraphics);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             renderInputDiagnostics(guiGraphics);
         }
         if (grammarPanelVisible) {
@@ -756,13 +907,28 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         if (grammarPanelVisible && isGrammarPanelFocused()) {
             renderReadOnlyMessage(guiGraphics);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             renderInputDiagnostics(poseStack);
+{% else %}
+            renderInputDiagnostics(guiGraphics);
+        }
+        if (grammarPanelVisible) {
+            renderGrammarPanel(guiGraphics);
+        }
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+        if (draggingGrammarInsert) {
+            renderGrammarInsertDrag(guiGraphics, mouseX, mouseY);
+        }
+        if (grammarPanelVisible && isGrammarPanelFocused()) {
+            renderReadOnlyMessage(guiGraphics);
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         renderSaveDiagnostic(poseStack);
         renderSyntaxDiagnostic(poseStack);
         renderReadOnlyChrome(poseStack);
@@ -774,6 +940,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 viewport.rebuilt(),
                 frameAllocatedBefore
         );
+{% else %}
+{% endif %}
 {% endcase %}
     }
 
@@ -783,14 +951,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             double mouseY
     ) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
             super.mouseMoved(mouseX, mouseY);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
         }
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        super.mouseMoved(mouseX, mouseY);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         super.mouseMoved(mouseX, mouseY);
 {% endcase %}
     }
@@ -832,7 +1004,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
                 beginGrammarPan(mouseX, mouseY);
                 focusGrammarPanel();
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
             beginGrammarInsertDrag(mouseX, mouseY);
             return true;
@@ -848,7 +1020,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
                 beginGrammarPan(mouseX, mouseY);
                 focusGrammarPanel();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
@@ -868,15 +1041,33 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
                 beginPan(mouseX, mouseY);
                 focusMainCanvas();
+{% else %}
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
+            beginGrammarInsertDrag(mouseX, mouseY);
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && beginEmbeddedDocumentResize(mouseX, mouseY)) {
+            focusMainCanvas();
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+                beginGrammarPan(mouseX, mouseY);
+                focusGrammarPanel();
+{% endif %}
 {% endcase %}
                 return true;
             }
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                 grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
                 focusGrammarPanel();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                 if (hasAltDown()) {
                     model().addCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
                 } else if (hasControlDown()) {
@@ -893,19 +1084,47 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 }
                 focusMainCanvas();
                 rememberCursorPosition();
+{% else %}
+                grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
+                focusGrammarPanel();
+{% endif %}
 {% endcase %}
                 return true;
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             return super.mouseClicked(mouseX, mouseY, button);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
+{% else %}
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+            beginPan(mouseX, mouseY);
+            focusMainCanvas();
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (hasAltDown()) {
+                model().addCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            } else if (hasControlDown()) {
+                model().setAllCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            } else {
+                model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            }
+            focusMainCanvas();
+            rememberCursorPosition();
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+{% endif %}
 {% when "26.1.2" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             beginPan(mouseX, mouseY);
@@ -925,7 +1144,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
         return super.mouseClicked(event, doubleClick);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             beginPan(mouseX, mouseY);
             focusMainCanvas();
@@ -994,7 +1213,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
                 grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
                 focusGrammarPanel();
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (panning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
             cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
             cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
@@ -1019,7 +1238,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
                 grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
                 focusGrammarPanel();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
 {% if features.release_review and features.editor_documents %}
@@ -1035,11 +1255,38 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
                 model().setCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
                 rememberCursorPosition();
+{% else %}
+        if (panning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+            cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
+            cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
+            model().setCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            rememberCursorPosition();
+            return true;
+        }
+        if (resizingEmbeddedDocument != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            resizeEmbeddedDocument(mouseX, mouseY);
+            return true;
+        }
+        if (grammarPanning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+            grammarCameraX = grammarPanAnchorCameraX - (mouseX - grammarPanAnchorMouseX) / grammarZoom;
+            grammarCameraY = grammarPanAnchorCameraY - (mouseY - grammarPanAnchorMouseY) / grammarZoom;
+            grammarModel.setCursor(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
+            return true;
+        }
+        if (draggingGrammarInsert && button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+            if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
+                grammarModel.setActiveCursors(grammarScreenToCanvasX(mouseX), grammarScreenToCanvasY(mouseY));
+                focusGrammarPanel();
+{% endif %}
 {% endcase %}
                 return true;
             }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
                 if (pointerSelectionGesture != null) {
@@ -1060,6 +1307,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 focusMainCanvas();
                 rememberCursorPosition();
                 return true;
+{% else %}
+            if (hasAltDown()) {
+                model().addCursorAvoidingCrowding(
+                        screenToCanvasX(mouseX),
+                        screenToCanvasY(mouseY),
+                        this.font.width("W"),
+                        this.font.lineHeight
+                );
+            } else {
+                model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+{% endif %}
 {% when "26.1.2" %}
             if (event.hasAltDown()) {
                 model().addCursorAvoidingCrowding(
@@ -1070,7 +1328,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 );
             } else {
                 model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             if (hasAltDown()) {
                 model().addCursorAvoidingCrowding(
                         screenToCanvasX(mouseX),
@@ -1083,21 +1341,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             focusMainCanvas();
             rememberCursorPosition();
             return true;
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
+{% else %}
+            focusMainCanvas();
+            rememberCursorPosition();
+            return true;
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+{% endif %}
 {% when "26.1.2" %}
         return super.mouseDragged(event, dragX, dragY);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
 {% endcase %}
     }
@@ -1126,11 +1394,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
             panning = false;
             return true;
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
             panning = false;
             return true;
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
 {% if features.release_review and features.editor_documents %}
@@ -1157,10 +1426,33 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return super.mouseReleased(mouseX, mouseY, button);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
+{% else %}
+        if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
+            panning = false;
+            return true;
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && grammarPanning) {
+            grammarPanning = false;
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && resizingEmbeddedDocument != null) {
+            resizingEmbeddedDocument.fitContent(this.font.lineHeight);
+            resizingEmbeddedDocument = null;
+            resizingCorner = null;
+            return true;
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && draggingGrammarInsert) {
+            finishGrammarInsertDrag(mouseX, mouseY);
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+{% endif %}
 {% when "26.1.2" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && grammarPanning) {
             grammarPanning = false;
@@ -1177,7 +1469,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
         return super.mouseReleased(event);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && grammarPanning) {
             grammarPanning = false;
             return true;
@@ -1198,17 +1490,30 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     @Override
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+    @MCVersionDependentBehaviour
+{% endif %}
+{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     @MCVersionDependentBehaviour
 {% endcase %}
     public boolean mouseScrolled(
             double mouseX,
             double mouseY,
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+            double horizontalDelta, double delta
+{% else %}
             double delta
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% endif %}
+{% else %}
+            double deltaX,
+            double deltaY
+{% endif %}
+{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             double deltaX,
             double deltaY
 {% endcase %}
@@ -1216,7 +1521,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% case minecraft_version %}
 {% when "1.20", "1.20.1" %}
         if (delta == 0.0D) {
+            {% if targets.mc_1_21_1 %}
+            return super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta);
+{% else %}
             return super.mouseScrolled(mouseX, mouseY, delta);
+{% endif %}
         }
         if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
             double focusX = grammarScreenToCanvasX(mouseX);
@@ -1227,7 +1536,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             grammarCameraY = focusY - (mouseY - grammarPanelCenterY()) / grammarZoom;
             grammarModel.setCursor(focusX, focusY);
             focusGrammarPanel();
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (deltaY == 0.0D) {
             return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
         }
@@ -1240,11 +1549,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             grammarCameraY = focusY - (mouseY - grammarPanelCenterY()) / grammarZoom;
             grammarModel.setCursor(focusX, focusY);
             focusGrammarPanel();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
             if (delta == 0.0D) {
-                return super.mouseScrolled(mouseX, mouseY, delta);
+                {% if targets.mc_1_21_1 %}
+            return super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta);
+{% else %}
+            return super.mouseScrolled(mouseX, mouseY, delta);
+{% endif %}
             }
             double focusX = screenToCanvasX(mouseX);
             double focusY = screenToCanvasY(mouseY);
@@ -1268,17 +1582,46 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             cameraY = focusY - (mouseY - this.height / 2.0D) / zoom;
             model().setCursor(focusX, focusY);
             rememberCursorPosition();
+{% else %}
+        if (deltaY == 0.0D) {
+            return super.mouseScrolled(mouseX, mouseY, deltaX, deltaY);
+        }
+        if (grammarPanelVisible && isInGrammarPanel(mouseX, mouseY)) {
+            double focusX = grammarScreenToCanvasX(mouseX);
+            double focusY = grammarScreenToCanvasY(mouseY);
+            double scaleFactor = Math.pow(ZOOM_STEP, deltaY);
+            grammarZoom = Mth.clamp(grammarZoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
+            grammarCameraX = focusX - (mouseX - grammarPanelCenterX()) / grammarZoom;
+            grammarCameraY = focusY - (mouseY - grammarPanelCenterY()) / grammarZoom;
+            grammarModel.setCursor(focusX, focusY);
+            focusGrammarPanel();
+{% endif %}
 {% endcase %}
             return true;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
+{% else %}
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        double focusX = screenToCanvasX(mouseX);
+        double focusY = screenToCanvasY(mouseY);
+        double scaleFactor = Math.pow(ZOOM_STEP, deltaY);
+        zoom = Mth.clamp(zoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
+        cameraX = focusX - (mouseX - this.width / 2.0D) / zoom;
+        cameraY = focusY - (mouseY - this.height / 2.0D) / zoom;
+        model().setCursor(focusX, focusY);
+        rememberCursorPosition();
+        return true;
+{% endif %}
 {% when "1.20", "1.20.1" %}
         double focusX = screenToCanvasX(mouseX);
         double focusY = screenToCanvasY(mouseY);
@@ -1289,7 +1632,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         model().setCursor(focusX, focusY);
         rememberCursorPosition();
         return true;
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         double focusX = screenToCanvasX(mouseX);
         double focusY = screenToCanvasY(mouseY);
         double scaleFactor = Math.pow(ZOOM_STEP, deltaY);
@@ -1318,12 +1661,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
 {% when "26.1.2" %}
         int codePoint = event.codepoint();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
+{% else %}
+{% endif %}
 {% endcase %}
         if (suppressNextNumpadPanChar) {
             suppressNextNumpadPanChar = false;
@@ -1341,22 +1687,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (isGrammarPanelFocused()) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         if (openContext != null && openContext.readOnly()) {
+{% else %}
+        if (isGrammarPanelFocused()) {
+{% endif %}
 {% endcase %}
             return true;
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         String text = Character.toString(codePoint);
         rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         String text = Character.toString(codePoint);
         rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
 {% if features.editor_documents %}
         if (replaceExactSelectionText(text, false)) return true;
+{% endif %}
+{% else %}
+        String text = Character.toString(codePoint);
+        rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
 {% endif %}
 {% when "26.1.2" %}
         String text = event.codepointAsString();
@@ -1364,18 +1719,24 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         model().typeGlyph(text, this.font.width(text), this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
         rememberCursorPosition();
         return true;
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
         }
+{% else %}
+{% endif %}
 {% endcase %}
     }
 
@@ -1396,19 +1757,23 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
 {% when "26.1.2" %}
         int keyCode = event.key();
         int scanCode = event.scancode();
         int modifiers = event.modifiers();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
+{% else %}
+{% endif %}
 {% endcase %}
         rememberInputEvent(String.format("keyPressed key=%d scan=%d modifiers=%s", keyCode, scanCode, modifierText(modifiers)));
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.release_review and features.editor_documents %}
         if (splitCanvas != null) {
             if (handleCameraShortcut(keyCode, modifiers) || handleNumpadCameraPan(keyCode)) return true;
@@ -1418,6 +1783,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
         if (keyCode == GLFW.GLFW_KEY_F3) {
             diagnosticControlsVisible = !diagnosticControlsVisible;
@@ -1425,12 +1792,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        if (isGrammarPanelFocused()) {
+            return handleGrammarPanelKeyPressed(keyCode, modifiers);
+        }
+{% endif %}
 {% when "26.1.2" %}
         if (isGrammarPanelFocused()) {
             return handleGrammarPanelKeyPressed(event);
         }
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (isGrammarPanelFocused()) {
             return handleGrammarPanelKeyPressed(keyCode, modifiers);
         }
@@ -1458,13 +1831,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (Screen.isPaste(keyCode)) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         if (Screen.isPaste(keyCode)) {
             if (openContext != null && openContext.readOnly()) {
                 return true;
             }
+{% else %}
+        if (Screen.isPaste(keyCode)) {
+{% endif %}
 {% when "26.1.2" %}
         if (event.isPaste()) {
 {% endcase %}
@@ -1473,8 +1850,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             if (openContext != null) {
                 // Read-only document selection is an exact source range, like a
@@ -1485,6 +1863,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 applyPointerSelection(pointerSelectionLayout(text), selection.anchor(), selection.active());
                 return true;
             }
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
             model().ensureCursorClosestToEachGlyph();
@@ -1508,8 +1888,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return true;
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
         boolean extendNavigation = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
         Optional<SFMTextDocumentSelection> navigationSelection = Optional.empty();
@@ -1532,6 +1913,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
         }
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
             if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
@@ -1540,11 +1923,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorLeft(this.font.lineHeight, this.font.width(" "));
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1558,11 +1945,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorRight(this.font.width(" "));
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1576,11 +1967,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorUp(this.font.lineHeight);
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1594,11 +1989,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorDown(this.font.lineHeight);
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1612,11 +2011,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorToLineStart();
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1630,11 +2033,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 model().moveCursorToLineEnd();
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             rememberCursorPosition();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents and features.editor_pointer_actions and features.canvas_cursor_projection %}
             rememberNavigationPosition(navigationSelection, extendNavigation);
+{% else %}
+            rememberCursorPosition();
+{% endif %}
 {% else %}
             rememberCursorPosition();
 {% endif %}
@@ -1643,81 +2050,108 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (openContext != null && openContext.readOnly()) return true;
 {% if features.editor_documents %}
             if (replaceExactSelectionText("", true)) return true;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
             model().deleteLeftWord(this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (openContext != null && openContext.readOnly()) return true;
 {% if features.editor_documents %}
             if (replaceExactSelectionText("", true)) return true;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
             model().deleteRightWord(this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (openContext != null && openContext.readOnly()) return true;
 {% if features.editor_documents %}
             if (replaceExactSelectionText("", true)) return true;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
             model().deleteLeft(this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (openContext != null && openContext.readOnly()) return true;
 {% if features.editor_documents %}
             if (replaceExactSelectionText("", true)) return true;
 {% endif %}
+{% else %}
+{% endif %}
 {% endcase %}
             model().deleteNearestAndMoveRight(this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             if (openContext != null && openContext.readOnly()) return true;
+{% else %}
+{% endif %}
 {% endcase %}
             if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
                 saveDocumentAndClose();
@@ -1729,13 +2163,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% case minecraft_version %}
 {% when "26.1.2" %}
         return super.keyPressed(event);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         return super.keyPressed(keyCode, scanCode, modifiers);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         return super.keyPressed(keyCode, scanCode, modifiers);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
         }
+{% else %}
+        return super.keyPressed(keyCode, scanCode, modifiers);
+{% endif %}
 {% endcase %}
     }
 
@@ -1756,14 +2194,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
 {% when "26.1.2" %}
         int keyCode = event.key();
         int scanCode = event.scancode();
         int modifiers = event.modifiers();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         performanceTracker.inputReceived(System.nanoTime());
         try {
+{% else %}
+{% endif %}
 {% endcase %}
         rememberInputEvent(String.format("keyReleased key=%d scan=%d modifiers=%s", keyCode, scanCode, modifierText(modifiers)));
         if (isNumpadPanKey(keyCode)) {
@@ -1785,11 +2226,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 saveDocumentAndClose();
             }
             return true;
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         return super.keyReleased(keyCode, scanCode, modifiers);
         } finally {
             performanceTracker.inputApplied(System.nanoTime());
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% else %}
+        return super.keyReleased(keyCode, scanCode, modifiers);
+    }
+
+    private boolean handleGrammarPanelKeyPressed(
+            int keyCode,
+            int modifiers
+    ) {
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0) {
+                saveDocumentAndClose();
+            }
+            return true;
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         return super.keyReleased(keyCode, scanCode, modifiers);
     }
 
@@ -1805,8 +2261,96 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        if (keyCode == GLFW.GLFW_KEY_F1) {
+            grammarModel.focusPreviousCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_F4) {
+            grammarModel.focusNextCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
+            return true;
+        }
+        if (handleGrammarCameraShortcut(keyCode, modifiers)) {
+            return true;
+        }
+        if (Screen.isCopy(keyCode)) {
+            copyGrammarTextToClipboard();
+            return true;
+        }
+        if (Screen.isPaste(keyCode)) {
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            grammarModel.ensureCursorClosestToEachGlyph();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_L && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            grammarModel.ensureCursorClosestToEachGlyphOnActiveCursorLines(this.font.lineHeight);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_COMMA && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            grammarModel.discardCursorsNotClosestToAnyGlyph();
+            return true;
+        }
+        if (handleGrammarArrowAddCursorShortcut(keyCode, modifiers)) {
+            return true;
+        }
+        if (handleGrammarNumpadCameraPan(keyCode)) {
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorLeftWord(this.font.lineHeight, this.font.width(" "));
+            } else {
+                grammarModel.moveCursorLeft(this.font.lineHeight, this.font.width(" "));
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorRightWord(this.font.lineHeight, this.font.width(" "));
+            } else {
+                grammarModel.moveCursorRight(this.font.width(" "));
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_UP) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorUpToGlyph(this.font.lineHeight);
+            } else {
+                grammarModel.moveCursorUp(this.font.lineHeight);
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorDownToGlyph(this.font.lineHeight);
+            } else {
+                grammarModel.moveCursorDown(this.font.lineHeight);
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_HOME) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorToDocumentStart();
+            } else {
+                grammarModel.moveCursorToLineStart();
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_END) {
+            if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+                grammarModel.moveCursorToDocumentEnd();
+            } else {
+                grammarModel.moveCursorToLineEnd();
+            }
+            return true;
+        }
+        return keyCode == GLFW.GLFW_KEY_BACKSPACE || keyCode == GLFW.GLFW_KEY_DELETE;
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         if (keyCode == GLFW.GLFW_KEY_F1) {
             grammarModel.focusPreviousCursor((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
             return true;
@@ -2052,8 +2596,44 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+    private boolean handleGrammarNumpadCameraPan(int keyCode) {
+        double x = 0.0D;
+        double y = 0.0D;
+        switch (keyCode) {
+            case GLFW.GLFW_KEY_KP_7 -> {
+                x = -1.0D;
+                y = -1.0D;
+            }
+            case GLFW.GLFW_KEY_KP_8 -> y = -1.0D;
+            case GLFW.GLFW_KEY_KP_9 -> {
+                x = 1.0D;
+                y = -1.0D;
+            }
+            case GLFW.GLFW_KEY_KP_4 -> x = -1.0D;
+            case GLFW.GLFW_KEY_KP_6 -> x = 1.0D;
+            case GLFW.GLFW_KEY_KP_1 -> {
+                x = -1.0D;
+                y = 1.0D;
+            }
+            case GLFW.GLFW_KEY_KP_2 -> y = 1.0D;
+            case GLFW.GLFW_KEY_KP_3 -> {
+                x = 1.0D;
+                y = 1.0D;
+            }
+            default -> {
+                return false;
+            }
+        }
+        grammarPanCamera(x * KEYBOARD_PAN_SCREEN_PIXELS, y * KEYBOARD_PAN_SCREEN_PIXELS);
+        suppressNextNumpadPanChar = true;
+        return true;
+    }
+
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private boolean handleGrammarNumpadCameraPan(int keyCode) {
         double x = 0.0D;
         double y = 0.0D;
@@ -2138,8 +2718,82 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+    private boolean handleGrammarCameraShortcut(
+            int keyCode,
+            int modifiers
+    ) {
+        if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) {
+            return false;
+        }
+        if ((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 && (keyCode == GLFW.GLFW_KEY_9 || keyCode == GLFW.GLFW_KEY_KP_9)) {
+            fitGrammarContentToPanel();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_0 || keyCode == GLFW.GLFW_KEY_KP_0) {
+            grammarZoom = 1.0D;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_EQUAL || keyCode == GLFW.GLFW_KEY_KP_ADD) {
+            grammarZoomAtPanelCenter(ZOOM_STEP);
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_MINUS || keyCode == GLFW.GLFW_KEY_KP_SUBTRACT) {
+            grammarZoomAtPanelCenter(1.0D / ZOOM_STEP);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean handleGrammarArrowAddCursorShortcut(
+            int keyCode,
+            int modifiers
+    ) {
+        if ((modifiers & GLFW.GLFW_MOD_ALT) == 0) {
+            return false;
+        }
+        boolean wordTarget = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
+        int lineHeight = this.font.lineHeight;
+        int spaceWidth = this.font.width(" ");
+        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+            if (wordTarget) {
+                grammarModel.addCursorLeftWord(lineHeight, spaceWidth);
+            } else {
+                grammarModel.addCursor(grammarModel.cursorCanvasX() - spaceWidth, grammarModel.cursorCanvasY());
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+            if (wordTarget) {
+                grammarModel.addCursorRightWord(lineHeight, spaceWidth);
+            } else {
+                grammarModel.addCursor(grammarModel.cursorCanvasX() + spaceWidth, grammarModel.cursorCanvasY());
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_UP) {
+            if (wordTarget) {
+                grammarModel.addCursorUpToGlyph(lineHeight);
+            } else {
+                grammarModel.addCursor(grammarModel.cursorCanvasX(), grammarModel.cursorCanvasY() - lineHeight);
+            }
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DOWN) {
+            if (wordTarget) {
+                grammarModel.addCursorDownToGlyph(lineHeight);
+            } else {
+                grammarModel.addCursor(grammarModel.cursorCanvasX(), grammarModel.cursorCanvasY() + lineHeight);
+            }
+            return true;
+        }
+        return false;
+    }
+
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private boolean handleGrammarCameraShortcut(
             int keyCode,
             int modifiers
@@ -2234,9 +2888,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     private void fitCanvasContentToScreen() {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (model().glyphs().isEmpty()) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.release_review and features.editor_documents %}
         if (splitCanvas != null) {
             fitSplitCanvas();
@@ -2251,12 +2906,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
                 .bounds();
         if (indexedBounds.isEmpty()) {
+{% else %}
+        if (model().glyphs().isEmpty()) {
+{% endif %}
 {% endcase %}
             resetZoomLevel();
             return;
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
 
         double left = Double.POSITIVE_INFINITY;
         double top = Double.POSITIVE_INFINITY;
@@ -2268,12 +2926,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             right = Math.max(right, glyph.x() + glyph.width());
             bottom = Math.max(bottom, glyph.y() + this.font.lineHeight);
         }
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         SFMDrawCanvasDocumentIndex.ContentBounds contentBounds = indexedBounds.orElseThrow();
         double left = contentBounds.left();
         double top = contentBounds.top();
         double right = contentBounds.right();
         double bottom = contentBounds.bottom();
+{% else %}
+
+        double left = Double.POSITIVE_INFINITY;
+        double top = Double.POSITIVE_INFINITY;
+        double right = Double.NEGATIVE_INFINITY;
+        double bottom = Double.NEGATIVE_INFINITY;
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+            left = Math.min(left, glyph.x());
+            top = Math.min(top, glyph.y());
+            right = Math.max(right, glyph.x() + glyph.width());
+            bottom = Math.max(bottom, glyph.y() + this.font.lineHeight);
+        }
+{% endif %}
 {% endcase %}
 
         double contentWidth = Math.max(1.0D, right - left);
@@ -2349,7 +3021,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         initialContentLoaded = true;
         model = new SFMDrawCanvasModel();
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         long loadStartedNanos = System.nanoTime();
         model.replaceText(openContext.initialValue(), this.font::width, this.font.lineHeight);
 {% if features.editor_documents %}
@@ -2359,14 +3032,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% if features.editor_documents %}
         initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
 {% endif %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        model.typeText(openContext.initialValue(), this.font::width, this.font.lineHeight);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         model.typeText(openContext.initialValue(), this.font::width, this.font.lineHeight);
 {% endcase %}
         model.moveCursorToDocumentStart();
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     }
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         documentGeneration = incrementGeneration(documentGeneration);
         refreshLocalSyntaxColours();
         contextGeneration = incrementGeneration(contextGeneration);
@@ -3272,7 +3949,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
 
 {% if features.editor_documents %}
+{% if targets.mc_1_21_1 %}
+    private void renderExactDocumentSelections(GuiGraphics poseStack) {
+{% else %}
     private void renderExactDocumentSelections(PoseStack poseStack) {
+{% endif %}
         Optional<SFMExactDocumentSelectionPublication> published = currentExactDocumentSelectionPublication();
         if (published.isEmpty()) return;
         SFMExactDocumentSelectionPublication publication = published.orElseThrow();
@@ -3298,7 +3979,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int right = (int) Math.ceil(canvasToScreenX(rect.right()));
             int bottom = (int) Math.ceil(canvasToScreenY(rect.bottom()));
             if (right > 0 && left < width && bottom > 0 && top < height)
-                GuiComponent.fill(poseStack, left, top, right, bottom, 0x8042647A);
+                fill(poseStack, left, top, right, bottom, 0x8042647A);
         }
     }
 {% endif %}
@@ -3322,7 +4003,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
 
 {% if features.editor_documents %}
+{% if targets.mc_1_21_1 %}
+    private void renderDocumentDecorationBackgrounds(GuiGraphics poseStack) {
+{% else %}
     private void renderDocumentDecorationBackgrounds(PoseStack poseStack) {
+{% endif %}
         for (SFMTextDocumentDecoration decoration : documentDecorations) {
             if (decoration.backgroundArgb().isEmpty()) continue;
             try {
@@ -3337,7 +4022,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
 
 {% if features.editor_documents %}
+{% if targets.mc_1_21_1 %}
+    private void renderDocumentDecorationUnderlines(GuiGraphics poseStack) {
+{% else %}
     private void renderDocumentDecorationUnderlines(PoseStack poseStack) {
+{% endif %}
         for (SFMTextDocumentDecoration decoration : documentDecorations) {
             List<TextHighlightRow> rows;
             try {
@@ -3355,8 +4044,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 int top = (int) Math.floor(canvasToScreenY((double) first.line() * font.lineHeight));
                 int left = (int) Math.floor(canvasToScreenX(0));
                 String marker = decoration.gutterMarker().orElseThrow();
-                font.draw(poseStack, marker, Math.max(2, left - font.width(marker) - 3), top,
-                        decoration.underlineArgb().orElse(0xFF60A5FA));
+                SFMFontUtils.draw(poseStack, font, marker, Math.max(2, left - font.width(marker) - 3), top, decoration.underlineArgb().orElse(0xFF60A5FA), false);
             }
         }
     }
@@ -3370,18 +4058,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
 
 {% if features.editor_documents %}
+{% if targets.mc_1_21_1 %}
+    private void renderTextUnderlineRow(GuiGraphics poseStack, TextHighlightRow row, int colour) {
+{% else %}
     private void renderTextUnderlineRow(PoseStack poseStack, TextHighlightRow row, int colour) {
+{% endif %}
         CanvasRect bounds = screenBounds(row);
         int left = (int) Math.floor(bounds.left());
         int right = (int) Math.ceil(bounds.right());
         int bottom = (int) Math.ceil(bounds.bottom());
-        GuiComponent.fill(poseStack, left, bottom - 1, Math.max(left + 1, right), bottom, colour);
+        fill(poseStack, left, bottom - 1, Math.max(left + 1, right), bottom, colour);
     }
 {% endif %}
 
 {% if features.editor_documents %}
     private void renderTextHighlightRow(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             TextHighlightRow row,
             int colour
     ) {
@@ -3390,7 +4086,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int top = (int) Math.floor(bounds.top());
         int right = (int) Math.ceil(bounds.right());
         int bottom = ca.teamdman.sfm.client.text_editor.SFMTextHighlightRaster.boundary(bounds.bottom());
-        GuiComponent.fill(poseStack, left, top, right, bottom, colour);
+        fill(poseStack, left, top, right, bottom, colour);
     }
 {% endif %}
 
@@ -3529,6 +4225,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 {% endif %}
+{% else %}
+    }
+{% endif %}
 {% endcase %}
 
 {% if features.client_actions %}
@@ -3547,7 +4246,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return;
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_async_save %}
         if (openContext.asynchronousSave() && !openContext.readOnly()) {
             saveDocumentAsync(true);
@@ -3560,7 +4260,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         finishClose();
 {% endif %}
 {% endif %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        saveDocument();
+        finishClose();
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         saveDocument();
         finishClose();
 {% endcase %}
@@ -3571,7 +4275,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
     public void saveDocument() {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_async_save %}
         if (openContext != null && openContext.asynchronousSave() && !openContext.readOnly()) {
             saveDocumentAsync(false);
@@ -3609,7 +4314,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 {% endif %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        if (openContext != null) {
+            openContext.saveWriter().accept(getCurrentText());
+        }
+    }
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (openContext != null) {
             openContext.saveWriter().accept(getCurrentText());
         }
@@ -3617,8 +4328,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_document_panels or features.editor_async_save %}
     @Override
 {% endif %}
@@ -3646,7 +4358,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 {% endif %}
 
+{% if targets.mc_1_21_1 %}
+    private void renderSaveDiagnostic(GuiGraphics poseStack) {
+{% else %}
     private void renderSaveDiagnostic(PoseStack poseStack) {
+{% endif %}
         if (saveDiagnostic.isEmpty()) return;
         String text = saveDiagnostic.orElseThrow().getString();
         int maximumWidth = Math.max(0, width - 124);
@@ -3667,6 +4383,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         );
     }
 
+{% else %}
+{% endif %}
 {% endcase %}
 {% if features.client_actions %}
     @Override
@@ -3676,10 +4394,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private void finishClose() {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     protected void finishClose() {
+{% else %}
+    private void finishClose() {
+{% endif %}
 {% endcase %}
         if (pushed) {
             SFMScreenChangeHelpers.popScreen();
@@ -3711,7 +4433,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     private String getCurrentText() {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
         if (exactEditedRevision == model().contentRevision() && exactEditedText != null) return exactEditedText;
 {% endif %}
@@ -4016,7 +4739,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         performanceTracker.viewportResolved(System.nanoTime() - startedNanos);
         return new ResolvedViewportGlyphs(slice, true);
     }
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        return SFMDrawCanvasSyntaxHighlightingHelper
+                .projectCanvasDocument(model().glyphs(), this.font.width(" "), this.font.lineHeight)
+                .text();
+    }
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         return SFMDrawCanvasSyntaxHighlightingHelper
                 .projectCanvasDocument(model().glyphs(), this.font.width(" "), this.font.lineHeight)
                 .text();
@@ -4025,7 +4754,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     private void initializeCamera() {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         if (!cameraInitialized) {
             cameraX = (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
             cameraY = (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
@@ -4033,13 +4763,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         } else {
             cameraX = resizeCameraAxis(cameraX, zoom, cameraViewportWidth, this.width);
             cameraY = resizeCameraAxis(cameraY, zoom, cameraViewportHeight, this.height);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        if (cameraInitialized) {
+            return;
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (cameraInitialized) {
             return;
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         cameraViewportWidth = this.width;
         cameraViewportHeight = this.height;
     }
@@ -4052,7 +4787,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     ) {
         if (previousViewportExtent <= 0 || previousViewportExtent == nextViewportExtent) return camera;
         return camera + (nextViewportExtent - previousViewportExtent) / (2.0D * zoom);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        cameraX = (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+        cameraY = (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+        cameraInitialized = true;
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         cameraX = (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
         cameraY = (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
         cameraInitialized = true;
@@ -4074,10 +4814,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderGrid(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGrid(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderGrid(GuiGraphics poseStack) {
+{% else %}
     private void renderGrid(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderGrid(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         double step = visibleGridStep();
         double leftCanvas = screenToCanvasX(0);
@@ -4092,9 +4840,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int screenX = (int) Math.round(canvasToScreenX(canvasX));
             int color = gridLineColor(gridX);
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             fill(poseStack, screenX, 0, screenX + 1, this.height, color);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            guiGraphics.fill( screenX, 0, screenX + 1, this.height, color);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             guiGraphics.fill( screenX, 0, screenX + 1, this.height, color);
 {% endcase %}
         }
@@ -4106,9 +4858,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int screenY = (int) Math.round(canvasToScreenY(canvasY));
             int color = gridLineColor(gridY);
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             fill(poseStack, 0, screenY, this.width, screenY + 1, color);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            guiGraphics.fill( 0, screenY, this.width, screenY + 1, color);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             guiGraphics.fill( 0, screenY, this.width, screenY + 1, color);
 {% endcase %}
         }
@@ -4116,18 +4872,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int axisX = (int) Math.round(canvasToScreenX(0.0D));
         if (axisX >= 0 && axisX < this.width) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             fill(poseStack, axisX, 0, axisX + 2, this.height, AXIS_Y);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            guiGraphics.fill( axisX, 0, axisX + 2, this.height, AXIS_Y);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             guiGraphics.fill( axisX, 0, axisX + 2, this.height, AXIS_Y);
 {% endcase %}
         }
         int axisY = (int) Math.round(canvasToScreenY(0.0D));
         if (axisY >= 0 && axisY < this.height) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             fill(poseStack, 0, axisY, this.width, axisY + 2, AXIS_X);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            guiGraphics.fill( 0, axisY, this.width, axisY + 2, AXIS_X);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             guiGraphics.fill( 0, axisY, this.width, axisY + 2, AXIS_X);
 {% endcase %}
         }
@@ -4148,6 +4912,27 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return step;
     }
 
+{% if targets.mc_1_21_1 and features.inspection_workspace %}
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderGlyphs(GuiGraphics graphics, List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs) {
+        graphics.pose().pushPose();
+        try {
+            graphics.pose().translate(canvasToScreenX(0), canvasToScreenY(0), 0.0D);
+            graphics.pose().scale((float) zoom, (float) zoom, 1.0F);
+            for (SFMDrawCanvasModel.CanvasGlyph glyph : visibleGlyphs) {
+                Component styled = remoteStyledGlyphs.get(glyph);
+                if (styled != null) {
+                    SFMFontUtils.draw(graphics, font, styled, (int) glyph.x(), (int) glyph.y(), GLYPH, true);
+                } else {
+                    SFMFontUtils.draw(graphics, font, glyph.text(), (int) glyph.x(), (int) glyph.y(),
+                            localSyntaxColours.getOrDefault(glyph, GLYPH), true);
+                }
+            }
+        } finally {
+            graphics.pose().popPose();
+        }
+    }
+{% else %}
 {% case minecraft_version %}
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
@@ -4157,17 +4942,42 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 this.font.width(" "),
                 this.font.lineHeight,
                 GLYPH
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private void renderGlyphs(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().pushPose();
+{% else %}
         poseStack.pushPose();
+{% endif %}
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().translate(canvasToScreenX(0), canvasToScreenY(0), 0.0D);
+{% else %}
         poseStack.translate(canvasToScreenX(0), canvasToScreenY(0), 0.0D);
+{% endif %}
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().scale((float) zoom, (float) zoom, 1.0F);
+{% else %}
         poseStack.scale((float) zoom, (float) zoom, 1.0F);
+{% endif %}
         MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(
                 Tesselator.getInstance().getBuilder()
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% else %}
+    private void renderGlyphs(GuiGraphics guiGraphics) {
+        Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
+                model().glyphs(),
+                this.font.width(" "),
+                this.font.lineHeight,
+                GLYPH
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGlyphs(GuiGraphics guiGraphics) {
         Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
                 model().glyphs(),
@@ -4186,7 +4996,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().popMatrix();
         }
     }
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
@@ -4195,7 +5005,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().popPose();
         }
     }
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         var matrix = poseStack.last().pose();
         for (SFMDrawCanvasModel.CanvasGlyph glyph : visibleGlyphs) {
             Component styled = remoteStyledGlyphs.get(glyph);
@@ -4226,12 +5037,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
         }
         buffer.endBatch();
+{% if targets.mc_1_21_1 %}
+        poseStack.pose().popPose();
+{% else %}
         poseStack.popPose();
+{% endif %}
     }
 
 {% if features.java_symbols and features.editor_documents %}
     private void renderSymbolHoverUnderline(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
         if (symbolHoverUnderline.isEmpty()) return;
@@ -4255,20 +5074,41 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 {% endif %}
+{% else %}
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
+            guiGraphics.pose().scale((float) zoom, (float) zoom, 1.0F);
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
+            guiGraphics.pose().popPose();
+        }
+    }
+{% endif %}
 {% endcase %}
+
+{% endif %}
 
 {% case minecraft_version %}
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderGlyphBoundingBoxes(GuiGraphicsExtractor guiGraphics) {
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private void renderGlyphBoundingBoxes(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
         for (SFMDrawCanvasModel.CanvasGlyph glyph : visibleGlyphs) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% else %}
+    private void renderGlyphBoundingBoxes(GuiGraphics guiGraphics) {
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGlyphBoundingBoxes(GuiGraphics guiGraphics) {
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
 {% endcase %}
@@ -4277,10 +5117,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int right = (int) Math.ceil(left + this.font.width(glyph.text()) * zoom);
             int bottom = (int) Math.ceil(top + this.font.lineHeight * zoom);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             drawRectOutline(guiGraphics, left, top, Math.max(left + 1, right), Math.max(top + 1, bottom), GLYPH_BOUNDS);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             drawRectOutline(poseStack, left, top, Math.max(left + 1, right), Math.max(top + 1, bottom), GLYPH_BOUNDS);
+{% else %}
+            drawRectOutline(guiGraphics, left, top, Math.max(left + 1, right), Math.max(top + 1, bottom), GLYPH_BOUNDS);
+{% endif %}
 {% endcase %}
         }
     }
@@ -4289,7 +5133,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "1.19.4" %}
     @MCVersionDependentBehaviour
     private void renderGlyphSelectionHighlights(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
         long startedNanos = System.nanoTime();
@@ -4319,7 +5167,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                         canvasToScreenX(glyph.x() + glyph.width()),
                         canvasToScreenY(glyph.y() + this.font.lineHeight)
                 ));
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     @MCVersionDependentBehaviour
     private void renderGlyphSelectionHighlights(GuiGraphics guiGraphics) {
         List<CanvasRect> mask = new ArrayList<>();
@@ -4333,9 +5181,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
             if (uniqueCursorInGlyphBounds(glyph) == null) {
                 continue;
-{% when "1.19.2" %}
+{% when "1.19.2", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private void renderGlyphSelectionHighlights(
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
         long startedNanos = System.nanoTime();
@@ -4365,10 +5218,19 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                         canvasToScreenX(glyph.x() + glyph.width()),
                         canvasToScreenY(glyph.y() + this.font.lineHeight)
                 ));
+{% else %}
+    @MCVersionDependentBehaviour
+    private void renderGlyphSelectionHighlights(GuiGraphics guiGraphics) {
+        List<CanvasRect> mask = new ArrayList<>();
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+            if (uniqueCursorInGlyphBounds(glyph) == null) {
+                continue;
+{% endif %}
 {% endcase %}
             }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             highlights = List.copyOf(unionRects(mask));
             selectionHighlightCache = new SelectionHighlightCache(
                     model().contentRevision(),
@@ -4381,7 +5243,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                     highlights
             );
             performanceTracker.selectionGeometry(true, System.nanoTime() - startedNanos);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            mask.add(new CanvasRect(
+                    canvasToScreenX(glyph.x()),
+                    canvasToScreenY(glyph.y()),
+                    canvasToScreenX(glyph.x() + glyph.width()),
+                    canvasToScreenY(glyph.y() + this.font.lineHeight)
+            ));
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             mask.add(new CanvasRect(
                     canvasToScreenX(glyph.x()),
                     canvasToScreenY(glyph.y()),
@@ -4391,14 +5261,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         for (CanvasRect rect : highlights) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        for (CanvasRect rect : unionRects(mask)) {
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         for (CanvasRect rect : unionRects(mask)) {
 {% endcase %}
             SFMScreenRenderUtils.renderHighlight(
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                     guiGraphics,
                     Mth.floor(rect.left()),
                     Mth.floor(rect.top()),
@@ -4410,20 +5284,29 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                     Mth.floor(rect.top()),
                     Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
                     Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
-{% when "1.19.2" %}
+{% when "1.19.2", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                     poseStack,
                     rect.left(),
                     rect.top(),
                     Math.max(rect.left() + 1.0D, rect.right()),
                     Math.max(rect.top() + 1.0D, rect.bottom())
+{% else %}
+                    guiGraphics,
+                    Mth.floor(rect.left()),
+                    Mth.floor(rect.top()),
+                    Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
+                    Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
+{% endif %}
 {% endcase %}
             );
         }
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private long cursorFingerprint() {
         long value = 0xCBF29CE484222325L;
         for (SFMDrawCanvasModel.CanvasCursor cursor : model().cursors()) {
@@ -4439,6 +5322,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return (current ^ value) * 0x100000001B3L;
     }
 
+{% else %}
+{% endif %}
 {% endcase %}
     static List<CanvasRect> unionRects(List<CanvasRect> sourceRects) {
         List<CanvasRect> rects = sourceRects
@@ -4527,10 +5412,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderCursorTrail(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderCursorTrail(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderCursorTrail(GuiGraphics poseStack) {
+{% else %}
     private void renderCursorTrail(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderCursorTrail(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         int count = cursorTrail.size();
         for (int i = 0; i < count; i++) {
@@ -4542,8 +5435,132 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int screenY = (int) Math.round(canvasToScreenY(point.y()));
             int size = Math.max(1, (int) Math.round(2.0D * zoom));
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             fill(poseStack, screenX - size, screenY - size, screenX + size + 1, screenY + size + 1, color);
+{% else %}
+            guiGraphics.fill( screenX - size, screenY - size, screenX + size + 1, screenY + size + 1, color);
+        }
+    }
+
+    private void renderEmbeddedDocuments(GuiGraphics guiGraphics) {
+        for (EmbeddedDocument document : embeddedDocuments) {
+            renderEmbeddedDocument(guiGraphics, document);
+        }
+    }
+
+    private void renderEmbeddedDocument(
+            GuiGraphics guiGraphics,
+            EmbeddedDocument document
+    ) {
+        int left = (int) Math.floor(canvasToScreenX(document.canvasX));
+        int top = (int) Math.floor(canvasToScreenY(document.canvasY));
+        int right = (int) Math.ceil(canvasToScreenX(document.canvasX + document.canvasWidth));
+        int bottom = (int) Math.ceil(canvasToScreenY(document.canvasY + document.canvasHeight));
+        if (right < 0 || bottom < 0 || left > this.width || top > this.height) {
+            return;
+        }
+
+        guiGraphics.fill( left, top, right, bottom, EMBEDDED_DOCUMENT_BACKGROUND);
+        drawRectOutline(guiGraphics, left, top, right, bottom, EMBEDDED_DOCUMENT_BORDER);
+        int titleWidth = this.font.width(document.title);
+        guiGraphics.fill( left, top - 14, Math.min(right, left + titleWidth + 12), top, PANEL_TAB_BACKGROUND);
+        SFMFontUtils.draw(guiGraphics, this.font, Component.literal(document.title), left + 6, top - 11, HUD_TEXT, true);
+        renderEmbeddedDocumentGlyphs(guiGraphics, document, left, top, right, bottom);
+        renderEmbeddedDocumentHandles(guiGraphics, left, top, right, bottom);
+    }
+
+    private void renderEmbeddedDocumentGlyphs(
+            GuiGraphics guiGraphics,
+            EmbeddedDocument document,
+            int left,
+            int top,
+            int right,
+            int bottom
+    ) {
+        Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildAntlrGrammarHighlightColours(
+                document.model.glyphs(),
+                this.font.width(" "),
+                this.font.lineHeight,
+                GLYPH
+        );
+        double scale = document.contentZoom * zoom;
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : document.model.glyphs()) {
+            double canvasX = document.canvasX + document.canvasWidth / 2.0D + (glyph.x() - document.cameraX) * document.contentZoom;
+            double canvasY = document.canvasY + document.canvasHeight / 2.0D + (glyph.y() - document.cameraY) * document.contentZoom;
+            double screenX = canvasToScreenX(canvasX);
+            double screenY = canvasToScreenY(canvasY);
+            if (screenX > right || screenX + glyph.width() * scale < left || screenY > bottom || screenY + this.font.lineHeight * scale < top) {
+                continue;
+            }
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(screenX, screenY, 0.0D);
+            guiGraphics.pose().scale((float) scale, (float) scale, 1.0F);
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
+            guiGraphics.pose().popPose();
+        }
+    }
+
+    private void renderEmbeddedDocumentHandles(
+            GuiGraphics guiGraphics,
+            int left,
+            int top,
+            int right,
+            int bottom
+    ) {
+        int handle = 5;
+        guiGraphics.fill( left - handle, top - handle, left + handle, top + handle, EMBEDDED_DOCUMENT_HANDLE);
+        guiGraphics.fill( right - handle, top - handle, right + handle, top + handle, EMBEDDED_DOCUMENT_HANDLE);
+        guiGraphics.fill( left - handle, bottom - handle, left + handle, bottom + handle, EMBEDDED_DOCUMENT_HANDLE);
+        guiGraphics.fill( right - handle, bottom - handle, right + handle, bottom + handle, EMBEDDED_DOCUMENT_HANDLE);
+    }
+
+    private void renderGrammarInsertDrag(
+            GuiGraphics guiGraphics,
+            int mouseX,
+            int mouseY
+    ) {
+        drawDashedLine(
+                guiGraphics,
+                (int) Math.round(grammarInsertStartX),
+                (int) Math.round(grammarInsertStartY),
+                mouseX,
+                mouseY,
+                INSERT_DRAG_LINE
+        );
+        int previewWidth = Math.max(180, (int) Math.round(260.0D * zoom));
+        int previewHeight = Math.max(100, (int) Math.round(160.0D * zoom));
+        drawRectOutline(
+                guiGraphics,
+                mouseX,
+                mouseY,
+                mouseX + previewWidth,
+                mouseY + previewHeight,
+                INSERT_DRAG_LINE
+        );
+    }
+
+    private void drawDashedLine(
+            GuiGraphics guiGraphics,
+            int startX,
+            int startY,
+            int endX,
+            int endY,
+            int color
+    ) {
+        double dx = endX - startX;
+        double dy = endY - startY;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length <= 0.0D) {
+            return;
+        }
+        int segments = Math.max(1, (int) (length / 6.0D));
+        for (int i = 0; i <= segments; i += 2) {
+            double t = (double) i / (double) segments;
+            int x = (int) Math.round(startX + dx * t);
+            int y = (int) Math.round(startY + dy * t);
+            guiGraphics.fill( x - 1, y - 1, x + 2, y + 2, color);
+{% endif %}
 {% when "26.1.2" %}
             guiGraphics.fill( screenX - size, screenY - size, screenX + size + 1, screenY + size + 1, color);
         }
@@ -4672,7 +5689,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int x = (int) Math.round(startX + dx * t);
             int y = (int) Math.round(startY + dy * t);
             guiGraphics.fill( x - 1, y - 1, x + 2, y + 2, color);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             guiGraphics.fill( screenX - size, screenY - size, screenX + size + 1, screenY + size + 1, color);
         }
     }
@@ -4805,12 +5822,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     private void drawRectOutline(
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             GuiGraphics guiGraphics,
 {% when "26.1.2" %}
             GuiGraphicsExtractor guiGraphics,
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
+{% else %}
+            GuiGraphics guiGraphics,
+{% endif %}
 {% endcase %}
             int left,
             int top,
@@ -4819,12 +5844,19 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int color
     ) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         fill(poseStack, left, top, right, top + 1, color);
         fill(poseStack, left, bottom - 1, right, bottom, color);
         fill(poseStack, left, top, left + 1, bottom, color);
         fill(poseStack, right - 1, top, right, bottom, color);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        guiGraphics.fill( left, top, right, top + 1, color);
+        guiGraphics.fill( left, bottom - 1, right, bottom, color);
+        guiGraphics.fill( left, top, left + 1, bottom, color);
+        guiGraphics.fill( right - 1, top, right, bottom, color);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( left, top, right, top + 1, color);
         guiGraphics.fill( left, bottom - 1, right, bottom, color);
         guiGraphics.fill( left, top, left + 1, bottom, color);
@@ -4836,10 +5868,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderCanvasCursor(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderCanvasCursor(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderCanvasCursor(GuiGraphics poseStack) {
+{% else %}
     private void renderCanvasCursor(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderCanvasCursor(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         for (int i = 0; i < model().cursors().size(); i++) {
             SFMDrawCanvasModel.CanvasCursor cursor = model().cursors().get(i);
@@ -4847,10 +5887,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 continue;
             }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             renderCanvasCursor(guiGraphics, cursor, i == model().focusedCursorIndex());
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             renderCanvasCursor(poseStack, cursor, i == model().focusedCursorIndex());
+{% else %}
+            renderCanvasCursor(guiGraphics, cursor, i == model().focusedCursorIndex());
+{% endif %}
 {% endcase %}
         }
     }
@@ -4862,12 +5906,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     private void renderCanvasCursor(
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             GuiGraphics guiGraphics,
 {% when "26.1.2" %}
             GuiGraphicsExtractor guiGraphics,
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+            GuiGraphics poseStack,
+{% else %}
             PoseStack poseStack,
+{% endif %}
+{% else %}
+            GuiGraphics guiGraphics,
+{% endif %}
 {% endcase %}
             SFMDrawCanvasModel.CanvasCursor cursor,
             boolean focused
@@ -4878,15 +5930,37 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int cursorSize = cursor.active() ? size + 2 : size;
         if (focused) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             SFMGuiCrosshair.draw(poseStack, mouseX, mouseY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         SFMGuiCrosshair.draw(poseStack, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
+{% else %}
+        drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
+    }
+
+    private void drawCrosshair(
+            GuiGraphics guiGraphics,
+            int mouseX,
+            int mouseY,
+            int size,
+            int color
+    ) {
+        guiGraphics.fill( mouseX - size, mouseY, mouseX - 2, mouseY + 1, color);
+        guiGraphics.fill( mouseX + 3, mouseY, mouseX + size + 1, mouseY + 1, color);
+        guiGraphics.fill( mouseX, mouseY - size, mouseX + 1, mouseY - 2, color);
+        guiGraphics.fill( mouseX, mouseY + 3, mouseX + 1, mouseY + size + 1, color);
+        guiGraphics.fill( mouseX, mouseY, mouseX + 1, mouseY + 1, color);
+{% endif %}
 {% when "26.1.2" %}
         drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
     }
@@ -4904,7 +5978,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( mouseX, mouseY - size, mouseX + 1, mouseY - 2, color);
         guiGraphics.fill( mouseX, mouseY + 3, mouseX + 1, mouseY + size + 1, color);
         guiGraphics.fill( mouseX, mouseY, mouseX + 1, mouseY + 1, color);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         drawCrosshair(guiGraphics, mouseX, mouseY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
     }
 
@@ -4964,14 +6038,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             SFMDrawCanvasModel.CanvasCursor cursor
     ) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         for (SFMDrawCanvasModel.CanvasGlyph glyph : sourceModel.glyphs()) {
             if (uniqueCursorInGlyphBounds(sourceModel, glyph) == cursor) {
                 return true;
             }
         }
         return false;
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.canvas_indexed_document %}
         return sourceModel.documentIndex(this.font.width(" "), this.font.lineHeight)
 {% else %}
@@ -4980,6 +6055,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 .glyphAt(cursor.x(), cursor.y())
                 .map(glyph -> uniqueCursorInGlyphBounds(sourceModel, glyph) == cursor)
                 .orElse(false);
+{% else %}
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : sourceModel.glyphs()) {
+            if (uniqueCursorInGlyphBounds(sourceModel, glyph) == cursor) {
+                return true;
+            }
+        }
+        return false;
+{% endif %}
 {% endcase %}
     }
 
@@ -4995,9 +6078,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     private void rememberCursorPosition() {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         contextGeneration = incrementGeneration(contextGeneration);
+{% else %}
+{% endif %}
 {% endcase %}
         if (!showCursorTrail && cursorTrail.isEmpty()) {
             return;
@@ -5017,26 +6103,35 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private static long incrementGeneration(long value) {
         return value == Long.MAX_VALUE ? value : value + 1;
     }
 
+{% else %}
+{% endif %}
 {% endcase %}
     private void insertLineBreak() {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
         if (replaceExactSelectionText("\n", false)) return;
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
         model().insertLineBreak(this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
         rememberCursorPosition();
     }
@@ -5052,27 +6147,34 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             return;
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
         if (replaceExactSelectionText(clipboardContents, false)) return;
+{% endif %}
+{% else %}
 {% endif %}
 {% endcase %}
         model().pasteText(clipboardContents, text -> this.font.width(text), this.font.lineHeight);
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         documentChanged();
+{% else %}
+{% endif %}
 {% endcase %}
         rememberCursorPosition();
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private void copyCanvasTextToClipboard() {
         try {
             Minecraft.getInstance().keyboardHandler.setClipboard(model().copyableText(this.font.width(" "), this.font.lineHeight));
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
     private void rememberHistoryLayout(String text) {
         if (text.length() > 32768) return;
@@ -5301,7 +6403,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         syntaxDiagnostic = message.isBlank() ? Optional.empty() : Optional.of(Component.literal(message));
     }
 
+{% if targets.mc_1_21_1 %}
+    private void renderSyntaxDiagnostic(GuiGraphics poseStack) {
+{% else %}
     private void renderSyntaxDiagnostic(PoseStack poseStack) {
+{% endif %}
         if (syntaxDiagnostic.isEmpty()) return;
         int maximumWidth = Math.max(0, this.width - 16);
         if (maximumWidth <= 0) return;
@@ -5376,14 +6482,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             }
 {% endif %}
             copyCanvasText(model().copyableText(this.font.width(" "), this.font.lineHeight));
+{% else %}
+    private void copyCanvasTextToClipboard() {
+        try {
+            Minecraft.getInstance().keyboardHandler.setClipboard(model().copyableText(this.font.width(" "), this.font.lineHeight));
+{% endif %}
 {% endcase %}
         } catch (Throwable ignored) {
         }
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private static void copyCanvasText(String text) {
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.keyboardHandler.setClipboard(text);
@@ -5395,6 +6507,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endif %}
     }
 
+{% else %}
+{% endif %}
 {% endcase %}
     private void rememberInputEvent(String event) {
         inputEvents.add(event);
@@ -5407,23 +6521,39 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderHud(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderHud(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderHud(GuiGraphics poseStack) {
+{% else %}
     private void renderHud(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderHud(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         int left = 8;
         int top = diagnosticControlsVisible ? 104 : 8;
         int right = 226;
         int bottom = 48;
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         fill(poseStack, left, top, right, bottom, HUD_BACKGROUND);
         fill(poseStack, left, top, right, top + 1, HUD_BORDER);
         fill(poseStack, left, bottom - 1, right, bottom, HUD_BORDER);
         fill(poseStack, left, top, left + 1, bottom, HUD_BORDER);
         fill(poseStack, right - 1, top, right, bottom, HUD_BORDER);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
+        guiGraphics.fill( left, top, right, top + 1, HUD_BORDER);
+        guiGraphics.fill( left, bottom - 1, right, bottom, HUD_BORDER);
+        guiGraphics.fill( left, top, left + 1, bottom, HUD_BORDER);
+        guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
         guiGraphics.fill( left, top, right, top + 1, HUD_BORDER);
         guiGraphics.fill( left, bottom - 1, right, bottom, HUD_BORDER);
@@ -5432,17 +6562,25 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         SFMFontUtils.draw(guiGraphics, this.font, this.title, left + 8, top + 7, HUD_TEXT, true);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         SFMFontUtils.draw(poseStack, this.font, this.title, left + 8, top + 7, HUD_TEXT, true);
+{% else %}
+        SFMFontUtils.draw(guiGraphics, this.font, this.title, left + 8, top + 7, HUD_TEXT, true);
+{% endif %}
 {% endcase %}
         SFMFontUtils.draw(
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                 guiGraphics,
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                 poseStack,
+{% else %}
+                guiGraphics,
+{% endif %}
 {% endcase %}
                 this.font,
                 String.format(
@@ -5462,10 +6600,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderInputDiagnostics(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderInputDiagnostics(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderInputDiagnostics(GuiGraphics poseStack) {
+{% else %}
     private void renderInputDiagnostics(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderInputDiagnostics(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         if (inputEvents.isEmpty()) {
             return;
@@ -5477,13 +6623,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int right = Math.min(this.width - 8, 420);
         int bottom = top + height;
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         fill(poseStack, left, top, right, bottom, HUD_BACKGROUND);
         fill(poseStack, left, top, right, top + 1, HUD_BORDER);
         fill(poseStack, left, bottom - 1, right, bottom, HUD_BORDER);
         fill(poseStack, left, top, left + 1, bottom, HUD_BORDER);
         fill(poseStack, right - 1, top, right, bottom, HUD_BORDER);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
+        guiGraphics.fill( left, top, right, top + 1, HUD_BORDER);
+        guiGraphics.fill( left, bottom - 1, right, bottom, HUD_BORDER);
+        guiGraphics.fill( left, top, left + 1, bottom, HUD_BORDER);
+        guiGraphics.fill( right - 1, top, right, bottom, HUD_BORDER);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
         guiGraphics.fill( left, top, right, top + 1, HUD_BORDER);
         guiGraphics.fill( left, bottom - 1, right, bottom, HUD_BORDER);
@@ -5493,10 +6647,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int y = top + 6;
         for (String event : inputEvents) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             SFMFontUtils.draw(guiGraphics, this.font, event, left + 6, y, HUD_MUTED, true);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             SFMFontUtils.draw(poseStack, this.font, event, left + 6, y, HUD_MUTED, true);
+{% else %}
+            SFMFontUtils.draw(guiGraphics, this.font, event, left + 6, y, HUD_MUTED, true);
+{% endif %}
 {% endcase %}
             y += lineHeight;
         }
@@ -5536,8 +6694,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+    private MutableComponent sfmlButtonTooltip() {
+        return DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX.getComponent()
+                .append(Component.literal("SFML.g4").withStyle(ChatFormatting.AQUA));
+    }
+
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
     private MutableComponent sfmlButtonTooltip() {
         return DRAW_CANVAS_SFML_BUTTON_TOOLTIP_PREFIX.getComponent()
                 .append(Component.literal("SFML.g4").withStyle(ChatFormatting.AQUA));
@@ -5546,17 +6712,25 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% endcase %}
     private MutableComponent doneButtonTooltip() {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         return DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX.getComponent()
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         return TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_PREFIX.getComponent()
+{% else %}
+        return DRAW_CANVAS_DONE_BUTTON_TOOLTIP_PREFIX.getComponent()
+{% endif %}
 {% endcase %}
                 .append(Component.literal("Shift+Enter").withStyle(ChatFormatting.AQUA))
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                 .append(DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX.getComponent());
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                 .append(TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_SUFFIX.getComponent());
+{% else %}
+                .append(DRAW_CANVAS_DONE_BUTTON_TOOLTIP_SUFFIX.getComponent());
+{% endif %}
 {% endcase %}
     }
 
@@ -5577,8 +6751,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     ) {
         draggingGrammarInsert = false;
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% else %}
+        if (sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
+            return;
+        }
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         if (sfmlButton != null && sfmlButton.isMouseOver(mouseX, mouseY)) {
             return;
         }
@@ -5880,10 +7060,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderGrammarPanel(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGrammarPanel(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderGrammarPanel(GuiGraphics poseStack) {
+{% else %}
     private void renderGrammarPanel(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderGrammarPanel(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         loadGrammarContent();
         initializeGrammarCamera();
@@ -5892,51 +7080,77 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         int right = left + grammarPanelWidth();
         int bottom = top + grammarPanelHeight();
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         fill(poseStack, left, top, right, bottom, PANEL_BACKGROUND);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        guiGraphics.fill( left, top, right, bottom, PANEL_BACKGROUND);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( left, top, right, bottom, PANEL_BACKGROUND);
 {% endcase %}
 
         int tabWidth = 70;
         int tabHeight = 16;
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         fill(poseStack, left + 8, top - tabHeight, left + 8 + tabWidth, top, PANEL_TAB_BACKGROUND);
         drawRectOutline(poseStack, left + 8, top - tabHeight, left + 8 + tabWidth, top + 1, HUD_BORDER);
         SFMFontUtils.draw(poseStack, this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT, true);
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+        guiGraphics.fill( left + 8, top - tabHeight, left + 8 + tabWidth, top, PANEL_TAB_BACKGROUND);
+        drawRectOutline(guiGraphics, left + 8, top - tabHeight, left + 8 + tabWidth, top + 1, HUD_BORDER);
+        SFMFontUtils.draw(guiGraphics, this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT, true);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         guiGraphics.fill( left + 8, top - tabHeight, left + 8 + tabWidth, top, PANEL_TAB_BACKGROUND);
         drawRectOutline(guiGraphics, left + 8, top - tabHeight, left + 8 + tabWidth, top + 1, HUD_BORDER);
         SFMFontUtils.draw(guiGraphics, this.font, Component.literal("SFML.g4"), left + 14, top - tabHeight + 4, HUD_TEXT, true);
 {% endcase %}
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         renderGrammarGlyphs(guiGraphics);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         renderGrammarGlyphs(poseStack);
+{% else %}
+        renderGrammarGlyphs(guiGraphics);
+{% endif %}
 {% endcase %}
         if (!hideSelection) {
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             renderGrammarGlyphSelectionHighlights(guiGraphics);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             renderGrammarGlyphSelectionHighlights(poseStack);
+{% else %}
+            renderGrammarGlyphSelectionHighlights(guiGraphics);
+{% endif %}
 {% endcase %}
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         renderGrammarCanvasCursor(guiGraphics);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         renderGrammarCanvasCursor(poseStack);
+{% else %}
+        renderGrammarCanvasCursor(guiGraphics);
+{% endif %}
 {% endcase %}
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
         drawRectOutline(guiGraphics, left, top, right, bottom, isGrammarPanelFocused() ? FOCUS_BORDER : HUD_BORDER);
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
         drawRectOutline(poseStack, left, top, right, bottom, isGrammarPanelFocused() ? FOCUS_BORDER : HUD_BORDER);
+{% else %}
+        drawRectOutline(guiGraphics, left, top, right, bottom, isGrammarPanelFocused() ? FOCUS_BORDER : HUD_BORDER);
+{% endif %}
 {% endcase %}
     }
 
@@ -5944,10 +7158,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderGrammarGlyphs(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGrammarGlyphs(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderGrammarGlyphs(GuiGraphics poseStack) {
+{% else %}
     private void renderGrammarGlyphs(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderGrammarGlyphs(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildAntlrGrammarHighlightColours(
                 grammarModel.glyphs(),
@@ -5972,24 +7194,48 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom);
             SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
             guiGraphics.pose().popMatrix();
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(screenX, screenY, 0.0D);
             guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom, 1.0F);
             SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
             guiGraphics.pose().popPose();
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+            poseStack.pose().pushPose();
+{% else %}
             poseStack.pushPose();
+{% endif %}
+{% if targets.mc_1_21_1 %}
+            poseStack.pose().translate(screenX, screenY, 0.0D);
+{% else %}
             poseStack.translate(screenX, screenY, 0.0D);
+{% endif %}
+{% if targets.mc_1_21_1 %}
+            poseStack.pose().scale((float) grammarZoom, (float) grammarZoom, 1.0F);
+{% else %}
             poseStack.scale((float) grammarZoom, (float) grammarZoom, 1.0F);
+{% endif %}
             SFMFontUtils.draw(poseStack, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
+{% if targets.mc_1_21_1 %}
+            poseStack.pose().popPose();
+{% else %}
             poseStack.popPose();
+{% endif %}
+{% else %}
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(screenX, screenY, 0.0D);
+            guiGraphics.pose().scale((float) grammarZoom, (float) grammarZoom, 1.0F);
+            SFMFontUtils.draw(guiGraphics, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
+            guiGraphics.pose().popPose();
+{% endif %}
 {% endcase %}
         }
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     @MCVersionDependentBehaviour
     private void renderGrammarGlyphSelectionHighlights(GuiGraphics guiGraphics) {
 {% when "26.1.2" %}
@@ -5997,9 +7243,22 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     private void renderGrammarGlyphSelectionHighlights(GuiGraphicsExtractor guiGraphics) {
 {% when "1.19.4" %}
     @MCVersionDependentBehaviour
+{% if targets.mc_1_21_1 %}
+    private void renderGrammarGlyphSelectionHighlights(GuiGraphics poseStack) {
+{% else %}
     private void renderGrammarGlyphSelectionHighlights(PoseStack poseStack) {
-{% when "1.19.2" %}
+{% endif %}
+{% when "1.19.2", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderGrammarGlyphSelectionHighlights(GuiGraphics poseStack) {
+{% else %}
     private void renderGrammarGlyphSelectionHighlights(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    @MCVersionDependentBehaviour
+    private void renderGrammarGlyphSelectionHighlights(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         List<CanvasRect> mask = new ArrayList<>();
         int left = grammarPanelLeft();
@@ -6020,7 +7279,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         for (CanvasRect rect : unionRects(mask)) {
             SFMScreenRenderUtils.renderHighlight(
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                     guiGraphics,
                     Mth.floor(rect.left()),
                     Mth.floor(rect.top()),
@@ -6032,12 +7291,20 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                     Mth.floor(rect.top()),
                     Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
                     Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
-{% when "1.19.2" %}
+{% when "1.19.2", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                     poseStack,
                     rect.left(),
                     rect.top(),
                     Math.max(rect.left() + 1.0D, rect.right()),
                     Math.max(rect.top() + 1.0D, rect.bottom())
+{% else %}
+                    guiGraphics,
+                    Mth.floor(rect.left()),
+                    Mth.floor(rect.top()),
+                    Mth.ceil(Math.max(rect.left() + 1.0D, rect.right())),
+                    Mth.ceil(Math.max(rect.top() + 1.0D, rect.bottom()))
+{% endif %}
 {% endcase %}
             );
         }
@@ -6047,10 +7314,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     private void renderGrammarCanvasCursor(GuiGraphicsExtractor guiGraphics) {
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderGrammarCanvasCursor(GuiGraphics guiGraphics) {
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderGrammarCanvasCursor(GuiGraphics poseStack) {
+{% else %}
     private void renderGrammarCanvasCursor(PoseStack poseStack) {
+{% endif %}
+{% else %}
+    private void renderGrammarCanvasCursor(GuiGraphics guiGraphics) {
+{% endif %}
 {% endcase %}
         for (int i = 0; i < grammarModel.cursors().size(); i++) {
             SFMDrawCanvasModel.CanvasCursor cursor = grammarModel.cursors().get(i);
@@ -6066,16 +7341,24 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int cursorSize = cursor.active() ? size + 2 : size;
             if (i == grammarModel.focusedCursorIndex()) {
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
                 SFMGuiCrosshair.draw(poseStack, screenX, screenY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+                drawCrosshair(guiGraphics, screenX, screenY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
                 drawCrosshair(guiGraphics, screenX, screenY, cursorSize + 2, focusedCursorOutlineColor(cursor.color()));
 {% endcase %}
             }
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
             SFMGuiCrosshair.draw(poseStack, screenX, screenY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
+{% else %}
+            drawCrosshair(guiGraphics, screenX, screenY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
             drawCrosshair(guiGraphics, screenX, screenY, cursorSize, cursor.active() ? cursor.color() : inactiveCursorColor(cursor.color()));
 {% endcase %}
         }
@@ -6088,7 +7371,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         return button.getX() + button.getWidth();
     }
 
+{% if targets.mc_1_21_1 %}
+    private void renderReadOnlyChrome(GuiGraphics poseStack) {
+{% else %}
     private void renderReadOnlyChrome(PoseStack poseStack) {
+{% endif %}
         if (openContext == null || !openContext.readOnly() || configButtonBounds == null || doneButtonBounds == null) {
             return;
         }
@@ -6145,8 +7432,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
         drawRectOutline(guiGraphics, left, top, right, bottom, HUD_BORDER);
         SFMFontUtils.draw(guiGraphics, this.font, message, left + 8, top + 5, HUD_TEXT, true);
-{% when "1.19.2" %}
+{% when "1.19.2", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
+{% if targets.mc_1_21_1 %}
+    private void renderReadOnlyChrome(GuiGraphics poseStack) {
+{% else %}
     private void renderReadOnlyChrome(PoseStack poseStack) {
+{% endif %}
         if (openContext == null || !openContext.readOnly() || configButtonBounds == null || doneButtonBounds == null) {
             return;
         }
@@ -6156,7 +7448,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                 ? configButtonBounds
                 : new SFMTextEditorReadOnlyChrome.Rect(
                         configButtonBounds.x(), configButtonBounds.y(),
+{% if targets.mc_1_21_1 %}
+                        Math.max(configButtonBounds.width(), pointerButton.getX() + pointerButton.getWidth() - configButtonBounds.x()),
+{% else %}
                         Math.max(configButtonBounds.width(), pointerButton.x + pointerButton.getWidth() - configButtonBounds.x()),
+{% endif %}
                         configButtonBounds.height());
         SFMTextEditorReadOnlyChrome.layout(
                 true,
@@ -6191,7 +7487,19 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             int textX = textArea.x() + (textArea.width() - this.font.width(rendered)) / 2;
             SFMFontUtils.draw(poseStack, this.font, rendered, textX, textArea.y(), HUD_TEXT, true);
         });
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% else %}
+    private void renderReadOnlyMessage(GuiGraphics guiGraphics) {
+        Component message = DRAW_CANVAS_READ_ONLY_DOCUMENT.getComponent();
+        int width = this.font.width(message);
+        int left = (this.width - width) / 2 - 8;
+        int top = this.height - 48;
+        int right = left + width + 16;
+        int bottom = top + this.font.lineHeight + 10;
+        guiGraphics.fill( left, top, right, bottom, HUD_BACKGROUND);
+        drawRectOutline(guiGraphics, left, top, right, bottom, HUD_BORDER);
+        SFMFontUtils.draw(guiGraphics, this.font, message, left + 8, top + 5, HUD_TEXT, true);
+{% endif %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     private void renderReadOnlyMessage(GuiGraphics guiGraphics) {
         Component message = DRAW_CANVAS_READ_ONLY_DOCUMENT.getComponent();
         int width = this.font.width(message);
@@ -6327,8 +7635,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
     private record ViewportGlyphCache(
             long contentRevision,
             int spaceWidth,
@@ -6481,6 +7790,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         }
     }
 
+{% else %}
+{% endif %}
 {% endcase %}
     record CanvasRect(
             double left,
@@ -6506,8 +7817,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
-{% when "1.19.2", "1.19.4" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "26.1.2" %}
+{% when "1.19.2", "1.19.4", "1.21.1" %}
+{% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if features.editor_documents %}
     record TextHighlightRow(
             int line,
@@ -6525,6 +7837,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
     }
 {% endif %}
 
+{% else %}
+{% endif %}
 {% endcase %}
     private interface ToggleReader {
         boolean get();
@@ -6571,10 +7885,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 {% when "1.19.4" %}
         @MCVersionDependentBehaviour
         public void renderWidget(
+{% if targets.mc_1_21_1 %}
+                GuiGraphics poseStack,
+{% else %}
                 PoseStack poseStack,
+{% endif %}
 {% when "1.19.2" %}
         public void renderButton(
+{% if targets.mc_1_21_1 %}
+                GuiGraphics poseStack,
+{% else %}
                 PoseStack poseStack,
+{% endif %}
 {% endcase %}
                 int mouseX,
                 int mouseY,
@@ -6647,4 +7969,28 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
                    || keyCode == GLFW.GLFW_KEY_KP_ENTER;
         }
     }
+{% if targets.mc_1_21_1 and features.inspection_workspace %}
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void fill(GuiGraphics graphics, int left, int top, int right, int bottom, int color) {
+        graphics.fill(left, top, right, bottom, color);
+    }
+    private static void pushCanvasScissor(GuiGraphics graphics, int left, int top, int right, int bottom) {
+        SFMScissorStack.pushGui(graphics, left, top, right, bottom);
+    }
+    private static void popCanvasScissor(GuiGraphics graphics) {
+        graphics.disableScissor();
+    }
+{% else %}
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4" %}
+    private static void pushCanvasScissor(PoseStack graphics, int left, int top, int right, int bottom) {
+        SFMScissorStack.pushGui(graphics, left, top, right, bottom);
+    }
+    private static void popCanvasScissor(PoseStack graphics) {
+        SFMScissorStack.pop();
+    }
+{% else %}
+{% endcase %}
+{% endif %}
+
 }

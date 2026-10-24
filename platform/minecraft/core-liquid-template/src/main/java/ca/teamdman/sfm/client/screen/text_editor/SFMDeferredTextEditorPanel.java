@@ -21,9 +21,16 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.Minecraft;
+{% if targets.mc_1_21_1 %}
+{% else %}
 import net.minecraft.client.gui.GuiComponent;
+{% endif %}
 import net.minecraft.network.chat.Component;
 {% if features.workspace_keyboard_context %}
 import net.minecraft.resources.ResourceLocation;
@@ -182,13 +189,17 @@ public final class SFMDeferredTextEditorPanel
     @Override public void tick() { if (delegate != null) delegate.tick(); }
 
     @Override
+{% if targets.mc_1_21_1 %}
+    public void render(GuiGraphics poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% else %}
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+{% endif %}
                        int mouseX, int mouseY, float partialTick, boolean focused) {
         if (delegate != null) {
             delegate.render(poseStack, minecraft, bounds, mouseX, mouseY, partialTick, focused);
             return;
         }
-        GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(),
+        fillGraphics(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(),
                 bounds.y() + bounds.height(), 0xFF15191E);
         SFMFontUtils.draw(poseStack, minecraft.font, recipe.title(), bounds.x() + 8, bounds.y() + 8,
                 0xFFE6EDF3, true);
@@ -227,4 +238,15 @@ public final class SFMDeferredTextEditorPanel
         while (current.getCause() != null) current = current.getCause();
         return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
     }
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+{% if targets.mc_1_21_1 %}
+    private static void fillGraphics(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
+        graphics.fill(x1, y1, x2, y2, color);
+    }
+{% else %}
+    private static void fillGraphics(PoseStack graphics, int x1, int y1, int x2, int y2, int color) {
+        GuiComponent.fill(graphics, x1, y1, x2, y2, color);
+    }
+{% endif %}
+
 }

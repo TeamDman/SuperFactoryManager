@@ -1,9 +1,16 @@
 package ca.teamdman.sfm.client.input;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+{% if targets.mc_1_21_1 %}
+import net.minecraft.client.gui.GuiGraphics;
+{% else %}
 import com.mojang.blaze3d.vertex.PoseStack;
+{% endif %}
 import net.minecraft.client.gui.Font;
+{% if targets.mc_1_21_1 %}
+{% else %}
 import net.minecraft.client.gui.GuiComponent;
+{% endif %}
 
 /** Bounded text/caret/selection rendering and hit-testing for custom single-line fields. */
 public final class SFMSingleLineInputView {
@@ -28,7 +35,11 @@ public final class SFMSingleLineInputView {
         visible = font.plainSubstrByWidth(cachedText.substring(start), Math.max(0, width - 1));
     }
 
+{% if targets.mc_1_21_1 %}
+    public void render(GuiGraphics pose, Font font, SFMSingleLineInput input,
+{% else %}
     public void render(PoseStack pose, Font font, SFMSingleLineInput input,
+{% endif %}
                        int x, int y, int width, boolean focused, String placeholder,
                        int textColour, int mutedColour) {
         layout(input, font, width);
@@ -42,12 +53,12 @@ public final class SFMSingleLineInputView {
         if (focused && last > first) {
             int left = font.width(visible.substring(0, first - start));
             int right = font.width(visible.substring(0, last - start));
-            GuiComponent.fill(pose, x + left, y - 1, x + right, y + font.lineHeight + 1, 0xFF285D92);
+            fillGraphics(pose, x + left, y - 1, x + right, y + font.lineHeight + 1, 0xFF285D92);
         }
         SFMFontUtils.draw(pose, font, visible, x, y, textColour, true);
         if (focused && (System.currentTimeMillis() / 500) % 2 == 0) {
             int caret = font.width(input.text().substring(start, input.cursor()));
-            GuiComponent.fill(pose, x + caret, y - 1, x + caret + 1, y + font.lineHeight, textColour);
+            fillGraphics(pose, x + caret, y - 1, x + caret + 1, y + font.lineHeight, textColour);
         }
     }
 
@@ -63,4 +74,15 @@ public final class SFMSingleLineInputView {
         }
         return start + visible.length();
     }
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+{% if targets.mc_1_21_1 %}
+    private static void fillGraphics(GuiGraphics graphics, int x1, int y1, int x2, int y2, int color) {
+        graphics.fill(x1, y1, x2, y2, color);
+    }
+{% else %}
+    private static void fillGraphics(PoseStack graphics, int x1, int y1, int x2, int y2, int color) {
+        GuiComponent.fill(graphics, x1, y1, x2, y2, color);
+    }
+{% endif %}
+
 }

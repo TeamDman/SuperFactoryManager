@@ -6,7 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 {% case minecraft_version %}
 {% when "1.19.2" %}
 import com.mojang.math.Vector4f;
-{% when "1.19.4" %}
+{% when "1.19.4", "1.21.1" %}
 import org.joml.Vector4f;
 {% endcase %}
 import net.minecraft.client.Minecraft;
@@ -55,6 +55,22 @@ public final class SFMScissorStack {
         pushGui(transformedLeft, transformedTop, transformedRight, transformedBottom);
     }
 
+{% if targets.mc_1_21_1 %}
+    /** Uses the vanilla stack so nested widgets restore their parent's clip. */
+    public static void pushGui(net.minecraft.client.gui.GuiGraphics graphics,
+                               int left, int top, int right, int bottom) {
+        Vector4f a = transformed(graphics.pose(), left, top);
+        Vector4f b = transformed(graphics.pose(), right, top);
+        Vector4f c = transformed(graphics.pose(), left, bottom);
+        Vector4f d = transformed(graphics.pose(), right, bottom);
+        int x0 = (int) Math.floor(Math.min(Math.min(a.x(), b.x()), Math.min(c.x(), d.x())));
+        int y0 = (int) Math.floor(Math.min(Math.min(a.y(), b.y()), Math.min(c.y(), d.y())));
+        int x1 = (int) Math.ceil(Math.max(Math.max(a.x(), b.x()), Math.max(c.x(), d.x())));
+        int y1 = (int) Math.ceil(Math.max(Math.max(a.y(), b.y()), Math.max(c.y(), d.y())));
+        graphics.enableScissor(x0, y0, x1, y1);
+    }
+{% endif %}
+
     public static void pop() {
         if (STACK.isEmpty()) {
             throw new IllegalStateException("SFM scissor stack underflow");
@@ -68,7 +84,7 @@ public final class SFMScissorStack {
     }
 
 {% case minecraft_version %}
-{% when "1.19.4" %}
+{% when "1.19.4", "1.21.1" %}
     @MCVersionDependentBehaviour
 {% endcase %}
     private static Vector4f transformed(PoseStack poseStack, double x, double y) {
@@ -76,7 +92,7 @@ public final class SFMScissorStack {
 {% case minecraft_version %}
 {% when "1.19.2" %}
         answer.transform(poseStack.last().pose());
-{% when "1.19.4" %}
+{% when "1.19.4", "1.21.1" %}
         answer.mul(poseStack.last().pose());
 {% endcase %}
         return answer;

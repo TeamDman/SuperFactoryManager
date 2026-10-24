@@ -4,7 +4,11 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
+{% if targets.mc_1_21_1 %}
+import net.neoforged.bus.api.IEventBus;
+{% else %}
 import net.minecraftforge.eventbus.api.IEventBus;
+{% endif %}
 
 /** Registered semantic explorer controls shared by widgets and the palette. */
 public final class SFMExplorerActions {
@@ -61,7 +65,7 @@ public final class SFMExplorerActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SFMItemstackPreviewRulePromptAction> PREVIEW_RULE_PROMPT =
             REGISTERER.register("explorer/itemstack_preview_rule/prompt/copy", SFMItemstackPreviewRulePromptAction::new);
 {% endif %}
-{% if features.theme_preview_rules or features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.theme_preview_rules or features.workspace_panel_actions %}
 {% if features.theme_preview_rules or features.explorer_compaction or features.explorer_search %}
     static {
 {% if features.clipboard_action_commands and features.theme_preview_rules %}
@@ -72,7 +76,7 @@ public final class SFMExplorerActions {
         for (var kind : SFMExplorerCompactAction.Kind.values())
             REGISTERER.register(kind.path, () -> new SFMExplorerCompactAction(kind));
 {% endif %}
-{% if features.explorer_search and features.workspace_panel_actions %}
+{% if features.inspection_workspace or features.explorer_search and features.workspace_panel_actions %}
         for (var kind : SFMExplorerSearchAction.Kind.values())
             REGISTERER.register(kind.path, () -> new SFMExplorerSearchAction(kind));
 {% endif %}
@@ -136,7 +140,7 @@ public final class SFMExplorerActions {
 
 {% endif %}
 {% endif %}
-{% if features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
+{% if features.inspection_workspace or features.release_review and features.file_explorer and features.client_actions and features.workspace_panels and features.editor_documents %}
     public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerDiffAction> DIFF =
             REGISTERER.register("explorer/diff", SFMExplorerDiffAction::new);
 {% endif %}

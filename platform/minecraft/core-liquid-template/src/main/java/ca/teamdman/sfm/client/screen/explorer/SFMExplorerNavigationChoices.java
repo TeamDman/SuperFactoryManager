@@ -21,27 +21,27 @@ public final class SFMExplorerNavigationChoices {
 {% endif %}
         String selector = selector(snapshot);
         for (var root : snapshot.roots()) parent(root).ifPresent(parent -> {
-            choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/root/parent/set"),
+            choices.add(SFMActionChoice.invoke(ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/root/parent/set"),
                     root.canonical() + " --expected-revision " + snapshot.revision(),
                     value(SFMExplorerNavigationText.PARENT_SET, root.canonical())));
-            if (!snapshot.roots().contains(parent)) choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/root/add"),
+            if (!snapshot.roots().contains(parent)) choices.add(SFMActionChoice.invoke(ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/root/add"),
                     selector + " " + parent.canonical(), value(SFMExplorerNavigationText.PARENT_ADD, root.canonical())));
         });
         return List.copyOf(choices);
     }
     public static List<SFMActionChoice> row(SFMExplorerSession.Snapshot snapshot, SFMExplorerEntry entry) {
         var choices = new ArrayList<>(roots(snapshot));
-        if (entry.expandable()) choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/node/refresh"),
+        if (entry.expandable()) choices.add(SFMActionChoice.invoke(ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/node/refresh"),
                 selector(snapshot) + " " + entry.path().canonical(), value(SFMExplorerNavigationText.REFRESH_NODE)));
         boolean rootCapable = entry.expandable()
                 && (entry.sortKey(SFMExplorerEntry.SUBJECT_KIND).value().filter("container"::equals).isPresent()
                 || entry.sortKey(SFMExplorerEntry.MOUNT_PROVIDER).available());
         if (rootCapable && !snapshot.roots().contains(entry.path())) {
-            choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/location/set"),
+            choices.add(SFMActionChoice.invoke(ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/location/set"),
                     selector(snapshot) + " " + new SFMPathExpression.Literal(entry.path()).canonical()
                             + " --expected-revision " + snapshot.revision(),
                     value(SFMExplorerNavigationText.SET_ROOT)));
-            choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/root/add"),
+            choices.add(SFMActionChoice.invoke(ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/root/add"),
                     selector(snapshot) + " " + entry.path().canonical(), value(SFMExplorerNavigationText.ADD_ROOT)));
         }
         return List.copyOf(choices);

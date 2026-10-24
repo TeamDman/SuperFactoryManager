@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientActionContext> {
-    public static final ResourceLocation ID = new ResourceLocation("sfm", "explorer/diff");
+    public static final ResourceLocation ID = ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/diff");
     private static final AtomicBoolean BUSY = new AtomicBoolean();
     @Override public Component title() { return Component.literal("Show diff / open comparison workspace"); }
     @Override public Component description() { return Component.literal("Add a comparison root for two JARs or working trees; open prepared evidence"); }
@@ -63,6 +63,11 @@ public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientAct
                                  String message, boolean failed) {
         command.getSource().sendFeedback(Component.literal(message));
         ca.teamdman.sfm.SFM.LOGGER.info("SFM_INSPECTION_COMPARISON_STATUS {}", message);
+        if (context.originatingHostIsCurrent().getAsBoolean()
+                && context.originatingHost() instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer host
+                && context.originatingPanelId() != null
+                && host.panelInstance(context.originatingPanelId()) instanceof ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel panel)
+            panel.comparisonStatus(message, failed);
 {% if features.workspace_notifications %}
         if (context.originatingHostIsCurrent().getAsBoolean()
                 && context.originatingHost() instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer workspace)

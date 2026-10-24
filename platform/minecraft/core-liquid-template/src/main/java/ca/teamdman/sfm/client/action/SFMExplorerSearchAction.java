@@ -37,7 +37,7 @@ public final class SFMExplorerSearchAction {
         public final String path;
         public final String title;
         Kind(String suffix, String title) { path = suffix.equals("row") ? "explorer/selection/row" : "explorer/search/" + suffix; this.title = title; }
-        public ResourceLocation id() { return new ResourceLocation("sfm", path); }
+        public ResourceLocation id() { return ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", path); }
     }
 {% if features.explorer_search %}
     public static final List<String> FIELDS = List.of("find", "filter", "focused");
