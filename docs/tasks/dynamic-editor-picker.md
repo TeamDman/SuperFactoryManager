@@ -165,3 +165,34 @@ adaptation, without the optional modal registration, feature or implementation.
 The combined implementation is preserved at `1922f66aa9dba4721c649ea2ddf4d2289897914f`
 on `feat/dynamic-editor-picker`. Modal test results above refer to that combined
 branch; the six picker tests use identical model/test source on both branches.
+
+
+## Picker-only independent review checkpoint
+
+Source commit `01ec21a269d5d0a64314163801f0f49fcd96b7c2` adds guarded
+construction on the manager/disk `showProgramEditScreen` path. A throwing or
+null factory offers Choose editor/Cancel without retrying, silently falling
+back, changing the preference or replacing the caller's screen. Factories must
+obey the existing create-but-do-not-display contract; presentation/init failures
+and direct factory callers outside this helper remain outside the guard.
+Explorer and completion-ranking implementations are unchanged.
+
+Thirteen isolated Java regressions pass for this branch's production classes:
+eight selection tests and five prepare/present guard tests. Additional cases
+cover late insertion/removal ordering, search/page resize transitions, factory
+exceptions/linkage/null, unchanged caller state, single invocation and failure
+classification. These are model/guard tests, not Forge registrations or a
+Minecraft screen. The same picker source is included in the combined branch
+`feat/dynamic-editor-picker`, where the full review log and before/after modal
+reproduction are preserved under `docs/task-evidence/editor-selection/`.
+
+Status: **not client validated; blocked pending the exact locked Vox artifact**.
+Required coordinate `org.facet:vox-java:0.10.0-rc.5`, Facet source revision
+`f2afdece6c79e64085d2f8c047e22fe16b2c8c54`, expected
+`blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f`; the Linux output hashes to
+`blake3:cc19e740cf1c08970c23b2446781829106d9ab8c`. No producer JDK identity can
+be established from the empty source-build environment. The existing Windows
+JetBrains SDK pin does not prove which JDK produced the locked JAR.
+No further native build, artifact substitution, toolchain change or installation
+was attempted. Runtime persistence, actual third-party round trips and visual
+checks remain unrun. The optional modal prototype is absent from this branch.
