@@ -2046,7 +2046,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         synchronizeWidgetHostActivation();
 {% endif %}
 {% if targets.mc_1_21_1 %}
-        this.renderBackground(poseStack, mouseX, mouseY, partialTick);
+        this.renderTransparentBackground(poseStack);
 {% else %}
         this.renderBackground(poseStack);
 {% endif %}
@@ -2108,7 +2108,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (dropFeedback != null) {
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
+{% if targets.mc_1_21_1 %}
+        for (var renderable : this.renderables) {
+            renderable.render(poseStack, mouseX, mouseY, partialTick);
+        }
+{% else %}
         super.render(poseStack, mouseX, mouseY, partialTick);
+{% endif %}
 {% if features.client_overlay_scenes %}
         // Forge HUD overlays are painted before Screen content. Repaint the
         // declarative passive scene here so a visible FPS overlay is not
@@ -2146,7 +2152,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
 {% endif %}
 {% if targets.mc_1_21_1 %}
-        this.renderBackground(poseStack, mouseX, mouseY, partialTick);
+        this.renderTransparentBackground(poseStack);
 {% else %}
         this.renderBackground(poseStack);
 {% endif %}
@@ -2174,7 +2180,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (dropFeedback != null) {
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
+{% if targets.mc_1_21_1 %}
+        for (var renderable : this.renderables) {
+            renderable.render(poseStack, mouseX, mouseY, partialTick);
+        }
+{% else %}
         super.render(poseStack, mouseX, mouseY, partialTick);
+{% endif %}
     }
 {% else %}
 
@@ -2184,9 +2196,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 {% when "1.20", "1.20.1" %}
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
-{% when "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20.2", "1.20.3", "1.20.4", "1.21" %}
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
+{% when "1.21.1" %}
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        // Repeated 1.21.1 background postprocessing blurs already rendered GUI
+        // content on a paused world. Dim the world without that postprocess.
+        this.renderTransparentBackground(graphics);
 {% when "26.1.2" %}
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 {% endcase %}

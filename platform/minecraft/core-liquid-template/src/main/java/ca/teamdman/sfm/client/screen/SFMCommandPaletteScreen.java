@@ -1594,11 +1594,6 @@ public final class SFMCommandPaletteScreen extends Screen {
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     @MCVersionDependentBehaviour
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-{% if targets.mc_1_21_1 %}
-        // Screen.render blurs the background before widgets on 1.21.1. Do that
-        // before our custom panel so the panel itself stays sharp.
-        this.renderBackground(graphics, mouseX, mouseY, partialTick);
-{% endif %}
 {% when "26.1.2" %}
     @MCVersionDependentBehaviour
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
