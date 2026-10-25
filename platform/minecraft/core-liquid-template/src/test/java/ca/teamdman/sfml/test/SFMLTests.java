@@ -917,7 +917,11 @@ public class SFMLTests {
         Path cwd = Paths.get(System.getProperty("user.dir"));
 {% endif %}
         System.out.println("Starting search for " + relativePath + " from " + cwd);
+{% if features.projection_test_directory_search %}
         while (cwd != null) {
+{% else %}
+        for (int i = 0; i < 5; i++) {
+{% endif %}
             Path candidate = cwd.resolve(relativePath);
             System.out.println("Checking " + candidate);
             if (Files.isDirectory(candidate)) {

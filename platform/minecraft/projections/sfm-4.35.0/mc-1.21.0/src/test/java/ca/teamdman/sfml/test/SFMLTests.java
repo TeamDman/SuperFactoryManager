@@ -760,7 +760,7 @@ public class SFMLTests {
     private static Path findDirectoryUpwards(String relativePath) {
         Path cwd = Paths.get(System.getProperty("user.dir"));
         System.out.println("Starting search for " + relativePath + " from " + cwd);
-        while (cwd != null) {
+        for (int i = 0; i < 5; i++) {
             Path candidate = cwd.resolve(relativePath);
             System.out.println("Checking " + candidate);
             if (Files.isDirectory(candidate)) {

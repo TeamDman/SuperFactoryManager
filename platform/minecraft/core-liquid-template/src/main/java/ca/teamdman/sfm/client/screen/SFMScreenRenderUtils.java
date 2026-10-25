@@ -117,6 +117,6 @@ public class SFMScreenRenderUtils {
         renderHighlight(graphics, (int) Math.floor(left), (int) Math.floor(top),
                 (int) Math.ceil(right), (int) Math.ceil(bottom));
     }
-{% endif %}
 
+{% endif %}
 }
