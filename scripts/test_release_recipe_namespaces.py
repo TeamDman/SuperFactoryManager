@@ -102,7 +102,7 @@ class RecipeNamespaceTests(unittest.TestCase):
                 expected=re.sub(pattern,lambda m:'"sfm:'+('disk_reset' if 'DISK_RESET' in m[0] else 'label_gun_reset')+'"',expected)
                 actual=(self.project(version,'sfm-4.35.0')/relative).read_text()
                 self.assertEqual(expected,actual)
-                test=(self.project(version,'sfm-4.35.0')/'src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java').read_text()
+                test=(self.project(version,'sfm-4.35.0-extended')/'src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java').read_text()
                 self.assertNotIn('{%',actual)
                 self.assertNotIn('{%',test)
 

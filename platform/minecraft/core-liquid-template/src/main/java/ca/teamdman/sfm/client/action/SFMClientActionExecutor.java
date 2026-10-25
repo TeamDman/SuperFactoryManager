@@ -1,5 +1,4 @@
 package ca.teamdman.sfm.client.action;
-
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -23,22 +22,15 @@ public final class SFMClientActionExecutor {
             SFMClientActionContext context,
             Consumer<Component> feedback
     ) throws CommandSyntaxException {
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
 {% if features.structured_action_results %}
         return execute(SFMClientActions.commandTree(), command, context, feedback, ignored -> {
         });
-{% elsif features.keyboard_profiles %}
+{% elsif features.keyboard_profiles and targets.mc_1_19_2 or features.keyboard_profiles and targets.mc_1_19_4 %}
         return execute(SFMClientActions.commandTree(), command, context, feedback);
 {% else %}
         return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
 {% endif %}
-{% else %}
-        return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
-{% endcase %}
     }
-{% case minecraft_version %}
-{% when "1.19.2", "1.19.4" %}
 {% if features.structured_action_results %}
 
     public static int execute(
@@ -50,7 +42,7 @@ public final class SFMClientActionExecutor {
         return execute(SFMClientActions.commandTree(), command, context, feedback, structuredResult);
     }
 
-{% if features.keyboard_profiles %}
+{% if features.keyboard_profiles and targets.mc_1_19_2 or features.keyboard_profiles and targets.mc_1_19_4 %}
     /**
      * Executes against an explicit registered-action surface while preserving
      * the same provenance scope as the global dispatcher.
@@ -76,7 +68,7 @@ public final class SFMClientActionExecutor {
             Consumer<SFMClientActionStructuredResult> structuredResult
     ) throws CommandSyntaxException {
         java.util.Objects.requireNonNull(commandTree, "commandTree");
-{% if features.keyboard_profiles %}
+{% if features.keyboard_profiles and targets.mc_1_19_2 or features.keyboard_profiles and targets.mc_1_19_4 %}
         if (SFMClientActionInvocationTrace.current().isPresent()) {
             return commandTree.execute(command, new SFMClientActionSource(context, feedback, structuredResult));
         }
@@ -89,7 +81,7 @@ public final class SFMClientActionExecutor {
         return commandTree.execute(command, new SFMClientActionSource(context, feedback, structuredResult));
 {% endif %}
     }
-{% elsif features.keyboard_profiles %}
+{% elsif features.keyboard_profiles and targets.mc_1_19_2 or features.keyboard_profiles and targets.mc_1_19_4 %}
 
     /**
      * Executes against an explicit registered-action surface while preserving
@@ -112,5 +104,4 @@ public final class SFMClientActionExecutor {
         }
     }
 {% endif %}
-{% endcase %}
 }

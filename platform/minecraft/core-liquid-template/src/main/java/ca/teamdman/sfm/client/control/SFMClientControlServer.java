@@ -16,6 +16,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 {% endif %}
 {% when "1.19.4" %}
 {% endcase %}
+{% if features.client_control_cli %}
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
@@ -25,6 +26,7 @@ import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionResult;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 {% if features.workspace_panels %}
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+{% endif %}
 {% endif %}
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -49,7 +51,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 {% when "1.19.4" %}
 {% endcase %}
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
 import net.minecraftforge.fml.ModList;
+{% else %}
+import net.neoforged.fml.ModList;
+{% endcase %}
 import org.facet.vox.CallContext;
 import org.facet.vox.ConnectionOptions;
 import org.facet.vox.ServiceRegistry;
@@ -135,7 +142,8 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     private final ThreadPoolExecutor connectionsExecutor;
     private final ThreadPoolExecutor controlExecutor;
     private final Set<VoxConnection> connections = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    private final SFMClientThreadGate clientThreadGate;
+    private final SFMClientActionRuntime runtime;
+    private final SFMClientActionRuntime.Session session;
 {% case minecraft_version %}
 {% when "1.19.2" %}
 {% if features.manager_operator_queries %}
@@ -144,7 +152,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
 {% when "1.19.4" %}
 {% endcase %}
     private final AtomicBoolean closed = new AtomicBoolean();
-    private final String instanceId = UUID.randomUUID().toString();
+    private final String instanceId;
     private final long processId = ProcessHandle.current().pid();
     private final String processStartNonce = randomHex(16);
     private final String authenticationToken = randomHex(32);
@@ -153,17 +161,14 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     private final String sfmVersion;
     private final String minecraftVersion;
     private final AtomicReference<ClientSnapshot> clientSnapshot = new AtomicReference<>(ClientSnapshot.initial());
-{% case minecraft_version %}
-{% when "1.19.2" %}
-{% if features.client_control_file_actions %}
-    private SFMClientControlFileBridge fileBridge;
-{% endif %}
-{% when "1.19.4" %}
-{% endcase %}
     private volatile SfmControlLifecycle lifecycle = SfmControlLifecycle.STARTING;
 
-    private SFMClientControlServer(Minecraft minecraft) throws IOException {
+    private SFMClientControlServer(Minecraft minecraft, SFMClientActionRuntime runtime,
+                                   SFMClientActionRuntime.Session session) throws IOException {
         this.minecraft = minecraft;
+        this.runtime = runtime;
+        this.session = session;
+        this.instanceId = runtime.instanceId();
         if (processId <= 0 || processId > 0xFFFF_FFFFL) {
             throw new IOException("process id is outside the Vox u32 contract: " + processId);
         }
@@ -189,15 +194,20 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 runnable -> daemonThread(runnable, "sfm-client-control-worker"),
                 new ThreadPoolExecutor.AbortPolicy()
         );
-        clientThreadGate = new SFMClientThreadGate(minecraft::execute, controlExecutor, 32);
         descriptorPath = descriptorDirectory().resolve(instanceId + ".json");
         sfmVersion = sfmVersion();
+{% case minecraft_version %}
+{% when "26.1.2" %}
+        minecraftVersion = SharedConstants.getCurrentVersion().name();
+{% else %}
         minecraftVersion = SharedConstants.getCurrentVersion().getName();
+{% endcase %}
         acceptThread = daemonThread(this::acceptLoop, "sfm-client-control-accept");
     }
 
-    public static SFMClientControlServer start(Minecraft minecraft) throws IOException {
-        SFMClientControlServer server = new SFMClientControlServer(minecraft);
+    public static SFMClientControlServer start(Minecraft minecraft, SFMClientActionRuntime runtime,
+                                               SFMClientActionRuntime.Session session) throws IOException {
+        SFMClientControlServer server = new SFMClientControlServer(minecraft, runtime, session);
         try {
             server.acceptThread.start();
             server.publishDescriptor();
@@ -245,70 +255,8 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 worldPresent,
                 worldPresent ? minecraft.level.dimension().location().toString() : ""
         ));
-{% case minecraft_version %}
-{% when "1.19.2" %}
-{% if features.client_control_file_actions %}
-        SFMClientControlFileBridge bridge = fileBridge;
-        if (bridge != null) bridge.poll();
-{% endif %}
-{% when "1.19.4" %}
-{% endcase %}
     }
 
-{% case minecraft_version %}
-{% when "1.19.2" %}
-{% if features.client_control_file_actions %}
-    /** Enables the bounded request-file bridge for this already-running client. */
-    synchronized Path enableFileControl() throws IOException {
-        if (fileBridge == null) {
-            Path root = minecraft.gameDirectory.toPath().resolve("sfm-control").resolve(instanceId);
-            fileBridge = SFMClientControlFileBridge.open(root, this::executeFileAction);
-            SFM.LOGGER.info("SFM_CLIENT_CONTROL_FILE_BRIDGE_READY directory={}", root);
-        }
-        return fileBridge.directory();
-    }
-
-    private JsonObject executeFileAction(String command) {
-        Screen origin = minecraft.screen;
-        List<String> feedback = new ArrayList<>();
-        AtomicReference<SFMClientActionStructuredResult> structuredResult = new AtomicReference<>();
-        JsonObject result = new JsonObject();
-        try {
-            int resultCode = SFMClientActionExecutor.execute(
-                    command,
-                    SFMClientActionContext.create(origin, () -> minecraft.screen == origin),
-                    component -> {
-                        if (feedback.size() < MAX_FEEDBACK_ENTRIES) feedback.add(component.getString());
-                    },
-                    value -> {
-                        if (!structuredResult.compareAndSet(null, value)) {
-                            throw new IllegalStateException("A client action may publish at most one structured result");
-                        }
-                    }
-            );
-            result.addProperty("result_code", resultCode);
-            JsonArray messages = new JsonArray();
-            feedback.forEach(messages::add);
-            result.add("feedback", messages);
-            SFMClientActionStructuredResult structured = structuredResult.get();
-            if (structured != null) {
-                result.addProperty("structured_result_schema", structured.schemaId());
-                try {
-                    result.add("structured_result", com.google.gson.JsonParser.parseString(structured.json()));
-                } catch (RuntimeException malformed) {
-                    result.addProperty("structured_result_json", structured.json());
-                }
-            }
-        } catch (Exception failure) {
-            result.addProperty("result_code", 0);
-            result.addProperty("error", failure.getMessage() == null ? failure.toString() : failure.getMessage());
-        }
-        return result;
-    }
-
-{% endif %}
-{% when "1.19.4" %}
-{% endcase %}
     private void acceptLoop() {
         while (!closed.get()) {
             Socket socket = null;
@@ -422,17 +370,22 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 snapshot.worldPresent(),
                 snapshot.worldLabel(),
                 List.of(
-                        "instance.describe",
-                        "client-action.invoke",
-                        "client-action.structured-result.v1",
-{% case minecraft_version %}
-{% when "1.19.2" %}
-                        "client-action.list.v1",
-                        "client-logs.tail.v1",
-                        "client-control.files.v1",
-{% when "1.19.4" %}
-{% endcase %}
-                        "explorer.control.v1"
+                        "instance.describe", "client-action.invoke", "client-control.services.v1", "client-capture.v1"
+{% if features.structured_action_results %}
+                        , "client-action.structured-result.v1"
+{% endif %}
+{% if features.client_action_listing %}
+                        , "client-action.list.v1"
+{% endif %}
+{% if features.client_log_read_actions %}
+                        , "client-logs.tail.v1"
+{% endif %}
+{% if features.client_control_file_actions or features.client_action_services %}
+                        , "client-control.files.v1"
+{% endif %}
+{% if features.client_control_cli %}
+                        , "explorer.control.v1"
+{% endif %}
                 ),
                 request.requestId()
         )));
@@ -483,7 +436,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
 {% when "1.19.4" %}
 {% endcase %}
         CompletableFuture<VoxResult<SfmControlInvokeClientActionResult, SfmControlError>> action =
-                clientThreadGate.submit(() -> executeClientAction(canonicalAction, request.requestId()));
+                runtime.submit(session, () -> executeClientAction(canonicalAction, request.requestId()));
         context.cancellation().thenRun(() -> action.cancel(false));
         return action.handle((result, failure) -> failure == null
                 ? result
@@ -515,7 +468,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         }
 
         CompletableFuture<CompletableFuture<ClientboundManagerShowPacket>> handoff =
-                clientThreadGate.submit(() -> beginManagerShow(target));
+                runtime.submit(session, () -> beginManagerShow(target));
         CompletableFuture<ClientboundManagerShowPacket> reply = handoff.thenCompose(Function.identity());
         context.cancellation().thenRun(() -> {
             handoff.cancel(false);
@@ -529,6 +482,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     }
 
     private CompletableFuture<ClientboundManagerShowPacket> beginManagerShow(ManagerShowTarget target) {
+        runtime.requireMutation();
         LocalPlayer player = minecraft.player;
         Object connection = minecraft.getConnection();
         if (player == null || connection == null || minecraft.level == null) {
@@ -606,6 +560,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
 {% endif %}
 {% when "1.19.4" %}
 {% endcase %}
+{% if features.client_control_cli %}
     @Override
     public CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> explorerOperation(
             CallContext context,
@@ -620,7 +575,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         validation = validateExplorerOperationRequest(request);
         if (validation != null) return completedError(validation);
         CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> action =
-                clientThreadGate.submit(() -> executeExplorerOperation(request));
+                runtime.submit(session, () -> executeExplorerOperation(request));
         context.cancellation().thenRun(() -> action.cancel(false));
         return action.handle((result, failure) -> failure == null
                 ? result
@@ -784,6 +739,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
             SfmControlExplorerOperationRequest request
     ) {
         try {
+            runtime.requireMutation();
             SFMExplorerRuntime runtime = SFMExplorerRuntime.get();
             Screen origin = minecraft.screen;
             var prepared = runtime.prepare(parseExplorerActionRequest(request));
@@ -976,83 +932,44 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         return hoist.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
     }
 
+{% else %}
+    @Override
+    public CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> explorerOperation(
+            CallContext context, SfmControlExplorerOperationRequest request) {
+        SfmControlError invalid = validateRequest(request.authenticationToken(), request.protocolVersion(), request.requestId());
+        return completedError(invalid != null ? invalid : error(SfmControlErrorCode.ACTION_UNAVAILABLE,
+                "This projection does not include typed Explorer control", false, request.requestId()));
+    }
+{% endif %}
+
     private VoxResult<SfmControlInvokeClientActionResult, SfmControlError> executeClientAction(
             String canonicalAction,
             String requestId
     ) {
-        Screen origin = minecraft.screen;
-        List<String> feedback = new ArrayList<>();
-{% if features.structured_action_results %}
-        AtomicReference<SFMClientActionStructuredResult> structuredResult = new AtomicReference<>();
-{% endif %}
-        int result;
+        SFMClientActionRuntime.ActionResult action;
         try {
-            result = SFMClientActionExecutor.execute(
-                    canonicalAction,
-                    SFMClientActionContext.create(origin, () -> minecraft.screen == origin),
-                    component -> {
-                        if (feedback.size() < MAX_FEEDBACK_ENTRIES) {
-                            feedback.add(component.getString());
-                        }
-{% if features.structured_action_results %}
-                    },
-                    value -> {
-                        if (!structuredResult.compareAndSet(null, value)) {
-                            throw new IllegalStateException("A client action may publish at most one structured result");
-                        }
-                    }
-{% else %}
-                    }
-{% endif %}
-            );
-        } catch (CommandSyntaxException failure) {
-            SfmControlErrorCode code = failure.getCursor() >= canonicalAction.length()
-                    ? SfmControlErrorCode.ACTION_INCOMPLETE
-                    : SfmControlErrorCode.ACTION_UNKNOWN;
-            return VoxResult.applicationError(error(code, failure.getMessage(), false, requestId));
+            action = runtime.execute(canonicalAction);
+        } catch (IllegalArgumentException failure) {
+            Throwable cause = failure.getCause();
+            if (cause instanceof CommandSyntaxException syntax) {
+                return VoxResult.applicationError(error(syntax.getCursor() >= canonicalAction.length()
+                        ? SfmControlErrorCode.ACTION_INCOMPLETE : SfmControlErrorCode.ACTION_UNKNOWN,
+                        syntax.getMessage(), false, requestId));
+            }
+            return VoxResult.applicationError(error(SfmControlErrorCode.INVALID_REQUEST, failure.getMessage(), false, requestId));
         } catch (RuntimeException failure) {
-            SFM.LOGGER.error("SFM_CLIENT_CONTROL_ACTION_FAILED action={}", canonicalAction, failure);
-            return VoxResult.applicationError(error(
-                    SfmControlErrorCode.ACTION_FAILED,
-                    failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage(),
-                    false,
-                    requestId
-            ));
+            return VoxResult.applicationError(error(SfmControlErrorCode.ACTION_FAILED, failure.getMessage(), false, requestId));
         }
-
-        Screen resultingScreen = minecraft.screen;
-{% if features.workspace_panels %}
-        SFMScreenMultiplexer workspace = resultingScreen instanceof SFMScreenMultiplexer multiplexer
-                ? multiplexer
-                : null;
-{% endif %}
-{% if features.structured_action_results %}
-        SFMClientActionStructuredResult structured = structuredResult.get();
+{% if features.client_control_cli and features.workspace_panels %}
+        SFMScreenMultiplexer workspace = minecraft.screen instanceof SFMScreenMultiplexer multiplexer ? multiplexer : null;
 {% endif %}
         return VoxResult.success(new SfmControlInvokeClientActionResult(
-                instanceId,
-                processId,
-                requestId,
-                canonicalAction,
-                result,
-                feedback,
-{% if features.structured_action_results %}
-                structured != null,
-                structured == null ? "" : structured.schemaId(),
-                structured == null ? "" : structured.json(),
+                instanceId, processId, requestId, canonicalAction, action.code(), action.feedback(),
+                !action.schema().isEmpty(), action.schema(), action.json(), action.screenPresent(), action.screenClass(),
+{% if features.client_control_cli and features.workspace_panels %}
+                workspace != null, workspace == null ? 0 : workspace.panels().size()
 {% else %}
-                false,
-                "",
-                "",
-{% endif %}
-                resultingScreen != null,
-                resultingScreen == null ? "" : resultingScreen.getClass().getName(),
-{% if features.workspace_panels %}
-                workspace != null,
-                workspace == null ? 0 : workspace.panels().size()
-{% else %}
-                false,
-                0
+                false, 0
 {% endif %}
         ));
     }
@@ -1258,7 +1175,6 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
 {% endif %}
 {% when "1.19.4" %}
 {% endcase %}
-        clientThreadGate.close();
         connectionsExecutor.shutdownNow();
         controlExecutor.shutdown();
         try {

@@ -43,14 +43,22 @@
     }
   },
   "source_rules": {
-    "src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java": [{"input":"src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
-    "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
-    "src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java": [{"input":"src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java","template":false,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMActionWorkTracker.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/SFMActionWorkTracker.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["game_puppet_runtime"], "any_features": [], "none_features": []}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["game_puppet_runtime"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMActionServicesAction.java": [{"input":"src/main/java/ca/teamdman/sfm/client/action/SFMActionServicesAction.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_action_services"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientCaptureService.java": [{"input":"src/main/java/ca/teamdman/sfm/client/control/SFMClientCaptureService.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_action_services"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientActionRuntime.java": [{"input":"src/main/java/ca/teamdman/sfm/client/control/SFMClientActionRuntime.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_action_services"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMActionArbiter.java": [{"input":"src/main/java/ca/teamdman/sfm/client/control/SFMActionArbiter.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_action_services"],"any_features":[],"none_features":[]}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMActionServiceSettings.java": [{"input":"src/main/java/ca/teamdman/sfm/client/control/SFMActionServiceSettings.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["client_action_services"],"any_features":[],"none_features":[]}}],
+    "src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java": [{"input": "src/test/java/ca/teamdman/sfm/client/Issue493LabelGunChatTests.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions", "release_version_4_35_0"], "any_features": [], "none_features": []}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/ReleaseEnergyExtractionProgressGameTest.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}}],
+    "src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java": [{"input": "src/test/java/ca/teamdman/sfm/test/Issue583BufferLootTests.java", "template": false, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelay.java": [{"input":"src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelay.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
     "src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelayOwner.java": [{"input":"src/main/java/ca/teamdman/sfm/common/capability/TunnelledBlockCapabilityRelayOwner.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
-    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
-    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
-    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java","template":true,"when":{"targets":["1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["release_version_4_35_0"],"any_features":[],"none_features":[]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityForwardingGameTestGenerator.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityCacheRecoveryGameTestGenerator.java", "template": true, "when": {"targets": ["1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/cable/tunnelled/TunnelledCapabilityRelayCycleGameTest.java", "template": true, "when": {"targets": ["1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscriberBankAutocraftingGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscriberBankAutocraftingGameTest.java","template":true,"when":{"targets":["1.19.2"],"all_features":["ae2_inscriber_bank_tests"],"any_features":[]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualFixtureGameTestGenerator.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualControlsGameTest.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualControlsGameTest.java", "template": true, "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}}],
@@ -60,7 +68,7 @@
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java": [{"input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/Issue610EnergyEvidencePuppetAction.java", "when": {"targets": ["1.21.1"], "all_features": ["issue_610_visual_evidence"], "any_features": [], "none_features": []}, "template": true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java","when":{"targets":["1.21.1"],"all_features":["issue_610_progress_tests"],"any_features":[],"none_features":[]},"template":true}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610ResourceProgressGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610ResourceProgressGameTest.java","when":{"targets":["1.21.1"],"all_features":["issue_610_progress_tests"],"any_features":[],"none_features":[]},"template":true}],
-    "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java": [{"input": "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java", "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["recipe_namespace"], "any_features": [], "none_features": []}, "template": true}],
+    "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java": [{"input": "src/test/java/ca/teamdman/sfm/test/Issue621RecipeNamespaceTests.java", "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["extended_release_regressions"], "any_features": [], "none_features": []}, "template": true}],
     "src/generated/resources/data/sfm/advancement/recipes/misc/tough_cable_horizontal.json": [
       {
         "input": "assets/features/recipe_namespace/src/generated/resources/data/minecraft/advancement/recipes/misc/tough_cable_horizontal.json",
@@ -6126,23 +6134,7 @@
       }
     }
   ],
-  "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridgeTests.java": [
-    {
-      "input": "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridgeTests.java",
-      "template": true,
-      "when": {
-        "targets": [
-          "1.19.2"
-        ],
-        "all_features": [
-          "client_control_file_actions",
-          "client_control_cli"
-        ],
-        "any_features": [],
-        "none_features": []
-      }
-    }
-  ],
+  "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridgeTests.java": [{"input": "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridgeTests.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
   "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlServerTests.java": [
     {
       "input": "src/test/java/ca/teamdman/sfm/client/control/SFMClientControlServerTests.java",
@@ -6249,23 +6241,7 @@
       }
     }
   ],
-  "src/test/java/ca/teamdman/sfm/client/control/SFMClientThreadGateTests.java": [
-    {
-      "input": "src/test/java/ca/teamdman/sfm/client/control/SFMClientThreadGateTests.java",
-      "template": true,
-      "when": {
-        "targets": [
-          "1.19.2",
-          "1.19.4"
-        ],
-        "all_features": [
-          "client_control_cli"
-        ],
-        "any_features": [],
-        "none_features": []
-      }
-    }
-  ],
+  "src/test/java/ca/teamdman/sfm/client/control/SFMClientThreadGateTests.java": [{"input": "src/test/java/ca/teamdman/sfm/client/control/SFMClientThreadGateTests.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
   "src/test/java/ca/teamdman/sfm/client/control/SFMExplorerControlBoundsTests.java": [
     {
       "input": "src/test/java/ca/teamdman/sfm/client/control/SFMExplorerControlBoundsTests.java",
@@ -9610,56 +9586,9 @@
         }
       }
     ],
-    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridge.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridge.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2"
-          ],
-          "all_features": [
-            "client_control_file_actions"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlLifecycle.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlLifecycle.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlServer.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlServer.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridge.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlFileBridge.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlLifecycle.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlLifecycle.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlServer.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientControlServer.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/client/control/SFMExplorerControlBounds.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/client/control/SFMExplorerControlBounds.java",
@@ -12334,23 +12263,7 @@
         }
       }
     ],
-    "src/main/java/ca/teamdman/sfm/client/control/SFMClientThreadGate.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientThreadGate.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/client/control/SFMClientThreadGate.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/SFMClientThreadGate.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/client/control/SFMManagerShowPending.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/client/control/SFMManagerShowPending.java",
@@ -12368,499 +12281,35 @@
         }
       }
     ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/PrimitiveAdapters.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/PrimitiveAdapters.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlClient.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlClient.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeArgs.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeArgs.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeRequest.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeRequest.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResponse.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResponse.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResult.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDispatcher.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDispatcher.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlError.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlError.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlErrorCode.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlErrorCode.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerIfNoMatch.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerIfNoMatch.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperation.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperation.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationArgs.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationArgs.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationRequest.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationRequest.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResponse.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResponse.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResult.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationStatus.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationStatus.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetOutcome.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetOutcome.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetResult.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlHandler.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlHandler.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionArgs.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionArgs.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionRequest.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionRequest.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResponse.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResponse.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResult.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlLifecycle.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlLifecycle.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingArgs.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingArgs.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingRequest.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingRequest.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResponse.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResponse.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResult.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
-    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlServiceDescriptor.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlServiceDescriptor.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2",
-            "1.19.4"
-          ],
-          "all_features": [
-            "client_control_cli"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/PrimitiveAdapters.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/PrimitiveAdapters.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlClient.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlClient.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeArgs.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeArgs.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeRequest.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeRequest.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResponse.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResponse.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDescribeResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDispatcher.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlDispatcher.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlError.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlError.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlErrorCode.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlErrorCode.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerIfNoMatch.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerIfNoMatch.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperation.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperation.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationArgs.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationArgs.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationRequest.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationRequest.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResponse.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResponse.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationStatus.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerOperationStatus.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetOutcome.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetOutcome.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlExplorerTargetResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlHandler.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlHandler.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionArgs.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionArgs.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionRequest.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionRequest.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResponse.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResponse.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlInvokeClientActionResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlLifecycle.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlLifecycle.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingArgs.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingArgs.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingRequest.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingRequest.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResponse.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResponse.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlPingResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
+    "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlServiceDescriptor.java": [{"input": "src/main/java/ca/teamdman/sfm/client/control/generated/SfmControlServiceDescriptor.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMExternalCliPuppetProcess.java": [
       {
         "input": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMExternalCliPuppetProcess.java",
@@ -17247,23 +16696,7 @@
         }
       }
     ],
-    "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlEnableAction.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlEnableAction.java",
-        "template": true,
-        "when": {
-          "targets": [
-            "1.19.2"
-          ],
-          "all_features": [
-            "client_actions",
-            "client_control_file_actions"
-          ],
-          "any_features": [],
-          "none_features": []
-        }
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlEnableAction.java": [{"input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlEnableAction.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["client_action_services"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlLogsAction.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientControlLogsAction.java",
@@ -22467,13 +21900,7 @@
         "template": true
       }
     ],
-    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java": [
-      {
-        "input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java",
-        "when": { "targets": ["1.19.2", "1.19.4"], "all_features": ["structured_action_results"] },
-        "template": true
-      }
-    ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java": [{"input": "src/main/java/ca/teamdman/sfm/client/action/SFMClientActionStructuredResult.java", "template": true, "when": {"targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "all_features": ["structured_action_results"], "any_features": [], "none_features": []}}],
     "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java",
@@ -33908,6 +33335,6 @@
         "template": true
       }
     ],
-    "sfm-toolchain.lock.json": [{"input":"build/lockfiles/1.19.2/schema-2.json","when":{"targets":["1.19.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.19.4/schema-2.json","when":{"targets":["1.19.4"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.1/schema-2.json","when":{"targets":["1.20.1"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.2/schema-2.json","when":{"targets":["1.20.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.3/schema-2.json","when":{"targets":["1.20.3"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.4/schema-2.json","when":{"targets":["1.20.4"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20/schema-2.json","when":{"targets":["1.20"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.21.0/schema-2.json","when":{"targets":["1.21.0"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.21.1/schema-2.json","when":{"targets":["1.21.1"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/26.1.2/schema-2.json","when":{"targets":["26.1.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.19.2/schema-4.json","when":{"targets":["1.19.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.19.4/schema-4.json","when":{"targets":["1.19.4"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20/schema-4.json","when":{"targets":["1.20"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.1/schema-4.json","when":{"targets":["1.20.1"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.2/schema-4.json","when":{"targets":["1.20.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.3/schema-4.json","when":{"targets":["1.20.3"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.4/schema-4.json","when":{"targets":["1.20.4"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.21.0/schema-4.json","when":{"targets":["1.21.0"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.21.1/schema-4.json","when":{"targets":["1.21.1"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/26.1.2/schema-4.json","when":{"targets":["26.1.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false}],
+    "sfm-toolchain.lock.json": [{"input":"build/lockfiles/1.19.2/schema-2.json","when":{"targets":["1.19.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.19.4/schema-2.json","when":{"targets":["1.19.4"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.1/schema-2.json","when":{"targets":["1.20.1"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.2/schema-2.json","when":{"targets":["1.20.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.3/schema-2.json","when":{"targets":["1.20.3"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20.4/schema-2.json","when":{"targets":["1.20.4"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.20/schema-2.json","when":{"targets":["1.20"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.21.0/schema-2.json","when":{"targets":["1.21.0"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/1.21.1/schema-2.json","when":{"targets":["1.21.1"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false},{"input":"build/lockfiles/26.1.2/schema-2.json","when":{"targets":["26.1.2"],"all_features":[],"any_features":[],"none_features":["locked_dependency_projection","historical_release_4_34_0"]},"template":false},{"input":"build/lockfiles/1.19.2/schema-4.json","when":{"targets":["1.19.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.19.4/schema-4.json","when":{"targets":["1.19.4"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20/schema-4.json","when":{"targets":["1.20"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.1/schema-4.json","when":{"targets":["1.20.1"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.2/schema-4.json","when":{"targets":["1.20.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.3/schema-4.json","when":{"targets":["1.20.3"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.20.4/schema-4.json","when":{"targets":["1.20.4"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.21.0/schema-4.json","when":{"targets":["1.21.0"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/1.21.1/schema-4.json","when":{"targets":["1.21.1"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/lockfiles/26.1.2/schema-4.json","when":{"targets":["26.1.2"],"all_features":["locked_dependency_projection"],"any_features":[],"none_features":[]},"template":false},{"input":"build/historical/sfm-4.34.0/mc-26.1.2/sfm-toolchain.lock.json","when":{"targets":["26.1.2"],"all_features":["historical_release_4_34_0"],"any_features":[],"none_features":["locked_dependency_projection"]},"template":false}],
   }
 }

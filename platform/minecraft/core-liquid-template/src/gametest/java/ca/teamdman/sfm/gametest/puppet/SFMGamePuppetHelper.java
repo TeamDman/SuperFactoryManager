@@ -2362,6 +2362,12 @@ public final class SFMGamePuppetHelper {
         }
     }
 
+{% if features.client_action_services %}
+    public boolean canSuspendForExternalControl() {
+        return !isComplete() && actions.get(currentAction).canSuspendForExternalControl();
+    }
+{% endif %}
+
     boolean tick(ISFMGamePuppetRuntime runtime) {
         if (isComplete()) {
             return true;

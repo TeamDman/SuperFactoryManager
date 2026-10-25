@@ -6,6 +6,15 @@ public interface SFMPuppetAction {
     String description();
 
     boolean tick(ISFMGamePuppetRuntime runtime);
+{% if features.client_action_services %}
+
+    /**
+     * Explicit cooperative handoff: no owned render/server/worker mutation may
+     * still be pending. Tick suspension alone does not establish this condition.
+     * Ordinary world simulation and wall-clock deadlines continue.
+     */
+    default boolean canSuspendForExternalControl() { return false; }
+{% endif %}
 
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}

@@ -125,6 +125,23 @@ public final class SFMGamePuppetHarness {
     private static boolean viewportRestoreFailed;
 {% endif %}
 
+    private static void setActivePuppet(ActivePuppet value) {
+        activePuppet = value;
+{% if features.client_action_services %}
+{% if targets.mc_1_19_2 or targets.mc_1_19_4 %}
+        if (value == null) SFMGamePuppetRenderHarness.clear();
+{% endif %}
+        ca.teamdman.sfm.client.control.SFMClientControlLifecycle.runtime().observePuppet(
+                value, value == null ? "" : value.definition.puppetName(),
+                () -> value == null || (value.declared && value.helper.canSuspendForExternalControl()
+                        && value.externalControlWork.isIdle()
+{% if targets.mc_1_19_2 or targets.mc_1_19_4 %}
+                        && SFMGamePuppetRenderHarness.isIdle()
+{% endif %}
+                ));
+{% endif %}
+    }
+
     private SFMGamePuppetHarness() {
     }
 
@@ -142,7 +159,7 @@ public final class SFMGamePuppetHarness {
                         activePuppet.success
                 );
             }
-            activePuppet = null;
+            setActivePuppet(null);
             awaitingTitleScreen = false;
         }
 
@@ -171,6 +188,10 @@ public final class SFMGamePuppetHarness {
 
     public static void onClientTick() {
         Minecraft minecraft = Minecraft.getInstance();
+{% if features.client_action_services %}
+        // A lease suspends the runner and its timeout, not the client's action services.
+        if (activePuppet != null && !ca.teamdman.sfm.client.control.SFMClientControlLifecycle.runtime().mayTickPuppet()) return;
+{% endif %}
 {% if targets.mc_1_19_2 and features.client_automation_pause_restore %}
         if (!completed && finalWorldHoldTicksRemaining < 0 && !awaitingTitleScreen
                 && activePuppet != null && !activePuppet.failureRecorded && !activePuppet.success) {
@@ -261,7 +282,7 @@ public final class SFMGamePuppetHarness {
         SFMDiscoveredGamePuppet definition = execution.definition();
         SFMGamePuppetHelper helper = new SFMGamePuppetHelper();
         ActivePuppet active = new ActivePuppet(definition, helper, execution.variant());
-        activePuppet = active;
+        setActivePuppet(active);
     }
 
     private static void returnToTitle(Minecraft minecraft) {
@@ -325,14 +346,14 @@ public final class SFMGamePuppetHarness {
 {% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1", "26.1.2" %}
 {% endcase %}
         if (keepOpenSeconds < 0) {
-            activePuppet = null;
+            setActivePuppet(null);
             completed = true;
             restoreRuntimeOptions(minecraft);
             SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN");
             return;
         }
         if (keepOpenSeconds > 0) {
-            activePuppet = null;
+            setActivePuppet(null);
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
             finalWorldHoldTicksRemaining = keepOpenSeconds * 20L;
@@ -346,7 +367,7 @@ public final class SFMGamePuppetHarness {
         // solely to wait for process exit.  Retaining the active world until
         // Minecraft shuts down also avoids invoking unrelated title-screen
         // listeners after their client configuration has already been unloaded.
-        activePuppet = null;
+        setActivePuppet(null);
         finishRun();
     }
 
@@ -636,7 +657,7 @@ public final class SFMGamePuppetHarness {
         finalWorldHoldTicksRemaining = -1;
         exitTicksRemaining = -1;
         ActivePuppet interrupted = activePuppet;
-        activePuppet = null;
+        setActivePuppet(null);
         awaitingTitleScreen = false;
         if (interrupted == null || !interrupted.failureRecorded) failedPuppetCount++;
         SFMGamePuppetRenderHarness.clear();

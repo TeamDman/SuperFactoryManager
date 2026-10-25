@@ -49,13 +49,33 @@ public final class SFMCommandPaletteActions {
     );
 {% endif %}
 
-{% if features.client_control_file_actions %}
+{% if features.client_control_file_actions or features.client_action_services %}
     public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlEnableAction> ENABLE_FILE_CONTROL = REGISTERER.register(
             "control/files/enable",
             SFMClientControlEnableAction::new
     );
 
 {% endif %}
+
+{% if features.client_action_services %}
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> ACTION_SERVICES_STATUS = REGISTERER.register(
+            "control/status", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.STATUS));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> DISABLE_FILE_CONTROL = REGISTERER.register(
+            "control/files/disable", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.FILES_DISABLE));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> ENABLE_VOX_CONTROL = REGISTERER.register(
+            "control/vox/enable", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.VOX_ENABLE));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> DISABLE_VOX_CONTROL = REGISTERER.register(
+            "control/vox/disable", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.VOX_DISABLE));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> CONTROL_CAPTURE = REGISTERER.register(
+            "control/capture", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.CAPTURE));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> CONTROL_CAPTURE_STATUS = REGISTERER.register(
+            "control/capture/status", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.CAPTURE_STATUS));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> CONTROL_PUPPET_PAUSE = REGISTERER.register(
+            "control/puppet/pause", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.PUPPET_PAUSE));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMActionServicesAction> CONTROL_PUPPET_RESUME = REGISTERER.register(
+            "control/puppet/resume", () -> new SFMActionServicesAction(SFMActionServicesAction.Operation.PUPPET_RESUME));
+{% endif %}
+
 {% if features.client_action_listing %}
     public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlActionListAction> LIST_ACTIONS = REGISTERER.register(
             "action/list",

@@ -1,4 +1,9 @@
 NAME "Changelog"
+{% if features.client_action_services %}
+-- Extended tooling: File and Vox Action Servers start disabled; enable each from the palette or its environment flag.
+-- Action dispatch and fresh framebuffer captures remain available after a puppet yields.
+-- External mutation of an active puppet requires a bounded pause lease for its exact execution ID.
+{% endif %}
 -- SFM Discord:
 -- https://discord.gg/5mbUY3mu6m
 -- SFM Donations:

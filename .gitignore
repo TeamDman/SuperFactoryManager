@@ -88,3 +88,7 @@ run_client_puppet
 /platform/minecraft/projections/sfm-4.35.0-issue610-visual/
 
 __pycache__
+
+# Local extended release regression/control projects.
+/platform/minecraft/projections/sfm-4.34.0-extended/
+/platform/minecraft/projections/sfm-4.35.0-extended/
