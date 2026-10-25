@@ -50,6 +50,10 @@ public final class SFMExplorerDiffAction implements SFMClientAction<SFMClientAct
                 if (!continuation.isCurrent()) { command.getSource().sendFeedback(Component.literal("Origin closed; comparison discarded")); return; }
                 if (error != null) throw new IllegalStateException(error.getCause() == null ? error : error.getCause());
                 SFMInspectionRuntime.open(trees, continuation.context(), workspace == null);
+{% if features.inspection_workspace %}
+                if (workspace != null)
+                    ca.teamdman.sfm.client.inspection.SFMInspectionPresetReopen.remember(trees);
+{% endif %}
                 feedback(command, continuation.context(), "Comparison roots ready. Expand a strategy, then a file pair and representation.", false);
             } catch (RuntimeException failure) {
                 ca.teamdman.sfm.SFM.LOGGER.warn("SFM_INSPECTION_COMPARISON_FAILED", failure);

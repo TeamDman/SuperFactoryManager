@@ -344,6 +344,9 @@ public final class SFMGamePuppetHarness {
                 ca.teamdman.sfm.client.inspection.SFMInspectionRuntime.open(prepared,
                         ca.teamdman.sfm.client.action.SFMClientActionContext.create(null,
                                 () -> minecraft.level == request.world() && minecraft.screen == null), false);
+{% if features.inspection_workspace %}
+                ca.teamdman.sfm.client.inspection.SFMInspectionPresetReopen.remember(prepared);
+{% endif %}
                 if (!(minecraft.screen instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer))
                     throw new IllegalStateException("Inspection opening did not install the Explorer workspace screen");
                 SFM.LOGGER.info("SFM_GAME_PUPPET_INSPECTION_READY puppet={} path={} screen={}",

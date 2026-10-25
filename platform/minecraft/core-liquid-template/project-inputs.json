@@ -6101,6 +6101,7 @@
     "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerDiffAction.java": [{"input":"src/main/java/ca/teamdman/sfm/client/action/SFMExplorerDiffAction.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["release_review","file_explorer","client_actions","workspace_panels","editor_documents"],"any_features":[],"none_features":[]}},
       {"input":"src/main/java/ca/teamdman/sfm/client/action/SFMExplorerDiffAction.java","template":true,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}
     ],
+    "src/main/java/ca/teamdman/sfm/client/action/SFMExplorerDiffReopenAction.java": [{"input":"src/main/java/ca/teamdman/sfm/client/action/SFMExplorerDiffReopenAction.java","template":false,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}],
     "src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewDiffDecorations.java": [{"input":"src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewDiffDecorations.java","template":false,"when":{"targets":["1.19.2","1.19.4"],"all_features":["release_review","editor_documents"],"any_features":[],"none_features":[]}},
       {"input":"src/main/java/ca/teamdman/sfm/client/review/release_review/SFMReleaseReviewDiffDecorations.java","template":false,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}
     ],
@@ -6110,6 +6111,7 @@
     "src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java": [{"input":"src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java","template":false,"when":{"targets":["1.19.2","1.19.4"],"all_features":["release_review","file_explorer","client_actions","workspace_panels","editor_documents"],"any_features":[],"none_features":[]}},
       {"input":"src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java","template":false,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}
     ],
+    "src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionPresetReopen.java": [{"input":"src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionPresetReopen.java","template":false,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}],
     "src/main/java/ca/teamdman/sfm/client/action/SFMPathOpenAction.java": [{"input":"src/main/java/ca/teamdman/sfm/client/action/SFMPathOpenAction.java","template":true,"when":{"targets":["1.19.2","1.19.4"],"all_features":["client_actions"],"any_features":["file_explorer","java_symbols","release_review","workspace_counterfactuals"],"none_features":[]}},
       {"input":"src/main/java/ca/teamdman/sfm/client/action/SFMPathOpenAction.java","template":true,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}
     ],

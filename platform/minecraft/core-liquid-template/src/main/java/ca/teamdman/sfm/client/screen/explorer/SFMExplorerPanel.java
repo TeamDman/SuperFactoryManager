@@ -512,6 +512,9 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public void closed() {
         comparisonStatus = "";
         if (closed) return;
+{% if features.inspection_workspace %}
+        ca.teamdman.sfm.client.inspection.SFMInspectionPresetReopen.panelClosing(this);
+{% endif %}
         closed = true;
         model.close();
         scrollbarDragging = false;
@@ -1454,6 +1457,23 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public SFMExplorerSession.Snapshot sessionSnapshot() {
         return session.snapshot();
     }
+
+{% if features.inspection_workspace %}
+    /** Restore the selected comparison row after the previous screen was closed. */
+    public void restoreInspectionView(SFMExplorerSession.Snapshot previous) {
+        if (!session.snapshot().roots().equals(previous.roots()))
+            throw new IllegalArgumentException("The comparison roots changed");
+        session.setManualRootOrder(previous.manualRootOrder());
+        session.setSettings(previous.settings());
+        previous.expanded().forEach(session::expand);
+        var selected = previous.selectedPaths();
+        session.selectMembers(selected, previous.navigationCursor().filter(selected::contains));
+        refreshExpandedProjection().whenComplete((ignored, failure) ->
+                Minecraft.getInstance().execute(() -> {
+                    if (!closed) session.setScrollOffset(previous.scrollOffset());
+                }));
+    }
+{% endif %}
 
     /** Already-published label for an exact path; no filesystem or resolver read. */
     public Optional<String> publishedLabel(SFMPath path) {
