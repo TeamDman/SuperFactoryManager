@@ -25,23 +25,48 @@ argument when that feature is absent. For 26.1.2 the control server uses
   policy/scheduling assertions, feature closure, generated service/fixture
   membership, complete historical 4.34 source equality and the reviewed plain
   4.35 fixture-only membership delta.
-- Locked native compile of main, GameTest, test and datagen sources succeeded for
-  red and fixed 1.19.2, 1.19.4 and 1.20 with installed JBR 17; red and fixed
-  1.21.1 with installed JBR 21; and red 26.1.2 with installed JBR 25. Red
-  1.20.3 also compiled with JBR 21 as the NeoForge build JVM before the portable
-  fixture was added to the extended projections. No dependency pin, source hash
-  guard or game JDK was bypassed.
+- Locked native compile of main, GameTest, test and datagen sources succeeded
+  for **both red and fixed projections on all ten supported targets**. Every
+  final receipt says `compilation: completed` and `immutable_source_lock: true`.
+  Game source targets are Java 17 through 1.20.4, Java 21 for 1.21.0/1.21.1,
+  and Java 25 for 26.1.2. NeoForge 1.20.1–1.20.4 uses JBR 21 as its build JVM
+  while retaining Java 17 source output. No dependency pin, source hash guard
+  or game JDK was bypassed. These are compiles; JAR packaging was not performed.
 - `git diff --check` and `git diff --cached --check` pass.
+
+| Target | Red extended | Fixed extended |
+| --- | --- | --- |
+| 1.19.2 | Compiled | Compiled |
+| 1.19.4 | Compiled | Compiled |
+| 1.20 | Compiled | Compiled |
+| 1.20.1 | Compiled | Compiled |
+| 1.20.2 | Compiled | Compiled |
+| 1.20.3 | Compiled | Compiled |
+| 1.20.4 | Compiled | Compiled |
+| 1.21.0 | Compiled | Compiled |
+| 1.21.1 | Compiled | Compiled |
+| 26.1.2 | Compiled | Compiled |
+
+The first 1.20.1 red/fixed builds were unusually long because each projection
+context had an `mcp_config_joined` cache miss. The joined Minecraft
+decompile/patch stage took 555,781 and 543,220 ms respectively; their actual
+SFM compile nodes took 22,884 and 21,975 ms. This was repeated first-use MCP
+preparation, not a javac loop.
 
 The older `scripts/test_release_recipe_namespaces.py` suite reports 20 failures
 here and reports the same 20 failures on unmodified local `main` at `ba81a01fd`.
 Those pre-existing expectations include the older feature set and whole-tree
 parity outside the action-service change; this suite is not counted as passing.
 
-Native compilation of the final feature set is **not yet verified** for the other eleven extended
-targets. The action services have **not** been enabled in a running Minecraft
-client or tested live. Existing demo clients were launched with earlier JARs;
-they remain open, and this integration does not alter their runtime behavior.
+The action services have **not** been enabled in a running Minecraft client or
+tested live. The two earlier 1.21.1 visual-demo clients were launched with
+earlier JARs. After explicit user authorization, their exact slot 61040/61041
+launchers and JVMs were matched by process tree, projection, executable, start
+time and window title; both received a normal window-close request. Each
+Minecraft slot log confirms `Saving players`, `Saving worlds`, and
+`All dimensions are saved`. Both JVMs and their launchers exited; their saved worlds
+remain in the original slot directories.
+
 The service ports, file directories, capture and cooperative pause need runtime
 qualification in newly launched extended clients before claiming availability.
 The older exploration puppet's raw mouse/key protocol has not been promoted to
@@ -53,4 +78,4 @@ Vox independently with `SFM_ACTION_FILES=1` and `SFM_ACTION_VOX=1`, or invoke
 the corresponding `sfm:control/files/enable` and `sfm:control/vox/enable`
 palette actions. Both default off. Verify endpoint identity and safe interaction
 before using `sfm.exe` or file requests. This requires a separate launch; it
-cannot retrofit the two currently open clients.
+cannot retrofit the previously closed visual-demo clients.
