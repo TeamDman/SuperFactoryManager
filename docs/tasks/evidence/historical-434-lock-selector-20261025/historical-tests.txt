@@ -1,0 +1,32 @@
+running 12 tests
+test jar_build::engine::projection_client_launch_tests::historical_clients_need_no_smoke_hook_but_smoke_mode_does ... ok
+test jar_build::engine::tests::strict_main_cache_checks_outputs_before_reusing_historical_dependencies ... ok
+test jar_build::local_dependency_manifest::tests::manifest_retains_exact_historical_pair_and_roundtrips ... ok
+test cli::source::catalog_commands::tests::historical_import_requires_explicit_legacy_namespace ... ok
+test release_review_ledger_resolve::tests::live_resolution_does_not_grow_authority_and_historical_approval_does_not_cover_changed_bytes ... FAILED
+test release_review_ledger_resolve::tests::historical_git_requires_commit_path_membership_not_only_an_existing_blob ... ok
+test source_projection::core_slice_test_support::historical_registry_receipt_rejects_any_byte_drift ... ok
+test source_projection::core_slice_test_support::unrelated_current_owners_do_not_change_historical_registry_receipt ... ok
+test source_projection::sync::tests::named_invalid_identity_historical_provenance_and_case_components_fail_before_writes ... ok
+test source_projection::frozen_recipe_project::tests::historical_static_2612_lock_cannot_enter_current_native_recipe ... ok
+test source_projection::core_slice_test_support::historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts ... ok
+test source_projection::core_slice_test_support::current_catalog_selections_stay_distinct_from_historical_feature_off_controls ... ok
+
+failures:
+
+---- release_review_ledger_resolve::tests::live_resolution_does_not_grow_authority_and_historical_approval_does_not_cover_changed_bytes stdout ----
+
+thread 'release_review_ledger_resolve::tests::live_resolution_does_not_grow_authority_and_historical_approval_does_not_cover_changed_bytes' (60172) panicked at src/release_review_ledger_resolve.rs:516:10:
+called `Result::unwrap()` on an `Err` value: safe working-tree capture currently requires Windows handle-relative source protection
+
+Location:
+    src/release_review_capture_io.rs:353:9
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    release_review_ledger_resolve::tests::live_resolution_does_not_grow_authority_and_historical_approval_does_not_cover_changed_bytes
+
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 2072 filtered out; finished in 20.43s
+
+error: test failed, to rerun pass `--lib`
