@@ -26,11 +26,11 @@ argument when that feature is absent. For 26.1.2 the control server uses
   membership, complete historical 4.34 source equality and the reviewed plain
   4.35 fixture-only membership delta.
 - Locked native compile of main, GameTest, test and datagen sources succeeded for
-  red and fixed 1.19.2 with installed JBR 17, red and fixed 1.21.1 with installed
-  JBR 21, and red 26.1.2 with installed JBR 25. Red 1.20.3 also compiled with
-  JBR 21 as the NeoForge build JVM before the portable fixture was added to the
-  extended projections. No dependency pin, source hash guard or game JDK was
-  bypassed.
+  red and fixed 1.19.2, 1.19.4 and 1.20 with installed JBR 17; red and fixed
+  1.21.1 with installed JBR 21; and red 26.1.2 with installed JBR 25. Red
+  1.20.3 also compiled with JBR 21 as the NeoForge build JVM before the portable
+  fixture was added to the extended projections. No dependency pin, source hash
+  guard or game JDK was bypassed.
 - `git diff --check` and `git diff --cached --check` pass.
 
 The older `scripts/test_release_recipe_namespaces.py` suite reports 20 failures
@@ -38,7 +38,7 @@ here and reports the same 20 failures on unmodified local `main` at `ba81a01fd`.
 Those pre-existing expectations include the older feature set and whole-tree
 parity outside the action-service change; this suite is not counted as passing.
 
-Native compilation of the final feature set is **not yet verified** for the other fifteen extended
+Native compilation of the final feature set is **not yet verified** for the other eleven extended
 targets. The action services have **not** been enabled in a running Minecraft
 client or tested live. Existing demo clients were launched with earlier JARs;
 they remain open, and this integration does not alter their runtime behavior.
