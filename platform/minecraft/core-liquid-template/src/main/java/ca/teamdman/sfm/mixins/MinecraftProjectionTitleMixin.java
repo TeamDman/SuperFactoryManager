@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /** Adds the catalog key to a demo client's normal, dynamically refreshed title. */
 @Mixin(Minecraft.class)
 public abstract class MinecraftProjectionTitleMixin {
-    @Inject(method = "createTitle", at = @At("RETURN"), cancellable = true)
+    @Inject(method = "createTitle", at = @At("RETURN"), cancellable = true, remap = false)
     private void sfm$appendProjectionTitle(CallbackInfoReturnable<String> result) {
         String projectionKey = System.getProperty("sfm.clientRun.projectionKey");
         if (projectionKey == null || projectionKey.isBlank() || projectionKey.length() > 160) {
