@@ -4001,6 +4001,12 @@ fn resolve_neogradle_run_classpath(
         legacy.extend(ensure_run_neoforge_dev_jars(context, kind)?);
     };
 
+    if should_include_plain_run_dependencies(kind, run_options) {
+        let _span = tracing::debug_span!("resolve_neogradle_run_classpath_plain_dependencies")
+            .entered();
+        legacy.extend(resolve_neogradle_run_dependencies(context, kind, false)?);
+    }
+
     let mut userdev_mods = Vec::new();
     if matches!(kind, RunKind::GameTestServer) {
         let _span =
@@ -4011,11 +4017,6 @@ fn resolve_neogradle_run_classpath(
         let _span =
             tracing::debug_span!("resolve_neogradle_run_classpath_run_dependencies").entered();
         userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, true)?);
-    } else if should_include_plain_run_dependencies(kind, run_options) {
-        let _span =
-            tracing::debug_span!("resolve_neogradle_run_classpath_required_plain_dependencies")
-                .entered();
-        userdev_mods.extend(resolve_neogradle_run_dependencies(context, kind, false)?);
     } else {
         tracing::info!(
             kind = kind.command_name(),
@@ -6464,7 +6465,7 @@ fn resolve_run_deobf_dependencies(
 fn resolve_neogradle_run_dependencies(
     context: &ExecutionContext<'_>,
     kind: RunKind,
-    include_loader_managed_mods: bool,
+    loader_managed_mods: bool,
 ) -> eyre::Result<Vec<PathBuf>> {
     let _span =
         tracing::debug_span!("resolve_neogradle_run_dependencies", kind = %kind.command_name())
@@ -6472,9 +6473,9 @@ fn resolve_neogradle_run_dependencies(
     let dependency_output = context.plan.cache_dir.join("dependencies");
     let mut output = Vec::new();
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
-        (include_loader_managed_mods
-            || dependency.artifact_treatment
-                != crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
+        (dependency.artifact_treatment
+            == crate::toolchain_lockfile_schema::version::v3::ArtifactTreatmentV3::LoaderManagedMod)
+            == loader_managed_mods
             && dependency_selected_for_run(
                 &dependency.configuration,
                 dependency.data_run_policy,

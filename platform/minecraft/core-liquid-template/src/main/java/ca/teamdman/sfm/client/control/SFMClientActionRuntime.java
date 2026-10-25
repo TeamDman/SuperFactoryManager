@@ -113,7 +113,8 @@ public final class SFMClientActionRuntime implements AutoCloseable {
             voxSession = null;
             SFMClientControlServer stopping = vox;
             vox = null;
-            stopping.close();
+            // Startup can fail after allocating a session but before publishing a server.
+            if (stopping != null) stopping.close();
         }
         tasks(transport).forEach(task -> task.cancel(false));
         arbiter.release(ending.generation());
