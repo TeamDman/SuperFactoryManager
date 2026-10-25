@@ -18,6 +18,9 @@ FEATURES = json.loads((CORE / 'feature-definitions.json').read_text())
 INPUTS = json.loads(re.sub(r',\s*([}\]])', r'\1', (CORE / 'project-inputs.json').read_text()))
 BASE = 'e2ba833b2b235835d69475b641e24b22bfd9551a'
 LOCAL_ISOLATION_WITNESS = 'ba81a01fd93147b6595c90a841af2aebc71eb789'
+# Native builds and GameTests leave ignored state beside the authored project.
+RUNTIME_PROJECT_DIRS = frozenset({'build', 'run', 'runGameTest', 'runGameTestPreview',
+                                  'logs', '.gradle'})
 
 
 class ActionServicesTests(unittest.TestCase):
@@ -78,7 +81,7 @@ class ActionServicesTests(unittest.TestCase):
             project = ROOT / prefix / ('mc-' + target)
             for folder, dirs, files in os.walk(project):
                 if Path(folder) == project:
-                    dirs[:] = [d for d in dirs if d not in ['build', 'run', '.gradle']]
+                    dirs[:] = [d for d in dirs if d not in RUNTIME_PROJECT_DIRS]
                 for file in files:
                     path = Path(folder) / file
                     if path.name == '.sfm-core-project.json':
@@ -119,7 +122,7 @@ class ActionServicesTests(unittest.TestCase):
             project = ROOT / prefix / ('mc-' + target)
             for folder, dirs, files in os.walk(project):
                 if Path(folder) == project:
-                    dirs[:] = [d for d in dirs if d not in ['build', 'run', '.gradle']]
+                    dirs[:] = [d for d in dirs if d not in RUNTIME_PROJECT_DIRS]
                 actual_paths.update((Path(folder) / f).relative_to(ROOT).as_posix()
                                     for f in files if f != '.sfm-core-project.json')
         self.assertEqual(set(expected), actual_paths)
