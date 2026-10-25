@@ -696,7 +696,8 @@ pub(crate) mod tests {
 
     // Reuse the shared isolated 20-context ownership fixture, then replace
     // only the selected target's lock and thirteen roles with frozen bytes.
-    // Output names come from the real core selectors, not recipe path guesses.
+    // Output names come from real selectors. The 26.1.2 historical recipe below
+    // intentionally reconstructs its former lock-path binding inside this fixture.
     #[tracing::instrument(name = "frozen_recipe.fixture", skip_all)]
     fn fixture_for(recipe: &FrozenRecipeIndexRow) -> Result<Fixture> {
         let repo = repository()?;
@@ -719,7 +720,22 @@ pub(crate) mod tests {
             load().expect("load immutable frozen recipe fixture inputs")
         });
         let context = catalog.context(&format!("sfm-4.34.0/mc-{}", recipe.target))?;
-        let selection = select_core_inputs(metadata, &context, &BTreeSet::new())?;
+        let mut selection = select_core_inputs(metadata, &context, &BTreeSet::new())?;
+        if recipe.target == "26.1.2" {
+            let lock = selection.inputs.get_mut(LOCK_OUTPUT).ok_or_else(|| {
+                eyre::eyre!("historical 26.1.2 fixture lacks selected lock output")
+            })?;
+            ensure!(
+                lock.input == "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+                "real historical 26.1.2 selector changed"
+            );
+            lock.input = recipe
+                .source_lock
+                .path
+                .strip_prefix(&format!("{CORE_ROOT}/"))
+                .ok_or_else(|| eyre::eyre!("historical recipe lock must be core-owned"))?
+                .to_owned();
+        }
         let wanted = std::iter::once(recipe.source_lock.path.clone())
             .chain(
                 recipe
@@ -1400,6 +1416,35 @@ pub(crate) mod tests {
             error.contains("not the selected reviewed authored input"),
             "{error}"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn historical_static_2612_lock_cannot_enter_current_native_recipe() -> Result<()> {
+        let recipe = recipe_index()?
+            .targets
+            .into_iter()
+            .find(|row| row.target == "26.1.2")
+            .ok_or_else(|| eyre::eyre!("missing 26.1.2 recipe"))?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.set_project_file_for(
+            &recipe.target,
+            LOCK_OUTPUT,
+            "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+            include_bytes!("fixtures/released-2612-original-schema2.json"),
+            false,
+        )?;
+        let production = fs::read(repository()?.join(BUILD_CONFIGURATION_PATH))?;
+        fs::write(fixture.repository().join(BUILD_CONFIGURATION_PATH), &production)?;
+        let root = fixture.publish(&key);
+        let error = prepare(&fixture, &key, &recipe).unwrap_err().to_string();
+        assert!(error.contains("not the selected reviewed authored input"), "{error}");
+        assert_eq!(
+            fs::read(root.join(LOCK_OUTPUT))?,
+            include_bytes!("fixtures/released-2612-original-schema2.json")
+        );
+        assert!(!root.join("build").exists());
         Ok(())
     }
 
