@@ -184,6 +184,7 @@ use super::acquire_build_cache_lock;
 use super::add_loader_jarjar_entries;
 use super::apply_client_automation_timing_properties;
 use super::apply_client_title_screen_property;
+use super::apply_client_projection_key_property;
 use super::apply_game_puppet_filter_property;
 use super::apply_game_puppet_game_test_property;
 use super::apply_game_test_filter_property;
@@ -988,6 +989,22 @@ fn client_title_screen_sets_title_screen_property() {
         &RunOptions::default(),
     );
     assert!(!disabled_properties.contains_key("sfm.clientRun.titleScreen"));
+}
+
+#[test]
+fn projected_client_title_uses_exact_key_only_for_graphical_runs() {
+    let key = "sfm-4.34.0-issue610-visual/mc-1.21.1";
+    let mut properties = BTreeMap::new();
+    apply_client_projection_key_property(&mut properties, RunKind::Client, Some(key));
+    assert_eq!(properties.get("sfm.clientRun.projectionKey").map(String::as_str), Some(key));
+    properties.clear();
+    apply_client_projection_key_property(&mut properties, RunKind::GameTestPreview, Some(key));
+    assert_eq!(properties.get("sfm.clientRun.projectionKey").map(String::as_str), Some(key));
+    properties.clear();
+    apply_client_projection_key_property(&mut properties, RunKind::Client, None);
+    assert!(properties.is_empty());
+    apply_client_projection_key_property(&mut properties, RunKind::GameTestServer, Some(key));
+    assert!(properties.is_empty());
 }
 
 #[test]

@@ -916,6 +916,11 @@ fn execute_run_with_context(
             automation_mode.to_string(),
         );
     }
+    let projection_key = plan
+        .identity
+        .is_catalog_owned()
+        .then(|| plan.target_label());
+    apply_client_projection_key_property(&mut properties, kind, projection_key.as_deref());
     apply_client_title_screen_property(&mut properties, kind, run_options);
     if matches!(kind, RunKind::Client) || run_options.inspection_workspace.is_some() {
         let executable = std::env::current_exe()?.to_string_lossy().into_owned();
@@ -2764,6 +2769,19 @@ fn apply_client_title_screen_property(
         "sfm.clientRun.titleScreen".to_string(),
         title_screen.property_value().to_string(),
     );
+}
+
+fn apply_client_projection_key_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    projection_key: Option<&str>,
+) {
+    if !matches!(kind, RunKind::Client | RunKind::ClientPuppet | RunKind::GameTestPreview) {
+        return;
+    }
+    if let Some(key) = projection_key.filter(|key| !key.is_empty()) {
+        properties.insert("sfm.clientRun.projectionKey".to_string(), key.to_string());
+    }
 }
 
 #[expect(

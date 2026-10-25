@@ -2225,8 +2225,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMFontUtils.draw(graphics, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
 {% case minecraft_version %}
-{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
+{% when "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21" %}
         super.render(graphics, mouseX, mouseY, partialTick);
+{% when "1.21.1" %}
+        // The background was rendered above. Screen.render would blur these
+        // panels a second time, so render only its widgets here.
+        for (var renderable : this.renderables) {
+            renderable.render(graphics, mouseX, mouseY, partialTick);
+        }
 {% when "26.1.2" %}
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 {% endcase %}

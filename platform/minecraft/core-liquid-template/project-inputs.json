@@ -22426,6 +22426,7 @@
       },
       {"input":"src/main/java/ca/teamdman/sfm/mixins/EditBoxAccessor.java","when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]},"template":true}
     ],
+    "src/main/java/ca/teamdman/sfm/mixins/MinecraftProjectionTitleMixin.java": [{"input":"src/main/java/ca/teamdman/sfm/mixins/MinecraftProjectionTitleMixin.java","template":false,"when":{"targets":["1.21.1"],"all_features":["inspection_workspace"]}}],
     "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java": [
       {
         "input": "src/main/java/ca/teamdman/sfm/mixins/MouseHandlerMixin.java",

@@ -17,6 +17,13 @@
     "StructureTemplateManagerMixin"
   ],
   "client": [
+{% if features.inspection_workspace and targets.mc_1_21_1 %}
+{% if features.single_line_input or features.issue_610_visual_evidence or features.game_puppet_runtime %}
+    "MinecraftProjectionTitleMixin",
+{% else %}
+    "MinecraftProjectionTitleMixin"
+{% endif %}
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4" %}
 {% if features.single_line_input or features.typed_command_palette or features.document_history %}
