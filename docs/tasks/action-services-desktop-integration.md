@@ -53,6 +53,40 @@ decompile/patch stage took 555,781 and 543,220 ms respectively; their actual
 SFM compile nodes took 22,884 and 21,975 ms. This was repeated first-use MCP
 preparation, not a javac loop.
 
+## Local JAR packaging
+
+All twenty explicit extended projections were packaged with the native `source
+project jar` route after compilation. A narrow CLI change permits the same
+guarded `--cache-root` for development JARs, reusing the exact compile cache;
+released-recipe JARs still reject this override. The CLI was rebuilt from the
+frozen offline Rust lock, and both the positive development JAR route and the
+negative released-recipe guard were exercised. No JAR was published or run.
+
+The machine-local manifest is
+`C:\Users\Teamy\Documents\Codex\2026-10-24\task\action-services-receipts\extended-jar-manifest.json`.
+It records each absolute JAR path, byte size, SHA-256, loader metadata, SDK,
+source/lock/cache identity and matching compile receipt. Verification opened
+and CRC-checked all 20 archives, required the action runtime, arbiter, capture,
+palette and portable FE provider classes, and found no GameTest class in the
+production archive. The added tooling is absent from all plain-release source
+trees. Every extended `OutputStatement.java` is byte-equal to its corresponding
+plain-release source, while packaged red and fixed `OutputStatement.class`
+hashes differ on all ten targets.
+
+The JARs remain in the isolated task-local integration worktree named in the
+manifest; they have not been copied into the local main checkout. The frozen
+offline release CLI build succeeded. `cargo fmt --check` still reports the same
+56 unrelated pre-existing diffs on both the previous local main and this
+integration; neither edited CLI file appears in that diff list. `git diff
+--check` passes.
+
+For the selected 1.21.1 demo pair:
+
+| Projection | JAR bytes | SHA-256 |
+| --- | ---: | --- |
+| `sfm-4.34.0-extended/mc-1.21.1` | 1,963,183 | `a43fb038dfc7b7d2a25e22dde795d3e015d1622223a7c872164fd0c57c711eb3` |
+| `sfm-4.35.0-extended/mc-1.21.1` | 1,974,667 | `f8e6242097328a67b44d8e1e86e8f956829fce388b0a765181667bc579ac9dfd` |
+
 The older `scripts/test_release_recipe_namespaces.py` suite reports 20 failures
 here and reports the same 20 failures on unmodified local `main` at `ba81a01fd`.
 Those pre-existing expectations include the older feature set and whole-tree
