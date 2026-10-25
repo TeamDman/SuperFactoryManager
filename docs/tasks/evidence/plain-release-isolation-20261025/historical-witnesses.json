@@ -1,0 +1,92 @@
+{
+  "sfm-4.34.0/mc-1.19.2": {
+    "reference": "refs/tags/4.34.0-1.19.2",
+    "commit": "31135b8e86801b862d5cb2283c7c5878b7cc5bb4",
+    "tree": "e437e300ca5905fb398f21efade7e62a8b9b2025",
+    "oracle_test_sha256": "91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+    "canonical_test_sha256": "dbee2b2e6148b0d16261450ead5a4c6f148e63ecf9f9b2974850912f11566113",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.19.4": {
+    "reference": "refs/tags/4.34.0-1.19.4",
+    "commit": "23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa",
+    "tree": "c1de3e7b36a5cd16afea0049e6d4e4ecddde6415",
+    "oracle_test_sha256": "91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+    "canonical_test_sha256": "dbee2b2e6148b0d16261450ead5a4c6f148e63ecf9f9b2974850912f11566113",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.20": {
+    "reference": "refs/tags/4.34.0-1.20",
+    "commit": "3df18123a19535fd0e5d1dc81aa302105c3fd2f6",
+    "tree": "8e841fe12115d4f26977fa638eb81b3ddfdedb03",
+    "oracle_test_sha256": "91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+    "canonical_test_sha256": "dbee2b2e6148b0d16261450ead5a4c6f148e63ecf9f9b2974850912f11566113",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.20.1": {
+    "reference": "refs/tags/4.34.0-1.20.1",
+    "commit": "bb5babf12f467235b3a44ad5098666ee3ed171ec",
+    "tree": "9e30ce453cc5892761c9fb7bd223216b9b988e7b",
+    "oracle_test_sha256": "91b1014deb6c5578ad83e8750b663aaeb94e61b2ae9f6564b03c9eae29d78c8d",
+    "canonical_test_sha256": "dbee2b2e6148b0d16261450ead5a4c6f148e63ecf9f9b2974850912f11566113",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.20.2": {
+    "reference": "refs/tags/4.34.0-1.20.2",
+    "commit": "cfbbafaeda4a006ae32743a92de330711983056b",
+    "tree": "9bd2f93a267dd6c803d04b5d47cdfe338038cd2d",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.20.3": {
+    "reference": "refs/tags/4.34.0-1.20.3",
+    "commit": "1b7f9605da0ef13c7601daf3786545868dfc3c78",
+    "tree": "81bfeafb77e4d26434ef895a1c5cba8d7b971382",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.20.4": {
+    "reference": "refs/tags/4.34.0-1.20.4",
+    "commit": "a637581b5e1078d7cc0ca68333add568e3e387ff",
+    "tree": "6e5624ff7dd4d049f5c8f01c19b38888b212e270",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.21.0": {
+    "reference": "refs/tags/4.34.0-1.21.0",
+    "commit": "6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25",
+    "tree": "8b482b5cc8dcb9d3ad2a3137106b7917768c80e6",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-1.21.1": {
+    "reference": "refs/tags/4.34.0-1.21.1",
+    "commit": "f5366c79c823ff52712130e69dd9c8166c70bd14",
+    "tree": "da55dac65aa2a8d45ed290ae2a3f406e73a2c93b",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  },
+  "sfm-4.34.0/mc-26.1.2": {
+    "reference": "refs/tags/4.34.0-26.1.2",
+    "commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+    "tree": "f1895afea3c44317836ddc84c3f72ac7d13a9e7a",
+    "oracle_test_sha256": "1890952a577769029f793d5b74b2501f3cd07a5bac1b79003bd1379f8313087b",
+    "canonical_test_sha256": "c6a8f41400b1b24fd482f7c91d37f0012f8cfd45ade2f018d7f5945e8bc8ce88",
+    "search_method_matches_pinned_tag": true,
+    "managed_sources_absent_in_tag": true
+  }
+}

@@ -1,0 +1,426 @@
+{
+  "head": "c969392e9e4b1eb77e70755778fad5dd43f01f06",
+  "utc": "2026-10-24T23:56:29.935096+00:00",
+  "strict_byte_identity": "FAILED",
+  "writes_to_repository": false,
+  "projection_count": 20,
+  "selected_source_count": 19956,
+  "stored_source_count": 19938,
+  "classification_counts": {
+    "one_added_blank_line": 40,
+    "new_package_only_compilation_unit": 18,
+    "test_directory_search_loop_changed": 9
+  },
+  "matrix_sha256": "9920d1f3d7a411fcf5de2913f51a250271ebd647063eebe92d0ba5a8aa6287fc",
+  "cli_sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7",
+  "baseline_commit": "704ddb5485173093cad42c07975fa5aabfc247ed",
+  "prior_to_explorer_commit": "0918604ac558906c93a9c4ab449400e8f75792ce",
+  "new_plain_runtime_implementation_or_fixture_registration_found": false,
+  "details": [
+    {
+      "projection": "sfm-4.34.0/mc-1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -48,4 +48,5 @@\n         RenderSystem.enableTexture();\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -39,6 +39,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -34,4 +34,5 @@\n         RenderSystem.disableColorLogicOp();\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.19.4",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.1",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.2",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.3",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.20.4",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.0",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -42,6 +42,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-1.21.1",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.action;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "path": "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+      "kind": "new_package_only_compilation_unit",
+      "diff": "--- stored/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n+++ rendered/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\n@@ -0,0 +1,2 @@\n+package ca.teamdman.sfm.gametest.puppet.definition;\n+\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderPipelines.GUI_TEXT_HIGHLIGHT, startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -42,6 +42,7 @@\n \n //    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n //            CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.34.0/mc-26.1.2",
+      "path": "src/test/java/ca/teamdman/sfml/test/SFMLTests.java",
+      "kind": "test_directory_search_loop_changed",
+      "diff": "--- stored/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n+++ rendered/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n@@ -759,7 +759,7 @@\n     private static Path findDirectoryUpwards(String relativePath) {\n         Path cwd = Paths.get(System.getProperty(\"user.dir\"));\n         System.out.println(\"Starting search for \" + relativePath + \" from \" + cwd);\n-        for (int i = 0; i < 5; i++) {\n+        while (cwd != null) {\n             Path candidate = cwd.resolve(relativePath);\n             System.out.println(\"Checking \" + candidate);\n             if (Files.isDirectory(candidate)) {\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -48,4 +48,5 @@\n         RenderSystem.enableTexture();\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.19.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -39,6 +39,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -34,4 +34,5 @@\n         RenderSystem.disableColorLogicOp();\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.19.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -37,6 +37,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.3",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.20.4",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.21.0",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -40,6 +40,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderType.guiTextHighlight(), startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-1.21.1",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -42,6 +42,7 @@\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n             CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n+++ rendered/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java\n@@ -30,4 +30,5 @@\n         graphics.fill(RenderPipelines.GUI_TEXT_HIGHLIGHT, startX, startY, endX, endY, -16776961);\n     }\n \n+\n }\n"
+    },
+    {
+      "projection": "sfm-4.35.0/mc-26.1.2",
+      "path": "src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java",
+      "kind": "one_added_blank_line",
+      "diff": "--- stored/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n+++ rendered/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java\n@@ -42,6 +42,7 @@\n \n //    public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, CauldronBlockCapabilityProvider>\n //            CAULDRON_MAPPER = REGISTERER.register(\"cauldron\", CauldronBlockCapabilityProvider::new);\n+\n \n     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>\n             BLOCK_ENTITY = REGISTERER.register(\"block_entity\", BlockEntityCapabilityProvider::new);\n"
+    }
+  ],
+  "tracked_plain_changes_since_704": "",
+  "tracked_plain_changes_since_0918604": "A\tplatform/minecraft/projections/sfm-4.34.0/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java\nA\tplatform/minecraft/projections/sfm-4.34.0/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java\nM\tplatform/minecraft/projections/sfm-4.34.0/mc-1.19.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java\n",
+  "repository_status": ""
+}
