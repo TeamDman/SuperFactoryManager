@@ -1,0 +1,1234 @@
+{
+  "status": "passed",
+  "baseline": "c969392e9e4b1eb77e70755778fad5dd43f01f06",
+  "cli_sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7",
+  "compiled": false,
+  "scope": "canonical Java render bytes; actual file membership is covered by the Rust catalog test",
+  "renders": {
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "93b1017c9860f805e4610495dd822a73bb6f357bfacee40bd2ff25cc149a43d8",
+      "after_sha256": "e08c83601b75a962cad425cd509f0526a556cb9fc66dfdad86d985a4c8a00b10",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "902361252b46d950efe11f0d4be6a78f9812b16553dba904abe75a82f4afe104",
+      "after_sha256": "902361252b46d950efe11f0d4be6a78f9812b16553dba904abe75a82f4afe104",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "928b26bf0d777ddf91c5da98ef7d15e5107b9f87cf2c282c1e267f78a19be423",
+      "after_sha256": "78fc140a98bfe9e2e16d30d4a1694869a6518e0222a32c8e2f510efd2ba5d2bd",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "9f8cad325439a6d008d43c76b3740b0e750a75141c77c010561c0ad0e8cbc2bb",
+      "after_sha256": "9f8cad325439a6d008d43c76b3740b0e750a75141c77c010561c0ad0e8cbc2bb",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "e189a440ab201708792108461d2122598ec7f83ae901445496c5305efb7104d7",
+      "after_sha256": "e189a440ab201708792108461d2122598ec7f83ae901445496c5305efb7104d7",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "62301c3c4754bb5aef965cf4783b0c6319a92b88c4cc29e911c57d709a63b38f",
+      "after_sha256": "959d4aa0d2b5b8c760197575f73cc496d87c11534d76c518b65e562a86f5b4ea",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "c1b1fd491c1f186865fa68ab72d8bb142e9c3f0caac89fdfc78825eb7ed3e373",
+      "after_sha256": "c1b1fd491c1f186865fa68ab72d8bb142e9c3f0caac89fdfc78825eb7ed3e373",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+      "after_sha256": "d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "fa3107fcf8d5299982d66200e15e478b8545c39df644058225a205dedeb12849",
+      "after_sha256": "fa3107fcf8d5299982d66200e15e478b8545c39df644058225a205dedeb12849",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "425a4f6e2046029cb2ec65813eb93eeff2523b9e5f99cdfe559823445150ff05",
+      "after_sha256": "bc46d982fec9e138e70c2923be82214e64260b67cb8bb692e39a675dd52af26c",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "425a4f6e2046029cb2ec65813eb93eeff2523b9e5f99cdfe559823445150ff05",
+      "after_sha256": "bc46d982fec9e138e70c2923be82214e64260b67cb8bb692e39a675dd52af26c",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "93b1017c9860f805e4610495dd822a73bb6f357bfacee40bd2ff25cc149a43d8",
+      "after_sha256": "e08c83601b75a962cad425cd509f0526a556cb9fc66dfdad86d985a4c8a00b10",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "902361252b46d950efe11f0d4be6a78f9812b16553dba904abe75a82f4afe104",
+      "after_sha256": "902361252b46d950efe11f0d4be6a78f9812b16553dba904abe75a82f4afe104",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "928b26bf0d777ddf91c5da98ef7d15e5107b9f87cf2c282c1e267f78a19be423",
+      "after_sha256": "78fc140a98bfe9e2e16d30d4a1694869a6518e0222a32c8e2f510efd2ba5d2bd",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "after_sha256": "24e9d968d1091d478cc7c32dfe1e82bebea3340690447dc15762a62cda38a069",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "after_sha256": "08ea11de3f799c584d1681f549473f21e403a37c3b3904cddd57da2abd5e4101",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "9f8cad325439a6d008d43c76b3740b0e750a75141c77c010561c0ad0e8cbc2bb",
+      "after_sha256": "9f8cad325439a6d008d43c76b3740b0e750a75141c77c010561c0ad0e8cbc2bb",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "after_sha256": "d4da6218e110ed6ddcf1008ffbabbff346d54313dac291951dee128e24bde4d6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "after_sha256": "bdb503dd1811cad53e04723e655a2013643d35b2a7455f0fe9a23aac5ee66d2d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "after_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "e189a440ab201708792108461d2122598ec7f83ae901445496c5305efb7104d7",
+      "after_sha256": "e189a440ab201708792108461d2122598ec7f83ae901445496c5305efb7104d7",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "after_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "62301c3c4754bb5aef965cf4783b0c6319a92b88c4cc29e911c57d709a63b38f",
+      "after_sha256": "959d4aa0d2b5b8c760197575f73cc496d87c11534d76c518b65e562a86f5b4ea",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "c1b1fd491c1f186865fa68ab72d8bb142e9c3f0caac89fdfc78825eb7ed3e373",
+      "after_sha256": "c1b1fd491c1f186865fa68ab72d8bb142e9c3f0caac89fdfc78825eb7ed3e373",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "c6b0dcb62134537051b2c6df32a2c7aa0e0e1da33480e3ad88170a19dd1f4b84",
+      "after_sha256": "c6b0dcb62134537051b2c6df32a2c7aa0e0e1da33480e3ad88170a19dd1f4b84",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "fa3107fcf8d5299982d66200e15e478b8545c39df644058225a205dedeb12849",
+      "after_sha256": "fa3107fcf8d5299982d66200e15e478b8545c39df644058225a205dedeb12849",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "425a4f6e2046029cb2ec65813eb93eeff2523b9e5f99cdfe559823445150ff05",
+      "after_sha256": "bc46d982fec9e138e70c2923be82214e64260b67cb8bb692e39a675dd52af26c",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "after_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "after_sha256": "b473f88431a9eeecae8f978db749786f051b7eed9a7920de824a19b9fd2bc61c",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "after_sha256": "213e52d6a800b92edb82555be6e825d4a5eba5ba58fac5bccbf0b420985c5941",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "after_sha256": "45270dd640f7558406279dd9649bab790496966111af1304cfbef866c68c7281",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "425a4f6e2046029cb2ec65813eb93eeff2523b9e5f99cdfe559823445150ff05",
+      "after_sha256": "bc46d982fec9e138e70c2923be82214e64260b67cb8bb692e39a675dd52af26c",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "after_sha256": "04b7000b5823f87e061cd890db5042e9be92c1851e4621dcc05a82fd83e4bff6",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "a57f7c88175731315f3d74c721106c7fb0211b25888a2e57f5b22a19c4781e4f",
+      "after_sha256": "a57f7c88175731315f3d74c721106c7fb0211b25888a2e57f5b22a19c4781e4f",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "2046638f175c1a433b9042068745744cf26d15dd24dbd356b66afec32493481f",
+      "after_sha256": "598a8f344fa8bb3fea4efdc892c7b5981b874bb658af7ecdb4d0a25b2b9b668d",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.19.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "88e07d0dbf962099d7ef93efe4a5b82a83f0ffa4609ef815d4f9c5d68fb99a75",
+      "after_sha256": "ed8aabc8b1f703fcd33c7eab84c39c92c22e6bbd80dc22563003ea53d889e6e2",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.19.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+      "after_sha256": "672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "a57f7c88175731315f3d74c721106c7fb0211b25888a2e57f5b22a19c4781e4f",
+      "after_sha256": "a57f7c88175731315f3d74c721106c7fb0211b25888a2e57f5b22a19c4781e4f",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.19.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "928b26bf0d777ddf91c5da98ef7d15e5107b9f87cf2c282c1e267f78a19be423",
+      "after_sha256": "78fc140a98bfe9e2e16d30d4a1694869a6518e0222a32c8e2f510efd2ba5d2bd",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.19.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "c46b7b563cafea9d732cb73c8c26f8225f38f717646a4f2a7ce6d46fe67b79d0",
+      "after_sha256": "0e27bc9e168372227db43f5b4ee5ea35f201a8524e89cdd72c4c0eecbb3b20b5",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.19.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+      "after_sha256": "672c05ce23417b93817e3ddb7e827be4c759051ad2b917ad4e27bd4ddee0cd59",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "0e55a6ea2f742c49901f1e2c566b9a7ce1b0d0ce3516965023d3697defbbe44e",
+      "after_sha256": "0e55a6ea2f742c49901f1e2c566b9a7ce1b0d0ce3516965023d3697defbbe44e",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "c46b7b563cafea9d732cb73c8c26f8225f38f717646a4f2a7ce6d46fe67b79d0",
+      "after_sha256": "0e27bc9e168372227db43f5b4ee5ea35f201a8524e89cdd72c4c0eecbb3b20b5",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "0e55a6ea2f742c49901f1e2c566b9a7ce1b0d0ce3516965023d3697defbbe44e",
+      "after_sha256": "0e55a6ea2f742c49901f1e2c566b9a7ce1b0d0ce3516965023d3697defbbe44e",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "c46b7b563cafea9d732cb73c8c26f8225f38f717646a4f2a7ce6d46fe67b79d0",
+      "after_sha256": "0e27bc9e168372227db43f5b4ee5ea35f201a8524e89cdd72c4c0eecbb3b20b5",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "ac03c949eb0218058c1796d4f4bfceb30745a4b0413757ee89bbcb5102321b10",
+      "after_sha256": "2a793c8cb5dbe079f8cda541b6147eef0cf153ce220e2babd23e9d2f82d94615",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.3/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.3/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.3/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.3/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "652a878f4527c5e6409f90adfdf62a73cadc25467e6d0e2236cd5bd952d3ac38",
+      "after_sha256": "e0ea88d535879ffdc8bb7e249e6c09dff7e0c4bd149ffb37d4ed20e6777a4766",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.3/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.4/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.4/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.20.4/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.4/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "652a878f4527c5e6409f90adfdf62a73cadc25467e6d0e2236cd5bd952d3ac38",
+      "after_sha256": "e0ea88d535879ffdc8bb7e249e6c09dff7e0c4bd149ffb37d4ed20e6777a4766",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.20.4/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "after_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.0/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.0/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.0/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.21.0/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "652a878f4527c5e6409f90adfdf62a73cadc25467e6d0e2236cd5bd952d3ac38",
+      "after_sha256": "e0ea88d535879ffdc8bb7e249e6c09dff7e0c4bd149ffb37d4ed20e6777a4766",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.21.0/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.1/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.1/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-1.21.1/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "e0592203b30c2dc5d885571076dcc82e1a9af9cf46aef51cb04742781f885e16",
+      "after_sha256": "e0bc6aee2964cbf959171c058f5858e51b1145d599ddf1daf2ad1f275e9d9482",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.21.1/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "425a4f6e2046029cb2ec65813eb93eeff2523b9e5f99cdfe559823445150ff05",
+      "after_sha256": "bc46d982fec9e138e70c2923be82214e64260b67cb8bb692e39a675dd52af26c",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-1.21.1/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "after_sha256": "1401aa401941eb876362831c5945caff10eee5fcf5c3c33598029b2bfda72ccf",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-26.1.2/src/test/java/ca/teamdman/sfml/test/SFMLTests.java": {
+      "before_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "after_sha256": "44453c76a458dea380a2a84815bd624d5207988e3f9446780029348ae430110d",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": {
+      "before_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "after_sha256": "ba387da6ae986f51d2e968e8f0bd1f17bd35c307c71af554f72e98904b091732",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-26.1.2/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": {
+      "before_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "after_sha256": "e308ceeec25aa665daee9038acf5bef59b32db53f8621c8f6ad9af0b32103448",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    },
+    "sfm-dev/mc-26.1.2/src/main/java/ca/teamdman/sfm/client/screen/SFMScreenRenderUtils.java": {
+      "before_sha256": "62301c3c4754bb5aef965cf4783b0c6319a92b88c4cc29e911c57d709a63b38f",
+      "after_sha256": "959d4aa0d2b5b8c760197575f73cc496d87c11534d76c518b65e562a86f5b4ea",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-26.1.2/src/main/java/ca/teamdman/sfm/common/registry/registration/SFMGlobalBlockCapabilityProviders.java": {
+      "before_sha256": "347891851632bf8f2bd73c630b9097d8f4a75d89b867713cc2c2e182c07ba749",
+      "after_sha256": "a01d2f5b2c23fc0c960d07599c9f2035479b614904571f52a438767c1d3c1cd0",
+      "exact": false,
+      "only_inactive_blank_line_removed": true
+    },
+    "sfm-dev/mc-26.1.2/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java": {
+      "before_sha256": "d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+      "after_sha256": "d303ca87173e92346f3fe90ce26b9b80c01eb0789bd0f0f0205c29cb44042d33",
+      "exact": true,
+      "only_inactive_blank_line_removed": false
+    }
+  },
+  "render_pairs": 204
+}

@@ -1,0 +1,36 @@
+{
+  "source_head_before_fix": "c969392e9e4b1eb77e70755778fad5dd43f01f06",
+  "source_isolation": "passed",
+  "full_project": "failed_preexisting_26_1_2_lock",
+  "focused_tests": {
+    "focused-rust-test": {
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "full_log_sha256": "6f8af6d5aa6a88b3852ad7e6ba0d95c9e455de68d9b65608469c0bee7b5108c8"
+    },
+    "catalog-test": {
+      "executed": 1,
+      "passed": 1,
+      "failed": 0,
+      "full_log_sha256": "78ae334744b1c2639aa3e93cbfd1164687ff70e611fbdea0e80e73d33bbe26b3"
+    }
+  },
+  "tool_install_required": false,
+  "production_cli_unchanged": true,
+  "java_compiled": false,
+  "client_launched": false,
+  "check_all": "unrun: PowerShell and Rust formatter unavailable",
+  "initial_attempt": "Environment selection guard rejected before writes; replaced with explicit feature.",
+  "source_review": "Independent source/history/receipt/script/documentation review complete; no remaining blocker. Byte-exact verifier improvement rerun204pairs passed.",
+  "locks_changed": false,
+  "sdk_changed": false,
+  "script_sha256": {
+    "scripts/issue610-cross-version/verify-extension-isolation.py": "be6e44ba5eefa3f8d36aaffdfeb9558348d73105145a11afb2b7874d9ac6e813",
+    "scripts/issue610-cross-version/verify-release-isolation.py": "a506376637694fa168fd289e9f9b7d2f480137bbeb0e3660958f1d324c43cc7b"
+  },
+  "prior_full_matrix_sha256": "9920d1f3d7a411fcf5de2913f51a250271ebd647063eebe92d0ba5a8aa6287fc",
+  "extension_render_pairs": 204,
+  "extension_exact_blank_line_adversarial_checks": 4,
+  "implementation_commit": "a684272e19d7378cfdea4b80b333fe92d7d061fe"
+}
