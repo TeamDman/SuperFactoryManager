@@ -162,7 +162,7 @@ pub struct CoreProjectCompileArgs {
     /// Existing SDK home; compiler release and tool JVM remain separate.
     #[facet(args::named)]
     pub java_home: PathBuf,
-    /// Compile-only root for isolated derived outputs; pinned downloads stay shared.
+    /// Guarded derived-output root for compile or development jar; pinned downloads stay shared.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
     #[facet(default = false, args::named)]
@@ -345,13 +345,13 @@ fn invoke_native_jar(
     cancellation: &CancellationToken,
     invocation_dir: &Path,
 ) -> Result<CliOutput> {
-    ensure!(
-        args.cache_root.is_none(),
-        "--cache-root is supported by source project compile only"
-    );
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, true, cancellation, invocation_dir);
     }
+    ensure!(
+        args.cache_root.is_none(),
+        "--cache-root is supported by development jars and source project compile only"
+    );
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!("native jar requires exactly one of --released-recipe or --dependency-profile")
     })?;

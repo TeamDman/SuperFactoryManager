@@ -95,10 +95,6 @@ pub(crate) fn invoke_development_project(
     package: bool,
     cancellation: &CancellationToken,
 ) -> eyre::Result<DevelopmentBuildReport> {
-    eyre::ensure!(
-        !package || options.cache_root.is_none(),
-        "--cache-root is supported by source project compile only"
-    );
     let identity = prepare_development_identity(project, profile)?;
     let preparation = identity
         .development_target()
