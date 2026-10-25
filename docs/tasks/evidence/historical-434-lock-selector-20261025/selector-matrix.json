@@ -1,0 +1,277 @@
+{
+  "status": "passed",
+  "contexts": {
+    "sfm-4.34.0-issue610-portable/mc-1.19.2": {
+      "before_input": "build/lockfiles/1.19.2/schema-4.json",
+      "after_input": "build/lockfiles/1.19.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.19.4": {
+      "before_input": "build/lockfiles/1.19.4/schema-4.json",
+      "after_input": "build/lockfiles/1.19.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20": {
+      "before_input": "build/lockfiles/1.20/schema-4.json",
+      "after_input": "build/lockfiles/1.20/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.1": {
+      "before_input": "build/lockfiles/1.20.1/schema-4.json",
+      "after_input": "build/lockfiles/1.20.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.2": {
+      "before_input": "build/lockfiles/1.20.2/schema-4.json",
+      "after_input": "build/lockfiles/1.20.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.3": {
+      "before_input": "build/lockfiles/1.20.3/schema-4.json",
+      "after_input": "build/lockfiles/1.20.3/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.20.4": {
+      "before_input": "build/lockfiles/1.20.4/schema-4.json",
+      "after_input": "build/lockfiles/1.20.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.0": {
+      "before_input": "build/lockfiles/1.21.0/schema-4.json",
+      "after_input": "build/lockfiles/1.21.0/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-portable/mc-26.1.2": {
+      "before_input": "build/lockfiles/26.1.2/schema-4.json",
+      "after_input": "build/lockfiles/26.1.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.2": {
+      "before_input": "build/lockfiles/1.19.2/schema-4.json",
+      "after_input": "build/lockfiles/1.19.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.19.4": {
+      "before_input": "build/lockfiles/1.19.4/schema-4.json",
+      "after_input": "build/lockfiles/1.19.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20": {
+      "before_input": "build/lockfiles/1.20/schema-4.json",
+      "after_input": "build/lockfiles/1.20/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.1": {
+      "before_input": "build/lockfiles/1.20.1/schema-4.json",
+      "after_input": "build/lockfiles/1.20.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.2": {
+      "before_input": "build/lockfiles/1.20.2/schema-4.json",
+      "after_input": "build/lockfiles/1.20.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.3": {
+      "before_input": "build/lockfiles/1.20.3/schema-4.json",
+      "after_input": "build/lockfiles/1.20.3/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.20.4": {
+      "before_input": "build/lockfiles/1.20.4/schema-4.json",
+      "after_input": "build/lockfiles/1.20.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.0": {
+      "before_input": "build/lockfiles/1.21.0/schema-4.json",
+      "after_input": "build/lockfiles/1.21.0/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-portable/mc-26.1.2": {
+      "before_input": "build/lockfiles/26.1.2/schema-4.json",
+      "after_input": "build/lockfiles/26.1.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610-visual/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610-visual/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.34.0-issue610/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0-issue610/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.19.2": {
+      "before_input": "build/lockfiles/1.19.2/schema-2.json",
+      "after_input": "build/lockfiles/1.19.2/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.19.4": {
+      "before_input": "build/lockfiles/1.19.4/schema-2.json",
+      "after_input": "build/lockfiles/1.19.4/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.20": {
+      "before_input": "build/lockfiles/1.20/schema-2.json",
+      "after_input": "build/lockfiles/1.20/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.20.1": {
+      "before_input": "build/lockfiles/1.20.1/schema-2.json",
+      "after_input": "build/lockfiles/1.20.1/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.20.2": {
+      "before_input": "build/lockfiles/1.20.2/schema-2.json",
+      "after_input": "build/lockfiles/1.20.2/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.20.3": {
+      "before_input": "build/lockfiles/1.20.3/schema-2.json",
+      "after_input": "build/lockfiles/1.20.3/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.20.4": {
+      "before_input": "build/lockfiles/1.20.4/schema-2.json",
+      "after_input": "build/lockfiles/1.20.4/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.21.0": {
+      "before_input": "build/lockfiles/1.21.0/schema-2.json",
+      "after_input": "build/lockfiles/1.21.0/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-2.json",
+      "after_input": "build/lockfiles/1.21.1/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.35.0/mc-26.1.2": {
+      "before_input": "build/lockfiles/26.1.2/schema-2.json",
+      "after_input": "build/lockfiles/26.1.2/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.19.2": {
+      "before_input": "build/lockfiles/1.19.2/schema-2.json",
+      "after_input": "build/lockfiles/1.19.2/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.19.4": {
+      "before_input": "build/lockfiles/1.19.4/schema-2.json",
+      "after_input": "build/lockfiles/1.19.4/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.20": {
+      "before_input": "build/lockfiles/1.20/schema-2.json",
+      "after_input": "build/lockfiles/1.20/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.20.1": {
+      "before_input": "build/lockfiles/1.20.1/schema-2.json",
+      "after_input": "build/lockfiles/1.20.1/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.20.2": {
+      "before_input": "build/lockfiles/1.20.2/schema-2.json",
+      "after_input": "build/lockfiles/1.20.2/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.20.3": {
+      "before_input": "build/lockfiles/1.20.3/schema-2.json",
+      "after_input": "build/lockfiles/1.20.3/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.20.4": {
+      "before_input": "build/lockfiles/1.20.4/schema-2.json",
+      "after_input": "build/lockfiles/1.20.4/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.21.0": {
+      "before_input": "build/lockfiles/1.21.0/schema-2.json",
+      "after_input": "build/lockfiles/1.21.0/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-2.json",
+      "after_input": "build/lockfiles/1.21.1/schema-2.json",
+      "changed": false
+    },
+    "sfm-4.34.0/mc-26.1.2": {
+      "before_input": "build/lockfiles/26.1.2/schema-2.json",
+      "after_input": "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+      "changed": true
+    },
+    "sfm-dev/mc-1.19.2": {
+      "before_input": "build/lockfiles/1.19.2/schema-4.json",
+      "after_input": "build/lockfiles/1.19.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.19.4": {
+      "before_input": "build/lockfiles/1.19.4/schema-4.json",
+      "after_input": "build/lockfiles/1.19.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.20": {
+      "before_input": "build/lockfiles/1.20/schema-4.json",
+      "after_input": "build/lockfiles/1.20/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.20.1": {
+      "before_input": "build/lockfiles/1.20.1/schema-4.json",
+      "after_input": "build/lockfiles/1.20.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.20.2": {
+      "before_input": "build/lockfiles/1.20.2/schema-4.json",
+      "after_input": "build/lockfiles/1.20.2/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.20.3": {
+      "before_input": "build/lockfiles/1.20.3/schema-4.json",
+      "after_input": "build/lockfiles/1.20.3/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.20.4": {
+      "before_input": "build/lockfiles/1.20.4/schema-4.json",
+      "after_input": "build/lockfiles/1.20.4/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.21.0": {
+      "before_input": "build/lockfiles/1.21.0/schema-4.json",
+      "after_input": "build/lockfiles/1.21.0/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-1.21.1": {
+      "before_input": "build/lockfiles/1.21.1/schema-4.json",
+      "after_input": "build/lockfiles/1.21.1/schema-4.json",
+      "changed": false
+    },
+    "sfm-dev/mc-26.1.2": {
+      "before_input": "build/lockfiles/26.1.2/schema-4.json",
+      "after_input": "build/lockfiles/26.1.2/schema-4.json",
+      "changed": false
+    }
+  },
+  "only_changed": "sfm-4.34.0/mc-26.1.2",
+  "other_metadata_equal": true
+}

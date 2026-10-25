@@ -1,0 +1,30 @@
+running 27 tests
+test source_projection::frozen_recipe_project::tests::historical_static_2612_lock_cannot_enter_current_native_recipe ... ok
+test source_projection::frozen_recipe_project::tests::matching_raw_role_hash_is_not_a_selected_source_binding ... ok
+test source_projection::frozen_recipe_project::tests::actual_minecraft_alias_and_compiler_tool_jvm_boundaries_are_explicit ... ok
+test source_projection::frozen_recipe_project::tests::checked_but_changed_frozen_role_and_lock_bytes_are_refused ... ok
+test source_projection::frozen_recipe_project::tests::metadata_separation_refuses_loader_changes_and_changed_lock_selection ... ok
+test source_projection::frozen_recipe_project::tests::named_datagen_exclusion_policy_ignores_unowned_physical_file ... ok
+test source_projection::frozen_recipe_project::tests::named_datagen_exclusion_policy_matches_actual_frozen_absence ... ok
+test source_projection::frozen_recipe_project::tests::profile_frozen_recipe_preparation ... ignored, manual tracing capture; the normal suite covers preparation and rechecks
+test source_projection::frozen_recipe_project::tests::named_exclusion_policies_require_exact_owned_files_and_known_source_sets ... ok
+test source_projection::frozen_recipe_project::tests::refresh_unknown_recipe_and_target_mismatch_refuse_before_recheck ... ok
+test source_projection::frozen_recipe_project::tests::preparation_and_recheck_refuse_unowned_or_changed_sources_without_repair ... ok
+test source_projection::frozen_recipe_project::tests::release_mod_version_metadata_is_independent_of_immutable_dependency_recipe ... ok
+test source_projection::frozen_recipe_project::tests::named_exclusion_policies_refuse_relocated_authenticated_outputs ... ok
+test source_projection::frozen_recipe_project::tests::rendered_roles_and_duplicate_selected_role_outputs_are_refused ... ok
+test source_projection::frozen_recipe_project::tests::retained_authority_preserves_original_properties_version_witness ... ok
+test source_projection::frozen_recipe_project::tests::retained_authority_rejects_raw_context_and_review_configuration_mutations ... ok
+test source_projection::frozen_recipe_project::tests::rendered_exclusion_binds_both_identities_and_refuses_changed_output_or_source ... ok
+test source_projection::frozen_recipe_project::tests::retained_exclusion_policy_preserves_exact_roles_and_datagen_absence ... ok
+test source_projection::frozen_recipe_project::tests::retained_selected_view_does_not_admit_physical_unselected_paths ... ok
+test source_projection::frozen_recipe_project::tests::retained_authority_uses_admitted_bodies_while_public_recheck_stays_strict ... ok
+test source_projection::frozen_recipe_project::tests::selected_lock_requires_original_authored_path_not_only_equal_bytes ... ok
+test source_projection::frozen_recipe_project::tests::retained_authority_rejects_raw_selected_lock_role_and_properties_mutations ... ok
+test source_projection::frozen_recipe_project::tests::template_enabled_lock_is_refused_even_when_rendered_bytes_are_identical ... ok
+test source_projection::frozen_recipe_project::tests::source_lock_and_request_handles_stay_immutable_and_context_isolated ... ok
+test source_projection::frozen_recipe_project::tests::unrelated_exact_byte_witnesses_do_not_promote_a_recipe ... ok
+test source_projection::frozen_recipe_project::tests::witness_loader_runs_only_after_frozen_recipe_admission ... ok
+test source_projection::frozen_recipe_project::tests::twenty_owned_contexts_bind_exact_frozen_inputs_without_writes ... ok
+
+test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 2057 filtered out; finished in 5.37s

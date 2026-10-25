@@ -1,0 +1,119 @@
+{
+  "head": "21795c0ac3a35d8df24ddf2eeda676491f08acf6",
+  "old_sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+  "current_sha256": "2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f",
+  "old_bytes": 50153,
+  "current_bytes": 50479,
+  "semantic_json_field_changes": [
+    {
+      "path": "/artifacts/18/cache_path",
+      "historical": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
+      "current": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86.jar"
+    },
+    {
+      "path": "/artifacts/18/hash",
+      "historical": "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+      "current": "blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62"
+    },
+    {
+      "path": "/artifacts/18/source_build/environment/SFM_PRODUCER_RECEIPT_SHA256",
+      "historical": "<absent>",
+      "current": "40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d"
+    },
+    {
+      "path": "/artifacts/18/source_build/output_path",
+      "historical": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar",
+      "current": "build/libs/Mekanism-26.1.2-10.8.0.86.jar"
+    },
+    {
+      "path": "/artifacts/18/source_build/tasks",
+      "historical": [
+        "jar"
+      ],
+      "current": [
+        "jar",
+        "apiJar"
+      ]
+    },
+    {
+      "path": "/artifacts/18/source_git/root",
+      "historical": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+      "current": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254"
+    },
+    {
+      "path": "/artifacts/18/source_relative_path",
+      "historical": "build\\libs\\Mekanism-26.1.2-10.8.0.86.jar",
+      "current": "build/libs/Mekanism-26.1.2-10.8.0.86.jar"
+    },
+    {
+      "path": "/artifacts/18/weak",
+      "historical": {
+        "metadata_path": "META-INF/neoforge.mods.toml",
+        "mod_id": "mekanism",
+        "version": "10.8.0"
+      },
+      "current": null
+    },
+    {
+      "path": "/artifacts/19/cache_path",
+      "historical": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "current": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86-api.jar"
+    },
+    {
+      "path": "/artifacts/19/hash",
+      "historical": "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
+      "current": "blake3:b5e829e94223c179b4a196b8fc098213c10a242d"
+    },
+    {
+      "path": "/artifacts/19/source_build/environment/SFM_PRODUCER_RECEIPT_SHA256",
+      "historical": "<absent>",
+      "current": "40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d"
+    },
+    {
+      "path": "/artifacts/19/source_build/output_path",
+      "historical": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "current": "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar"
+    },
+    {
+      "path": "/artifacts/19/source_build/tasks",
+      "historical": [
+        "apiJar"
+      ],
+      "current": [
+        "jar",
+        "apiJar"
+      ]
+    },
+    {
+      "path": "/artifacts/19/source_git/root",
+      "historical": "$sfm-cache\\source-builds\\557dd8a088c05d5fb40abed165349ab01e256254",
+      "current": "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254"
+    },
+    {
+      "path": "/artifacts/19/source_relative_path",
+      "historical": "build\\libs\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "current": "build/libs/Mekanism-26.1.2-10.8.0.86-api.jar"
+    },
+    {
+      "path": "/dependencies/4/cache_path",
+      "historical": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86.jar",
+      "current": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86.jar"
+    },
+    {
+      "path": "/dependencies/5/cache_path",
+      "historical": "$sfm-cache\\maven\\mekanism\\Mekanism\\26.1.2-10.8.0.86\\Mekanism-26.1.2-10.8.0.86-api.jar",
+      "current": "$sfm-cache/producer-outputs/40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d/Mekanism-26.1.2-10.8.0.86-api.jar"
+    }
+  ],
+  "producer_receipt_sha256": "40fa66d790475ccab4066d3bbf76c427669093600af21137d8d4d4c24458214d",
+  "producer_record_consistency_verified": true,
+  "unchanged_dependency_count": 8,
+  "unchanged_artifact_count": 80,
+  "only_changed_artifact_indices": [
+    18,
+    19
+  ],
+  "original_artifact_bytes_verified_this_run": false,
+  "producer_artifact_bytes_verified_this_run": false,
+  "repository_writes": false
+}

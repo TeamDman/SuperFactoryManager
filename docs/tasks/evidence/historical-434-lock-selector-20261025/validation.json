@@ -1,0 +1,48 @@
+{
+  "base_commit": "21795c0ac3a35d8df24ddf2eeda676491f08acf6",
+  "historical_tag_commit": "fe32b29453b13b4f3050ad441677c7eb79e80814",
+  "historical_input": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+  "historical_bytes": 50153,
+  "historical_sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+  "tag_byte_identity": true,
+  "full_project_outputs": 22996,
+  "source_resource_outputs": 19916,
+  "plain_projections_passed": 20,
+  "catalog_contexts": 54,
+  "only_selection_change": "sfm-4.34.0/mc-26.1.2",
+  "tests": {
+    "historical-tests": {
+      "result": "test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 2072 filtered out; finished in 20.43s",
+      "original_log_sha256": "f93a114a0d56d8899e56c95096ce05521ae21d81f0b73203e9b0036770fda658",
+      "original_log_path": "/workspace/scratch/historical-434-lock-selector-20261025/historical-tests.log",
+      "excerpt_file": "historical-tests.txt",
+      "excerpt_sha256": "2cc67f570075f538c23396e9b641a229a0e18a81372d6407b867eed8fef91432"
+    },
+    "frozen-recipe-tests": {
+      "result": "test result: ok. 26 passed; 0 failed; 1 ignored; 0 measured; 2057 filtered out; finished in 5.37s",
+      "original_log_sha256": "2ca48ecf6e1bf033ea1cdaf5bae4f5eae509364f07eb2dd66e27f367b6464a37",
+      "original_log_path": "/workspace/scratch/historical-434-lock-selector-20261025/frozen-recipe-tests.log",
+      "excerpt_file": "frozen-recipe-tests.txt",
+      "excerpt_sha256": "a47cbf8ed60bcaf9bcf7b666e1196d1c86464adc50b4ba37686f0543c104985a"
+    },
+    "selector-test": {
+      "result": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2083 filtered out; finished in 11.01s",
+      "original_log_sha256": "07138f88bc84a84c928e2ea514d717e8458ff592f3811118a5fd384da9242739",
+      "original_log_path": "/workspace/scratch/historical-434-lock-selector-20261025/selector-test.log",
+      "excerpt_file": "selector-test.txt",
+      "excerpt_sha256": "78ad37eceb630aace14cad415b8cbaa1594021cb28c619554199abc44abca463"
+    }
+  },
+  "existing_runtime_inputs_changed": false,
+  "production_native_recipe_code_changed": false,
+  "artifact_admission": false,
+  "old_new_jar_bytes_compared": false,
+  "java_compilation": "unrun",
+  "client_execution": "unrun",
+  "check_all": "unrun: PowerShell and Rust formatter unavailable",
+  "production_cli_unchanged": true,
+  "cli_sha256": "f7cd93ef9f561b2c9ceaca8bbd635a94bacc31d810b55bd75a93bdbb77996dc7",
+  "source_review": "Independent read-only source and final evidence review completed: no blocking issues. Original-log versus committed-excerpt hash labels clarified as requested.",
+  "implementation_commit": "2d7521e10f00870dab7883695936b564b95fae6d",
+  "full_comparison_receipt_binding": "Receipt was captured with the correction in the working tree before implementation commit 2d7521e10f00870dab7883695936b564b95fae6d. All recorded authored-input SHA-256 values were rechecked against that committed state; source_head records the then-current base commit."
+}
