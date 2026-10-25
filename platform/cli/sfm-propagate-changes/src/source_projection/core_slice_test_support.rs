@@ -427,7 +427,11 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
                     .iter()
                     .map(String::as_str)
                     .collect::<BTreeSet<_>>(),
-                BTreeSet::from(["locked_dependency_projection", "issue_610_progress_tests"])
+                BTreeSet::from([
+                    "locked_dependency_projection",
+                    "issue_610_progress_tests",
+                    "projection_test_directory_search",
+                ])
             );
         } else if key == "sfm-4.35.0-issue610/mc-1.21.1" {
             assert_eq!(
@@ -441,7 +445,8 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
                     "recipe_namespace",
                     "release_version_4_35_0",
                     "quantity_sensitive_extraction_progress",
-                    "issue_610_progress_tests"
+                    "issue_610_progress_tests",
+                    "projection_test_directory_search",
                 ])
             );
         }
@@ -673,4 +678,42 @@ fn offline_fixture_reader_refuses_nonblob_identifiers_before_starting_git() {
     ] {
         assert!(read_git_blobs(Path::new("."), &BTreeSet::from([identifier])).is_err());
     }
+}
+
+/// Demo conveniences are opt-in inputs; the release name is not a selector.
+#[test]
+fn demo_instrumentation_and_project_search_require_explicit_features() -> Result<()> {
+    let fixture = CoreTestFixture::load()?;
+    let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
+    let search = fixture.read_source("src/test/java/ca/teamdman/sfml/test/SFMLTests.java")?;
+    let managed = [
+        "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java",
+        "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java",
+    ];
+    for (key, entry) in &fixture.catalog.catalog.0 {
+        let context = fixture.catalog.context(key)?;
+        let enabled = context.features["projection_test_directory_search"];
+        assert_eq!(enabled, entry.environment.as_str() == "dev", "{key}");
+        let rendered = super::render_java_source(std::str::from_utf8(&search)?, &context)?;
+        assert_eq!(rendered.contains("while (cwd != null) {"), enabled, "{key}");
+        assert_eq!(
+            rendered.contains("for (int i = 0; i < 5; i++) {"),
+            !enabled,
+            "{key}"
+        );
+        let selection = fixture.selection_for_assertion(&context, &inventory)?;
+        for path in managed {
+            assert_eq!(
+                selection.inputs.contains_key(path),
+                context.features["game_puppet_runtime"],
+                "{key}: {path}"
+            );
+            if context.features["game_puppet_runtime"] {
+                let source = fixture.read_source(path)?;
+                let rendered = super::render_java_source(std::str::from_utf8(&source)?, &context)?;
+                assert!(rendered.contains("public final class Managed"), "{key}: {path}");
+            }
+        }
+    }
+    Ok(())
 }

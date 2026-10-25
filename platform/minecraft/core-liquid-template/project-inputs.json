@@ -43,6 +43,8 @@
     }
   },
   "source_rules": {
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ManagedSessionPuppetAction.java","template":true,"when":{"all_features":["game_puppet_runtime"]}}],
+    "src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/ManagedSuperflatSessionGamePuppet.java","template":true,"when":{"all_features":["game_puppet_runtime"]}}],
     "src/main/java/ca/teamdman/sfm/common/capability/Issue610FixtureEnergyProvider.java": [{"input":"src/main/java/ca/teamdman/sfm/common/capability/Issue610FixtureEnergyProvider.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["issue_610_portable_fixture"]}}],
     "src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java": [{"input":"src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java","template":true,"when":{"targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],"all_features":["issue_610_portable_fixture"]}}],
 

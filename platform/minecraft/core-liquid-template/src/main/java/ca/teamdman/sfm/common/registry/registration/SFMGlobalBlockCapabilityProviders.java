@@ -79,8 +79,8 @@ public class SFMGlobalBlockCapabilityProviders {
 {% if features.issue_610_portable_fixture %}
     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, ca.teamdman.sfm.common.capability.Issue610FixtureEnergyProvider>
             ISSUE_610_FIXTURE = REGISTERER.register("issue_610_fixture_energy", ca.teamdman.sfm.common.capability.Issue610FixtureEnergyProvider::new);
-{% endif %}
 
+{% endif %}
     public static final SFMRegistryObject<SFMBlockCapabilityProvider<?>, BlockEntityCapabilityProvider>
             BLOCK_ENTITY = REGISTERER.register("block_entity", BlockEntityCapabilityProvider::new);
 
