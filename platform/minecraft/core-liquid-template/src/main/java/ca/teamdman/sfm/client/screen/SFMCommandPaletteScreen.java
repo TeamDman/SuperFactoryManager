@@ -719,7 +719,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         return new SFMKeyboardUsageContextSnapshot(
                 this,
                 () -> ACTIVE == this && Minecraft.getInstance().screen == this,
+{% if features.workspace_panels %}
                 null,
+{% endif %}
                 null,
                 0,
                 0,

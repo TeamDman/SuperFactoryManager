@@ -45,6 +45,12 @@ public final class SFMGamePuppetRenderHarness {
         return completedFrames;
     }
 
+{% if features.client_action_services %}
+    public static synchronized boolean isIdle() {
+        return pending == null && completion == null;
+    }
+{% endif %}
+
     private SFMGamePuppetRenderHarness() {
     }
 

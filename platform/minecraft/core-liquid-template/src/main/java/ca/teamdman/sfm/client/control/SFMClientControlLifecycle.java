@@ -4,90 +4,69 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.event.TickEvent;
-
 {% case minecraft_version %}
-{% when "1.19.2" %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1" %}
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.client.event.ScreenEvent;
+{% when "1.20.2", "1.20.3", "1.20.4" %}
+import net.neoforged.neoforge.event.TickEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+{% else %}
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+{% endcase %}
+
 import java.io.IOException;
 import java.nio.file.Path;
 
-{% when "1.19.4" %}
-{% endcase %}
-/** Owns the live-game control endpoint for the lifetime of the Minecraft client. */
+/** Client-lifetime services; startup configuration never chooses a puppet or opens a screen. */
 public final class SFMClientControlLifecycle {
-    private static SFMClientControlServer server;
+    private static SFMClientActionRuntime runtime;
     private static boolean startupAttempted;
-{% case minecraft_version %}
-{% when "1.19.2" %}
-    private static boolean shutdownHookRegistered;
-{% when "1.19.4" %}
-{% endcase %}
 
-    private SFMClientControlLifecycle() {
+    private SFMClientControlLifecycle() { }
+
+    public static synchronized SFMClientActionRuntime runtime() {
+        if (runtime == null) {
+            runtime = new SFMClientActionRuntime(Minecraft.getInstance());
+            Runtime.getRuntime().addShutdownHook(new Thread(runtime::close, "sfm-action-services-shutdown"));
+        }
+        return runtime;
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
+{% case minecraft_version %}
+{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4" %}
     public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) {
-            return;
-        }
-
+        if (event.phase != TickEvent.Phase.END) return;
+{% else %}
+    public static void onClientTick(ClientTickEvent.Post event) {
+{% endcase %}
+        SFMClientActionRuntime services = runtime();
         if (!startupAttempted) {
             startupAttempted = true;
             try {
-{% case minecraft_version %}
-{% when "1.19.2" %}
-                startServerIfNecessary();
-{% when "1.19.4" %}
-                server = SFMClientControlServer.start(Minecraft.getInstance());
-                Runtime.getRuntime().addShutdownHook(new Thread(
-                        SFMClientControlLifecycle::stop,
-                        "sfm-client-control-shutdown"
-                ));
-{% endcase %}
-            } catch (Exception exception) {
-                SFM.LOGGER.error("SFM_CLIENT_CONTROL_START_FAILED", exception);
+                SFMActionServiceSettings settings = SFMActionServiceSettings.fromEnvironment(System.getenv());
+                if (settings.files()) {
+                    try { services.enableFiles(); }
+                    catch (Exception failure) { SFM.LOGGER.error("SFM_ACTION_FILES_START_FAILED", failure); }
+                }
+                if (settings.vox()) {
+                    try { services.enableVox(); }
+                    catch (Exception failure) { SFM.LOGGER.error("SFM_ACTION_VOX_START_FAILED", failure); }
+                }
+            } catch (IllegalArgumentException invalid) {
+                SFM.LOGGER.error("SFM_ACTION_SERVICES_INVALID_ENVIRONMENT: {}", invalid.getMessage());
             }
         }
-
-        if (server != null) {
-            server.observeClientTick();
-        }
+        services.tick();
     }
 
-{% case minecraft_version %}
-{% when "1.19.2" %}
-{% if features.client_control_file_actions %}
-    /** Enables file-driven control for the current client without a relaunch. */
-    public static synchronized Path enableFileControl() throws IOException {
-        startServerIfNecessary();
-        startupAttempted = true;
-        return server.enableFileControl();
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    public static void onScreenOpening(ScreenEvent.Opening event) {
+        runtime().sceneChanging();
     }
 
-{% endif %}
-    private static synchronized void startServerIfNecessary() throws IOException {
-        SFMClientControlLogBuffer.install();
-        if (server != null) {
-            return;
-        }
-        if (!shutdownHookRegistered) {
-            Runtime.getRuntime().addShutdownHook(new Thread(
-                    SFMClientControlLifecycle::stop,
-                    "sfm-client-control-shutdown"
-            ));
-            shutdownHookRegistered = true;
-        }
-        server = SFMClientControlServer.start(Minecraft.getInstance());
-    }
-
-{% when "1.19.4" %}
-{% endcase %}
-    private static synchronized void stop() {
-        if (server == null) {
-            return;
-        }
-        server.close();
-        server = null;
-    }
+    /** Compatibility entry point: enabling files never enables Vox. */
+    public static Path enableFileControl() throws IOException { return runtime().enableFiles(); }
 }

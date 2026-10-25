@@ -339,15 +339,7 @@
     ],
     "requires": []
   },
-  "client_control_cli": {
-    "supported_targets": [
-      "1.19.2",
-      "1.19.4"
-    ],
-    "requires": [
-      "client_actions"
-    ]
-  },
+  "client_control_cli": {"supported_targets": ["1.19.2", "1.19.4"], "requires": ["client_actions", "client_action_services"]},
   "structured_logs": {
     "supported_targets": [
       "1.19.2"
@@ -686,15 +678,7 @@
       "structured_action_results"
     ]
   },
-  "client_control_file_actions": {
-    "supported_targets": [
-      "1.19.2"
-    ],
-    "requires": [
-      "client_actions",
-      "structured_action_results"
-    ]
-  },
+  "client_control_file_actions": {"supported_targets": ["1.19.2"], "requires": ["client_actions", "structured_action_results", "client_action_services"]},
   "client_log_read_actions": {
     "supported_targets": [
       "1.19.2"
@@ -1693,15 +1677,7 @@
     ],
     "requires": []
   },
-  "structured_action_results": {
-    "supported_targets": [
-      "1.19.2",
-      "1.19.4"
-    ],
-    "requires": [
-      "client_actions"
-    ]
-  },
+  "structured_action_results": {"supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "requires": ["client_actions"]},
   "command_palette": {
     "supported_targets": [
       "1.19.2",
@@ -1982,5 +1958,8 @@
     "requires": [
       "terminal_focus_gestures"
     ]
-  }
+  },
+  "client_action_services": {"supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "requires": ["client_actions", "command_palette", "structured_action_results", "client_properties"]},
+  "extended_release_regressions": {"supported_targets": ["1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1", "26.1.2"], "requires": []},
+  "historical_release_4_34_0": {"supported_targets": ["26.1.2"], "requires": []}
 }

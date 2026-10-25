@@ -29,6 +29,14 @@ public final class ManagedSessionPuppetAction implements SFMPuppetAction {
         this.defaultTest = defaultTest;
     }
 
+{% if features.client_action_services %}
+    @Override public boolean canSuspendForExternalControl() {
+        // A request is cleared only after every nested action reports completion.
+        // While suspended this action neither reads files nor dispatches new work.
+        return started != 0 && pending.isEmpty();
+    }
+{% endif %}
+
     @Override public String description() { return "managed superflat request " + sequence; }
 
     @Override public boolean tick(ISFMGamePuppetRuntime runtime) {

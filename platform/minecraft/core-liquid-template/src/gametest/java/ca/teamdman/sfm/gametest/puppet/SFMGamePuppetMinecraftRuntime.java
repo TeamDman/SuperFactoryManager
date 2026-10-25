@@ -429,7 +429,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!active.worldConfigured) {
             active.worldConfigured = true;
-            server.execute(() -> SFMGamePuppetHarness.configureWorld(server, server.overworld()));
+            executeServerMutation(server, () -> SFMGamePuppetHarness.configureWorld(server, server.overworld()));
             SFM.LOGGER.info("SFM_GAME_PUPPET_WORLD_READY puppet={}", active.definition.puppetName());
         }
         return true;
@@ -479,7 +479,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (!active.gameTestStartRequested) {
             active.gameTestStartRequested = true;
             active.gameTestName = testName;
-            server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testName));
+            executeServerMutation(server, () -> SFMGamePuppetHarness.startGameTest(active, server, testName));
             return false;
         }
         requireSelectedGameTest(testName);
@@ -501,7 +501,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (!active.gameTestStartRequested) {
             active.gameTestStartRequested = true;
             active.gameTestName = testName;
-            server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testDefinition));
+            executeServerMutation(server, () -> SFMGamePuppetHarness.startGameTest(active, server, testDefinition));
             return false;
         }
         requireSelectedGameTest(testName);
@@ -529,7 +529,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!active.gameTestStartRequested) {
             active.gameTestStartRequested = true;
-            server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testName));
+            executeServerMutation(server, () -> SFMGamePuppetHarness.startGameTest(active, server, testName));
             return false;
         }
 {% when "26.1.2" %}
@@ -554,7 +554,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!active.gameTestStartRequested) {
             active.gameTestStartRequested = true;
-            server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testName));
+            executeServerMutation(server, () -> SFMGamePuppetHarness.startGameTest(active, server, testName));
             return false;
         }
 {% endcase %}
@@ -585,6 +585,14 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         Vec3 target = Vec3.atCenterOf(absoluteTarget);
         Vec3 camera = target.add(Math.cos(angleRadians) * radius, height, Math.sin(angleRadians) * radius);
         teleportAndLook(camera, target);
+    }
+
+    private void executeServerMutation(java.util.concurrent.Executor server, Runnable work) {
+{% if features.client_action_services %}
+        active.externalControlWork.execute(server, work);
+{% else %}
+        server.execute(work);
+{% endif %}
     }
 
     @Override
@@ -1552,7 +1560,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!active.integratedServerPublishRequested) {
             active.integratedServerPublishRequested = true;
-            server.execute(() -> {
+            executeServerMutation(server, () -> {
                 try {
                     int port = HttpUtil.getAvailablePort();
                     if (!server.publishServer(GameType.CREATIVE, false, port)) {
@@ -4333,7 +4341,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         UUID playerId = minecraft.player.getUUID();
         IntegratedServer server = minecraft.getSingleplayerServer();
         if (server != null) {
-            server.execute(() -> {
+            executeServerMutation(server, () -> {
                 ServerPlayer player = server.getPlayerList().getPlayer(playerId);
                 if (player != null) {
                     // The server owns the authoritative rotation.  A position-only

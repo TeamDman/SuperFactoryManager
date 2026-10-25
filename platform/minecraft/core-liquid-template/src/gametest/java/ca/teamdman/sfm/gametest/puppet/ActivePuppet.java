@@ -17,6 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class ActivePuppet {
+{% if features.client_action_services %}
+    public final ca.teamdman.sfm.client.control.SFMActionWorkTracker externalControlWork =
+            ca.teamdman.sfm.client.control.SFMClientControlLifecycle.runtime().puppetWork();
+{% endif %}
     public final SFMDiscoveredGamePuppet definition;
 
     public final SFMGamePuppetHelper helper;
