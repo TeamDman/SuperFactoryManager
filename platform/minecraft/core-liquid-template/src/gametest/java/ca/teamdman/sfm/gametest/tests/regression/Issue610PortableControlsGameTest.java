@@ -49,7 +49,7 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     private static final BlockPos MANUAL_LEVER = new BlockPos(9, 1, 2);
     private static final BlockPos TOKENS = new BlockPos(5, 2, 2);
     private static final BlockPos COUNTER = new BlockPos(5, 2, 4);
-    private static final BlockPos STATUS = new BlockPos(5, 1, 1);
+    private static final BlockPos STATUS = new BlockPos(5, 2, 1);
     private static final BlockPos FIRST_LAMP = new BlockPos(7, 2, 4);
     private static final BlockPos SECOND_LAMP = new BlockPos(9, 2, 4);
     private static final String IDLE_PROGRAM = "EVERY REDSTONE PULSE DO\nEND";
@@ -69,7 +69,12 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     @Override public int maxTicks() { return RECORDING_TICKS; }
 
     @Override public void run(SFMGameTestHelper helper) {
-        // Keep the generated polished-andesite floor at Y=0; the manager sits on a visible pedestal.
+        // Keep the entire polished-andesite floor at Y=0; the manager sits on a visible pedestal.
+        for (int x = 0; x < 11; x++) {
+            for (int z = 0; z < 7; z++) {
+                helper.setBlock(new BlockPos(x, 0, z), Blocks.POLISHED_ANDESITE);
+            }
+        }
         helper.setBlock(MANAGER.below(), Blocks.POLISHED_ANDESITE);
         helper.setBlock(MANAGER, SFMBlocks.MANAGER.get());
         for (BlockPos pos : List.of(new BlockPos(2, 2, 4), new BlockPos(3, 2, 4),
@@ -88,22 +93,32 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
         for (BlockPos lamp : List.of(FIRST_LAMP, SECOND_LAMP)) {
             helper.setBlock(lamp, Blocks.REDSTONE_LAMP);
         }
-        sign(helper, new BlockPos(2, 1, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
-        sign(helper, new BlockPos(6, 1, 1), "DRAIN SECOND", "After run 1", "Healthy only", "Then run again");
-        sign(helper, new BlockPos(9, 1, 1), "MANUAL MODE", "Flick within 3s", "Otherwise auto", "Choice is latched");
-        sign(helper, new BlockPos(7, 1, 5), "RUNS >= 1", "Off/off: none", "On/off: one", "On/on: two+");
-        sign(helper, new BlockPos(9, 1, 5), "RUNS >= 2", "Counted tokens", "Not button taps", "Reset: rerun test");
-        sign(helper, new BlockPos(1, 1, 5), "DETERMINISTIC FE", "2-FE source quantum", "Not Mekanism/JDT", "Read result signs");
-        sign(helper, new BlockPos(1, 1, 1), "FIRST MACHINE", "Preparing", "", "");
-        sign(helper, new BlockPos(3, 1, 1), "SECOND MACHINE", "Preparing", "", "");
-        sign(helper, new BlockPos(5, 1, 5), "SOURCE", "Preparing", "", "");
+        sign(helper, new BlockPos(2, 2, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
+        sign(helper, new BlockPos(6, 2, 1), "DRAIN SECOND", "After run 1", "Healthy only", "Then run again");
+        sign(helper, new BlockPos(9, 2, 1), "MANUAL MODE", "Flick within 3s", "Otherwise auto", "Choice is latched");
+        sign(helper, new BlockPos(7, 2, 5), "RUNS >= 1", "Off/off: none", "On/off: one", "On/on: two+");
+        sign(helper, new BlockPos(9, 2, 5), "RUNS >= 2", "Counted tokens", "Not button taps", "Reset: rerun test");
+        sign(helper, new BlockPos(1, 2, 5), "DETERMINISTIC FE", "2-FE source quantum", "Not Mekanism/JDT", "Read result signs");
+        sign(helper, new BlockPos(1, 2, 1), "FIRST MACHINE", "Preparing", "", "");
+        sign(helper, new BlockPos(3, 2, 1), "SECOND MACHINE", "Preparing", "", "");
+        sign(helper, new BlockPos(5, 2, 5), "SOURCE", "Preparing", "", "");
         sign(helper, STATUS, "PREPARING", "Do not press yet", "", "");
+        for (int x = 0; x < 11; x++) {
+            for (int z = 0; z < 7; z++) {
+                BlockPos floor = new BlockPos(x, 0, z);
+                helper.assertTrue(helper.getBlockState(floor).is(Blocks.POLISHED_ANDESITE),
+                        "Issue 610 portable fixture floor has a gap at " + floor);
+            }
+        }
         helper.runAfterDelay(2, () -> new Session(helper).configure());
     }
 
     private static void sign(SFMGameTestHelper helper, BlockPos pos, String... lines) {
-        // Standing signs are supported by the intact generated andesite floor.
+        // A one-block pedestal keeps every standing sign visibly above the intact floor.
+        helper.setBlock(pos.below(), Blocks.POLISHED_ANDESITE);
         helper.setBlock(pos, Blocks.OAK_SIGN);
+        helper.assertTrue(helper.getBlockState(pos.below()).is(Blocks.POLISHED_ANDESITE),
+                "Issue 610 portable sign has no pedestal at " + pos);
         text(helper, pos, lines);
     }
 
@@ -311,9 +326,9 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
             String next = title + detail + runs + drained;
             if (!next.equals(previousStatus)) {
                 text(helper, STATUS, title, detail, "Completed runs: " + runs, drained ? "Second drained" : "Drain after run 1");
-                text(helper, new BlockPos(1, 1, 1), "FIRST MACHINE", first.stored() + "/100000 FE", "One FE stays empty", "Deterministic fixture");
-                text(helper, new BlockPos(3, 1, 1), "SECOND MACHINE", healthy.stored() + "/100000 FE", "Drain after run 1", "Then run manager");
-                text(helper, new BlockPos(5, 1, 5), "SOURCE", source.stored() + " FE", "2-FE quantum", "Never refilled");
+                text(helper, new BlockPos(1, 2, 1), "FIRST MACHINE", first.stored() + "/100000 FE", "One FE stays empty", "Deterministic fixture");
+                text(helper, new BlockPos(3, 2, 1), "SECOND MACHINE", healthy.stored() + "/100000 FE", "Drain after run 1", "Then run manager");
+                text(helper, new BlockPos(5, 2, 5), "SOURCE", source.stored() + " FE", "2-FE quantum", "Never refilled");
                 previousStatus = next;
             }
         }
