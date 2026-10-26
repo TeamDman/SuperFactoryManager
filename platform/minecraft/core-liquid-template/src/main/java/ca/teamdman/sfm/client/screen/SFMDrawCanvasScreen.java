@@ -932,7 +932,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
         renderSaveDiagnostic(poseStack);
         renderSyntaxDiagnostic(poseStack);
         renderReadOnlyChrome(poseStack);
+{% if targets.mc_1_21_1 and features.inspection_workspace %}
+        // Screen.render applies 1.21.1 background blur after this embedded canvas
+        // has drawn its text. The workspace already rendered the background.
+        for (var renderable : this.renderables) {
+            renderable.render(poseStack, mouseX, mouseY, partialTick);
+        }
+{% else %}
         super.render(poseStack, mouseX, mouseY, partialTick);
+{% endif %}
         performanceTracker.frame(
                 frameStartedNanos,
                 System.nanoTime(),
