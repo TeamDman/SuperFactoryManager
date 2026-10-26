@@ -45,8 +45,8 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     private static final BlockPos FIRST = new BlockPos(1, 2, 3);
     private static final BlockPos HEALTHY = new BlockPos(3, 2, 3);
     private static final BlockPos RUN_BUTTON = new BlockPos(2, 2, 2);
-    private static final BlockPos DRAIN_BUTTON = new BlockPos(7, 1, 2);
-    private static final BlockPos MANUAL_LEVER = new BlockPos(9, 1, 2);
+    private static final BlockPos DRAIN_BUTTON = new BlockPos(7, 2, 2);
+    private static final BlockPos MANUAL_LEVER = new BlockPos(9, 2, 2);
     private static final BlockPos TOKENS = new BlockPos(5, 2, 2);
     private static final BlockPos COUNTER = new BlockPos(5, 2, 4);
     private static final BlockPos STATUS = new BlockPos(5, 2, 1);
@@ -69,10 +69,10 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     @Override public int maxTicks() { return RECORDING_TICKS; }
 
     @Override public void run(SFMGameTestHelper helper) {
-        // Keep the entire polished-andesite floor at Y=0; the manager sits on a visible pedestal.
+        // Keep the floor above the GameTest structure block at relative (0, 0, 0).
         for (int x = 0; x < 11; x++) {
             for (int z = 0; z < 7; z++) {
-                helper.setBlock(new BlockPos(x, 0, z), Blocks.POLISHED_ANDESITE);
+                helper.setBlock(new BlockPos(x, 1, z), Blocks.POLISHED_ANDESITE);
             }
         }
         helper.setBlock(MANAGER.below(), Blocks.POLISHED_ANDESITE);
@@ -105,7 +105,7 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
         sign(helper, STATUS, "PREPARING", "Do not press yet", "", "");
         for (int x = 0; x < 11; x++) {
             for (int z = 0; z < 7; z++) {
-                BlockPos floor = new BlockPos(x, 0, z);
+                BlockPos floor = new BlockPos(x, 1, z);
                 helper.assertTrue(helper.getBlockState(floor).is(Blocks.POLISHED_ANDESITE),
                         "Issue 610 portable fixture floor has a gap at " + floor);
             }
@@ -114,7 +114,7 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     }
 
     private static void sign(SFMGameTestHelper helper, BlockPos pos, String... lines) {
-        // A one-block pedestal keeps every standing sign visibly above the intact floor.
+        // The standing sign has the continuous floor directly beneath it.
         helper.setBlock(pos.below(), Blocks.POLISHED_ANDESITE);
         helper.setBlock(pos, Blocks.OAK_SIGN);
         helper.assertTrue(helper.getBlockState(pos.below()).is(Blocks.POLISHED_ANDESITE),
