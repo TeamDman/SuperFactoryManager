@@ -310,7 +310,7 @@ public final class SFMGamePuppetHarness {
 {% else %}
         SFMGamePuppetMouseOwnership.end();
 {% endif %}
-        activePuppet = null;
+        setActivePuppet(null);
         completed = true;
         finalWorldHoldTicksRemaining = -1;
         exitTicksRemaining = -1;
