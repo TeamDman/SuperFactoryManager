@@ -120,7 +120,9 @@ class SFMKeyboardUsageSituationTests {
         return new SFMKeyboardUsageContextSnapshot(
                 host,
                 () -> true,
+{% if features.workspace_panels %}
                 null,
+{% endif %}
                 id("element"),
                 workspace,
                 element,

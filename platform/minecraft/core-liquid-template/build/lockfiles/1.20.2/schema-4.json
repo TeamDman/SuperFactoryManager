@@ -125,7 +125,175 @@
             "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar"
           },
           "source_providers": []
-        }
+        },
+      {
+        "id": "checker-qual",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "org.checkerframework:checker-qual:3.43.0",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "org-checkerframework-checker-qual-3-43-0-0d5cc884",
+          "resolved_coordinate": "org.checkerframework:checker-qual:3.43.0",
+          "expected_hash": "blake3:0d5cc8849a0cf91d1316ec38c80a0b2f1b942009",
+          "cache_path": "$sfm-cache\\maven\\org/checkerframework\\checker-qual\\3.43.0\\checker-qual-3.43.0.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "error-prone-annotations",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "com.google.errorprone:error_prone_annotations:2.36.0",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "com-google-errorprone-error-prone-annotations-2-36-0-60bfc777",
+          "resolved_coordinate": "com.google.errorprone:error_prone_annotations:2.36.0",
+          "expected_hash": "blake3:60bfc777bca98126998dec5493948a8344db8bf9",
+          "cache_path": "$sfm-cache\\maven\\com/google/errorprone\\error_prone_annotations\\2.36.0\\error_prone_annotations-2.36.0.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "failureaccess",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "com.google.guava:failureaccess:1.0.2",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "com-google-guava-failureaccess-1-0-2-ffc72812",
+          "resolved_coordinate": "com.google.guava:failureaccess:1.0.2",
+          "expected_hash": "blake3:ffc728120ab20fc9adc9b7f99024789815f6a1fd",
+          "cache_path": "$sfm-cache\\maven\\com/google/guava\\failureaccess\\1.0.2\\failureaccess-1.0.2.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "guava",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "com.google.guava:guava:33.4.0-jre",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "com-google-guava-guava-33-4-0-jre-cc4b7d4c",
+          "resolved_coordinate": "com.google.guava:guava:33.4.0-jre",
+          "expected_hash": "blake3:cc4b7d4cf17be0ef0b92e4f6d1652975fb003e0d",
+          "cache_path": "$sfm-cache\\maven\\com/google/guava\\guava\\33.4.0-jre\\guava-33.4.0-jre.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "j2objc-annotations",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "com.google.j2objc:j2objc-annotations:3.0.0",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "com-google-j2objc-j2objc-annotations-3-0-0-da36bd8c",
+          "resolved_coordinate": "com.google.j2objc:j2objc-annotations:3.0.0",
+          "expected_hash": "blake3:da36bd8c441894df9ffd285df80113b7a41681f7",
+          "cache_path": "$sfm-cache\\maven\\com/google/j2objc\\j2objc-annotations\\3.0.0\\j2objc-annotations-3.0.0.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "javassist",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "org.javassist:javassist:3.30.2-GA",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "org-javassist-javassist-3-30-2-ga-78f08004",
+          "resolved_coordinate": "org.javassist:javassist:3.30.2-GA",
+          "expected_hash": "blake3:78f08004376ccb54aff91bf0c69c213baaa837a7",
+          "cache_path": "$sfm-cache\\maven\\org/javassist\\javassist\\3.30.2-GA\\javassist-3.30.2-GA.jar"
+        },
+        "source_providers": []
+      },
+      {
+        "id": "listenablefuture",
+        "declaration": {
+          "acquisition": {
+            "maven": {
+              "requested_coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+              "repository_id": "maven-central"
+            }
+          },
+          "scopes": [
+            "test-compile",
+            "test-runtime"
+          ],
+          "artifact_treatment": "plain",
+          "data_run_policy": "exclude"
+        },
+        "derived_checks": {
+          "artifact_id": "com-google-guava-listenablefuture-9999-0-empty-to-avoid-conflict-with-guava-f0d8d498",
+          "resolved_coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+          "expected_hash": "blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f",
+          "cache_path": "$sfm-cache\\maven\\com/google/guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar"
+        },
+        "source_providers": []
+      }
       ]
     },
     {
@@ -588,6 +756,25 @@
       "weak": null
     },
     {
+      "id": "com-google-errorprone-error-prone-annotations-2-36-0-60bfc777",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "error-prone-annotations"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "com.google.errorprone:error_prone_annotations:2.36.0",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar",
+      "hash": "blake3:60bfc777bca98126998dec5493948a8344db8bf9",
+      "cache_path": "$sfm-cache\\maven\\com/google/errorprone\\error_prone_annotations\\2.36.0\\error_prone_annotations-2.36.0.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "com-google-guava-failureaccess-1-0-1-ef228993",
       "owner": null,
       "purposes": [
@@ -604,6 +791,25 @@
       "weak": null
     },
     {
+      "id": "com-google-guava-failureaccess-1-0-2-ffc72812",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "failureaccess"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "com.google.guava:failureaccess:1.0.2",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar",
+      "hash": "blake3:ffc728120ab20fc9adc9b7f99024789815f6a1fd",
+      "cache_path": "$sfm-cache\\maven\\com/google/guava\\failureaccess\\1.0.2\\failureaccess-1.0.2.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "com-google-guava-guava-31-1-jre-8791a464",
       "owner": null,
       "purposes": [
@@ -614,6 +820,25 @@
       "url": "https://maven.minecraftforge.net/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar",
       "hash": "blake3:8791a4645a357d3a0640c0555f8a45f05334a92b",
       "cache_path": "$sfm-cache\\maven\\com\\google\\guava\\guava\\31.1-jre\\guava-31.1-jre.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "com-google-guava-guava-33-4-0-jre-cc4b7d4c",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "guava"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "com.google.guava:guava:33.4.0-jre",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar",
+      "hash": "blake3:cc4b7d4cf17be0ef0b92e4f6d1652975fb003e0d",
+      "cache_path": "$sfm-cache\\maven\\com/google/guava\\guava\\33.4.0-jre\\guava-33.4.0-jre.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -646,6 +871,25 @@
       "url": "https://maven.minecraftforge.net/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar",
       "hash": "blake3:d7d89341f281c248d9f5c400abd71c0d0ac016af",
       "cache_path": "$sfm-cache\\maven\\com\\google\\j2objc\\j2objc-annotations\\1.3\\j2objc-annotations-1.3.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "com-google-j2objc-j2objc-annotations-3-0-0-da36bd8c",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "j2objc-annotations"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "com.google.j2objc:j2objc-annotations:3.0.0",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar",
+      "hash": "blake3:da36bd8c441894df9ffd285df80113b7a41681f7",
+      "cache_path": "$sfm-cache\\maven\\com/google/j2objc\\j2objc-annotations\\3.0.0\\j2objc-annotations-3.0.0.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -1360,6 +1604,22 @@
       "weak": null
     },
     {
+      "id": "org-apache-commons-commons-math3-3-6-1-55249fe2",
+      "owner": null,
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.apache.commons:commons-math3:3.6.1",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+      "hash": "blake3:55249fe2627f0fb2b1376fa97b2d622325271ff4",
+      "cache_path": "$sfm-cache\\maven\\org/apache/commons\\commons-math3\\3.6.1\\commons-math3-3.6.1.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "org-apache-logging-log4j-log4j-api-2-19-0-60362557",
       "owner": null,
       "purposes": [
@@ -1440,6 +1700,25 @@
       "weak": null
     },
     {
+      "id": "org-checkerframework-checker-qual-3-43-0-0d5cc884",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "checker-qual"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.checkerframework:checker-qual:3.43.0",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar",
+      "hash": "blake3:0d5cc8849a0cf91d1316ec38c80a0b2f1b942009",
+      "cache_path": "$sfm-cache\\maven\\org/checkerframework\\checker-qual\\3.43.0\\checker-qual-3.43.0.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
       "id": "org-codehaus-plexus-plexus-utils-3-3-0-983ea86b",
       "owner": null,
       "purposes": [
@@ -1506,6 +1785,25 @@
       "url": "https://maven.minecraftforge.net/org/glassfish/javax.json/1.0.4/javax.json-1.0.4.jar",
       "hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be",
       "cache_path": "$sfm-cache\\maven\\org\\glassfish\\javax.json\\1.0.4\\javax.json-1.0.4.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "org-javassist-javassist-3-30-2-ga-78f08004",
+      "owner": {
+        "dependency_id": "javaparser",
+        "component_id": "javassist"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.javassist:javassist:3.30.2-GA",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar",
+      "hash": "blake3:78f08004376ccb54aff91bf0c69c213baaa837a7",
+      "cache_path": "$sfm-cache\\maven\\org/javassist\\javassist\\3.30.2-GA\\javassist-3.30.2-GA.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
@@ -1781,6 +2079,22 @@
       "url": "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar",
       "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b",
       "cache_path": "$sfm-cache\\maven\\org\\opentest4j\\opentest4j\\1.2.0\\opentest4j-1.2.0.jar",
+      "provenance": "remote-maven",
+      "source_git": null,
+      "source_build": null,
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-9-0-7c5d09ea",
+      "owner": null,
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.ow2.asm:asm:9.0",
+      "repository_id": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+      "hash": "blake3:7c5d09ea11e7a1ef1f9794a61b680cfd90af18b6",
+      "cache_path": "$sfm-cache\\maven\\org/ow2/asm\\asm\\9.0\\asm-9.0.jar",
       "provenance": "remote-maven",
       "source_git": null,
       "source_build": null,
