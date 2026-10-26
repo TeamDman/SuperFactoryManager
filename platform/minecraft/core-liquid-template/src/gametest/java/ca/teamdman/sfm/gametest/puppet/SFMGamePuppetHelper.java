@@ -96,6 +96,11 @@ public final class SFMGamePuppetHelper {
         add(new PositionGameTestOrbitCameraPuppetAction(angleRadians));
     }
 
+    /** Position at an exact offset from a GameTest block, including a stable feet height. */
+    public void positionOrbit(BlockPos localTarget, double radius, double height, double angleRadians) {
+        add(new PositionOrbitCameraPuppetAction(Objects.requireNonNull(localTarget), radius, height, angleRadians));
+    }
+
     /** Terminal action: leave this client, its world and its current screen to the user. */
     public void yieldToUser() {
         add(new YieldToUserPuppetAction());
