@@ -85,6 +85,26 @@ pub(super) fn verify_development_roots_and_pins(
         .iter()
         .map(|row| (row.configuration.clone(), row.coordinate.clone()))
         .collect();
+    // The current lock declares JavaParser's reviewed transitive JARs as flat
+    // testImplementation components. Keep the released direct-root authority
+    // intact while requiring precisely that pinned classpath closure.
+    for coordinate in super::approved_pins::JAVAPARSER_TEST_TRANSITIVES {
+        let reviewed_hash = super::approved_pins::COMMON_PINS
+            .iter()
+            .find(|(name, _)| *name == coordinate)
+            .map(|(_, hash)| *hash)
+            .ok_or_else(|| {
+                eyre::eyre!("JavaParser transitive has no reviewed pin: {coordinate}")
+            })?;
+        eyre::ensure!(
+            target
+                .selected_pins
+                .iter()
+                .any(|pin| { pin.coordinate == coordinate && pin.content_hash == reviewed_hash }),
+            "JavaParser transitive differs from the reviewed test pin: {coordinate}"
+        );
+        expected.push(("testImplementation".to_owned(), coordinate.to_owned()));
+    }
     actual.sort();
     expected.sort();
     eyre::ensure!(

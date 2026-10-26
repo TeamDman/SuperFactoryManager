@@ -249,30 +249,38 @@ fn development_junit_compile_missing_and_additional_actual_roots_are_rejected() 
 }
 
 #[test]
-fn development_junit_compile_conflicting_declared_root_pin_is_rejected() -> eyre::Result<()> {
-    let (_fixture, plan) = fixture("1.20.4", |lock| {
-        let dependency = lock
-            .dependencies
-            .iter_mut()
-            .find(|row| row.id == "javaparser")
-            .unwrap();
-        let hash = super::super::ContentHash::from_bytes(
-            b"contrary declared pin",
-            super::super::ContentHashAlgorithm::Blake3,
+fn development_junit_compile_conflicting_declared_pins_are_rejected() -> eyre::Result<()> {
+    for component_id in ["main", "javassist"] {
+        let (_fixture, plan) = fixture("1.20.4", |lock| {
+            let dependency = lock
+                .dependencies
+                .iter_mut()
+                .find(|row| row.id == "javaparser")
+                .unwrap();
+            let component = dependency
+                .components
+                .iter_mut()
+                .find(|row| row.id == component_id)
+                .unwrap();
+            let hash = super::super::ContentHash::from_bytes(
+                b"contrary declared pin",
+                super::super::ContentHashAlgorithm::Blake3,
+            );
+            component.derived_checks.expected_hash = hash;
+            let id = component.derived_checks.artifact_id.clone();
+            lock.artifacts
+                .iter_mut()
+                .find(|row| row.id == id)
+                .unwrap()
+                .hash = hash;
+        })?;
+        let error =
+            verify_development_roots_and_pins(&plan, &report("1.20.4").targets[0]).unwrap_err();
+        assert!(
+            error.to_string().contains("declared pin conflicts"),
+            "{error:#}"
         );
-        dependency.components[0].derived_checks.expected_hash = hash;
-        let id = dependency.components[0].derived_checks.artifact_id.clone();
-        lock.artifacts
-            .iter_mut()
-            .find(|row| row.id == id)
-            .unwrap()
-            .hash = hash;
-    })?;
-    let error = verify_development_roots_and_pins(&plan, &report("1.20.4").targets[0]).unwrap_err();
-    assert!(
-        error.to_string().contains("declared pin conflicts"),
-        "{error:#}"
-    );
+    }
     Ok(())
 }
 

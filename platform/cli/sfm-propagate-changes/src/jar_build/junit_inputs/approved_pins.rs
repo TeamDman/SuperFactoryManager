@@ -98,6 +98,18 @@ pub(super) const COMMON_PINS: [(&str, &str); 24] = [
         "blake3:7c5d09ea11e7a1ef1f9794a61b680cfd90af18b6",
     ),
 ];
+
+// JavaParser's flat, reviewed transitive closure in the current SFM lock.
+// These are classpath declarations, not additional released Gradle test roots.
+pub(super) const JAVAPARSER_TEST_TRANSITIVES: [&str; 7] = [
+    "org.checkerframework:checker-qual:3.43.0",
+    "com.google.errorprone:error_prone_annotations:2.36.0",
+    "com.google.guava:failureaccess:1.0.2",
+    "com.google.guava:guava:33.4.0-jre",
+    "com.google.j2objc:j2objc-annotations:3.0.0",
+    "org.javassist:javassist:3.30.2-GA",
+    "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+];
 pub(super) const LAUNCHER: (&str, &str) = (
     "org.junit.platform:junit-platform-launcher:1.8.1",
     "blake3:738f602f34820afb35f70aea342bfc73c305b44d",
