@@ -268,8 +268,14 @@ class SFMClientActionPaletteSuggestionTests {
 {% if features.file_explorer or features.registry_explorer or features.explorer_search or features.explorer_compaction %}
     @Test
     void deepExplorerViewAndPathDisplayValuesAreDiscoverableAndExecutableGrammarLeaves() {
-        ResourceLocation viewId = new ResourceLocation("sfm", "explorer/view/set");
-        ResourceLocation pathDisplayId = new ResourceLocation("sfm", "explorer/path-display/set");
+{% case minecraft_version %}
+{% when "1.21", "1.21.1", "26.1.2" %}
+        var viewId = SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/view/set");
+        var pathDisplayId = SFMResourceLocation.fromNamespaceAndPath("sfm", "explorer/path-display/set");
+{% else %}
+        var viewId = new ResourceLocation("sfm", "explorer/view/set");
+        var pathDisplayId = new ResourceLocation("sfm", "explorer/path-display/set");
+{% endcase %}
         SFMClientActionCommandTree tree = tree(
                 Map.entry(viewId, new SFMExplorerAction(SFMExplorerAction.Operation.VIEW_SET)),
                 Map.entry(pathDisplayId, new SFMExplorerAction(SFMExplorerAction.Operation.PATH_DISPLAY_SET))
@@ -506,9 +512,9 @@ class SFMClientActionPaletteSuggestionTests {
 {% when "1.19.2", "1.19.4" %}
             Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>... actions
 {% when "26.1.2" %}
-            Map.Entry<Identifier, TestAction>... actions
+            Map.Entry<Identifier, ? extends SFMClientAction<?>>... actions
 {% else %}
-            Map.Entry<ResourceLocation, TestAction>... actions
+            Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>... actions
 {% endcase %}
     ) {
         return SFMClientActionDispatcherCompiler.compileCommandTree(List.of(actions));

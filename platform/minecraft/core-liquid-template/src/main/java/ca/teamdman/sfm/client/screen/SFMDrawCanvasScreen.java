@@ -1498,7 +1498,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
 
     @Override
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.21.1" %}
+{% when "1.20", "1.20.1" %}
+    @MCVersionDependentBehaviour
+{% when "1.19.2", "1.19.4", "1.21.1" %}
 {% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% else %}
     @MCVersionDependentBehaviour
@@ -1510,7 +1512,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen {
             double mouseX,
             double mouseY,
 {% case minecraft_version %}
-{% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.21.1" %}
+{% when "1.20", "1.20.1" %}
+            double delta
+{% when "1.19.2", "1.19.4", "1.21.1" %}
 {% if features.inspection_workspace or targets.mc_1_19_2 or targets.mc_1_19_4 %}
 {% if targets.mc_1_21_1 %}
             double horizontalDelta, double delta

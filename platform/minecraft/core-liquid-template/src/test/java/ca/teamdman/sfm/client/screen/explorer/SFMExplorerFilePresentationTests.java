@@ -265,7 +265,12 @@ public class SFMExplorerFilePresentationTests {
         ));
         assertEquals(SFMExplorerPresentationRegistry.GENERIC_FALLBACK_ID, contributedLeaf.contributorId());
 {% if features.client_theme or features.command_palette %}
-        assertEquals({% if features.client_theme %}"unknown file"{% else %}"file"{% endif %}, assertInstanceOf(
+{% if features.client_theme %}
+        String expectedFileLabel = "unknown file";
+{% else %}
+        String expectedFileLabel = "file";
+{% endif %}
+        assertEquals(expectedFileLabel, assertInstanceOf(
                 SFMExplorerPresentation.ItemIcon.class,
                 contributedLeaf.presentation().icon()
         ).item().accessibleLabel());
