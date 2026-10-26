@@ -14,6 +14,12 @@
 {% when "26.1.2" %}
     "HopperIgnoreTunnelledManagerMixin",
 {% endcase %}
+{% if features.game_puppet_runtime %}
+{% case minecraft_version %}
+{% when "1.21", "1.21.1", "26.1.2" %}
+    "SFMGameTestEnclosureMixin",
+{% endcase %}
+{% endif %}
     "StructureTemplateManagerMixin"
   ],
   "client": [

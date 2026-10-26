@@ -93,7 +93,16 @@ public abstract class SFMGameTestDefinition {
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
         };
+{% if features.game_puppet_runtime %}
+{% case minecraft_version %}
+{% when "1.21", "1.21.1" %}
+        TestFunction function = new TestFunction(
+{% else %}
         return new TestFunction(
+{% endcase %}
+{% else %}
+        return new TestFunction(
+{% endif %}
                 batchName,
                 testName,
                 structureName,
@@ -121,6 +130,12 @@ public abstract class SFMGameTestDefinition {
                 )
 {% endcase %}
         );
+{% if features.game_puppet_runtime %}
+{% case minecraft_version %}
+{% when "1.21", "1.21.1" %}
+        return SFMGameTestFunctionOwnership.mark(function);
+{% endcase %}
+{% endif %}
     }
 
 {% if features.gametest_static_names %}

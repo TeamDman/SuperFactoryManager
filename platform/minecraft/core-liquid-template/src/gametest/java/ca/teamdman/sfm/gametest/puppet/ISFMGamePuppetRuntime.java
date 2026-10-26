@@ -91,6 +91,10 @@ public interface ISFMGamePuppetRuntime {
 
     void positionGameTestOrbitCamera(double angleRadians);
 
+{% if features.issue_610_visual_evidence and targets.mc_1_21_1 %}
+    boolean positionIssue610FixtureCamera();
+{% endif %}
+
     void positionForBlockUse(BlockPos localTarget);
 
     void useBlock(BlockPos localTarget);

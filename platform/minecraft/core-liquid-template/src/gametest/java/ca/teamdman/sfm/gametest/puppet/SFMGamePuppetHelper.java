@@ -101,6 +101,13 @@ public final class SFMGamePuppetHelper {
         add(new PositionOrbitCameraPuppetAction(Objects.requireNonNull(localTarget), radius, height, angleRadians));
     }
 
+{% if features.issue_610_visual_evidence and targets.mc_1_21_1 %}
+    /** Stand on a clear cell of the real FE fixture floor for a stable manual view. */
+    public void positionIssue610FixtureCamera() {
+        add(new PositionIssue610FixtureCameraPuppetAction());
+    }
+{% endif %}
+
     /** Terminal action: leave this client, its world and its current screen to the user. */
     public void yieldToUser() {
         add(new YieldToUserPuppetAction());

@@ -12,9 +12,7 @@ public final class Issue610ManualReadyGamePuppet {
     public static void run(SFMGamePuppetHelper puppet) {
         puppet.createFreshFlatWorld();
         puppet.startGameTestForUser("issue_610_visual_controls_manual_ready");
-        // Feet settle on the template floor at Y=1 after yield. The higher
-        // structure orbit falls to surrounding ground and hides the sign faces.
-        puppet.positionOrbit(new BlockPos(4, 2, 2), 3.8D, -1.5D, 1.05D);
+        puppet.positionIssue610FixtureCamera();
         puppet.yieldToUser();
     }
 }

@@ -587,6 +587,48 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         teleportAndLook(camera, target);
     }
 
+{% if features.issue_610_visual_evidence and targets.mc_1_21_1 %}
+    @Override
+    public boolean positionIssue610FixtureCamera() {
+        AABB bounds = active.gameTestBounds;
+        if (bounds == null || minecraft.level == null) {
+            return false;
+        }
+        BlockPos desired = absolute(new BlockPos(10, 0, 6));
+        BlockPos best = null;
+        double bestDistance = Double.POSITIVE_INFINITY;
+        int bestY = Integer.MIN_VALUE;
+        for (int y = Mth.floor(bounds.maxY) + 2; y >= Mth.floor(bounds.minY) - 2; y--) {
+            for (int x = Mth.floor(bounds.minX); x <= Mth.floor(bounds.maxX); x++) {
+                for (int z = Mth.floor(bounds.minZ); z <= Mth.floor(bounds.maxZ); z++) {
+                    BlockPos floor = new BlockPos(x, y, z);
+                    if (!minecraft.level.getBlockState(floor).is(net.minecraft.world.level.block.Blocks.POLISHED_ANDESITE)
+                            || !minecraft.level.getBlockState(floor.above()).isAir()
+                            || !minecraft.level.getBlockState(floor.above(2)).isAir()) {
+                        continue;
+                    }
+                    double distance = floor.distSqr(desired);
+                    if (y > bestY || (y == bestY && distance < bestDistance)) {
+                        best = floor;
+                        bestY = y;
+                        bestDistance = distance;
+                    }
+                }
+            }
+        }
+        if (best == null) {
+            // The integrated server may have placed the GameTest before the
+            // client receives its chunk update. The action retries boundedly.
+            return false;
+        }
+        Vec3 camera = new Vec3(best.getX() + 0.5D, best.getY() + 1.01D, best.getZ() + 0.5D);
+        Vec3 target = Vec3.atCenterOf(absolute(new BlockPos(4, 1, 2)));
+        SFM.LOGGER.info("SFM_ISSUE610_CAMERA bounds={} floor={} feet={} target={}", bounds, best, camera, target);
+        teleportAndLook(camera, target);
+        return true;
+    }
+{% endif %}
+
     private void executeServerMutation(java.util.concurrent.Executor server, Runnable work) {
 {% if features.client_action_services %}
         active.externalControlWork.execute(server, work);
