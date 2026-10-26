@@ -4,8 +4,11 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 {% if features.theme_preview_rules and features.client_theme %}
 import ca.teamdman.sfm.client.explorer.SFMPath;
 {% endif %}
-{% if features.theme_preview_rules and features.client_theme %}
+{% if features.client_theme %}
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
+{% endif %}
+{% if features.command_palette or features.client_theme %}
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 {% endif %}
 {% if features.theme_preview_rules and features.client_theme %}
 import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewCache;
@@ -31,7 +34,7 @@ import java.util.Optional;
  * Ordered registry for explorer presentation contributors.
  *
  * <p>Lower order values win. Contributor ids break order ties, so resolution
- * does not depend on incidental registration order. A generic marker is always
+ * does not depend on incidental registration order. A generic presentation is always
  * available when no contributor accepts the row.</p>
  */
 public final class SFMExplorerPresentationRegistry {
@@ -172,7 +175,16 @@ public final class SFMExplorerPresentationRegistry {
                 GENERIC_FALLBACK_ID,
                 new SFMExplorerPresentation(
                         row.entry().label(),
+{% if features.client_theme %}
+                        new SFMExplorerPresentation.ItemIcon(SFMClientThemeService.active().fileIcon(
+                                row.entry().expandable() ? "directory" : "unknown"))
+{% elsif features.command_palette %}
+                        new SFMExplorerPresentation.ItemIcon(SFMItemIcon.vanilla(
+                                row.entry().expandable() ? "chest" : "paper",
+                                row.entry().expandable() ? "directory" : "file"))
+{% else %}
                         new SFMExplorerPresentation.MarkerIcon(row.entry().expandable() ? "[D]" : "[F]")
+{% endif %}
                 )
         );
     }

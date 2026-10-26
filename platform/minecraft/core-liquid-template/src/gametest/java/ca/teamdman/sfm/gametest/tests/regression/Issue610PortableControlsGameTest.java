@@ -40,11 +40,11 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
 {% else %}
     private static final boolean EXPECT_FIXED = false;
 {% endif %}
-    private static final BlockPos MANAGER = new BlockPos(2, 1, 3);
+    private static final BlockPos MANAGER = new BlockPos(2, 2, 3);
     private static final BlockPos SOURCE = new BlockPos(2, 3, 3);
     private static final BlockPos FIRST = new BlockPos(1, 2, 3);
     private static final BlockPos HEALTHY = new BlockPos(3, 2, 3);
-    private static final BlockPos RUN_BUTTON = new BlockPos(2, 1, 2);
+    private static final BlockPos RUN_BUTTON = new BlockPos(2, 2, 2);
     private static final BlockPos DRAIN_BUTTON = new BlockPos(7, 1, 2);
     private static final BlockPos MANUAL_LEVER = new BlockPos(9, 1, 2);
     private static final BlockPos TOKENS = new BlockPos(5, 2, 2);
@@ -69,8 +69,10 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     @Override public int maxTicks() { return RECORDING_TICKS; }
 
     @Override public void run(SFMGameTestHelper helper) {
+        // Keep the generated polished-andesite floor at Y=0; the manager sits on a visible pedestal.
+        helper.setBlock(MANAGER.below(), Blocks.POLISHED_ANDESITE);
         helper.setBlock(MANAGER, SFMBlocks.MANAGER.get());
-        for (BlockPos pos : List.of(new BlockPos(2, 2, 3), new BlockPos(2, 2, 4), new BlockPos(3, 2, 4),
+        for (BlockPos pos : List.of(new BlockPos(2, 2, 4), new BlockPos(3, 2, 4),
                 new BlockPos(4, 2, 4), new BlockPos(4, 2, 3), new BlockPos(5, 2, 3))) {
             helper.setBlock(pos, SFMBlocks.CABLE.get());
         }
@@ -81,12 +83,9 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
         helper.setBlock(COUNTER, Blocks.CHEST);
         helper.setBlock(RUN_BUTTON, Blocks.STONE_BUTTON.defaultBlockState()
                 .setValue(ButtonBlock.FACE, AttachFace.WALL).setValue(ButtonBlock.FACING, Direction.NORTH));
-        helper.setBlock(DRAIN_BUTTON.below(), Blocks.STONE);
         helper.setBlock(DRAIN_BUTTON, Blocks.STONE_BUTTON.defaultBlockState().setValue(ButtonBlock.FACE, AttachFace.FLOOR));
-        helper.setBlock(MANUAL_LEVER.below(), Blocks.STONE);
         helper.setBlock(MANUAL_LEVER, Blocks.LEVER.defaultBlockState().setValue(LeverBlock.FACE, AttachFace.FLOOR));
         for (BlockPos lamp : List.of(FIRST_LAMP, SECOND_LAMP)) {
-            helper.setBlock(lamp.below(), Blocks.STONE);
             helper.setBlock(lamp, Blocks.REDSTONE_LAMP);
         }
         sign(helper, new BlockPos(2, 1, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
@@ -103,7 +102,7 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     }
 
     private static void sign(SFMGameTestHelper helper, BlockPos pos, String... lines) {
-        helper.setBlock(pos.below(), Blocks.STONE);
+        // Standing signs are supported by the intact generated andesite floor.
         helper.setBlock(pos, Blocks.OAK_SIGN);
         text(helper, pos, lines);
     }

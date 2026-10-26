@@ -241,6 +241,12 @@ public class SFMExplorerFilePresentationTests {
                 false
         ));
         assertEquals(SFMExplorerPresentationRegistry.GENERIC_FALLBACK_ID, contributedDirectory.contributorId());
+{% if features.client_theme or features.command_palette %}
+        assertEquals("directory", assertInstanceOf(
+                SFMExplorerPresentation.ItemIcon.class,
+                contributedDirectory.presentation().icon()
+        ).item().accessibleLabel());
+{% else %}
         assertEquals(
                 "[D]",
                 assertInstanceOf(
@@ -248,6 +254,7 @@ public class SFMExplorerFilePresentationTests {
                         contributedDirectory.presentation().icon()
                 ).marker()
         );
+{% endif %}
 
         SFMExplorerPresentationRegistry.Resolution contributedLeaf = registry.resolve(row(
                 "example://root/file",
@@ -257,6 +264,12 @@ public class SFMExplorerFilePresentationTests {
                 false
         ));
         assertEquals(SFMExplorerPresentationRegistry.GENERIC_FALLBACK_ID, contributedLeaf.contributorId());
+{% if features.client_theme or features.command_palette %}
+        assertEquals({% if features.client_theme %}"unknown file"{% else %}"file"{% endif %}, assertInstanceOf(
+                SFMExplorerPresentation.ItemIcon.class,
+                contributedLeaf.presentation().icon()
+        ).item().accessibleLabel());
+{% else %}
         assertEquals(
                 "[F]",
                 assertInstanceOf(
@@ -264,6 +277,7 @@ public class SFMExplorerFilePresentationTests {
                         contributedLeaf.presentation().icon()
                 ).marker()
         );
+{% endif %}
     }
 
 {% if features.java_symbols and features.theme_file_icon_defaults %}
