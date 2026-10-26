@@ -145,6 +145,8 @@ public final class SFMExplorerActions {
             REGISTERER.register("explorer/diff", SFMExplorerDiffAction::new);
 {% endif %}
 {% if features.inspection_workspace %}
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerDiffCloseAction> DIFF_CLOSE =
+            REGISTERER.register("explorer/diff/close", SFMExplorerDiffCloseAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerDiffReopenAction> DIFF_REOPEN =
             REGISTERER.register("explorer/diff/reopen", SFMExplorerDiffReopenAction::new);
 {% endif %}

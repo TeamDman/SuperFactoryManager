@@ -19,6 +19,10 @@ public final class SFMInspectionPresetReopen {
         return last != null && last.activeExplorer() == null;
     }
 
+    public static boolean hasOpenPreset() {
+        return last != null && last.activeExplorer() != null;
+    }
+
     /** Record only an opened preset; temporary ad hoc comparisons remain independent. */
     public static void remember(SFMInspectionRuntime.PreparedWorkspace prepared) {
         SFMExplorerPanel panel = focusedPanel();
