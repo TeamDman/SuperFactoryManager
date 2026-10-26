@@ -11,7 +11,8 @@ public final class Issue610ManualReadyGamePuppet {
     public static void run(SFMGamePuppetHelper puppet) {
         puppet.createFreshFlatWorld();
         puppet.startGameTestForUser("issue_610_visual_controls_manual_ready");
-        puppet.positionGameTestOrbit(0);
+        // Show the sign faces, manager pedestal, and continuous floor together.
+        puppet.positionGameTestOrbit(Math.PI / 3);
         puppet.yieldToUser();
     }
 }
