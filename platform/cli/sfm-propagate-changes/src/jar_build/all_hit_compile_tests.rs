@@ -84,6 +84,8 @@ pub(super) fn context(plan: &BuildPlan) -> ExecutionContext<'_> {
         forbidden_input_roots: Vec::new(),
         cancellation_token: CancellationToken::new(),
         minecraft_libraries_cache: Mutex::new(None),
+        #[cfg(windows)]
+        held_forge_dev_jar_path: Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,
         verify_compilation_outputs: false,

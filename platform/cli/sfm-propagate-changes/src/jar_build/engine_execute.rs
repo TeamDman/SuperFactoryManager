@@ -129,6 +129,8 @@ impl<'a> ExecutionContext<'a> {
             forbidden_input_roots,
             cancellation_token,
             minecraft_libraries_cache: Mutex::new(None),
+            #[cfg(windows)]
+            held_forge_dev_jar_path: Mutex::new(None),
             held_neoform_compile_jar: None,
             immutable_neoform_profile: false,
             verify_compilation_outputs: false,
@@ -434,13 +436,14 @@ mod forge_preparation_cache;
 fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
-        return forge_preparation_cache::execute(
+        forge_preparation_cache::execute(
             context,
             "mcp",
             true,
             || execute_mcp_config_joined_uncached(context, true),
             |_| execute_mcp_config_joined_uncached(context, false),
-        );
+        )?;
+        return Ok(());
     }
     execute_mcp_config_joined_uncached(context, true)
 }
@@ -449,7 +452,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
 fn execute_forge_userdev(
     context: &ExecutionContext<'_>,
     target: BuildTarget,
-) -> eyre::Result<()> {
+) -> eyre::Result<ForgeDevHold> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         return forge_preparation_cache::execute(
@@ -462,7 +465,8 @@ fn execute_forge_userdev(
     }
     #[cfg(not(windows))]
     let _ = target;
-    execute_forge_userdev_uncached(context, true, None)
+    execute_forge_userdev_uncached(context, true, None)?;
+    Ok(Default::default())
 }
 
 include!("forge_preparation_producers.rs");
@@ -617,6 +621,15 @@ fn required_minecraft_mapping_url<'a>(
 }
 
 fn loader_dev_compile_jar(context: &ExecutionContext<'_>) -> PathBuf {
+    #[cfg(windows)]
+    if let Some(held) = context
+        .held_forge_dev_jar_path
+        .lock()
+        .expect("Forge dev JAR hold poisoned")
+        .as_ref()
+    {
+        return held.clone();
+    }
     if let Some(held) = context.held_neoform_compile_jar {
         return held.to_path_buf();
     }

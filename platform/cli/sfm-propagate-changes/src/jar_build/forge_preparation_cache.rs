@@ -33,6 +33,27 @@ use std::path::PathBuf;
 
 const MAX_ENTRIES: usize = 32;
 
+// A validated immutable Forge export held throughout all build consumers.
+pub(super) struct HeldForgeDevJar {
+    path: PathBuf,
+    _outputs: HeldForgePreparationOutputs,
+}
+
+impl std::fmt::Debug for HeldForgeDevJar {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("HeldForgeDevJar")
+            .field("path", &self.path)
+            .finish()
+    }
+}
+
+impl HeldForgeDevJar {
+    pub(super) fn path(&self) -> &Path {
+        &self.path
+    }
+}
+
 pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
     context.plan.identity.development_target().is_some()
         && context.plan.loader_toolchain.kind == LoaderToolchainKind::ForgeGradleForge
@@ -45,7 +66,7 @@ pub(super) fn execute(
     materialize_sources: bool,
     legacy: impl FnOnce() -> eyre::Result<()>,
     fresh: impl FnOnce(Option<&Path>) -> eyre::Result<()>,
-) -> eyre::Result<()> {
+) -> eyre::Result<Option<HeldForgeDevJar>> {
     let inputs = NfrtPreparationPhase::run("forge_preparation.input_admission", || {
         ForgePreparationInputs::prepare(context, kind)
     })?;
@@ -55,7 +76,8 @@ pub(super) fn execute(
             reason = "input_capability",
             "forge_preparation_cache_declined"
         );
-        return legacy();
+        legacy()?;
+        return Ok(None);
     };
     let Some((base, _base_ancestry)) = store_base(context, kind)? else {
         tracing::info!(
@@ -63,7 +85,8 @@ pub(super) fn execute(
             reason = "store_ancestry",
             "forge_preparation_cache_declined"
         );
-        return legacy();
+        legacy()?;
+        return Ok(None);
     };
     let fingerprint = inputs.fingerprint();
     let key = fingerprint.trim_start_matches("sha256:");
@@ -83,29 +106,66 @@ pub(super) fn execute(
             reason = "key_ancestry",
             "forge_preparation_cache_declined"
         );
-        return legacy();
+        legacy()?;
+        return Ok(None);
     };
     let outputs = output_paths(context, kind)?;
+    let hold_dev_jar = kind == "forge" && !materialize_sources;
     let restore_outputs = selected_restore_outputs(kind, materialize_sources, &outputs);
-    let reused = !context.plan.refresh
-        && NfrtPreparationPhase::run("forge_preparation.reuse", || {
+    let materialized_outputs = if hold_dev_jar {
+        restore_outputs
+            .iter()
+            .filter(|(name, _)| *name != "dev_compile.jar")
+            .cloned()
+            .collect::<Vec<_>>()
+    } else {
+        restore_outputs.clone()
+    };
+    let (reused, held_dev_jar) = if context.plan.refresh {
+        (false, None)
+    } else if hold_dev_jar {
+        let held = NfrtPreparationPhase::run("forge_preparation.reuse", || {
+            restore_held_dev_jar(
+                &key_root,
+                fingerprint,
+                &context.plan.cache_dir,
+                &materialized_outputs,
+                &|| context.bail_if_cancelled(),
+            )
+        })?;
+        (held.is_some(), held)
+    } else {
+        let reused = NfrtPreparationPhase::run("forge_preparation.reuse", || {
             restore(
                 &key_root,
                 fingerprint,
                 &context.plan.cache_dir,
-                &restore_outputs,
+                &materialized_outputs,
                 || context.bail_if_cancelled(),
             )
         })?;
+        (reused, None)
+    };
     inputs.recheck(context)?;
     if reused {
         tracing::info!(
             kind,
             key,
             outcome = "reused",
+            held_dev_jar = hold_dev_jar,
             "forge_dependency_preparation"
         );
-        return write_cached_node(context, kind, &restore_outputs);
+        let mut node_outputs = materialized_outputs;
+        if let Some(held) = &held_dev_jar {
+            let path = held.path().to_path_buf();
+            *context
+                .held_forge_dev_jar_path
+                .lock()
+                .expect("Forge dev JAR path poisoned") = Some(path.clone());
+            node_outputs.push(("dev_compile.jar", path));
+        }
+        write_cached_node(context, kind, &node_outputs)?;
+        return Ok(held_dev_jar);
     }
     // Never turn an old existence-only project hit into a new validated entry.
     // This route deliberately invokes the original producer with that hit disabled.
@@ -116,7 +176,8 @@ pub(super) fn execute(
                 reason = "at_transport",
                 "forge_preparation_cache_declined"
             );
-            return legacy();
+            legacy()?;
+            return Ok(None);
         };
         Some(at)
     } else {
@@ -140,7 +201,57 @@ pub(super) fn execute(
         stored,
         "forge_dependency_preparation"
     );
-    Ok(())
+    Ok(None)
+}
+
+fn restore_held_dev_jar(
+    key_root: &Path,
+    fingerprint: &str,
+    project: &Path,
+    mappings: &[(&str, PathBuf)],
+    check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<HeldForgeDevJar>> {
+    eyre::ensure!(
+        mappings.iter().all(|(name, _)| *name != "dev_compile.jar"),
+        "Held Forge dev JAR must not be copied into a project"
+    );
+    let Some(entries) = entry_directories(key_root)? else {
+        return Ok(None);
+    };
+    for entry in entries {
+        check()?;
+        let path = entry.join("payload").join("dev_compile.jar");
+        let held = match HeldForgePreparationOutputs::open_paths(
+            &[("dev_compile.jar", path.clone())],
+            check,
+        ) {
+            Ok(Some(held)) => held,
+            Ok(None) => continue,
+            Err(error) => {
+                check()?;
+                tracing::debug!(%error, "Forge dev JAR admission miss");
+                continue;
+            }
+        };
+        // The reader hold precedes full-entry integrity validation and stays
+        // live through later compile, package and run consumers.
+        if restore_completed(
+            &entry,
+            fingerprint,
+            project,
+            mappings,
+            check,
+            "forge_preparation.materialize",
+        )?
+        .is_some()
+        {
+            return Ok(Some(HeldForgeDevJar {
+                path,
+                _outputs: held,
+            }));
+        }
+    }
+    Ok(None)
 }
 
 fn store_base(

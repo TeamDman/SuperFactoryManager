@@ -106,8 +106,8 @@ fn launch_source_identity_changes_only_for_producer_launch_regions() {
     );
 
     let cache = include_str!("forge_preparation_cache.rs");
-    let cache_start = "pub(super) fn execute(";
-    let cache_end = "fn store_base(";
+    let cache_start = "// Never turn an old existence-only project hit into a new validated entry.";
+    let cache_end = "fn restore_held_dev_jar(";
     let original_orchestration = selected_source_digest(cache, cache_start, cache_end);
     let restore_edit = cache.replace(
         "fn selected_restore_outputs(",
@@ -118,6 +118,13 @@ fn launch_source_identity_changes_only_for_producer_launch_regions() {
         selected_source_digest(&restore_edit, cache_start, cache_end),
         original_orchestration,
         "restoration selection must not invalidate producer output"
+    );
+    let hit_branch_edit = cache.replace("held_dev_jar = hold_dev_jar,", "held_dev_jar = false,");
+    assert_ne!(hit_branch_edit, cache);
+    assert_eq!(
+        selected_source_digest(&hit_branch_edit, cache_start, cache_end),
+        original_orchestration,
+        "an edit inside the cache-hit branch must not rerun MCP/Forge producers"
     );
     let producer_edit = cache.replace(
         "fresh(at.as_ref().map(HeldForgeAtTransport::path))",

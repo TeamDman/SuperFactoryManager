@@ -768,7 +768,7 @@ fn recipe_basis(
     mapping_channel: Option<&str>,
     mapping_version: Option<&str>,
 ) {
-    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@3");
+    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@4");
     append(hash, kind.as_bytes());
     append(hash, std::env::consts::OS.as_bytes());
     append(hash, std::env::consts::ARCH.as_bytes());
@@ -833,8 +833,8 @@ fn recipe_basis(
         append(hash, name.as_bytes());
         append(hash, source);
     }
-    // Cache restore/publish code does not produce these bytes. Its completed
-    // payload is validated separately on every hit. Hash the Java and process
+    // Cache restore code does not produce these bytes. Its completed payload
+    // is validated separately on every hit. Hash the Java and process
     // launch code that can affect a producer instead of whole engine files,
     // which also contain unrelated client/runtime and cache-consumer logic.
     for (name, source, start, end) in [
@@ -857,10 +857,10 @@ fn recipe_basis(
             "fn trace_subprocess_bytes(",
         ),
         (
-            "cache-producer-orchestration",
+            "fresh-cache-producer-orchestration",
             include_str!("forge_preparation_cache.rs"),
-            "pub(super) fn execute(",
-            "fn store_base(",
+            "// Never turn an old existence-only project hit into a new validated entry.",
+            "fn restore_held_dev_jar(",
         ),
         (
             "ordered-classpath-dedup",

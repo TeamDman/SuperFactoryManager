@@ -4750,6 +4750,8 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         forbidden_input_roots: Vec::new(),
         cancellation_token: CancellationToken::new(),
         minecraft_libraries_cache: std::sync::Mutex::new(None),
+        #[cfg(windows)]
+        held_forge_dev_jar_path: std::sync::Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,
         verify_compilation_outputs: false,

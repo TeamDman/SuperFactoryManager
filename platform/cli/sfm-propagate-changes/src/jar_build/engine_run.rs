@@ -18,6 +18,11 @@ enum BuildTarget {
     SourceOutputs,
 }
 
+#[cfg(windows)]
+type ForgeDevHold = Option<forge_preparation_cache::HeldForgeDevJar>;
+#[cfg(not(windows))]
+type ForgeDevHold = ();
+
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -79,7 +84,9 @@ fn execute_build(
     {
         return execute_named_neoform_compile(&context, target, total_started);
     }
+    let held_forge_dev_jar: ForgeDevHold;
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+        held_forge_dev_jar = Default::default();
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
         context.bail_if_cancelled()?;
@@ -104,7 +111,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-forge-userdev: start");
         context.bail_if_cancelled()?;
-        execute_forge_userdev(&context, target)?;
+        held_forge_dev_jar = execute_forge_userdev(&context, target)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",
@@ -118,7 +125,9 @@ fn execute_build(
         );
         return Ok(());
     }
-    execute_project_build(&context, target, total_started)
+    let result = execute_project_build(&context, target, total_started);
+    drop(held_forge_dev_jar);
+    result
 }
 
 fn execute_project_build(
@@ -6245,13 +6254,7 @@ fn ensure_run_neoforge_dev_jars(
 fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     let _span = tracing::debug_span!("ensure_run_forge_dev_jar").entered();
     let forge_version = required_property(&context.plan.properties, "neo_version")?;
-    let input = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("classes")
-        .join("dev-compile.jar");
+    let input = loader_dev_compile_jar(context);
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires the Rust-owned mapped dev compile jar first: {}",
@@ -7471,6 +7474,8 @@ struct ExecutionContext<'a> {
     forbidden_input_roots: Vec<PathBuf>,
     cancellation_token: CancellationToken,
     minecraft_libraries_cache: Mutex<Option<Vec<PathBuf>>>,
+    #[cfg(windows)]
+    held_forge_dev_jar_path: Mutex<Option<PathBuf>>,
     // Borrowed only inside the owned NeoForm session's consumer callback.
     held_neoform_compile_jar: Option<&'a Path>,
     // Immutable image profile hit; writable javac caches are not authority.

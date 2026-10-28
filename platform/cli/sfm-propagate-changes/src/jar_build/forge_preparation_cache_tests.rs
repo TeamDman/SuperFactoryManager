@@ -96,6 +96,46 @@ fn ordinary_forge_hit_does_not_copy_unneeded_source_archives() -> Result<()> {
 }
 
 #[test]
+fn ordinary_forge_hit_holds_dev_jar_without_a_project_copy() -> Result<()> {
+    let temp = tempfile::tempdir()?;
+    let producer = make_directory(&temp.path().join("producer"))?;
+    let names = [
+        "official_sources.jar",
+        "deobfuscated_sources.jar",
+        "srg_to_official.tsrg",
+        "official_to_srg.tsrg",
+        "dev_compile.jar",
+    ];
+    let original = names
+        .iter()
+        .map(|name| {
+            let path = producer.join(name);
+            fs::write(&path, name.as_bytes())?;
+            Ok((*name, path))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let key = make_directory(&temp.path().join("store/key"))?;
+    assert!(publish(&key, "fixture-key", &original, || Ok(()))?);
+    let project = make_directory(&temp.path().join("other-projection"))?;
+    let destinations = destinations(&project, &original)?;
+    let mappings = selected_restore_outputs("forge", false, &destinations)
+        .into_iter()
+        .filter(|(name, _)| *name != "dev_compile.jar")
+        .collect::<Vec<_>>();
+    let held = restore_held_dev_jar(&key, "fixture-key", &project, &mappings, &|| Ok(()))?
+        .expect("completed Forge entry should be held");
+    assert!(mappings.iter().all(|(_, path)| path.is_file()));
+    assert!(!destinations[4].1.exists());
+    assert_eq!(fs::read(held.path())?, b"dev_compile.jar");
+    assert!(fs::write(held.path(), b"mutated").is_err());
+    let stored = held.path().to_path_buf();
+    drop(held);
+    fs::write(&stored, b"mutated")?;
+    assert!(restore_held_dev_jar(&key, "fixture-key", &project, &mappings, &|| Ok(()))?.is_none());
+    Ok(())
+}
+
+#[test]
 fn forge_preparation_store_rejects_corruption_of_every_required_output() -> Result<()> {
     for selected in 0..5 {
         let temp = tempfile::tempdir()?;
