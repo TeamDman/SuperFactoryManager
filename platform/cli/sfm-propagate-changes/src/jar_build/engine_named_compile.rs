@@ -1561,11 +1561,7 @@ fn acquire_named_frozen_download_verified(
         let temporary = write_unique_temp_file(path, &bytes)?;
         // Atomic create-if-missing cannot overwrite a non-cooperating writer.
         // A failed link leaves only our recovery temporary; no prior file is moved.
-        cancellation.bail_if_cancelled()?;
-        before_missing_effect()?;
-        cancellation.bail_if_cancelled()?;
-        fs::hard_link(&temporary, path)
-            .wrap_err("named destination appeared or cannot be published without replacement")?;
+        publish_named_hard_link(&temporary, path, cancellation, &before_missing_effect, |source, destination| fs::hard_link(source, destination))?;
         published = true;
         fs::remove_file(&temporary)?;
         tracing::info!(
@@ -1598,6 +1594,36 @@ fn acquire_named_frozen_download_verified(
     result
 }
 
+fn publish_named_hard_link(
+    temporary: &Path,
+    destination: &Path,
+    cancellation: &CancellationToken,
+    before_effect: &impl Fn() -> eyre::Result<()>,
+    link: impl Fn(&Path, &Path) -> std::io::Result<()>,
+) -> eyre::Result<()> {
+    const SHARING_RETRIES: usize = 30;
+    for attempt in 0..=SHARING_RETRIES {
+        cancellation.bail_if_cancelled()?;
+        before_effect()?;
+        cancellation.bail_if_cancelled()?;
+        match link(temporary, destination) {
+            Ok(()) => return Ok(()),
+            Err(error)
+                if cfg!(windows)
+                    && error.raw_os_error() == Some(32)
+                    && attempt < SHARING_RETRIES =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            Err(error) => {
+                return Err(error).wrap_err(
+                    "named destination appeared or cannot be published without replacement",
+                );
+            }
+        }
+    }
+    unreachable!("sharing retry loop always returns on its final attempt")
+}
 fn verify_named_download_bytes(
     bytes: &[u8],
     expected: &ContentHash,

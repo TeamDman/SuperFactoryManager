@@ -296,6 +296,37 @@ mod authenticated_library_batch_cache_tests {
         Ok(())
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn named_hard_link_retries_only_windows_sharing_error() -> eyre::Result<()> {
+        let root = tempfile::tempdir()?;
+        let source = root.path().join("verified.tmp");
+        let destination = root.path().join("verified.jar");
+        fs::write(&source, b"verified bytes")?;
+        let checks = Cell::new(0_usize);
+        let attempts = Cell::new(0_usize);
+        publish_named_hard_link(
+            &source,
+            &destination,
+            &CancellationToken::new(),
+            &|| {
+                checks.set(checks.get() + 1);
+                Ok(())
+            },
+            |source, destination| {
+                attempts.set(attempts.get() + 1);
+                if attempts.get() <= 2 {
+                    Err(std::io::Error::from_raw_os_error(32))
+                } else {
+                    fs::hard_link(source, destination)
+                }
+            },
+        )?;
+        assert_eq!(attempts.get(), 3);
+        assert_eq!(checks.get(), 3);
+        assert_eq!(fs::read(&destination)?, b"verified bytes");
+        Ok(())
+    }
     #[test]
     fn missing_valid_bytes_recheck_owner_for_http_temporary_and_cache_link() -> eyre::Result<()> {
         let root = tempfile::tempdir()?;
