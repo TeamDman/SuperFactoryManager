@@ -1,9 +1,10 @@
 # Shared SFM toolchain storage and projection closure
 
-**Plan status:** Draft; local checkpoint committed, migration not started
+**Plan status:** Reviewed; planning complete, implementation not started and no cutover/deletion approved
 **Primary root:** `D:\Repos\Minecraft\SFM\worktrees\sfm-main-source-projection` (`main`)
 **Last updated:** 2026-10-28
-**Intent audit:** Three self-audit passes rerun 2026-10-28; focused independent review pending
+**Intent audit:** Passed 2026-10-28 after three rerun passes and focused independent review
+**Independent review:** Passed against Library v3 SHA-256 `4a0fecaa6f9e0c656af96221758b8f9af5d4a901f115e18b09f7bf73c2a32d9c`; implementation gates remain open
 **Dependency posture:** Frozen graph; no new dependency or toolchain admission here.
 
 ## How to update this plan
@@ -15,7 +16,7 @@ Use `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked only wit
 - **Pass 1 — extraction, rerun 2026-10-28:** Reread all 384 lines of the original Library conversation `libfile_429f31f5a1688191900b0be2fc29f4c8`, the latest delegated user quotes and the exact local `resumable-implementation-plans` skill. Split the former mixed ledger into 16 active U requirements plus superseded U04a, six evidence findings F01–F06 and six derived requirements R01–R06. Corrected cross-version reuse to optional, the local root name to proposed, and separated delegated scope restrictions from user quotes.
 - **Pass 2 — traceability, rerun 2026-10-28:** Checked all 29 U/F/R IDs against the traceability table and all 19 milestone blocks for work/validation/exit; none were untracked or missing a contract. Inverse check tied stage keys, corruption rules and rollback to recorded findings/requirements; G1 numerical targets remain future evidence-derived decisions, not fabricated measurements. G6 now freezes per-key operations before broad testing.
 - **Pass 3 — adversarial omission, rerun 2026-10-28:** Reread the original attachment after the repairs and challenged the contrasts: Gradle without Rust versus common root, Git context versus standalone projection, proposal versus selected path, timestamp-only hashes versus arbitrary sharing, cold bootstrap versus deletion, 4.34 baseline versus future pruning, and old-plus-new savings versus mere relocation. Also checked unchanged runs, worlds/evidence, explicit retirement approval and finite parallel milestones against the latest delegated user direction. Repairs split the M3 producer and integrity work and made required blockers incomplete rather than green.
-- **Known source limit:** The Library attachment covers the cache discussion. Earlier GameTest/dependency turns are represented by trusted delegated quotes and local receipts, not a complete verbatim transcript; historical receipts do not prove current source. Independent focused review of this revised draft is still pending.
+- **Known source limit:** The Library attachment covers the cache discussion. Earlier GameTest/dependency turns are represented by trusted delegated quotes and local receipts, not a complete verbatim transcript; historical receipts do not prove current source. Independent focused review passed; this source limitation remains.
 ## Guidance, findings and design requirements
 
 `U` records the user's instruction or preference. `F` records source or measured findings, which are evidence rather than user instructions. `R` records proposed engineering obligations derived from the requested outcome and findings. A later reviewer may challenge an F or R without rewriting what Teamy asked for.
