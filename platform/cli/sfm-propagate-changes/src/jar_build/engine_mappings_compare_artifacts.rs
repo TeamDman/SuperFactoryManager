@@ -2463,23 +2463,52 @@ fn acquire_artifact_path_lock(path: &Path) -> eyre::Result<ArtifactLock> {
 fn acquire_artifact_path_lock_cancellable(
     path: &Path,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<ArtifactLock> {
-    ArtifactLock::acquire_with_cancellation(
+) -> eyre::Result<GuardedArtifactLock> {
+    let ancestry = native_cache_root::NativeCacheRoot::guard_artifact_parent_if_owned(
+        path,
+        cancellation_token,
+    )?;
+    let lock = ArtifactLock::acquire_with_cancellation(
         artifact_lock_path(path)?,
         path.display().to_string(),
         cancellation_token.clone(),
-    )
+    )?;
+    Ok(GuardedArtifactLock {
+        _lock: lock,
+        _ancestry: ancestry,
+    })
 }
 
 fn acquire_artifact_path_read_lock_cancellable(
     path: &Path,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<ArtifactReadLock> {
-    ArtifactReadLock::acquire_with_cancellation(
+) -> eyre::Result<GuardedArtifactReadLock> {
+    let ancestry = native_cache_root::NativeCacheRoot::guard_artifact_parent_if_owned(
+        path,
+        cancellation_token,
+    )?;
+    let lock = ArtifactReadLock::acquire_with_cancellation(
         artifact_lock_path(path)?,
         path.display().to_string(),
         cancellation_token.clone(),
-    )
+    )?;
+    Ok(GuardedArtifactReadLock {
+        _lock: lock,
+        _ancestry: ancestry,
+    })
+}
+
+#[derive(Debug)]
+struct GuardedArtifactLock {
+    // Drop the artifact lock before releasing its directory handles.
+    _lock: ArtifactLock,
+    _ancestry: Vec<File>,
+}
+
+#[derive(Debug)]
+struct GuardedArtifactReadLock {
+    _lock: ArtifactReadLock,
+    _ancestry: Vec<File>,
 }
 
 fn artifact_lock_path(path: &Path) -> eyre::Result<PathBuf> {

@@ -5,6 +5,8 @@ use super::super::build_snapshot_receipt::ensure_owned_directory;
 #[cfg(any(windows, target_os = "linux"))]
 use super::super::local_dependency_cache::lease_ancestors;
 #[cfg(any(windows, target_os = "linux"))]
+use super::super::local_dependency_cache::lease_artifact_ancestors;
+#[cfg(any(windows, target_os = "linux"))]
 use super::super::local_dependency_cache::open_read;
 use crate::cancellation::CancellationToken;
 use crate::source_projection::candidate_lock::is_reparse;
@@ -14,12 +16,16 @@ use eyre::ensure;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
+use std::collections::BTreeMap;
 use std::io::Read as _;
 use std::io::Write as _;
 use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::sync::OnceLock;
+use std::sync::Arc;
+use std::sync::Weak;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -28,6 +34,11 @@ const SCHEMA: &str = "sfm:native_cache_root@1";
 const MAX_MARKER_BYTES: u64 = 64 * 1024;
 const MAX_GUARDS: usize = 16_384;
 const CLAIM_WAIT: Duration = Duration::from_secs(2);
+static ACTIVE_ROOTS: OnceLock<Mutex<BTreeMap<PathBuf, Vec<Weak<NativeCacheRoot>>>>> = OnceLock::new();
+
+fn active_roots() -> &'static Mutex<BTreeMap<PathBuf, Vec<Weak<NativeCacheRoot>>>> {
+    ACTIVE_ROOTS.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
 
 #[derive(Debug)]
 pub(super) struct NativeCacheRoot {
@@ -62,7 +73,7 @@ impl NativeCacheRoot {
         source_project: &Path,
         java_home: &Path,
         cancel: &CancellationToken,
-    ) -> Result<Self> {
+    ) -> Result<Arc<Self>> {
         cancel.bail_if_cancelled()?;
         ensure!(
             cfg!(any(windows, target_os = "linux")),
@@ -91,10 +102,17 @@ impl NativeCacheRoot {
         }
         guards.push(wait_for_marker(&checked, cancel)?);
         cancel.bail_if_cancelled()?;
-        Ok(Self {
-            path: checked,
+        let owner = Arc::new(Self {
+            path: checked.clone(),
             guards: Mutex::new(guards),
-        })
+        });
+        let mut active = active_roots()
+            .lock()
+            .map_err(|error| eyre::eyre!("Native cache root registry was poisoned: {error}"))?;
+        let registered = active.entry(checked).or_default();
+        registered.retain(|candidate| candidate.strong_count() > 0);
+        registered.push(Arc::downgrade(&owner));
+        Ok(owner)
     }
 
     pub(super) fn path(&self) -> &Path {
@@ -134,6 +152,86 @@ impl NativeCacheRoot {
             guards.extend(next);
         }
         Ok(selected)
+    }
+
+    /// Hold an actively selected root's artifact ancestors through its lock,
+    /// read and write. A missing marker cannot downgrade a selected path to
+    /// legacy behavior. Other paths keep their existing behavior.
+    /// Handles are scoped to one artifact operation, not retained per cache hit.
+    pub(super) fn guard_artifact_parent_if_owned(
+        path: &Path,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<File>> {
+        cancel.bail_if_cancelled()?;
+        ensure!(path.parent().is_some(), "Cache artifact has no parent");
+        let owner = {
+            let active = active_roots()
+                .lock()
+                .map_err(|error| eyre::eyre!("Native cache root registry was poisoned: {error}"))?;
+            let selected = active
+                .iter()
+                .filter(|(root, _)| is_ancestor_or_equal(root, path))
+                .max_by_key(|(root, _)| root.components().count())
+                .map(|(_, owners)| owners.iter().find_map(Weak::upgrade));
+            match selected {
+                Some(Some(owner)) => Some(owner),
+                Some(None) => eyre::bail!(
+                    "Selected native cache root owner was released before artifact access"
+                ),
+                None => None,
+            }
+        };
+        let Some(owner) = owner else {
+            return Ok(Vec::new());
+        };
+        owner.guard_artifact_parent(path, cancel)
+    }
+
+    pub(super) fn guard_artifact_parent(
+        &self,
+        path: &Path,
+        cancel: &CancellationToken,
+    ) -> Result<Vec<File>> {
+        let root = &self.path;
+        // Reject alternate spelling even on a case-insensitive filesystem.
+        let relative = path.strip_prefix(root)?;
+        let parts = relative.components().collect::<Vec<_>>();
+        ensure!(
+            !parts.is_empty()
+                && parts.len() <= 32
+                && relative.to_str().is_some_and(|text| text.len() <= 4096),
+            "Managed cache artifact path is empty, too deep or too long"
+        );
+        for part in &parts {
+            let Component::Normal(value) = part else {
+                eyre::bail!("Managed cache artifact contains dot or traversal components")
+            };
+            validate_component(
+                value
+                    .to_str()
+                    .ok_or_else(|| eyre::eyre!("Managed cache artifact component is not Unicode"))?,
+            )?;
+        }
+        let parent_parts = parts.len() - 1;
+        let mut guards = lease_artifact_ancestors(root)?;
+        guards.push(wait_for_marker(root, cancel)?);
+        let mut selected = root.clone();
+        for part in parts.into_iter().take(parent_parts) {
+            cancel.bail_if_cancelled()?;
+            selected.push(part.as_os_str());
+            ensure_owned_directory(root, &selected)?;
+            guards.extend(lease_artifact_ancestors(&selected)?);
+        }
+        Ok(guards)
+    }
+
+    pub(super) fn is_active(path: &Path) -> Result<bool> {
+        let active = active_roots()
+            .lock()
+            .map_err(|error| eyre::eyre!("Native cache root registry was poisoned: {error}"))?;
+        Ok(active
+            .get(path)
+            .is_some_and(|owners| owners.iter().any(|owner| owner.strong_count() > 0)))
     }
 }
 
@@ -425,6 +523,11 @@ fn wait_for_marker(root: &Path, cancel: &CancellationToken) -> Result<File> {
 
 #[cfg(not(any(windows, target_os = "linux")))]
 fn lease_ancestors(_: &Path) -> Result<Vec<File>> {
+    eyre::bail!("Native cache root override is unsupported on this platform")
+}
+
+#[cfg(not(any(windows, target_os = "linux")))]
+fn lease_artifact_ancestors(_: &Path) -> Result<Vec<File>> {
     eyre::bail!("Native cache root override is unsupported on this platform")
 }
 

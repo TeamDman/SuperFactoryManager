@@ -5888,7 +5888,7 @@ fn fresh_jar_output_external_cache_is_refused_before_planning() -> eyre::Result<
     let before = fs::read(&marker)?;
     let planning = super::NativePlanningOptions {
         output_name: Some("fresh.jar".to_owned()),
-        derived_cache_root: Some(Arc::new(derived)),
+        derived_cache_root: Some(derived),
         mode: BuildMode::Plan,
         java_home: None,
         refresh: false,

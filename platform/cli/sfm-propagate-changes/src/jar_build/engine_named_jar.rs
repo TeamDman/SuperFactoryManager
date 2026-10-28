@@ -515,7 +515,7 @@ impl NamedPackageDiagnosticFile {
 
 struct NamedPackageAdmission {
     files: Vec<(String, NamedPackageHeldFile)>,
-    held_locks: Vec<ArtifactReadLock>,
+    held_locks: Vec<GuardedArtifactReadLock>,
 }
 impl NamedPackageAdmission {
     fn recheck(&self) -> eyre::Result<()> {

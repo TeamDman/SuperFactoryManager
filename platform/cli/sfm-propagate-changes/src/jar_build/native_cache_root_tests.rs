@@ -279,6 +279,68 @@ fn native_cache_prepares_only_contained_normal_descendants() -> Result<()> {
 }
 
 #[test]
+fn active_native_root_leases_nested_artifact_parents_without_retaining_them() -> Result<()> {
+    let (_temporary, repository, source, java) = fixture()?;
+    let cache = cache_path(&repository);
+    let owner = NativeCacheRoot::acquire(
+        &cache,
+        &repository,
+        &source,
+        &java,
+        &CancellationToken::new(),
+    )?;
+    assert!(NativeCacheRoot::is_active(&cache)?);
+    let artifact = cache.join("minecraft-toolchain/maven/org/example/fixture.jar");
+    let guards = NativeCacheRoot::guard_artifact_parent_if_owned(
+        &artifact,
+        &CancellationToken::new(),
+    )?;
+    #[cfg(windows)]
+    assert!(guards.len() > 1);
+    assert!(artifact.parent().expect("artifact parent").is_dir());
+    assert!(!artifact.exists());
+    drop(guards);
+
+    let blocked = cache.join("minecraft-toolchain/maven/org/blocked");
+    fs::write(&blocked, b"unrelated user file")?;
+    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
+        &blocked.join("fixture.jar"),
+        &CancellationToken::new(),
+    )
+    .is_err());
+    assert_eq!(fs::read(&blocked)?, b"unrelated user file");
+    let project = owner.prepare_directory("projects/fixture-key", &CancellationToken::new())?;
+    let lock_parent = project.join(".locks");
+    fs::write(&lock_parent, b"preexisting user bytes")?;
+    assert!(owner
+        .guard_artifact_parent(&lock_parent.join("build-cache.lock"), &CancellationToken::new())
+        .is_err());
+    assert_eq!(fs::read(&lock_parent)?, b"preexisting user bytes");
+    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
+        &cache.join("minecraft-toolchain/../escape.jar"),
+        &CancellationToken::new(),
+    )
+    .is_err());
+    assert!(!cache.join("escape.jar").exists());
+
+    drop(owner);
+    assert!(!NativeCacheRoot::is_active(&cache)?);
+    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
+        &artifact,
+        &CancellationToken::new(),
+    )
+    .is_err());
+    let legacy = repository.join("legacy/fixture.jar");
+    assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
+        &legacy,
+        &CancellationToken::new(),
+    )?
+    .is_empty());
+    assert!(!legacy.parent().expect("legacy parent").exists());
+    Ok(())
+}
+
+#[test]
 fn native_cache_cancellation_preserves_unclaimed_and_claimed_roots() -> Result<()> {
     let (temporary, repository, source, java) = fixture()?;
     let cache = cache_path(&repository);

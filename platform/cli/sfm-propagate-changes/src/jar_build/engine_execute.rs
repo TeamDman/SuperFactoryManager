@@ -105,6 +105,12 @@ impl<'a> ExecutionContext<'a> {
 
     fn new(plan: &'a BuildPlan, cancellation_token: CancellationToken) -> eyre::Result<Self> {
         cancellation_token.bail_if_cancelled()?;
+        if let Some(root) = &plan.derived_cache_root {
+            eyre::ensure!(
+                native_cache_root::NativeCacheRoot::is_active(root)?,
+                "Selected native cache root owner was released before execution"
+            );
+        }
         plan.recheck_named_inputs()?;
         plan.recheck_named_sdk()?;
         let forbidden_input_roots = [

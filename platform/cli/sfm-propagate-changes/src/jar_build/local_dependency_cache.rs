@@ -523,6 +523,16 @@ fn ensure_single_link(file: &File) -> Result<()> {
 }
 
 pub(super) fn lease_ancestors(directory: &Path) -> Result<Vec<File>> {
+    lease_ancestors_with_share_mode(directory, 1)
+}
+
+/// Permit writes to entries inside a held artifact directory while still
+/// refusing rename/deletion of the directory itself on Windows.
+pub(super) fn lease_artifact_ancestors(directory: &Path) -> Result<Vec<File>> {
+    lease_ancestors_with_share_mode(directory, 3)
+}
+
+fn lease_ancestors_with_share_mode(directory: &Path, _share_mode: u32) -> Result<Vec<File>> {
     ensure!(
         directory.is_absolute(),
         "Dependency cache directory must be absolute"
@@ -539,7 +549,7 @@ pub(super) fn lease_ancestors(directory: &Path) -> Result<Vec<File>> {
             use std::os::windows::fs::OpenOptionsExt as _;
             let file = OpenOptions::new()
                 .access_mode(0x0081)
-                .share_mode(1)
+                .share_mode(_share_mode)
                 .custom_flags(0x0220_0000)
                 .open(ancestor)?;
             ensure!(

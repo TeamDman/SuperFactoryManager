@@ -912,7 +912,6 @@ fn invoke_named_compile_attempt(
                 &options.java_home,
                 cancellation,
             )
-            .map(Arc::new)
         })
         .transpose()?;
     let planning = NativePlanningOptions {
@@ -932,6 +931,11 @@ fn invoke_named_compile_attempt(
     plan.recheck_named_inputs()?;
     let artifact = format!("{} native compile cache", plan.target_label());
     let path = build_cache_lock_path(&plan);
+    let _build_lock_ancestry = planning
+        .derived_cache_root
+        .as_deref()
+        .map(|owner| owner.guard_artifact_parent(&path, cancellation))
+        .transpose()?;
     let _lock = if options.wait_for_build_lock {
         ArtifactLock::acquire(&path, artifact)?
     } else {

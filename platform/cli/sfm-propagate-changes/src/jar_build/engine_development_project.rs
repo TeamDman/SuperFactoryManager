@@ -112,7 +112,6 @@ pub(crate) fn invoke_development_project(
                 &options.java_home,
                 cancellation,
             )
-            .map(Arc::new)
         })
         .transpose()?;
     let planning = NativePlanningOptions {
@@ -130,6 +129,11 @@ pub(crate) fn invoke_development_project(
     plan.recheck_named_sdk()?;
     let path = build_cache_lock_path(&plan);
     let label = format!("{} development native cache", plan.target_label());
+    let _build_lock_ancestry = planning
+        .derived_cache_root
+        .as_deref()
+        .map(|owner| owner.guard_artifact_parent(&path, cancellation))
+        .transpose()?;
     let _lock = if options.wait_for_build_lock {
         ArtifactLock::acquire(&path, label)?
     } else {
