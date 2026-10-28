@@ -6080,6 +6080,65 @@ fn is_solo_client_like_launch(kind: RunKind, run_options: &RunOptions) -> bool {
     run_options.client_solo && matches!(kind, RunKind::Client | RunKind::ClientSmoke)
 }
 
+// A path and its input marker alone do not establish that a retained runtime
+// derivative still contains the bytes produced for those inputs.
+fn run_jar_current(output: &Path, input_state: &str, refresh: bool) -> eyre::Result<bool> {
+    if refresh || !output.is_file() {
+        return Ok(false);
+    }
+    let recorded_input = match fs::read_to_string(output.with_extension("inputs.sha1")) {
+        Ok(value) => value,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    if recorded_input != input_state {
+        return Ok(false);
+    }
+    let expected = match fs::read_to_string(output.with_extension("output.blake3")) {
+        Ok(value) => value,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.into()),
+    };
+    let actual = ContentHash::from_path(output, ContentHashAlgorithm::Blake3)?;
+    Ok(expected.trim() == actual.to_string())
+}
+
+fn record_run_jar(output: &Path, input_state: &str) -> eyre::Result<()> {
+    let digest = ContentHash::from_path(output, ContentHashAlgorithm::Blake3)?;
+    fs::write(output.with_extension("output.blake3"), digest.to_string())?;
+    fs::write(output.with_extension("inputs.sha1"), input_state)?;
+    Ok(())
+}
+
+fn run_jar_platform_identity(context: &ExecutionContext<'_>) -> String {
+    format!(
+        "mc={}\nloader={:?}\nuserdev={}\njdk={}\nos={}\narch={}\n",
+        context.plan.minecraft_version,
+        context.plan.loader_toolchain.kind,
+        context.plan.loader_toolchain.userdev_coordinate,
+        context.plan.java.version_output,
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    )
+}
+
+#[test]
+fn retained_run_jar_requires_matching_inputs_and_output_bytes() -> eyre::Result<()> {
+    let temp = tempfile::tempdir()?;
+    let output = temp.path().join("run.jar");
+    fs::write(&output, b"original")?;
+    assert!(!run_jar_current(&output, "inputs-v1", false)?);
+    record_run_jar(&output, "inputs-v1")?;
+    assert!(run_jar_current(&output, "inputs-v1", false)?);
+    assert!(!run_jar_current(&output, "inputs-v2", false)?);
+    assert!(!run_jar_current(&output, "inputs-v1", true)?);
+    fs::write(&output, b"changed!")?;
+    assert!(!run_jar_current(&output, "inputs-v1", false)?);
+    record_run_jar(&output, "inputs-v1")?;
+    assert!(run_jar_current(&output, "inputs-v1", false)?);
+    Ok(())
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "NeoGradle dev jar setup mirrors the userdev config steps in order."
@@ -6124,21 +6183,16 @@ fn ensure_run_neoforge_dev_jars(
             )
             .entered();
             format!(
-                "{}\n{}\nsplit-minecraft-v3\n",
+                "{}\n{}\nsplit-minecraft-v3\n{}",
                 ContentHash::from_path(&input, ContentHashAlgorithm::Blake3)?,
                 ContentHash::from_path(
                     &neoforge_universal.cache_path,
                     ContentHashAlgorithm::Blake3
-                )?
+                )?,
+                run_jar_platform_identity(context)
             )
         };
-        let minecraft_input_state_path = minecraft_output.with_extension("inputs.sha1");
-        let current_minecraft_input_state =
-            fs::read_to_string(&minecraft_input_state_path).unwrap_or_default();
-        if !minecraft_output.is_file()
-            || context.plan.refresh
-            || current_minecraft_input_state != minecraft_input_state
-        {
+        if !run_jar_current(&minecraft_output, &minecraft_input_state, context.plan.refresh)? {
             let _span = tracing::debug_span!(
                 "ensure_run_neoforge_write_split_minecraft_jar",
                 output = %minecraft_output.display()
@@ -6149,12 +6203,7 @@ fn ensure_run_neoforge_dev_jars(
                 &neoforge_universal.cache_path,
                 &minecraft_output,
             )?;
-            fs::write(&minecraft_input_state_path, minecraft_input_state).wrap_err_with(|| {
-                format!(
-                    "Failed to write NeoForge Minecraft run jar input state {}",
-                    minecraft_input_state_path.display()
-                )
-            })?;
+            record_run_jar(&minecraft_output, &minecraft_input_state)?;
         }
         return Ok(vec![
             minecraft_output,
@@ -6175,26 +6224,20 @@ fn ensure_run_neoforge_dev_jars(
         )
         .entered();
         format!(
-            "{}\n{}\n",
+            "{}\n{}\nneoforge-run-v1\n{}",
             ContentHash::from_path(&input, ContentHashAlgorithm::Blake3)?,
-            ContentHash::from_path(&neoforge_universal.cache_path, ContentHashAlgorithm::Blake3)?
+            ContentHash::from_path(&neoforge_universal.cache_path, ContentHashAlgorithm::Blake3)?,
+            run_jar_platform_identity(context)
         )
     };
-    let input_state_path = output.with_extension("inputs.sha1");
-    let current_input_state = fs::read_to_string(&input_state_path).unwrap_or_default();
-    if !output.is_file() || context.plan.refresh || current_input_state != input_state {
+    if !run_jar_current(&output, &input_state, context.plan.refresh)? {
         let _span = tracing::debug_span!(
             "ensure_run_neoforge_write_runtime_jar",
             output = %output.display()
         )
         .entered();
         write_run_neoforge_dev_jar(&input, &neoforge_universal.cache_path, &output)?;
-        fs::write(&input_state_path, input_state).wrap_err_with(|| {
-            format!(
-                "Failed to write NeoForge run jar input state {}",
-                input_state_path.display()
-            )
-        })?;
+        record_run_jar(&output, &input_state)?;
     }
     Ok(vec![output])
 }
@@ -6223,13 +6266,22 @@ fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<Path
         "forge-{}-{}-dev-compile.jar",
         context.plan.minecraft_version, forge_version
     ));
-    let _span = tracing::debug_span!(
-        "ensure_run_forge_write_dev_jar",
-        input = %input.display(),
-        output = %output.display()
-    )
-    .entered();
-    write_run_forge_dev_jar(&input, &forge_universal.cache_path, &output)?;
+    let input_state = format!(
+        "{}\n{}\nforge-run-v1\n{}",
+        ContentHash::from_path(&input, ContentHashAlgorithm::Blake3)?,
+        ContentHash::from_path(&forge_universal.cache_path, ContentHashAlgorithm::Blake3)?,
+        run_jar_platform_identity(context)
+    );
+    if !run_jar_current(&output, &input_state, context.plan.refresh)? {
+        let _span = tracing::debug_span!(
+            "ensure_run_forge_write_dev_jar",
+            input = %input.display(),
+            output = %output.display()
+        )
+        .entered();
+        write_run_forge_dev_jar(&input, &forge_universal.cache_path, &output)?;
+        record_run_jar(&output, &input_state)?;
+    }
     Ok(output)
 }
 
