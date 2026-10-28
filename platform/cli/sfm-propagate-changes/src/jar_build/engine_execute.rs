@@ -131,6 +131,7 @@ impl<'a> ExecutionContext<'a> {
             minecraft_libraries_cache: Mutex::new(None),
             #[cfg(windows)]
             held_forge_dev_jar_path: Mutex::new(None),
+            selected_dependency_remaps: Mutex::new(None),
             held_neoform_compile_jar: None,
             immutable_neoform_profile: false,
             verify_compilation_outputs: false,
@@ -699,7 +700,9 @@ fn java_properties_escape(input: &str) -> String {
         dependencies = context.plan.dependencies.len(),
     )
 )]
-fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+fn execute_dependency_deobf(
+    context: &ExecutionContext<'_>,
+) -> eyre::Result<Vec<forge_preparation_cache::HeldDependencyRemapJar>> {
     let output = context.plan.cache_dir.join("dependencies");
     {
         let _span = tracing::debug_span!(
@@ -722,7 +725,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
     if context.plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let _span = tracing::debug_span!("dependency_deobf_copy_neogradle_jars").entered();
         copy_neogradle_dependency_jars(context, &resolver, &output)?;
-        return Ok(());
+        return Ok(Vec::new());
     }
 
     let mapping_path = context
@@ -783,7 +786,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
         ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?,
         read_unique_srg_member_mappings(&mapping_path)?,
     );
-    let outputs: Vec<PathBuf> = {
+    let (outputs, held_remaps): (Vec<PathBuf>, Vec<_>) = {
         let _span = tracing::debug_span!(
             "dependency_deobf_process_dependencies",
             dependency_count = context.plan.dependencies.len(),
@@ -821,48 +824,82 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
             physical_producers = producers.len(),
             "Selected distinct dependency deobf producers; all configuration bindings retained"
         );
-        let producer_results = producers
-            .par_iter()
-            .map(|producer| {
-                context.bail_if_cancelled()?;
-                #[cfg(windows)]
-                if let (Some(key), Some(check)) = (&remap_key, &remap_check) {
-                    return dependency_remap_cache::execute(
-                        context,
-                        key,
-                        producer,
-                        &mapping_path,
-                        &member_mappings,
-                        &|| check(context),
-                        || {
-                            execute_dependency_deobf_dependency(
+        let producer_results =
+            producers
+                .par_iter()
+                .map(
+                    |producer| -> eyre::Result<
+                        Option<dependency_remap_cache::SelectedDependencyRemapEntry>,
+                    > {
+                        context.bail_if_cancelled()?;
+                        #[cfg(windows)]
+                        if let (Some(key), Some(check)) = (&remap_key, &remap_check) {
+                            return dependency_remap_cache::execute(
                                 context,
-                                &resolver,
+                                key,
                                 producer,
                                 &mapping_path,
                                 &member_mappings,
-                            )
-                        },
-                    );
-                }
-                execute_dependency_deobf_dependency(
-                    context,
-                    &resolver,
-                    producer,
-                    &mapping_path,
-                    &member_mappings,
+                                &|| check(context),
+                                || {
+                                    execute_dependency_deobf_dependency(
+                                        context,
+                                        &resolver,
+                                        producer,
+                                        &mapping_path,
+                                        &member_mappings,
+                                    )
+                                },
+                            );
+                        }
+                        execute_dependency_deobf_dependency(
+                            context,
+                            &resolver,
+                            producer,
+                            &mapping_path,
+                            &member_mappings,
+                        )?;
+                        Ok(None)
+                    },
                 )
-            })
-            .collect::<Vec<eyre::Result<_>>>();
-        all_hit_cache_miss::collect_results(producer_results)
+                .collect::<Vec<eyre::Result<_>>>();
+        let selected = all_hit_cache_miss::collect_results(producer_results)
             .wrap_err("Failed to deobfuscate dependency")?;
-        DependencyDeobfProducer::output_bindings(&producers)
+        #[cfg(windows)]
+        if let Some(owner) = &remap_authority {
+            owner.recheck(context)?;
+        }
+        let mut paths = Vec::with_capacity(producers.len());
+        let mut held = Vec::new();
+        for (producer, chosen) in producers.iter().zip(&selected) {
+            #[cfg(windows)]
+            if let Some(chosen) = chosen {
+                let key = remap_key
+                    .as_ref()
+                    .ok_or_else(|| eyre::eyre!("Selected remap lost its shared authority"))?;
+                let reader =
+                    dependency_remap_cache::rehold_for_build(context, producer, key, chosen)?;
+                paths.push(reader.path().to_path_buf());
+                held.push(reader);
+                continue;
+            }
+            #[cfg(not(windows))]
+            let _ = chosen;
+            paths.push(producer.remapped.clone());
+        }
+        #[cfg(windows)]
+        if let Some(owner) = &remap_authority {
+            owner.recheck(context)?;
+        }
+        let bindings = DependencyDeobfProducer::output_bindings_for(&producers, &paths);
+        (bindings, held)
     };
 
-    #[cfg(windows)]
-    if let Some(owner) = &remap_authority {
-        owner.recheck(context)?;
-    }
+    *context
+        .selected_dependency_remaps
+        .lock()
+        .expect("selected remap paths poisoned") = Some(outputs.clone());
+
     {
         let _span =
             tracing::debug_span!("dependency_deobf_write_node_state", outputs = outputs.len())
@@ -874,7 +911,7 @@ fn execute_dependency_deobf(context: &ExecutionContext<'_>) -> eyre::Result<()> 
             "complete",
         )?;
     };
-    Ok(())
+    Ok(held_remaps)
 }
 
 #[expect(

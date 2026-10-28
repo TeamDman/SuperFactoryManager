@@ -39,6 +39,78 @@ pub(super) struct HeldForgeDevJar {
     _outputs: HeldForgePreparationOutputs,
 }
 
+/// A completed two-output remap entry held while its JAR is read directly.
+/// The file and every ancestor are opened before the receipt is checked.
+pub(super) struct HeldDependencyRemapJar {
+    path: PathBuf,
+    _outputs: HeldForgePreparationOutputs,
+}
+
+impl HeldDependencyRemapJar {
+    pub(super) fn path(&self) -> &Path {
+        dunce::simplified(&self.path)
+    }
+}
+
+impl std::fmt::Debug for HeldDependencyRemapJar {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("HeldDependencyRemapJar")
+            .field("path", &self.path)
+            .finish()
+    }
+}
+
+pub(super) fn hold_dependency_remap_entry(
+    entry: &Path,
+    fingerprint: &str,
+    check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<HeldDependencyRemapJar>> {
+    check()?;
+    let payload = entry.join("payload");
+    let path = payload.join("remapped.jar");
+    let held =
+        match HeldForgePreparationOutputs::open_paths(&[("remapped.jar", path.clone())], check) {
+            Ok(Some(held)) => held,
+            Ok(None) => return Ok(None),
+            Err(error) => {
+                check()?;
+                tracing::debug!(%error, "Dependency remap reader admission miss");
+                return Ok(None);
+            }
+        };
+    if !project_compilation_cache::matches(
+        entry,
+        &entry.join("inputs.sha256"),
+        fingerprint,
+        &[("payload", &payload)],
+        check,
+    )? {
+        return Ok(None);
+    }
+    check()?;
+    Ok(Some(HeldDependencyRemapJar {
+        path,
+        _outputs: held,
+    }))
+}
+
+pub(super) fn held_dependency_remap_entry(
+    key_root: &Path,
+    fingerprint: &str,
+    check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<(PathBuf, HeldDependencyRemapJar)>> {
+    let Some(entries) = entry_directories(key_root)? else {
+        return Ok(None);
+    };
+    for entry in entries {
+        if let Some(held) = hold_dependency_remap_entry(&entry, fingerprint, check)? {
+            return Ok(Some((entry, held)));
+        }
+    }
+    Ok(None)
+}
+
 impl std::fmt::Debug for HeldForgeDevJar {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter

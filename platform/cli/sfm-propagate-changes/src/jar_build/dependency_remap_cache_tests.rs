@@ -48,6 +48,28 @@ fn assert_pair_bytes(left: &[(&str, PathBuf)], right: &[(&str, PathBuf)]) -> Res
 }
 
 #[test]
+fn held_remap_validates_both_leaves_and_prevents_mutation_without_a_project_copy() -> Result<()> {
+    let temp = tempfile::tempdir()?;
+    let produced = produced_pair(&temp.path().join("producer"))?;
+    let key = make_directory(&temp.path().join("store/key"))?;
+    let entry = publish_pair(&key, &produced)?;
+    let (selected, held) = held_dependency_remap_entry(&key, FINGERPRINT, &|| Ok(()))?
+        .ok_or_else(|| eyre::eyre!("valid remap entry not held"))?;
+    assert_eq!(selected, entry);
+    assert_eq!(fs::read(held.path())?, fs::read(&produced[1].1)?);
+    assert!(fs::write(held.path(), b"mutation must fail").is_err());
+    assert!(fs::rename(held.path(), temp.path().join("moved.jar")).is_err());
+    assert!(!temp.path().join("project").exists());
+    drop(held);
+    fs::write(
+        entry.join("payload/specialsource.jar"),
+        b"damaged intermediate",
+    )?;
+    assert!(held_dependency_remap_entry(&key, FINGERPRINT, &|| Ok(()))?.is_none());
+    Ok(())
+}
+
+#[test]
 fn remap_equal_pair_is_current_with_external_read_guards_and_unchanged_file_identity() -> Result<()>
 {
     let temp = tempfile::tempdir()?;

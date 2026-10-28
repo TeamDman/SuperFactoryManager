@@ -145,8 +145,8 @@ fn remap_recipe_selects_fresh_producer_and_member_rewrite_not_cache_consumer() {
     let fresh_end = "fn observe(";
     let original_fresh = selected_source_digest(cache, fresh_start, fresh_end);
     let consumer_edit = cache.replace(
-        "let materialization = if current { \"already_current\" } else { \"copied\" };",
-        "let materialization = if current { \"hit\" } else { \"copied\" };",
+        "let materialized_outputs = if materialization == \"held_shared\" {",
+        "let materialized_outputs = if materialization == \"held_shared_DIAGNOSTIC_EDIT\" {",
     );
     assert_ne!(consumer_edit, cache);
     assert_eq!(

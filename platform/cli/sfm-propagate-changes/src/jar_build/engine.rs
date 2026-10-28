@@ -115,10 +115,10 @@ mod maven_pom_model;
 mod ordinary_release_compile_tests;
 #[path = "resolve.rs"]
 mod resolve;
-#[path = "source_build_output.rs"]
-mod source_build_output;
 #[path = "retained_compile_inputs.rs"]
 mod retained_compile_inputs;
+#[path = "source_build_output.rs"]
+mod source_build_output;
 #[path = "xml_node.rs"]
 mod xml_node;
 
@@ -815,8 +815,35 @@ fn publish_run_snapshot(
         &plan.dependencies,
         &plan.properties,
     ))?;
-    let snapshot = BuildSnapshotReceipt::publish_cancellable(
+    let (_source_ancestry, snapshot_cache_dir) = if let Some(root) = &plan.derived_cache_root {
+        eyre::ensure!(
+            native_cache_root::NativeCacheRoot::is_active(root)?,
+            "shared compiler source lost its guarded cache root"
+        );
+        eyre::ensure!(
+            !super::build_snapshot_receipt::checked_descendant(root, &plan.cache_dir)?
+                .as_os_str()
+                .is_empty(),
+            "shared compiler source is outside its guarded cache root"
+        );
+        let source = plan.cache_dir.join("project");
+        let ancestry = native_cache_root::NativeCacheRoot::guard_artifact_parent_if_owned(
+            &source,
+            cancellation,
+        )?;
+        eyre::ensure!(
+            !ancestry.is_empty(),
+            "shared compiler source has no retained ancestry"
+        );
+        let destination = plan.minecraft_dir.join("build/sfm-runtime-native");
+        super::build_snapshot_receipt::ensure_owned_directory(&plan.minecraft_dir, &destination)?;
+        (ancestry, destination)
+    } else {
+        (Vec::new(), plan.cache_dir.clone())
+    };
+    let snapshot = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
         &plan.minecraft_dir,
+        &snapshot_cache_dir,
         &plan.cache_dir,
         plan.minecraft_version.as_str(),
         &java,

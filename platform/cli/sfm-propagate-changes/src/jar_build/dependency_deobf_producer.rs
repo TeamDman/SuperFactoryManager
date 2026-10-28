@@ -70,14 +70,27 @@ impl DependencyDeobfProducer {
         Ok(selected)
     }
 
+    #[cfg(test)]
     pub(super) fn output_bindings(producers: &[Self]) -> Vec<PathBuf> {
+        Self::output_bindings_for(
+            producers,
+            &producers
+                .iter()
+                .map(|p| p.remapped.clone())
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    pub(super) fn output_bindings_for(producers: &[Self], paths: &[PathBuf]) -> Vec<PathBuf> {
+        assert_eq!(producers.len(), paths.len());
         let mut bindings = producers
             .iter()
-            .flat_map(|producer| {
+            .zip(paths)
+            .flat_map(|(producer, path)| {
                 producer
                     .dependency_indexes
                     .iter()
-                    .map(|&index| (index, producer.remapped.clone()))
+                    .map(|&index| (index, path.clone()))
             })
             .collect::<Vec<_>>();
         bindings.sort_by_key(|(index, _)| *index);

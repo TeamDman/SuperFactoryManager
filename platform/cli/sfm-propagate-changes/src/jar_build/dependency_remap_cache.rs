@@ -5,16 +5,25 @@
 mod attempt;
 
 use super::ArtifactLock;
+use super::ArtifactPlan;
 use super::DependencyDeobfProducer;
 use super::ExecutionContext;
 use super::forge_preparation_cache;
 use super::forge_preparation_cache::DependencyRemapArtifactInputs;
+use super::forge_preparation_cache::HeldDependencyRemapJar;
 use super::rewrite_srg_member_constants_in_jar;
 use crate::jar_build::nfrt_preparation_phase::NfrtPreparationPhase;
 use attempt::DependencyRemapAttempt;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
+
+// Sendable worker result. Win32 directory leases are deliberately reacquired
+// on the coordinator thread; they cannot cross Rayon's thread boundary.
+pub(super) struct SelectedDependencyRemapEntry {
+    entry: PathBuf,
+    fingerprint: String,
+}
 
 #[tracing::instrument(level = "info", name = "execute_shared_dependency_remap", skip_all)]
 pub(super) fn execute(
@@ -25,7 +34,7 @@ pub(super) fn execute(
     members: &BTreeMap<String, String>,
     shared_check: &impl Fn() -> eyre::Result<()>,
     legacy: impl FnOnce() -> eyre::Result<()>,
-) -> eyre::Result<()> {
+) -> eyre::Result<Option<SelectedDependencyRemapEntry>> {
     let coordinate = producer
         .artifact
         .coordinate
@@ -70,6 +79,32 @@ pub(super) fn execute(
     let outputs = output_paths(producer);
     let consumer_outputs = selected_consumer_outputs(&outputs);
     let cancellation = || context.bail_if_cancelled();
+    let held_reuse = if context.plan.refresh {
+        None
+    } else {
+        NfrtPreparationPhase::run("dependency_remap.lookup", || {
+            forge_preparation_cache::held_dependency_remap_entry(&key_root, fingerprint, &check)
+        })?
+    };
+    check()?;
+    if let Some((entry, held)) = held_reuse {
+        observe(
+            producer,
+            key,
+            &key_root,
+            Some(&entry),
+            "reused",
+            true,
+            "held_shared",
+        );
+        // Rayon may return only Send data. The coordinator opens this exact
+        // entry again before any compile/package classpath can consume it.
+        drop(held);
+        return Ok(Some(SelectedDependencyRemapEntry {
+            entry,
+            fingerprint: fingerprint.to_owned(),
+        }));
+    }
     let reused = if context.plan.refresh {
         None
     } else {
@@ -93,9 +128,9 @@ pub(super) fn execute(
             Some(&entry),
             "reused",
             true,
-            current,
+            if current { "already_current" } else { "copied" },
         );
-        return Ok(());
+        return Ok(None);
     }
     let Some(attempt) = DependencyRemapAttempt::create(&base, key)? else {
         return decline(coordinate, "workspace_ancestry", legacy);
@@ -104,7 +139,7 @@ pub(super) fn execute(
     NfrtPreparationPhase::run("dependency_remap.fresh", || {
         produce(context, producer, mapping, members, key, &attempt.outputs)
     })?;
-    let (entry, current) = finish(
+    let (entry, current, direct) = finish(
         context,
         &key_root,
         fingerprint,
@@ -119,9 +154,109 @@ pub(super) fn execute(
         entry.as_deref(),
         "fresh",
         entry.is_some(),
-        current,
+        if direct {
+            "held_shared"
+        } else if current {
+            "already_current"
+        } else {
+            "copied"
+        },
     );
-    Ok(())
+    Ok(if direct {
+        entry.map(|entry| SelectedDependencyRemapEntry {
+            entry,
+            fingerprint: fingerprint.to_owned(),
+        })
+    } else {
+        None
+    })
+}
+
+pub(super) fn rehold_for_build(
+    context: &ExecutionContext<'_>,
+    producer: &DependencyDeobfProducer,
+    shared_key: &str,
+    selected: &SelectedDependencyRemapEntry,
+) -> eyre::Result<HeldDependencyRemapJar> {
+    let coordinate = producer
+        .artifact
+        .coordinate
+        .as_deref()
+        .ok_or_else(|| eyre::eyre!("Selected remap lost its coordinate"))?;
+    let inputs = DependencyRemapArtifactInputs::capture(
+        context,
+        &producer.artifact,
+        coordinate,
+        shared_key,
+    )?
+    .ok_or_else(|| eyre::eyre!("Selected remap lost its pinned input lease"))?;
+    eyre::ensure!(
+        inputs.fingerprint() == selected.fingerprint,
+        "Selected remap inputs changed before compile admission"
+    );
+    // The common owner stays held and is checked at both ends of the
+    // coordinator batch. Each entry retains its own cancellation/input check.
+    let check = || inputs.recheck(context);
+    check()?;
+    let held = forge_preparation_cache::hold_dependency_remap_entry(
+        &selected.entry,
+        &selected.fingerprint,
+        &check,
+    )?
+    .ok_or_else(|| eyre::eyre!("Selected remap entry changed before compile admission"))?;
+    check()?;
+    Ok(held)
+}
+
+/// A later run has a new execution context, so it reacquires the exact
+/// two-output entry from today's pinned original, mapping, SDK and tool.
+/// The caller must keep the returned hold alive until the launch input has
+/// been copied into its private session.
+pub(super) fn hold_for_runtime(
+    context: &ExecutionContext<'_>,
+    artifact: &ArtifactPlan,
+    coordinate: &str,
+    shared_key: &str,
+) -> eyre::Result<Option<HeldDependencyRemapJar>> {
+    let Some(inputs) =
+        DependencyRemapArtifactInputs::capture(context, artifact, coordinate, shared_key)?
+    else {
+        return Ok(None);
+    };
+    let fingerprint = inputs.fingerprint();
+    let key = fingerprint
+        .strip_prefix("sha256:")
+        .filter(|key| key.len() == 64 && key.bytes().all(|b| b.is_ascii_hexdigit()))
+        .ok_or_else(|| eyre::eyre!("Invalid runtime dependency remap key"))?;
+    let base = forge_preparation_cache::preparation_root(
+        &context.plan.minecraft_dir,
+        context.plan.derived_cache_root.as_deref(),
+    )
+    .join("dependency-remap-v1");
+    let Some((_base, _base_ancestry)) = forge_preparation_cache::make_held_directory(&base)? else {
+        return Ok(None);
+    };
+    let _lock = ArtifactLock::acquire_with_cancellation(
+        base.join(format!("{key}.lock")),
+        format!("runtime dependency remap {key}"),
+        context.cancellation_token.clone(),
+    )?;
+    let Some((key_root, _key_ancestry)) =
+        forge_preparation_cache::make_held_directory(&base.join(key))?
+    else {
+        return Ok(None);
+    };
+    // The caller holds the common Forge/mapping owner and checks it before
+    // and after the entire runtime batch. Keep this entry's original input
+    // check inside archive verification without repeating the common SDK and
+    // source-image walk for every archive chunk.
+    let check = || inputs.recheck(context);
+    check()?;
+    let held =
+        forge_preparation_cache::held_dependency_remap_entry(&key_root, fingerprint, &check)?
+            .map(|(_entry, held)| held);
+    check()?;
+    Ok(held)
 }
 
 fn finish(
@@ -131,13 +266,22 @@ fn finish(
     produced: &[(&str, PathBuf)],
     consumer_outputs: &[(&str, PathBuf)],
     check: &impl Fn() -> eyre::Result<()>,
-) -> eyre::Result<(Option<PathBuf>, bool)> {
+) -> eyre::Result<(Option<PathBuf>, bool, bool)> {
     check()?;
     let cancellation = || context.bail_if_cancelled();
     let entry = NfrtPreparationPhase::run("dependency_remap.publish", || {
         forge_preparation_cache::publish_entry(key_root, fingerprint, produced, cancellation)
     })?;
     check()?;
+    if let Some(entry) = &entry {
+        if let Some(held) =
+            forge_preparation_cache::hold_dependency_remap_entry(entry, fingerprint, check)?
+        {
+            check()?;
+            drop(held);
+            return Ok((Some(entry.clone()), true, true));
+        }
+    }
     let current = if let Some(entry) = &entry {
         forge_preparation_cache::restore_completed(
             entry,
@@ -159,7 +303,7 @@ fn finish(
     }
     .ok_or_else(|| eyre::eyre!("Cannot materialize complete dependency remap outputs"))?;
     check()?;
-    Ok((entry, current))
+    Ok((entry, current, false))
 }
 
 fn output_paths(producer: &DependencyDeobfProducer) -> Vec<(&'static str, PathBuf)> {
@@ -184,14 +328,15 @@ fn decline(
     coordinate: &str,
     reason: &str,
     legacy: impl FnOnce() -> eyre::Result<()>,
-) -> eyre::Result<()> {
+) -> eyre::Result<Option<SelectedDependencyRemapEntry>> {
     tracing::info!(
         coordinate,
         reason,
         outcome = "declined",
         "dependency_remap_cache"
     );
-    legacy()
+    legacy()?;
+    Ok(None)
 }
 
 fn produce(
@@ -232,32 +377,47 @@ fn observe(
     entry: Option<&Path>,
     outcome: &str,
     stored: bool,
-    current: bool,
+    materialization: &str,
 ) {
-    let materialization = if current { "already_current" } else { "copied" };
+    let materialized_outputs = if materialization == "held_shared" {
+        0
+    } else {
+        1
+    };
     let coordinate = &producer.coordinate;
+    let selected_output = if materialization == "held_shared" {
+        entry.map_or_else(
+            || producer.remapped.clone(),
+            |entry| entry.join("payload/remapped.jar"),
+        )
+    } else {
+        producer.remapped.clone()
+    };
     // These are already-validated metadata paths. No payload digest/log reread.
     if let Some(entry) = entry.filter(|_| outcome == "reused") {
-        tracing::info!(%coordinate, key, outcome, stored_outputs = 2, materialized_outputs = 1,
+        tracing::info!(%coordinate, key, outcome, stored_outputs = 2, materialized_outputs,
             store_key_root = %key_root.display(), entry = %entry.display(),
             inputs_receipt = %entry.join("inputs.sha256").display(),
             outputs_manifest = %entry.join("inputs.outputs.json").display(),
             specialsource_project_path = %producer.specialsource_output.display(),
-            remapped_output = %producer.remapped.display(), materialization,
+            remapped_output = %selected_output.display(),
+            remapped_project_path = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
     } else if let Some(entry) = entry {
-        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs = 1,
+        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs,
             store_key_root = %key_root.display(), entry = %entry.display(),
             inputs_receipt = %entry.join("inputs.sha256").display(),
             outputs_manifest = %entry.join("inputs.outputs.json").display(),
             specialsource_project_path = %producer.specialsource_output.display(),
-            remapped_output = %producer.remapped.display(), materialization,
+            remapped_output = %selected_output.display(),
+            remapped_project_path = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
     } else {
-        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs = 1,
+        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs,
             store_key_root = %key_root.display(),
             specialsource_project_path = %producer.specialsource_output.display(),
-            remapped_output = %producer.remapped.display(), materialization,
+            remapped_output = %selected_output.display(),
+            remapped_project_path = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
     }
 }
@@ -285,8 +445,9 @@ mod selective_tests {
         fs::write(&produced[0].1, b"intermediate-only")?;
         fs::write(&produced[1].1, b"compiled-consumer")?;
         let key = fixture_dir(&root.path().join("key"))?;
-        let entry = forge_preparation_cache::publish_entry(&key, "pair-fixture", &produced, || Ok(()))?
-            .ok_or_else(|| eyre::eyre!("fixture pair publication unavailable"))?;
+        let entry =
+            forge_preparation_cache::publish_entry(&key, "pair-fixture", &produced, || Ok(()))?
+                .ok_or_else(|| eyre::eyre!("fixture pair publication unavailable"))?;
         let project = fixture_dir(&root.path().join("project"))?;
         let destinations = vec![
             ("specialsource.jar", project.join("specialsource.jar")),
@@ -317,15 +478,17 @@ mod selective_tests {
             ("specialsource.jar", second.join("specialsource.jar")),
             ("remapped.jar", second.join("remapped.jar")),
         ];
-        assert!(forge_preparation_cache::restore_completed(
-            &entry,
-            "pair-fixture",
-            &second,
-            &selected_consumer_outputs(&second_outputs),
-            &|| Ok(()),
-            "dependency_remap.fixture_selective",
-        )?
-        .is_none());
+        assert!(
+            forge_preparation_cache::restore_completed(
+                &entry,
+                "pair-fixture",
+                &second,
+                &selected_consumer_outputs(&second_outputs),
+                &|| Ok(()),
+                "dependency_remap.fixture_selective",
+            )?
+            .is_none()
+        );
         assert!(second_outputs.iter().all(|(_, path)| !path.exists()));
         Ok(())
     }

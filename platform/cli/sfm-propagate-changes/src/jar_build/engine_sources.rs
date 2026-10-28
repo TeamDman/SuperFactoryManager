@@ -157,7 +157,15 @@ fn resolve_project_compile_classpath(
             root = %dependency_deobf_dir.display()
         )
         .entered();
-        classpath.extend(collect_jars(context, &dependency_deobf_dir)?);
+        let selected = context
+            .selected_dependency_remaps
+            .lock()
+            .expect("selected remap paths poisoned");
+        if let Some(paths) = selected.as_ref() {
+            classpath.extend(paths.iter().cloned());
+        } else {
+            classpath.extend(collect_jars(context, &dependency_deobf_dir)?);
+        }
     };
     context.bail_if_cancelled()?;
     let annotation_coordinates = PROJECT_COMPILE_ANNOTATION_COORDINATES

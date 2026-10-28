@@ -157,6 +157,10 @@ fn create_plan_for_target(
     target: &WorktreeTarget,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
+    eyre::ensure!(
+        options.cache_root.is_none(),
+        "--cache-root requires a catalog projection, not a branch worktree"
+    );
     let identity = BuildProjectIdentity::Worktree {
         branch: target.branch.clone(),
         root: target.worktree_path.as_path().to_path_buf(),

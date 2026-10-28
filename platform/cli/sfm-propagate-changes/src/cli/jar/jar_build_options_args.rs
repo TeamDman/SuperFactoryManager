@@ -22,6 +22,10 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub repo_root: Option<PathBuf>,
 
+    /// Explicit guarded repository-local native toolchain root for this invocation.
+    #[facet(default, args::named)]
+    pub cache_root: Option<PathBuf>,
+
     /// Ignore reusable SFM-owned cache state and recompute resolved metadata.
     #[facet(default = false, args::named)]
     pub refresh: bool,
@@ -78,6 +82,7 @@ impl JarBuildOptionsArgs {
                 selector: self.projection,
                 repo_root: self.repo_root,
             },
+            cache_root: self.cache_root,
             refresh: self.refresh,
             skip_source_checks: self.skip_source_checks,
             explain_rebuild: self.explain_rebuild,
@@ -93,5 +98,33 @@ impl JarBuildOptionsArgs {
             wait_for_build_lock: self.wait_for_build_lock,
             mode,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn shared_root_is_explicit_on_projection_build_and_run_options() -> eyre::Result<()> {
+        let base = ["--projection", "sfm-4.35.0-extended/mc-1.19.2"];
+        let default = figue::from_slice::<JarBuildOptionsArgs>(&base).unwrap();
+        assert!(default.into_options(BuildMode::Build)?.cache_root.is_none());
+
+        let parsed = figue::from_slice::<JarBuildOptionsArgs>(&[
+            "--projection",
+            "sfm-4.35.0-extended/mc-1.19.2",
+            "--java-home",
+            "C:/jbrsdk-17",
+            "--cache-root",
+            "D:/repo/sfm-toolchain-data",
+        ])
+        .unwrap();
+        let options = parsed.into_options(BuildMode::Build)?;
+        assert_eq!(
+            options.cache_root.as_deref(),
+            Some(std::path::Path::new("D:/repo/sfm-toolchain-data"))
+        );
+        Ok(())
     }
 }

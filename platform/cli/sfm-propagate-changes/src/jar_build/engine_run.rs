@@ -139,7 +139,7 @@ fn execute_project_build(
     let started = Instant::now();
     tracing::info!("Build node deobfuscate-mod-dependencies: start");
     context.bail_if_cancelled()?;
-    execute_dependency_deobf(context)?;
+    let _held_dependency_remaps = execute_dependency_deobf(context)?;
     context.bail_if_cancelled()?;
     tracing::info!(
         "Build node deobfuscate-mod-dependencies: done in {} ms",
@@ -347,6 +347,9 @@ struct MinecraftAssets {
 struct RunClasspath {
     legacy: Vec<PathBuf>,
     userdev_mods: Vec<PathBuf>,
+    // A run is a new command after the build. Keep remap readers through
+    // session capture; the JVM then reads only private launch-input copies.
+    held_dependency_remaps: Vec<forge_preparation_cache::HeldDependencyRemapJar>,
 }
 
 #[derive(Debug)]
@@ -699,8 +702,10 @@ fn execute_run_with_context(
                 .into_iter().all(|feature| project.has_feature(feature))
             && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/inspection/SFMInspectionRuntime.java")
             && project.artifacts().contains_key("src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java"));
-        eyre::ensure!(supported,
-            "--inspection-workspace with --puppet requires a development projection with the reviewed Explorer runtime, panel and workspace controls");
+        eyre::ensure!(
+            supported,
+            "--inspection-workspace with --puppet requires a development projection with the reviewed Explorer runtime, panel and workspace controls"
+        );
     }
     if plan.identity.is_catalog_owned() {
         ensure_projection_client_plan(plan)?;
@@ -797,21 +802,30 @@ fn execute_run_with_context(
     write_artifact_lockfile_with_extra_cache_paths(plan, &run_cache_artifact_paths)?;
     let mut captured_inputs = BTreeMap::new();
     let mut copy_budget = (0, 0);
+    let held_remap_paths = launch_classpath
+        .held_dependency_remaps
+        .iter()
+        .map(|held| held.path().to_path_buf())
+        .collect::<std::collections::BTreeSet<_>>();
     for path in launch_classpath
         .legacy
         .iter_mut()
         .chain(&mut launch_classpath.userdev_mods)
         .chain(&mut modules)
     {
+        let held_remap = held_remap_paths.contains(path);
         *path = capture_mutable_launch_input(
             context,
             &session.receipt.session_dir,
             path,
             &mut captured_inputs,
-            false,
+            held_remap,
             &mut copy_budget,
         )?;
     }
+    // The JVM consumes private session copies; no store reader is needed
+    // after every selected remap has been captured successfully.
+    launch_classpath.held_dependency_remaps.clear();
     if let Some(control) = &mut game_puppet_control_cli {
         control.executable = capture_mutable_launch_input(
             context,
@@ -934,10 +948,18 @@ fn execute_run_with_context(
     if matches!(kind, RunKind::Client) || run_options.inspection_workspace.is_some() {
         let executable = std::env::current_exe()?.to_string_lossy().into_owned();
         properties.insert("sfm.inspection.executable".into(), executable.clone());
-        properties.insert("sfm.inspection.classProducer".into(),
-            plan.repository_root().join("scripts/release-inspection/classes.py").to_string_lossy().into_owned());
+        properties.insert(
+            "sfm.inspection.classProducer".into(),
+            plan.repository_root()
+                .join("scripts/release-inspection/classes.py")
+                .to_string_lossy()
+                .into_owned(),
+        );
         if let Some(path) = &run_options.inspection_python {
-            properties.insert("sfm.inspection.python".into(), path.to_string_lossy().into_owned());
+            properties.insert(
+                "sfm.inspection.python".into(),
+                path.to_string_lossy().into_owned(),
+            );
         }
         if let Some(path) = &run_options.inspection_workspace {
             let property = if matches!(kind, RunKind::GameTestPreview) {
@@ -2785,7 +2807,10 @@ fn apply_client_projection_key_property(
     kind: RunKind,
     projection_key: Option<&str>,
 ) {
-    if !matches!(kind, RunKind::Client | RunKind::ClientPuppet | RunKind::GameTestPreview) {
+    if !matches!(
+        kind,
+        RunKind::Client | RunKind::ClientPuppet | RunKind::GameTestPreview
+    ) {
         return;
     }
     if let Some(key) = projection_key.filter(|key| !key.is_empty()) {
@@ -3943,16 +3968,17 @@ fn resolve_run_classpath(
         );
     }
 
-    let userdev_mods = if should_include_project_run_dependencies(kind, run_options) {
-        let _span = tracing::debug_span!("resolve_run_classpath_deobf_dependencies").entered();
-        resolve_run_deobf_dependencies(context, resolver, kind)?
-    } else {
-        tracing::info!(
-            kind = kind.command_name(),
-            "solo client launch: skipping deobfuscated dependency mod jars"
-        );
-        Vec::new()
-    };
+    let (userdev_mods, held_dependency_remaps) =
+        if should_include_project_run_dependencies(kind, run_options) {
+            let _span = tracing::debug_span!("resolve_run_classpath_deobf_dependencies").entered();
+            resolve_run_deobf_dependencies(context, resolver, kind)?
+        } else {
+            tracing::info!(
+                kind = kind.command_name(),
+                "solo client launch: skipping deobfuscated dependency mod jars"
+            );
+            (Vec::new(), Vec::new())
+        };
     let legacy = {
         let _span =
             tracing::debug_span!("resolve_run_classpath_dedup_legacy", entries = legacy.len())
@@ -3975,6 +4001,7 @@ fn resolve_run_classpath(
     Ok(RunClasspath {
         legacy,
         userdev_mods,
+        held_dependency_remaps,
     })
 }
 
@@ -4011,8 +4038,8 @@ fn resolve_neogradle_run_classpath(
     };
 
     if should_include_plain_run_dependencies(kind, run_options) {
-        let _span = tracing::debug_span!("resolve_neogradle_run_classpath_plain_dependencies")
-            .entered();
+        let _span =
+            tracing::debug_span!("resolve_neogradle_run_classpath_plain_dependencies").entered();
         legacy.extend(resolve_neogradle_run_dependencies(context, kind, false)?);
     }
 
@@ -4057,6 +4084,7 @@ fn resolve_neogradle_run_classpath(
     Ok(RunClasspath {
         legacy,
         userdev_mods,
+        held_dependency_remaps: Vec::new(),
     })
 }
 
@@ -6201,7 +6229,11 @@ fn ensure_run_neoforge_dev_jars(
                 run_jar_platform_identity(context)
             )
         };
-        if !run_jar_current(&minecraft_output, &minecraft_input_state, context.plan.refresh)? {
+        if !run_jar_current(
+            &minecraft_output,
+            &minecraft_input_state,
+            context.plan.refresh,
+        )? {
             let _span = tracing::debug_span!(
                 "ensure_run_neoforge_write_split_minecraft_jar",
                 output = %minecraft_output.display()
@@ -6426,7 +6458,10 @@ fn resolve_run_deobf_dependencies(
     context: &ExecutionContext<'_>,
     resolver: &Resolver,
     kind: RunKind,
-) -> eyre::Result<Vec<PathBuf>> {
+) -> eyre::Result<(
+    Vec<PathBuf>,
+    Vec<forge_preparation_cache::HeldDependencyRemapJar>,
+)> {
     let _span = tracing::debug_span!("resolve_run_deobf_dependencies", kind = %kind.command_name())
         .entered();
     let dependency_output = context.plan.cache_dir.join("dependencies");
@@ -6452,6 +6487,16 @@ fn resolve_run_deobf_dependencies(
         .entered();
         ContentHash::from_path(&mapping_path, ContentHashAlgorithm::Blake3)?
     };
+    #[cfg(windows)]
+    let remap_authority = if forge_preparation_cache::eligible(context) {
+        forge_preparation_cache::ForgePreparationInputs::prepare_remap(context, &mapping_path)?
+    } else {
+        None
+    };
+    #[cfg(windows)]
+    if let Some(owner) = &remap_authority {
+        owner.recheck(context)?;
+    }
     let mut selected = Vec::new();
     for dependency in context.plan.dependencies.iter().filter(|dependency| {
         dependency.artifact_treatment
@@ -6488,6 +6533,7 @@ fn resolve_run_deobf_dependencies(
         resolver.resolve_artifacts(artifacts)?
     };
     let mut output = Vec::new();
+    let mut held_remaps = Vec::new();
     for ((_, coordinate, _), artifact) in selected.into_iter().zip(resolved_artifacts) {
         let _span = tracing::debug_span!(
             "resolve_run_deobf_dependency_output",
@@ -6503,6 +6549,20 @@ fn resolve_run_deobf_dependencies(
             &mapping_hash,
             &coordinate,
         );
+        #[cfg(windows)]
+        if let Some(owner) = &remap_authority {
+            if let Some(held) = dependency_remap_cache::hold_for_runtime(
+                context,
+                &artifact,
+                &coordinate.to_string(),
+                owner.fingerprint(),
+            )? {
+                context.assert_allowed_input(held.path())?;
+                output.push(held.path().to_path_buf());
+                held_remaps.push(held);
+                continue;
+            }
+        }
         if !remapped.is_file() {
             eyre::bail!(
                 "{} requires remapped dependency jar {}. Run jar build first.",
@@ -6513,8 +6573,11 @@ fn resolve_run_deobf_dependencies(
         context.assert_allowed_input(&remapped)?;
         output.push(remapped);
     }
-
-    Ok(output)
+    #[cfg(windows)]
+    if let Some(owner) = &remap_authority {
+        owner.recheck(context)?;
+    }
+    Ok((output, held_remaps))
 }
 
 fn resolve_neogradle_run_dependencies(
@@ -7476,6 +7539,9 @@ struct ExecutionContext<'a> {
     minecraft_libraries_cache: Mutex<Option<Vec<PathBuf>>>,
     #[cfg(windows)]
     held_forge_dev_jar_path: Mutex<Option<PathBuf>>,
+    // Exact deobfuscated classpath selected for this build. Its shared leaves
+    // are held by execute_project_build through compile and package.
+    selected_dependency_remaps: Mutex<Option<Vec<PathBuf>>>,
     // Borrowed only inside the owned NeoForm session's consumer callback.
     held_neoform_compile_jar: Option<&'a Path>,
     // Immutable image profile hit; writable javac caches are not authority.

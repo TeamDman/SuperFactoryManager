@@ -493,6 +493,7 @@ fn acquire_platform_sources(
 ) -> eyre::Result<()> {
     let build = crate::jar_build::BuildOptions {
         selection: crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
+        cache_root: None,
         refresh: false,
         skip_source_checks: false,
         explain_rebuild: false,

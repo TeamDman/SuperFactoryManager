@@ -183,8 +183,8 @@ use super::TargetJarCompareReport;
 use super::acquire_build_cache_lock;
 use super::add_loader_jarjar_entries;
 use super::apply_client_automation_timing_properties;
-use super::apply_client_title_screen_property;
 use super::apply_client_projection_key_property;
+use super::apply_client_title_screen_property;
 use super::apply_game_puppet_filter_property;
 use super::apply_game_puppet_game_test_property;
 use super::apply_game_test_filter_property;
@@ -996,10 +996,20 @@ fn projected_client_title_uses_exact_key_only_for_graphical_runs() {
     let key = "sfm-4.34.0-issue610-visual/mc-1.21.1";
     let mut properties = BTreeMap::new();
     apply_client_projection_key_property(&mut properties, RunKind::Client, Some(key));
-    assert_eq!(properties.get("sfm.clientRun.projectionKey").map(String::as_str), Some(key));
+    assert_eq!(
+        properties
+            .get("sfm.clientRun.projectionKey")
+            .map(String::as_str),
+        Some(key)
+    );
     properties.clear();
     apply_client_projection_key_property(&mut properties, RunKind::GameTestPreview, Some(key));
-    assert_eq!(properties.get("sfm.clientRun.projectionKey").map(String::as_str), Some(key));
+    assert_eq!(
+        properties
+            .get("sfm.clientRun.projectionKey")
+            .map(String::as_str),
+        Some(key)
+    );
     properties.clear();
     apply_client_projection_key_property(&mut properties, RunKind::Client, None);
     assert!(properties.is_empty());
@@ -1476,7 +1486,9 @@ fn v3_dependency_projection_preserves_semantic_treatment_and_scope() {
     assert!(!mekanism_api.loader_managed());
     let vox_java = projected
         .iter()
-        .find(|dependency| dependency.coordinate.to_string() == "org.facet:teamy-vox-java:0.10.0-rc.7")
+        .find(|dependency| {
+            dependency.coordinate.to_string() == "org.facet:teamy-vox-java:0.10.0-rc.7"
+        })
         .expect("Vox Java projection");
     assert_eq!(vox_java.configuration, "implementation");
     assert!(!vox_java.loader_managed());
@@ -3500,9 +3512,11 @@ fn artifact_audit_reader_accepts_checked_in_schema_v4_lockfile() {
         crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION
     );
     assert!(
-        lockfile.artifacts.iter().any(
-            |artifact| artifact.coordinate.as_deref() == Some("org.facet:teamy-vox-java:0.10.0-rc.7")
-        )
+        lockfile
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.coordinate.as_deref()
+                == Some("org.facet:teamy-vox-java:0.10.0-rc.7"))
     );
 }
 
@@ -4167,6 +4181,7 @@ pub(super) fn minimal_plan_for_paths() -> BuildPlan {
 fn test_build_options(parallelism: Parallelism) -> BuildOptions {
     BuildOptions {
         selection: super::super::BuildSelection::Worktree(BranchQuery::default()),
+        cache_root: None,
         refresh: false,
         skip_source_checks: false,
         explain_rebuild: false,
@@ -4752,6 +4767,7 @@ fn catalog_release_packaging_resource_context(plan: &BuildPlan) -> ExecutionCont
         minecraft_libraries_cache: std::sync::Mutex::new(None),
         #[cfg(windows)]
         held_forge_dev_jar_path: std::sync::Mutex::new(None),
+        selected_dependency_remaps: std::sync::Mutex::new(None),
         held_neoform_compile_jar: None,
         immutable_neoform_profile: false,
         verify_compilation_outputs: false,

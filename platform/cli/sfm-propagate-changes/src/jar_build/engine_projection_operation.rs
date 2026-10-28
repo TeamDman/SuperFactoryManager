@@ -79,6 +79,10 @@ fn invoke_projection_operation(
     let (root, keys) =
         super::projection_selection::select_projections(repo_root.as_deref(), selector)?;
     preflight_projection_jar_output(options, operation, keys.len())?;
+    eyre::ensure!(
+        options.cache_root.is_none() || options.java_home.is_some(),
+        "--cache-root requires an explicit --java-home for guarded native admission"
+    );
     preflight_projection_source_checks(&root, &keys, options.skip_source_checks)?;
     tracing::info!(
         projection_selector = selector,
@@ -259,11 +263,22 @@ fn execute_projection_identity_operation(
     phase: ProjectionPreparationPhase,
 ) -> eyre::Result<Option<BuildPlan>> {
     let plan_phase = ProjectionPreparationPhase::start(key, "resolve_native_build_plan");
-    let plan = create_plan_for_project(
-        &NativePlanningOptions::from(options),
-        &identity,
-        cancellation,
-    )?;
+    let mut planning = NativePlanningOptions::from(options);
+    if let Some(path) = options.cache_root.as_deref() {
+        let java_home = options.java_home.as_deref().ok_or_else(|| {
+            eyre::eyre!(
+                "--cache-root requires an explicit --java-home for guarded native admission"
+            )
+        })?;
+        planning.derived_cache_root = Some(native_cache_root::NativeCacheRoot::acquire(
+            path,
+            identity.repository_root(),
+            &identity.minecraft_dir(),
+            java_home,
+            cancellation,
+        )?);
+    }
+    let plan = create_plan_for_project(&planning, &identity, cancellation)?;
     // A failed admitted attempt drops its plan/capability before strict retry.
     drop(identity);
     tracing::info!(
@@ -409,6 +424,7 @@ mod invocation_source_policy_tests {
                 selector: "*".to_owned(),
                 repo_root: Some(fixture.repository().to_path_buf()),
             },
+            cache_root: None,
             refresh: false,
             skip_source_checks: false,
             explain_rebuild: false,
@@ -482,6 +498,7 @@ mod invocation_source_policy_tests {
                 selector: "*".to_owned(),
                 repo_root: Some(fixture.repository().to_path_buf()),
             },
+            cache_root: None,
             refresh: false,
             skip_source_checks: true,
             explain_rebuild: false,

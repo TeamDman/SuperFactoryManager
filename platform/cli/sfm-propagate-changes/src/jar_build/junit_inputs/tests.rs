@@ -428,6 +428,7 @@ fn real_engine_entry_refuses_before_projection_planning_or_java() -> eyre::Resul
             selector: "sfm-4.35.0/*".to_owned(),
             repo_root: Some(temp.path().to_owned()),
         },
+        cache_root: None,
         refresh: false,
         skip_source_checks: false,
         explain_rebuild: false,

@@ -883,7 +883,19 @@ impl ExecutionContext<'_> {
                 &coordinate,
             ));
         }
-        let collected = collect_jars(self, &root)?;
+        // The build coordinator keeps validated shared remap files held until
+        // packaging finishes. Ignore stale project copies when that exact
+        // producer selection is available.
+        let selected = self
+            .selected_dependency_remaps
+            .lock()
+            .expect("selected remap paths poisoned");
+        let collected = if let Some(paths) = selected.as_ref() {
+            allowed.extend(paths.iter().cloned());
+            paths.clone()
+        } else {
+            collect_jars(self, &root)?
+        };
         for path in collected {
             require_named_generated_jar(&allowed, &path)?;
             insert_named_jar_pin(&mut pins, path.clone(), capture_named_package_hash(&path)?)?;

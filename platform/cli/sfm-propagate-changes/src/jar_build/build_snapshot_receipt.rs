@@ -98,10 +98,37 @@ impl BuildSnapshotReceipt {
         identities: (&str, &str),
         cancellation_token: &CancellationToken,
     ) -> Result<Self> {
+        Self::publish_from_source_cache_cancellable(
+            minecraft_dir,
+            cache_dir,
+            cache_dir,
+            minecraft_version,
+            java,
+            project_dir,
+            identities,
+            cancellation_token,
+        )
+    }
+
+    /// Snapshot outputs remain projection-owned even when the compiler source
+    /// was produced under a separately guarded, immutable native cache root.
+    /// The caller must retain that source root's reader capability through this
+    /// copy; the receipt itself contains only independently verified bytes.
+    pub(crate) fn publish_from_source_cache_cancellable(
+        minecraft_dir: &Path,
+        cache_dir: &Path,
+        source_cache_dir: &Path,
+        minecraft_version: &str,
+        java: &ResolvedJava,
+        project_dir: &Path,
+        identities: (&str, &str),
+        cancellation_token: &CancellationToken,
+    ) -> Result<Self> {
         cancellation_token.bail_if_cancelled()?;
         let (sdk_identity, runtime_contract) = identities;
         let minecraft_dir = canonical_directory(minecraft_dir)?;
         let cache_dir = canonical_directory(cache_dir)?;
+        let source_cache_dir = canonical_directory(source_cache_dir)?;
         ensure!(
             !checked_descendant(&minecraft_dir, &cache_dir)?
                 .as_os_str()
@@ -111,9 +138,9 @@ impl BuildSnapshotReceipt {
         ensure!(
             same_path_spelling(
                 &canonical_directory(project_dir)?,
-                &cache_dir.join("project")
+                &source_cache_dir.join("project")
             ),
-            "build snapshot requires the selected cache project directory"
+            "build snapshot requires the selected compiler cache project directory"
         );
         let snapshots = cache_dir.join("build-snapshots");
         ensure_owned_directory(&cache_dir, &snapshots)?;
@@ -973,6 +1000,65 @@ mod tests {
             &cache.join("project"),
             "sdk-fixture",
         )
+    }
+
+    #[test]
+    fn shared_compiler_outputs_publish_only_to_projection_owned_runtime_snapshot() -> Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let (minecraft, original_cache) = project(temporary.path(), "projection-a")?;
+        let source_cache = temporary
+            .path()
+            .join("shared/projects/checked-source-identity");
+        let source_project = source_cache.join("project");
+        fs::create_dir_all(source_project.join("classes/example"))?;
+        fs::create_dir_all(source_project.join("staged-resources"))?;
+        fs::copy(
+            original_cache.join("project/classes/example/Main.class"),
+            source_project.join("classes/example/Main.class"),
+        )?;
+        fs::copy(
+            original_cache.join("project/staged-resources/config.txt"),
+            source_project.join("staged-resources/config.txt"),
+        )?;
+        let snapshot_cache = minecraft.join("build/sfm-runtime-native");
+        ensure_owned_directory(&minecraft, &snapshot_cache)?;
+        let receipt = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+            &minecraft,
+            &snapshot_cache,
+            &source_cache,
+            "1.19.2",
+            &java(&minecraft),
+            &source_project,
+            ("sdk-fixture", "fixture-runtime-contract"),
+            &CancellationToken::new(),
+        )?;
+        assert_eq!(receipt.cache_dir, canonical_directory(&snapshot_cache)?);
+        assert!(receipt.snapshot_dir.starts_with(&snapshot_cache));
+        assert!(!source_cache.join("build-snapshots").exists());
+        assert_eq!(
+            read_bounded(
+                &receipt
+                    .snapshot_dir
+                    .join("project/classes/example/Main.class"),
+                1024
+            )?,
+            b"main class fixture"
+        );
+        receipt.recheck()?;
+        assert!(
+            BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+                &minecraft,
+                &snapshot_cache,
+                &source_cache,
+                "1.19.2",
+                &java(&minecraft),
+                &original_cache.join("project"),
+                ("sdk-fixture", "fixture-runtime-contract"),
+                &CancellationToken::new(),
+            )
+            .is_err()
+        );
+        Ok(())
     }
 
     #[cfg(windows)]
