@@ -231,6 +231,40 @@ impl SnapshotSourceCapture {
         Ok(())
     }
 
+    /// Reuse only when the current held source has exactly the previously
+    /// published inventory. Keep each file handle through the caller's final
+    /// receipt recheck, just as fresh snapshot publication does.
+    pub(super) fn matches_snapshot(
+        &mut self,
+        receipt: &BuildSnapshotReceipt,
+        cancellation: &CancellationToken,
+    ) -> Result<bool> {
+        if receipt.directories.len() != self.directories.len() + 1
+            || !receipt.directories.contains("project")
+            || !self
+                .directories
+                .iter()
+                .all(|path| receipt.directories.contains(&format!("project/{path}")))
+            || receipt.files.len() != self.files.len()
+        {
+            return Ok(false);
+        }
+        for relative in &self.files {
+            cancellation.bail_if_cancelled()?;
+            let path = self.ancestry.prepare(&self.project, relative)?;
+            let (file, raw) = Self::read_source(&path, cancellation)?;
+            self.held_files.push(file);
+            #[cfg(test)]
+            {
+                self.payload_reads += 1;
+            }
+            if receipt.files.get(&format!("project/{relative}")) != Some(&digest(&raw)) {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
     fn read_source(path: &Path, cancellation: &CancellationToken) -> Result<(File, Vec<u8>)> {
         let mut file = open_read(path)?;
         let before = file.metadata()?;

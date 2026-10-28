@@ -142,6 +142,18 @@ impl BuildSnapshotReceipt {
             ),
             "build snapshot requires the selected compiler cache project directory"
         );
+        #[cfg(windows)]
+        if let Some(reused) = Self::reuse_latest_for_source(
+            &minecraft_dir,
+            &cache_dir,
+            &source_cache_dir.join("project"),
+            minecraft_version,
+            java,
+            identities,
+            cancellation_token,
+        )? {
+            return Ok(reused);
+        }
         let snapshots = cache_dir.join("build-snapshots");
         ensure_owned_directory(&cache_dir, &snapshots)?;
         let staging = tempfile::Builder::new()
@@ -218,6 +230,59 @@ impl BuildSnapshotReceipt {
         #[cfg(windows)]
         drop(source_capture);
         Ok(receipt)
+    }
+
+    #[cfg(windows)]
+    fn reuse_latest_for_source(
+        minecraft_dir: &Path,
+        cache_dir: &Path,
+        project_dir: &Path,
+        minecraft_version: &str,
+        java: &ResolvedJava,
+        identities: (&str, &str),
+        cancellation_token: &CancellationToken,
+    ) -> Result<Option<Self>> {
+        let latest = cache_dir.join("state/latest-successful-build.json");
+        match fs::symlink_metadata(&latest) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.into()),
+            Ok(_) => {}
+        }
+        // A stale or damaged previous success cannot authorize reuse. Fresh
+        // publication may still replace its latest pointer without deleting it.
+        let previous = match Self::load(&latest, minecraft_dir) {
+            Ok(previous) => previous,
+            Err(error) => {
+                tracing::debug!(%error, "previous build snapshot cannot be reused");
+                return Ok(None);
+            }
+        };
+        if previous.cache_dir != cache_dir
+            || previous.minecraft_version != minecraft_version
+            || previous.sdk_identity != identities.0
+            || previous.runtime_contract != identities.1
+            || previous.java_major != java.major_version
+            || previous.java_executable != java.executable
+            || previous.java_home != java.home
+            || previous.java_version_output != java.version_output
+            || previous.java_selection != java.selection
+            || previous.java_pin_url != java.pin_url
+            || previous.java_pin_sha512 != java.pin_sha512
+        {
+            return Ok(None);
+        }
+        let Some(mut source) =
+            source_capture::SnapshotSourceCapture::prepare(project_dir, cancellation_token)?
+        else {
+            return Ok(None);
+        };
+        if !source.matches_snapshot(&previous, cancellation_token)? {
+            return Ok(None);
+        }
+        previous.recheck()?;
+        tracing::info!(snapshot = %previous.snapshot_dir.display(),
+            "Reusing checked successful-build snapshot for identical compiler outputs");
+        Ok(Some(previous))
     }
 
     pub(crate) fn load(receipt_path: &Path, expected_minecraft_dir: &Path) -> Result<Self> {
@@ -1045,6 +1110,61 @@ mod tests {
             b"main class fixture"
         );
         receipt.recheck()?;
+        let reused = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+            &minecraft,
+            &snapshot_cache,
+            &source_cache,
+            "1.19.2",
+            &java(&minecraft),
+            &source_project,
+            ("sdk-fixture", "fixture-runtime-contract"),
+            &CancellationToken::new(),
+        )?;
+        assert_eq!(reused.snapshot_dir, receipt.snapshot_dir);
+        assert_eq!(
+            fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
+            1
+        );
+        fs::write(
+            source_project.join("classes/example/Main.class"),
+            b"changed class",
+        )?;
+        let changed = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+            &minecraft,
+            &snapshot_cache,
+            &source_cache,
+            "1.19.2",
+            &java(&minecraft),
+            &source_project,
+            ("sdk-fixture", "fixture-runtime-contract"),
+            &CancellationToken::new(),
+        )?;
+        assert_ne!(changed.snapshot_dir, receipt.snapshot_dir);
+        assert_eq!(
+            fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
+            2
+        );
+        fs::write(
+            changed
+                .snapshot_dir
+                .join("project/classes/example/Main.class"),
+            b"damaged snapshot",
+        )?;
+        let repaired = BuildSnapshotReceipt::publish_from_source_cache_cancellable(
+            &minecraft,
+            &snapshot_cache,
+            &source_cache,
+            "1.19.2",
+            &java(&minecraft),
+            &source_project,
+            ("sdk-fixture", "fixture-runtime-contract"),
+            &CancellationToken::new(),
+        )?;
+        assert_ne!(repaired.snapshot_dir, changed.snapshot_dir);
+        assert_eq!(
+            fs::read_dir(snapshot_cache.join("build-snapshots"))?.count(),
+            3
+        );
         assert!(
             BuildSnapshotReceipt::publish_from_source_cache_cancellable(
                 &minecraft,
