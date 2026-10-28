@@ -47,6 +47,55 @@ fn forge_preparation_store_materializes_exact_bytes_into_a_different_project_nam
 }
 
 #[test]
+fn ordinary_forge_hit_does_not_copy_unneeded_source_archives() -> Result<()> {
+    let temp = tempfile::tempdir()?;
+    let source = make_directory(&temp.path().join("producer"))?;
+    let names = [
+        "official_sources.jar",
+        "deobfuscated_sources.jar",
+        "srg_to_official.tsrg",
+        "official_to_srg.tsrg",
+        "dev_compile.jar",
+    ];
+    let original = names
+        .iter()
+        .map(|name| {
+            let path = source.join(name);
+            fs::write(&path, name.as_bytes())?;
+            Ok((*name, path))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let key = make_directory(&temp.path().join("store/key"))?;
+    assert!(publish(&key, "fixture-key", &original, || Ok(()))?);
+    let project = make_directory(&temp.path().join("other-projection"))?;
+    let all_destinations = destinations(&project, &original)?;
+    let compile_destinations = selected_restore_outputs("forge", false, &all_destinations);
+    assert_eq!(compile_destinations.len(), 3);
+    assert!(restore(
+        &key,
+        "fixture-key",
+        &project,
+        &compile_destinations,
+        || Ok(())
+    )?);
+    assert!(compile_destinations.iter().all(|(_, path)| path.is_file()));
+    assert!(all_destinations[..2]
+        .iter()
+        .all(|(_, path)| !path.exists()));
+    let source_destinations = selected_restore_outputs("forge", true, &all_destinations);
+    assert_eq!(source_destinations.len(), 5);
+    assert!(restore(
+        &key,
+        "fixture-key",
+        &project,
+        &source_destinations,
+        || Ok(())
+    )?);
+    assert!(source_destinations.iter().all(|(_, path)| path.is_file()));
+    Ok(())
+}
+
+#[test]
 fn forge_preparation_store_rejects_corruption_of_every_required_output() -> Result<()> {
     for selected in 0..5 {
         let temp = tempfile::tempdir()?;

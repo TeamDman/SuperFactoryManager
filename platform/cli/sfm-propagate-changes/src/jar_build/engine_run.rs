@@ -104,7 +104,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-forge-userdev: start");
         context.bail_if_cancelled()?;
-        execute_forge_userdev(&context)?;
+        execute_forge_userdev(&context, target)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",

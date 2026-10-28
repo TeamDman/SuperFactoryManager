@@ -42,6 +42,7 @@ pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
 pub(super) fn execute(
     context: &ExecutionContext<'_>,
     kind: &str,
+    materialize_sources: bool,
     legacy: impl FnOnce() -> eyre::Result<()>,
     fresh: impl FnOnce(Option<&Path>) -> eyre::Result<()>,
 ) -> eyre::Result<()> {
@@ -85,13 +86,14 @@ pub(super) fn execute(
         return legacy();
     };
     let outputs = output_paths(context, kind)?;
+    let restore_outputs = selected_restore_outputs(kind, materialize_sources, &outputs);
     let reused = !context.plan.refresh
         && NfrtPreparationPhase::run("forge_preparation.reuse", || {
             restore(
                 &key_root,
                 fingerprint,
                 &context.plan.cache_dir,
-                &outputs,
+                &restore_outputs,
                 || context.bail_if_cancelled(),
             )
         })?;
@@ -103,7 +105,7 @@ pub(super) fn execute(
             outcome = "reused",
             "forge_dependency_preparation"
         );
-        return write_cached_node(context, kind, &outputs);
+        return write_cached_node(context, kind, &restore_outputs);
     }
     // Never turn an old existence-only project hit into a new validated entry.
     // This route deliberately invokes the original producer with that hit disabled.
@@ -203,6 +205,25 @@ fn output_paths(
         }
         _ => eyre::bail!("Unsupported preparation kind"),
     })
+}
+
+fn selected_restore_outputs(
+    kind: &str,
+    materialize_sources: bool,
+    outputs: &[(&'static str, PathBuf)],
+) -> Vec<(&'static str, PathBuf)> {
+    // A completed store entry and its full receipt are still checked. These
+    // two leaves are only consumed by explicit source-output requests; the
+    // ordinary compile, package and run paths read the mappings and dev JAR.
+    outputs
+        .iter()
+        .filter(|(name, _)| {
+            kind != "forge"
+                || materialize_sources
+                || !matches!(*name, "official_sources.jar" | "deobfuscated_sources.jar")
+        })
+        .cloned()
+        .collect()
 }
 
 fn write_cached_node(

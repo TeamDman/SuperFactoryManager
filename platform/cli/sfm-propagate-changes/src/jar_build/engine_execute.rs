@@ -437,6 +437,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
         return forge_preparation_cache::execute(
             context,
             "mcp",
+            true,
             || execute_mcp_config_joined_uncached(context, true),
             |_| execute_mcp_config_joined_uncached(context, false),
         );
@@ -445,16 +446,22 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
 }
 
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
-fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+fn execute_forge_userdev(
+    context: &ExecutionContext<'_>,
+    target: BuildTarget,
+) -> eyre::Result<()> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         return forge_preparation_cache::execute(
             context,
             "forge",
+            target == BuildTarget::SourceOutputs,
             || execute_forge_userdev_uncached(context, true, None),
             |at| execute_forge_userdev_uncached(context, false, at),
         );
     }
+    #[cfg(not(windows))]
+    let _ = target;
     execute_forge_userdev_uncached(context, true, None)
 }
 
