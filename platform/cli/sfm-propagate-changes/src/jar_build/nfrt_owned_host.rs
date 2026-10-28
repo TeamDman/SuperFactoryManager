@@ -348,13 +348,15 @@ pub(crate) fn with_owned_compiler_inputs<T>(
     let (value, publication) = consumer.finish(result)?;
     cancellation.bail_if_cancelled()?;
     let owned_receipts = [receipts[0].clone(), receipts[1].clone()];
+    #[cfg(windows)]
+    let sealed_graph_outputs = session.sealed_graph_receipts()?;
     // NfrtHostSession owns the producer readers and borrows the store. All
     // children and the downstream compiler have exited before this point.
     drop(session);
     #[cfg(windows)]
     if let Some(publication) = publication {
         let receipt_refs = [&owned_receipts[0], &owned_receipts[1]];
-        match store.retire_published_payloads(&publication, &receipt_refs) {
+        match store.retire_published_payloads(&publication, &receipt_refs, &sealed_graph_outputs) {
             Ok((files, bytes)) => tracing::info!(
                 files,
                 bytes,

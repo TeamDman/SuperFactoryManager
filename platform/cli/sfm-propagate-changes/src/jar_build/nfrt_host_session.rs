@@ -292,6 +292,24 @@ impl<'a> NfrtHostSession<'a> {
         Ok([results[0], results[1]])
     }
 
+    /// Return only graph outputs this owned host sealed and retained through its
+    /// producer handles. The caller may retire these exact private leaves only
+    /// after the host, downstream compiler and verified publication complete.
+    pub(super) fn sealed_graph_receipts(&self) -> Result<Vec<NfrtProducerOutputReceipt>> {
+        let mut receipts = Vec::with_capacity(self.sealed_receipts.len());
+        for (key, receipt) in &self.sealed_receipts {
+            ensure!(
+                self.held.contains_key(key)
+                    && self.sealed_paths.get(key) == Some(&receipt.snapshot_relative_path)
+                    && self.declarations.get(key) == Some(&receipt.declaration)
+                    && receipt.scope.prepared_contract_sha256 == self.store.contract_identity(),
+                "NeoForm graph output lost its held producer or owned declaration"
+            );
+            receipts.push(receipt.clone());
+        }
+        Ok(receipts)
+    }
+
     #[expect(
         clippy::too_many_lines,
         reason = "Preflight all graph declarations and their original bindings before registration."

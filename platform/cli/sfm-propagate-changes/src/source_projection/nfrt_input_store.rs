@@ -135,13 +135,15 @@ impl NfrtInputStore {
     /// Retire only paths created and recorded by this store. This requires a
     /// proof from independently read-back local publication, plus successful
     /// downstream consumption and child exit at the call site. Held directory
-    /// ancestry remains live while exact file leaves are removed. Workspaces,
-    /// logs, JSON receipts and any untracked diagnostic files remain intact.
+    /// ancestry remains live while exact file leaves are removed. Only sealed
+    /// graph outputs with matching owned generated copies join that list;
+    /// workspace directories, logs, receipts and unknown files remain intact.
     #[cfg(windows)]
     pub(crate) fn retire_published_payloads(
         &mut self,
         publication: &VerifiedLocalDependencyPublication,
         receipts: &[&super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
+        sealed_graph_outputs: &[super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt],
     ) -> Result<(usize, u64)> {
         ensure!(
             publication.confirms(&self.contract_identity, receipts),
@@ -164,8 +166,46 @@ impl NfrtInputStore {
                 "NeoForm compiler output is not owned by this input store"
             );
         }
+        let mut retirement_payloads = self.owned_payloads.clone();
+        let mut unique_paths = retirement_payloads
+            .iter()
+            .map(|(path, _, _)| path.clone())
+            .collect::<std::collections::BTreeSet<_>>();
+        ensure!(
+            sealed_graph_outputs.len() <= 256,
+            "Oversized NeoForm graph output set"
+        );
+        for receipt in sealed_graph_outputs {
+            let relative = &receipt.declaration.output_relative_path;
+            let components = relative.split('/').collect::<Vec<_>>();
+            ensure!(
+                components.len() == 3
+                    && components[0] == "work"
+                    && !components[1].is_empty()
+                    && !components[2].is_empty()
+                    && components[1]
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+                    && components[2]
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric()
+                            || matches!(byte, b'_' | b'-' | b'.'))
+                    && receipt.scope.prepared_contract_sha256 == self.contract_identity
+                    && receipt.scope.project_preparation_sha256
+                        == self.project_preparation_identity
+                    && self.generated.get(&receipt.snapshot_relative_path)
+                        == Some(&receipt.full_sha256),
+                "NeoForm graph output lacks an owned sealed copy"
+            );
+            let path = self.root.join(relative);
+            ensure!(
+                unique_paths.insert(path.clone()),
+                "Duplicate NeoForm retirement path"
+            );
+            retirement_payloads.push((path, receipt.bytes, receipt.full_sha256.clone()));
+        }
         let mut total = 0_u64;
-        for (path, bytes, expected) in &self.owned_payloads {
+        for (path, bytes, expected) in &retirement_payloads {
             let parent = path
                 .parent()
                 .ok_or_else(|| eyre::eyre!("owned payload has no parent"))?;
@@ -203,7 +243,7 @@ impl NfrtInputStore {
         self.files.clear();
         let mut removed = 0_usize;
         let mut bytes = 0_u64;
-        for (path, _, _) in &self.owned_payloads {
+        for (path, _, _) in &retirement_payloads {
             let metadata = fs::symlink_metadata(path).wrap_err_with(|| {
                 format!(
                     "NeoForm retirement stopped after {removed} files and {bytes} bytes at {}",
@@ -807,7 +847,7 @@ mod tests {
             root: root.clone(),
             contract_identity: contract.clone(),
             project_preparation_identity: "fixture".to_owned(),
-            workspaces_declared: true,
+            workspaces_declared: false,
             generated: std::collections::BTreeMap::new(),
             files: Vec::new(),
             owned_payloads: Vec::new(),
@@ -833,8 +873,19 @@ mod tests {
                 receipt.full_sha256.clone(),
             );
         }
+        store.create_workspaces(&["fixture".to_owned()])?;
         fs::write(root.join("contract.json"), b"retained contract")?;
         fs::write(root.join("work/untracked.log"), b"retained diagnostic")?;
+        let mut graph_output = receipts[0].clone();
+        graph_output.declaration.output_relative_path = "work/fixture/output.jar".to_owned();
+        let graph_path = store
+            .leases
+            .prepare(&root, &graph_output.declaration.output_relative_path)?;
+        drop(write_and_hold(
+            &graph_path,
+            b"classes",
+            &graph_output.full_sha256,
+        )?);
         let refs = [&receipts[0], &receipts[1]];
         let wrong = VerifiedLocalDependencyPublication::fixture(
             "wrong",
@@ -843,7 +894,11 @@ mod tests {
                 receipts[1].full_sha256.clone(),
             ],
         );
-        assert!(store.retire_published_payloads(&wrong, &refs).is_err());
+        assert!(
+            store
+                .retire_published_payloads(&wrong, &refs, &[graph_output.clone()])
+                .is_err()
+        );
         assert!(root.join("inputs/generated/0001.bin").exists());
         assert!(fs::rename(&root, fixture.path().join("replacement")).is_err());
         let proof = VerifiedLocalDependencyPublication::fixture(
@@ -853,9 +908,21 @@ mod tests {
                 receipts[1].full_sha256.clone(),
             ],
         );
-        assert_eq!(store.retire_published_payloads(&proof, &refs)?, (2, 14));
+        let mut changed_graph = graph_output.clone();
+        changed_graph.full_sha256 = "sha256:changed".to_owned();
+        assert!(
+            store
+                .retire_published_payloads(&proof, &refs, &[changed_graph])
+                .is_err()
+        );
+        assert!(graph_path.exists());
+        assert_eq!(
+            store.retire_published_payloads(&proof, &refs, &[graph_output])?,
+            (3, 21)
+        );
         assert!(!root.join("inputs/generated/0001.bin").exists());
         assert!(!root.join("inputs/generated/0002.bin").exists());
+        assert!(!graph_path.exists());
         assert_eq!(fs::read(root.join("contract.json"))?, b"retained contract");
         assert_eq!(
             fs::read(root.join("work/untracked.log"))?,
