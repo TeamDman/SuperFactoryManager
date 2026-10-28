@@ -124,6 +124,9 @@ impl LocalDependencyCache {
     }
 
     /// Must run inside the successful private fresh-host callback, not on a DTO.
+    /// True means the new entry was committed and independently read back with
+    /// its complete manifest and both output hashes. False means policy declined
+    /// publication; neither outcome authorizes deleting fresh inputs by itself.
     pub(super) fn publish(
         &mut self,
         prepared: &PreparedNfrtInvocationInput,
@@ -131,10 +134,10 @@ impl LocalDependencyCache {
         sources: &Path,
         receipts: &[&NfrtProducerOutputReceipt; 2],
         cancellation: &CancellationToken,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         cancellation.bail_if_cancelled()?;
         if !environment_allows_reuse() {
-            return Ok(());
+            return Ok(false);
         }
         ensure!(
             self.lock.is_some(),
@@ -170,8 +173,17 @@ impl LocalDependencyCache {
         // The complete owned copy is retained before the discoverable pointer.
         // Crash before pointer publication leaves unused evidence, never a hit.
         self.commit_pointer(&entry, cancellation)?;
+        let (_, checked_entry, held_files, held_directories) = self
+            .read_entry(cancellation)?
+            .ok_or_else(|| eyre::eyre!("Published dependency entry was not discoverable"))?;
+        ensure!(
+            checked_entry == entry,
+            "Published dependency pointer selected another entry"
+        );
+        drop(held_files);
+        drop(held_directories);
         tracing::info!(key = %self.key.digest(), entry = %entry.display(), "Published verified historical dependency candidate");
-        phase.finish(Ok(()))
+        phase.finish(Ok(true))
     }
 
     pub(super) fn release_producer(&mut self) {

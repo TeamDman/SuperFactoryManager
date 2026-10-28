@@ -644,15 +644,23 @@ fn with_named_neoform_context<T>(
                 image.recheck(&context.cancellation_token)?;
             }
             if let Some(cache) = &mut cache {
-                if let Err(error) = cache.publish(
+                match cache.publish(
                     &prepared,
                     classes,
                     sources,
                     receipts,
                     &context.cancellation_token,
                 ) {
-                    context.bail_if_cancelled()?;
-                    tracing::warn!(%error, "Local dependency publication failed; retained evidence and using the successful fresh inputs");
+                    Ok(true) => tracing::info!(
+                        "Fresh NeoForm dependency outputs have a verified durable cache entry"
+                    ),
+                    Ok(false) => tracing::info!(
+                        "Local dependency publication declined; retaining fresh inputs"
+                    ),
+                    Err(error) => {
+                        context.bail_if_cancelled()?;
+                        tracing::warn!(%error, "Local dependency publication failed; retained evidence and using the successful fresh inputs");
+                    }
                 }
                 cache.release_producer();
             }

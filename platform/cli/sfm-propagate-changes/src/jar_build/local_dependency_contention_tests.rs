@@ -142,13 +142,16 @@ fn publish_fixture(
     }
     // Real publication performs typed receipt scope/hash validation, pair copying,
     // complete manifest writing and pointer commit under the real producer lock.
-    cache.publish(
-        input,
-        &classes,
-        &sources,
-        &[&receipts[0], &receipts[1]],
-        cancellation,
-    )?;
+    ensure!(
+        cache.publish(
+            input,
+            &classes,
+            &sources,
+            &[&receipts[0], &receipts[1]],
+            cancellation,
+        )?,
+        "Fixture publication was declined"
+    );
     productions.fetch_add(1, Ordering::SeqCst);
     Ok(())
 }
