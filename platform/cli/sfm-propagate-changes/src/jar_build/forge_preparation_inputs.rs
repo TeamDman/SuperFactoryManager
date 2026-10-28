@@ -31,7 +31,7 @@ use super::super::SPECIALSOURCE_REVIEWED_COORDINATE;
 use super::super::SPECIALSOURCE_REVIEWED_HASH;
 use super::super::SPECIALSOURCE_REVIEWED_MAIN;
 use super::super::authenticated_minecraft_inputs;
-use super::super::download_compile_child;
+use super::super::acquire_authenticated_child;
 use super::super::read_main_class;
 use super::super::resolve_current_minecraft_libraries;
 use super::super::resolved_artifact_hash;
@@ -473,7 +473,7 @@ impl ForgePreparationInputs {
         for (role, label, filename) in roles {
             let selected = parent.download(*role)?;
             let path = context.plan.minecraft_version_cache_dir.join(filename);
-            download_compile_child(context, client, *role, &path)?;
+            acquire_authenticated_child(context, client, parent, selected, &path)?;
             requests.push(
                 ForgePreparationInputRequest::new(format!("minecraft:{label}"), path)
                     .pinned(*selected.expected_hash())

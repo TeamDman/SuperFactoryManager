@@ -305,6 +305,18 @@ fn active_native_root_leases_nested_artifact_parents_without_retaining_them() ->
     assert_eq!(fs::read(&artifact)?, b"frozen bytes");
     drop(guards);
 
+    owner.prepare_directory("minecraft-toolchain/minecraft/versions", &CancellationToken::new())?;
+    let client = cache.join("minecraft-toolchain/minecraft/versions/1.19.2/client.jar");
+    let client_guards = NativeCacheRoot::guard_artifact_parent_if_owned(
+        &client,
+        &CancellationToken::new(),
+    )?;
+    let temporary_client = client.with_extension("jar.tmp");
+    fs::write(&temporary_client, b"verified client bytes")?;
+    fs::rename(&temporary_client, &client)?;
+    assert_eq!(fs::read(&client)?, b"verified client bytes");
+    drop(client_guards);
+
     let blocked = cache.join("minecraft-toolchain/maven/org/blocked");
     fs::write(&blocked, b"unrelated user file")?;
     assert!(NativeCacheRoot::guard_artifact_parent_if_owned(
