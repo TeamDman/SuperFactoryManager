@@ -215,13 +215,13 @@ impl OwnedSessionInputs {
                     #[cfg(windows)]
                     {
                         use std::os::windows::fs::OpenOptionsExt as _;
-                        options.share_mode(1).custom_flags(0x0020_0000);
-                    }
+                        options.share_mode(1).custom_flags(0x0020_0000)
+                    };
                     #[cfg(target_os = "linux")]
                     {
                         use std::os::unix::fs::OpenOptionsExt as _;
-                        options.custom_flags(0o400_000);
-                    }
+                        options.custom_flags(0o400_000)
+                    };
                     let mut file = options.open(path)?;
                     let identity = crate::file_identity::file_identity(&file)?;
                     let mut hasher = blake3::Hasher::new();
@@ -298,8 +298,10 @@ mod tests {
         assert!(session.join("mod/pkg").is_dir());
         assert!(session.join("launch-inputs/0").is_dir());
         assert_eq!(fs::read(session.join("run/console.log"))?, b"passed");
-        assert!(fs::read_to_string(session.join("run/immutable-input-retirement.json"))?
-            .contains("\"replayable\":false"));
+        assert!(
+            fs::read_to_string(session.join("run/immutable-input-retirement.json"))?
+                .contains("\"replayable\":false")
+        );
         assert_eq!(
             fs::read(temporary.path().join("options.txt"))?,
             b"user state"
@@ -372,8 +374,12 @@ mod tests {
         let owned = OwnedSessionInputs::capture(&session)?;
         assert_eq!(owned.retire()?, (1, 5));
         assert!(!input.exists());
-        assert!(fs::read_to_string(fs::canonicalize(session.join("run"))?.join("immutable-input-retirement.json"))?
-            .contains("\"state\":\"complete\""));
+        assert!(
+            fs::read_to_string(
+                fs::canonicalize(session.join("run"))?.join("immutable-input-retirement.json")
+            )?
+            .contains("\"state\":\"complete\"")
+        );
         Ok(())
     }
 
@@ -406,10 +412,16 @@ mod tests {
         };
         write_locator(&path, &receipt)?;
         let readable = fs::canonicalize(&parent)?.join("latest-session.json");
-        assert_eq!(fs::read(&readable)?, facet_json::to_string_pretty(&receipt)?.as_bytes());
+        assert_eq!(
+            fs::read(&readable)?,
+            facet_json::to_string_pretty(&receipt)?.as_bytes()
+        );
         receipt.active = false;
         write_locator(&path, &receipt)?;
-        assert_eq!(fs::read(&readable)?, facet_json::to_string_pretty(&receipt)?.as_bytes());
+        assert_eq!(
+            fs::read(&readable)?,
+            facet_json::to_string_pretty(&receipt)?.as_bytes()
+        );
         Ok(())
     }
 

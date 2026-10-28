@@ -139,6 +139,10 @@ impl NfrtInputStore {
     /// graph outputs with matching owned generated copies join that list;
     /// workspace directories, logs, receipts and unknown files remain intact.
     #[cfg(windows)]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "Keep the publication proof, complete preflight and exact unlink in one visible lifecycle boundary."
+    )]
     pub(crate) fn retire_published_payloads(
         &mut self,
         publication: &VerifiedLocalDependencyPublication,
@@ -218,7 +222,7 @@ impl NfrtInputStore {
             );
             let identity = crate::file_identity::file_identity(&file)?;
             let mut hash = Sha256::new();
-            let mut buffer = [0_u8; 64 * 1024];
+            let mut buffer = vec![0_u8; 64 * 1024];
             loop {
                 let count = file.read(&mut buffer)?;
                 if count == 0 {
