@@ -451,7 +451,10 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 
 **Completion criteria:** At least one compatible NeoForm/native stage is shared without a second physical copy; every excluded invocation/intermediate has an owner and reason.
 
-### [ ] M3.4 End successful scratch retention and recover partial entries
+### [~] M3.4 End successful scratch retention and recover partial entries
+
+**New-publication staging checkpoint, 2026-10-28:** Commit 796efdc533ac911bfb9c588c35a4a39e233e9ac2 retains a newly created Forge ntry-* directory only after its complete checked receipt. Cancellation/error drops only that invocation's new staging directory; previously retained entries are untouched. The final-source interruption witness passed 1/1 under source-stable-forge-staging-cancel-20261028.json, and the focused Forge store set passed 9/9 under source-stable-forge-store-staging-20261028.json, each with matching pre/post source identity. This prevents future ordinary failed publications from consuming a history slot, but does not repair already retained partial entries, process crashes before destructor, successful producer scratch, 32-entry saturation or repeated real-run growth. Those remain M3.4 gates; no existing cache was cleaned.
+
 
 **Work:** After M3.1 has exclusive `forge_preparation_cache.rs` ownership, stop `tempfile` `keep()` on successful task-owned scratch only when all processes/readers exit and immutable outputs publish. Keep compact failure diagnostics. Recognize incomplete `entry-*` candidates before the 32-entry limit and recover safely without reading partial bytes. Existing old directories remain until M6 approval.
 
