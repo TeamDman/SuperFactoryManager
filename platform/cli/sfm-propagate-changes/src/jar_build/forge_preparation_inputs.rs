@@ -333,8 +333,9 @@ impl ForgePreparationInputs {
             };
             validate_selected_lock(&current, bytes, expected)?;
         }
-        append(hash, selected.source_path().as_bytes());
-        append(hash, selected.output_path().as_bytes());
+        // The held authored/generated lock bytes are included in the final
+        // fingerprint. Their project-relative names are provenance, not
+        // inputs to the Forge or MCP transformation.
         append(hash, expected.as_bytes());
         Ok(true)
     }
@@ -528,8 +529,8 @@ impl ForgePreparationInputs {
             raw == input.output_bytes(),
             "Actual selected generated AT changed"
         );
-        append(hash, input.source_path().as_bytes());
-        append(hash, input.output_path().as_bytes());
+        // The selected AT bytes are held and hashed by role. Its location in
+        // a projection does not change the Forge transformation.
         append(hash, &[u8::from(input.declared_template())]);
         self.at = Some(raw);
         Ok(true)

@@ -125,7 +125,6 @@ fn actual_key(kind: &str, files: &[HeldForgePreparationInput]) -> String {
         Some("official"),
         Some("1.19.2"),
     );
-    append(&mut basis, b"same-selected-authored-lock-path");
     append(&mut basis, b"same-selected-AT-role-and-template-mode");
     finish_fingerprint(
         basis,
@@ -144,6 +143,7 @@ fn consumed_keys_ignore_project_cache_roots_and_unselected_sfm_body_edits() -> R
         let second = fixture.path().join(kind).join("source-generation-b");
         let (_first_leases, first_files) = captured_fixture(&first, kind, None)?;
         let (_second_leases, second_files) = captured_fixture(&second, kind, None)?;
+        assert_ne!(first_files[0].path, second_files[0].path);
         let body = first.join("project/src/main/java/SFM.java");
         fs::create_dir_all(body.parent().unwrap())?;
         fs::write(&body, b"class SFM {}\n")?;
