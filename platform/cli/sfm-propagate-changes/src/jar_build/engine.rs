@@ -27,6 +27,8 @@ use super::json_branch_name::JsonBranchName;
 use super::json_minecraft_version::JsonMinecraftVersion;
 use super::json_path::JsonOptionalPath;
 use super::json_path::JsonPath;
+#[cfg(windows)]
+use super::runtime_session::OwnedSessionInputs;
 use super::runtime_session::RuntimeSession;
 pub(super) use super::target_artifact_audit_report::TargetArtifactAuditReport;
 use crate::artifact_lock::ArtifactLock;

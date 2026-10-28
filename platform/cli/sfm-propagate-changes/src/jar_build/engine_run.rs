@@ -728,7 +728,7 @@ fn execute_run_with_context(
 
     retain_launch_preparation_lock(context, build_cache_lock)?;
     let roots = runtime_snapshot_roots(snapshot, kind, run_options);
-    let session = RuntimeSession::prepare(
+    let mut session = RuntimeSession::prepare(
         snapshot,
         kind.command_name(),
         &roots,
@@ -1097,6 +1097,20 @@ fn execute_run_with_context(
         run_state_dir.join("launch.environment.json"),
         facet_json::to_string_pretty(&env)?,
     )?;
+    // Snapshot only this new session's immutable inputs. A failed capture
+    // disables optional retirement, never the launch itself.
+    #[cfg(windows)]
+    let owned_inputs = if matches!(kind, RunKind::GameTestServer) {
+        match OwnedSessionInputs::capture(&session.receipt.session_dir) {
+            Ok(inputs) => Some(inputs),
+            Err(error) => {
+                tracing::warn!(%error, "Cannot track owned GameTest inputs; retaining this session");
+                None
+            }
+        }
+    } else {
+        None
+    };
     let launch_log = run_state_dir.join("console.log");
     *owned_console_log = Some(launch_log.clone());
     if dry_run {
@@ -1286,6 +1300,22 @@ fn execute_run_with_context(
             artifact_manifest = %manifest.display(),
             "Published game puppet preview artifacts"
         );
+    }
+    #[cfg(windows)]
+    if let Some(inputs) = owned_inputs {
+        match session.close_for_retirement() {
+            Ok(()) => match inputs.retire() {
+                Ok((files, bytes)) => tracing::info!(
+                    files,
+                    bytes,
+                    "Retired private immutable inputs from completed GameTest session"
+                ),
+                Err(error) => tracing::warn!(%error,
+                    "GameTest completed; private input retirement was incomplete or skipped"),
+            },
+            Err(error) => tracing::warn!(%error,
+                "GameTest completed; session receipt could not close before retirement; retaining inputs"),
+        }
     }
     Ok(())
 }

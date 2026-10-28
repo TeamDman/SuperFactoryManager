@@ -4,10 +4,18 @@ use super::build_snapshot_receipt::ensure_owned_directory;
 use super::runtime_session_receipt::RuntimeSessionReceipt;
 use super::runtime_session_receipt::safe_component;
 use super::runtime_slot::RuntimeSlot;
+#[cfg(windows)]
+use crate::source_projection::core_input_leases::DirectoryLeases;
 use eyre::ensure;
+#[cfg(windows)]
+use std::collections::BTreeMap;
+#[cfg(windows)]
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
+#[cfg(windows)]
+use std::path::PathBuf;
 
 pub(crate) struct RuntimeSession {
     pub receipt: RuntimeSessionReceipt,
@@ -15,6 +23,14 @@ pub(crate) struct RuntimeSession {
 }
 
 impl RuntimeSession {
+    /// Close admission before any prospective successful-run input retirement.
+    /// If the receipt cannot be updated, keep the private inputs intact.
+    #[cfg(windows)]
+    pub(crate) fn close_for_retirement(&mut self) -> eyre::Result<()> {
+        self.receipt.active = false;
+        self.receipt.write()
+    }
+
     pub fn prepare(
         snapshot: &BuildSnapshotReceipt,
         run_kind: &str,
@@ -84,6 +100,154 @@ impl Drop for RuntimeSession {
     }
 }
 
+/// Exact private launch bytes captured before a GameTest JVM starts. Directory
+/// leases keep the session tree at the same paths through the final comparison
+/// and file unlink. Empty directories and all receipts/logs remain; a failed or
+/// changed run retains its inputs for diagnosis. This never visits old sessions.
+#[cfg(windows)]
+pub(crate) struct OwnedSessionInputs {
+    session_dir: PathBuf,
+    files: BTreeMap<PathBuf, (u64, blake3::Hash)>,
+    directories: BTreeSet<PathBuf>,
+    leases: DirectoryLeases,
+}
+
+#[cfg(windows)]
+impl OwnedSessionInputs {
+    pub(crate) fn capture(session_dir: &Path) -> eyre::Result<Self> {
+        let mut owned = Self {
+            session_dir: dunce::canonicalize(session_dir)?,
+            files: BTreeMap::new(),
+            directories: BTreeSet::new(),
+            leases: DirectoryLeases::default(),
+        };
+        let (files, directories) = owned.inventory()?;
+        owned.files = files;
+        owned.directories = directories;
+        Ok(owned)
+    }
+
+    /// Called only after the owned JVM has exited and a required GameTest pass
+    /// count has been validated. An inventory change retains all payloads.
+    pub(crate) fn retire(mut self) -> eyre::Result<(usize, u64)> {
+        let (current_files, current_directories) = self.inventory()?;
+        ensure!(
+            current_files == self.files && current_directories == self.directories,
+            "owned GameTest inputs changed during launch; retaining private copies"
+        );
+        let planned_files = self.files.len();
+        let planned_bytes = self.files.values().map(|(size, _)| *size).sum::<u64>();
+        self.write_retirement_marker("retiring", planned_files, planned_bytes)?;
+        let mut removed = 0_usize;
+        let mut bytes = 0_u64;
+        for (path, (size, _)) in &self.files {
+            let metadata = fs::symlink_metadata(path)?;
+            ensure!(
+                metadata.is_file()
+                    && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+                "owned GameTest input became a link or non-file"
+            );
+            fs::remove_file(path)?;
+            removed += 1;
+            bytes += size;
+        }
+        self.write_retirement_marker("complete", removed, bytes)?;
+        Ok((removed, bytes))
+    }
+
+    fn write_retirement_marker(&self, state: &str, files: usize, bytes: u64) -> eyre::Result<()> {
+        let run = self.session_dir.join("run");
+        super::build_snapshot_receipt::ensure_owned_directory(&self.session_dir, &run)?;
+        let canonical = fs::canonicalize(&run)?;
+        ensure!(
+            super::build_snapshot_receipt::same_path_spelling(&run, &canonical),
+            "runtime retirement marker directory spelling changed"
+        );
+        let mut temporary = tempfile::NamedTempFile::new_in(&canonical)?;
+        write!(
+            temporary,
+            "{{\"schema\":\"sfm:retired-runtime-inputs@1\",\"state\":\"{state}\",\"replayable\":false,\"files\":{files},\"bytes\":{bytes}}}\n"
+        )?;
+        temporary
+            .persist(canonical.join("immutable-input-retirement.json"))
+            .map_err(|error| error.error)?;
+        Ok(())
+    }
+
+    fn inventory(
+        &mut self,
+    ) -> eyre::Result<(BTreeMap<PathBuf, (u64, blake3::Hash)>, BTreeSet<PathBuf>)> {
+        let mut files = BTreeMap::new();
+        let mut directories = BTreeSet::new();
+        let mut total = 0_u64;
+        for name in ["mod", "launch-inputs"] {
+            let root = self.session_dir.join(name);
+            if name == "launch-inputs" && !root.exists() {
+                continue;
+            }
+            super::build_snapshot_receipt::ensure_owned_directory(&self.session_dir, &root)?;
+            for entry in walkdir::WalkDir::new(&root)
+                .follow_links(false)
+                .max_depth(130)
+            {
+                let entry = entry?;
+                let path = entry.path();
+                super::build_snapshot_receipt::checked_descendant(&self.session_dir, path)?;
+                let metadata = fs::symlink_metadata(path)?;
+                ensure!(
+                    !crate::source_projection::candidate_lock::is_reparse(&metadata),
+                    "owned GameTest input contains a link or reparse point"
+                );
+                if metadata.is_dir() {
+                    self.leases.prepare(path, "reserved-leaf")?;
+                    directories.insert(path.to_path_buf());
+                    ensure!(
+                        directories.len() <= 100_000,
+                        "too many owned GameTest directories"
+                    );
+                } else {
+                    ensure!(
+                        metadata.is_file(),
+                        "owned GameTest input is not a regular file"
+                    );
+                    let mut options = fs::OpenOptions::new();
+                    options.read(true);
+                    #[cfg(windows)]
+                    {
+                        use std::os::windows::fs::OpenOptionsExt as _;
+                        options.share_mode(1).custom_flags(0x0020_0000);
+                    }
+                    #[cfg(target_os = "linux")]
+                    {
+                        use std::os::unix::fs::OpenOptionsExt as _;
+                        options.custom_flags(0o400_000);
+                    }
+                    let mut file = options.open(path)?;
+                    let identity = crate::file_identity::file_identity(&file)?;
+                    let mut hasher = blake3::Hasher::new();
+                    let size = std::io::copy(&mut file, &mut hasher)?;
+                    ensure!(
+                        size == metadata.len()
+                            && file.metadata()?.len() == size
+                            && crate::file_identity::file_identity(&file)? == identity,
+                        "owned GameTest input changed while reading"
+                    );
+                    total = total
+                        .checked_add(size)
+                        .ok_or_else(|| eyre::eyre!("owned GameTest size overflow"))?;
+                    ensure!(
+                        total <= 8 * 1024 * 1024 * 1024,
+                        "owned GameTest input budget exceeded"
+                    );
+                    files.insert(path.to_path_buf(), (size, hasher.finalize()));
+                    ensure!(files.len() <= 100_000, "too many owned GameTest files");
+                }
+            }
+        }
+        Ok((files, directories))
+    }
+}
+
 fn write_locator(path: &Path, receipt: &RuntimeSessionReceipt) -> eyre::Result<()> {
     let parent = path
         .parent()
@@ -114,6 +278,104 @@ mod tests {
     use super::*;
     use crate::artifact_lock::ArtifactLock;
     use crate::jdk::ResolvedJava;
+
+    #[cfg(windows)]
+    #[test]
+    fn successful_gametest_retires_only_new_private_immutable_files() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let session = temporary.path().join("session-new");
+        fs::create_dir(&session)?;
+        fs::create_dir_all(session.join("mod/pkg"))?;
+        fs::create_dir_all(session.join("launch-inputs/0"))?;
+        fs::create_dir_all(session.join("run"))?;
+        fs::write(session.join("mod/pkg/Main.class"), b"class")?;
+        fs::write(session.join("launch-inputs/0/runtime.jar"), b"jar")?;
+        fs::write(session.join("run/console.log"), b"passed")?;
+        fs::write(temporary.path().join("options.txt"), b"user state")?;
+        let owned = OwnedSessionInputs::capture(&session)?;
+        let (files, bytes) = owned.retire()?;
+        assert_eq!((files, bytes), (2, 8));
+        assert!(session.join("mod/pkg").is_dir());
+        assert!(session.join("launch-inputs/0").is_dir());
+        assert_eq!(fs::read(session.join("run/console.log"))?, b"passed");
+        assert!(fs::read_to_string(session.join("run/immutable-input-retirement.json"))?
+            .contains("\"replayable\":false"));
+        assert_eq!(
+            fs::read(temporary.path().join("options.txt"))?,
+            b"user state"
+        );
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn changed_or_failed_gametest_retains_private_inputs() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let session = temporary.path().join("session-new");
+        fs::create_dir(&session)?;
+        fs::create_dir(session.join("mod"))?;
+        fs::create_dir(session.join("launch-inputs"))?;
+        let file = session.join("launch-inputs/input.jar");
+        fs::write(&file, b"original")?;
+        let failed = OwnedSessionInputs::capture(&session)?;
+        drop(failed); // A failed/cancelled launch never calls retire.
+        assert_eq!(fs::read(&file)?, b"original");
+        let changed = OwnedSessionInputs::capture(&session)?;
+        fs::write(&file, b"changed")?;
+        assert!(changed.retire().is_err());
+        assert_eq!(fs::read(&file)?, b"changed");
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn tracked_gametest_root_cannot_be_replaced_before_retirement() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let session = temporary.path().join("session-new");
+        fs::create_dir(&session)?;
+        fs::create_dir(session.join("mod"))?;
+        fs::create_dir(session.join("launch-inputs"))?;
+        let input = session.join("launch-inputs/input.jar");
+        fs::write(&input, b"owned")?;
+        let owned = OwnedSessionInputs::capture(&session)?;
+        assert!(
+            fs::rename(
+                session.join("launch-inputs"),
+                session.join("replacement-target")
+            )
+            .is_err(),
+            "a live inventory must block namespace replacement"
+        );
+        fs::write(session.join("mod/unknown.class"), b"new input")?;
+        assert!(owned.retire().is_err());
+        assert_eq!(fs::read(input)?, b"owned");
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn long_windows_retirement_marker_is_written_after_input_unlink() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let padding = 230usize
+            .checked_sub(temporary.path().as_os_str().len() + 1)
+            .expect("fixture root must fit below the Windows legacy limit");
+        let parent = temporary.path().join("x".repeat(padding));
+        fs::create_dir(&parent)?;
+        let session = parent.join("session-new");
+        fs::create_dir(&session)?;
+        fs::create_dir(session.join("mod"))?;
+        fs::create_dir(session.join("run"))?;
+        let input = session.join("mod/one.class");
+        fs::write(&input, b"class")?;
+        let marker = session.join("run/immutable-input-retirement.json");
+        assert!(marker.as_os_str().len() > 260);
+        let owned = OwnedSessionInputs::capture(&session)?;
+        assert_eq!(owned.retire()?, (1, 5));
+        assert!(!input.exists());
+        assert!(fs::read_to_string(fs::canonicalize(session.join("run"))?.join("immutable-input-retirement.json"))?
+            .contains("\"state\":\"complete\""));
+        Ok(())
+    }
 
     #[cfg(windows)]
     #[test]
@@ -182,7 +444,7 @@ mod tests {
             &project,
             "fixture-sdk",
         )?;
-        let live =
+        let mut live =
             RuntimeSession::prepare(&first, "runClient", &["classes"], Some(5005), None, false)?;
         fs::write(live.slot.data_dir.join("options.txt"), b"retained options")?;
         fs::create_dir(live.slot.data_dir.join("world"))?;
@@ -220,6 +482,11 @@ mod tests {
         );
         live.receipt.check_active(&minecraft, 5005)?;
         assert!(live.receipt.check_active(&minecraft, 5006).is_err());
+        #[cfg(windows)]
+        {
+            live.close_for_retirement()?;
+            assert!(live.receipt.check_active(&minecraft, 5005).is_err());
+        }
         let receipt_path = live.receipt.receipt_path();
         drop(live);
         let ended = RuntimeSessionReceipt::load(&receipt_path, &minecraft)?;
