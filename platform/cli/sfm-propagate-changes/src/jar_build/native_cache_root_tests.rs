@@ -299,6 +299,10 @@ fn active_native_root_leases_nested_artifact_parents_without_retaining_them() ->
     assert!(guards.len() > 1);
     assert!(artifact.parent().expect("artifact parent").is_dir());
     assert!(!artifact.exists());
+    let temporary_artifact = artifact.with_extension("jar.tmp");
+    fs::write(&temporary_artifact, b"frozen bytes")?;
+    fs::rename(&temporary_artifact, &artifact)?;
+    assert_eq!(fs::read(&artifact)?, b"frozen bytes");
     drop(guards);
 
     let blocked = cache.join("minecraft-toolchain/maven/org/blocked");

@@ -3004,6 +3004,29 @@ fn replace_artifact_file_replaces_existing_destination_under_lock() {
     assert!(!temporary.exists());
 }
 
+#[cfg(windows)]
+#[test]
+fn replace_artifact_file_retries_transient_windows_sharing() {
+    use std::os::windows::fs::OpenOptionsExt as _;
+    let test_dir = TestDir::new("replace-sharing-artifact");
+    let destination = test_dir.path.join("artifact.jar");
+    let temporary = test_dir.path.join("artifact.jar.tmp");
+    fs::write(&temporary, b"verified bytes").expect("temporary should be written");
+    let held = std::fs::OpenOptions::new()
+        .read(true)
+        .share_mode(1)
+        .open(&temporary)
+        .expect("temporary should be held without delete sharing");
+    let release = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(150));
+        drop(held);
+    });
+    replace_artifact_file(&temporary, &destination).expect("short sharing hold should clear");
+    release.join().expect("holding thread should finish");
+    assert_eq!(fs::read(&destination).unwrap(), b"verified bytes");
+    assert!(!temporary.exists());
+}
+
 #[test]
 fn write_unique_temp_file_uses_artifact_sibling() {
     let test_dir = TestDir::new("write-unique-temp-file");

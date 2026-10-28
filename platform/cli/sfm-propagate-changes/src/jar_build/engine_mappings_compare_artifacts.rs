@@ -2622,14 +2622,26 @@ fn replace_artifact_file(temporary_path: &Path, path: &Path) -> eyre::Result<()>
     if path.exists() {
         fs::remove_file(path).wrap_err_with(|| format!("Failed to replace {}", path.display()))?;
     }
-    fs::rename(temporary_path, path).wrap_err_with(|| {
-        format!(
-            "Failed to move downloaded file {} to {}",
-            temporary_path.display(),
-            path.display()
-        )
-    })?;
-    Ok(())
+    // Large freshly checked JARs can be held briefly by Windows scanners after
+    // the read handle closes. Keep the same verified temporary bytes and lock.
+    for attempt in 0..8_u64 {
+        match fs::rename(temporary_path, path) {
+            Ok(()) => return Ok(()),
+            Err(error) if cfg!(windows) && error.raw_os_error() == Some(32) && attempt < 7 => {
+                thread::sleep(Duration::from_millis(25 * (attempt + 1)));
+            }
+            Err(error) => {
+                return Err(error).wrap_err_with(|| {
+                    format!(
+                        "Failed to move downloaded file {} to {}",
+                        temporary_path.display(),
+                        path.display()
+                    )
+                });
+            }
+        }
+    }
+    unreachable!("rename loop returns on success or final error");
 }
 
 fn unique_sibling_path(path: &Path, kind: &str) -> eyre::Result<PathBuf> {
