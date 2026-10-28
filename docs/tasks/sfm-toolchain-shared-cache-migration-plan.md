@@ -1,10 +1,10 @@
 # Shared SFM toolchain storage and projection closure
 
-**Plan status:** Draft revision for independent review; implementation not started and no cutover, link creation, pruning or deletion approved
+**Plan status:** Reviewed planning extension; implementation not started and no cutover, link creation, pruning or deletion approved
 **Primary root:** `D:\Repos\Minecraft\SFM\worktrees\sfm-main-source-projection` (`main`)
-**Last updated:** 2026-10-28 (optional worktree-sharing draft)
-**Intent audit:** Passed 2026-10-28 for the optional worktree-sharing and pruning revision; independent review of this revision pending
-**Prior independent review:** Passed for the preceding plan (Library v3 SHA-256 `4a0fecaa6f9e0c656af96221758b8f9af5d4a901f115e18b09f7bf73c2a32d9c`); the new link/pruning design has not yet been reviewed
+**Last updated:** 2026-10-28
+**Intent audit:** Passed 2026-10-28 for the optional worktree-sharing and pruning revision
+**Independent review:** Passed against Library v6 SHA-256 `09d97dfc516e416c826689acc5c4457815e7420d5aa5169958d099d1a1866645`; implementation gates remain open
 **Dependency posture:** Frozen graph; no new dependency or toolchain admission here.
 
 ## How to update this plan
@@ -16,7 +16,7 @@ Use `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked only wit
 - **Pass 1 — extraction, rerun 2026-10-28 after focused review:** Reread the original 384-line Library conversation `libfile_429f31f5a1688191900b0be2fc29f4c8`, the later verbatim worktree-sharing/pruning quote and the local `resumable-implementation-plans` skill. Preserved U01–U16 and superseded U04a; refined U17 to retain **“if easiest/best”** rather than choosing a link or link type, U18 to require documentation before creation, and U19 to remain a pruning *question*. F07–F08 and R07–R08 remain investigator findings/design obligations, not attributed user orders.
 - **Pass 2 — traceability, rerun 2026-10-28 after focused review:** Checked 19 active U, eight F and eight R IDs against the traceability table and all 22 milestone blocks. U17/U18 reach the G7 **design** decision, M2.3 dry-reviewed guide and later approved M2.1/M3/M5 runtime proofs; U19 reaches G8, M1.4/M3.9 and approval-gated M6. Inverse check removed the M2.3 self-dependency on live links while retaining link admission as a future correctness gate. No preferred-directory indirection, automatic link or deletion was smuggled in.
 - **Pass 3 — adversarial omission, rerun 2026-10-28 after focused review:** Reread the original attachment and latest quote *after* the sequencing repair. Checked conditional link preference versus mandatory sharing, guide-before-creation versus live-proof-after-approval, isolated real directory, same-resource reuse and additive new resources, Git-context/Gradle independence, checkout candidate versus global orphan, and all owner/reader protections. Confirmed physical bytes counted once, mutable worlds/snapshots stay local, 4.34 historical parity remains, and finite milestones still terminate. No material instruction remained unmapped.
-- **Known source limit:** The original Library attachment covers the cache discussion. Earlier GameTest/dependency turns are represented by trusted delegated quotes and local receipts, not a complete verbatim transcript; historical receipts do not prove current source. The preceding plan passed independent review; **this revision is awaiting its own review**.
+- **Known source limit:** The original Library attachment covers the cache discussion. Earlier GameTest/dependency turns are represented by trusted delegated quotes and local receipts, not a complete verbatim transcript; historical receipts do not prove current source. This planning extension passed independent focused review against Library v6; implementation evidence remains pending.
 ## Guidance, findings and design requirements
 
 `U` records the user's instruction or preference. `F` records source or measured findings, which are evidence rather than user instructions. `R` records proposed engineering obligations derived from the requested outcome and findings. A later reviewer may challenge an F or R without rewriting what Teamy asked for.
