@@ -435,6 +435,8 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 
 ### [ ] M3.2 Share a validated dependency remap
 
+**Post-key regression receipt, 2026-10-28:** The `remap_tests::` offline Cargo filter completed with exit 0 and matching pre/post source identity in `source-stable-remap-after-key-20261028.json.run.json` after the Forge consumed-lock-key correction. The executor disconnected before its terminal output was collected, so the exact selected test count is unknown; this is a passing process receipt, not a claimed per-test enumeration or a real two-projection remap hit. The remap fingerprint includes the common Forge authority key, dependency coordinate and held dependency bytes; it still materializes project-local copies. Physical reuse, mutation audit and narrow producer-implementation invalidation remain open.
+
 **Work:** In `dependency_remap_cache.rs`, `dependency_deobf_producer.rs` and `local_dependency_cache.rs`, separate remap inputs from project source **and checkout** identity. Include schema/tool version and complete ordered classpath/mapping inputs. Implement the shared publication/hold interface decided at G2 without waiting for the Forge slice; do not assume remap and Forge payload formats match. Audit every consumer for mutation before direct shared references; record unavoidable local copies.
 
 **Validation:** Extend existing `dependency_remap_cache_tests.rs` with two 1.19.2 projections, changed mapping/tool/classpath and unrelated source edit, plus corrupt/concurrent publisher cases. Compare archive entry payloads and allocated bytes; timestamp-only divergence is not a correctness miss.
