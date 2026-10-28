@@ -99,7 +99,9 @@ fn captured_fixture(
     for (role, relative, original) in payloads(kind) {
         let path = root.join(relative);
         fs::create_dir_all(path.parent().unwrap())?;
-        let bytes = if changed_role == Some(role) {
+        let bytes = if changed_role == Some(role)
+            || (changed_role == Some("selected-locks") && role.starts_with("selected-lock:"))
+        {
             b"different consumed bytes".as_slice()
         } else {
             original
@@ -164,7 +166,6 @@ fn consumed_keys_change_for_actual_at_mcp_tool_library_or_config_bytes() -> Resu
         ("tool", "mcp", "artifact:tool-fart"),
         ("library", "mcp", "library:org/example/library.jar"),
         ("config", "mcp", "artifact:mcp-config"),
-        ("lock", "mcp", "selected-lock:authored"),
     ] {
         let root = fixture.path().join(case);
         let (_first_leases, first) = captured_fixture(&root.join("before"), kind, None)?;
@@ -174,6 +175,58 @@ fn consumed_keys_change_for_actual_at_mcp_tool_library_or_config_bytes() -> Resu
             actual_key(kind, &second),
             "{role}"
         );
+    }
+    Ok(())
+}
+
+#[test]
+fn unrelated_checked_lock_bytes_reuse_one_published_forge_entry() -> Result<()> {
+    use super::super::{entry_directories, make_directory, publish, restore};
+
+    let fixture = tempfile::tempdir()?;
+    let first_root = fixture.path().join("first-projection");
+    let second_root = fixture.path().join("second-projection");
+    let (_first_leases, first) = captured_fixture(&first_root, "forge", None)?;
+    let (_second_leases, second) = captured_fixture(&second_root, "forge", Some("selected-locks"))?;
+    let changed_lock = fs::read(second_root.join("core/schema-4.json"))?;
+    assert_eq!(
+        changed_lock,
+        fs::read(second_root.join("project/schema-4.json"))?
+    );
+    validate_selected_lock(&changed_lock, &changed_lock, &sha256(&changed_lock))?;
+    assert_ne!(first[0].sha256, second[0].sha256);
+    let key = actual_key("forge", &first);
+    assert_eq!(key, actual_key("forge", &second));
+
+    let store = make_directory(
+        &fixture
+            .path()
+            .join("store")
+            .join(key.trim_start_matches("sha256:")),
+    )?;
+    let produced = std::cell::Cell::new(0);
+    let outputs = produce_fixture_outputs(
+        &fixture.path().join("first-output"),
+        b"same selected AT",
+        &produced,
+    )?;
+    assert!(publish(&store, &key, &outputs, || Ok(()))?);
+    let second_output = make_directory(&fixture.path().join("second-output"))?;
+    let destinations = outputs
+        .iter()
+        .map(|(name, _)| (*name, second_output.join(name)))
+        .collect::<Vec<_>>();
+    assert!(restore(
+        &store,
+        &key,
+        &second_output,
+        &destinations,
+        || Ok(())
+    )?);
+    assert_eq!(produced.get(), 1);
+    assert_eq!(entry_directories(&store)?.unwrap().len(), 1);
+    for ((_, original), (_, restored)) in outputs.iter().zip(destinations) {
+        assert_eq!(fs::read(original)?, fs::read(restored)?);
     }
     Ok(())
 }
@@ -189,14 +242,22 @@ fn consumed_key_frames_the_complete_set_and_semantic_roles() -> Result<()> {
         original,
         "capture order is not semantic order"
     );
-    let removed = files.pop().unwrap();
+    let consumed = files
+        .iter()
+        .position(|input| input.role == "selected-project-at")
+        .expect("Forge fixture has a consumed access transformer");
+    let removed = files.remove(consumed);
     assert_ne!(
         actual_key("forge", &files),
         original,
         "missing role must change key"
     );
     files.push(removed);
-    files[0].role.push_str("-different-role");
+    let consumed = files
+        .iter()
+        .position(|input| input.role == "selected-project-at")
+        .expect("Forge fixture has a consumed access transformer");
+    files[consumed].role.push_str("-different-role");
     assert_ne!(
         actual_key("forge", &files),
         original,

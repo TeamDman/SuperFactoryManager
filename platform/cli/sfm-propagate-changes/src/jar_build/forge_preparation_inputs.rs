@@ -147,7 +147,7 @@ impl ForgePreparationInputs {
                 .get("mapping_version")
                 .map(String::as_str),
         );
-        if !owner.capture_lock(context, project, &target.receipt.lockfile_sha256, &mut hash)? {
+        if !owner.capture_lock(context, project, &target.receipt.lockfile_sha256)? {
             return Ok(None);
         }
         Ok(Some((owner, hash)))
@@ -313,7 +313,6 @@ impl ForgePreparationInputs {
         context: &ExecutionContext<'_>,
         project: &CatalogOwnedProject,
         expected: &str,
-        hash: &mut Sha256,
     ) -> Result<bool> {
         let selected = project.selected_input("sfm-toolchain.lock.json")?;
         let bytes = selected.require_exact_copy()?;
@@ -333,10 +332,9 @@ impl ForgePreparationInputs {
             };
             validate_selected_lock(&current, bytes, expected)?;
         }
-        // The held authored/generated lock bytes are included in the final
-        // fingerprint. Their project-relative names are provenance, not
-        // inputs to the Forge or MCP transformation.
-        append(hash, expected.as_bytes());
+        // Keep both exact lock copies held and checked throughout production.
+        // The lock's unrelated records are not transformation inputs; the
+        // selected artifacts and their actual bytes are captured separately.
         Ok(true)
     }
 
@@ -627,6 +625,11 @@ fn finish_fingerprint(
     let mut files = files.iter().collect::<Vec<_>>();
     files.sort_by(|left, right| left.role.cmp(&right.role));
     for input in files {
+        if input.role.starts_with("selected-lock:") {
+            // Full-lock admission remains mandatory, but an unrelated record
+            // must not split a reusable Forge/MCP transformation key.
+            continue;
+        }
         append(&mut hash, input.role.as_bytes());
         append(&mut hash, &input.bytes.to_le_bytes());
         append(&mut hash, input.sha256.as_bytes());
@@ -703,7 +706,7 @@ fn recipe_basis(
     mapping_channel: Option<&str>,
     mapping_version: Option<&str>,
 ) {
-    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@1");
+    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@2");
     append(hash, kind.as_bytes());
     append(hash, std::env::consts::OS.as_bytes());
     append(hash, std::env::consts::ARCH.as_bytes());
