@@ -430,6 +430,7 @@ impl<'a> ExecutionContext<'a> {
 #[path = "forge_preparation_cache.rs"]
 mod forge_preparation_cache;
 
+#[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
 fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
@@ -443,6 +444,7 @@ fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()>
     execute_mcp_config_joined_uncached(context, true)
 }
 
+#[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
 fn execute_forge_userdev(context: &ExecutionContext<'_>) -> eyre::Result<()> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
