@@ -39,6 +39,8 @@ build
 # Rust
 
 target/
+# Checkout-local shared toolchain data; generated projections use this logical root.
+/sfm-toolchain-data/
 platform/cli/sfm-propagate-changes/tracy/
 
 # other

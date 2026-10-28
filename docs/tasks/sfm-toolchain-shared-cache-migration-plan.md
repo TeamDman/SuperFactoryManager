@@ -385,7 +385,9 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 
 **Completion criteria:** G10 either selects a separately scoped future experiment or explicitly defers it. Cache migration remains executable with the current pinned Java toolchain.
 
-### [ ] M2.1 Establish checkout-local root and relative path contract
+### [~] M2.1 Establish checkout-local root and relative path contract
+
+**G3 name decision, 2026-10-28:** The single checkout-local logical name is `sfm-toolchain-data/`, ignored by the root `.gitignore`. This is a source-control contract only: no directory, link, cache marker or data migration was created, and the current global/derived root selection remains unchanged. The actual Rust and Gradle path wiring, effective-path diagnostics, link admission and validation gates below remain open. G7 has not selected or approved a filesystem link.
 
 **Work:** Decide the checkout-local directory name at G3 (current candidate `sfm-toolchain-data/`), then add a root ignore and ownership marker. Rust uses its known catalog repository identity; generated Gradle resolves baked-in `../../../../..` relative to a catalog project and `../..` relative to `platform/minecraft`, never cwd or dynamic Git probing. Validate expected config/project layout and `.git` file/directory. The fixed logical path may be a real directory or an explicitly approved root-level link after G7; admit a linked **root** by resolving and validating the target identity/marker, while rejecting nested reparse descendants and retaining projection snapshot guards. Define a coherent explicit override, if retained, for both tools; do not silently honor the old machine-global persistent setting or cut over current D: data.
 
