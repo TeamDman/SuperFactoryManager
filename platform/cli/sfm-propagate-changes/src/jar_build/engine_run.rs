@@ -7117,33 +7117,35 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
     let MinecraftAssetIndex {
         id: index_id,
         url: index_url,
+        sha1: index_sha1,
+        size: index_size,
     } = asset_index;
+    crate::source_projection::promotion::validate_relative_path(&index_id)?;
+    eyre::ensure!(
+        !index_id.contains('/'),
+        "Asset index id must be one component"
+    );
     let assets_root = context.plan.minecraft_assets_dir.clone();
     let index_path = assets_root.join("indexes").join(format!("{index_id}.json"));
-    {
+    let index_json = {
         let _span = tracing::debug_span!(
             "prepare_minecraft_assets_download_index",
             index_id = index_id.as_str(),
             path = %index_path.display()
         )
         .entered();
-        download_to_path(
+        acquire_checked_asset_index(
             &context.cancellation_token,
             &client,
             &index_url,
             &index_path,
-        )?;
+            &index_sha1,
+            index_size,
+            || context.plan.recheck_named_inputs(),
+        )?
     };
     context.bail_if_cancelled()?;
-
-    let index_json: MinecraftAssetIndexJson = {
-        let _span = tracing::debug_span!(
-            "prepare_minecraft_assets_read_index",
-            path = %index_path.display()
-        )
-        .entered();
-        read_json_file(&index_path)?
-    };
+    context.assert_allowed_input(&index_path)?;
     let objects = index_json.objects;
     let total_assets = objects.len();
     let assets = {
@@ -7215,6 +7217,132 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         root: assets_root,
         index_id,
     })
+}
+
+const MAX_MINECRAFT_ASSET_INDEX_BYTES: u64 = 16 * 1024 * 1024;
+
+fn acquire_checked_asset_index(
+    cancellation: &CancellationToken,
+    client: &Client,
+    url: &str,
+    path: &Path,
+    expected: &ContentHash,
+    size: u64,
+    before_missing_effect: impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<MinecraftAssetIndexJson> {
+    eyre::ensure!(
+        expected.algorithm == ContentHashAlgorithm::Sha1,
+        "Minecraft asset index requires a SHA-1 parent pin"
+    );
+    eyre::ensure!(
+        size <= MAX_MINECRAFT_ASSET_INDEX_BYTES,
+        "Minecraft asset index exceeds bounded byte limit"
+    );
+    let raw = acquire_named_frozen_download(
+        cancellation,
+        client,
+        url,
+        path,
+        expected,
+        MAX_MINECRAFT_ASSET_INDEX_BYTES,
+        Some(size),
+        before_missing_effect,
+    )?;
+    Ok(facet_json::from_slice(&raw)?)
+}
+
+#[cfg(test)]
+mod asset_index_cache_tests {
+    use super::*;
+
+    #[test]
+    fn asset_index_cache_requires_parent_hash_and_size_on_every_hit() -> eyre::Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let path = fixture.path().join("indexes/fixture.json");
+        fs::create_dir_all(path.parent().expect("index has a parent"))?;
+        let raw = b"{\"objects\":{}}";
+        let expected = ContentHash::from_bytes(raw, ContentHashAlgorithm::Sha1);
+        let metadata = format!(
+            "{{\"id\":\"fixture\",\"url\":\"http://127.0.0.1:1/no-download\",\"sha1\":\"{}\",\"size\":{}}}",
+            expected.hex(),
+            raw.len()
+        );
+        let index: MinecraftAssetIndex = facet_json::from_str(&metadata)?;
+        assert!(
+            facet_json::from_str::<MinecraftAssetIndex>(
+                "{\"id\":\"fixture\",\"url\":\"http://127.0.0.1:1/no-download\"}"
+            )
+            .is_err()
+        );
+        fs::write(&path, raw)?;
+        let client = Client::builder().no_proxy().build()?;
+        let cancel = CancellationToken::new();
+        let parsed = acquire_checked_asset_index(
+            &cancel,
+            &client,
+            &index.url,
+            &path,
+            &index.sha1,
+            index.size,
+            || eyre::bail!("valid cache hit unexpectedly attempted a download"),
+        )?;
+        assert!(parsed.objects.is_empty());
+        let wrong_algorithm = ContentHash::from_bytes(raw, ContentHashAlgorithm::Blake3);
+        assert!(
+            acquire_checked_asset_index(
+                &cancel,
+                &client,
+                &index.url,
+                &path,
+                &wrong_algorithm,
+                index.size,
+                || Ok(()),
+            )
+            .is_err()
+        );
+        assert!(
+            acquire_checked_asset_index(
+                &cancel,
+                &client,
+                &index.url,
+                &path,
+                &index.sha1,
+                index.size + 1,
+                || eyre::bail!("size mismatch unexpectedly attempted a download"),
+            )
+            .is_err()
+        );
+        let same_size_damage = b"{\"objects\":[]}";
+        assert_eq!(same_size_damage.len(), raw.len());
+        fs::write(&path, same_size_damage)?;
+        let damaged = fs::read(&path)?;
+        assert!(
+            acquire_checked_asset_index(
+                &cancel,
+                &client,
+                &index.url,
+                &path,
+                &index.sha1,
+                index.size,
+                || eyre::bail!("corrupt cache unexpectedly attempted a download"),
+            )
+            .is_err()
+        );
+        assert_eq!(fs::read(&path)?, damaged);
+        assert!(
+            acquire_checked_asset_index(
+                &cancel,
+                &client,
+                &index.url,
+                &path,
+                &index.sha1,
+                MAX_MINECRAFT_ASSET_INDEX_BYTES + 1,
+                || Ok(()),
+            )
+            .is_err()
+        );
+        Ok(())
+    }
 }
 
 #[derive(Debug)]

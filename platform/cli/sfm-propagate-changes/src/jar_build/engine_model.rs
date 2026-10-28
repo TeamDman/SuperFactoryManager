@@ -537,6 +537,8 @@ struct MinecraftDownload {
 struct MinecraftAssetIndex {
     id: String,
     url: String,
+    sha1: ContentHash,
+    size: u64,
 }
 
 #[derive(Debug, Facet)]
