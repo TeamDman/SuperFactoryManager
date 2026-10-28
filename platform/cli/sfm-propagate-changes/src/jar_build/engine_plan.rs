@@ -31,6 +31,9 @@ fn selected_common_toolchain_cache_dir(
 #[cfg(all(test, windows))]
 mod selected_common_cache_tests {
     use super::*;
+    use std::net::{Ipv4Addr, TcpListener};
+    use std::thread;
+    use std::time::{Duration, Instant};
 
     #[test]
     fn explicit_native_root_guards_downloads_and_outputs_under_one_owner() -> eyre::Result<()> {
@@ -67,11 +70,64 @@ mod selected_common_cache_tests {
         let other_common = selected_common_toolchain_cache_dir(Some(&other_owner), &cancellation)?;
         assert_eq!(other_common, common);
         let shared = common.join("maven/org/example/fixture.jar");
-        fs::create_dir_all(shared.parent().expect("fixture has parent"))?;
-        fs::write(&shared, b"one checked fixture artifact")?;
+        let bytes = b"one checked fixture artifact";
+        let expected = ContentHash::from_bytes(bytes, ContentHashAlgorithm::Sha1);
+        let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
+        let address = listener.local_addr()?;
+        listener.set_nonblocking(true)?;
+        let server = thread::spawn(move || -> eyre::Result<()> {
+            let deadline = Instant::now() + Duration::from_secs(3);
+            let mut stream = loop {
+                match listener.accept() {
+                    Ok((stream, _)) => break stream,
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        eyre::ensure!(Instant::now() < deadline, "fixture HTTP accept timed out");
+                        thread::sleep(Duration::from_millis(5));
+                    }
+                    Err(error) => return Err(error.into()),
+                }
+            };
+            stream.set_nonblocking(false)?;
+            stream.set_read_timeout(Some(Duration::from_secs(3)))?;
+            stream.set_write_timeout(Some(Duration::from_secs(3)))?;
+            let mut request = [0_u8; 4096];
+            eyre::ensure!(stream.read(&mut request)? > 0, "empty fixture request");
+            write!(
+                stream,
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                bytes.len()
+            )?;
+            stream.write_all(bytes)?;
+            Ok(())
+        });
+        let client = reqwest::blocking::Client::builder().no_proxy().build()?;
+        let url = format!("http://{address}/fixture.jar");
+        let first = acquire_named_frozen_download(
+            &cancellation,
+            &client,
+            &url,
+            &shared,
+            &expected,
+            bytes.len() as u64,
+            Some(bytes.len() as u64),
+            || Ok(()),
+        )?;
+        server.join().expect("fixture HTTP thread panicked")?;
+        let second = acquire_named_frozen_download(
+            &cancellation,
+            &client,
+            "http://127.0.0.1:1/no-second-request",
+            &other_common.join("maven/org/example/fixture.jar"),
+            &expected,
+            bytes.len() as u64,
+            Some(bytes.len() as u64),
+            || eyre::bail!("second owner unexpectedly attempted a missing download"),
+        )?;
+        assert_eq!(first, bytes);
+        assert_eq!(second, bytes);
         assert_eq!(
             fs::read(other_common.join("maven/org/example/fixture.jar"))?,
-            b"one checked fixture artifact"
+            bytes
         );
         assert_ne!(
             owner.prepare_directory("projects/dev", &cancellation)?,
