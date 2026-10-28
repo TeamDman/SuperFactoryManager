@@ -8,6 +8,7 @@ use super::ForgePreparationInputs;
 use super::HeldForgePreparationInput;
 use super::MAX_INPUT_FILES;
 use super::append;
+use super::append_source_region;
 use super::environment_is_clean;
 use super::finish_fingerprint;
 use super::recipe_basis;
@@ -20,6 +21,115 @@ use sha2::Sha256;
 use std::fs;
 use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Path;
+
+fn selected_source_digest(source: &str, start: &str, end: &str) -> Vec<u8> {
+    let mut hash = Sha256::new();
+    append_source_region(&mut hash, "producer-launch", source, start, end);
+    hash.finalize().to_vec()
+}
+
+#[test]
+fn launch_source_identity_changes_only_for_producer_launch_regions() {
+    let java = include_str!("engine_execute.rs");
+    let java_start = "    fn run_java_tool(";
+    let java_end = "#[path = \"forge_preparation_cache.rs\"]";
+    let original_java = selected_source_digest(java, java_start, java_end);
+    let java_consumer_edit = java.replace(
+        "fn execute_mcp_config_joined(",
+        "fn execute_mcp_config_joined_consumer_edit(",
+    );
+    assert_ne!(java_consumer_edit, java);
+    assert_eq!(
+        selected_source_digest(&java_consumer_edit, java_start, java_end),
+        original_java,
+        "unrelated execute/consumer edits must not invalidate producer bytes"
+    );
+    let java_launch_edit = java.replace(
+        "self.plan.require_strict(\"Java transform tool\")?;",
+        "self.plan.require_strict(\"Changed Java transform tool\")?;",
+    );
+    assert_ne!(java_launch_edit, java);
+    assert_ne!(
+        selected_source_digest(&java_launch_edit, java_start, java_end),
+        original_java,
+        "a Java launch semantic change must invalidate the producer"
+    );
+
+    let process = include_str!("engine_run.rs");
+    let process_start = "struct ProcessSpawnReport {";
+    let process_end = "fn trace_subprocess_bytes(";
+    let original_process = selected_source_digest(process, process_start, process_end);
+    let runtime_edit = process.replace(
+        "fn extract_required_gametest_pass_count(",
+        "fn extract_required_gametest_pass_count_runtime_edit(",
+    );
+    assert_ne!(runtime_edit, process);
+    assert_eq!(
+        selected_source_digest(&runtime_edit, process_start, process_end),
+        original_process,
+        "runtime parsing must not invalidate Forge preparation"
+    );
+    let process_launch_edit = process.replace(
+        "command.stdout(Stdio::piped()).stderr(Stdio::piped());",
+        "command.stdout(Stdio::null()).stderr(Stdio::piped());",
+    );
+    assert_ne!(process_launch_edit, process);
+    assert_ne!(
+        selected_source_digest(&process_launch_edit, process_start, process_end),
+        original_process,
+        "process launch changes must invalidate Forge preparation"
+    );
+
+    let archives = include_str!("engine_sources.rs");
+    let archive_start = "fn join_classpath(";
+    let archive_end = "fn write_run_forge_dev_jar(";
+    let original_archives = selected_source_digest(archives, archive_start, archive_end);
+    let runtime_archive_edit = archives.replace(
+        "fn write_run_neoforge_dev_jar(",
+        "fn write_run_neoforge_dev_jar_runtime_edit(",
+    );
+    assert_ne!(runtime_archive_edit, archives);
+    assert_eq!(
+        selected_source_digest(&runtime_archive_edit, archive_start, archive_end),
+        original_archives,
+        "runtime JAR code must not rekey MCP/Forge preparation"
+    );
+    let mcp_archive_edit = archives.replace(
+        "fn extract_zip_entry_to_path(",
+        "fn extract_zip_entry_to_path_changed(",
+    );
+    assert_ne!(mcp_archive_edit, archives);
+    assert_ne!(
+        selected_source_digest(&mcp_archive_edit, archive_start, archive_end),
+        original_archives,
+        "MCP extraction changes must invalidate preparation"
+    );
+
+    let cache = include_str!("forge_preparation_cache.rs");
+    let cache_start = "pub(super) fn execute(";
+    let cache_end = "fn store_base(";
+    let original_orchestration = selected_source_digest(cache, cache_start, cache_end);
+    let restore_edit = cache.replace(
+        "fn selected_restore_outputs(",
+        "fn selected_restore_outputs_consumer_edit(",
+    );
+    assert_ne!(restore_edit, cache);
+    assert_eq!(
+        selected_source_digest(&restore_edit, cache_start, cache_end),
+        original_orchestration,
+        "restoration selection must not invalidate producer output"
+    );
+    let producer_edit = cache.replace(
+        "fresh(at.as_ref().map(HeldForgeAtTransport::path))",
+        "fresh(None)",
+    );
+    assert_ne!(producer_edit, cache);
+    assert_ne!(
+        selected_source_digest(&producer_edit, cache_start, cache_end),
+        original_orchestration,
+        "producer AT transport changes must invalidate output"
+    );
+}
 
 #[test]
 fn held_version_directory_blocks_child_publication_until_release() -> Result<()> {

@@ -768,7 +768,7 @@ fn recipe_basis(
     mapping_channel: Option<&str>,
     mapping_version: Option<&str>,
 ) {
-    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@2");
+    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@3");
     append(hash, kind.as_bytes());
     append(hash, std::env::consts::OS.as_bytes());
     append(hash, std::env::consts::ARCH.as_bytes());
@@ -792,15 +792,6 @@ fn recipe_basis(
             include_bytes!("forge_preparation_producers.rs").as_slice(),
         ),
         (
-            "java-launch",
-            include_bytes!("engine_execute.rs").as_slice(),
-        ),
-        ("process-launch", include_bytes!("engine_run.rs").as_slice()),
-        (
-            "cache-algorithm",
-            include_bytes!("forge_preparation_cache.rs").as_slice(),
-        ),
-        (
             "input-algorithm",
             include_bytes!("forge_preparation_inputs.rs").as_slice(),
         ),
@@ -819,10 +810,6 @@ fn recipe_basis(
         (
             "capture-model",
             include_bytes!("forge_preparation_capture.rs").as_slice(),
-        ),
-        (
-            "source-zip-helpers",
-            include_bytes!("engine_sources.rs").as_slice(),
         ),
         (
             "mapping-helpers",
@@ -846,6 +833,70 @@ fn recipe_basis(
         append(hash, name.as_bytes());
         append(hash, source);
     }
+    // Cache restore/publish code does not produce these bytes. Its completed
+    // payload is validated separately on every hit. Hash the Java and process
+    // launch code that can affect a producer instead of whole engine files,
+    // which also contain unrelated client/runtime and cache-consumer logic.
+    for (name, source, start, end) in [
+        (
+            "java-argfile-and-cwd",
+            include_str!("engine_execute.rs"),
+            "fn java_tool_argfile_argument(",
+            "impl<'a> ExecutionContext<'a> {",
+        ),
+        (
+            "java-tool-launch",
+            include_str!("engine_execute.rs"),
+            "    fn run_java_tool(",
+            "#[path = \"forge_preparation_cache.rs\"]",
+        ),
+        (
+            "process-spawn-and-capture",
+            include_str!("engine_run.rs"),
+            "struct ProcessSpawnReport {",
+            "fn trace_subprocess_bytes(",
+        ),
+        (
+            "cache-producer-orchestration",
+            include_str!("forge_preparation_cache.rs"),
+            "pub(super) fn execute(",
+            "fn store_base(",
+        ),
+        (
+            "ordered-classpath-dedup",
+            include_str!("engine_sources.rs"),
+            "fn dedup_paths_preserve_order(",
+            "fn safe_path_segment(",
+        ),
+        (
+            "java-and-mcp-archive-helpers",
+            include_str!("engine_sources.rs"),
+            "fn join_classpath(",
+            "fn write_run_forge_dev_jar(",
+        ),
+        (
+            "forge-inner-class-patch",
+            include_str!("engine_sources.rs"),
+            "fn patch_inner_class_access_in_jar(",
+            "fn projected_compile_grammar_paths(",
+        ),
+    ] {
+        append_source_region(hash, name, source, start, end);
+    }
+    append(hash, b"forge-at-transport");
+    append(hash, include_bytes!("held_forge_at_transport.rs"));
+}
+
+fn append_source_region(hash: &mut Sha256, name: &str, source: &str, start: &str, end: &str) {
+    let (_, after_start) = source
+        .split_once(start)
+        .expect("Forge producer recipe source start marker must exist");
+    let (body, _) = after_start
+        .split_once(end)
+        .expect("Forge producer recipe source end marker must exist after start");
+    append(hash, name.as_bytes());
+    append(hash, start.as_bytes());
+    append(hash, body.as_bytes());
 }
 
 fn append_remap_recipe(hash: &mut Sha256) {
