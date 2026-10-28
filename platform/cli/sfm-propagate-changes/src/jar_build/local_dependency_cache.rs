@@ -30,6 +30,36 @@ use std::path::PathBuf;
 const MAX_MANIFEST: u64 = 8 * 1024 * 1024;
 const MAX_OUTPUT: u64 = 512 * 1024 * 1024;
 
+/// Constructed only after the selected entry and both published output hashes
+/// were independently read back under the producer lease.
+pub(crate) struct VerifiedLocalDependencyPublication {
+    contract_identity: String,
+    output_sha256: [String; 2],
+}
+
+impl VerifiedLocalDependencyPublication {
+    #[cfg(test)]
+    pub(crate) fn fixture(contract_identity: &str, output_sha256: [String; 2]) -> Self {
+        Self {
+            contract_identity: contract_identity.to_owned(),
+            output_sha256,
+        }
+    }
+
+    pub(crate) fn confirms(
+        &self,
+        contract_identity: &str,
+        receipts: &[&NfrtProducerOutputReceipt; 2],
+    ) -> bool {
+        self.contract_identity == contract_identity
+            && self.output_sha256
+                == [
+                    receipts[0].full_sha256.clone(),
+                    receipts[1].full_sha256.clone(),
+                ]
+    }
+}
+
 pub(super) struct LocalDependencyCache {
     key: LocalDependencyKey,
     directory: PathBuf,
@@ -39,6 +69,40 @@ pub(super) struct LocalDependencyCache {
 }
 
 impl LocalDependencyCache {
+    pub(super) fn publish_verified(
+        &mut self,
+        prepared: &PreparedNfrtInvocationInput,
+        classes: &Path,
+        sources: &Path,
+        receipts: &[&NfrtProducerOutputReceipt; 2],
+        cancellation: &CancellationToken,
+    ) -> Result<Option<VerifiedLocalDependencyPublication>> {
+        if !self.publish(prepared, classes, sources, receipts, cancellation)? {
+            return Ok(None);
+        }
+        // Retain verified output handles and ancestry after releasing the
+        // producer lock. The downstream compiler and subsequent scratch
+        // retirement must never rely on a pointer-only historical hit.
+        let (manifest, _, files, directories) = self
+            .read_entry(cancellation)?
+            .ok_or_else(|| eyre::eyre!("published NeoForm replacement could not be held"))?;
+        ensure!(
+            manifest.production_contract_sha256 == prepared.contract_identity()
+                && manifest.classes_sha256 == receipts[0].full_sha256
+                && manifest.sources_sha256 == receipts[1].full_sha256,
+            "held NeoForm replacement differs from the fresh result"
+        );
+        self.held.extend(files);
+        self.ancestry.extend(directories);
+        Ok(Some(VerifiedLocalDependencyPublication {
+            contract_identity: prepared.contract_identity(),
+            output_sha256: [
+                receipts[0].full_sha256.clone(),
+                receipts[1].full_sha256.clone(),
+            ],
+        }))
+    }
+
     pub(super) fn begin(
         root: &Path,
         key: LocalDependencyKey,

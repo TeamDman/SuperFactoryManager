@@ -10,9 +10,12 @@ use super::nfrt_file_open::regular;
 use super::nfrt_producer_output_receipt::SealedNfrtProducerOutput;
 use super::nfrt_project_owner::NfrtProjectOwner;
 use super::provenance::sha256;
+#[cfg(windows)]
+use crate::jar_build::VerifiedLocalDependencyPublication;
 use crate::jar_build::nfrt_launch_contract::PreparedNfrtInvocationInput;
 use crate::jar_build::nfrt_preparation_phase::NfrtPreparationPhase;
 use eyre::Result;
+use eyre::WrapErr;
 use eyre::ensure;
 use sha2::Digest;
 use sha2::Sha256;
@@ -36,6 +39,7 @@ pub(crate) struct NfrtInputStore {
     generated: std::collections::BTreeMap<String, String>,
     // Retain file and directory sharing exclusions for the entire invocation.
     files: Vec<File>,
+    owned_payloads: Vec<(PathBuf, usize, String)>,
     leases: DirectoryLeases,
 }
 
@@ -84,9 +88,11 @@ impl NfrtInputStore {
             create_owned_root(project_root, token)?
         };
         let mut files = Vec::with_capacity(receipt.inputs.len() + 1);
+        let mut owned_payloads = Vec::with_capacity(receipt.inputs.len());
         for (entry, bytes) in receipt.inputs.iter().zip(prepared.snapshots()) {
             let path = leases.prepare(&root, &entry.snapshot_relative_path)?;
             files.push(write_and_hold(&path, bytes, &entry.full_sha256)?);
+            owned_payloads.push((path, bytes.len(), entry.full_sha256.clone()));
         }
         let contract_path = leases.prepare(&root, "contract.json")?;
         files.push(write_and_hold(
@@ -113,6 +119,7 @@ impl NfrtInputStore {
             workspaces_declared: false,
             generated: std::collections::BTreeMap::new(),
             files,
+            owned_payloads,
             leases,
         })
     }
@@ -123,6 +130,100 @@ impl NfrtInputStore {
 
     pub(crate) fn contract_identity(&self) -> &str {
         &self.contract_identity
+    }
+
+    /// Retire only paths created and recorded by this store. This requires a
+    /// proof from independently read-back local publication, plus successful
+    /// downstream consumption and child exit at the call site. Held directory
+    /// ancestry remains live while exact file leaves are removed. Workspaces,
+    /// logs, JSON receipts and any untracked diagnostic files remain intact.
+    #[cfg(windows)]
+    pub(crate) fn retire_published_payloads(
+        &mut self,
+        publication: &VerifiedLocalDependencyPublication,
+        receipts: &[&super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
+    ) -> Result<(usize, u64)> {
+        ensure!(
+            publication.confirms(&self.contract_identity, receipts),
+            "NeoForm retirement lacks the matching verified publication"
+        );
+        for receipt in receipts {
+            ensure!(
+                receipt
+                    .snapshot_relative_path
+                    .starts_with("inputs/generated/")
+                    && self.owned_payloads.iter().any(|(path, bytes, hash)| {
+                        *path == self.root.join(&receipt.snapshot_relative_path)
+                            && *bytes == receipt.bytes
+                            && *hash == receipt.full_sha256
+                    }),
+                "NeoForm compiler output lacks an exact owned payload"
+            );
+            ensure!(
+                self.generated.get(&receipt.snapshot_relative_path) == Some(&receipt.full_sha256),
+                "NeoForm compiler output is not owned by this input store"
+            );
+        }
+        let mut total = 0_u64;
+        for (path, bytes, expected) in &self.owned_payloads {
+            let parent = path
+                .parent()
+                .ok_or_else(|| eyre::eyre!("owned payload has no parent"))?;
+            self.leases.prepare(parent, "reserved-leaf")?;
+            let mut file = open_read(path)?;
+            let metadata = file.metadata()?;
+            ensure!(
+                regular(&metadata) && metadata.len() == u64::try_from(*bytes)?,
+                "owned NeoForm payload changed type or length"
+            );
+            let identity = crate::file_identity::file_identity(&file)?;
+            let mut hash = Sha256::new();
+            let mut buffer = [0_u8; 64 * 1024];
+            loop {
+                let count = file.read(&mut buffer)?;
+                if count == 0 {
+                    break;
+                }
+                hash.update(&buffer[..count]);
+            }
+            ensure!(
+                format!("sha256:{:x}", hash.finalize()) == *expected
+                    && file.metadata()?.len() == metadata.len()
+                    && crate::file_identity::file_identity(&file)? == identity,
+                "owned NeoForm payload changed before retirement"
+            );
+            total = total
+                .checked_add(metadata.len())
+                .ok_or_else(|| eyre::eyre!("NeoForm retirement size overflow"))?;
+            ensure!(
+                total <= 4 * 1024 * 1024 * 1024,
+                "NeoForm owned payload budget exceeded"
+            );
+        }
+        self.files.clear();
+        let mut removed = 0_usize;
+        let mut bytes = 0_u64;
+        for (path, _, _) in &self.owned_payloads {
+            let metadata = fs::symlink_metadata(path).wrap_err_with(|| {
+                format!(
+                    "NeoForm retirement stopped after {removed} files and {bytes} bytes at {}",
+                    path.display()
+                )
+            })?;
+            ensure!(
+                metadata.is_file() && !super::candidate_lock::is_reparse(&metadata),
+                "owned NeoForm payload changed type before unlink"
+            );
+            fs::remove_file(path).wrap_err_with(|| {
+                format!(
+                    "NeoForm retirement stopped after {removed} files and {bytes} bytes at {}",
+                    path.display()
+                )
+            })?;
+            removed += 1;
+            bytes += metadata.len();
+        }
+        Ok((removed, bytes))
     }
 
     /// Materialize the CLI's embedded adapter in this fresh invocation, never
@@ -169,8 +270,10 @@ impl NfrtInputStore {
             let path = self
                 .leases
                 .prepare(&self.root, &format!("adapter/src/{name}"))?;
-            self.files
-                .push(write_and_hold(&path, bytes, &sha256(bytes))?);
+            let hash = sha256(bytes);
+            self.files.push(write_and_hold(&path, bytes, &hash)?);
+            self.owned_payloads
+                .push((path.clone(), bytes.len(), hash.clone()));
             paths.push(path);
         }
         observation.work(sources.len() as u64, total as u64);
@@ -258,6 +361,8 @@ impl NfrtInputStore {
                     .compression_method(zip::CompressionMethod::Stored),
             )?;
             archive.write_all(&bytes)?;
+            self.owned_payloads
+                .push((class.path(), bytes.len(), sha256(&bytes)));
             self.files.push(file);
         }
         ensure!(
@@ -274,6 +379,8 @@ impl NfrtInputStore {
             .prepare(&self.root, "adapter/host-adapter.jar")?;
         self.files
             .push(write_and_hold(&path, &bytes, &sha256(&bytes))?);
+        self.owned_payloads
+            .push((path.clone(), bytes.len(), sha256(&bytes)));
         observation.work(class_count as u64, total as u64);
         observation.success();
         Ok(path)
@@ -318,6 +425,8 @@ impl NfrtInputStore {
             let path = self.leases.prepare(&self.root, relative)?;
             let hash = sha256(bytes);
             self.files.push(write_and_hold(&path, bytes, &hash)?);
+            self.owned_payloads
+                .push((path.clone(), bytes.len(), hash.clone()));
             inputs.push(ProjectInput {
                 source_output: AT.to_owned(),
                 snapshot_relative_path: relative.to_owned(),
@@ -417,6 +526,11 @@ impl NfrtInputStore {
             if !self.generated.contains_key(&receipt.snapshot_relative_path) {
                 let file = write_and_hold(&path, output.bytes(), &receipt.full_sha256)?;
                 self.files.push(file);
+                self.owned_payloads.push((
+                    path.clone(),
+                    output.bytes().len(),
+                    receipt.full_sha256.clone(),
+                ));
                 written_files += 1;
                 written_bytes += receipt.bytes as u64;
                 self.generated.insert(
@@ -642,6 +756,114 @@ fn write_and_hold(path: &Path, bytes: &[u8], expected: &str) -> Result<File> {
 mod tests {
     use super::*;
 
+    fn retirement_receipt(
+        contract: &str,
+        relative: &str,
+        bytes: &[u8],
+    ) -> super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt {
+        use super::super::nfrt_producer_output_receipt::{
+            NfrtProducerDeclaration, NfrtProducerOutputReceipt, NfrtProducerScope,
+        };
+        NfrtProducerOutputReceipt {
+            schema: "fixture".to_owned(),
+            scope: NfrtProducerScope {
+                invocation_id: "fixture".to_owned(),
+                prepared_contract_sha256: contract.to_owned(),
+                project_preparation_sha256: "fixture".to_owned(),
+                source_lock_sha256: "fixture".to_owned(),
+                recipe_id: "fixture".to_owned(),
+                graph_plan_sha256: "fixture".to_owned(),
+                tool_sdk_sha256: "fixture".to_owned(),
+            },
+            declaration: NfrtProducerDeclaration {
+                producer_id: "fixture".to_owned(),
+                output_id: "output".to_owned(),
+                output_type: "JAR".to_owned(),
+                output_relative_path: relative.to_owned(),
+                producer_inputs_sha256: "fixture".to_owned(),
+                tool_classpath_and_arguments_sha256: "fixture".to_owned(),
+            },
+            snapshot_relative_path: relative.to_owned(),
+            bytes: bytes.len(),
+            full_sha256: sha256(bytes),
+            completion_was_fresh: true,
+            inherited_cache_restore_disabled: true,
+            memory_snapshot_immutable: true,
+            os_filesystem_attested: true,
+            native_execution_enabled: false,
+        }
+    }
+
+    #[test]
+    fn verified_publication_retires_only_exact_store_owned_payloads() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let (root, leases) = create_owned_root(fixture.path(), "retire-proof")?;
+        let contract = format!("sha256:{}", "a".repeat(64));
+        let receipts = [
+            retirement_receipt(&contract, "inputs/generated/0001.bin", b"classes"),
+            retirement_receipt(&contract, "inputs/generated/0002.bin", b"sources"),
+        ];
+        let mut store = NfrtInputStore {
+            root: root.clone(),
+            contract_identity: contract.clone(),
+            project_preparation_identity: "fixture".to_owned(),
+            workspaces_declared: true,
+            generated: std::collections::BTreeMap::new(),
+            files: Vec::new(),
+            owned_payloads: Vec::new(),
+            leases,
+        };
+        for receipt in &receipts {
+            let path = store
+                .leases
+                .prepare(&root, &receipt.snapshot_relative_path)?;
+            let bytes = if receipt.snapshot_relative_path.ends_with("0001.bin") {
+                b"classes".as_slice()
+            } else {
+                b"sources".as_slice()
+            };
+            store
+                .files
+                .push(write_and_hold(&path, bytes, &receipt.full_sha256)?);
+            store
+                .owned_payloads
+                .push((path, bytes.len(), receipt.full_sha256.clone()));
+            store.generated.insert(
+                receipt.snapshot_relative_path.clone(),
+                receipt.full_sha256.clone(),
+            );
+        }
+        fs::write(root.join("contract.json"), b"retained contract")?;
+        fs::write(root.join("work/untracked.log"), b"retained diagnostic")?;
+        let refs = [&receipts[0], &receipts[1]];
+        let wrong = VerifiedLocalDependencyPublication::fixture(
+            "wrong",
+            [
+                receipts[0].full_sha256.clone(),
+                receipts[1].full_sha256.clone(),
+            ],
+        );
+        assert!(store.retire_published_payloads(&wrong, &refs).is_err());
+        assert!(root.join("inputs/generated/0001.bin").exists());
+        assert!(fs::rename(&root, fixture.path().join("replacement")).is_err());
+        let proof = VerifiedLocalDependencyPublication::fixture(
+            &contract,
+            [
+                receipts[0].full_sha256.clone(),
+                receipts[1].full_sha256.clone(),
+            ],
+        );
+        assert_eq!(store.retire_published_payloads(&proof, &refs)?, (2, 14));
+        assert!(!root.join("inputs/generated/0001.bin").exists());
+        assert!(!root.join("inputs/generated/0002.bin").exists());
+        assert_eq!(fs::read(root.join("contract.json"))?, b"retained contract");
+        assert_eq!(
+            fs::read(root.join("work/untracked.log"))?,
+            b"retained diagnostic"
+        );
+        Ok(())
+    }
+
     #[test]
     fn embedded_host_jar_guards_membership_and_holds_its_classpath_bytes() -> Result<()> {
         // Header-only class fixtures exercise filesystem/ZIP guards, not JVM
@@ -656,6 +878,7 @@ mod tests {
                 workspaces_declared: false,
                 generated: std::collections::BTreeMap::new(),
                 files: Vec::new(),
+                owned_payloads: Vec::new(),
                 leases,
             };
             let names = (0..15)

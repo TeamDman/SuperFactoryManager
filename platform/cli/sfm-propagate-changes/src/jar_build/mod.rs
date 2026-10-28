@@ -34,6 +34,8 @@ pub(crate) mod library_rule;
 #[cfg(any(windows, target_os = "linux"))]
 mod local_dependency_cache;
 #[cfg(any(windows, target_os = "linux"))]
+pub(crate) use local_dependency_cache::VerifiedLocalDependencyPublication;
+#[cfg(any(windows, target_os = "linux"))]
 mod local_dependency_consumption;
 #[cfg(any(windows, target_os = "linux"))]
 mod local_dependency_image;

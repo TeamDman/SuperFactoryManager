@@ -643,18 +643,22 @@ fn with_named_neoform_context<T>(
             if let Some(image) = &execution_image {
                 image.recheck(&context.cancellation_token)?;
             }
+            let mut publication = None;
             if let Some(cache) = &mut cache {
-                match cache.publish(
+                match cache.publish_verified(
                     &prepared,
                     classes,
                     sources,
                     receipts,
                     &context.cancellation_token,
                 ) {
-                    Ok(true) => tracing::info!(
-                        "Fresh NeoForm dependency outputs have a verified durable cache entry"
-                    ),
-                    Ok(false) => tracing::info!(
+                    Ok(Some(proof)) => {
+                        publication = Some(proof);
+                        tracing::info!(
+                            "Fresh NeoForm dependency outputs have a verified durable cache entry"
+                        );
+                    }
+                    Ok(None) => tracing::info!(
                         "Local dependency publication declined; retaining fresh inputs"
                     ),
                     Err(error) => {
@@ -678,7 +682,11 @@ fn with_named_neoform_context<T>(
                 .as_ref()
                 .map(|image| image.identity().to_owned());
             consumer.compiler_image = execution_image.as_ref();
-            consume(&consumer)
+            let value = consume(&consumer)?;
+            if let Some(image) = &execution_image {
+                image.recheck(&context.cancellation_token)?;
+            }
+            Ok((value, publication))
         },
     );
     if let Some(image) = &execution_image {

@@ -103,7 +103,10 @@ pub(crate) fn with_owned_compiler_inputs<T>(
         &Path,
         &Path,
         &[&crate::source_projection::nfrt_producer_output_receipt::NfrtProducerOutputReceipt; 2],
-    ) -> Result<T>,
+    ) -> Result<(
+        T,
+        Option<super::local_dependency_cache::VerifiedLocalDependencyPublication>,
+    )>,
 ) -> Result<T> {
     let _invocation = tracing::info_span!("nfrt_owned_host",
         invocation_id = %prepared.receipt().invocation_id,
@@ -342,7 +345,28 @@ pub(crate) fn with_owned_compiler_inputs<T>(
         consume(classes, sources, &receipts)
     });
     NfrtPreparationPhase::run("owned_host.sdk_recheck.after_consumer", || sdk.recheck())?;
-    consumer.finish(result)
+    let (value, publication) = consumer.finish(result)?;
+    cancellation.bail_if_cancelled()?;
+    let owned_receipts = [receipts[0].clone(), receipts[1].clone()];
+    // NfrtHostSession owns the producer readers and borrows the store. All
+    // children and the downstream compiler have exited before this point.
+    drop(session);
+    #[cfg(windows)]
+    if let Some(publication) = publication {
+        let receipt_refs = [&owned_receipts[0], &owned_receipts[1]];
+        match store.retire_published_payloads(&publication, &receipt_refs) {
+            Ok((files, bytes)) => tracing::info!(
+                files,
+                bytes,
+                "Retired exact owned NeoForm payloads after verified publication and consumption"
+            ),
+            Err(error) => tracing::warn!(%error,
+                "NeoForm consumer completed; owned payload retirement was incomplete or skipped"),
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = (publication, owned_receipts);
+    Ok(value)
 }
 
 fn clean_jvm_environment(command: &mut Command, prepared: &PreparedNfrtInvocationInput) {
