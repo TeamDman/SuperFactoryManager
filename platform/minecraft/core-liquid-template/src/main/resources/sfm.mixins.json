@@ -20,6 +20,9 @@
     "SFMGameTestEnclosureMixin",
 {% endcase %}
 {% endif %}
+{% if features.gametest_infrastructure_invariants %}
+    "SFMGameTestIntegrityMixin",
+{% endif %}
     "StructureTemplateManagerMixin"
   ],
   "client": [

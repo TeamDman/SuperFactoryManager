@@ -44,8 +44,13 @@ public class GeneratedPacketInputSourceGameTest extends SFMGameTestDefinition {
     @Override
     @SuppressWarnings("unchecked")
     public void run(SFMGameTestHelper helper) {
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos managerPos = new BlockPos(0, 2, 0);
+        BlockPos destinationPos = new BlockPos(2, 2, 0);
+{% else %}
         BlockPos managerPos = new BlockPos(0, 1, 0);
         BlockPos destinationPos = new BlockPos(2, 1, 0);
+{% endif %}
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
         helper.setBlock(destinationPos, Blocks.CHEST);
         ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);

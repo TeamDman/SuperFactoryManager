@@ -53,7 +53,7 @@ public class Issue610JdtProgressGameTestGenerator extends SFMGameTestGeneratorBa
 
         Fixture(Scenario scenario) { this.scenario = scenario; }
 
-        @Override public String template() { return "3x4x3"; }
+        @Override public String template() { return "3x5x3"; }
         @Override public int maxTicks() { return 200; }
         @Override public String testName() {
             return "issue_610_jdt_progress_" + scenario.name().toLowerCase(Locale.ROOT);
@@ -61,10 +61,10 @@ public class Issue610JdtProgressGameTestGenerator extends SFMGameTestGeneratorBa
 
         @Override
         public void run(SFMGameTestHelper helper) {
-            BlockPos managerPos = new BlockPos(1, 1, 1);
-            BlockPos cablePos = new BlockPos(1, 2, 1);
-            BlockPos sourcePos = new BlockPos(1, 3, 1);
-            List<BlockPos> destinations = List.of(new BlockPos(0, 2, 1), new BlockPos(2, 2, 1));
+            BlockPos managerPos = new BlockPos(1, 2, 1);
+            BlockPos cablePos = new BlockPos(1, 3, 1);
+            BlockPos sourcePos = new BlockPos(1, 4, 1);
+            List<BlockPos> destinations = List.of(new BlockPos(0, 3, 1), new BlockPos(2, 3, 1));
             var labels = LabelPositionHolder.empty().add("PowerSource", helper.absolutePos(sourcePos));
             for (BlockPos pos : destinations) labels.add("Machines", helper.absolutePos(pos));
             helper.setBlock(managerPos, SFMBlocks.MANAGER.get());

@@ -209,6 +209,13 @@ public class ToughCableExplosionGameTestGenerator extends SFMGameTestGeneratorBa
             return scenario.explosionType == ExplosionType.TNT ? 100 : 300;
         }
 
+{% if features.gametest_infrastructure_invariants %}
+        @Override
+        public boolean mayDamagePlatform() {
+            return true;
+        }
+
+{% endif %}
         @Override
         public void run(SFMGameTestHelper helper) {
 

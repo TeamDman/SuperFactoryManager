@@ -30,7 +30,11 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
+{% if features.gametest_infrastructure_invariants %}
+        return "3x3x1";
+{% else %}
         return "3x2x1";
+{% endif %}
     }
 
     @Override
@@ -38,7 +42,11 @@ public class WirelessRegressionGameTest extends SFMGameTestDefinition {
         helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
         BlockPos rightPos = new BlockPos(0, 2, 0);
         helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos leftPos = new BlockPos(2, 3, 0);
+{% else %}
         BlockPos leftPos = new BlockPos(2, 1, 0);
+{% endif %}
         helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
 
         var rightChest = helper.getItemHandler(rightPos);

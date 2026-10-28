@@ -34,7 +34,11 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
+{% if features.gametest_infrastructure_invariants %}
+        return SFMDirections.DIRECTIONS_WITHOUT_NULL.length + "x2x1";
+{% else %}
         return SFMDirections.DIRECTIONS_WITHOUT_NULL.length + "x1x1";
+{% endif %}
     }
 
     @Override
@@ -43,7 +47,11 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
         Direction[] directions = SFMDirections.DIRECTIONS_WITHOUT_NULL;
         for (int i = 0; i < directions.length; i++) {
             Direction dir = directions[i];
+{% if features.gametest_infrastructure_invariants %}
+            BlockPos pos = new BlockPos(i, 2, 0);
+{% else %}
             BlockPos pos = new BlockPos(i, 1, 0);
+{% endif %}
             BlockState observerState = Blocks.OBSERVER.defaultBlockState()
                     .setValue(ObserverBlock.FACING, dir);
             helper.setBlock(pos, observerState);
@@ -52,7 +60,11 @@ public class SideResolveDirectionGameTest extends SFMGameTestDefinition {
         // Now resolve all Side variants for each observer
         for (int i = 0; i < directions.length; i++) {
             Direction facing = directions[i];
+{% if features.gametest_infrastructure_invariants %}
+            BlockPos pos = new BlockPos(i, 2, 0);
+{% else %}
             BlockPos pos = new BlockPos(i, 1, 0);
+{% endif %}
             BlockState blockState = helper.getBlockState(pos);
 
             // Verify the observer is placed correctly

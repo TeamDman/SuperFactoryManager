@@ -15,10 +15,10 @@ public final class SFMOpenEnclosureGameTest extends SFMGameTestDefinition {
     @Override public String testName() { return "sfm_open_enclosure"; }
 
     @Override public void run(SFMGameTestHelper helper) {
-        BlockPos outsideWestWall = new BlockPos(-1, 1, 1);
+        BlockPos outsideWestWall = new BlockPos(-1, 2, 1);
         helper.assertTrue(!helper.getBlockState(outsideWestWall).is(Blocks.BARRIER),
                 "SFM GameTest still has an automatically generated barrier wall");
-        BlockPos explicitBarrier = new BlockPos(1, 1, 1);
+        BlockPos explicitBarrier = new BlockPos(1, 2, 1);
         helper.setBlock(explicitBarrier, Blocks.BARRIER);
         helper.assertTrue(helper.getBlockState(explicitBarrier).is(Blocks.BARRIER),
                 "Explicit fixture barrier was removed");

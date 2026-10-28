@@ -40,18 +40,18 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
 {% else %}
     private static final boolean EXPECT_FIXED = false;
 {% endif %}
-    private static final BlockPos MANAGER = new BlockPos(2, 2, 3);
-    private static final BlockPos SOURCE = new BlockPos(2, 3, 3);
-    private static final BlockPos FIRST = new BlockPos(1, 2, 3);
-    private static final BlockPos HEALTHY = new BlockPos(3, 2, 3);
-    private static final BlockPos RUN_BUTTON = new BlockPos(2, 2, 2);
-    private static final BlockPos DRAIN_BUTTON = new BlockPos(7, 2, 2);
-    private static final BlockPos MANUAL_LEVER = new BlockPos(9, 2, 2);
-    private static final BlockPos TOKENS = new BlockPos(5, 2, 2);
-    private static final BlockPos COUNTER = new BlockPos(5, 2, 4);
-    private static final BlockPos STATUS = new BlockPos(5, 2, 1);
-    private static final BlockPos FIRST_LAMP = new BlockPos(7, 2, 4);
-    private static final BlockPos SECOND_LAMP = new BlockPos(9, 2, 4);
+    private static final BlockPos MANAGER = fixturePos(2, 2, 3);
+    private static final BlockPos SOURCE = fixturePos(2, 3, 3);
+    private static final BlockPos FIRST = fixturePos(1, 2, 3);
+    private static final BlockPos HEALTHY = fixturePos(3, 2, 3);
+    private static final BlockPos RUN_BUTTON = fixturePos(2, 2, 2);
+    private static final BlockPos DRAIN_BUTTON = fixturePos(7, 2, 2);
+    private static final BlockPos MANUAL_LEVER = fixturePos(9, 2, 2);
+    private static final BlockPos TOKENS = fixturePos(5, 2, 2);
+    private static final BlockPos COUNTER = fixturePos(5, 2, 4);
+    private static final BlockPos STATUS = fixturePos(5, 2, 1);
+    private static final BlockPos FIRST_LAMP = fixturePos(7, 2, 4);
+    private static final BlockPos SECOND_LAMP = fixturePos(9, 2, 4);
     private static final String IDLE_PROGRAM = "EVERY REDSTONE PULSE DO\nEND";
     private static final String PROGRAM = """
             EVERY REDSTONE PULSE DO
@@ -69,16 +69,10 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
     @Override public int maxTicks() { return RECORDING_TICKS; }
 
     @Override public void run(SFMGameTestHelper helper) {
-        // Keep the floor above the GameTest structure block at relative (0, 0, 0).
-        for (int x = 0; x < 11; x++) {
-            for (int z = 0; z < 7; z++) {
-                helper.setBlock(new BlockPos(x, 1, z), Blocks.POLISHED_ANDESITE);
-            }
-        }
-        helper.setBlock(MANAGER.below(), Blocks.POLISHED_ANDESITE);
+        // SFMStructureGenerator already places the single polished-andesite platform.
         helper.setBlock(MANAGER, SFMBlocks.MANAGER.get());
-        for (BlockPos pos : List.of(new BlockPos(2, 2, 4), new BlockPos(3, 2, 4),
-                new BlockPos(4, 2, 4), new BlockPos(4, 2, 3), new BlockPos(5, 2, 3))) {
+        for (BlockPos pos : List.of(fixturePos(2, 2, 4), fixturePos(3, 2, 4),
+                fixturePos(4, 2, 4), fixturePos(4, 2, 3), fixturePos(5, 2, 3))) {
             helper.setBlock(pos, SFMBlocks.CABLE.get());
         }
         helper.setBlock(SOURCE, SFMBlocks.TEST_BARREL.get());
@@ -93,19 +87,19 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
         for (BlockPos lamp : List.of(FIRST_LAMP, SECOND_LAMP)) {
             helper.setBlock(lamp, Blocks.REDSTONE_LAMP);
         }
-        sign(helper, new BlockPos(2, 2, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
-        sign(helper, new BlockPos(6, 2, 1), "DRAIN SECOND", "After run 1", "Healthy only", "Then run again");
-        sign(helper, new BlockPos(9, 2, 1), "MANUAL MODE", "Flick within 3s", "Otherwise auto", "Choice is latched");
-        sign(helper, new BlockPos(7, 2, 5), "RUNS >= 1", "Off/off: none", "On/off: one", "On/on: two+");
-        sign(helper, new BlockPos(9, 2, 5), "RUNS >= 2", "Counted tokens", "Not button taps", "Reset: rerun test");
-        sign(helper, new BlockPos(1, 2, 5), "DETERMINISTIC FE", "2-FE source quantum", "Not Mekanism/JDT", "Read result signs");
-        sign(helper, new BlockPos(1, 2, 1), "FIRST MACHINE", "Preparing", "", "");
-        sign(helper, new BlockPos(3, 2, 1), "SECOND MACHINE", "Preparing", "", "");
-        sign(helper, new BlockPos(5, 2, 5), "SOURCE", "Preparing", "", "");
+        sign(helper, fixturePos(2, 2, 1), "RUN MANAGER", "One pulse", "Run 1 > drain", "then run 2");
+        sign(helper, fixturePos(6, 2, 1), "DRAIN SECOND", "After run 1", "Healthy only", "Then run again");
+        sign(helper, fixturePos(9, 2, 1), "MANUAL MODE", "Flick within 3s", "Otherwise auto", "Choice is latched");
+        sign(helper, fixturePos(7, 2, 5), "RUNS >= 1", "Off/off: none", "On/off: one", "On/on: two+");
+        sign(helper, fixturePos(9, 2, 5), "RUNS >= 2", "Counted tokens", "Not button taps", "Reset: rerun test");
+        sign(helper, fixturePos(1, 2, 5), "DETERMINISTIC FE", "2-FE source quantum", "Not Mekanism/JDT", "Read result signs");
+        sign(helper, fixturePos(1, 2, 1), "FIRST MACHINE", "Preparing", "", "");
+        sign(helper, fixturePos(3, 2, 1), "SECOND MACHINE", "Preparing", "", "");
+        sign(helper, fixturePos(5, 2, 5), "SOURCE", "Preparing", "", "");
         sign(helper, STATUS, "PREPARING", "Do not press yet", "", "");
         for (int x = 0; x < 11; x++) {
             for (int z = 0; z < 7; z++) {
-                BlockPos floor = new BlockPos(x, 1, z);
+                BlockPos floor = fixturePos(x, 1, z);
                 helper.assertTrue(helper.getBlockState(floor).is(Blocks.POLISHED_ANDESITE),
                         "Issue 610 portable fixture floor has a gap at " + floor);
             }
@@ -113,12 +107,16 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
         helper.runAfterDelay(2, () -> new Session(helper).configure());
     }
 
+    private static BlockPos fixturePos(int x, int y, int z) {
+        // SFMGameTestHelper normalizes coordinates to the legacy structure-block origin.
+        return new BlockPos(x, y, z);
+    }
+
     private static void sign(SFMGameTestHelper helper, BlockPos pos, String... lines) {
-        // The standing sign has the continuous floor directly beneath it.
-        helper.setBlock(pos.below(), Blocks.POLISHED_ANDESITE);
+        // The standing sign must use the generator's existing floor for support.
         helper.setBlock(pos, Blocks.OAK_SIGN);
         helper.assertTrue(helper.getBlockState(pos.below()).is(Blocks.POLISHED_ANDESITE),
-                "Issue 610 portable sign has no pedestal at " + pos);
+                "Issue 610 portable sign has no platform support at " + pos);
         text(helper, pos, lines);
     }
 
@@ -315,8 +313,9 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
 
         private void lamps(int actualRuns) {
             // Power normal lamps from the counted outputs, far from manager/lever/button wiring.
-            helper.setBlock(FIRST_LAMP.below(), actualRuns >= 1 ? Blocks.REDSTONE_BLOCK : Blocks.STONE);
-            helper.setBlock(SECOND_LAMP.below(), actualRuns >= 2 ? Blocks.REDSTONE_BLOCK : Blocks.STONE);
+            // Power the lamps from their sides; never replace the generated platform beneath them.
+            helper.setBlock(FIRST_LAMP.east(), actualRuns >= 1 ? Blocks.REDSTONE_BLOCK : Blocks.AIR);
+            helper.setBlock(SECOND_LAMP.east(), actualRuns >= 2 ? Blocks.REDSTONE_BLOCK : Blocks.AIR);
         }
 
         private void status(long tick) {
@@ -326,9 +325,9 @@ public class Issue610PortableControlsGameTest extends SFMGameTestDefinition {
             String next = title + detail + runs + drained;
             if (!next.equals(previousStatus)) {
                 text(helper, STATUS, title, detail, "Completed runs: " + runs, drained ? "Second drained" : "Drain after run 1");
-                text(helper, new BlockPos(1, 2, 1), "FIRST MACHINE", first.stored() + "/100000 FE", "One FE stays empty", "Deterministic fixture");
-                text(helper, new BlockPos(3, 2, 1), "SECOND MACHINE", healthy.stored() + "/100000 FE", "Drain after run 1", "Then run manager");
-                text(helper, new BlockPos(5, 2, 5), "SOURCE", source.stored() + " FE", "2-FE quantum", "Never refilled");
+                text(helper, fixturePos(1, 2, 1), "FIRST MACHINE", first.stored() + "/100000 FE", "One FE stays empty", "Deterministic fixture");
+                text(helper, fixturePos(3, 2, 1), "SECOND MACHINE", healthy.stored() + "/100000 FE", "Drain after run 1", "Then run manager");
+                text(helper, fixturePos(5, 2, 5), "SOURCE", source.stored() + " FE", "2-FE quantum", "Never refilled");
                 previousStatus = next;
             }
         }

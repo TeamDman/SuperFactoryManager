@@ -56,7 +56,11 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
+{% if features.gametest_infrastructure_invariants %}
+        return "7x5x3";
+{% else %}
         return "7x4x3";
+{% endif %}
     }
 
     @Override
@@ -73,11 +77,19 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
     @Override
     public void run(SFMGameTestHelper helper) {
 
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos turtlePos = new BlockPos(1, 3, 1);
+        BlockPos firstFurnace = new BlockPos(2, 3, 1);
+        BlockPos secondFurnace = new BlockPos(2, 3, 2);
+        BlockPos skippedFurnace = new BlockPos(2, 3, 0);
+        BlockPos managerPos = new BlockPos(1, 4, 1);
+{% else %}
         BlockPos turtlePos = new BlockPos(1, 2, 1);
         BlockPos firstFurnace = new BlockPos(2, 2, 1);
         BlockPos secondFurnace = new BlockPos(2, 2, 2);
         BlockPos skippedFurnace = new BlockPos(2, 2, 0);
         BlockPos managerPos = new BlockPos(1, 3, 1);
+{% endif %}
         helper.setBlock(
                 turtlePos,
 {% case minecraft_version %}
@@ -91,10 +103,17 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         helper.setBlock(firstFurnace, Blocks.FURNACE);
         helper.setBlock(secondFurnace, Blocks.FURNACE);
         helper.setBlock(skippedFurnace, Blocks.FURNACE);
+{% if features.gametest_infrastructure_invariants %}
+        helper.setBlock(new BlockPos(2, 2, 1), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(2, 2, 2), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(3, 2, 1), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(3, 2, 2), SFMBlocks.CABLE.get());
+{% else %}
         helper.setBlock(new BlockPos(2, 1, 1), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(2, 1, 2), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(3, 1, 1), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(3, 1, 2), SFMBlocks.CABLE.get());
+{% endif %}
         helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
 
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());

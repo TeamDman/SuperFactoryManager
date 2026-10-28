@@ -136,7 +136,8 @@ public class RedstoneQueryGameTestGenerator extends SFMGameTestGeneratorBase {
         helper.setBlock(new BlockPos(1, 2, 1), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(2, 2, 1), SFMBlocks.CABLE.get());
         helper.setBlock(new BlockPos(3, 2, 1), SFMBlocks.CABLE.get());
-        helper.setBlock(SOURCE.below(), Blocks.STONE);
+        helper.assertTrue(helper.getBlockState(SOURCE.below()).is(Blocks.POLISHED_ANDESITE),
+                "Redstone source must use the generator-owned platform as support");
         var manager = helper.getBlockEntity(MANAGER, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
         LabelPositionHolder.empty()

@@ -67,7 +67,7 @@ public final class TouchDisplayTerminalIntegrationGameTest extends SFMGameTestDe
         var circuit = new TouchDisplayCircuitFixture(helper, owner.getGameProfile().getName(), channel);
         if (visual != null) {
             // The circuit faces SOUTH. Open only this fresh puppet world's camera bay.
-            for (int x = 1; x <= 3; x++) for (int y = 1; y <= 4; y++) for (int z = 3; z <= 5; z++) {
+            for (int x = 1; x <= 3; x++) for (int y = 2; y <= 4; y++) for (int z = 3; z <= 5; z++) {
                 helper.setBlock(new BlockPos(x, y, z), Blocks.AIR);
             }
             helper.setBlock(new BlockPos(5, 3, 3), Blocks.GLOWSTONE);

@@ -33,7 +33,11 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
     @Override
     public String template() {
 
+{% if features.gametest_infrastructure_invariants %}
+        return "5x3x5";
+{% else %}
         return "5x2x5";
+{% endif %}
     }
 
     @Override
@@ -41,18 +45,34 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
 
         for (int x = 0; x < 5; x++) {
             for (int z = 0; z < 5; z++) {
+{% if features.gametest_infrastructure_invariants %}
+                helper.setBlock(new BlockPos(x, 1, z).above(), SFMBlocks.CABLE.get());
+{% else %}
                 helper.setBlock(new BlockPos(x, 1, z), SFMBlocks.CABLE.get());
+{% endif %}
             }
         }
 
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos barrelPos = new BlockPos(2, 2, 0).above();
+{% else %}
         BlockPos barrelPos = new BlockPos(2, 2, 0);
+{% endif %}
         helper.setBlock(barrelPos, SFMBlocks.TEST_BARREL.get());
         IItemHandler barrelHandler = helper.getItemHandler(barrelPos);
         barrelHandler.insertItem(0, new ItemStack(Items.DIRT, 64), false);
 
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos manager1Pos = new BlockPos(1, 2, 1).above();
+{% else %}
         BlockPos manager1Pos = new BlockPos(1, 2, 1);
+{% endif %}
         helper.setBlock(manager1Pos, SFMBlocks.MANAGER.get());
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos manager2Pos = new BlockPos(3, 2, 3).above();
+{% else %}
         BlockPos manager2Pos = new BlockPos(3, 2, 3);
+{% endif %}
         helper.setBlock(manager2Pos, SFMBlocks.MANAGER.get());
 
         // Set up manager1
@@ -96,20 +116,36 @@ public class CircleRedstoneGameTest extends SFMGameTestDefinition {
                 .setValue(RepeaterBlock.FACING, Direction.NORTH)
                 .setValue(RepeaterBlock.DELAY, 4);
 
+{% if features.gametest_infrastructure_invariants %}
+        helper.setBlock(new BlockPos(2, 2, 1).above(), repeaterFacingEast);
+        helper.setBlock(new BlockPos(3, 2, 2).above(), repeaterFacingSouth);
+        helper.setBlock(new BlockPos(2, 2, 3).above(), repeaterFacingWest);
+        helper.setBlock(new BlockPos(1, 2, 2).above(), repeaterFacingNorth);
+{% else %}
         helper.setBlock(new BlockPos(2, 2, 1), repeaterFacingEast);
         helper.setBlock(new BlockPos(3, 2, 2), repeaterFacingSouth);
         helper.setBlock(new BlockPos(2, 2, 3), repeaterFacingWest);
         helper.setBlock(new BlockPos(1, 2, 2), repeaterFacingNorth);
+{% endif %}
 
         List<BlockPos> redstoneDustPositions = List.of(
+{% if features.gametest_infrastructure_invariants %}
+                new BlockPos(3, 2, 1).above(),
+                new BlockPos(1, 2, 3).above()
+{% else %}
                 new BlockPos(3, 2, 1),
                 new BlockPos(1, 2, 3)
+{% endif %}
         );
         for (BlockPos pos : redstoneDustPositions) {
             helper.setBlock(pos, Blocks.REDSTONE_WIRE.defaultBlockState());
         }
 
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos buttonPos = new BlockPos(1, 2, 4).above();
+{% else %}
         BlockPos buttonPos = new BlockPos(1, 2, 4);
+{% endif %}
         BlockState buttonState = Blocks.STONE_BUTTON.defaultBlockState()
                 .setValue(ButtonBlock.FACING, Direction.NORTH)
                 .setValue(ButtonBlock.FACE, AttachFace.FLOOR);

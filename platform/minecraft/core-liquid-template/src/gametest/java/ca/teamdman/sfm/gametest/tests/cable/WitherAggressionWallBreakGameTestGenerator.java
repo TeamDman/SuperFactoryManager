@@ -35,7 +35,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
 
     private static final int BOX_MIN_X = 2;
 
+{% if features.gametest_infrastructure_invariants %}
+    private static final int BOX_MIN_Y = 2;
+{% else %}
     private static final int BOX_MIN_Y = 1;
+{% endif %}
 
     private static final int BOX_MIN_Z = 3;
 
@@ -367,7 +371,11 @@ public class WitherAggressionWallBreakGameTestGenerator extends SFMGameTestGener
 
             return new Vec3(
                     getBoxCenterX() + 0.5,
+{% if features.gametest_infrastructure_invariants %}
+                    BOX_MIN_Y + 1,
+{% else %}
                     BOX_MIN_Y,
+{% endif %}
                     getBoxCenterZ() + 0.5
             );
         }

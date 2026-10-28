@@ -48,7 +48,8 @@ public final class ClientProgramReadGameTest extends SFMGameTestDefinition {
         helper.setBlock(MANAGER, SFMBlocks.CLIENT_MANAGER.get());
         helper.setBlock(DISPLAY, SFMBlocks.TOUCH_DISPLAY.get().defaultBlockState().setValue(TouchDisplayBlock.FACING, Direction.SOUTH));
         helper.setBlock(CHEST, Blocks.CHEST);
-        helper.setBlock(DUST.below(), Blocks.STONE);
+        helper.assertTrue(helper.getBlockState(DUST.below()).is(Blocks.POLISHED_ANDESITE),
+                "Redstone dust must use the generator-owned platform as support");
         helper.setBlock(DUST, Blocks.REDSTONE_WIRE);
         setPower(helper, 3);
         helper.getBlockEntity(CHEST, ChestBlockEntity.class).setItem(0, new ItemStack(Items.IRON_INGOT, 32));

@@ -64,6 +64,13 @@ public abstract class SFMGameTestDefinition {
         return true;
     }
 
+{% if features.gametest_infrastructure_invariants %}
+    /** Explosive tests must opt in explicitly; Minecraft's run blocks are always protected. */
+    public boolean mayDamagePlatform() {
+        return false;
+    }
+
+{% endif %}
 {% case minecraft_version %}
 {% when "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21", "1.21.1" %}
     public TestFunction intoTestFunction() {
@@ -85,7 +92,15 @@ public abstract class SFMGameTestDefinition {
 {% when "26.1.2" %}
 {% endcase %}
             try {
+{% if features.gametest_infrastructure_invariants %}
+                SFMGameTestHelper sfmHelper = new SFMGameTestHelper(helper);
+                SFMGameTestInfrastructure infrastructure = new SFMGameTestInfrastructure(sfmHelper, this);
+                sfmHelper.sfm$installInfrastructure(infrastructure);
+                ((SFMGameTestIntegrityAccess) sfmHelper.testInfo).sfm$installIntegrityCheck(infrastructure::check);
+                this.run(sfmHelper);
+{% else %}
                 this.run(new SFMGameTestHelper(helper));
+{% endif %}
             } catch (Exception e) {
                 SFM.LOGGER.error("Test failed: {}", testName, e);
                 throw e;

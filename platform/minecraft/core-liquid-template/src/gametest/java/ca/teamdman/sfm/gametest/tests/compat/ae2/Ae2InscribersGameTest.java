@@ -62,8 +62,13 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
         var engineeringPos = new BlockPos(2, 2, 0);
         var calculationPos = new BlockPos(3, 2, 0);
 {% when '26.1.2' %}
+{% if features.gametest_infrastructure_invariants %}
+        var engineeringPos = new BlockPos(2, 2, 0);
+        var calculationPos = new BlockPos(3, 2, 0);
+{% else %}
         var engineeringPos = new BlockPos(1, 1, 0);
         var calculationPos = new BlockPos(2, 1, 0);
+{% endif %}
 {% endcase %}
         var lastPos1 = new BlockPos(1, 3, 1);
         var lastPos2 = new BlockPos(2, 3, 1);
@@ -136,7 +141,11 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
         BlockPos inputSignPos = materialsPos.offset(0, 1, 0);
 {% when '26.1.2' %}
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos inputSignPos = materialsPos.offset(0, 1, 0);
+{% else %}
         BlockPos inputSignPos = materialsPos.offset(0, 0, 0);
+{% endif %}
 {% endcase %}
         helper.setBlock(
                 inputSignPos,
@@ -148,7 +157,11 @@ public class Ae2InscribersGameTest extends SFMGameTestDefinition {
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
         BlockPos outputSignPos = resultsPos.offset(0, 1, 0);
 {% when '26.1.2' %}
+{% if features.gametest_infrastructure_invariants %}
+        BlockPos outputSignPos = resultsPos.offset(0, 1, 0);
+{% else %}
         BlockPos outputSignPos = resultsPos.offset(0, 0, 0);
+{% endif %}
 {% endcase %}
         helper.setBlock(
                 outputSignPos,

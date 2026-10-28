@@ -73,10 +73,10 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
     private static final int SFM_TRUNK_X = 9;
     private static final int AE_BACKBONE_X = 12;
     private static final int LAST_MACHINE_Z = FIRST_BANK_Z + (BANK_COUNT - 1) * BANK_STRIDE + 1;
-    private static final BlockPos POWER = new BlockPos(AE_BACKBONE_X, 2, 1);
-    private static final BlockPos CONTROLLER = new BlockPos(AE_BACKBONE_X, 2, 2);
-    private static final BlockPos DRIVE = new BlockPos(AE_BACKBONE_X + 1, 2, 1);
-    private static final BlockPos TERMINAL = new BlockPos(AE_BACKBONE_X - 1, 3, 1);
+    private static final BlockPos POWER = new BlockPos(AE_BACKBONE_X, 3, 1);
+    private static final BlockPos CONTROLLER = new BlockPos(AE_BACKBONE_X, 3, 2);
+    private static final BlockPos DRIVE = new BlockPos(AE_BACKBONE_X + 1, 3, 1);
+    private static final BlockPos TERMINAL = new BlockPos(AE_BACKBONE_X - 1, 4, 1);
 
     // The bank's permanent press and its AE2 pattern determine what gets printed. No per-item
     // filter or per-press program is required. Horizontal extraction exposes only the output;
@@ -111,7 +111,7 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
 
     @Override
     public String template() {
-        return "15x11x27";
+        return "15x12x27";
     }
 
     @Override
@@ -136,20 +136,20 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
         helper.setBlock(CONTROLLER, AEBlocks.CONTROLLER.block());
         helper.setBlock(DRIVE, AEBlocks.DRIVE.block());
         for (int z = 1; z <= LAST_MACHINE_Z + 1; z++) {
-            placeCable(helper, new BlockPos(AE_BACKBONE_X, 3, z), true);
+            placeCable(helper, new BlockPos(AE_BACKBONE_X, 4, z), true);
         }
         placeCable(helper, TERMINAL, false);
         CraftingTerminalPart terminal = PartHelper.setPart(helper.getLevel(), helper.absolutePos(TERMINAL),
                 Direction.NORTH, null, AEParts.CRAFTING_TERMINAL.asItem());
         helper.assertTrue(terminal != null, "Could not attach the inspectable ME Crafting Terminal");
         for (int z = 1; z < LAST_MACHINE_Z; z++) {
-            helper.setBlock(new BlockPos(SFM_TRUNK_X, 2, z), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(SFM_TRUNK_X, 3, z), SFMBlocks.CABLE.get());
         }
         DriveBlockEntity drive = helper.getBlockEntity(DRIVE, DriveBlockEntity.class);
         helper.assertTrue(drive.getInternalInventory().addItems(AEItems.ITEM_CELL_64K.stack()).isEmpty(),
                 "AE2 drive rejected storage cell");
         for (int cpu = 0; cpu < CPU_COUNT; cpu++) {
-            BlockPos cpuPos = new BlockPos(AE_BACKBONE_X + 1, 3, 1 + cpu * 2);
+            BlockPos cpuPos = new BlockPos(AE_BACKBONE_X + 1, 4, 1 + cpu * 2);
             helper.setBlock(cpuPos, AEBlocks.CRAFTING_STORAGE_64K.block());
             for (int y = 1; y <= 6; y++) {
                 helper.setBlock(cpuPos.above(y), AEBlocks.CRAFTING_ACCELERATOR.block());
@@ -160,18 +160,18 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
         for (int index = 0; index < specs.size(); index++) {
             BankSpec spec = specs.get(index);
             int z = FIRST_BANK_Z + index * BANK_STRIDE;
-            BlockPos chest = new BlockPos(SFM_TRUNK_X + 1, 2, z + 1);
-            BlockPos providerPos = new BlockPos(SFM_TRUNK_X + 2, 2, z + 1);
+            BlockPos chest = new BlockPos(SFM_TRUNK_X + 1, 3, z + 1);
+            BlockPos providerPos = new BlockPos(SFM_TRUNK_X + 2, 3, z + 1);
             BlockPos resultInterface = providerPos.above();
-            BlockPos managerPos = new BlockPos(SFM_TRUNK_X + 1, 2, z);
+            BlockPos managerPos = new BlockPos(SFM_TRUNK_X + 1, 3, z);
             helper.setBlock(chest, Blocks.CHEST);
             helper.setBlock(providerPos, AEBlocks.PATTERN_PROVIDER.block());
             helper.setBlock(resultInterface, AEBlocks.INTERFACE.block());
             // One power spur into each wall. Keeping it beneath the chest leaves the chest
             // lid and the inspection aisle open; the machine wall itself carries AE power.
-            placeCable(helper, new BlockPos(AE_BACKBONE_X, 2, z + 1), false);
+            placeCable(helper, new BlockPos(AE_BACKBONE_X, 3, z + 1), false);
             for (int x = WALL_SIDE; x <= AE_BACKBONE_X; x++) {
-                placeCable(helper, new BlockPos(x, 1, z + 1), false);
+                placeCable(helper, new BlockPos(x, 2, z + 1), false);
             }
             PatternProviderBlockEntity provider = helper.getBlockEntity(providerPos, PatternProviderBlockEntity.class);
             provider.setPushDirection(Direction.WEST);
@@ -190,12 +190,12 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
 
             for (int x = 1; x < AE_BACKBONE_X; x++) {
                 if (x != managerPos.getX()) {
-                    helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
+                    helper.setBlock(new BlockPos(x, 3, z), SFMBlocks.CABLE.get());
                 }
             }
-            helper.setBlock(new BlockPos(SFM_TRUNK_X + 2, 3, z), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(SFM_TRUNK_X + 2, 4, z), SFMBlocks.CABLE.get());
             List<BlockPos> machines = new ArrayList<>();
-            for (int y = 2; y < 2 + WALL_SIDE; y++) {
+            for (int y = 3; y < 3 + WALL_SIDE; y++) {
                 for (int x = 1; x <= WALL_SIDE; x++) {
                     BlockPos machine = new BlockPos(x, y, z + 1);
                     helper.setBlock(machine.relative(Direction.NORTH), SFMBlocks.CABLE.get());
@@ -544,7 +544,7 @@ public class Ae2InscriberBankAutocraftingGameTest extends SFMGameTestDefinition 
     private static void assertSingleCreativeCell(SFMGameTestHelper helper) {
         int count = 0;
         for (int x = 0; x < 15; x++) {
-            for (int y = 0; y < 11; y++) {
+            for (int y = 0; y < 12; y++) {
                 for (int z = 0; z < 27; z++) {
                     if (helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(x, y, z)))
                             .is(AEBlocks.CREATIVE_ENERGY_CELL.block())) {

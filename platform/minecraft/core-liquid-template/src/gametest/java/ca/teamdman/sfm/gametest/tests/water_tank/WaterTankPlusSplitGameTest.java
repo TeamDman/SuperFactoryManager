@@ -49,7 +49,11 @@ public class WaterTankPlusSplitGameTest extends SFMGameTestDefinition {
 {% when '1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21', '1.21.1' %}
         int y = 2;
 {% when '26.1.2' %}
+{% if features.gametest_infrastructure_invariants %}
+        int y = 2;
+{% else %}
         int y = 1;
+{% endif %}
 {% endcase %}
 
         // Build containment walls (stone ring around the entire structure)

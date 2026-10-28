@@ -116,7 +116,8 @@ public class BufferRedstoneGameTestGenerator extends SFMGameTestGeneratorBase {
             helper.setBlock(pos, SFMBlocks.BUFFER_BLOCK.get().defaultBlockState()
                     .setValue(BufferBlock.CONTAINED_RESOURCE, BufferBlock.ContainedResource.Unknown));
         }
-        helper.setBlock(COMPARATOR.below(), Blocks.STONE);
+        helper.assertTrue(helper.getBlockState(COMPARATOR.below()).is(Blocks.POLISHED_ANDESITE),
+                "Comparator must use the generator-owned platform as support");
         helper.setBlock(COMPARATOR, Blocks.COMPARATOR.defaultBlockState().setValue(ComparatorBlock.FACING, Direction.NORTH));
         var manager = helper.getBlockEntity(MANAGER, ManagerBlockEntity.class);
         manager.setItem(0, new ItemStack(SFMItems.DISK.get()));

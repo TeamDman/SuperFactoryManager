@@ -87,6 +87,14 @@ public class WitherSkullDestroyToughCableGameTestGenerator extends SFMGameTestGe
 
     private static class WitherSkullDestroyScenarioGameTest extends SFMGameTestDefinition {
         private final Scenario scenario;
+{% if features.gametest_infrastructure_invariants %}
+
+        @Override
+        public boolean mayDamagePlatform() {
+            return true;
+        }
+
+{% endif %}
 
         private WitherSkullDestroyScenarioGameTest(Scenario scenario) {
 

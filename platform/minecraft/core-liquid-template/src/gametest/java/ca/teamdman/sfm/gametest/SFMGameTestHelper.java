@@ -147,6 +147,34 @@ public class SFMGameTestHelper extends GameTestHelper {
 
         super(helper.testInfo);
     }
+{% if features.gametest_infrastructure_invariants %}
+
+    private SFMGameTestInfrastructure sfm$infrastructure;
+
+    void sfm$installInfrastructure(SFMGameTestInfrastructure infrastructure) {
+        this.sfm$infrastructure = infrastructure;
+    }
+
+    @Override
+    public void setBlock(BlockPos pos, BlockState state) {
+        if (sfm$infrastructure != null) {
+            sfm$infrastructure.checkPlacement(pos, state);
+        }
+        super.setBlock(pos, state);
+    }
+
+{% case minecraft_version %}
+{% when "26.1.2" %}
+    @Override
+    public void setBlock(BlockPos pos, BlockState state, Direction direction) {
+        if (sfm$infrastructure != null) {
+            sfm$infrastructure.checkPlacement(pos, state);
+        }
+        super.setBlock(pos, state, direction);
+    }
+
+{% endcase %}
+{% endif %}
 
     public void assertTrue(
             boolean condition,
