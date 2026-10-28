@@ -429,7 +429,7 @@ fn invoke_native_development(
         entry.target_id()?,
         &entry.minecraft_version,
     )?;
-    let collected = crate::source_projection::catalog_owned_project::collect_catalog_project(
+    let collected = crate::source_projection::catalog_owned_project::collect_development_invocation(
         &args.project.repo_root,
         invocation_dir,
         &args.project.projection,
@@ -453,7 +453,9 @@ fn invoke_native_development(
             )
         })
         .transpose()?;
-    let checked = collected.prepare_development()?;
+    // Verify the complete source snapshot once after guarded sync. This owner
+    // can safely recheck held remap inputs while a per-key cache lock is held.
+    let checked = collected.prepare_development_invocation(false)?;
     Ok(CliOutput::facet(
         crate::jar_build::invoke_development_project(
             checked,
