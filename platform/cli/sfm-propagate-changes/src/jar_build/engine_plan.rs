@@ -6,6 +6,85 @@ fn common_toolchain_cache_dir() -> PathBuf {
     CACHE_DIR.0.join("minecraft-toolchain")
 }
 
+// An explicit native root owns both immutable downloads and derived outputs.
+// Keep the legacy global cache selection for commands without that opt-in;
+// switching the default requires the separate migration/cutover gate.
+fn selected_common_toolchain_cache_dir(
+    root: Option<&native_cache_root::NativeCacheRoot>,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<PathBuf> {
+    let Some(root) = root else {
+        return Ok(common_toolchain_cache_dir());
+    };
+    for relative in [
+        "minecraft-toolchain/maven",
+        "minecraft-toolchain/minecraft/versions",
+        "minecraft-toolchain/minecraft/assets",
+        "minecraft-toolchain/minecraft/libraries",
+        "minecraft-toolchain/jbrsdk",
+    ] {
+        root.prepare_directory(relative, cancellation_token)?;
+    }
+    Ok(root.path().join("minecraft-toolchain"))
+}
+
+#[cfg(all(test, windows))]
+mod selected_common_cache_tests {
+    use super::*;
+
+    #[test]
+    fn explicit_native_root_guards_downloads_and_outputs_under_one_owner() -> eyre::Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let repository = fixture.path().join("repository");
+        let project = repository.join("platform/minecraft/projections/dev/mc-1.19.2");
+        let other_project = repository.join("platform/minecraft/projections/extended/mc-1.19.2");
+        let java = fixture.path().join("sdk");
+        fs::create_dir_all(&project)?;
+        fs::create_dir_all(&other_project)?;
+        fs::create_dir(&java)?;
+        let logical = repository.join("sfm-toolchain-data");
+        let cancellation = CancellationToken::new();
+        let owner = native_cache_root::NativeCacheRoot::acquire(
+            &logical,
+            &repository,
+            &project,
+            &java,
+            &cancellation,
+        )?;
+        let common = selected_common_toolchain_cache_dir(Some(&owner), &cancellation)?;
+        assert_eq!(common, logical.join("minecraft-toolchain"));
+        assert!(common.join("maven").is_dir());
+        assert!(common.join("minecraft/versions").is_dir());
+        assert!(common.join("minecraft/assets").is_dir());
+        assert!(!project.join("build/sfm-toolchain/maven").exists());
+        let other_owner = native_cache_root::NativeCacheRoot::acquire(
+            &logical,
+            &repository,
+            &other_project,
+            &java,
+            &cancellation,
+        )?;
+        let other_common = selected_common_toolchain_cache_dir(Some(&other_owner), &cancellation)?;
+        assert_eq!(other_common, common);
+        let shared = common.join("maven/org/example/fixture.jar");
+        fs::create_dir_all(shared.parent().expect("fixture has parent"))?;
+        fs::write(&shared, b"one checked fixture artifact")?;
+        assert_eq!(
+            fs::read(other_common.join("maven/org/example/fixture.jar"))?,
+            b"one checked fixture artifact"
+        );
+        assert_ne!(
+            owner.prepare_directory("projects/dev", &cancellation)?,
+            other_owner.prepare_directory("projects/extended", &cancellation)?
+        );
+        assert_eq!(
+            selected_common_toolchain_cache_dir(None, &cancellation)?,
+            common_toolchain_cache_dir()
+        );
+        Ok(())
+    }
+}
+
 #[tracing::instrument(
     level = "info",
     skip_all,
@@ -134,7 +213,10 @@ fn create_plan_for_project(
         } else {
             minecraft_dir.join("build").join("sfm-toolchain")
         };
-        let common_cache_dir = common_toolchain_cache_dir();
+        let common_cache_dir = selected_common_toolchain_cache_dir(
+            options.derived_cache_root.as_deref(),
+            cancellation_token,
+        )?;
         let state_dir = cache_dir.join("state");
         let maven_cache_dir = common_cache_dir.join("maven");
         let minecraft_cache_dir = common_cache_dir.join("minecraft");

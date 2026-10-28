@@ -162,7 +162,7 @@ pub struct CoreProjectCompileArgs {
     /// Existing SDK home; compiler release and tool JVM remain separate.
     #[facet(args::named)]
     pub java_home: PathBuf,
-    /// Guarded derived-output root for compile or development jar; pinned downloads stay shared.
+    /// Guarded root for compile or development jar outputs and pinned downloads.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
     #[facet(default = false, args::named)]
