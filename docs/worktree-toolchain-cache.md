@@ -11,8 +11,12 @@ This guide describes a **decision before worktree creation**. Ask Teamy before
 creating a worktree, cache directory, filesystem link or new development
 workspace. No link type is selected or enabled by this document. The current
 Rust native and Gradle routes use explicit opt-ins; a root-level link is not yet
-admitted by the native root guard. Do not create a link until the corresponding
-reviewed implementation and live acceptance tests are complete.
+admitted by the native root guard. A separately approved test link/worktree
+may be created only after G7 selects a
+link type, this guide is reviewed, and the relevant guard implementation is ready;
+its purpose is to run live acceptance, not to establish production sharing.
+Do not create a production sharing link until those live tests pass and the
+production change is separately approved.
 
 ## Decision tree
 
@@ -24,8 +28,8 @@ reviewed implementation and live acceptance tests are complete.
    checkout using it. The target must be durable, outside any disposable
    worktree/build tree, and have enough free space for the next operation.
 3. **Is the target compatible and owned?** Read its ownership marker, schema
-   versions, contents, permissions, active publisher/reader records and frozen
-   input receipts. An absent, incompatible, damaged or inaccessible target is
+   and producer/consumer tool versions, contents, permissions, active
+   publisher/reader records and frozen input receipts. An absent, incompatible, damaged or inaccessible target is
    not a reason to link blindly or silently copy it. Keep isolation or stop for
    an explicit repair decision.
 4. **Which link, if any, is appropriate?** The G7 decision in
@@ -73,7 +77,14 @@ all physical-target owners, active reader/publisher exclusion, exact entry
 identity and digest rechecks, a coordinated maintenance window and Teamy's
 approval for an exact list. Never recursively traverse a checkout link to
 delete a shared target. Removing a link and reclaiming its target are separate
-actions.
+actions. To return a linked checkout to isolation, first obtain approval for
+the exact link removal and replacement directory. Quiesce its publishers and
+readers, record and recheck the logical link and physical target identities,
+remove only the link object with a link-aware operation that cannot traverse
+the target, and verify the shared target remains intact. Create an ordinary
+empty checkout-local root only under that approval, verify its marker and
+permissions, then requalify input resolution. If any identity or owner is
+uncertain, stop; never silently copy, relocate or delete shared bytes.
 
 See the plan's G7, M2.1, M2.3, M3.9, M5 and M6 gates for the implementation and
 acceptance ledger. This guide does not authorize creating or deleting anything.
