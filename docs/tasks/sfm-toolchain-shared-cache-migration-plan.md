@@ -453,9 +453,11 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 
 **Completion criteria:** G5 scratch/partial behavior is proven and repeated successful preparation has bounded allocated growth.
 
-### [ ] M3.5 Validate the Minecraft asset index independently
+### [~] M3.5 Validate the Minecraft asset index independently
 
 **Work:** In `container_build/minecraft_asset_index.rs` and the authenticated parent-metadata call site, require expected digest/size for the index before reusing or publishing it. Continue per-object verification. This integrity repair may begin after G5 without waiting for M3.1–M3.3.
+
+**2026-10-28 native integrity checkpoint:** Commit `bda05fd0fbf1ce0bb7d754d071b4cbf42307c206` requires the `assetIndex` SHA-1 and size fields from the selected Minecraft version JSON and uses missing-only, checksum-verified frozen acquisition for the native run index. It refuses an existing corrupt index without overwriting it, bounds index bytes to 16 MiB and validates the index id as one path component. A focused test covers a valid offline hit, absent metadata, wrong algorithm, wrong size and same-size changed bytes while retaining the damaged file; `cargo test --offline --locked --lib -j 1 asset_index_cache_requires_parent_hash_and_size_on_every_hit -- --test-threads=1` passed 1/1 with matching input identity at `source-stable-asset-index-final-20261028.json`. A bounded read-only check of the existing D: cache found SHA-1 and size present for all ten supported version JSONs and verified all ten cached index files against those values. This is not a live run, fresh download or cold-cache proof; the container export path already checked its pinned index independently and was not changed. Per-object existing behavior was not requalified here. M3.5 remains open for native run and interrupted/corrupt publication acceptance, including the nested-path admission boundary.
 
 **Validation:** New focused index tests (created in this task) cover valid, absent, corrupt and interrupted index; a bounded client/server asset-resolution smoke records the parent digest and source revision. No existing index-corruption test is claimed.
 
