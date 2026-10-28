@@ -129,6 +129,43 @@ impl HeldForgeDevJar {
     }
 }
 
+/// Runtime has a separate execution context from the preceding compile. Reopen
+/// the same complete entry under a fresh reader hold before deriving its run
+/// JAR; that derivative is private and outlives this short source read.
+pub(super) fn hold_dev_jar_for_run(
+    context: &ExecutionContext<'_>,
+) -> eyre::Result<Option<HeldForgeDevJar>> {
+    if !eligible(context) || context.plan.refresh {
+        return Ok(None);
+    }
+    let Some(inputs) = ForgePreparationInputs::prepare(context, "forge")? else {
+        return Ok(None);
+    };
+    let Some((base, _base_ancestry)) = store_base(context, "forge")? else {
+        return Ok(None);
+    };
+    let fingerprint = inputs.fingerprint();
+    let key = fingerprint.trim_start_matches("sha256:");
+    eyre::ensure!(
+        key.len() == 64 && key.bytes().all(|byte| byte.is_ascii_hexdigit()),
+        "Invalid Forge runtime preparation key"
+    );
+    let outputs = output_paths(context, "forge")?;
+    let mappings = selected_restore_outputs("forge", false, &outputs)
+        .into_iter()
+        .filter(|(name, _)| *name != "dev_compile.jar")
+        .collect::<Vec<_>>();
+    let held = restore_held_dev_jar(
+        &base.join(key),
+        fingerprint,
+        &context.plan.cache_dir,
+        &mappings,
+        &|| context.bail_if_cancelled(),
+    )?;
+    inputs.recheck(context)?;
+    Ok(held)
+}
+
 pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
     context.plan.identity.development_target().is_some()
         && context.plan.loader_toolchain.kind == LoaderToolchainKind::ForgeGradleForge

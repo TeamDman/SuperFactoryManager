@@ -79,9 +79,7 @@ fn ordinary_forge_hit_does_not_copy_unneeded_source_archives() -> Result<()> {
         || Ok(())
     )?);
     assert!(compile_destinations.iter().all(|(_, path)| path.is_file()));
-    assert!(all_destinations[..2]
-        .iter()
-        .all(|(_, path)| !path.exists()));
+    assert!(all_destinations[..2].iter().all(|(_, path)| !path.exists()));
     let source_destinations = selected_restore_outputs("forge", true, &all_destinations);
     assert_eq!(source_destinations.len(), 5);
     assert!(restore(
@@ -129,6 +127,24 @@ fn ordinary_forge_hit_holds_dev_jar_without_a_project_copy() -> Result<()> {
     assert!(!held.path().to_string_lossy().starts_with(r"\\?\"));
     assert_eq!(fs::read(held.path())?, b"dev_compile.jar");
     assert!(fs::write(held.path(), b"mutated").is_err());
+    let runtime_project = make_directory(&temp.path().join("runtime-projection"))?;
+    let runtime_destinations = self::destinations(&runtime_project, &original)?;
+    let runtime_mappings = selected_restore_outputs("forge", false, &runtime_destinations)
+        .into_iter()
+        .filter(|(name, _)| *name != "dev_compile.jar")
+        .collect::<Vec<_>>();
+    let runtime_hold = restore_held_dev_jar(
+        &key,
+        "fixture-key",
+        &runtime_project,
+        &runtime_mappings,
+        &|| Ok(()),
+    )?
+    .expect("runtime must reacquire the complete Forge entry without a dev-JAR copy");
+    assert!(runtime_mappings.iter().all(|(_, path)| path.is_file()));
+    assert!(!runtime_destinations[4].1.exists());
+    assert!(fs::write(runtime_hold.path(), b"mutated").is_err());
+    drop(runtime_hold);
     let stored = held.path().to_path_buf();
     drop(held);
     fs::write(&stored, b"mutated")?;
@@ -347,9 +363,9 @@ fn forge_preparation_at_transport_holds_actual_java_input_against_write_and_rena
 #[test]
 fn forge_preparation_store_directory_admission_holds_created_ancestors_until_drop() -> Result<()> {
     use std::os::windows::fs::OpenOptionsExt as _;
-    use windows::Win32::Storage::FileSystem::{
-        FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_WRITE_DATA,
-    };
+    use windows::Win32::Storage::FileSystem::FILE_FLAG_BACKUP_SEMANTICS;
+    use windows::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT;
+    use windows::Win32::Storage::FileSystem::FILE_WRITE_DATA;
     let temp = tempfile::tempdir()?;
     let requested = temp.path().join("new/base/key");
     let (key, held) = make_held_directory(&requested)?.unwrap();

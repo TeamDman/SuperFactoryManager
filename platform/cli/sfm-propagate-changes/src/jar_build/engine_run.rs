@@ -6286,6 +6286,14 @@ fn ensure_run_neoforge_dev_jars(
 fn ensure_run_forge_dev_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     let _span = tracing::debug_span!("ensure_run_forge_dev_jar").entered();
     let forge_version = required_property(&context.plan.properties, "neo_version")?;
+    #[cfg(windows)]
+    let held = forge_preparation_cache::hold_dev_jar_for_run(context)?;
+    #[cfg(windows)]
+    let input = held.as_ref().map_or_else(
+        || loader_dev_compile_jar(context),
+        |held| held.path().to_path_buf(),
+    );
+    #[cfg(not(windows))]
     let input = loader_dev_compile_jar(context);
     if !input.is_file() {
         eyre::bail!(
