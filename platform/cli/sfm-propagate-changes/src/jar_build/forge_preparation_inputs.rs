@@ -33,8 +33,10 @@ use super::super::SPECIALSOURCE_REVIEWED_MAIN;
 use super::super::authenticated_minecraft_inputs;
 use super::super::acquire_authenticated_child;
 use super::super::read_main_class;
+use super::super::read_named_authenticated_file;
 use super::super::resolve_current_minecraft_libraries;
 use super::super::resolved_artifact_hash;
+use super::super::verify_named_download_bytes;
 use super::super::verify_named_sdk_identity;
 use crate::jar_build::local_dependency_image::LocalDependencyImage;
 use crate::source_projection::catalog_owned_project::CatalogOwnedProject;
@@ -77,6 +79,12 @@ impl ForgePreparationInputs {
         let Some((mut owner, mut hash)) = Self::prepare_common(context, kind)? else {
             return Ok(None);
         };
+        // Acquire pinned child files before holding their version directory read-only.
+        // Windows forbids rename/hard-link publication into a held directory.
+        let Some(parent) = Self::parent_before_directory_lease(context)? else {
+            return Ok(None);
+        };
+        Self::prefetch_downloads(context, kind, &parent)?;
         let Some(parent) = owner.capture_version(context)? else {
             return Ok(None);
         };
@@ -450,14 +458,58 @@ impl ForgePreparationInputs {
         Ok(true)
     }
 
-    fn download_requests(
+    fn parent_before_directory_lease(
+        context: &ExecutionContext<'_>,
+    ) -> Result<Option<authenticated_minecraft_inputs::AuthenticatedMinecraftInputs>> {
+        context.plan.recheck_named_inputs()?;
+        let artifact = &context.plan.minecraft.version_json;
+        let hash = resolved_artifact_hash(artifact)?;
+        let raw = read_named_authenticated_file(&artifact.cache_path, MAX_SMALL_BYTES)?;
+        verify_named_download_bytes(&raw, &hash, None)?;
+        let parent = authenticated_minecraft_inputs::authenticate_pinned_version_json(
+            context.plan.minecraft_version.as_str(),
+            0,
+            artifact
+                .url
+                .as_deref()
+                .ok_or_else(|| eyre::eyre!("Missing version JSON URL"))?,
+            &hash.to_string(),
+            &raw,
+        );
+        match parent {
+            Ok(parent) => Ok(Some(parent)),
+            Err(error) => {
+                tracing::debug!(%error, reason = "unsupported_version_metadata", "forge_preparation_cache_declined");
+                Ok(None)
+            }
+        }
+    }
+
+    fn prefetch_downloads(
         context: &ExecutionContext<'_>,
         kind: &str,
         parent: &authenticated_minecraft_inputs::AuthenticatedMinecraftInputs,
-        client: &Client,
-    ) -> Result<Vec<ForgePreparationInputRequest>> {
+    ) -> Result<()> {
+        let client = Client::builder()
+            .user_agent("sfm-propagate-changes/no-gradle-toolchain")
+            .build()?;
+        for (role, _, filename) in Self::download_roles(kind) {
+            let selected = parent.download(*role)?;
+            let path = context.plan.minecraft_version_cache_dir.join(filename);
+            acquire_authenticated_child(context, &client, parent, selected, &path)?;
+        }
+        Ok(())
+    }
+
+    fn download_roles(
+        kind: &str,
+    ) -> &'static [(
+        authenticated_minecraft_inputs::MinecraftCompileDownload,
+        &'static str,
+        &'static str,
+    )] {
         use authenticated_minecraft_inputs::MinecraftCompileDownload as Role;
-        let roles: &[(Role, &str, &str)] = if kind == "mcp" {
+        if kind == "mcp" {
             &[
                 (Role::ClientJar, "client", "client.jar"),
                 (Role::ServerJar, "server", "server-bundle.jar"),
@@ -468,7 +520,17 @@ impl ForgePreparationInputs {
                 (Role::ClientMappings, "client-mappings", "client.txt"),
                 (Role::ServerMappings, "server-mappings", "server.txt"),
             ]
-        };
+        }
+    }
+
+    fn download_requests(
+        context: &ExecutionContext<'_>,
+        kind: &str,
+        parent: &authenticated_minecraft_inputs::AuthenticatedMinecraftInputs,
+        client: &Client,
+    ) -> Result<Vec<ForgePreparationInputRequest>> {
+        let roles = Self::download_roles(kind);
+
         let mut requests = Vec::new();
         for (role, label, filename) in roles {
             let selected = parent.download(*role)?;

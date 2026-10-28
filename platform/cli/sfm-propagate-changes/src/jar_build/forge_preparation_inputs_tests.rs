@@ -21,6 +21,24 @@ use std::fs;
 use std::os::windows::fs::OpenOptionsExt as _;
 use std::path::Path;
 
+#[test]
+fn held_version_directory_blocks_child_publication_until_release() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    let version = root.path().join("versions").join("1.19.2");
+    fs::create_dir_all(&version)?;
+    fs::write(version.join("version.json"), b"pinned parent")?;
+    let temporary = version.join("client.jar.tmp");
+    let destination = version.join("client.jar");
+    fs::write(&temporary, b"pinned child")?;
+    let mut leases = DirectoryLeases::default();
+    leases.prepare(&version, "version.json")?;
+    let error = fs::hard_link(&temporary, &destination).unwrap_err();
+    assert_eq!(error.raw_os_error(), Some(32));
+    drop(leases);
+    fs::hard_link(&temporary, &destination)?;
+    assert_eq!(fs::read(&destination)?, b"pinned child");
+    Ok(())
+}
 fn payloads(kind: &str) -> Vec<(&'static str, &'static str, &'static [u8])> {
     let mut inputs: Vec<(&str, &str, &[u8])> = vec![
         (
