@@ -3,10 +3,13 @@ use super::forge_preparation_cache::make_held_directory;
 use crate::source_projection::core_input_leases::DirectoryLeases;
 use std::path::Path;
 use std::path::PathBuf;
+use tempfile::TempDir;
 
 pub(super) struct DependencyRemapAttempt {
     pub(super) outputs: Vec<(&'static str, PathBuf)>,
     _ancestry: DirectoryLeases,
+    // Drop directory handles before TempDir removes only this attempt's scratch.
+    _scratch: TempDir,
 }
 
 impl DependencyRemapAttempt {
@@ -17,11 +20,11 @@ impl DependencyRemapAttempt {
         };
         // This diagnostic/output path is not the Java cwd: the existing launch
         // adapter transports it through its bounded short retained scratch.
-        let path = tempfile::Builder::new()
+        let scratch = tempfile::Builder::new()
             .prefix(&format!("remap-{key}-"))
-            .tempdir_in(&work)?
-            .keep();
-        let Some((_verified_path, ancestry)) = make_held_directory(&path)? else {
+            .tempdir_in(&work)?;
+        let path = scratch.path();
+        let Some((_verified_path, ancestry)) = make_held_directory(path)? else {
             return Ok(None);
         };
         Ok(Some(Self {
@@ -30,6 +33,7 @@ impl DependencyRemapAttempt {
                 ("remapped.jar", path.join("remapped.jar")),
             ],
             _ancestry: ancestry,
+            _scratch: scratch,
         }))
     }
 }
@@ -37,6 +41,7 @@ impl DependencyRemapAttempt {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn dependency_remap_workspace_keeps_normal_spelling_and_full_key_identity() -> eyre::Result<()>
@@ -73,6 +78,10 @@ mod tests {
         );
         assert_ne!(scratch.path, attempt.outputs[0].1.parent().unwrap());
         assert!(!attempt.outputs.iter().any(|(_, path)| path.exists()));
+        let scratch_path = attempt.outputs[0].1.parent().unwrap().to_path_buf();
+        fs::write(&attempt.outputs[0].1, b"attempt-owned output")?;
+        drop(attempt);
+        assert!(!scratch_path.exists());
         Ok(())
     }
 }
