@@ -43,7 +43,7 @@ $moduleRoots = @(
     'curseforge', 'dependency_classfile_stubs', 'dependency_inventory',
     'dependency_locked_sources', 'dependency_sources', 'file_identity', 'git_read', 'jar_build',
     'java_analysis', 'java_source_catalog', 'jdk', 'jdk_artifact_cache',
-    'logging', 'modrinth', 'propagate', 'release_report', 'release_review_capture',
+    'logging', 'modrinth', 'paths', 'payload_fetcher', 'propagate', 'release_report', 'release_review_capture',
     'release_review_capture_io', 'release_review_git',
     'release_review_java_diff', 'release_review_ledger',
     'release_review_ledger_resolve', 'release_review_source_probe',
