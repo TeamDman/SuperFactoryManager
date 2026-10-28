@@ -119,14 +119,8 @@ fn forge_preparation_store_does_not_publish_an_interrupted_export_or_replace_pri
     assert!(publish(&key, "new-key", &original, check).is_err());
     assert_eq!(fs::read(old.join("inputs.sha256"))?, before);
     let entries = entry_directories(&key)?.unwrap();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(
-        entries
-            .iter()
-            .filter(|entry| entry.join("inputs.sha256").exists())
-            .count(),
-        1
-    );
+    assert_eq!(entries, vec![old.clone()]);
+    assert!(old.join("inputs.sha256").exists());
     let project = make_directory(&temp.path().join("new-project"))?;
     let outputs = destinations(&project, &original)?;
     assert!(!restore(&key, "new-key", &project, &outputs, || Ok(()))?);

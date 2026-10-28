@@ -359,10 +359,12 @@ pub(super) fn publish_entry(
         return Ok(None);
     };
     check()?;
-    let entry = tempfile::Builder::new()
+    // A failed or cancelled publication owns only this new staging directory.
+    // Keep it as durable history only after the receipt is complete.
+    let staging = tempfile::Builder::new()
         .prefix("entry-")
-        .tempdir_in(key_root)?
-        .keep();
+        .tempdir_in(key_root)?;
+    let entry = staging.path().to_path_buf();
     let Some((entry, _entry_ancestry)) = make_held_directory(&entry)? else {
         return Ok(None);
     };
@@ -388,6 +390,8 @@ pub(super) fn publish_entry(
         &check,
     )?;
     check()?;
+    let retained = staging.keep();
+    eyre::ensure!(retained == entry, "Publication staging path changed");
     Ok(Some(entry))
 }
 
