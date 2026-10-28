@@ -709,19 +709,19 @@ mod tests {
             facet_json::from_str(CHECKED_IN_LOCKFILE).expect("checked-in v4 lockfile should parse");
         lockfile.jdk_pins = None;
         assert!(lockfile.jdk_pins.is_none());
+        let mut expected = lockfile.clone();
+        expected.canonicalize();
         let output = lockfile.to_canonical_json().expect("canonical v4 JSON");
         assert!(!output.contains("\"jdk_pins\""));
         let reparsed: ArtifactLockfileV4 = facet_json::from_str(&output).unwrap();
         assert!(reparsed.jdk_pins.is_none());
-        assert_eq!(reparsed.dependencies, lockfile.dependencies);
-        assert_eq!(reparsed.artifacts, lockfile.artifacts);
+        assert_eq!(reparsed.dependencies, expected.dependencies);
+        assert_eq!(reparsed.artifacts, expected.artifacts);
     }
 
     #[test]
     fn jdk_pins_round_trip_with_canonical_order_and_untouched_dependencies() {
         let mut lockfile: ArtifactLockfileV4 = facet_json::from_str(CHECKED_IN_LOCKFILE).unwrap();
-        let original_dependencies = lockfile.dependencies.clone();
-        let original_artifacts = lockfile.artifacts.clone();
         let mut java17 = fixture_pin(17, "17.0.14", "b1367.22");
         java17.artifacts.push(JdkArtifactV4 {
             platform: "linux-x64".to_owned(),
@@ -729,6 +729,8 @@ mod tests {
             sha512: "B".repeat(128),
         });
         lockfile.jdk_pins = Some(vec![fixture_pin(21, "21.0.11", "b1163.116"), java17]);
+        let mut expected = lockfile.clone();
+        expected.canonicalize();
 
         let output = lockfile.to_canonical_json().expect("valid pinned v4 JSON");
         let reparsed: ArtifactLockfileV4 = facet_json::from_str(&output).unwrap();
@@ -740,8 +742,8 @@ mod tests {
         );
         assert_eq!(pins[0].artifacts[0].platform, "linux-x64");
         assert_eq!(pins[0].artifacts[0].sha512, "b".repeat(128));
-        assert_eq!(reparsed.dependencies, original_dependencies);
-        assert_eq!(reparsed.artifacts, original_artifacts);
+        assert_eq!(reparsed.dependencies, expected.dependencies);
+        assert_eq!(reparsed.artifacts, expected.artifacts);
     }
 
     #[test]

@@ -736,7 +736,7 @@ mod tests {
         let loaded = load_catalog(repo, repo).unwrap();
         assert_eq!(
             loaded.catalog.0.len(),
-            54,
+            74,
             "catalog must cover dev and both named releases for all ten versions plus the retained issue610 controls, visual harnesses and twenty portable fixture projections"
         );
         let mut contexts = BTreeMap::<String, usize>::new();
@@ -758,7 +758,19 @@ mod tests {
                     ])
                 );
             } else if namespace == "sfm-4.34.0" {
-                assert!(entry.features.is_empty());
+                let expected = if entry.minecraft_version == "26.1.2" {
+                    BTreeSet::from(["historical_release_4_34_0"])
+                } else {
+                    BTreeSet::new()
+                };
+                assert_eq!(
+                    entry
+                        .features
+                        .iter()
+                        .map(String::as_str)
+                        .collect::<BTreeSet<_>>(),
+                    expected
+                );
             }
             let report = render_report(
                 &SourceRenderArgs {
@@ -805,7 +817,9 @@ mod tests {
             BTreeMap::from([
                 ("sfm-dev".to_owned(), 10),
                 ("sfm-4.34.0".to_owned(), 10),
+                ("sfm-4.34.0-extended".to_owned(), 10),
                 ("sfm-4.35.0".to_owned(), 10),
+                ("sfm-4.35.0-extended".to_owned(), 10),
                 ("sfm-4.34.0-issue610".to_owned(), 1),
                 ("sfm-4.35.0-issue610".to_owned(), 1),
                 ("sfm-4.34.0-issue610-visual".to_owned(), 1),

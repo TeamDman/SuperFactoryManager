@@ -162,6 +162,12 @@ fn add_adopts_matching_unowned_migrated_artifact_without_fetching() {
     lockfile
         .dependencies
         .retain(|dependency| dependency.id != "javaparser");
+    lockfile.artifacts.retain(|artifact| {
+        artifact
+            .owner
+            .as_ref()
+            .is_none_or(|owner| owner.dependency_id != "javaparser")
+    });
     let input = lockfile.to_canonical_json().expect("fixture JSON");
     let lockfile_path = directory.path().join("sfm-toolchain.lock.json");
     std::fs::write(&lockfile_path, &input).expect("fixture lockfile");

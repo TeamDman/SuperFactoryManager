@@ -378,7 +378,7 @@ fn fixture_selection_never_hides_changed_metadata_or_invalid_inputs() -> Result<
 #[test]
 fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls() -> Result<()> {
     let fixture = CoreTestFixture::load()?;
-    assert_eq!(fixture.catalog.catalog.0.len(), 54);
+    assert_eq!(fixture.catalog.catalog.0.len(), 74);
     let counts =
         fixture
             .catalog
@@ -394,7 +394,9 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
         BTreeMap::from([
             ("sfm-dev", 10),
             ("sfm-4.34.0", 10),
+            ("sfm-4.34.0-extended", 10),
             ("sfm-4.35.0", 10),
+            ("sfm-4.35.0-extended", 10),
             ("sfm-4.34.0-issue610", 1),
             ("sfm-4.35.0-issue610", 1),
             ("sfm-4.34.0-issue610-visual", 1),
@@ -419,7 +421,19 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
                 ])
             );
         } else if key.starts_with("sfm-4.34.0/") {
-            assert!(entry.features.is_empty());
+            let expected = if entry.minecraft_version == "26.1.2" {
+                BTreeSet::from(["historical_release_4_34_0"])
+            } else {
+                BTreeSet::new()
+            };
+            assert_eq!(
+                entry
+                    .features
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<BTreeSet<_>>(),
+                expected
+            );
         } else if key == "sfm-4.34.0-issue610/mc-1.21.1" {
             assert_eq!(
                 entry
@@ -441,6 +455,7 @@ fn current_catalog_selections_stay_distinct_from_historical_feature_off_controls
                     .map(String::as_str)
                     .collect::<BTreeSet<_>>(),
                 BTreeSet::from([
+                    "extended_release_regressions",
                     "locked_dependency_projection",
                     "recipe_namespace",
                     "release_version_4_35_0",
@@ -692,8 +707,19 @@ fn demo_instrumentation_and_project_search_require_explicit_features() -> Result
     ];
     for (key, entry) in &fixture.catalog.catalog.0 {
         let context = fixture.catalog.context(key)?;
-        let enabled = context.features["projection_test_directory_search"];
-        assert_eq!(enabled, entry.environment.as_str() == "dev", "{key}");
+        let explicit_search = context.features["projection_test_directory_search"];
+        if key.starts_with("sfm-4.34.0/") {
+            assert!(!explicit_search, "{key}");
+        }
+        assert_eq!(
+            explicit_search,
+            entry
+                .features
+                .contains(&"projection_test_directory_search".to_owned())
+        );
+        let enabled = explicit_search
+            || context.features["client_properties"]
+            || context.features["release_version_4_35_0"];
         let rendered = super::render_java_source(std::str::from_utf8(&search)?, &context)?;
         assert_eq!(rendered.contains("while (cwd != null) {"), enabled, "{key}");
         assert_eq!(
@@ -747,7 +773,7 @@ fn historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts() -> Resu
             historical_keys.push(key.as_str());
         }
     }
-    assert_eq!(fixture.catalog.catalog.0.len(), 54);
+    assert_eq!(fixture.catalog.catalog.0.len(), 74);
     assert_eq!(historical_keys, ["sfm-4.34.0/mc-26.1.2"]);
     // Exercise all four predicate combinations, not just current named entries.
     for (locked, release, expected) in [

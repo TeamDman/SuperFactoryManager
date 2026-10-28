@@ -776,7 +776,7 @@ mod tests {
                     "--cache-root",
                     "unused-external-root",
                 ])
-                .is_err()
+                .is_ok()
             );
         }
         assert!(

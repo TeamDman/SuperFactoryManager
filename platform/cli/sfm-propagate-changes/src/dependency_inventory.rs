@@ -339,6 +339,9 @@ mod tests {
             }],
         }]);
         let input = original.to_canonical_json().unwrap();
+        let ToolchainLockfileDocument::V4(original) = parse_document(&input).unwrap() else {
+            panic!("canonical fixture must remain schema v4");
+        };
         let mut inventory = fixture(CacheHome(PathBuf::from("unused-cache")));
         inventory.lockfile = read_editable(&input).unwrap();
         inventory.original_input = input;

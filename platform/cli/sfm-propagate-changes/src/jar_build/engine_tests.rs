@@ -3683,7 +3683,7 @@ fn facet_json_parses_mojang_version_config_shape() {
                     "client_mappings": {"url": "https://example.test/client.txt"},
                     "server_mappings": {"url": "https://example.test/server.txt"}
                 },
-                "assetIndex": {"id": "1.19", "url": "https://example.test/assets.json"},
+                "assetIndex": {"id": "1.19", "url": "https://example.test/assets.json", "sha1": "0000000000000000000000000000000000000000", "size": 1},
                 "libraries": [{"downloads": {"artifact": {"url": "https://example.test/lib.jar", "path": "g/a/1/a.jar"}}}]
             }"#,
         )

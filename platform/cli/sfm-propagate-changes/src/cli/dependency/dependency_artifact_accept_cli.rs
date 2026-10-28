@@ -366,7 +366,8 @@ mod tests {
             panic!("artifact acceptance must not downgrade schema v4");
         };
 
-        let mut expected_document: ArtifactLockfileV4 = before;
+        let mut expected_document: ArtifactLockfileV4 =
+            facet_json::from_str(&input).expect("canonical fixture");
         let expected_artifact = expected_document
             .artifacts
             .iter_mut()

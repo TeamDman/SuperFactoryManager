@@ -525,7 +525,7 @@ mod tests {
 
     fn metadata() -> String {
         let sha1 = ContentHash::from_bytes(CHILD, ContentHashAlgorithm::Sha1).hex();
-        r#"{"id":"1.19.2","downloads":{"client":{"url":"https://piston-data.mojang.com/v1/objects/client/client.jar","sha1":"SHA1","size":SIZE},"server":{"url":"https://piston-data.mojang.com/v1/objects/server/server.jar","sha1":"SHA1","size":SIZE},"client_mappings":{"url":"https://piston-data.mojang.com/v1/objects/maps/client.txt","sha1":"SHA1","size":SIZE}},"libraries":[{"downloads":{"artifact":{"path":"example/library/1/library-1.jar","url":"https://libraries.minecraft.net/example/library/1/library-1.jar","sha1":"SHA1","size":SIZE}}}],"assetIndex":{"id":"fixture","url":"http://never-follow.invalid/index.json"}}"#
+        r#"{"id":"1.19.2","downloads":{"client":{"url":"https://piston-data.mojang.com/v1/objects/client/client.jar","sha1":"SHA1","size":SIZE},"server":{"url":"https://piston-data.mojang.com/v1/objects/server/server.jar","sha1":"SHA1","size":SIZE},"client_mappings":{"url":"https://piston-data.mojang.com/v1/objects/maps/client.txt","sha1":"SHA1","size":SIZE}},"libraries":[{"downloads":{"artifact":{"path":"example/library/1/library-1.jar","url":"https://libraries.minecraft.net/example/library/1/library-1.jar","sha1":"SHA1","size":SIZE}}}],"assetIndex":{"id":"fixture","url":"http://never-follow.invalid/index.json","sha1":"SHA1","size":SIZE}}"#
             .replace("SHA1", &sha1)
             .replace("SIZE", &CHILD.len().to_string())
     }
