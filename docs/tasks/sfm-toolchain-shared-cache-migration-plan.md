@@ -482,7 +482,9 @@ With the same opt-in root and locked JBRs, red 4.34.0 extended emitted `dependen
 
 **Completion criteria:** A corrupt or partial index cannot be a cache hit, and valid unchanged resolution remains stable.
 
-### [ ] M3.6 Validate reusable run outputs independently
+### [~] M3.6 Validate reusable run outputs independently
+
+**Digest checkpoint, 2026-10-28:** Local commit `ba5a8bfe560c7677550c61e836b0b223f44c5687` records a BLAKE3 digest for Forge and NeoForge runtime JAR derivatives and checks it together with the input marker before reuse. Forge previously rewrote its derivative on every launch; NeoForge previously trusted existence plus the input marker. The input identity now includes selected Minecraft/loader/userdev, exact JDK version output and OS/architecture as well as the two actual JAR input digests and a transformation recipe marker. Missing old digest receipts trigger regeneration; changed bytes fail the hit check. The focused final-source test passed 1/1 under `source-stable-run-jar-digest-final-20261028.json.run.json` with `sourceStable=true`. This is a unit-level integrity and reuse checkpoint, **not** a live run, physical storage saving, or a claim that all run derivatives are covered. The repository-wide formatting check currently reports widespread pre-existing differences; it was run read-only and did not change them.
 
 **Work:** In `jar_build/engine_run.rs` and its actual output-receipt caller, check the stored output digest as well as input state/existence. Separate immutable launch derivatives from mutable slot output; keep version/loader/JDK/platform in the derivative contract. Do not alter live session files.
 
