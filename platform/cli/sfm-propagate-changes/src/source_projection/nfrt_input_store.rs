@@ -801,9 +801,9 @@ mod tests {
         relative: &str,
         bytes: &[u8],
     ) -> super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt {
-        use super::super::nfrt_producer_output_receipt::{
-            NfrtProducerDeclaration, NfrtProducerOutputReceipt, NfrtProducerScope,
-        };
+        use super::super::nfrt_producer_output_receipt::NfrtProducerDeclaration;
+        use super::super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt;
+        use super::super::nfrt_producer_output_receipt::NfrtProducerScope;
         NfrtProducerOutputReceipt {
             schema: "fixture".to_owned(),
             scope: NfrtProducerScope {
