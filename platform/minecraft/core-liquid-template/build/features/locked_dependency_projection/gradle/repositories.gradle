@@ -24,11 +24,30 @@ sfmEffectiveDependencies.each { dependency ->
     }
 }
 
-// The propagation CLI materializes source-built and remote artifacts under its
-// managed Maven cache. Discover that cache here so legacy Gradle tasks can
-// consume the same locked bytes without requiring the CLI to inject a Gradle
-// property or relying on the user's global ~/.m2 repository.
-def sfmCacheRoot = System.getenv('SFM_PROPAGATE_CHANGES_CACHE')
+// Opt in to the checkout-local cache without requiring Rust. The path is
+// relative to this generated project's fixed catalog location, not the shell's
+// working directory. Keep the existing cache selection until cutover is
+// separately approved.
+def sfmUseRepositoryToolchainData = project.findProperty('sfmUseRepositoryToolchainData')
+if (sfmUseRepositoryToolchainData != null
+        && !(sfmUseRepositoryToolchainData.toString() in ['true', 'false'])) {
+    throw new GradleException('sfmUseRepositoryToolchainData must be true or false')
+}
+def sfmCacheRoot
+if (sfmUseRepositoryToolchainData?.toString() == 'true') {
+    def sfmRepository = project.projectDir.toPath().toAbsolutePath()
+            .resolve('../../../../../').normalize()
+    def sfmProjectionParent = sfmRepository.resolve('platform/minecraft/projections')
+    if (!sfmRepository.resolve('.git').toFile().exists()
+            || !project.projectDir.toPath().toAbsolutePath().normalize().parent.parent.equals(sfmProjectionParent)) {
+        throw new GradleException('Repository toolchain data requires a catalog project inside the SFM checkout')
+    }
+    sfmCacheRoot = sfmRepository.resolve('sfm-toolchain-data').toString()
+} else {
+    // The propagation CLI materializes source-built and remote artifacts under
+    // its managed Maven cache. Preserve this legacy selection for other tasks.
+    sfmCacheRoot = System.getenv('SFM_PROPAGATE_CHANGES_CACHE')
+}
 if (!sfmCacheRoot) {
     def sfmUserHome = new File(System.getProperty('user.home'))
     def sfmOsName = System.getProperty('os.name').toLowerCase()
@@ -50,6 +69,7 @@ if (!sfmCacheRoot) {
     }
 }
 def sfmLocalMavenRepository = new File(sfmCacheRoot, 'minecraft-toolchain/maven')
+ext.sfmLogicalToolchainCacheRoot = sfmCacheRoot
 def sfmSourceBuildModules = sfmSourceBuildArtifacts.collect { artifact ->
     def coordinate = artifact.coordinate?.toString()
     def parts = coordinate == null ? [] : coordinate.split(':') as List
