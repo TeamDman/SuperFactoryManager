@@ -768,7 +768,7 @@ fn recipe_basis(
     mapping_channel: Option<&str>,
     mapping_version: Option<&str>,
 ) {
-    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@4");
+    append(hash, b"sfm:ordinary_forge_preparation_actual_inputs@5");
     append(hash, kind.as_bytes());
     append(hash, std::env::consts::OS.as_bytes());
     append(hash, std::env::consts::ARCH.as_bytes());
@@ -906,10 +906,6 @@ fn append_remap_recipe(hash: &mut Sha256) {
             include_bytes!("engine_specialsource_launch.rs").as_slice(),
         ),
         (
-            "remap-cache",
-            include_bytes!("dependency_remap_cache.rs").as_slice(),
-        ),
-        (
             "remap-workspace",
             include_bytes!("dependency_remap_attempt.rs").as_slice(),
         ),
@@ -920,6 +916,25 @@ fn append_remap_recipe(hash: &mut Sha256) {
     ] {
         append(hash, name.as_bytes());
         append(hash, source);
+    }
+    // Cache lookup, restoration, publication and diagnostics do not produce
+    // the remapped bytes. Bind the fresh producer and the actual SRG parser
+    // and class rewrite code, which the previous whole-cache hash omitted.
+    for (name, source, start, end) in [
+        (
+            "remap-fresh-producer",
+            include_str!("dependency_remap_cache.rs"),
+            "fn produce(",
+            "fn observe(",
+        ),
+        (
+            "remap-member-parser-and-rewrite",
+            include_str!("engine_execute.rs"),
+            "fn read_unique_srg_member_mappings(",
+            "fn remove_stale_dependency_outputs(",
+        ),
+    ] {
+        append_source_region(hash, name, source, start, end);
     }
 }
 

@@ -139,6 +139,69 @@ fn launch_source_identity_changes_only_for_producer_launch_regions() {
 }
 
 #[test]
+fn remap_recipe_selects_fresh_producer_and_member_rewrite_not_cache_consumer() {
+    let cache = include_str!("dependency_remap_cache.rs");
+    let fresh_start = "fn produce(";
+    let fresh_end = "fn observe(";
+    let original_fresh = selected_source_digest(cache, fresh_start, fresh_end);
+    let consumer_edit = cache.replace(
+        "let materialization = if current { \"already_current\" } else { \"copied\" };",
+        "let materialization = if current { \"hit\" } else { \"copied\" };",
+    );
+    assert_ne!(consumer_edit, cache);
+    assert_eq!(
+        selected_source_digest(&consumer_edit, fresh_start, fresh_end),
+        original_fresh,
+        "remap diagnostics must not re-run the producer"
+    );
+    let producer_edit = cache.replace(
+        "rewrite_srg_member_constants_in_jar(&outputs[0].1, &outputs[1].1, members)?;",
+        "rewrite_srg_member_constants_in_jar(&outputs[1].1, &outputs[0].1, members)?;",
+    );
+    assert_ne!(producer_edit, cache);
+    assert_ne!(
+        selected_source_digest(&producer_edit, fresh_start, fresh_end),
+        original_fresh,
+        "fresh remap invocation changes must rekey"
+    );
+
+    let rewrite = include_str!("engine_execute.rs");
+    let rewrite_start = "fn read_unique_srg_member_mappings(";
+    let rewrite_end = "fn remove_stale_dependency_outputs(";
+    let original_rewrite = selected_source_digest(rewrite, rewrite_start, rewrite_end);
+    let project_edit = rewrite.replace(
+        "fn execute_project_compile(context: &ExecutionContext<'_>)",
+        "fn execute_project_compile_changed(context: &ExecutionContext<'_>)",
+    );
+    assert_ne!(project_edit, rewrite);
+    assert_eq!(
+        selected_source_digest(&project_edit, rewrite_start, rewrite_end),
+        original_rewrite,
+        "project compile changes must not rekey dependency remapping"
+    );
+    let parser_edit = rewrite.replace(
+        "fn is_srg_member_name(name: &str) -> bool {",
+        "fn is_srg_member_name_changed(name: &str) -> bool {",
+    );
+    assert_ne!(parser_edit, rewrite);
+    assert_ne!(
+        selected_source_digest(&parser_edit, rewrite_start, rewrite_end),
+        original_rewrite,
+        "mapping parser changes must rekey"
+    );
+    let class_edit = rewrite.replace(
+        "fn rewrite_class_srg_member_constants(",
+        "fn rewrite_class_srg_member_constants_changed(",
+    );
+    assert_ne!(class_edit, rewrite);
+    assert_ne!(
+        selected_source_digest(&class_edit, rewrite_start, rewrite_end),
+        original_rewrite,
+        "class-byte rewrite changes must rekey"
+    );
+}
+
+#[test]
 fn held_version_directory_blocks_child_publication_until_release() -> Result<()> {
     let root = tempfile::tempdir()?;
     let version = root.path().join("versions").join("1.19.2");
