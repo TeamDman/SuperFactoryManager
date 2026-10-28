@@ -100,7 +100,24 @@ fn publish_payload_windows(
     use windows::Win32::Storage::FileSystem::FileRenameInfoEx;
     use windows::Win32::Storage::FileSystem::SetFileInformationByHandle;
 
-    match std::fs::symlink_metadata(path) {
+    // The artifact's parent can fit below MAX_PATH while the provenance
+    // sidecar's longer filename crosses it. Canonicalize the existing parent
+    // with std (which retains Windows' verbatim spelling), then append the
+    // not-yet-existing destination leaf for both the check and handle rename.
+    let parent = path.parent().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Payload path has no parent",
+        )
+    })?;
+    let leaf = path.file_name().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "Payload path has no filename",
+        )
+    })?;
+    let destination = std::fs::canonicalize(parent)?.join(leaf);
+    match std::fs::symlink_metadata(&destination) {
         Ok(metadata)
             if metadata.is_file()
                 && metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT.0 == 0 => {}
@@ -113,10 +130,7 @@ fn publish_payload_windows(
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error),
     }
-    let filename: Vec<u16> = std::path::absolute(path)?
-        .as_os_str()
-        .encode_wide()
-        .collect();
+    let filename: Vec<u16> = destination.as_os_str().encode_wide().collect();
     let filename_bytes = std::mem::size_of_val(filename.as_slice());
     let buffer_bytes = std::mem::size_of::<FILE_RENAME_INFO>() + filename_bytes;
     // Use the API's own type for allocation alignment; the variable-length
@@ -154,4 +168,29 @@ fn publish_payload_windows(
     }
     // This BOOL-based Win32 API reports GetLastError as HRESULT_FROM_WIN32.
     .map_err(|error| std::io::Error::from_raw_os_error(error.code().0 & 0xffff))
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn atomic_payload_sidecar_publishes_beyond_legacy_windows_path_limit() -> eyre::Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let base = dunce::canonicalize(fixture.path())?;
+        let padding = 180usize
+            .checked_sub(base.as_os_str().len() + 1)
+            .expect("fixture root must leave room for the parent component");
+        let parent = base.join("p".repeat(padding));
+        std::fs::create_dir(&parent)?;
+        let path = parent.join(
+            "listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar.sfm-provenance.json",
+        );
+        assert!(path.as_os_str().len() > 260);
+        write_payload_atomically(&path, b"first checked receipt")?;
+        assert_eq!(std::fs::read(&path)?, b"first checked receipt");
+        write_payload_atomically(&path, b"replacement checked receipt")?;
+        assert_eq!(std::fs::read(&path)?, b"replacement checked receipt");
+        Ok(())
+    }
 }
