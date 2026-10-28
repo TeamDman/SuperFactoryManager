@@ -3,6 +3,9 @@
 The other branches' AGENTS.md files all point to this one, do not read those other agent files to save us some tokens.
 
 We use worktrees to support multiple MC versions at the same time, see `git worktree list`
+Before creating a worktree or choosing toolchain-cache isolation/sharing, read
+[the worktree cache decision guide](worktree-toolchain-cache.md). Creating a
+worktree or cache link requires Teamy's approval.
 
 ## The Golden Rule
 

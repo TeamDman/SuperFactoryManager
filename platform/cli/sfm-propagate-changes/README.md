@@ -30,6 +30,9 @@ its routing filters, count validation and stream schema remain the same.
 
 ## Build and run projections
 
+For worktree creation and optional toolchain-cache sharing, read the
+[worktree cache decision guide](../../../docs/worktree-toolchain-cache.md).
+
 From the SFM repository root:
 
 ```pwsh

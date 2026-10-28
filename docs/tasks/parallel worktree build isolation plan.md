@@ -1,5 +1,9 @@
 # Parallel worktree build isolation plan
 
+For current cache-root selection and the approval-gated decision to share a
+physical toolchain cache, read the
+[worktree cache decision guide](../worktree-toolchain-cache.md).
+
 ## Purpose
 
 Allow independent 1.19.2 feature worktrees to compile and test concurrently.

@@ -34,4 +34,7 @@ for syntax highlighting 🌈
 
 ## Build from source
 
+Before creating a worktree or sharing toolchain data between checkouts, read the
+[worktree cache decision guide](docs/worktree-toolchain-cache.md).
+
 Generated Minecraft projects include their own Gradle wrapper and can be built without Rust. Follow the [contributor guide](docs/source-projection-contributor-guide.md#standalone-gradle-projects) for project selection, Java requirements, and the verified 4.35.0/Minecraft 1.19.2 visitor path.
