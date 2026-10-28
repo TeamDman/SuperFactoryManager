@@ -16,6 +16,7 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::path::PathBuf;
 
+#[tracing::instrument(level = "info", name = "execute_shared_dependency_remap", skip_all)]
 pub(super) fn execute(
     context: &ExecutionContext<'_>,
     shared_key: &str,
