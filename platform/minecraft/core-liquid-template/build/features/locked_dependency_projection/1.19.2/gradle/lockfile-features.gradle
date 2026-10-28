@@ -106,12 +106,13 @@ def sfmSourceBuildArtifacts = []
 sfmEffectiveDependencies.each { dependency ->
     dependency.components.each { component ->
         def acquisition = component.declaration.acquisition
-        if (acquisition['source-build'] != null) {
-            def artifactId = acquisition['source-build'].artifact_id.toString()
-            def artifact = sfmLockfile.artifacts.find { it.id.toString() == artifactId }
+        def sourceBuild = acquisition['source-build']
+        def artifactId = sourceBuild?.artifact_id ?: component.derived_checks?.artifact_id
+        def artifact = sfmLockfile.artifacts.find { it.id.toString() == artifactId?.toString() }
+        if (sourceBuild != null || artifact?.provenance?.toString() == 'source-build') {
             if (artifact == null) {
                 throw new GradleException(
-                        "Source-build acquisition ${dependency.id}/${component.id} references missing artifact '${artifactId}'")
+                        "Source-built artifact for ${dependency.id}/${component.id} is missing: ${artifactId}")
             }
             sfmSourceBuildArtifacts << artifact
         }
