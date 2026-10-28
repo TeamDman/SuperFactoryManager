@@ -104,8 +104,15 @@ that safe default and rejects its opt-in obfuscation flag. Both the Rust package
 projection consume the same locked range and exact version.
 
 Binary artifacts and materialized source trees are managed cache state. By default they are kept
-in the platform cache directory; set `SFM_PROPAGATE_CHANGES_CACHE` to use an isolated cache. The
-portable `$sfm-cache` paths recorded in the lockfile resolve beneath that cache and must not be
+in the platform user cache directory. Use `sfm-propagate-changes cache root set <existing-directory>`
+to persist another shared root, `cache root show` to see the effective root and its source, or
+`cache root unset` to return to the platform default without deleting cached files. The selected
+directory must be empty or already have the SFM ownership marker. The environment variable
+`SFM_PROPAGATE_CHANGES_CACHE` takes precedence over the persisted choice for one process; the
+persisted choice takes precedence over the platform default. `cache path` prints only the
+effective path for scripts. `cache clean` refuses a custom root. The separate source project
+compile `--cache-root` flag selects a derived project workspace, not this shared artifact cache.
+The portable `$sfm-cache` paths recorded in the lockfile resolve beneath that cache and must not be
 replaced with machine-specific paths.
 
 Inspect providers before acquiring sources:

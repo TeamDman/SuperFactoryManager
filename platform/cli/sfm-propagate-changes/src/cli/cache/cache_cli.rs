@@ -1,6 +1,7 @@
 use super::CacheCleanArgs;
 use super::CacheOpenArgs;
 use super::CachePathArgs;
+use super::CacheRootArgs;
 use facet::Facet;
 use figue as args;
 
@@ -27,6 +28,8 @@ impl CacheArgs {
 pub enum CacheCommand {
     /// Show the cache directory path
     Path(CachePathArgs),
+    /// Show or persist the shared toolchain cache root
+    Root(CacheRootArgs),
     /// Open the cache directory in the file explorer
     Open(CacheOpenArgs),
     /// Clean the cache directory
@@ -40,6 +43,7 @@ impl CacheCommand {
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
             CacheCommand::Path(args) => args.invoke(),
+            CacheCommand::Root(args) => args.invoke(),
             CacheCommand::Open(args) => args.invoke(),
             CacheCommand::Clean(args) => args.invoke(),
         }
