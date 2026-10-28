@@ -68,6 +68,7 @@ pub(super) fn execute(
     };
     check()?;
     let outputs = output_paths(producer);
+    let consumer_outputs = selected_consumer_outputs(&outputs);
     let cancellation = || context.bail_if_cancelled();
     let reused = if context.plan.refresh {
         None
@@ -77,7 +78,7 @@ pub(super) fn execute(
                 &key_root,
                 fingerprint,
                 &context.plan.cache_dir,
-                &outputs,
+                &consumer_outputs,
                 cancellation,
                 "dependency_remap.materialize",
             )
@@ -108,7 +109,7 @@ pub(super) fn execute(
         &key_root,
         fingerprint,
         &attempt.outputs,
-        &outputs,
+        &consumer_outputs,
         &check,
     )?;
     observe(
@@ -128,7 +129,7 @@ fn finish(
     key_root: &Path,
     fingerprint: &str,
     produced: &[(&str, PathBuf)],
-    outputs: &[(&str, PathBuf)],
+    consumer_outputs: &[(&str, PathBuf)],
     check: &impl Fn() -> eyre::Result<()>,
 ) -> eyre::Result<(Option<PathBuf>, bool)> {
     check()?;
@@ -142,15 +143,16 @@ fn finish(
             entry,
             fingerprint,
             &context.plan.cache_dir,
-            outputs,
+            consumer_outputs,
             &cancellation,
             "dependency_remap.materialize",
         )?
     } else {
+        let consumer_produced = selected_consumer_outputs(produced);
         forge_preparation_cache::materialize_outputs(
             &context.plan.cache_dir,
-            produced,
-            outputs,
+            &consumer_produced,
+            consumer_outputs,
             &cancellation,
             "dependency_remap.materialize",
         )?
@@ -165,6 +167,17 @@ fn output_paths(producer: &DependencyDeobfProducer) -> Vec<(&'static str, PathBu
         ("specialsource.jar", producer.specialsource_output.clone()),
         ("remapped.jar", producer.remapped.clone()),
     ]
+}
+
+fn selected_consumer_outputs<'a>(outputs: &[(&'a str, PathBuf)]) -> Vec<(&'a str, PathBuf)> {
+    // The SpecialSource JAR is an input to the member-constant rewrite in the
+    // fresh attempt. Later compile/package consumers read only remapped.jar.
+    // A completed store still records and verifies both outputs before a hit.
+    outputs
+        .iter()
+        .filter(|(name, _)| *name == "remapped.jar")
+        .cloned()
+        .collect()
 }
 
 fn decline(
@@ -225,26 +238,125 @@ fn observe(
     let coordinate = &producer.coordinate;
     // These are already-validated metadata paths. No payload digest/log reread.
     if let Some(entry) = entry.filter(|_| outcome == "reused") {
-        tracing::info!(%coordinate, key, outcome, outputs = 2,
+        tracing::info!(%coordinate, key, outcome, stored_outputs = 2, materialized_outputs = 1,
             store_key_root = %key_root.display(), entry = %entry.display(),
             inputs_receipt = %entry.join("inputs.sha256").display(),
             outputs_manifest = %entry.join("inputs.outputs.json").display(),
-            specialsource_output = %producer.specialsource_output.display(),
+            specialsource_project_path = %producer.specialsource_output.display(),
             remapped_output = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
     } else if let Some(entry) = entry {
-        tracing::info!(%coordinate, key, outcome, stored, outputs = 2,
+        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs = 1,
             store_key_root = %key_root.display(), entry = %entry.display(),
             inputs_receipt = %entry.join("inputs.sha256").display(),
             outputs_manifest = %entry.join("inputs.outputs.json").display(),
-            specialsource_output = %producer.specialsource_output.display(),
+            specialsource_project_path = %producer.specialsource_output.display(),
             remapped_output = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
     } else {
-        tracing::info!(%coordinate, key, outcome, stored, outputs = 2,
+        tracing::info!(%coordinate, key, outcome, stored, stored_outputs = 2, materialized_outputs = 1,
             store_key_root = %key_root.display(),
-            specialsource_output = %producer.specialsource_output.display(),
+            specialsource_project_path = %producer.specialsource_output.display(),
             remapped_output = %producer.remapped.display(), materialization,
             "dependency_remap_cache");
+    }
+}
+
+#[cfg(test)]
+mod selective_tests {
+    use super::*;
+    use eyre::Result;
+    use std::fs;
+
+    fn fixture_dir(path: &Path) -> Result<PathBuf> {
+        let (path, _lease) = forge_preparation_cache::make_held_directory(path)?
+            .ok_or_else(|| eyre::eyre!("fixture directory unavailable"))?;
+        Ok(path)
+    }
+
+    #[test]
+    fn verified_pair_materializes_only_the_consumed_remap() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let producer = fixture_dir(&root.path().join("producer"))?;
+        let produced = vec![
+            ("specialsource.jar", producer.join("specialsource.jar")),
+            ("remapped.jar", producer.join("remapped.jar")),
+        ];
+        fs::write(&produced[0].1, b"intermediate-only")?;
+        fs::write(&produced[1].1, b"compiled-consumer")?;
+        let key = fixture_dir(&root.path().join("key"))?;
+        let entry = forge_preparation_cache::publish_entry(&key, "pair-fixture", &produced, || Ok(()))?
+            .ok_or_else(|| eyre::eyre!("fixture pair publication unavailable"))?;
+        let project = fixture_dir(&root.path().join("project"))?;
+        let destinations = vec![
+            ("specialsource.jar", project.join("specialsource.jar")),
+            ("remapped.jar", project.join("remapped.jar")),
+        ];
+        let consumed = selected_consumer_outputs(&destinations);
+        assert_eq!(consumed.len(), 1);
+        assert_eq!(consumed[0].0, "remapped.jar");
+        assert_eq!(
+            forge_preparation_cache::restore_completed(
+                &entry,
+                "pair-fixture",
+                &project,
+                &consumed,
+                &|| Ok(()),
+                "dependency_remap.fixture_selective",
+            )?,
+            Some(false)
+        );
+        assert!(!destinations[0].1.exists());
+        assert_eq!(fs::read(&destinations[1].1)?, b"compiled-consumer");
+
+        // A partial selection must still reject corruption in the omitted
+        // stored intermediate, before trusting the remapped output.
+        fs::write(entry.join("payload/specialsource.jar"), b"corrupt")?;
+        let second = fixture_dir(&root.path().join("second"))?;
+        let second_outputs = vec![
+            ("specialsource.jar", second.join("specialsource.jar")),
+            ("remapped.jar", second.join("remapped.jar")),
+        ];
+        assert!(forge_preparation_cache::restore_completed(
+            &entry,
+            "pair-fixture",
+            &second,
+            &selected_consumer_outputs(&second_outputs),
+            &|| Ok(()),
+            "dependency_remap.fixture_selective",
+        )?
+        .is_none());
+        assert!(second_outputs.iter().all(|(_, path)| !path.exists()));
+        Ok(())
+    }
+
+    #[test]
+    fn declined_publication_still_materializes_the_consumed_remap() -> Result<()> {
+        let root = tempfile::tempdir()?;
+        let producer = fixture_dir(&root.path().join("producer"))?;
+        let project = fixture_dir(&root.path().join("project"))?;
+        let produced = vec![
+            ("specialsource.jar", producer.join("specialsource.jar")),
+            ("remapped.jar", producer.join("remapped.jar")),
+        ];
+        fs::write(&produced[0].1, b"intermediate-only")?;
+        fs::write(&produced[1].1, b"compiled-consumer")?;
+        let destinations = vec![
+            ("specialsource.jar", project.join("specialsource.jar")),
+            ("remapped.jar", project.join("remapped.jar")),
+        ];
+        assert_eq!(
+            forge_preparation_cache::materialize_outputs(
+                &project,
+                &selected_consumer_outputs(&produced),
+                &selected_consumer_outputs(&destinations),
+                &|| Ok(()),
+                "dependency_remap.fixture_selective",
+            )?,
+            Some(false)
+        );
+        assert!(!destinations[0].1.exists());
+        assert_eq!(fs::read(&destinations[1].1)?, b"compiled-consumer");
+        Ok(())
     }
 }
