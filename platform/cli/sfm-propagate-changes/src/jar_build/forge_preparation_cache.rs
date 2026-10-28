@@ -50,7 +50,10 @@ impl std::fmt::Debug for HeldForgeDevJar {
 
 impl HeldForgeDevJar {
     pub(super) fn path(&self) -> &Path {
-        &self.path
+        // The held handle and ancestry may use Win32's extended spelling,
+        // which Java 17 does not accept as a classpath entry. Keep the hold
+        // on the same file while exposing its ordinary path to javac and run.
+        dunce::simplified(&self.path)
     }
 }
 

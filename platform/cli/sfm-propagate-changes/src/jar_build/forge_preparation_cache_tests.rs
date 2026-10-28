@@ -126,6 +126,7 @@ fn ordinary_forge_hit_holds_dev_jar_without_a_project_copy() -> Result<()> {
         .expect("completed Forge entry should be held");
     assert!(mappings.iter().all(|(_, path)| path.is_file()));
     assert!(!destinations[4].1.exists());
+    assert!(!held.path().to_string_lossy().starts_with(r"\\?\"));
     assert_eq!(fs::read(held.path())?, b"dev_compile.jar");
     assert!(fs::write(held.path(), b"mutated").is_err());
     let stored = held.path().to_path_buf();
