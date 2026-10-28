@@ -1,5 +1,8 @@
 use directories_next::ProjectDirs;
-use eyre::{Context, ensure};
+use eyre::Context;
+use eyre::ensure;
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -72,14 +75,11 @@ fn resolve_selected_cache_root(
             path.display()
         );
         #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            ensure!(
-                metadata.file_attributes() & 0x400 == 0,
-                "Configured cache root must not be a reparse point: {}",
-                path.display()
-            );
-        }
+        ensure!(
+            metadata.file_attributes() & 0x400 == 0,
+            "Configured cache root must not be a reparse point: {}",
+            path.display()
+        );
         ensure!(
             std::fs::read_to_string(path.join(CACHE_ROOT_MARKER))? == CACHE_ROOT_MARKER_CONTENT,
             "Configured cache root has no valid SFM ownership marker: {}",

@@ -608,7 +608,9 @@ pub(super) fn lease_artifact_ancestors(directory: &Path) -> Result<Vec<File>> {
     lease_ancestors_with_share_mode(directory, 3)
 }
 
-fn lease_ancestors_with_share_mode(directory: &Path, _share_mode: u32) -> Result<Vec<File>> {
+fn lease_ancestors_with_share_mode(directory: &Path, share_mode: u32) -> Result<Vec<File>> {
+    #[cfg(not(windows))]
+    let _ = share_mode;
     ensure!(
         directory.is_absolute(),
         "Dependency cache directory must be absolute"
@@ -625,7 +627,7 @@ fn lease_ancestors_with_share_mode(directory: &Path, _share_mode: u32) -> Result
             use std::os::windows::fs::OpenOptionsExt as _;
             let file = OpenOptions::new()
                 .access_mode(0x0081)
-                .share_mode(_share_mode)
+                .share_mode(share_mode)
                 .custom_flags(0x0220_0000)
                 .open(ancestor)?;
             ensure!(

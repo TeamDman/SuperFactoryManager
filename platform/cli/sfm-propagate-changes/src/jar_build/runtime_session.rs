@@ -17,6 +17,9 @@ use std::path::Path;
 #[cfg(windows)]
 use std::path::PathBuf;
 
+#[cfg(windows)]
+type OwnedInputFiles = BTreeMap<PathBuf, (u64, blake3::Hash)>;
+
 pub(crate) struct RuntimeSession {
     pub receipt: RuntimeSessionReceipt,
     pub slot: RuntimeSlot,
@@ -100,14 +103,14 @@ impl Drop for RuntimeSession {
     }
 }
 
-/// Exact private launch bytes captured before a GameTest JVM starts. Directory
+/// Exact private launch bytes captured before a `GameTest` JVM starts. Directory
 /// leases keep the session tree at the same paths through the final comparison
 /// and file unlink. Empty directories and all receipts/logs remain; a failed or
 /// changed run retains its inputs for diagnosis. This never visits old sessions.
 #[cfg(windows)]
 pub(crate) struct OwnedSessionInputs {
     session_dir: PathBuf,
-    files: BTreeMap<PathBuf, (u64, blake3::Hash)>,
+    files: OwnedInputFiles,
     directories: BTreeSet<PathBuf>,
     leases: DirectoryLeases,
 }
@@ -127,7 +130,7 @@ impl OwnedSessionInputs {
         Ok(owned)
     }
 
-    /// Called only after the owned JVM has exited and a required GameTest pass
+    /// Called only after the owned JVM has exited and a required `GameTest` pass
     /// count has been validated. An inventory change retains all payloads.
     pub(crate) fn retire(mut self) -> eyre::Result<(usize, u64)> {
         let (current_files, current_directories) = self.inventory()?;
@@ -164,9 +167,9 @@ impl OwnedSessionInputs {
             "runtime retirement marker directory spelling changed"
         );
         let mut temporary = tempfile::NamedTempFile::new_in(&canonical)?;
-        write!(
+        writeln!(
             temporary,
-            "{{\"schema\":\"sfm:retired-runtime-inputs@1\",\"state\":\"{state}\",\"replayable\":false,\"files\":{files},\"bytes\":{bytes}}}\n"
+            "{{\"schema\":\"sfm:retired-runtime-inputs@1\",\"state\":\"{state}\",\"replayable\":false,\"files\":{files},\"bytes\":{bytes}}}"
         )?;
         temporary
             .persist(canonical.join("immutable-input-retirement.json"))
@@ -174,9 +177,7 @@ impl OwnedSessionInputs {
         Ok(())
     }
 
-    fn inventory(
-        &mut self,
-    ) -> eyre::Result<(BTreeMap<PathBuf, (u64, blake3::Hash)>, BTreeSet<PathBuf>)> {
+    fn inventory(&mut self) -> eyre::Result<(OwnedInputFiles, BTreeSet<PathBuf>)> {
         let mut files = BTreeMap::new();
         let mut directories = BTreeSet::new();
         let mut total = 0_u64;

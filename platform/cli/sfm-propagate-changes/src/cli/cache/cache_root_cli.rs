@@ -1,13 +1,20 @@
-use crate::paths::{
-    APP_CACHE_ENV_VAR, APP_HOME, CACHE_ROOT_FILE, CACHE_ROOT_MARKER, CACHE_ROOT_MARKER_CONTENT,
-    CacheHome,
-};
+use crate::paths::APP_CACHE_ENV_VAR;
+use crate::paths::APP_HOME;
+use crate::paths::CACHE_ROOT_FILE;
+use crate::paths::CACHE_ROOT_MARKER;
+use crate::paths::CACHE_ROOT_MARKER_CONTENT;
+use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
-use eyre::{Context, bail, ensure};
+use eyre::Context;
+use eyre::bail;
+use eyre::ensure;
 use facet::Facet;
 use figue as args;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+#[cfg(windows)]
+use std::os::windows::fs::MetadataExt;
+use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Facet, Debug)]
 pub struct CacheRootArgs {
@@ -16,6 +23,8 @@ pub struct CacheRootArgs {
 }
 
 impl CacheRootArgs {
+    /// # Errors
+    /// Returns an error if the selected cache-root command fails.
     pub fn invoke(self) -> eyre::Result<()> {
         self.command.invoke()
     }
@@ -33,6 +42,8 @@ pub enum CacheRootCommand {
 }
 
 impl CacheRootCommand {
+    /// # Errors
+    /// Returns an error if the selected cache-root command fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
             Self::Show(args) => args.invoke(),
@@ -46,6 +57,8 @@ impl CacheRootCommand {
 pub struct CacheRootShowArgs;
 
 impl CacheRootShowArgs {
+    /// # Errors
+    /// Returns an error if the effective root cannot be resolved or displayed.
     pub fn invoke(self) -> eyre::Result<()> {
         let source = if std::env::var_os(APP_CACHE_ENV_VAR).is_some() {
             APP_CACHE_ENV_VAR
@@ -66,6 +79,8 @@ pub struct CacheRootSetArgs {
 }
 
 impl CacheRootSetArgs {
+    /// # Errors
+    /// Returns an error if the requested root fails validation or cannot be persisted.
     pub fn invoke(self) -> eyre::Result<()> {
         let requested_metadata = std::fs::symlink_metadata(&self.path)?;
         ensure!(
@@ -74,14 +89,11 @@ impl CacheRootSetArgs {
             self.path.display()
         );
         #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            ensure!(
-                requested_metadata.file_attributes() & 0x400 == 0,
-                "Cache root must not be a reparse point: {}",
-                self.path.display()
-            );
-        }
+        ensure!(
+            requested_metadata.file_attributes() & 0x400 == 0,
+            "Cache root must not be a reparse point: {}",
+            self.path.display()
+        );
         let root = dunce::canonicalize(&self.path)
             .wrap_err_with(|| format!("Cache root must exist: {}", self.path.display()))?;
         validate_cache_root(&root)?;
@@ -115,6 +127,8 @@ impl CacheRootSetArgs {
 pub struct CacheRootUnsetArgs;
 
 impl CacheRootUnsetArgs {
+    /// # Errors
+    /// Returns an error if the persisted setting cannot be removed or reported.
     pub fn invoke(self) -> eyre::Result<()> {
         let config = APP_HOME.file_path(CACHE_ROOT_FILE);
         if config.exists() {
@@ -137,14 +151,11 @@ fn validate_cache_root(root: &Path) -> eyre::Result<()> {
         root.display()
     );
     #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        ensure!(
-            metadata.file_attributes() & 0x400 == 0,
-            "Cache root must not be a reparse point: {}",
-            root.display()
-        );
-    }
+    ensure!(
+        metadata.file_attributes() & 0x400 == 0,
+        "Cache root must not be a reparse point: {}",
+        root.display()
+    );
     let marker = root.join(CACHE_ROOT_MARKER);
     if marker.exists() {
         ensure!(
