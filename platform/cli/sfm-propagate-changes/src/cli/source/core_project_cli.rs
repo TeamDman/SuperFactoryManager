@@ -258,13 +258,27 @@ impl CoreProjectArgs {
             CoreProjectCommand::Check(args) => (args, SyncMode::Check, "check"),
             CoreProjectCommand::Sync(args) => (args, SyncMode::Apply, "sync"),
         };
-        Ok(CliOutput::facet(project_report(
+        let report = project_report(
             &args,
             GenerationPolicy::Requested(mode),
             operation,
             cancellation,
             invocation_dir,
-        )?))
+        )?;
+        if mode == SyncMode::Check {
+            // Match native compile: generated source scans must reject unowned files.
+            let checked = crate::source_projection::catalog_owned_project::collect_catalog_project(
+                &args.repo_root,
+                invocation_dir,
+                &args.projection,
+            )?
+            .check_current()?;
+            ensure!(
+                checked.receipt().project_inputs_sha256 == report.project_inputs_sha256,
+                "named source check metadata changed after generation",
+            );
+        }
+        Ok(CliOutput::facet(report))
     }
 }
 
@@ -1053,6 +1067,28 @@ mod tests {
         invoke(&args, SyncMode::Apply, temp.path()).unwrap();
         assert_eq!(fs::read(&output).unwrap(), replacement);
         invoke(&args, SyncMode::Check, temp.path()).unwrap();
+    }
+
+    #[test]
+    fn named_check_rejects_unowned_generated_source_like_native_compile() {
+        let (temp, args) = fixture();
+        let report = invoke(&args, SyncMode::Apply, temp.path()).unwrap();
+        let extra = temp
+            .path()
+            .join(&report.project_dir)
+            .join("src/main/java/Extra.java");
+        fs::write(&extra, b"class Extra {}\n").unwrap();
+        let error = CoreProjectArgs {
+            command: CoreProjectCommand::Check(args),
+        }
+        .invoke_in(&CancellationToken::new(), temp.path())
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains("missing or extra unowned source inputs"),
+            "{error}"
+        );
+        assert_eq!(fs::read(extra).unwrap(), b"class Extra {}\n");
     }
 
     #[test]
