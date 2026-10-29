@@ -293,19 +293,33 @@ mod tests {
         fs::write(session.join("launch-inputs/0/runtime.jar"), b"jar")?;
         fs::write(session.join("run/console.log"), b"passed")?;
         fs::write(temporary.path().join("options.txt"), b"user state")?;
+        fs::create_dir(temporary.path().join("world"))?;
+        fs::write(temporary.path().join("world/level.dat"), b"saved world")?;
+        let retained_before = [
+            fs::read(temporary.path().join("options.txt"))?,
+            fs::read(temporary.path().join("world/level.dat"))?,
+            fs::read(session.join("run/console.log"))?,
+        ];
         let owned = OwnedSessionInputs::capture(&session)?;
         let (files, bytes) = owned.retire()?;
         assert_eq!((files, bytes), (2, 8));
         assert!(session.join("mod/pkg").is_dir());
         assert!(session.join("launch-inputs/0").is_dir());
-        assert_eq!(fs::read(session.join("run/console.log"))?, b"passed");
+        assert_eq!(
+            fs::read(session.join("run/console.log"))?,
+            retained_before[2]
+        );
         assert!(
             fs::read_to_string(session.join("run/immutable-input-retirement.json"))?
                 .contains("\"replayable\":false")
         );
         assert_eq!(
             fs::read(temporary.path().join("options.txt"))?,
-            b"user state"
+            retained_before[0]
+        );
+        assert_eq!(
+            fs::read(temporary.path().join("world/level.dat"))?,
+            retained_before[1]
         );
         Ok(())
     }
@@ -318,6 +332,11 @@ mod tests {
         fs::create_dir(&session)?;
         fs::create_dir(session.join("mod"))?;
         fs::create_dir(session.join("launch-inputs"))?;
+        fs::create_dir(session.join("run"))?;
+        fs::create_dir(temporary.path().join("world"))?;
+        fs::write(temporary.path().join("options.txt"), b"user options")?;
+        fs::write(temporary.path().join("world/level.dat"), b"saved world")?;
+        fs::write(session.join("run/console.log"), b"failed run evidence")?;
         let file = session.join("launch-inputs/input.jar");
         fs::write(&file, b"original")?;
         let failed = OwnedSessionInputs::capture(&session)?;
@@ -327,6 +346,18 @@ mod tests {
         fs::write(&file, b"changed")?;
         assert!(changed.retire().is_err());
         assert_eq!(fs::read(&file)?, b"changed");
+        assert_eq!(
+            fs::read(temporary.path().join("options.txt"))?,
+            b"user options"
+        );
+        assert_eq!(
+            fs::read(temporary.path().join("world/level.dat"))?,
+            b"saved world"
+        );
+        assert_eq!(
+            fs::read(session.join("run/console.log"))?,
+            b"failed run evidence"
+        );
         Ok(())
     }
 
