@@ -355,12 +355,6 @@ impl JdkSourceDomain {
         if let Some(fixture) = super::current_scenario_fixture() {
             return Self::from_scenario_tree(java_release, &fixture.jdk_source_tree);
         }
-        let provider = BranchJdkSourceProvider::resolve(
-            java_release,
-            branch,
-            minecraft_version,
-            minecraft_dir,
-        )?;
         let repository = minecraft_dir
             .parent()
             .and_then(Path::parent)
@@ -374,6 +368,29 @@ impl JdkSourceDomain {
             repository,
             None,
             &CancellationToken::new(),
+        )?;
+        let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+        let lockfile_text = std::fs::read_to_string(&lockfile_path)?;
+        if matches!(
+            parse_document(&lockfile_text)?,
+            ToolchainLockfileDocument::V4(ref lockfile) if lockfile.jdk_pins.is_some()
+        ) {
+            // Catalog branches have an exact locked JBR. They need no mutable
+            // last-plan receipt merely to resolve the pinned SDK source ZIP.
+            return Self::resolve_generated_project(
+                java_release,
+                minecraft_dir,
+                &selected.home().0.join("minecraft-toolchain/jbrsdk"),
+                &selected.home().0,
+                None,
+            );
+        }
+        // Older branch lock schemas retain their explicit plan-selected JDK.
+        let provider = BranchJdkSourceProvider::resolve(
+            java_release,
+            branch,
+            minecraft_version,
+            minecraft_dir,
         )?;
         Self::from_archive(
             java_release,
