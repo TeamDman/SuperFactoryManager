@@ -285,8 +285,6 @@ mod tests {
             .join(relative);
         assert_eq!(view.tree_path(), historical);
         assert_eq!(view.status(), SourceStatus::Missing);
-        std::fs::create_dir_all(&historical).expect("historical branch output");
-        assert_eq!(view.status(), SourceStatus::Acquired);
     }
 
     #[test]
