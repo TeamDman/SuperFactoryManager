@@ -13,7 +13,7 @@ use std::path::Path;
 
 pub(crate) const RECEIPT_KEY: &str = "SFM_PRODUCER_RECEIPT_SHA256";
 
-#[derive(Facet)]
+#[derive(Clone, Facet)]
 struct Output {
     path: String,
     bytes: u64,
@@ -68,6 +68,34 @@ pub(crate) fn verify(
     git: Option<&SourceGitProvenance>,
     build: Option<&SourceBuildProvenance>,
 ) -> eyre::Result<Option<(String, Vec<u8>)>> {
+    let Some((relative, raw, output)) =
+        verify_receipt_metadata_only(cache, coordinate, expected, git, build)?
+    else {
+        return Ok(None);
+    };
+    let metadata = fs::metadata(artifact)?;
+    ensure!(
+        metadata.is_file() && metadata.len() == output.bytes,
+        "producer output size mismatch"
+    );
+    ensure!(
+        sha256(&fs::read(artifact)?) == output.sha256
+            && ContentHash::from_path(artifact, expected.algorithm)? == expected,
+        "producer output bytes mismatch"
+    );
+    Ok(Some((relative, raw)))
+}
+
+/// This validates the historical receipt and recipe without a finished output.
+/// It is deliberately not an admission for a missing-output build: the v1
+/// receipt has only an inventory digest, not a sealed external input closure.
+fn verify_receipt_metadata_only(
+    cache: &Path,
+    coordinate: Option<&str>,
+    expected: ContentHash,
+    git: Option<&SourceGitProvenance>,
+    build: Option<&SourceBuildProvenance>,
+) -> eyre::Result<Option<(String, Vec<u8>, Output)>> {
     if !required(coordinate, build) {
         return Ok(None);
     }
@@ -143,17 +171,7 @@ pub(crate) fn verify(
         digest(&output.sha256) && output.bytes <= 64 * 1024 * 1024,
         "invalid producer output digest or size"
     );
-    let metadata = fs::metadata(artifact)?;
-    ensure!(
-        metadata.is_file() && metadata.len() == output.bytes,
-        "producer output size mismatch"
-    );
-    ensure!(
-        sha256(&fs::read(artifact)?) == output.sha256
-            && ContentHash::from_path(artifact, expected.algorithm)? == expected,
-        "producer output bytes mismatch"
-    );
-    Ok(Some((relative, raw)))
+    Ok(Some((relative, raw, output.clone())))
 }
 
 #[cfg(test)]
@@ -307,6 +325,46 @@ pub(crate) mod tests {
             verify(
                 cache.path(),
                 &path,
+                Some(COORDINATE),
+                hash,
+                Some(&git),
+                Some(&build)
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn metadata_preflight_is_not_missing_output_admission() {
+        let (cache, path, mut git, mut build, hash, receipt) = fixture();
+        pin(cache.path(), &mut build, &receipt);
+        fs::remove_file(&path).unwrap();
+        assert!(
+            verify_receipt_metadata_only(
+                cache.path(),
+                Some(COORDINATE),
+                hash,
+                Some(&git),
+                Some(&build)
+            )
+            .unwrap()
+            .is_some()
+        );
+        assert!(
+            verify(
+                cache.path(),
+                &path,
+                Some(COORDINATE),
+                hash,
+                Some(&git),
+                Some(&build)
+            )
+            .is_err()
+        );
+        git.commit = "c".repeat(40);
+        assert!(
+            verify_receipt_metadata_only(
+                cache.path(),
                 Some(COORDINATE),
                 hash,
                 Some(&git),
