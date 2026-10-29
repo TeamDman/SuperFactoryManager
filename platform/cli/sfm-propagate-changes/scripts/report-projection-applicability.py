@@ -2,7 +2,7 @@
 
 Usage: python report-projection-applicability.py REPO_ROOT > receipt.json
 This is not the G6 scope freeze: plain launch applicability, exact selectors,
-Gradle fallback rows and 18 unmaterialized portable locks still need review.
+Gradle fallback qualification and 18 unmaterialized portable locks still need review.
 """
 
 import argparse
@@ -17,6 +17,7 @@ OPERATIONS = (
     "frozen_lock",
     "native_compile",
     "native_jar",
+    "gradle_compile",
     "named_historical_jar",
     "portable_fe_gametest",
     "infrastructure_guard_gametest",
@@ -42,21 +43,51 @@ def family_for(key):
     raise ValueError(f"Unclassified catalog projection: {key}")
 
 
-def classify(key, family, features, lock_present):
+def applicability_profiles(lock):
+    if lock is None:
+        return ("unmaterialized",)
+    if "profiles" not in lock:
+        if lock.get("schema_version") != 2:
+            raise ValueError("Unprofiled lock has an unknown historical schema")
+        return ("legacy-schema-v2",)
+    ids = tuple(profile["id"] for profile in lock["profiles"])
+    if not ids or len(ids) != len(set(ids)):
+        raise ValueError("Profiled lock has absent or duplicate profile ids")
+    if set(ids) - {"gradle", "rust-toolchain"}:
+        raise ValueError("Profiled lock has an unreviewed profile id")
+    return ids
+
+
+def classify(key, family, features, lock_present, profile):
     rows = []
     for operation in OPERATIONS:
         required = False
+        external = False
         reason = ""
         if operation == "source_render":
             required, reason = True, "catalog-declared projection"
         elif operation == "frozen_lock":
             required, reason = True, "catalog-selected frozen dependency graph"
         elif operation in ("native_compile", "native_jar"):
-            required = family != "plain-4.35"
+            required = (family != "plain-4.35" and
+                        profile in ("rust-toolchain", "legacy-schema-v2", "unmaterialized"))
             reason = ("reviewed 4.34 native recipe or declared development route" if required
-                      else "no reviewed 4.35 plain native release recipe")
+                      else "native route does not use this profile")
+        elif operation == "gradle_compile":
+            required = ((family == "plain-4.35" and profile == "legacy-schema-v2")
+                        or profile == "unmaterialized")
+            external = (profile == "gradle" or
+                        (family == "plain-4.34" and profile == "legacy-schema-v2"))
+            if profile == "unmaterialized":
+                reason = "generated Gradle profile cannot be reviewed until lock materializes"
+            elif required:
+                reason = "plain 4.35 has no reviewed native release recipe"
+            elif external:
+                reason = "Gradle fallback is separately owned"
+            else:
+                reason = "Gradle route does not use this profile"
         elif operation == "named_historical_jar":
-            required = family == "plain-4.34"
+            required = family == "plain-4.34" and profile == "legacy-schema-v2"
             reason = ("ten reviewed 4.34 named recipes" if required
                       else "named historical recipe is scoped to plain 4.34")
         else:
@@ -66,13 +97,19 @@ def classify(key, family, features, lock_present):
                 "progress_gametest": "issue_610_progress_tests",
                 "client_visual": "issue_610_visual_evidence",
             }[operation]
-            required = feature in features
-            reason = f"feature {feature} {'declared' if required else 'absent'}"
+            declared = feature in features
+            required = declared and profile in ("rust-toolchain", "unmaterialized")
+            external = declared and profile == "gradle"
+            reason = (f"feature {feature} declared; native test route" if required
+                      else f"feature {feature} declared; Gradle route separately owned" if external
+                      else f"feature {feature} absent or not selected by this profile")
         blocked = required and not lock_present and operation != "source_render"
         rows.append({
             "projection": key,
+            "profile": profile,
             "operation": operation,
-            "status": "blocked" if blocked else ("required" if required else "N/A"),
+            "status": "blocked" if blocked else ("required" if required else
+                      "external" if external else "N/A"),
             "required_when_unblocked": blocked,
             "reason": reason + ("; generated lock absent" if blocked else ""),
             "declaration": "platform/minecraft/projections.json",
@@ -99,6 +136,7 @@ def report(repo):
         lock_path = repo / "platform/minecraft/projections" / key / "sfm-toolchain.lock.json"
         lock_present = lock_path.is_file()
         lock = json.loads(lock_path.read_text(encoding="utf-8")) if lock_present else None
+        profiles = applicability_profiles(lock)
         features = set(projection["features"])
         keys.append({
             "key": key,
@@ -108,15 +146,18 @@ def report(repo):
             "environment": projection["environment"],
             "features": sorted(features),
             "lock_present": lock_present,
+            "lock_schema_version": lock.get("schema_version") if lock else None,
             "lock_sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()
             if lock_present else None,
             "profiles": [profile["id"] for profile in lock.get("profiles", [])]
             if lock_present else [],
+            "applicability_profiles": profiles,
         })
-        rows.extend(classify(key, family, features, lock_present))
+        for profile in profiles:
+            rows.extend(classify(key, family, features, lock_present, profile))
     return {
-        "schema": 1,
-        "scope": "source-backed candidate rows; G6 not frozen and no runtime proof implied",
+    "schema": 2,
+        "scope": "source-backed candidate profile rows; legacy-v2 and unmaterialized are synthetic profile labels; G6 not frozen and no runtime proof implied",
         "catalog_sha256": hashlib.sha256(payload).hexdigest(),
         "catalog_keys": len(keys),
         "materialized_locks": sum(key["lock_present"] for key in keys),
@@ -126,8 +167,8 @@ def report(repo):
             "ordinary plain-release launch applicability",
             "exact guard and progress selectors and selected-test counts",
             "dev 26.1.2 ae2_inscribers zero-match applicability",
-            "18 portable generated locks and their declared profiles",
-            "separate Gradle fallback and external Prism/tracked-server rows",
+            "18 portable generated locks and their actual declared profiles",
+            "Gradle fallback qualification and external Prism/tracked-server rows",
         ],
         "keys": keys,
         "rows": rows,
