@@ -38,6 +38,10 @@ pub fn canonical_https_remote(remote: &str) -> eyre::Result<String> {
     if url.port == Some(443) {
         url.port = None;
     }
+    while url.path.ends_with(b"/") {
+        let length = url.path.len() - 1;
+        url.path.truncate(length);
+    }
     if url.path.ends_with(b".git") {
         let length = url.path.len() - b".git".len();
         url.path.truncate(length);
@@ -468,8 +472,11 @@ mod tests {
     fn canonical_https_spelling_shares_one_bare_repository_path() {
         let first = canonical_https_remote("https://GitHub.com/CC-Tweaked/CC-Tweaked.git").unwrap();
         let second = canonical_https_remote("https://github.com/CC-Tweaked/CC-Tweaked").unwrap();
+        let trailing_slash =
+            canonical_https_remote("https://github.com/CC-Tweaked/CC-Tweaked.git/").unwrap();
         assert_eq!(first, "https://github.com/CC-Tweaked/CC-Tweaked");
         assert_eq!(first, second);
+        assert_eq!(first, trailing_slash);
         assert_eq!(
             managed_repository_paths("https://GitHub.com/CC-Tweaked/CC-Tweaked.git")
                 .unwrap()

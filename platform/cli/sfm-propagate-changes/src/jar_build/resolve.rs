@@ -641,7 +641,7 @@ impl Resolver {
                 &source_git.commit,
                 &source_git.root,
                 &source_build.build_system,
-            );
+            )?;
         let _source_build_lock =
             acquire_artifact_path_lock_cancellable(&checkout_dir, &self.cancellation_token)?;
         materialize_source_build(
@@ -712,19 +712,20 @@ impl Resolver {
         commit: &str,
         locked_root: &Path,
         build_system: &SourceBuildSystem,
-    ) -> (PathBuf, PathBuf, PathBuf) {
+    ) -> eyre::Result<(PathBuf, PathBuf, PathBuf)> {
+        let remote_url = crate::source_git::canonical_https_remote(remote_url)?;
         let common_cache_dir = self.cache_dir.parent().unwrap_or(&self.cache_dir);
         let compact_checkout = || {
             super::source_build_root()
                 .join("sfm-source-builds")
-                .join(source_build_checkout_key(remote_url, commit))
+                .join(source_build_checkout_key(&remote_url, commit))
         };
         if let Ok(relative) = locked_root.strip_prefix(Path::new("$sfm-cache")) {
-            let repository = SourceCacheLayout::git(remote_url, commit).repository;
+            let repository = SourceCacheLayout::git(&remote_url, commit).repository;
             let repository_relative = repository
                 .strip_prefix(Path::new("$sfm-cache"))
                 .expect("source cache layout is rooted at $sfm-cache");
-            return (
+            return Ok((
                 if matches!(build_system, SourceBuildSystem::CargoCommand) {
                     compact_checkout()
                 } else {
@@ -732,18 +733,18 @@ impl Resolver {
                 },
                 locked_root.to_path_buf(),
                 common_cache_dir.join(repository_relative),
-            );
+            ));
         }
 
-        let checkout_key = source_build_checkout_key(remote_url, commit);
+        let checkout_key = source_build_checkout_key(&remote_url, commit);
         let portable_source_root = PathBuf::from("$sfm-cache")
             .join("source-builds-gix")
             .join(&checkout_key);
-        let repository = SourceCacheLayout::git(remote_url, commit).repository;
+        let repository = SourceCacheLayout::git(&remote_url, commit).repository;
         let repository_relative = repository
             .strip_prefix(Path::new("$sfm-cache"))
             .expect("source cache layout is rooted at $sfm-cache");
-        (
+        Ok((
             if matches!(build_system, SourceBuildSystem::CargoCommand) {
                 compact_checkout()
             } else {
@@ -753,7 +754,7 @@ impl Resolver {
             },
             portable_source_root,
             common_cache_dir.join(repository_relative),
-        )
+        ))
     }
 
     fn materializable_locked_artifact(
@@ -2557,6 +2558,28 @@ include!("resolve_pom_metadata.rs");
 mod producer_native_tests {
     use super::*;
     use crate::jar_build::source_build_receipt::tests::resolver_fixture;
+
+    #[test]
+    fn source_build_remote_spelling_reuses_the_managed_repository() -> eyre::Result<()> {
+        let (root, _path, entry) = resolver_fixture();
+        let resolved = resolver(root.path(), entry, false, false)?;
+        let commit = "f33ff1f438caa55d58ef1f0a08091997353afcb8";
+        let locked_root = Path::new("$sfm-cache/source-builds/fixture");
+        let plain = resolved.source_build_checkout_paths(
+            "https://github.com/mekanism/Mekanism",
+            commit,
+            locked_root,
+            &SourceBuildSystem::GradleWrapper,
+        )?;
+        let trailing_slash = resolved.source_build_checkout_paths(
+            "https://github.com/mekanism/Mekanism/",
+            commit,
+            locked_root,
+            &SourceBuildSystem::GradleWrapper,
+        )?;
+        assert_eq!(plain, trailing_slash);
+        Ok(())
+    }
 
     fn resolver(
         root: &Path,
