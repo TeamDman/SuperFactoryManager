@@ -49,6 +49,14 @@
       "bytes": 21100,
       "path": "com/google/guava/guava-parent/33.4.0-jre/guava-parent-33.4.0-jre.pom",
       "retrievedUtc": "2026-10-10T14:27:32.627330+00:00"
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_parent:2.36.0@pom",
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+      "sha256": "sha256:3a4cfc8a6bed61eb48e969796fc31ea0d270b63e670599946a61883adb7094dc",
+      "bytes": 15958,
+      "path": "com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom",
+      "retrievedUtc": "2026-10-10T11:30:44.179471-04:00"
     }
   ]
 }

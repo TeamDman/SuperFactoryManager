@@ -76,6 +76,40 @@ fn authoritative_guava_management_resolves_six_runtime_edges() -> eyre::Result<(
     Ok(())
 }
 #[test]
+fn approved_error_prone_parent_pin_matches_checked_in_pom() -> eyre::Result<()> {
+    let catalog: super::super::maven_metadata_catalog::MavenMetadataCatalog =
+        facet_json::from_str(include_str!("fixtures/maven/metadata-pins.json"))?;
+    let coordinate = "com.google.errorprone:error_prone_parent:2.36.0@pom";
+    let mut pins = catalog
+        .artifacts
+        .iter()
+        .filter(|pin| pin.coordinate == coordinate);
+    let pin = pins
+        .next()
+        .ok_or_else(|| eyre::eyre!("missing approved parent pin"))?;
+    eyre::ensure!(pins.next().is_none(), "duplicate approved parent pin");
+    let bytes = include_bytes!(
+        "fixtures/maven/com/google/errorprone/error_prone_parent/2.36.0/error_prone_parent-2.36.0.pom"
+    );
+    assert_eq!(pin.bytes, bytes.len() as u64);
+    assert_eq!(
+        pin.sha256,
+        crate::source_projection::provenance::sha256(bytes)
+    );
+    assert_eq!(pin.url, format!("{}{}", catalog.repository, pin.path));
+    let xml = XmlNode::parse(std::str::from_utf8(bytes)?)?;
+    assert_eq!(
+        xml.value("groupId")?.as_deref(),
+        Some("com.google.errorprone")
+    );
+    assert_eq!(
+        xml.value("artifactId")?.as_deref(),
+        Some("error_prone_parent")
+    );
+    assert_eq!(xml.value("version")?.as_deref(), Some("2.36.0"));
+    Ok(())
+}
+#[test]
 fn inherited_management_is_retained_before_bom_imports() -> eyre::Result<()> {
     let result = resolve(
         "x:child:1",
