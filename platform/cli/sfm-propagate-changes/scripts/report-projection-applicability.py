@@ -60,7 +60,7 @@ SOURCE_BASIS = {
     "portable_fe_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java",
     "infrastructure_guard_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/water_tank/WaterTankPlusSplitGameTest.java",
     "infrastructure_negative_witnesses": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestInfrastructureWitnesses.java",
-    "dev26_ae2_inscribers": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java",
+    "dev26_ae2_inscribers": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java; platform/minecraft/gradle/source-excludes/26.1.2/gametest-java.txt",
     "progress_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java",
     "client_visual": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualControlsGameTest.java",
 }
@@ -153,7 +153,7 @@ def classify(key, family, features, lock_present, profile):
             required = family == "dev" and target == "mc-26.1.2" and profile == "rust-toolchain"
             external = family == "dev" and target == "mc-26.1.2" and profile == "gradle"
             route_blocked = required
-            reason = ("prior exact selector selected zero; registration/selection requires repair and rerun"
+            reason = ("authored 26.1.2 source excludes compat/ae2/**; prior exact selector selected zero; compatibility or applicability decision required"
                       if required else "Gradle GameTest route separately owned" if external else
                       "this targeted zero-match investigation is scoped to dev 26.1.2")
         else:
@@ -248,6 +248,7 @@ def report(repo):
                 row["route_owner"] = ("independent Gradle or external launcher" if
                                       row["status"] == "external" else "SFM native CLI")
             rows.extend(classified)
+    missing_locks = len(keys) - sum(key["lock_present"] for key in keys)
     return {
         "schema": 3,
         "scope": "frozen source-applicability rows only; legacy-v2 and unmaterialized are synthetic profile labels; blocked rows remain required and no runtime proof is implied",
@@ -258,8 +259,9 @@ def report(repo):
         "families": dict(sorted(Counter(key["family"] for key in keys).items())),
         "row_statuses": dict(sorted(Counter(row["status"] for row in rows).items())),
         "blocked_prerequisites": [
-            "18 portable generated locks and their declared profiles must materialize before execution",
-            "dev 26.1.2 ae2_inscribers must select nonzero tests; previous zero-match is not N/A",
+            *([f"{missing_locks} catalog locks and their declared profiles must materialize before execution"]
+              if missing_locks else []),
+            "dev 26.1.2 ae2_inscribers is explicitly source-excluded; decide compatibility or evidence-backed N/A before rerun",
             "Gradle-without-Rust and external Prism/tracked-server evidence is separately owned",
         ],
         "external_route_boundaries": [

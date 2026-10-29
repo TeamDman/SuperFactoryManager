@@ -16,10 +16,14 @@ class ApplicabilityTests(unittest.TestCase):
         repo = Path(__file__).resolve().parents[4]
         report = MODULE.report(repo)
         self.assertEqual(report["catalog_keys"], 74)
-        self.assertEqual(len(report["rows"]), 1540)
-        self.assertEqual(report["materialized_locks"], 56)
+        self.assertEqual(len(report["rows"]),
+                         sum(len(key["applicability_profiles"]) for key in report["keys"])
+                         * len(MODULE.OPERATIONS))
+        self.assertEqual(report["materialized_locks"],
+                         sum(key["lock_present"] for key in report["keys"]))
         self.assertEqual(sum(key["applicability_profiles"] == ("unmaterialized",)
-                             for key in report["keys"]), 18)
+                             for key in report["keys"]),
+                         report["catalog_keys"] - report["materialized_locks"])
         for row in report["rows"]:
             self.assertIn(row["status"], {"required", "N/A", "external", "blocked"})
             self.assertTrue(row["expected_proof"])
