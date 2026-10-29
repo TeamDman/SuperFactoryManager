@@ -2555,7 +2555,26 @@ fn resolver_materializes_locked_artifact_from_source_build() {
     run_git(&source_root, ["add", "."]);
     run_git(&source_root, ["commit", "-m", "fake source build"]);
     let commit = git_stdout_test(&source_root, ["rev-parse", "HEAD"]);
-    let remote_url = source_root.display().to_string();
+    let remote_url = "https://example.test/sfm-source-build-fixture".to_string();
+    let repository = crate::source_cache::SourceCacheLayout::git(&remote_url, &commit).repository;
+    let repository = test_dir.path.join(
+        repository
+            .strip_prefix(Path::new("$sfm-cache"))
+            .expect("source cache layout should be portable"),
+    );
+    fs::create_dir_all(repository.parent().expect("managed repository parent"))
+        .expect("managed repository parent should exist");
+    let clone = Command::new("git")
+        .args(["clone", "--bare"])
+        .arg(&source_root)
+        .arg(&repository)
+        .output()
+        .expect("offline fixture bare clone should start");
+    assert!(
+        clone.status.success(),
+        "offline fixture bare clone failed: {}",
+        String::from_utf8_lossy(&clone.stderr)
+    );
     let source_build = SourceBuildProvenance {
         build_system: SourceBuildSystem::GradleWrapper,
         tasks: vec!["jar".to_string()],

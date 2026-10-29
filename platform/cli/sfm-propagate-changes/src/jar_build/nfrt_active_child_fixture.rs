@@ -94,8 +94,12 @@ impl ActiveChildFixture {
 
     pub(crate) fn release(&self) -> Result<()> {
         fs::write(
-            self.signals.path().join("release"),
+            self.signals.path().join("release.tmp"),
             self.child.0.id().to_string(),
+        )?;
+        fs::rename(
+            self.signals.path().join("release.tmp"),
+            self.signals.path().join("release"),
         )?;
         Ok(())
     }
