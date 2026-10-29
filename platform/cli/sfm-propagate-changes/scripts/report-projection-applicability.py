@@ -1,8 +1,8 @@
-"""Emit a source-backed candidate G6 operation ledger; never run builds.
+"""Emit the frozen source-applicability scope for G6; never run builds.
 
 Usage: python report-projection-applicability.py REPO_ROOT > receipt.json
-This is not the G6 scope freeze: plain launch applicability, exact selectors,
-Gradle fallback qualification and 18 unmaterialized portable locks still need review.
+Blocked rows remain required work, not passes. Runtime and Gradle evidence is
+recorded separately; this scope freeze does not claim that evidence exists.
 """
 
 import argparse
@@ -17,13 +17,53 @@ OPERATIONS = (
     "frozen_lock",
     "native_compile",
     "native_jar",
+    "native_gametest_server",
+    "ordinary_plain_client",
     "gradle_compile",
     "named_historical_jar",
     "portable_fe_gametest",
     "infrastructure_guard_gametest",
+    "infrastructure_negative_witnesses",
+    "dev26_ae2_inscribers",
     "progress_gametest",
     "client_visual",
 )
+
+PROOF = {
+    "source_render": "rendered source/resource inventory and historical comparison where applicable",
+    "frozen_lock": "selected lock identity and strict dependency resolution receipt",
+    "native_compile": "successful final-source native main and applicable test compilation",
+    "native_jar": "verified final-source JAR contents and SHA-256",
+    "native_gametest_server": "server launch and nonzero selected-test result from final-source JAR",
+    "ordinary_plain_client": "ordinary client launch without a smoke harness, or an exact blocked-route diagnostic",
+    "gradle_compile": "independent Gradle-without-Rust compilation receipt",
+    "named_historical_jar": "reviewed historical recipe and JAR identity receipt",
+    "portable_fe_gametest": "one selected FE test; red second consumer 0 FE, green 100000 FE",
+    "infrastructure_guard_gametest": "positive selected test with intact infrastructure and platform",
+    "infrastructure_negative_witnesses": "each selected negative witness has its specified expected failure or opt-in pass",
+    "dev26_ae2_inscribers": "nonzero exact AE2 selection and asserted result; prior zero-match is a blocker",
+    "progress_gametest": "resource progress and seven JDT scenarios selected and asserted",
+    "client_visual": "inspected version/projection-labelled framebuffer and interaction receipt",
+}
+
+SELECTOR = {
+    "portable_fe_gametest": ("sfm:issue_610_portable_controls", 1),
+    "infrastructure_guard_gametest": ("sfm:water_tank_plus_split", 1),
+    "infrastructure_negative_witnesses": ("sfm:sfm_integrity_witness_*", 4),
+    "dev26_ae2_inscribers": ("sfm:ae2_inscribers", 1),
+    "progress_gametest": ("sfm:issue_610_*progress*", 8),
+    "client_visual": ("sfm:issue_610_visual_controls", 1),
+}
+
+SOURCE_BASIS = {
+    "ordinary_plain_client": "platform/cli/sfm-propagate-changes/src/jar_build/engine_development_project.rs",
+    "portable_fe_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/regression/Issue610PortableControlsGameTest.java",
+    "infrastructure_guard_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/water_tank/WaterTankPlusSplitGameTest.java",
+    "infrastructure_negative_witnesses": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestInfrastructureWitnesses.java",
+    "dev26_ae2_inscribers": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/ae2/Ae2InscribersGameTest.java",
+    "progress_gametest": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610JdtProgressGameTestGenerator.java",
+    "client_visual": "platform/minecraft/core-liquid-template/src/gametest/java/ca/teamdman/sfm/gametest/tests/compat/justdirethings/Issue610VisualControlsGameTest.java",
+}
 
 
 def family_for(key):
@@ -60,9 +100,11 @@ def applicability_profiles(lock):
 
 def classify(key, family, features, lock_present, profile):
     rows = []
+    target = key.split("/", 1)[1]
     for operation in OPERATIONS:
         required = False
         external = False
+        route_blocked = False
         reason = ""
         if operation == "source_render":
             required, reason = True, "catalog-declared projection"
@@ -73,6 +115,23 @@ def classify(key, family, features, lock_present, profile):
                         profile in ("rust-toolchain", "legacy-schema-v2", "unmaterialized"))
             reason = ("reviewed 4.34 native recipe or declared development route" if required
                       else "native route does not use this profile")
+        elif operation == "native_gametest_server":
+            declared = bool(features & {"issue_610_portable_fixture",
+                                        "gametest_infrastructure_invariants",
+                                        "issue_610_progress_tests",
+                                        "issue_610_visual_evidence"})
+            required = declared and profile in ("rust-toolchain", "unmaterialized")
+            external = declared and profile == "gradle"
+            reason = ("declared test feature and native server route" if required else
+                      "declared test feature; Gradle route separately owned" if external else
+                      "no declared test feature on this route")
+        elif operation == "ordinary_plain_client":
+            plain = family in ("plain-4.34", "plain-4.35")
+            required = plain and family == "plain-4.34" and profile == "legacy-schema-v2"
+            external = plain and family == "plain-4.35" and profile == "legacy-schema-v2"
+            reason = ("plain 4.35 uses the separately owned Gradle client route" if external
+                      else "catalog client permits launch without a smoke harness" if required
+                      else "ordinary plain client route is not this profile")
         elif operation == "gradle_compile":
             required = ((family == "plain-4.35" and profile == "legacy-schema-v2")
                         or profile == "unmaterialized")
@@ -90,20 +149,44 @@ def classify(key, family, features, lock_present, profile):
             required = family == "plain-4.34" and profile == "legacy-schema-v2"
             reason = ("ten reviewed 4.34 named recipes" if required
                       else "named historical recipe is scoped to plain 4.34")
+        elif operation == "dev26_ae2_inscribers":
+            required = family == "dev" and target == "mc-26.1.2" and profile == "rust-toolchain"
+            external = family == "dev" and target == "mc-26.1.2" and profile == "gradle"
+            route_blocked = required
+            reason = ("prior exact selector selected zero; registration/selection requires repair and rerun"
+                      if required else "Gradle GameTest route separately owned" if external else
+                      "this targeted zero-match investigation is scoped to dev 26.1.2")
         else:
             feature = {
                 "portable_fe_gametest": "issue_610_portable_fixture",
                 "infrastructure_guard_gametest": "gametest_infrastructure_invariants",
+                "infrastructure_negative_witnesses": "gametest_infrastructure_invariants",
                 "progress_gametest": "issue_610_progress_tests",
                 "client_visual": "issue_610_visual_evidence",
             }[operation]
-            declared = feature in features
+            declared = feature in features or (operation == "client_visual" and
+                                               family == "extended" and target == "mc-1.21.1")
             required = declared and profile in ("rust-toolchain", "unmaterialized")
             external = declared and profile == "gradle"
             reason = (f"feature {feature} declared; native test route" if required
                       else f"feature {feature} declared; Gradle route separately owned" if external
                       else f"feature {feature} absent or not selected by this profile")
-        blocked = required and not lock_present and operation != "source_render"
+        blocked = route_blocked or (required and not lock_present and operation != "source_render")
+        selector, minimum_selected = SELECTOR.get(operation, (None, None))
+        if operation == "infrastructure_negative_witnesses" and target != "mc-26.1.2":
+            minimum_selected = 5
+        if operation == "client_visual" and "issue_610_visual_evidence" not in features:
+            selector, minimum_selected = None, None
+        witness_outcomes = None
+        if operation == "infrastructure_negative_witnesses" and (required or blocked):
+            witness_outcomes = {
+                "sfm_integrity_witness_floor_rejected": "expected failure",
+                "sfm_integrity_witness_floor_allowed": "expected pass with explicit opt-in",
+                "sfm_integrity_witness_helper_floor_prewrite_rejected": "expected pass after pre-write rejection",
+                "sfm_integrity_witness_run_block_rejected": "expected failure",
+            }
+            if target != "mc-26.1.2":
+                witness_outcomes["sfm_integrity_witness_command_block_rejected"] = "expected failure"
         rows.append({
             "projection": key,
             "profile": profile,
@@ -111,8 +194,13 @@ def classify(key, family, features, lock_present, profile):
             "status": "blocked" if blocked else ("required" if required else
                       "external" if external else "N/A"),
             "required_when_unblocked": blocked,
-            "reason": reason + ("; generated lock absent" if blocked else ""),
+            "reason": reason + ("; generated lock absent" if required and not lock_present else ""),
             "declaration": "platform/minecraft/projections.json",
+            "source_basis": SOURCE_BASIS.get(operation, "platform/minecraft/core-liquid-template/project-inputs.json"),
+            "expected_proof": PROOF[operation],
+            "selector": selector if required or blocked else None,
+            "minimum_selected": minimum_selected if required or blocked else None,
+            "witness_outcomes": witness_outcomes,
         })
     return rows
 
@@ -154,21 +242,36 @@ def report(repo):
             "applicability_profiles": profiles,
         })
         for profile in profiles:
-            rows.extend(classify(key, family, features, lock_present, profile))
+            classified = classify(key, family, features, lock_present, profile)
+            for row in classified:
+                row["lock_sha256"] = keys[-1]["lock_sha256"]
+                row["route_owner"] = ("independent Gradle or external launcher" if
+                                      row["status"] == "external" else "SFM native CLI")
+            rows.extend(classified)
     return {
-    "schema": 2,
-        "scope": "source-backed candidate profile rows; legacy-v2 and unmaterialized are synthetic profile labels; G6 not frozen and no runtime proof implied",
+        "schema": 3,
+        "scope": "frozen source-applicability rows only; legacy-v2 and unmaterialized are synthetic profile labels; blocked rows remain required and no runtime proof is implied",
+        "selection_contract": "SFMGameTestDiscovery.filterSelectedTests uses comma-separated exact/wildcard selectors and rejects zero matches; source-derived minimum_selected is not a runtime result",
         "catalog_sha256": hashlib.sha256(payload).hexdigest(),
         "catalog_keys": len(keys),
         "materialized_locks": sum(key["lock_present"] for key in keys),
         "families": dict(sorted(Counter(key["family"] for key in keys).items())),
         "row_statuses": dict(sorted(Counter(row["status"] for row in rows).items())),
-        "open_decisions": [
-            "ordinary plain-release launch applicability",
-            "exact guard and progress selectors and selected-test counts",
-            "dev 26.1.2 ae2_inscribers zero-match applicability",
-            "18 portable generated locks and their actual declared profiles",
-            "Gradle fallback qualification and external Prism/tracked-server rows",
+        "blocked_prerequisites": [
+            "18 portable generated locks and their declared profiles must materialize before execution",
+            "dev 26.1.2 ae2_inscribers must select nonzero tests; previous zero-match is not N/A",
+            "Gradle-without-Rust and external Prism/tracked-server evidence is separately owned",
+        ],
+        "external_route_boundaries": [
+            {"route": "Gradle-without-Rust", "owner": "generated projection Gradle build",
+             "basis": "platform/minecraft/core-liquid-template/project-inputs.json",
+             "proof": "independent Gradle build, no SFM native-stage cache inference"},
+            {"route": "Prism client sync/launch", "owner": "Prism instance and launcher",
+             "basis": "platform/cli/sfm-propagate-changes/src/cli/client/client_cli.rs",
+             "proof": "tracked instance/runtime receipt, not a native build cache hit"},
+            {"route": "tracked server jar update", "owner": "configured server mods directory",
+             "basis": "platform/cli/sfm-propagate-changes/src/cli/jar/jar_update_servers_cli.rs",
+             "proof": "explicit update/launch receipt; mutable server data excluded from stage cache"},
         ],
         "keys": keys,
         "rows": rows,
