@@ -240,12 +240,10 @@ fn materialize_tree(
         )
     })?;
     if request.output.exists() {
-        fs::remove_dir_all(request.output).wrap_err_with(|| {
-            format!(
-                "Failed to replace decompiled source tree {}",
-                request.output.display()
-            )
-        })?;
+        eyre::bail!(
+            "Existing decompiled source tree is incomplete or mismatched; refusing to replace a possible live reader: {}",
+            request.output.display()
+        );
     }
     fs::rename(&staged_tree, request.output).wrap_err_with(|| {
         format!(
@@ -615,6 +613,37 @@ mod tests {
 
         assert!(error.to_string().contains("fingerprint mismatch"));
         assert_eq!(runner.runs.get(), 0);
+    }
+
+    #[test]
+    fn incomplete_tree_with_a_live_reader_is_not_replaced() {
+        let cache = tempfile::tempdir().expect("temporary cache");
+        let (mut inventory, mut provider) = fixture(CacheHome(cache.path().to_path_buf()));
+        prepare_artifacts(&mut inventory);
+        let runner = FixtureRunner { runs: Cell::new(0) };
+        provider.derived_checks.fingerprint = decompile_fingerprint(
+            inventory.artifact_by_id("binary").unwrap().hash,
+            inventory.artifact_by_id("decompiler").unwrap().hash,
+            "fixture Java 17",
+        );
+        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        fs::create_dir_all(tree.join("src")).unwrap();
+        let source = tree.join("src/Example.java");
+        fs::write(&source, b"class Existing {}").unwrap();
+        let held = fs::File::open(&source).unwrap();
+
+        let error = acquire_with_runner(
+            &inventory,
+            &provider,
+            &CancellationToken::new(),
+            &NeverFetcher,
+            &runner,
+        )
+        .expect_err("incomplete published tree must not be replaced");
+        assert!(error.to_string().contains("refusing to replace"));
+        assert_eq!(runner.runs.get(), 1);
+        assert_eq!(held.metadata().unwrap().len(), 17);
+        assert_eq!(fs::read(&source).unwrap(), b"class Existing {}");
     }
 
     fn prepare_artifacts(inventory: &mut DependencyInventory) {
