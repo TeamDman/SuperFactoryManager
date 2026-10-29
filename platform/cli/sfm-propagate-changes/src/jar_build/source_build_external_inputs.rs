@@ -85,6 +85,7 @@ pub(crate) struct VerifiedGradleInputs {
 pub(crate) struct StagedGradleInputs {
     _checkout: tempfile::TempDir,
     project_root: PathBuf,
+    gradle_home: PathBuf,
     _held: Vec<VerifiedExternalInput>,
 }
 
@@ -99,9 +100,12 @@ impl VerifiedGradleInputs {
         temporary.write_all(self.verification_metadata.as_bytes())?;
         temporary.as_file().sync_all()?;
         temporary.persist_noclobber(&target)?;
+        let gradle_home = checkout.path().join("gradle-home");
+        fs::create_dir(&gradle_home)?;
         Ok(StagedGradleInputs {
             _checkout: checkout,
             project_root: project,
+            gradle_home,
             _held: self.held,
         })
     }
@@ -112,6 +116,10 @@ impl StagedGradleInputs {
         &self.project_root
     }
 
+    pub(crate) fn gradle_home(&self) -> &Path {
+        &self.gradle_home
+    }
+
     pub(crate) fn require_strict_offline(&self, command: &mut Command) {
         command
             .arg("--offline")
@@ -120,6 +128,16 @@ impl StagedGradleInputs {
     }
 }
 
+#[cfg(test)]
+pub(crate) fn staged_for_runner_test() -> Result<StagedGradleInputs> {
+    let checkout = tempfile::tempdir()?;
+    fs::create_dir_all(checkout.path().join("tree/gradle"))?;
+    VerifiedGradleInputs {
+        held: Vec::new(),
+        verification_metadata: "<verification-metadata/>\n".to_owned(),
+    }
+    .stage(checkout)
+}
 fn digest(value: &str) -> bool {
     value.len() == 64
         && value

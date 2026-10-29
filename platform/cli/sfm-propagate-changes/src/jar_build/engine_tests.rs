@@ -4382,6 +4382,119 @@ fn producer_pinned_gradle_direct_invocation_refuses_before_checkout() {
     assert!(!repository.exists());
 }
 
+#[cfg(windows)]
+#[test]
+fn verified_gradle_runner_uses_owned_offline_inputs_and_retains_stage() -> eyre::Result<()> {
+    let staged = crate::jar_build::source_build_external_inputs::staged_for_runner_test()?;
+    let project = staged.project_root().to_path_buf();
+    let gradle_home = staged.gradle_home().to_path_buf();
+    let fixture = tempfile::tempdir()?;
+    let gradle = fixture.path().join("fake-gradle.bat");
+    let java_home = fixture.path().join("jdk");
+    std::fs::create_dir(&java_home)?;
+    std::fs::write(
+        &gradle,
+        b"@echo off\r\necho %* > invocation-args.txt\r\necho %GRADLE_USER_HOME% > invocation-home.txt\r\necho %JAVA_HOME% > invocation-java.txt\r\necho %BUILD_NUMBER% > invocation-build.txt\r\nif defined SFM_PRODUCER_RECEIPT_SHA256 > invocation-receipt.txt echo set\r\nmkdir build\\libs 2>NUL\r\n> build\\libs\\output.jar echo synthetic output\r\n",
+    )?;
+    let mut environment = BTreeMap::new();
+    environment.insert(
+        crate::jar_build::source_build_receipt::RECEIPT_KEY.to_owned(),
+        "a".repeat(64),
+    );
+    environment.insert(
+        crate::jar_build::source_build_receipt::EXTERNAL_INPUTS_KEY.to_owned(),
+        "b".repeat(64),
+    );
+    environment.insert("BUILD_NUMBER".to_owned(), "86".to_owned());
+    let build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_owned(), "apiJar".to_owned()],
+        environment,
+        output_path: PathBuf::from("build/libs/output.jar"),
+    };
+    let tools = super::VerifiedProducerToolchain {
+        gradle_executable: gradle,
+        java_home: java_home.clone(),
+    };
+    let staged = super::run_verified_gradle_source_build(
+        &CancellationToken::new(),
+        &build,
+        staged,
+        &tools,
+    )?;
+    let args = std::fs::read_to_string(project.join("invocation-args.txt"))?;
+    assert!(args.contains("--no-daemon"));
+    assert!(args.contains("--offline --dependency-verification strict"));
+    assert!(args.contains("jar apiJar"));
+    assert_eq!(
+        std::fs::read_to_string(project.join("invocation-home.txt"))?.trim(),
+        gradle_home.to_string_lossy()
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("invocation-java.txt"))?.trim(),
+        java_home.to_string_lossy()
+    );
+    assert_eq!(
+        std::fs::read_to_string(project.join("invocation-build.txt"))?.trim(),
+        "86"
+    );
+    assert!(!project.join("invocation-receipt.txt").exists());
+    assert!(project.join("gradle/verification-metadata.xml").is_file());
+    let artifact = std::fs::read(project.join("build/libs/output.jar"))?;
+    assert!(artifact.starts_with(b"synthetic output"));
+    drop(staged);
+    assert!(!project.exists());
+    assert!(!gradle_home.exists());
+    Ok(())
+}
+
+#[cfg(windows)]
+#[test]
+fn verified_gradle_runner_refuses_unlisted_environment_before_spawn() -> eyre::Result<()> {
+    let staged = crate::jar_build::source_build_external_inputs::staged_for_runner_test()?;
+    let project = staged.project_root().to_path_buf();
+    let fixture = tempfile::tempdir()?;
+    let gradle = fixture.path().join("fake-gradle.bat");
+    let java_home = fixture.path().join("jdk");
+    std::fs::create_dir(&java_home)?;
+    std::fs::write(&gradle, b"@echo off\r\necho ran > unexpectedly-ran.txt\r\n")?;
+    let mut environment = BTreeMap::new();
+    environment.insert(
+        crate::jar_build::source_build_receipt::RECEIPT_KEY.to_owned(),
+        "a".repeat(64),
+    );
+    environment.insert(
+        crate::jar_build::source_build_receipt::EXTERNAL_INPUTS_KEY.to_owned(),
+        "b".repeat(64),
+    );
+    environment.insert("GRADLE_USER_HOME".to_owned(), "untrusted".to_owned());
+    let build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_owned()],
+        environment,
+        output_path: PathBuf::from("build/libs/output.jar"),
+    };
+    let tools = super::VerifiedProducerToolchain {
+        gradle_executable: gradle,
+        java_home,
+    };
+    let result = super::run_verified_gradle_source_build(
+        &CancellationToken::new(),
+        &build,
+        staged,
+        &tools,
+    );
+    assert!(
+        result
+            .err()
+            .expect("unexpected environment must be rejected")
+            .to_string()
+            .contains("unexpected environment")
+    );
+    assert!(!project.join("unexpectedly-ran.txt").exists());
+    Ok(())
+}
+
 fn write_fake_gradle_wrapper(source_root: &Path, output_path: &Path) {
     let output_parent = output_path
         .parent()

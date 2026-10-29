@@ -2114,6 +2114,80 @@ fn materialize_gradle_wrapper_source_build(
     Ok(())
 }
 
+/// Tool paths are deliberately private: production construction must first
+/// authenticate and extract the exact pinned Gradle and Java archives.
+struct VerifiedProducerToolchain {
+    gradle_executable: PathBuf,
+    java_home: PathBuf,
+}
+
+/// Run only after an invocation-owned Git tree has been materialized and the
+/// pinned manifest has staged strict verification metadata. Returning the
+/// lease keeps source and verified input handles alive through output copying.
+fn run_verified_gradle_source_build(
+    cancellation_token: &CancellationToken,
+    source_build: &SourceBuildProvenance,
+    staged: crate::jar_build::source_build_external_inputs::StagedGradleInputs,
+    tools: &VerifiedProducerToolchain,
+) -> eyre::Result<crate::jar_build::source_build_external_inputs::StagedGradleInputs> {
+    eyre::ensure!(
+        matches!(&source_build.build_system, SourceBuildSystem::GradleWrapper)
+            && !source_build.tasks.is_empty()
+            && source_build
+                .environment
+                .contains_key(super::source_build_receipt::RECEIPT_KEY)
+            && source_build
+                .environment
+                .contains_key(super::source_build_receipt::EXTERNAL_INPUTS_KEY),
+        "verified Gradle invocation requires the pinned producer recipe and input manifest",
+    );
+    eyre::ensure!(
+        tools.gradle_executable.is_file() && tools.java_home.is_dir(),
+        "verified Gradle toolchain is incomplete",
+    );
+    eyre::ensure!(
+        source_build.environment.keys().all(|key| matches!(
+            key.as_str(),
+            "BUILD_NUMBER"
+                | super::source_build_receipt::RECEIPT_KEY
+                | super::source_build_receipt::EXTERNAL_INPUTS_KEY
+        )),
+        "verified Gradle recipe contains an unexpected environment override"
+    );
+    cancellation_token.bail_if_cancelled()?;
+    let mut command = Command::new(&tools.gradle_executable);
+    command
+        .current_dir(staged.project_root())
+        .env("GRADLE_USER_HOME", staged.gradle_home())
+        .env("JAVA_HOME", &tools.java_home)
+        .env_remove("GRADLE_OPTS")
+        .env_remove("JAVA_TOOL_OPTIONS")
+        .env_remove("JDK_JAVA_OPTIONS")
+        .env_remove("CLASSPATH")
+        .env_remove(super::source_build_receipt::RECEIPT_KEY)
+        .env_remove(super::source_build_receipt::EXTERNAL_INPUTS_KEY)
+        .arg("--no-daemon");
+    staged.require_strict_offline(&mut command);
+    command.args(&source_build.tasks);
+    for (key, value) in &source_build.environment {
+        if key != super::source_build_receipt::RECEIPT_KEY
+            && key != super::source_build_receipt::EXTERNAL_INPUTS_KEY
+        {
+            command.env(key, value);
+        }
+    }
+    run_source_build_process(
+        cancellation_token,
+        &mut command,
+        "source-build-verified-gradle",
+    )?;
+    let output = source_build_output::resolve(staged.project_root(), &source_build.output_path)?;
+    eyre::ensure!(
+        output.is_file(),
+        "verified Gradle source build omitted declared output"
+    );
+    Ok(staged)
+}
 fn prepare_source_build_checkout(
     cancellation_token: &CancellationToken,
     remote_url: &str,
