@@ -7,6 +7,7 @@ use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::payload_fetcher::PayloadFetcher;
 use crate::payload_fetcher::write_payload_atomically;
 use crate::source_archive::extract_zip_atomically;
+use crate::source_archive::extracted_tree_matches_archive;
 use crate::source_cache::SourceCacheLayout;
 use crate::toolchain_lockfile_schema::version::v3::ComponentAcquisitionV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3;
@@ -87,6 +88,12 @@ pub(crate) fn acquire_locked_maven_sources(
     ) == AcquisitionStatus::Acquired
         && tree.is_dir()
     {
+        if !extracted_tree_matches_archive(&archive, &tree)? {
+            eyre::bail!(
+                "Locked Maven source tree differs from its authenticated archive: {}",
+                tree.display()
+            );
+        }
         validate_roots(&tree, &provider.declaration.roots)?;
         return Ok(());
     }
@@ -323,6 +330,43 @@ mod tests {
         .expect_err("missing root");
 
         assert!(error.to_string().contains("does not exist"));
+    }
+
+    #[test]
+    fn altered_cached_java_fails_closed_without_fetch_or_replacement() {
+        let cache = tempfile::tempdir().expect("temporary cache");
+        let inventory = fixture(CacheHome(cache.path().to_path_buf()));
+        let component = &inventory.dependency("cc-tweaked").unwrap().components[0];
+        let provider = configure_maven_sources(
+            &inventory,
+            component,
+            None,
+            vec!["dan200/computercraft/api".to_owned()],
+            &CancellationToken::new(),
+            &FixtureFetcher(source_zip()),
+        )
+        .unwrap()
+        .unwrap();
+        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let java = tree.join("dan200/computercraft/api/IPeripheral.java");
+        std::fs::write(&java, b"interface IPeripheral { altered }").unwrap();
+
+        let error = acquire_locked_maven_sources(
+            &inventory,
+            &provider,
+            &CancellationToken::new(),
+            &NeverFetcher,
+        )
+        .expect_err("tampered extracted source must not be reused");
+        assert!(
+            error
+                .to_string()
+                .contains("differs from its authenticated archive")
+        );
+        assert_eq!(
+            std::fs::read(&java).unwrap(),
+            b"interface IPeripheral { altered }"
+        );
     }
 
     fn source_zip() -> Vec<u8> {

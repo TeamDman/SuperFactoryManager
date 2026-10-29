@@ -1,7 +1,9 @@
 use eyre::Context;
+use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io;
+use std::io::Read;
 use std::path::Component;
 use std::path::Path;
 use zip::ZipArchive;
@@ -17,6 +19,15 @@ const MAX_TOTAL_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 /// Returns an error for unsafe paths, links and special entries, excessive declared sizes, invalid
 /// ZIP data, or filesystem failures. An invalid archive never replaces an existing output tree.
 pub fn extract_zip_atomically(input: &Path, output: &Path) -> eyre::Result<()> {
+    if output.exists() {
+        if extracted_tree_matches_archive(input, output)? {
+            return Ok(());
+        }
+        eyre::bail!(
+            "Existing source tree differs from its authenticated archive; refusing to replace a possible live reader: {}",
+            output.display()
+        );
+    }
     let parent = output
         .parent()
         .ok_or_else(|| eyre::eyre!("Source tree has no parent: {}", output.display()))?;
@@ -36,8 +47,13 @@ pub fn extract_zip_atomically(input: &Path, output: &Path) -> eyre::Result<()> {
     extract_zip_to_tree(input, &tree)?;
 
     if output.exists() {
-        fs::remove_dir_all(output)
-            .wrap_err_with(|| format!("Failed to replace source tree {}", output.display()))?;
+        if extracted_tree_matches_archive(input, output)? {
+            return Ok(());
+        }
+        eyre::bail!(
+            "Source tree appeared during publication: {}",
+            output.display()
+        );
     }
     fs::rename(&tree, output).wrap_err_with(|| {
         format!(
@@ -47,6 +63,100 @@ pub fn extract_zip_atomically(input: &Path, output: &Path) -> eyre::Result<()> {
         )
     })?;
     Ok(())
+}
+
+/// Check the complete extracted tree against an already authenticated source ZIP.
+/// This includes unexpected files and links, not only the configured Java roots.
+pub(crate) fn extracted_tree_matches_archive(input: &Path, tree: &Path) -> eyre::Result<bool> {
+    if !fs::symlink_metadata(tree).is_ok_and(|metadata| metadata.file_type().is_dir()) {
+        return Ok(false);
+    }
+    let file = File::open(input).wrap_err_with(|| format!("Failed to open {}", input.display()))?;
+    let mut archive = ZipArchive::new(file)
+        .wrap_err_with(|| format!("Failed to read ZIP archive {}", input.display()))?;
+    if archive.len() > MAX_ENTRIES {
+        eyre::bail!(
+            "Source archive contains too many entries: {}",
+            input.display()
+        );
+    }
+    let mut expected = HashSet::new();
+    let mut total_bytes = 0_u64;
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let relative = safe_entry_path(entry.name()).wrap_err_with(|| {
+            format!(
+                "Unsafe source archive entry {:?} in {}",
+                entry.name(),
+                input.display()
+            )
+        })?;
+        reject_special_entry(entry.name(), entry.unix_mode())?;
+        if entry.size() > MAX_ENTRY_BYTES {
+            return Ok(false);
+        }
+        total_bytes = total_bytes
+            .checked_add(entry.size())
+            .ok_or_else(|| eyre::eyre!("Source archive declared size overflow"))?;
+        if total_bytes > MAX_TOTAL_BYTES {
+            return Ok(false);
+        }
+        for parent in relative.ancestors().skip(1) {
+            if parent.as_os_str().is_empty() {
+                break;
+            }
+            expected.insert(parent.to_path_buf());
+        }
+        if !expected.insert(relative.to_path_buf()) && !entry.is_dir() {
+            return Ok(false);
+        }
+        let path = tree.join(relative);
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+            Err(error) => return Err(error.into()),
+        };
+        if entry.is_dir() {
+            if !metadata.file_type().is_dir() {
+                return Ok(false);
+            }
+        } else {
+            if !metadata.file_type().is_file() || metadata.len() != entry.size() {
+                return Ok(false);
+            }
+            let mut extracted = File::open(&path)?;
+            let mut left = [0_u8; 16 * 1024];
+            let mut right = [0_u8; 16 * 1024];
+            loop {
+                let count = entry.read(&mut left)?;
+                if count == 0 {
+                    break;
+                }
+                extracted.read_exact(&mut right[..count])?;
+                if left[..count] != right[..count] {
+                    return Ok(false);
+                }
+            }
+        }
+    }
+    let mut pending = vec![tree.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for item in fs::read_dir(&directory)? {
+            let item = item?;
+            let path = item.path();
+            let relative = path.strip_prefix(tree)?;
+            if !expected.contains(relative) {
+                return Ok(false);
+            }
+            let kind = item.file_type()?;
+            if kind.is_dir() {
+                pending.push(path);
+            } else if !kind.is_file() {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 fn extract_zip_to_tree(input: &Path, output: &Path) -> eyre::Result<()> {
@@ -62,6 +172,7 @@ fn extract_zip_to_tree(input: &Path, output: &Path) -> eyre::Result<()> {
     }
 
     let mut total_bytes = 0_u64;
+    let mut seen = HashSet::new();
     for index in 0..archive.len() {
         let mut entry = archive
             .by_index(index)
@@ -74,6 +185,9 @@ fn extract_zip_to_tree(input: &Path, output: &Path) -> eyre::Result<()> {
             )
         })?;
         reject_special_entry(entry.name(), entry.unix_mode())?;
+        if !seen.insert(relative.to_path_buf()) {
+            eyre::bail!("Duplicate source archive entry {:?}", entry.name());
+        }
         if entry.size() > MAX_ENTRY_BYTES {
             eyre::bail!(
                 "Source archive entry {:?} declares {} bytes; per-entry limit is {MAX_ENTRY_BYTES}",
@@ -209,6 +323,67 @@ mod tests {
             .expect_err("symbolic link should be rejected");
 
         assert!(error.to_string().contains("link or special file"));
+    }
+
+    #[test]
+    fn repeated_extraction_keeps_the_existing_tree_and_rejects_changes() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let archive = temp.path().join("sources.jar");
+        write_zip(&archive, &[("src/Example.java", b"class Example {}")]);
+        let output = temp.path().join("tree");
+        extract_zip_atomically(&archive, &output).unwrap();
+        assert!(extracted_tree_matches_archive(&archive, &output).unwrap());
+        extract_zip_atomically(&archive, &output).expect("identical tree is reused");
+
+        let source = output.join("src/Example.java");
+        fs::write(&source, b"class Example { changed }").unwrap();
+        assert!(!extracted_tree_matches_archive(&archive, &output).unwrap());
+        let error =
+            extract_zip_atomically(&archive, &output).expect_err("changed tree is retained");
+        assert!(error.to_string().contains("refusing to replace"));
+        assert_eq!(fs::read(&source).unwrap(), b"class Example { changed }");
+    }
+
+    #[test]
+    fn unexpected_extracted_file_is_not_an_authenticated_tree() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let archive = temp.path().join("sources.jar");
+        write_zip(&archive, &[("src/Example.java", b"class Example {}")]);
+        let output = temp.path().join("tree");
+        extract_zip_atomically(&archive, &output).unwrap();
+        fs::write(output.join("unlisted.java"), b"class Unlisted {}").unwrap();
+        assert!(!extracted_tree_matches_archive(&archive, &output).unwrap());
+    }
+
+    #[test]
+    fn existing_tree_is_preserved_while_a_reader_holds_a_file() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let archive = temp.path().join("sources.jar");
+        write_zip(&archive, &[("src/Example.java", b"class Example {}")]);
+        let output = temp.path().join("tree");
+        extract_zip_atomically(&archive, &output).unwrap();
+        let source = output.join("src/Example.java");
+        let held = File::open(&source).unwrap();
+        extract_zip_atomically(&archive, &output).expect("same tree must not be replaced");
+        assert_eq!(held.metadata().unwrap().len(), 16);
+        assert_eq!(fs::read(&source).unwrap(), b"class Example {}");
+    }
+
+    #[test]
+    fn duplicate_archive_entry_is_not_published() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let archive = temp.path().join("sources.jar");
+        write_zip(
+            &archive,
+            &[
+                ("src/Example.java", b"first"),
+                ("src//Example.java", b"second"),
+            ],
+        );
+        let output = temp.path().join("tree");
+        let error = extract_zip_atomically(&archive, &output).expect_err("duplicate entry");
+        assert!(error.to_string().contains("Duplicate source archive entry"));
+        assert!(!output.exists());
     }
 
     fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {

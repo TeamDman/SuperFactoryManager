@@ -1,6 +1,7 @@
 use crate::dependency_inventory::AcquisitionStatus;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
+use crate::source_archive::extracted_tree_matches_archive;
 use crate::source_decompile::completed_tree_matches;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
 use std::path::Path;
@@ -103,7 +104,15 @@ impl<'a> SourceProviderView<'a> {
                 );
                 if archive == AcquisitionStatus::Stale {
                     SourceStatus::Stale
-                } else if archive == AcquisitionStatus::Acquired && self.tree_path().is_dir() {
+                } else if archive == AcquisitionStatus::Acquired
+                    && extracted_tree_matches_archive(
+                        &self
+                            .inventory
+                            .local_path(&provider.derived_checks.archive_cache_path),
+                        &self.tree_path(),
+                    )
+                    .unwrap_or(false)
+                {
                     SourceStatus::Acquired
                 } else {
                     SourceStatus::Missing
@@ -164,9 +173,9 @@ impl<'a> SourceProviderView<'a> {
                     AcquisitionStatus::Acquired if !self.tree_path().is_dir() => {
                         Some("source archive has not been extracted")
                     }
-                    AcquisitionStatus::Acquired => {
-                        Some("a configured Maven source root is missing")
-                    }
+                    AcquisitionStatus::Acquired => Some(
+                        "source tree differs from its authenticated archive or a configured root is missing",
+                    ),
                 }
             }
             SourceProviderV3::Git(provider) => {
@@ -216,7 +225,11 @@ mod tests {
     use crate::branch_targets::BranchName;
     use crate::branch_targets::WorktreePath;
     use crate::branch_targets::WorktreeTarget;
+    use crate::jar_build::hash::ContentHash;
+    use crate::jar_build::hash::ContentHashAlgorithm;
     use crate::paths::CacheHome;
+    use crate::source_archive::extract_zip_atomically;
+    use crate::source_cache::SourceCacheLayout;
     use crate::source_decompile::FINGERPRINT_FILE;
     use crate::toolchain_lockfile_schema::read_current;
     use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDeclarationV3;
@@ -225,6 +238,52 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::GitSourceDeclarationV3;
     use crate::toolchain_lockfile_schema::version::v3::GitSourceDerivedChecksV3;
     use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
+    use crate::toolchain_lockfile_schema::version::v3::MavenSourceDeclarationV3;
+    use crate::toolchain_lockfile_schema::version::v3::MavenSourceDerivedChecksV3;
+    use crate::toolchain_lockfile_schema::version::v3::MavenSourceProviderV3;
+    use std::io::Cursor;
+    use std::io::Write;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn maven_provider_does_not_advertise_a_modified_extracted_tree() {
+        let cache = tempfile::tempdir().expect("temporary cache");
+        let inventory = fixture(CacheHome(cache.path().to_path_buf()));
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        writer
+            .start_file("src/Example.java", SimpleFileOptions::default())
+            .unwrap();
+        writer.write_all(b"class Example {}").unwrap();
+        let bytes = writer.finish().unwrap().into_inner();
+        let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
+        let paths = SourceCacheLayout::maven("example:source:1.0:sources", hash);
+        let archive = inventory.local_path(&paths.archive);
+        std::fs::create_dir_all(archive.parent().unwrap()).unwrap();
+        std::fs::write(&archive, bytes).unwrap();
+        let tree = inventory.local_path(&paths.tree);
+        extract_zip_atomically(&archive, &tree).unwrap();
+        let provider = SourceProviderV3::MavenSources(MavenSourceProviderV3 {
+            id: "maven-sources".to_owned(),
+            declaration: MavenSourceDeclarationV3 {
+                requested_coordinate: "example:source:1.0:sources".to_owned(),
+                repository_id: "fixture".to_owned(),
+                roots: vec!["src".to_owned()],
+            },
+            derived_checks: MavenSourceDerivedChecksV3 {
+                resolved_coordinate: "example:source:1.0:sources".to_owned(),
+                url: "https://example.invalid/sources.jar".to_owned(),
+                hash,
+                archive_cache_path: paths.archive,
+                tree_cache_path: paths.tree,
+            },
+        });
+        let view = SourceProviderView::new(&inventory, &provider, 0);
+        assert_eq!(view.status(), SourceStatus::Acquired);
+        std::fs::write(tree.join("src/Example.java"), b"class Example { altered }").unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        assert!(view.unavailable_reason().unwrap().contains("differs"));
+    }
 
     #[test]
     fn git_provider_contract_uses_injected_cache_and_declared_roots() {
