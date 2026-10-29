@@ -211,6 +211,12 @@ pub fn sync_catalog_projection(
             None => report.created.push(path.clone()),
         }
     }
+    let stale_generated = stale_catalog_java(&destination_root, artifacts)?;
+    ensure!(
+        stale_generated.is_empty(),
+        "obsolete generated Java files are outside the selected catalog output; preserve or reconcile explicitly: [{}]",
+        stale_generated.join(", ")
+    );
     if mode == SyncMode::Check {
         ensure!(
             !report.needs_write(),
@@ -238,6 +244,45 @@ pub fn sync_catalog_projection(
     };
     super::manifestation::manifest_selected(repo, &[projection], &None, mode == SyncMode::DryRun)?;
     Ok(report)
+}
+
+/// Catalog projections have no prior-output manifest. Report only Java files
+/// carrying our generated banner; never infer ownership from location alone or
+/// delete a file during synchronization.
+fn stale_catalog_java(
+    destination_root: &Path,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+) -> Result<Vec<String>> {
+    let source = destination_root.join("src");
+    if !source.try_exists()? {
+        return Ok(Vec::new());
+    }
+    let mut stale = Vec::new();
+    for entry in walkdir::WalkDir::new(&source).follow_links(false) {
+        let entry = entry?;
+        if !entry.file_type().is_file()
+            || entry.path().extension().is_none_or(|extension| extension != "java")
+        {
+            continue;
+        }
+        let relative = entry.path().strip_prefix(destination_root)?;
+        let relative = relative
+            .to_str()
+            .ok_or_else(|| eyre::eyre!("catalog Java path is not UTF-8"))?
+            .replace('\\', "/");
+        if artifacts.contains_key(&relative) {
+            continue;
+        }
+        let mut prefix = Vec::new();
+        fs::File::open(entry.path())?
+            .take(super::inputs::GENERATED_BANNER.len() as u64)
+            .read_to_end(&mut prefix)?;
+        if prefix == super::inputs::GENERATED_BANNER.as_bytes() {
+            stale.push(relative);
+        }
+    }
+    stale.sort();
+    Ok(stale)
 }
 
 fn sync_owned_projection(
@@ -1159,6 +1204,31 @@ mod tests {
                 .to_string()
                 .contains("retired")
         );
+    }
+
+    #[test]
+    fn named_sync_reports_obsolete_generated_java_without_touching_unowned_files() {
+        let temporary = tempfile::tempdir().unwrap();
+        git_fixture(temporary.path());
+        let destination = temporary.path().join("named");
+        let identity = catalog_identity();
+        let mut first = catalog_files("first\n");
+        let obsolete = "src/main/java/Obsolete.java";
+        let generated = format!("{}\nclass Obsolete {{}}\n", super::super::inputs::GENERATED_BANNER);
+        first.insert(obsolete.to_owned(), catalog_artifact(&generated));
+        sync_catalog_projection(&destination, &identity, &first, SyncMode::Apply).unwrap();
+        let unowned = destination.join("src/main/java/Unowned.java");
+        fs::write(&unowned, "class Unowned {}\n").unwrap();
+
+        let next = catalog_files("first\n");
+        for mode in [SyncMode::Check, SyncMode::Apply] {
+            let error = sync_catalog_projection(&destination, &identity, &next, mode)
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains(obsolete), "{error}");
+        }
+        assert_eq!(fs::read(destination.join(obsolete)).unwrap(), generated.as_bytes());
+        assert_eq!(fs::read(unowned).unwrap(), b"class Unowned {}\n");
     }
 
     #[test]
