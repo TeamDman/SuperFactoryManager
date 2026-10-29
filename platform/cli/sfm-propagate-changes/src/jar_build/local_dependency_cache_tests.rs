@@ -15,6 +15,41 @@ fn fixture_cache() -> Result<(tempfile::TempDir, LocalDependencyCache)> {
     Ok((fixture, cache))
 }
 
+#[test]
+fn unchanged_consumption_has_one_receipt_and_changed_consumer_has_another() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    let _held_directory = lease_ancestors(root.path())?;
+    let first = persist_content_record(root.path(), "consumption-", "same identity")?;
+    assert_eq!(
+        persist_content_record(root.path(), "consumption-", "same identity")?,
+        first
+    );
+    let changed = persist_content_record(root.path(), "consumption-", "changed identity")?;
+    assert_ne!(first, changed);
+    assert_eq!(fs::read_dir(root.path())?.count(), 2);
+    fs::write(&first, b"tampered fixture receipt")?;
+    assert!(persist_content_record(root.path(), "consumption-", "same identity").is_err());
+    assert_eq!(fs::read(first)?, b"tampered fixture receipt");
+    Ok(())
+}
+
+#[test]
+fn concurrent_identical_consumption_publishers_share_one_record() -> Result<()> {
+    let root = tempfile::tempdir()?;
+    let paths = (0..4)
+        .map(|_| {
+            let directory = root.path().to_path_buf();
+            std::thread::spawn(move || {
+                persist_content_record(&directory, "consumption-", "same identity")
+            })
+        })
+        .map(|worker| worker.join().unwrap())
+        .collect::<Result<Vec<_>>>()?;
+    assert!(paths.iter().all(|path| path == &paths[0]));
+    assert_eq!(fs::read_dir(root.path())?.count(), 1);
+    Ok(())
+}
+
 fn seed_entry(cache: &LocalDependencyCache, name: &str) -> Result<(PathBuf, Vec<u8>)> {
     let entry = cache.directory.join(name);
     fs::create_dir(&entry)?;

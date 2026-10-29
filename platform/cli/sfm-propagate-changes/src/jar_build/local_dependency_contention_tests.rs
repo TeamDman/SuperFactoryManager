@@ -70,6 +70,25 @@ fn key(input: &PreparedNfrtInvocationInput) -> Result<LocalDependencyKey> {
     )
 }
 
+#[test]
+fn changed_invocation_id_keeps_one_durable_reuse_basis() -> Result<()> {
+    let first = prepared("same")?;
+    let mut next = first.clone();
+    next.receipt.invocation_id = "store-fixture-next-run".to_owned();
+    next.serialized = facet_json::to_string(&next.receipt)?;
+    ensure!(
+        first.contract_identity() != next.contract_identity(),
+        "Fixture did not change the per-run contract"
+    );
+    let key = key(&first)?;
+    let manifest = fixture_manifest(&key, b"classes", b"sources");
+    let original = LocalDependencyConsumption::reused(&key, &first, &manifest)?;
+    let repeated = LocalDependencyConsumption::reused(&key, &next, &manifest)?;
+    assert_eq!(original, repeated);
+    assert_eq!(original.schema, "sfm:local_dependency_consumption@2");
+    Ok(())
+}
+
 fn with_trace<T>(path: &Path, run: impl FnOnce() -> Result<T>) -> Result<T> {
     let subscriber = tracing_subscriber::fmt()
         .json()
@@ -258,10 +277,9 @@ fn assert_consumption(
         );
         let receipt: LocalDependencyConsumption = facet_json::from_slice(&fs::read(&record)?)?;
         ensure!(
-            receipt.schema == "sfm:local_dependency_consumption@1"
+            receipt.schema == "sfm:local_dependency_consumption@2"
                 && receipt.key == expected_key
                 && receipt.production_contract_sha256 == production.contract_identity()
-                && receipt.current_contract_sha256 == input.contract_identity()
                 && receipt.current_preparation_identity == input.receipt().preparation_identity
                 && receipt.authority == "trusted-local-developer-cache"
                 && receipt.classes_bytes == b"classes".len() as u64
@@ -269,7 +287,7 @@ fn assert_consumption(
                 && receipt.sources_bytes == b"sources".len() as u64
                 && receipt.sources_sha256 == sha256(b"sources")
                 && receipt.historical_reuse,
-            "Consumption lost its exact current owner contract"
+            "Consumption lost its exact current preparation basis"
         );
         records.push(record);
     }

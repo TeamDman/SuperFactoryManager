@@ -173,7 +173,7 @@ impl LocalDependencyCache {
             }
         };
         let consumption = LocalDependencyConsumption::reused(&self.key, prepared, &manifest)?;
-        let record = persist_record(
+        let record = persist_content_record(
             &self.directory,
             "consumption-",
             &facet_json::to_string(&consumption)?,
@@ -420,8 +420,41 @@ fn valid_entry(name: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
 }
 
-fn persist_record(directory: &Path, prefix: &str, text: &str) -> Result<PathBuf> {
-    persist_bytes(directory, prefix, ".json", text.as_bytes())
+/// Repeated use of the same immutable entry and consumer identity needs one
+/// durable receipt. A changed consumer produces a different content key; no
+/// existing receipt is replaced or pruned.
+fn persist_content_record(directory: &Path, prefix: &str, text: &str) -> Result<PathBuf> {
+    let bytes = text.as_bytes();
+    ensure!(
+        bytes.len() as u64 <= MAX_MANIFEST,
+        "Consumption receipt exceeds bound"
+    );
+    let digest = format!("{:x}", Sha256::digest(bytes));
+    let path = directory.join(format!("{prefix}{digest}.json"));
+    match fs::symlink_metadata(&path) {
+        Ok(_) => (),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // The cache holds a Windows directory lease that forbids rename and
+            // deletion. NamedTempFile::persist_noclobber needs those operations,
+            // so publish directly under the held producer lock instead. A
+            // partial file after interruption is diagnosed below, never reused.
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(mut record) => {
+                    record.write_all(bytes)?;
+                    record.sync_all()?;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => (),
+                Err(error) => return Err(error.into()),
+            }
+        }
+        Err(error) => return Err(error.into()),
+    }
+    let (_, actual) = read_checked(&path, MAX_MANIFEST)?;
+    ensure!(
+        actual == bytes,
+        "Consumption receipt bytes differ from content key"
+    );
+    Ok(path)
 }
 
 fn persist_bytes(directory: &Path, prefix: &str, suffix: &str, bytes: &[u8]) -> Result<PathBuf> {
