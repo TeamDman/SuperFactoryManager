@@ -23,8 +23,10 @@ impl DependencyArgs {
     ///
     /// Returns an error if the selected dependency command fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        let cache_home = CacheHome::resolve()?;
-        self.command.invoke(cancellation_token, &cache_home)
+        match self.command {
+            DependencyCommand::Source(args) => args.invoke(&cancellation_token),
+            other => other.invoke(cancellation_token, &CacheHome::resolve()?),
+        }
     }
 }
 
@@ -69,7 +71,7 @@ impl DependencyCommand {
             Self::Remove(args) => args.invoke(&cancellation_token, cache_home),
             Self::Refresh(args) => args.invoke(&cancellation_token, cache_home),
             Self::Show(args) => args.invoke(cancellation_token, cache_home),
-            Self::Source(args) => args.invoke(&cancellation_token, cache_home),
+            Self::Source(args) => args.invoke(&cancellation_token),
         }
     }
 }

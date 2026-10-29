@@ -62,7 +62,17 @@ space is insufficient, stop and report; do not clean, relocate or delete data.
 Catalog `jar` and `run` operations and `source project compile/jar` select
 `<checkout>/sfm-toolchain-data` by default. `--cache-root` selects a guarded
 override for one invocation. Native build and run operations require an explicit
-`--java-home` so the selected JDK can be validated against the root. Generated
+`--java-home` so the selected JDK can be validated against the root.
+`dependency source` and `symbol index refresh/show` select the exact branch
+worktree's `<checkout>/sfm-toolchain-data` through the configured branch
+selector, even when invoked from another working directory. Each accepts an
+explicit `--cache-root` before its subcommand; the native-root marker and
+overlap checks apply to either selection. This does not import old source trees.
+Other dependency and branch-symbol query commands still have separate cache
+selection and require their own qualification before claiming a universal
+source-analysis default.
+
+Generated
 Gradle `gradle/repositories.gradle` uses the same logical root only with
 `-PsfmUseRepositoryToolchainData=true`; without that property it retains its
 earlier cache selection. Historical branch adapters and older installed CLI

@@ -1,4 +1,5 @@
 use crate::artifact_lock::ArtifactLock;
+use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::cli::Cli;
 use crate::cli::Command as CliCommand;
@@ -72,6 +73,7 @@ use figue::{self as args};
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::path::Path;
+use std::path::PathBuf;
 use std::time::Instant;
 
 pub const SYMBOL_INDEX_STATUS_SCHEMA: &str = "sfm.symbol-index-status/1";
@@ -95,6 +97,9 @@ pub struct SymbolIndexStatusOutput {
 
 #[derive(Facet, Debug)]
 pub struct SymbolIndexArgs {
+    /// Guarded cache override; defaults to the selected branch checkout's sfm-toolchain-data.
+    #[facet(default, args::named)]
+    pub cache_root: Option<PathBuf>,
     #[facet(args::subcommand)]
     pub command: SymbolIndexCommand,
 }
@@ -122,6 +127,28 @@ pub struct SymbolIndexShowArgs {
     pub branch: BranchSelector,
 }
 
+#[cfg(test)]
+mod selected_cache_args_tests {
+    use super::*;
+
+    #[test]
+    fn parses_index_cache_override_without_changing_branch_selection() {
+        let parsed = figue::from_slice::<SymbolIndexArgs>(&[
+            "--cache-root",
+            "C:/selected/shared",
+            "show",
+            "--branch",
+            "1.19.2",
+        ])
+        .unwrap();
+        assert_eq!(parsed.cache_root, Some(PathBuf::from("C:/selected/shared")));
+        let SymbolIndexCommand::Show(show) = parsed.command else {
+            panic!("expected index show");
+        };
+        assert_eq!(show.branch.as_ref(), "1.19.2");
+    }
+}
+
 impl SymbolIndexArgs {
     /// # Errors
     ///
@@ -132,9 +159,23 @@ impl SymbolIndexArgs {
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
     ) -> eyre::Result<CliOutput> {
+        let branch = match &self.command {
+            SymbolIndexCommand::Refresh(args) => &args.branch,
+            SymbolIndexCommand::Show(args) => &args.branch,
+        };
+        let target = select_single_worktree_target(&branch.clone().into_query()?)?;
+        let selected = crate::jar_build::engine::select_source_cache(
+            target.worktree_path.as_path(),
+            self.cache_root.as_deref(),
+            cancellation_token,
+        )?;
         match self.command {
-            SymbolIndexCommand::Refresh(args) => args.invoke_in(cancellation_token, invocation_dir),
-            SymbolIndexCommand::Show(args) => args.invoke_in(invocation_dir),
+            SymbolIndexCommand::Refresh(args) => {
+                args.invoke_in(cancellation_token, invocation_dir, selected.home().clone())
+            }
+            SymbolIndexCommand::Show(args) => {
+                args.invoke_in(invocation_dir, selected.home().clone())
+            }
         }
     }
 }
@@ -144,11 +185,12 @@ impl SymbolIndexRefreshArgs {
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
+        cache_home: CacheHome,
     ) -> eyre::Result<CliOutput> {
         enforce_refresh_parent_memory_limit()?;
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
-        let resolved = resolve_index_context(&self.branch, invocation_dir)?;
+        let resolved = resolve_index_context(&self.branch, invocation_dir, cache_home)?;
         acquire_locked_index_artifact_sources(&resolved, cancellation_token)?;
         let filter = SourceProviderFilter::default();
         let mut preflight =
@@ -296,8 +338,8 @@ fn apply_portable_origins(
 }
 
 impl SymbolIndexShowArgs {
-    fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
-        let resolved = resolve_index_context(&self.branch, invocation_dir)?;
+    fn invoke_in(self, invocation_dir: &Path, cache_home: CacheHome) -> eyre::Result<CliOutput> {
+        let resolved = resolve_index_context(&self.branch, invocation_dir, cache_home)?;
         let probe = resolved.store.probe(&resolved.identity)?;
         let preflight =
             preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
@@ -354,8 +396,8 @@ fn acquire_locked_index_artifact_sources(
 fn resolve_index_context(
     branch: &BranchSelector,
     invocation_dir: &Path,
+    cache_home: CacheHome,
 ) -> eyre::Result<ResolvedIndexContext> {
-    let cache_home = CacheHome::resolve()?;
     let workspace = JavaSourceWorkspace::resolve(
         branch.clone(),
         &[],
@@ -1052,6 +1094,7 @@ fn render_refresh_command(branch: &BranchSelector) -> eyre::Result<String> {
         global_args: GlobalArgs::default(),
         command: CliCommand::Symbol(super::SymbolArgs {
             command: super::SymbolCommand::Index(SymbolIndexArgs {
+                cache_root: None,
                 command: SymbolIndexCommand::Refresh(SymbolIndexRefreshArgs {
                     branch: branch.clone(),
                 }),

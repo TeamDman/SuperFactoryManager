@@ -10,6 +10,38 @@ pub(crate) fn catalog_native_cache_path(repository: &Path, explicit: Option<&Pat
     )
 }
 
+pub(crate) struct SelectedSourceCache {
+    home: crate::paths::CacheHome,
+    _owner: Arc<native_cache_root::NativeCacheRoot>,
+}
+
+impl SelectedSourceCache {
+    pub(crate) fn home(&self) -> &crate::paths::CacheHome {
+        &self.home
+    }
+}
+
+pub(crate) fn select_source_cache(
+    repository: &Path,
+    explicit: Option<&Path>,
+    cancellation: &CancellationToken,
+) -> eyre::Result<SelectedSourceCache> {
+    // Branch selectors obtain their worktree path from Git, which may use '/' on
+    // Windows. The native cache guard requires the actual canonical spelling.
+    let repository = dunce::canonicalize(repository)?;
+    let path = catalog_native_cache_path(&repository, explicit);
+    let owner = native_cache_root::NativeCacheRoot::acquire_for_source(
+        &path,
+        &repository,
+        &repository.join("platform/minecraft"),
+        cancellation,
+    )?;
+    Ok(SelectedSourceCache {
+        home: crate::paths::CacheHome(owner.path().to_path_buf()),
+        _owner: owner,
+    })
+}
+
 #[cfg(test)]
 mod catalog_native_cache_path_tests {
     use super::*;
@@ -41,6 +73,54 @@ mod catalog_native_cache_path_tests {
             catalog_native_cache_path(repository, Some(override_path)),
             override_path
         );
+    }
+
+    #[test]
+    fn source_cache_uses_selected_checkout_and_guarded_explicit_override() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let repository = temporary.path().join("checkout");
+        fs::create_dir_all(repository.join("platform/minecraft"))?;
+        let repository = dunce::canonicalize(repository)?;
+        let cancel = CancellationToken::new();
+        let selected = select_source_cache(&repository, None, &cancel)?;
+        assert_eq!(selected.home().0, repository.join("sfm-toolchain-data"));
+
+        let override_path = temporary.path().join("shared");
+        let overridden = select_source_cache(&repository, Some(&override_path), &cancel)?;
+        assert_eq!(overridden.home().0, override_path);
+        assert!(override_path.join(".sfm-native-cache-root.json").is_file());
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn source_cache_accepts_git_style_slashes_for_selected_worktree() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let repository = temporary.path().join("checkout");
+        fs::create_dir_all(repository.join("platform/minecraft"))?;
+        let repository = dunce::canonicalize(repository)?;
+        let git_spelling = PathBuf::from(repository.to_string_lossy().replace('\\', "/"));
+        let selected = select_source_cache(&git_spelling, None, &CancellationToken::new())?;
+        assert_eq!(selected.home().0, repository.join("sfm-toolchain-data"));
+        Ok(())
+    }
+
+    #[test]
+    fn source_cache_rejects_existing_unmarked_or_mismatched_roots() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let repository = temporary.path().join("checkout");
+        fs::create_dir_all(repository.join("platform/minecraft"))?;
+        let repository = dunce::canonicalize(repository)?;
+        let unmarked = temporary.path().join("unmarked");
+        fs::create_dir(&unmarked)?;
+        let cancel = CancellationToken::new();
+        assert!(select_source_cache(&repository, Some(&unmarked), &cancel).is_err());
+        let mismatched = temporary.path().join("mismatched");
+        fs::create_dir(&mismatched)?;
+        fs::write(mismatched.join(".sfm-native-cache-root.json"), b"wrong owner")?;
+        assert!(select_source_cache(&repository, Some(&mismatched), &cancel).is_err());
+        assert_eq!(fs::read(mismatched.join(".sfm-native-cache-root.json"))?, b"wrong owner");
+        Ok(())
     }
 }
 

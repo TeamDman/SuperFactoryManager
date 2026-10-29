@@ -457,6 +457,7 @@ mod tests {
             command:
                 SymbolCommand::Index(SymbolIndexArgs {
                     command: SymbolIndexCommand::Refresh(refresh),
+                    ..
                 }),
         }) = refresh.command
         else {
@@ -469,6 +470,7 @@ mod tests {
             command:
                 SymbolCommand::Index(SymbolIndexArgs {
                     command: SymbolIndexCommand::Show(show),
+                    ..
                 }),
         }) = show.command
         else {

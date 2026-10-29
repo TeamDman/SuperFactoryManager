@@ -566,6 +566,7 @@ impl SourceAcquisitionRecommendation {
             global_args: GlobalArgs::default(),
             command: CliCommand::Dependency(DependencyArgs {
                 command: DependencyCommand::Source(DependencySourceArgs {
+                    cache_root: None,
                     command: DependencySourceCommand::Acquire(DependencySourceAcquireArgs {
                         target,
                         all,
@@ -861,6 +862,7 @@ mod tests {
                 command:
                     DependencyCommand::Source(DependencySourceArgs {
                         command: DependencySourceCommand::Acquire(acquire),
+                        ..
                     }),
             }) = parsed.command
             else {

@@ -58,7 +58,7 @@ impl NativeCacheRoot {
             cfg!(any(windows, target_os = "linux")),
             "Native cache root override is unsupported on this platform"
         );
-        let checked = validate_location(path, repository, source_project, java_home)?;
+        let checked = validate_location(path, repository, source_project, Some(java_home))?;
         let _parents = lease_ancestors(checked.parent().expect("validated root has parent"))?;
         if checked.try_exists()? {
             let _root = lease_ancestors(&checked)?;
@@ -72,6 +72,27 @@ impl NativeCacheRoot {
         repository: &Path,
         source_project: &Path,
         java_home: &Path,
+        cancel: &CancellationToken,
+    ) -> Result<Arc<Self>> {
+        Self::acquire_with_sdk(path, repository, source_project, Some(java_home), cancel)
+    }
+
+    /// Source analysis has no selected Java SDK, but it still needs the same
+    /// owned-root marker, path spelling, parent holds and artifact guards.
+    pub(super) fn acquire_for_source(
+        path: &Path,
+        repository: &Path,
+        source_project: &Path,
+        cancel: &CancellationToken,
+    ) -> Result<Arc<Self>> {
+        Self::acquire_with_sdk(path, repository, source_project, None, cancel)
+    }
+
+    fn acquire_with_sdk(
+        path: &Path,
+        repository: &Path,
+        source_project: &Path,
+        java_home: Option<&Path>,
         cancel: &CancellationToken,
     ) -> Result<Arc<Self>> {
         cancel.bail_if_cancelled()?;
@@ -239,7 +260,7 @@ fn validate_location(
     path: &Path,
     repository: &Path,
     source_project: &Path,
-    java_home: &Path,
+    java_home: Option<&Path>,
 ) -> Result<PathBuf> {
     validate_absolute_spelling(path)?;
     let parent = path
@@ -274,7 +295,7 @@ fn validate_location(
     );
     let repository = canonical_directory(repository)?;
     let source_project = logical_source_project(source_project)?;
-    let java_home = canonical_directory(java_home)?;
+    let java_home = java_home.map(canonical_directory).transpose()?;
     ensure!(
         !is_ancestor_or_equal(&expected, &repository),
         "Native cache root cannot equal or contain the repository"
@@ -283,10 +304,12 @@ fn validate_location(
         !overlaps(&expected, &source_project),
         "Native cache root must not overlap the source project"
     );
-    ensure!(
-        !overlaps(&expected, &java_home),
-        "Native cache root must not overlap the selected SDK"
-    );
+    if let Some(java_home) = java_home {
+        ensure!(
+            !overlaps(&expected, &java_home),
+            "Native cache root must not overlap the selected SDK"
+        );
+    }
     Ok(expected)
 }
 
