@@ -1,8 +1,9 @@
 //! Pinned candidate closure for an external source producer.
 //!
 //! This reader does not grant Gradle execution. The eventual producer runner
-//! must route every external read through a sealed input store, run offline,
-//! and retain these verified handles through its last consumer.
+//! must verify Gradle-managed dependencies against these pinned inputs, run
+//! offline, and retain verified handles through their last consumer.
+//! Arbitrary task-time filesystem or HTTP reads are outside this verifier.
 
 use super::local_dependency_cache::lease_ancestors;
 use super::local_dependency_cache::open_read;
@@ -19,7 +20,10 @@ use std::fs;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command;
 
 const SCHEMA: &str = "sfm:source_producer_external_inputs@1";
 const MAX_MANIFEST: u64 = 4 * 1024 * 1024;
@@ -68,6 +72,52 @@ struct ExternalInput {
 pub(crate) struct VerifiedExternalInput {
     _file: fs::File,
     _directories: Vec<fs::File>,
+}
+
+/// Verified files stay open until the staged Gradle consumer finishes.
+pub(crate) struct VerifiedGradleInputs {
+    held: Vec<VerifiedExternalInput>,
+    verification_metadata: String,
+}
+
+/// Owns the source staging directory and verified inputs through Gradle exit
+/// and output publication. Dropping it retires only this invocation's scratch.
+pub(crate) struct StagedGradleInputs {
+    _checkout: tempfile::TempDir,
+    project_root: PathBuf,
+    _held: Vec<VerifiedExternalInput>,
+}
+
+impl VerifiedGradleInputs {
+    /// The caller must populate `checkout/tree` from the pinned Git revision
+    /// before staging. A private TempDir prevents writes into shared Git trees.
+    pub(crate) fn stage(self, checkout: tempfile::TempDir) -> Result<StagedGradleInputs> {
+        let project = checked_directory(&checkout.path().join("tree"))?;
+        let gradle = checked_directory(&project.join("gradle"))?;
+        let target = gradle.join("verification-metadata.xml");
+        let mut temporary = tempfile::NamedTempFile::new_in(&gradle)?;
+        temporary.write_all(self.verification_metadata.as_bytes())?;
+        temporary.as_file().sync_all()?;
+        temporary.persist_noclobber(&target)?;
+        Ok(StagedGradleInputs {
+            _checkout: checkout,
+            project_root: project,
+            _held: self.held,
+        })
+    }
+}
+
+impl StagedGradleInputs {
+    pub(crate) fn project_root(&self) -> &Path {
+        &self.project_root
+    }
+
+    pub(crate) fn require_strict_offline(&self, command: &mut Command) {
+        command
+            .arg("--offline")
+            .arg("--dependency-verification")
+            .arg("strict");
+    }
 }
 
 fn digest(value: &str) -> bool {
@@ -315,6 +365,15 @@ impl ExternalInputManifest {
             .map(|input| self.verify_requested(cache, &input.request))
             .collect()
     }
+
+    pub(crate) fn verify_for_gradle(&self, cache: &Path) -> Result<VerifiedGradleInputs> {
+        let held = self.verify_all(cache)?;
+        let verification_metadata = self.gradle_verification_metadata()?;
+        Ok(VerifiedGradleInputs {
+            held,
+            verification_metadata,
+        })
+    }
 }
 
 #[cfg(test)]
@@ -470,6 +529,43 @@ mod tests {
         assert!(!xml.contains("gradle.zip"));
         assert!(!xml.contains("java.zip"));
         assert!(!xml.contains("unlisted"));
+        Ok(())
+    }
+
+    #[test]
+    fn verified_gradle_inputs_stage_only_into_owned_tree() -> Result<()> {
+        let (cache, _, manifest, _) = fixture()?;
+        let checkout = tempfile::tempdir()?;
+        fs::create_dir_all(checkout.path().join("tree/gradle"))?;
+        let staged = manifest.verify_for_gradle(cache.path())?.stage(checkout)?;
+        let xml = fs::read_to_string(
+            staged
+                .project_root()
+                .join("gradle/verification-metadata.xml"),
+        )?;
+        assert!(xml.contains("<artifact name=\"pinned-1.jar\">"));
+        let mut command = Command::new("gradle");
+        staged.require_strict_offline(&mut command);
+        let args: Vec<_> = command
+            .get_args()
+            .map(|part| part.to_string_lossy().to_string())
+            .collect();
+        assert_eq!(args, ["--offline", "--dependency-verification", "strict"]);
+
+        let checkout = tempfile::tempdir()?;
+        fs::create_dir_all(checkout.path().join("tree/gradle"))?;
+        fs::write(
+            checkout
+                .path()
+                .join("tree/gradle/verification-metadata.xml"),
+            b"preexisting",
+        )?;
+        assert!(
+            manifest
+                .verify_for_gradle(cache.path())?
+                .stage(checkout)
+                .is_err()
+        );
         Ok(())
     }
 
