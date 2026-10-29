@@ -250,7 +250,7 @@ fn validate_inspection_launch(
         eyre::bail!("--inspection-python with --puppet requires --inspection-workspace");
     }
     if workspace && puppet {
-        eyre::ensure!(keep_open.is_some_and(|value| value.is_none()),
+        eyre::ensure!(keep_open.is_some_and(Option::is_none),
             "--inspection-workspace with --puppet requires bare --keep-open so handoff stays open");
     }
     Ok(())

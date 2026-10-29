@@ -6206,10 +6206,6 @@ fn retained_run_jar_requires_matching_inputs_and_output_bytes() -> eyre::Result<
     Ok(())
 }
 
-#[expect(
-    clippy::too_many_lines,
-    reason = "NeoGradle dev jar setup mirrors the userdev config steps in order."
-)]
 fn ensure_run_neoforge_dev_jars(
     context: &ExecutionContext<'_>,
     kind: RunKind,
