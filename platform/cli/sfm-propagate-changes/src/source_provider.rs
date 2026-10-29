@@ -3,6 +3,7 @@ use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
 use crate::source_archive::extracted_tree_matches_archive;
 use crate::source_decompile::completed_tree_matches;
+use crate::source_git::locked_git_tree_matches_commit;
 use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
 use std::path::Path;
 use std::path::PathBuf;
@@ -122,7 +123,12 @@ impl<'a> SourceProviderView<'a> {
                 let repository = self
                     .inventory
                     .local_path(&provider.derived_checks.repository_cache_path);
-                if repository.is_dir() && self.tree_path().is_dir() {
+                if locked_git_tree_matches_commit(
+                    &repository,
+                    &self.tree_path(),
+                    &provider.derived_checks.commit,
+                    &provider.declaration.roots,
+                ) {
                     SourceStatus::Acquired
                 } else {
                     SourceStatus::Missing
@@ -186,7 +192,7 @@ impl<'a> SourceProviderView<'a> {
                     (false, false) => Some("managed repository and materialized tree are missing"),
                     (false, true) => Some("managed repository is missing"),
                     (true, false) => Some("locked commit tree is not materialized"),
-                    (true, true) => Some("a configured Git source root is missing"),
+                    (true, true) => Some("Git source tree differs from its locked commit or a configured root is missing"),
                 }
             }
             SourceProviderV3::Decompile(_) => {
@@ -243,8 +249,8 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceProviderV3;
     use std::io::Cursor;
     use std::io::Write;
-    use zip::ZipWriter;
     use zip::write::SimpleFileOptions;
+    use zip::ZipWriter;
 
     #[test]
     fn maven_provider_does_not_advertise_a_modified_extracted_tree() {
@@ -286,7 +292,7 @@ mod tests {
     }
 
     #[test]
-    fn git_provider_contract_uses_injected_cache_and_declared_roots() {
+    fn git_provider_rejects_unverified_directories_even_with_declared_roots() {
         let cache = tempfile::tempdir().expect("temporary cache");
         let inventory = fixture(CacheHome(cache.path().to_path_buf()));
         let provider = SourceProviderV3::Git(GitSourceProviderV3 {
@@ -332,7 +338,11 @@ mod tests {
         for root in view.searchable_roots() {
             std::fs::create_dir_all(root).expect("searchable root");
         }
-        assert_eq!(view.status(), SourceStatus::Acquired);
+        assert_eq!(view.status(), SourceStatus::Missing);
+        assert!(view
+            .unavailable_reason()
+            .unwrap()
+            .contains("differs from its locked commit"));
     }
 
     #[test]

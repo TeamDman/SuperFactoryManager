@@ -7,8 +7,10 @@ use crate::toolchain_lockfile_schema::version::v3::GitSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::GitSourceDerivedChecksV3;
 use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
 use gix::bstr::ByteSlice;
+use std::collections::HashSet;
 use std::fs;
 use std::io;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
@@ -285,6 +287,7 @@ pub(crate) fn materialize_source_build_checkout(
         checkout,
         commit_id.to_string().as_str(),
         &[],
+        ExistingTreePolicy::ReplaceMutableCheckout,
         cancellation_token,
     )
 }
@@ -343,13 +346,7 @@ pub(crate) fn acquire_locked_git_sources(
         &provider.derived_checks.commit,
         cancellation_token,
     )?;
-    if git_tree_is_complete(
-        &output,
-        &provider.derived_checks.commit,
-        &provider.declaration.roots,
-    ) {
-        return Ok(());
-    }
+    let _tree_lock = acquire_tree_lock(&output)?;
     let commit = gix::hash::ObjectId::from_hex(provider.derived_checks.commit.as_bytes()).map_err(
         |error| {
             eyre::eyre!(
@@ -370,14 +367,69 @@ pub(crate) fn acquire_locked_git_sources(
             provider.derived_checks.commit
         )
     })?;
+    if git_tree_matches_commit(
+        &repository,
+        tree.detach(),
+        &output,
+        &provider.derived_checks.commit,
+        &provider.declaration.roots,
+    )? {
+        return Ok(());
+    }
+    if fs::symlink_metadata(&output).is_ok() {
+        eyre::bail!(
+            "Existing Git source tree differs from its locked commit; refusing to replace a possible live reader: {}",
+            output.display()
+        );
+    }
     materialize_tree(
         &repository,
         tree.detach(),
         &output,
         &provider.derived_checks.commit,
         &provider.declaration.roots,
+        ExistingTreePolicy::RejectSharedSource,
         cancellation_token,
     )
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+enum ExistingTreePolicy {
+    ReplaceMutableCheckout,
+    RejectSharedSource,
+}
+
+fn acquire_tree_lock(tree: &Path) -> eyre::Result<ArtifactLock> {
+    let name = tree
+        .file_name()
+        .ok_or_else(|| eyre::eyre!("Git source tree has no file name"))?;
+    ArtifactLock::acquire(
+        tree.with_file_name(format!("{}.lock", name.to_string_lossy())),
+        tree.display().to_string(),
+    )
+}
+
+/// Compare the materialized plain-file tree with the exact locked Git tree. The marker alone is
+/// not sufficient: a Java file may have been modified or an unexpected file added after publish.
+pub(crate) fn locked_git_tree_matches_commit(
+    repository_path: &Path,
+    output: &Path,
+    commit: &str,
+    roots: &[String],
+) -> bool {
+    let Ok(repository) = gix::open(repository_path) else {
+        return false;
+    };
+    let Ok(commit_id) = gix::hash::ObjectId::from_hex(commit.as_bytes()) else {
+        return false;
+    };
+    let Ok(commit_object) = repository.find_commit(commit_id) else {
+        return false;
+    };
+    let Ok(tree) = commit_object.tree_id() else {
+        return false;
+    };
+    git_tree_matches_commit(&repository, tree.detach(), output, commit, roots).unwrap_or(false)
 }
 
 const COMPLETION_FILE: &str = ".sfm-git-commit";
@@ -388,6 +440,7 @@ fn materialize_tree(
     output: &Path,
     commit: &str,
     roots: &[String],
+    existing_tree_policy: ExistingTreePolicy,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
     let parent = output
@@ -410,6 +463,9 @@ fn materialize_tree(
         let relative = std::str::from_utf8(entry.relative_path().as_ref())
             .map_err(|_error| eyre::eyre!("Git tree contains a non-UTF-8 source path"))?;
         let path = checked_relative_path(relative)?;
+        if path == Path::new(COMPLETION_FILE) {
+            eyre::bail!("Git source tree conflicts with its completion marker");
+        }
         let destination = staged.join(path);
         if entry.mode.is_tree() {
             fs::create_dir_all(destination)?;
@@ -427,17 +483,115 @@ fn materialize_tree(
     }
     validate_roots(&staged, roots)?;
     fs::write(staged.join(COMPLETION_FILE), commit)?;
-    if output.exists() {
+    if let Ok(metadata) = fs::symlink_metadata(output) {
+        if existing_tree_policy == ExistingTreePolicy::RejectSharedSource {
+            eyre::bail!(
+                "Git source tree appeared during publication; refusing to replace it: {}",
+                output.display()
+            );
+        }
+        if !metadata.file_type().is_dir() {
+            eyre::bail!(
+                "Existing source-build checkout is not a plain directory: {}",
+                output.display()
+            );
+        }
         fs::remove_dir_all(output)?;
     }
     fs::rename(staged, output)?;
     Ok(())
 }
 
-fn git_tree_is_complete(tree: &Path, commit: &str, roots: &[String]) -> bool {
-    tree.is_dir()
-        && fs::read_to_string(tree.join(COMPLETION_FILE)).is_ok_and(|actual| actual == commit)
-        && validate_roots(tree, roots).is_ok()
+fn git_tree_matches_commit(
+    repository: &gix::Repository,
+    source_tree: gix::hash::ObjectId,
+    output: &Path,
+    commit: &str,
+    roots: &[String],
+) -> eyre::Result<bool> {
+    if !fs::symlink_metadata(output).is_ok_and(|metadata| metadata.file_type().is_dir())
+        || !fs::symlink_metadata(output.join(COMPLETION_FILE))
+            .is_ok_and(|metadata| metadata.file_type().is_file())
+        || !fs::read_to_string(output.join(COMPLETION_FILE)).is_ok_and(|actual| actual == commit)
+        || validate_roots(output, roots).is_err()
+    {
+        return Ok(false);
+    }
+    let (mut stream, _) = repository.worktree_stream(source_tree)?;
+    let mut expected = HashSet::new();
+    while let Some(mut entry) = stream
+        .next_entry()
+        .map_err(|error| eyre::eyre!("Failed to read locked Git tree entry: {error}"))?
+    {
+        let relative = std::str::from_utf8(entry.relative_path().as_ref())
+            .map_err(|_error| eyre::eyre!("Git source tree contains a non-UTF-8 path"))?;
+        let path = checked_relative_path(relative)?;
+        if path == Path::new(COMPLETION_FILE) {
+            return Ok(false);
+        }
+        for ancestor in path.ancestors().skip(1) {
+            if ancestor.as_os_str().is_empty() {
+                break;
+            }
+            expected.insert(ancestor.to_path_buf());
+        }
+        if !expected.insert(path.clone()) {
+            return Ok(false);
+        }
+        let destination = output.join(path);
+        let Ok(metadata) = fs::symlink_metadata(&destination) else {
+            return Ok(false);
+        };
+        if entry.mode.is_tree() {
+            if !metadata.file_type().is_dir() {
+                return Ok(false);
+            }
+        } else if entry.mode.is_blob() {
+            if !metadata.file_type().is_file() {
+                return Ok(false);
+            }
+            let mut file = fs::File::open(destination)?;
+            let mut expected_bytes = [0_u8; 16 * 1024];
+            let mut actual_bytes = [0_u8; 16 * 1024];
+            loop {
+                let count = entry.read(&mut expected_bytes)?;
+                if count == 0 {
+                    if file.read(&mut actual_bytes)? != 0 {
+                        return Ok(false);
+                    }
+                    break;
+                }
+                if file.read_exact(&mut actual_bytes[..count]).is_err()
+                    || expected_bytes[..count] != actual_bytes[..count]
+                {
+                    return Ok(false);
+                }
+            }
+        } else {
+            return Ok(false);
+        }
+    }
+    let mut pending = vec![output.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        for item in fs::read_dir(directory)? {
+            let item = item?;
+            let path = item.path();
+            let relative = path.strip_prefix(output)?;
+            if relative == Path::new(COMPLETION_FILE) {
+                continue;
+            }
+            if !expected.contains(relative) {
+                return Ok(false);
+            }
+            let kind = item.file_type()?;
+            if kind.is_dir() {
+                pending.push(path);
+            } else if !kind.is_file() {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 fn checked_relative_path(value: &str) -> eyre::Result<PathBuf> {
@@ -525,6 +679,87 @@ mod tests {
             error.to_string().contains("does not contain locked commit"),
             "unexpected error: {error:?}"
         );
+    }
+
+    #[test]
+    fn locked_source_tree_rejects_tampering_and_preserves_a_held_reader() {
+        use gix::objs::tree::EntryKind;
+
+        let directory = tempfile::tempdir().unwrap();
+        let repository = gix::init_bare(directory.path().join("repo")).unwrap();
+        let blob = repository
+            .write_blob(b"class Example {}\n")
+            .unwrap()
+            .detach();
+        let tree = repository
+            .write_object(gix::objs::Tree {
+                entries: vec![gix::objs::tree::Entry {
+                    mode: EntryKind::Blob.into(),
+                    filename: "Example.java".into(),
+                    oid: blob,
+                }],
+            })
+            .unwrap()
+            .detach();
+        let bytes = format!(
+            "tree {tree}\nauthor Test <test@example.invalid> 1 +0000\ncommitter Test <test@example.invalid> 1 +0000\n\nsource\n"
+        );
+        let commit = repository
+            .write_object(
+                gix::objs::CommitRef::from_bytes(bytes.as_bytes(), repository.object_hash())
+                    .unwrap(),
+            )
+            .unwrap()
+            .detach()
+            .to_string();
+        let output = directory.path().join("tree");
+        materialize_tree(
+            &repository,
+            tree,
+            &output,
+            &commit,
+            &[],
+            ExistingTreePolicy::RejectSharedSource,
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        assert!(locked_git_tree_matches_commit(
+            &directory.path().join("repo"),
+            &output,
+            &commit,
+            &[],
+        ));
+
+        let held = fs::File::open(output.join("Example.java")).unwrap();
+        fs::write(output.join("Example.java"), b"changed\n").unwrap();
+        assert!(!locked_git_tree_matches_commit(
+            &directory.path().join("repo"),
+            &output,
+            &commit,
+            &[],
+        ));
+        let error = materialize_tree(
+            &repository,
+            tree,
+            &output,
+            &commit,
+            &[],
+            ExistingTreePolicy::RejectSharedSource,
+            &CancellationToken::new(),
+        )
+        .expect_err("an existing tree with a held reader must not be replaced");
+        assert!(error.to_string().contains("refusing to replace"));
+        assert_eq!(fs::read(output.join("Example.java")).unwrap(), b"changed\n");
+        drop(held);
+
+        fs::write(output.join("Example.java"), b"class Example {}\n").unwrap();
+        fs::write(output.join("Unexpected.java"), b"extra").unwrap();
+        assert!(!locked_git_tree_matches_commit(
+            &directory.path().join("repo"),
+            &output,
+            &commit,
+            &[],
+        ));
     }
 
     #[test]
