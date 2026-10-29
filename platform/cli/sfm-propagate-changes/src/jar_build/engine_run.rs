@@ -7481,6 +7481,37 @@ mod asset_index_cache_tests {
             .is_err()
         );
         assert_eq!(fs::read(&path)?, damaged);
+        fs::remove_file(&path)?;
+        let interrupted = acquire_checked_asset_index(
+            &cancel,
+            &client,
+            &index.url,
+            &path,
+            &index.sha1,
+            index.size,
+            || eyre::bail!("simulated interruption before download"),
+        )
+        .expect_err("missing index must not be admitted");
+        assert!(interrupted.to_string().contains("simulated interruption"));
+        assert!(!path.exists());
+        let partial = &raw[..raw.len() - 1];
+        fs::write(&path, partial)?;
+        let partial_error = acquire_checked_asset_index(
+            &cancel,
+            &client,
+            &index.url,
+            &path,
+            &index.sha1,
+            index.size,
+            || eyre::bail!("partial index requires a verified download"),
+        )
+        .expect_err("partial index must not be admitted");
+        assert!(
+            partial_error
+                .to_string()
+                .contains("named frozen cache size mismatch")
+        );
+        assert_eq!(fs::read(&path)?, partial);
         assert!(
             acquire_checked_asset_index(
                 &cancel,
