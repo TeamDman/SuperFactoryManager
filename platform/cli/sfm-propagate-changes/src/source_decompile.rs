@@ -15,7 +15,11 @@ use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDerivedChecksV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceProviderV3;
 use eyre::Context;
+use facet::Facet;
+use sha2::Digest;
+use sha2::Sha256;
 use std::fs;
+use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -24,6 +28,9 @@ use std::thread;
 use std::time::Duration;
 
 pub(crate) const FINGERPRINT_FILE: &str = ".sfm-decompile-fingerprint";
+const INVENTORY_FILE: &str = ".sfm-decompile-inventory.json";
+const INVENTORY_SCHEMA: &str = "sfm.decompile-output-inventory/1";
+const SEALED_FINGERPRINT_PREFIX: &str = "sfm-decompile-tree-v2\n";
 const VINEFLOWER_ARGUMENTS: &[&str] = &["--folder"];
 const VINEFLOWER_LIBRARY_POLICY: &str = "no-external-libraries";
 const VINEFLOWER_MAPPING_POLICY: &str = "no-external-mappings";
@@ -233,7 +240,16 @@ fn materialize_tree(
     )?;
     request.cancellation_token.bail_if_cancelled()?;
     validate_roots(&staged_tree, request.roots)?;
-    fs::write(staged_tree.join(FINGERPRINT_FILE), request.fingerprint).wrap_err_with(|| {
+    let inventory = snapshot_decompiled_tree(&staged_tree)?;
+    fs::write(
+        staged_tree.join(INVENTORY_FILE),
+        facet_json::to_string(&inventory)?,
+    )?;
+    fs::write(
+        staged_tree.join(FINGERPRINT_FILE),
+        format!("{SEALED_FINGERPRINT_PREFIX}{}", request.fingerprint),
+    )
+    .wrap_err_with(|| {
         format!(
             "Failed to write decompile fingerprint in {}",
             staged_tree.display()
@@ -262,10 +278,101 @@ pub(crate) fn completed_tree_matches(tree: &Path, fingerprint: &str, roots: &[St
     let Ok(recorded) = fs::read_to_string(tree.join(FINGERPRINT_FILE)) else {
         return false;
     };
-    if recorded != fingerprint {
+    if validate_roots(tree, roots).is_err() {
         return false;
     }
-    validate_roots(tree, roots).is_ok()
+    if recorded == fingerprint {
+        // Existing locked v1 trees predate the output inventory. Preserve their
+        // readability, but do not mistake this legacy check for byte integrity.
+        return true;
+    }
+    if recorded != format!("{SEALED_FINGERPRINT_PREFIX}{fingerprint}") {
+        return false;
+    }
+    let Ok(bytes) = fs::read(tree.join(INVENTORY_FILE)) else {
+        return false;
+    };
+    let Ok(encoded) = std::str::from_utf8(&bytes) else {
+        return false;
+    };
+    let Ok(expected) = facet_json::from_str::<DecompileOutputInventory>(encoded) else {
+        return false;
+    };
+    if expected.schema != INVENTORY_SCHEMA {
+        return false;
+    }
+    snapshot_decompiled_tree(tree).is_ok_and(|actual| actual == expected)
+}
+
+#[derive(Facet, PartialEq, Eq)]
+struct DecompileOutputInventory {
+    schema: String,
+    entries: Vec<DecompileOutputEntry>,
+}
+
+#[derive(Facet, PartialEq, Eq)]
+struct DecompileOutputEntry {
+    path: String,
+    directory: bool,
+    bytes: u64,
+    sha256: Option<String>,
+}
+
+fn snapshot_decompiled_tree(tree: &Path) -> eyre::Result<DecompileOutputInventory> {
+    let mut pending = vec![tree.to_path_buf()];
+    let mut entries = Vec::new();
+    while let Some(directory) = pending.pop() {
+        for item in fs::read_dir(&directory)? {
+            let item = item?;
+            let path = item.path();
+            let relative = path.strip_prefix(tree)?;
+            if relative == Path::new(FINGERPRINT_FILE) || relative == Path::new(INVENTORY_FILE) {
+                continue;
+            }
+            let name = relative
+                .to_str()
+                .ok_or_else(|| eyre::eyre!("Non-UTF-8 decompiled source path"))?
+                .replace('\\', "/");
+            let metadata = fs::symlink_metadata(&path)?;
+            let kind = metadata.file_type();
+            if kind.is_dir() {
+                pending.push(path);
+                entries.push(DecompileOutputEntry {
+                    path: name,
+                    directory: true,
+                    bytes: 0,
+                    sha256: None,
+                });
+            } else if kind.is_file() {
+                let mut file = fs::File::open(&path)?;
+                let mut hash = Sha256::new();
+                let mut buffer = [0_u8; 16 * 1024];
+                loop {
+                    let count = file.read(&mut buffer)?;
+                    if count == 0 {
+                        break;
+                    }
+                    hash.update(&buffer[..count]);
+                }
+                entries.push(DecompileOutputEntry {
+                    path: name,
+                    directory: false,
+                    bytes: metadata.len(),
+                    sha256: Some(format!("{:x}", hash.finalize())),
+                });
+            } else {
+                eyre::bail!("Unsupported decompiled source entry: {}", path.display());
+            }
+            if entries.len() > 250_000 {
+                eyre::bail!("Decompiled source tree has too many entries");
+            }
+        }
+    }
+    entries.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(DecompileOutputInventory {
+        schema: INVENTORY_SCHEMA.to_owned(),
+        entries,
+    })
 }
 
 fn validate_roots(tree: &Path, roots: &[String]) -> eyre::Result<()> {
@@ -591,8 +698,58 @@ mod tests {
         assert!(tree.join("src/Example.java").is_file());
         assert_eq!(
             fs::read_to_string(tree.join(FINGERPRINT_FILE)).unwrap(),
-            provider.derived_checks.fingerprint
+            format!(
+                "{SEALED_FINGERPRINT_PREFIX}{}",
+                provider.derived_checks.fingerprint
+            )
         );
+        assert!(tree.join(INVENTORY_FILE).is_file());
+    }
+
+    #[test]
+    fn sealed_decompilation_rejects_changed_missing_and_extra_output_without_replacing_reader() {
+        let cache = tempfile::tempdir().expect("temporary cache");
+        let (mut inventory, mut provider) = fixture(CacheHome(cache.path().to_path_buf()));
+        prepare_artifacts(&mut inventory);
+        let runner = FixtureRunner { runs: Cell::new(0) };
+        provider.derived_checks.fingerprint = decompile_fingerprint(
+            inventory.artifact_by_id("binary").unwrap().hash,
+            inventory.artifact_by_id("decompiler").unwrap().hash,
+            "fixture Java 17",
+        );
+        let token = CancellationToken::new();
+        acquire_with_runner(&inventory, &provider, &token, &NeverFetcher, &runner).unwrap();
+        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        let source = tree.join("src/Example.java");
+        let original = fs::read(&source).unwrap();
+        let held = fs::File::open(&source).unwrap();
+
+        fs::write(&source, b"class Tampered {}").unwrap();
+        assert!(!completed_tree_matches(
+            &tree,
+            &provider.derived_checks.fingerprint,
+            &provider.declaration.roots
+        ));
+        let error = acquire_with_runner(&inventory, &provider, &token, &NeverFetcher, &runner)
+            .expect_err("changed output must not be trusted or replace a live reader");
+        assert!(error.to_string().contains("refusing to replace"));
+        assert_eq!(fs::read(&source).unwrap(), b"class Tampered {}");
+        assert!(held.metadata().unwrap().is_file());
+
+        fs::write(&source, &original).unwrap();
+        fs::write(tree.join("src/Unexpected.java"), b"class Unexpected {}").unwrap();
+        assert!(!completed_tree_matches(
+            &tree,
+            &provider.derived_checks.fingerprint,
+            &provider.declaration.roots
+        ));
+        fs::remove_file(tree.join("src/Unexpected.java")).unwrap();
+        fs::remove_file(tree.join(INVENTORY_FILE)).unwrap();
+        assert!(!completed_tree_matches(
+            &tree,
+            &provider.derived_checks.fingerprint,
+            &provider.declaration.roots
+        ));
     }
 
     #[test]
