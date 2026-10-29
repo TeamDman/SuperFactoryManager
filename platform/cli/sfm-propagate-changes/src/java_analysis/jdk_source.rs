@@ -486,30 +486,32 @@ impl JdkSourceDomain {
         source_hash: ContentHash,
         source_cache_root: &Path,
     ) -> eyre::Result<Self> {
+        let actual_hash = ContentHash::from_path(archive, source_hash.algorithm)?;
+        if actual_hash != source_hash {
+            eyre::bail!(
+                "JDK source archive differs from its selected identity: expected {source_hash}, got {actual_hash}"
+            );
+        }
         let portable = SourceCacheLayout::jdk(java_release, source_hash, JAVA_PARSER_FINGERPRINT);
         let canonical_tree = local_cache_path(&portable.tree, source_cache_root);
-        if !canonical_tree.is_dir() {
-            let parent = canonical_tree.parent().ok_or_else(|| {
-                eyre::eyre!(
-                    "JDK source cache tree has no parent: {}",
-                    canonical_tree.display()
-                )
-            })?;
-            std::fs::create_dir_all(parent).wrap_err_with(|| {
-                format!(
-                    "failed to create JDK source cache parent {}",
-                    parent.display()
-                )
-            })?;
-            let lock_path = parent.join("extract.lock");
-            let _lock = ArtifactLock::acquire(
-                &lock_path,
-                format!("JDK Java {java_release} source extraction"),
-            )?;
-            if !canonical_tree.is_dir() {
-                extract_zip_atomically(archive, &canonical_tree)?;
-            }
-        }
+        let parent = canonical_tree.parent().ok_or_else(|| {
+            eyre::eyre!(
+                "JDK source cache tree has no parent: {}",
+                canonical_tree.display()
+            )
+        })?;
+        std::fs::create_dir_all(parent).wrap_err_with(|| {
+            format!(
+                "failed to create JDK source cache parent {}",
+                parent.display()
+            )
+        })?;
+        let lock_path = parent.join("extract.lock");
+        let _lock = ArtifactLock::acquire(
+            &lock_path,
+            format!("JDK Java {java_release} source extraction"),
+        )?;
+        extract_zip_atomically(archive, &canonical_tree)?;
         let identity = format!(
             "{JDK_SOURCE_INDEX_FORMAT}:java-{java_release}:provider-{provider_identity}:source-{source_hash}:parser-{JAVA_PARSER_FINGERPRINT}"
         );
@@ -1422,6 +1424,49 @@ mod tests {
             source_zip.finish().expect("JDK source ZIP").into_inner(),
         )
         .expect("selected source archive");
+    }
+
+    #[test]
+    fn cached_jdk_source_tree_must_match_selected_archive() {
+        let temporary = tempfile::tempdir().unwrap();
+        let archive = temporary.path().join("src.zip");
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        writer
+            .start_file(
+                "java.base/java/lang/String.java",
+                SimpleFileOptions::default(),
+            )
+            .unwrap();
+        writer
+            .write_all(b"package java.lang; public final class String {}")
+            .unwrap();
+        std::fs::write(&archive, writer.finish().unwrap().into_inner()).unwrap();
+        let source_hash = ContentHash::from_path(&archive, ContentHashAlgorithm::Blake3).unwrap();
+        let cache = temporary.path().join("cache");
+        let domain = JdkSourceDomain::from_archive("17", "fixture", &archive, source_hash, &cache)
+            .expect("initial source extraction");
+        assert!(!domain.source_entries("java.lang.String").is_empty());
+
+        let portable = SourceCacheLayout::jdk("17", source_hash, JAVA_PARSER_FINGERPRINT);
+        let source =
+            local_cache_path(&portable.tree, &cache).join("java.base/java/lang/String.java");
+        std::fs::write(&source, b"package java.lang; public class Altered {}").unwrap();
+        let error = JdkSourceDomain::from_archive("17", "fixture", &archive, source_hash, &cache)
+            .expect_err("a tampered extracted JDK source must fail closed");
+        assert!(error
+            .to_string()
+            .contains("differs from its authenticated archive"));
+        assert!(std::fs::read(&source)
+            .unwrap()
+            .windows(7)
+            .any(|part| part == b"Altered"));
+
+        std::fs::write(&archive, b"changed archive").unwrap();
+        let error = JdkSourceDomain::from_archive("17", "fixture", &archive, source_hash, &cache)
+            .expect_err("the selected archive identity must also be rechecked");
+        assert!(error
+            .to_string()
+            .contains("differs from its selected identity"));
     }
 
     #[test]
