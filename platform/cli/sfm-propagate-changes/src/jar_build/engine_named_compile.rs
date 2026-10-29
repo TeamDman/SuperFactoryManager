@@ -1494,6 +1494,11 @@ fn acquire_named_frozen_download_verified(
     let mut published = false;
     let result = (|| -> eyre::Result<Vec<u8>> {
         cancellation.bail_if_cancelled()?;
+        // The opted-in shared root owns every nested parent, including a new
+        // asset index directory. Keep its Windows ancestry held through the
+        // path lock, verified read and create-only publication.
+        let _ancestry =
+            native_cache_root::NativeCacheRoot::guard_artifact_parent_if_owned(path, cancellation)?;
         let _lock = acquire_artifact_path_lock_cancellable(path, cancellation)?;
         match fs::symlink_metadata(path) {
             Ok(metadata) => {

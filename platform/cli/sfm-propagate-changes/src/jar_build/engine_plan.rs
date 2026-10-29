@@ -129,6 +129,27 @@ mod selected_common_cache_tests {
             fs::read(other_common.join("maven/org/example/fixture.jar"))?,
             bytes
         );
+        let blocked_parent = common.join("minecraft/assets/indexes");
+        fs::write(&blocked_parent, b"unexpected file in place of index directory")?;
+        let blocked_index = blocked_parent.join("fixture.json");
+        assert!(
+            acquire_named_frozen_download(
+                &cancellation,
+                &client,
+                "http://127.0.0.1:1/no-request",
+                &blocked_index,
+                &expected,
+                bytes.len() as u64,
+                Some(bytes.len() as u64),
+                || eyre::bail!("unsafe parent unexpectedly reached acquisition"),
+            )
+            .is_err()
+        );
+        assert_eq!(
+            fs::read(&blocked_parent)?,
+            b"unexpected file in place of index directory"
+        );
+        assert!(!blocked_index.exists());
         assert_ne!(
             owner.prepare_directory("projects/dev", &cancellation)?,
             other_owner.prepare_directory("projects/extended", &cancellation)?
