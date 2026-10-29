@@ -86,6 +86,19 @@ pub(crate) fn verify(
     Ok(Some((relative, raw)))
 }
 
+/// Check only the historical receipt/source/recipe declaration for an absent
+/// output. This is not a producer permit: its external dependency inventory
+/// has no recoverable bytes and must be sealed separately before execution.
+pub(crate) fn verify_recipe_without_output(
+    cache: &Path,
+    coordinate: Option<&str>,
+    expected: ContentHash,
+    git: Option<&SourceGitProvenance>,
+    build: Option<&SourceBuildProvenance>,
+) -> eyre::Result<bool> {
+    Ok(verify_receipt_metadata_only(cache, coordinate, expected, git, build)?.is_some())
+}
+
 /// This validates the historical receipt and recipe without a finished output.
 /// It is deliberately not an admission for a missing-output build: the v1
 /// receipt has only an inventory digest, not a sealed external input closure.

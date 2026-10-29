@@ -1089,9 +1089,37 @@ impl Resolver {
             .parent()
             .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
         crate::source_projection::candidate_lock::checked_directory(cache)?;
-        Ok(Some(
-            crate::source_projection::candidate_lock::checked_file(cache, relative)?,
-        ))
+        // A missing locked producer output still has a reviewable path. Check
+        // every existing component without creating it; the receipt/closure
+        // preflight below decides whether any producer effect is permitted.
+        let mut candidate = cache.to_path_buf();
+        let parts = relative.split('/').collect::<Vec<_>>();
+        let mut missing = false;
+        for (index, part) in parts.iter().enumerate() {
+            candidate.push(part);
+            if missing {
+                continue;
+            }
+            match fs::symlink_metadata(&candidate) {
+                Ok(metadata) => eyre::ensure!(
+                    !crate::source_projection::candidate_lock::is_reparse(&metadata)
+                        && if index + 1 == parts.len() {
+                            metadata.is_file()
+                        } else {
+                            metadata.is_dir()
+                        },
+                    "producer output path contains a reparse point or wrong file type"
+                ),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => missing = true,
+                Err(error) => return Err(error.into()),
+            }
+        }
+        if !missing {
+            return Ok(Some(
+                crate::source_projection::candidate_lock::checked_file(cache, relative)?,
+            ));
+        }
+        Ok(Some(candidate))
     }
 
     /// Reuse the existing receipt-bound path and verification without cache effects.
@@ -1134,14 +1162,30 @@ impl Resolver {
             .cache_dir
             .parent()
             .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
-        crate::jar_build::source_build_receipt::verify(
-            cache,
-            artifact,
-            locked.coordinate.as_deref(),
-            locked.hash,
-            locked.source_git.as_ref(),
-            locked.source_build.as_ref(),
-        )?;
+        if artifact.is_file() {
+            crate::jar_build::source_build_receipt::verify(
+                cache,
+                artifact,
+                locked.coordinate.as_deref(),
+                locked.hash,
+                locked.source_git.as_ref(),
+                locked.source_build.as_ref(),
+            )?;
+        } else {
+            eyre::ensure!(
+                crate::jar_build::source_build_receipt::verify_recipe_without_output(
+                    cache,
+                    locked.coordinate.as_deref(),
+                    locked.hash,
+                    locked.source_git.as_ref(),
+                    locked.source_build.as_ref(),
+                )?,
+                "missing producer output has no digest-bound recipe receipt"
+            );
+            eyre::bail!(
+                "missing producer output for {coordinate}: external input closure is not sealed; refusing before output lock or Gradle execution"
+            );
+        }
         Ok(())
     }
 
@@ -2625,6 +2669,33 @@ mod producer_native_tests {
         assert_eq!(artifact.cache_path, path);
         assert_eq!(fs::read(old)?, b"historical Maven bytes");
         assert!(read_artifact_provenance(&path)?.is_some());
+        Ok(())
+    }
+
+    #[test]
+    fn missing_producer_output_checks_recipe_then_refuses_before_effects() -> eyre::Result<()> {
+        for absent_parent in [false, true] {
+            let (root, path, entry) = resolver_fixture();
+            fs::remove_file(&path)?;
+            if absent_parent {
+                fs::remove_dir(path.parent().expect("fixture output parent"))?;
+            }
+            let coordinate = MavenCoordinate::parse(entry.coordinate.as_deref().unwrap())?;
+            let resolved = resolver(root.path(), entry, false, false)?;
+            assert_eq!(resolved.producer_cache_path(&coordinate)?, Some(path.clone()));
+            let error = resolved
+                .resolve_artifact(
+                    ArtifactId::from("missing-producer"),
+                    &coordinate,
+                    ArtifactPurpose::from("missing producer refusal"),
+                )
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains("external input closure is not sealed"), "{error}");
+            assert!(!path.exists());
+            assert!(!root.path().join("maven").exists());
+            assert!(!root.path().join("source-builds-gix").exists());
+        }
         Ok(())
     }
 
