@@ -102,7 +102,12 @@ pub(crate) fn verify_recipe_without_output(
     else {
         return Ok(false);
     };
-    if let Some(pin) = build.and_then(|build| build.environment.get(EXTERNAL_INPUTS_KEY)) {
+    let pin = build
+        .and_then(|build| build.environment.get(EXTERNAL_INPUTS_KEY))
+        .ok_or_else(|| {
+            eyre::eyre!("external input closure is not sealed: missing external-input manifest pin")
+        })?;
+    {
         #[cfg(not(any(windows, target_os = "linux")))]
         {
             let _ = pin;
@@ -409,6 +414,19 @@ pub(crate) mod tests {
                 Some(&build)
             )
             .is_err()
+        );
+        let error = verify_recipe_without_output(
+            cache.path(),
+            Some(COORDINATE),
+            hash,
+            Some(&git),
+            Some(&build),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains("missing external-input manifest pin"),
+            "{error}"
         );
         git.commit = "c".repeat(40);
         assert!(

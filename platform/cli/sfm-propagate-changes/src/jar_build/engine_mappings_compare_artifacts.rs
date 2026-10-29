@@ -2072,6 +2072,15 @@ fn materialize_gradle_wrapper_source_build(
     if source_build.tasks.is_empty() {
         eyre::bail!("Source build for {remote_url}@{commit} has no Gradle tasks");
     }
+    // A pinned producer is admitted through the resolver only after its full
+    // external-read closure is enforced. Do not let a direct source-build
+    // call bypass that boundary and run an unrestricted Gradle wrapper.
+    eyre::ensure!(
+        !source_build
+            .environment
+            .contains_key(super::source_build_receipt::RECEIPT_KEY),
+        "producer-pinned Gradle source build requires a sealed external-read runner",
+    );
     prepare_source_build_checkout(
         cancellation_token,
         remote_url,

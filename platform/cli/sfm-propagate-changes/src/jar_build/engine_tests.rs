@@ -4351,6 +4351,37 @@ fn git_stdout_test<const N: usize>(repo: &Path, args: [&str; N]) -> String {
         .to_string()
 }
 
+#[test]
+fn producer_pinned_gradle_direct_invocation_refuses_before_checkout() {
+    let fixture = tempfile::tempdir().unwrap();
+    let checkout = fixture.path().join("checkout");
+    let repository = fixture.path().join("repository");
+    let mut environment = BTreeMap::new();
+    environment.insert(
+        crate::jar_build::source_build_receipt::RECEIPT_KEY.to_owned(),
+        "a".repeat(64),
+    );
+    let build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::GradleWrapper,
+        tasks: vec!["jar".to_owned()],
+        environment,
+        output_path: PathBuf::from("build/libs/output.jar"),
+    };
+    let error = super::materialize_gradle_wrapper_source_build(
+        &CancellationToken::new(),
+        "https://example.invalid/producer.git",
+        &"a".repeat(40),
+        &build,
+        &checkout,
+        &repository,
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("sealed external-read runner"), "{error}");
+    assert!(!checkout.exists());
+    assert!(!repository.exists());
+}
+
 fn write_fake_gradle_wrapper(source_root: &Path, output_path: &Path) {
     let output_parent = output_path
         .parent()
