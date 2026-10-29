@@ -232,12 +232,10 @@ mod tests {
         let cache = tempfile::tempdir().expect("temporary cache");
         let mut inventory = fixture(CacheHome(cache.path().to_path_buf()));
         let provider = add_git_provider(&mut inventory);
-        let repository = inventory.local_path(&provider.derived_checks.repository_cache_path);
         let root = inventory
             .local_path(&provider.derived_checks.tree_cache_path)
             .join("src/main/java");
-        std::fs::create_dir_all(&repository).expect("repository cache");
-        std::fs::create_dir_all(&root).expect("source root");
+        materialize_verified_git_provider(&mut inventory);
         let before = directory_entries(cache.path());
 
         let preflight = preflight(
@@ -280,13 +278,8 @@ mod tests {
     fn provider_filter_skips_components_without_that_provider() {
         let cache = tempfile::tempdir().expect("temporary cache");
         let mut inventory = fixture(CacheHome(cache.path().to_path_buf()));
-        let provider = add_git_provider(&mut inventory);
-        let tree = inventory
-            .local_path(&provider.derived_checks.tree_cache_path)
-            .join("src/main/java");
-        let repository = inventory.local_path(&provider.derived_checks.repository_cache_path);
-        std::fs::create_dir_all(&repository).expect("repository cache");
-        std::fs::create_dir_all(&tree).expect("source root");
+        add_git_provider(&mut inventory);
+        materialize_verified_git_provider(&mut inventory);
         let dependency = inventory
             .lockfile
             .dependencies
@@ -465,6 +458,84 @@ mod tests {
             .source_providers
             .push(SourceProviderV3::Git(provider.clone()));
         provider
+    }
+
+    fn materialize_verified_git_provider(inventory: &mut DependencyInventory) {
+        use gix::objs::tree::EntryKind;
+
+        let dependency = inventory
+            .lockfile
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "cc-tweaked")
+            .expect("CC:Tweaked fixture");
+        let component = dependency
+            .components
+            .iter()
+            .find(|component| component.id == "main")
+            .expect("main component");
+        let SourceProviderV3::Git(provider) = &component.source_providers[0] else {
+            panic!("expected Git fixture provider");
+        };
+        let repository_path = inventory.local_path(&provider.derived_checks.repository_cache_path);
+        std::fs::create_dir_all(repository_path.parent().expect("repository parent"))
+            .expect("repository parent");
+        let repository = gix::init_bare(&repository_path).expect("bare source repository");
+        let blob = repository
+            .write_blob(b"class Example {}\n")
+            .expect("source blob")
+            .detach();
+        let mut child = blob;
+        for (name, kind) in [
+            ("Example.java", EntryKind::Blob),
+            ("java", EntryKind::Tree),
+            ("main", EntryKind::Tree),
+            ("src", EntryKind::Tree),
+        ] {
+            child = repository
+                .write_object(gix::objs::Tree {
+                    entries: vec![gix::objs::tree::Entry {
+                        mode: kind.into(),
+                        filename: name.into(),
+                        oid: child,
+                    }],
+                })
+                .expect("source tree")
+                .detach();
+        }
+        let commit_bytes = format!(
+            "tree {child}\nauthor Test <test@example.invalid> 1 +0000\ncommitter Test <test@example.invalid> 1 +0000\n\nsource\n"
+        );
+        let commit = repository
+            .write_object(
+                gix::objs::CommitRef::from_bytes(commit_bytes.as_bytes(), repository.object_hash())
+                    .expect("commit ref"),
+            )
+            .expect("source commit")
+            .detach()
+            .to_string();
+        let dependency = inventory
+            .lockfile
+            .dependencies
+            .iter_mut()
+            .find(|dependency| dependency.id == "cc-tweaked")
+            .expect("CC:Tweaked fixture");
+        let component = dependency
+            .components
+            .iter_mut()
+            .find(|component| component.id == "main")
+            .expect("main component");
+        let SourceProviderV3::Git(provider) = &mut component.source_providers[0] else {
+            panic!("expected Git fixture provider");
+        };
+        provider.derived_checks.commit = commit;
+        let provider = provider.clone();
+        crate::source_git::acquire_locked_git_sources(
+            inventory,
+            &provider,
+            &CancellationToken::new(),
+        )
+        .expect("verified source tree");
     }
 
     fn fixture(cache_home: CacheHome) -> DependencyInventory {
