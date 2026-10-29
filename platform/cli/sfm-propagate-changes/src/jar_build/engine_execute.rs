@@ -467,7 +467,7 @@ fn execute_forge_userdev(
     #[cfg(not(windows))]
     let _ = target;
     execute_forge_userdev_uncached(context, true, None)?;
-    Ok(Default::default())
+    Ok(ForgeDevHold::default())
 }
 
 include!("forge_preparation_producers.rs");

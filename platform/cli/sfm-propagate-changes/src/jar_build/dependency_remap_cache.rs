@@ -379,11 +379,7 @@ fn observe(
     stored: bool,
     materialization: &str,
 ) {
-    let materialized_outputs = if materialization == "held_shared" {
-        0
-    } else {
-        1
-    };
+    let materialized_outputs = i32::from(materialization != "held_shared");
     let coordinate = &producer.coordinate;
     let selected_output = if materialization == "held_shared" {
         entry.map_or_else(

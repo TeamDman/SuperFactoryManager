@@ -86,7 +86,7 @@ fn execute_build(
     }
     let held_forge_dev_jar: ForgeDevHold;
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
-        held_forge_dev_jar = Default::default();
+        held_forge_dev_jar = ForgeDevHold::default();
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
         context.bail_if_cancelled()?;
