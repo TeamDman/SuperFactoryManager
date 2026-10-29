@@ -12,6 +12,8 @@ use std::fs;
 use std::path::Path;
 
 pub(crate) const RECEIPT_KEY: &str = "SFM_PRODUCER_RECEIPT_SHA256";
+/// Admission metadata only; never forwarded as an input to the historical recipe.
+pub(crate) const EXTERNAL_INPUTS_KEY: &str = "SFM_PRODUCER_EXTERNAL_INPUTS_SHA256";
 
 #[derive(Clone, Facet)]
 struct Output {
@@ -96,7 +98,40 @@ pub(crate) fn verify_recipe_without_output(
     git: Option<&SourceGitProvenance>,
     build: Option<&SourceBuildProvenance>,
 ) -> eyre::Result<bool> {
-    Ok(verify_receipt_metadata_only(cache, coordinate, expected, git, build)?.is_some())
+    let Some((_, raw, _)) = verify_receipt_metadata_only(cache, coordinate, expected, git, build)?
+    else {
+        return Ok(false);
+    };
+    if let Some(pin) = build.and_then(|build| build.environment.get(EXTERNAL_INPUTS_KEY)) {
+        #[cfg(not(any(windows, target_os = "linux")))]
+        {
+            let _ = pin;
+            eyre::bail!("external producer input verification is unsupported on this platform");
+        }
+        #[cfg(any(windows, target_os = "linux"))]
+        {
+            let receipt: Receipt = facet_json::from_slice(&raw)?;
+            let anchor = super::source_build_external_inputs::HistoricalProducerAnchor {
+                receipt_sha256: build
+                    .and_then(|build| build.environment.get(RECEIPT_KEY))
+                    .expect("receipt pin was verified above")
+                    .clone(),
+                repository_url: receipt.repository_url,
+                commit: receipt.commit,
+                source_tree: receipt.source_tree,
+                gradle_archive_sha256: receipt.gradle_archive_sha256,
+                java_archive_sha256: receipt.java_archive_sha256,
+                tasks: receipt.tasks,
+            };
+            let manifest = super::source_build_external_inputs::ExternalInputManifest::load_pinned(
+                cache, pin, &anchor,
+            )?;
+            // Validation is still not Gradle read isolation. The resolver refuses
+            // execution even after these candidate bytes are verified.
+            let _held = manifest.verify_all(cache)?;
+        }
+    }
+    Ok(true)
 }
 
 /// This validates the historical receipt and recipe without a finished output.
@@ -166,6 +201,7 @@ fn verify_receipt_metadata_only(
     );
     let mut environment = build.environment.clone();
     environment.remove(RECEIPT_KEY);
+    environment.remove(EXTERNAL_INPUTS_KEY);
     ensure!(
         receipt.environment == environment,
         "producer environment mismatch"
@@ -385,6 +421,27 @@ pub(crate) mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn declared_external_manifest_must_exist_before_missing_output_preflight() {
+        let (cache, path, git, mut build, hash, receipt) = fixture();
+        pin(cache.path(), &mut build, &receipt);
+        fs::remove_file(path).unwrap();
+        build
+            .environment
+            .insert(EXTERNAL_INPUTS_KEY.into(), "8".repeat(64));
+        assert!(
+            verify_recipe_without_output(
+                cache.path(),
+                Some(COORDINATE),
+                hash,
+                Some(&git),
+                Some(&build)
+            )
+            .is_err()
+        );
+        assert!(!cache.path().join("producer-external-inputs").exists());
     }
 
     #[test]

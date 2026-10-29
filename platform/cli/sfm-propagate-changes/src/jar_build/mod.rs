@@ -147,3 +147,5 @@ mod launch_argument_file;
 mod container_control_cli;
 
 pub(crate) mod source_build_receipt;
+#[cfg(any(windows, target_os = "linux"))]
+mod source_build_external_inputs;
