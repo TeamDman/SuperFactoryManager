@@ -131,9 +131,12 @@ pub(crate) fn verify_recipe_without_output(
             let manifest = super::source_build_external_inputs::ExternalInputManifest::load_pinned(
                 cache, pin, &anchor,
             )?;
-            // Validation is still not Gradle read isolation. The resolver refuses
-            // execution even after these candidate bytes are verified.
+            // Verification metadata fails closed for Gradle-managed dependencies,
+            // including plugin/buildSrc artifacts and their metadata. It does not
+            // constrain arbitrary task-time reads; the resolver still refuses
+            // producer execution until that separate boundary is implemented.
             let _held = manifest.verify_all(cache)?;
+            let _gradle_verification = manifest.gradle_verification_metadata()?;
         }
     }
     Ok(true)

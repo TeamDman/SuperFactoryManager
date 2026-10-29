@@ -14,7 +14,7 @@ use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
 use sha2::Digest as _;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Read;
 use std::io::Seek;
@@ -75,6 +75,13 @@ fn digest(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
+fn safe_maven_part(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-' | b'+'))
 }
 
 impl ExternalInputManifest {
@@ -219,6 +226,83 @@ impl ExternalInputManifest {
             _file: file,
             _directories: directories,
         })
+    }
+
+    /// Gradle verifies every dependency it resolves, including plugin and
+    /// buildSrc metadata, against this allowlist. This does not constrain
+    /// arbitrary filesystem or HTTP reads performed by build task code.
+    pub(crate) fn gradle_verification_metadata(&self) -> Result<String> {
+        let mut components: BTreeMap<(String, String, String), BTreeMap<String, String>> =
+            BTreeMap::new();
+        for input in &self.inputs {
+            let Some(coordinate) = &input.coordinate else {
+                continue;
+            };
+            let (notation, extension) = input
+                .request
+                .split_once('@')
+                .ok_or_else(|| eyre::eyre!("Gradle input request lacks artifact extension"))?;
+            ensure!(
+                coordinate == notation && safe_maven_part(extension),
+                "Gradle input request differs from declared Maven coordinate"
+            );
+            let parts: Vec<_> = notation.split(':').collect();
+            let (group, name, version, classifier) = match parts.as_slice() {
+                [group, name, version] => (*group, *name, *version, None),
+                [group, name, version, classifier] => (*group, *name, *version, Some(*classifier)),
+                _ => eyre::bail!("Gradle input has invalid Maven coordinate"),
+            };
+            ensure!(
+                [group, name, version].into_iter().all(safe_maven_part)
+                    && classifier.is_none_or(safe_maven_part),
+                "Gradle input has unsafe Maven coordinate"
+            );
+            let classifier_suffix =
+                classifier.map_or_else(String::new, |value| format!("-{value}"));
+            let file_name = format!("{name}-{version}{classifier_suffix}.{extension}");
+            ensure!(
+                input.source_url.rsplit('/').next() == Some(file_name.as_str()),
+                "Gradle input URL does not name its declared Maven artifact"
+            );
+            let artifacts = components
+                .entry((group.to_owned(), name.to_owned(), version.to_owned()))
+                .or_default();
+            if let Some(previous) = artifacts.insert(file_name, input.sha256.clone()) {
+                ensure!(
+                    previous == input.sha256,
+                    "Gradle input has conflicting checksums for one artifact"
+                );
+            }
+        }
+        ensure!(
+            !components.is_empty(),
+            "Gradle input manifest has no Maven dependency verification entries"
+        );
+        let mut xml = String::from(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <verification-metadata xmlns=\"https://schema.gradle.org/dependency-verification\" \
+             xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" \
+             xsi:schemaLocation=\"https://schema.gradle.org/dependency-verification \
+             https://schema.gradle.org/dependency-verification/dependency-verification-1.4.xsd\">\n\
+             \t<configuration>\n\
+             \t\t<verify-metadata>true</verify-metadata>\n\
+             \t\t<verify-signatures>false</verify-signatures>\n\
+             \t</configuration>\n\
+             \t<components>\n",
+        );
+        for ((group, name, version), artifacts) in components {
+            xml.push_str(&format!(
+                "\t\t<component group=\"{group}\" name=\"{name}\" version=\"{version}\">\n"
+            ));
+            for (file_name, sha256) in artifacts {
+                xml.push_str(&format!(
+                    "\t\t\t<artifact name=\"{file_name}\"><sha256 value=\"{sha256}\"/></artifact>\n"
+                ));
+            }
+            xml.push_str("\t\t</component>\n");
+        }
+        xml.push_str("\t</components>\n</verification-metadata>\n");
+        Ok(xml)
     }
 
     pub(crate) fn verify_all(&self, cache: &Path) -> Result<Vec<VerifiedExternalInput>> {
@@ -368,6 +452,32 @@ mod tests {
             sha256: "f".repeat(64),
         });
         assert!(manifest.validate(&anchor).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn gradle_verification_only_lists_declared_maven_artifacts() -> Result<()> {
+        let (_, _, manifest, _) = fixture()?;
+        let xml = manifest.gradle_verification_metadata()?;
+        assert!(xml.contains("<verify-metadata>true</verify-metadata>"));
+        assert!(xml.contains("<component group=\"example\" name=\"pinned\" version=\"1\">"));
+        assert!(xml.contains("<artifact name=\"pinned-1.jar\">"));
+        assert!(xml.contains(&manifest.inputs[0].sha256));
+        assert!(!xml.contains("gradle.zip"));
+        assert!(!xml.contains("java.zip"));
+        assert!(!xml.contains("unlisted"));
+        Ok(())
+    }
+
+    #[test]
+    fn gradle_verification_rejects_unmatched_request_or_artifact_url() -> Result<()> {
+        let (_, _, mut manifest, _) = fixture()?;
+        manifest.inputs[0].request = "example:other:1@jar".to_owned();
+        assert!(manifest.gradle_verification_metadata().is_err());
+        manifest.inputs[0].request = "example:pinned:1@jar".to_owned();
+        manifest.inputs[0].source_url =
+            "https://repo.example.invalid/example/pinned/1/other-1.jar".to_owned();
+        assert!(manifest.gradle_verification_metadata().is_err());
         Ok(())
     }
 
