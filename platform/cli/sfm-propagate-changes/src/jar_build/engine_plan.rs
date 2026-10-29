@@ -6,9 +6,9 @@ fn common_toolchain_cache_dir() -> PathBuf {
     CACHE_DIR.0.join("minecraft-toolchain")
 }
 
-// An explicit native root owns both immutable downloads and derived outputs.
-// Keep the legacy global cache selection for commands without that opt-in;
-// switching the default requires the separate migration/cutover gate.
+// A selected native root owns both immutable downloads and derived outputs.
+// Branch-worktree adapters still use the legacy global cache selection;
+// catalog entry points select their checkout root before reaching this planner.
 fn selected_common_toolchain_cache_dir(
     root: Option<&native_cache_root::NativeCacheRoot>,
     cancellation_token: &CancellationToken,
@@ -203,14 +203,10 @@ fn create_plan_for_project(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<BuildPlan> {
     eyre::ensure!(
-        options.output_name.is_none() || options.derived_cache_root.is_none(),
-        "--output-name requires the default projection cache root"
-    );
-    target.recheck()?;
-    eyre::ensure!(
         options.derived_cache_root.is_none() || target.is_catalog_owned(),
         "Derived cache override requires an exact catalog-owned compile"
     );
+    target.recheck()?;
     cancellation_token.bail_if_cancelled()?;
     let (worktree_path, minecraft_dir, properties_path) = {
         let _span = tracing::debug_span!("plan_resolve_project_paths").entered();

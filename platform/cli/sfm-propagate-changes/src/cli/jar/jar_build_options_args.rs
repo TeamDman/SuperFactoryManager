@@ -22,7 +22,7 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub repo_root: Option<PathBuf>,
 
-    /// Explicit guarded repository-local native toolchain root for this invocation.
+    /// Guarded native-root override; defaults to the selected checkout's sfm-toolchain-data.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
 
@@ -42,7 +42,7 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub plan_json: Option<PathBuf>,
 
-    /// Explicit Java home. Otherwise discover installed SDKs, preferring JBR and the newest patch of the lowest compatible Java major.
+    /// Explicit Java home, required for guarded catalog build/run admission.
     #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
 
@@ -106,7 +106,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn shared_root_is_explicit_on_projection_build_and_run_options() -> eyre::Result<()> {
+    fn projection_options_preserve_explicit_override_for_catalog_root_selection() -> eyre::Result<()> {
         let base = ["--projection", "sfm-4.35.0-extended/mc-1.19.2"];
         let default = figue::from_slice::<JarBuildOptionsArgs>(&base).unwrap();
         assert!(default.into_options(BuildMode::Build)?.cache_root.is_none());

@@ -10,7 +10,8 @@ formats interchangeable.
 This guide describes a **decision before worktree creation**. Ask Teamy before
 creating a worktree, cache directory, filesystem link or new development
 workspace. No link type is selected or enabled by this document. The current
-Rust native and Gradle routes use explicit opt-ins; a root-level link is not yet
+Rust catalog route selects the checkout-local native root by default, while
+Gradle still requires an explicit property. A root-level link is not yet
 admitted by the native root guard. A separately approved test link/worktree
 may be created only after G7 selects a
 link type, this guide is reviewed, and the relevant guard implementation is ready;
@@ -58,13 +59,17 @@ space is insufficient, stop and report; do not clean, relocate or delete data.
 
 ## Current command boundaries
 
-`source project compile/jar --cache-root <checkout>/sfm-toolchain-data`
-selects the guarded native derived/download root for that invocation. Generated
-Gradle `gradle/repositories.gradle` currently uses the same logical root only
-with `-PsfmUseRepositoryToolchainData=true`; without that property it retains
-its earlier cache selection. These opt-ins are not an approved default cutover,
-link admission or proof that every stage has a common representation. Plain
-historical 4.34.0 source remains the comparison baseline.
+Catalog `jar` and `run` operations and `source project compile/jar` select
+`<checkout>/sfm-toolchain-data` by default. `--cache-root` selects a guarded
+override for one invocation. Native build and run operations require an explicit
+`--java-home` so the selected JDK can be validated against the root. Generated
+Gradle `gradle/repositories.gradle` uses the same logical root only with
+`-PsfmUseRepositoryToolchainData=true`; without that property it retains its
+earlier cache selection. Historical branch adapters and older installed CLI
+binaries retain their earlier routing. This source change does not authorize a
+link, old-data migration or retirement, and does not prove every stage has a
+common representation. Plain historical 4.34.0 source remains the comparison
+baseline.
 
 ## Pruning is report-only until separately approved
 

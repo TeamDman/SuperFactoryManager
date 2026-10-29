@@ -3,6 +3,47 @@
 #[path = "native_cache_root.rs"]
 mod native_cache_root;
 
+pub(crate) fn catalog_native_cache_path(repository: &Path, explicit: Option<&Path>) -> PathBuf {
+    explicit.map_or_else(
+        || dunce::simplified(repository).join("sfm-toolchain-data"),
+        Path::to_path_buf,
+    )
+}
+
+#[cfg(test)]
+mod catalog_native_cache_path_tests {
+    use super::*;
+
+    #[test]
+    fn catalog_cache_defaults_to_the_selected_checkout_and_preserves_override() {
+        let repository = Path::new("D:/selected/repository");
+        assert_eq!(
+            catalog_native_cache_path(repository, None),
+            repository.join("sfm-toolchain-data")
+        );
+        let override_path = Path::new("D:/selected/shared-cache");
+        assert_eq!(
+            catalog_native_cache_path(repository, Some(override_path)),
+            override_path
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn catalog_cache_simplifies_verbatim_selected_checkout_without_simplifying_override() {
+        let repository = Path::new(r"\\?\D:\selected\repository");
+        assert_eq!(
+            catalog_native_cache_path(repository, None),
+            PathBuf::from(r"D:\selected\repository\sfm-toolchain-data")
+        );
+        let override_path = Path::new(r"\\?\D:\selected\shared-cache");
+        assert_eq!(
+            catalog_native_cache_path(repository, Some(override_path)),
+            override_path
+        );
+    }
+}
+
 pub(crate) fn preflight_named_cache_root(
     path: &Path,
     repository: &Path,

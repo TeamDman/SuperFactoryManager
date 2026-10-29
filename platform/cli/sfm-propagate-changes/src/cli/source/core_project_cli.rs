@@ -162,7 +162,7 @@ pub struct CoreProjectCompileArgs {
     /// Existing SDK home; compiler release and tool JVM remain separate.
     #[facet(args::named)]
     pub java_home: PathBuf,
-    /// Guarded root for compile or development jar outputs and pinned downloads.
+    /// Guarded native root override; defaults to this checkout's sfm-toolchain-data.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
     #[facet(default = false, args::named)]
@@ -301,20 +301,18 @@ fn invoke_native_compile(
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
     let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
-    let cache_root = args
-        .cache_root
-        .as_deref()
-        .map(|path| {
-            crate::jar_build::engine::preflight_named_cache_root(
-                path,
-                &initial.repo_root,
-                &initial
-                    .repo_root
-                    .join(initial.catalog.project_dir(&args.project.projection)?),
-                &home,
-            )
-        })
-        .transpose()?;
+    let selected = crate::jar_build::engine::catalog_native_cache_path(
+        &initial.repo_root,
+        args.cache_root.as_deref(),
+    );
+    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
+        &selected,
+        &initial.repo_root,
+        &initial
+            .repo_root
+            .join(initial.catalog.project_dir(&args.project.projection)?),
+        &home,
+    )?);
     let report = project_report(
         &args.project,
         GenerationPolicy::BuildRun,
@@ -362,10 +360,6 @@ fn invoke_native_jar(
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, true, cancellation, invocation_dir);
     }
-    ensure!(
-        args.cache_root.is_none(),
-        "--cache-root is supported by development jars and source project compile only"
-    );
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!("native jar requires exactly one of --released-recipe or --dependency-profile")
     })?;
@@ -375,6 +369,18 @@ fn invoke_native_jar(
     let entry = initial.catalog.entry(&args.project.projection)?;
     preflight_named_compile_recipe(entry.target_id()?, &entry.minecraft_version, recipe)?;
     let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
+    let selected = crate::jar_build::engine::catalog_native_cache_path(
+        &initial.repo_root,
+        args.cache_root.as_deref(),
+    );
+    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
+        &selected,
+        &initial.repo_root,
+        &initial
+            .repo_root
+            .join(initial.catalog.project_dir(&args.project.projection)?),
+        &home,
+    )?);
     let report = project_report(
         &args.project,
         GenerationPolicy::BuildRun,
@@ -406,7 +412,7 @@ fn invoke_native_jar(
         frozen,
         &crate::jar_build::NamedCompileOptions {
             java_home: home,
-            cache_root: None,
+            cache_root,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -453,20 +459,18 @@ fn invoke_native_development(
     )?;
     let home = preflight_native_sdk_home(&args.java_home, invocation_dir)?;
     cancellation.bail_if_cancelled()?;
-    let cache_root = args
-        .cache_root
-        .as_deref()
-        .map(|path| {
-            crate::jar_build::engine::preflight_named_cache_root(
-                path,
-                &initial.repo_root,
-                &initial
-                    .repo_root
-                    .join(initial.catalog.project_dir(&args.project.projection)?),
-                &home,
-            )
-        })
-        .transpose()?;
+    let selected = crate::jar_build::engine::catalog_native_cache_path(
+        &initial.repo_root,
+        args.cache_root.as_deref(),
+    );
+    let cache_root = Some(crate::jar_build::engine::preflight_named_cache_root(
+        &selected,
+        &initial.repo_root,
+        &initial
+            .repo_root
+            .join(initial.catalog.project_dir(&args.project.projection)?),
+        &home,
+    )?);
     // Verify the complete source snapshot once after guarded sync. This owner
     // can safely recheck held remap inputs while a per-key cache lock is held.
     let checked = collected.prepare_development_invocation(false)?;
@@ -852,7 +856,7 @@ mod tests {
     use std::process::Command;
 
     #[test]
-    fn native_compile_cache_root_parses_explicit_path_and_defaults_absent() {
+    fn native_commands_parse_cache_override_and_select_checkout_default() {
         let base = [
             "--repo-root",
             "must-not-be-read",
@@ -863,6 +867,13 @@ mod tests {
         ];
         let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
         assert!(default.cache_root.is_none());
+        assert_eq!(
+            crate::jar_build::engine::catalog_native_cache_path(
+                Path::new("C:/selected-checkout"),
+                default.cache_root.as_deref(),
+            ),
+            PathBuf::from("C:/selected-checkout/sfm-toolchain-data")
+        );
         let mut explicit = base.to_vec();
         explicit.extend(["--cache-root", "C:/sfm cache fixture"]);
         let parsed = figue::from_slice::<CoreProjectCompileArgs>(&explicit).unwrap();
@@ -870,9 +881,13 @@ mod tests {
             parsed.cache_root,
             Some(PathBuf::from("C:/sfm cache fixture"))
         );
-        let error =
-            invoke_native_jar(&parsed, &CancellationToken::new(), Path::new(".")).unwrap_err();
-        assert!(error.to_string().contains("compile only"));
+        assert_eq!(
+            crate::jar_build::engine::catalog_native_cache_path(
+                Path::new("C:/selected-checkout"),
+                parsed.cache_root.as_deref(),
+            ),
+            PathBuf::from("C:/sfm cache fixture")
+        );
     }
 
     #[test]

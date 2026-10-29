@@ -6071,7 +6071,7 @@ fn fresh_jar_output_worktree_selection_is_refused_before_planning() {
 
 #[cfg(any(windows, target_os = "linux"))]
 #[test]
-fn fresh_jar_output_external_cache_is_refused_before_planning() -> eyre::Result<()> {
+fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre::Result<()> {
     let temporary = tempfile::tempdir()?;
     let root = dunce::canonicalize(temporary.path())?;
     let repository = root.join("repository");
@@ -6106,7 +6106,9 @@ fn fresh_jar_output_external_cache_is_refused_before_planning() -> eyre::Result<
     };
     let error = super::create_plan_for_project(&planning, &identity, &cancellation).unwrap_err();
     assert!(
-        error.to_string().contains("default projection cache root"),
+        error
+            .to_string()
+            .contains("Derived cache override requires an exact catalog-owned compile"),
         "{error:?}"
     );
     assert_eq!(fs::read(&marker)?, before);

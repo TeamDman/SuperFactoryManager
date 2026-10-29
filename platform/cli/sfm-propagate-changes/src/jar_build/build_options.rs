@@ -11,7 +11,7 @@ use std::path::PathBuf;
 )]
 pub struct BuildOptions {
     pub selection: BuildSelection,
-    /// Explicit guarded native root. Never silently changes the legacy default.
+    /// Explicit guarded native-root override; catalog operations select the checkout root by default.
     pub cache_root: Option<PathBuf>,
     pub refresh: bool,
     /// Skip initial comprehensive source checks for development projections.

@@ -79,11 +79,14 @@ fn invoke_projection_operation(
     let (root, keys) =
         super::projection_selection::select_projections(repo_root.as_deref(), selector)?;
     preflight_projection_jar_output(options, operation, keys.len())?;
-    eyre::ensure!(
-        options.cache_root.is_none() || options.java_home.is_some(),
-        "--cache-root requires an explicit --java-home for guarded native admission"
-    );
     preflight_projection_source_checks(&root, &keys, options.skip_source_checks)?;
+    let mut effective = options.clone();
+    effective.cache_root = Some(catalog_native_cache_path(&root, options.cache_root.as_deref()));
+    eyre::ensure!(
+        matches!(operation, ProjectionOperation::Catalog(_)) || effective.java_home.is_some(),
+        "catalog native operations require --java-home for the guarded checkout toolchain root"
+    );
+    let options = &effective;
     tracing::info!(
         projection_selector = selector,
         matched_projections = keys.len(),
