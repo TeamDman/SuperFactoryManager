@@ -25,6 +25,8 @@ const SCHEMA: &str = "sfm:source_producer_external_inputs@1";
 const MAX_MANIFEST: u64 = 4 * 1024 * 1024;
 const MAX_ENTRY: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_ENTRIES: usize = 8192;
+const GRADLE_ARCHIVE_REQUEST: &str = "tool:gradle-archive";
+const JAVA_ARCHIVE_REQUEST: &str = "tool:java-archive";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct HistoricalProducerAnchor {
@@ -152,6 +154,20 @@ impl ExternalInputManifest {
                 "external-input size or digest is invalid"
             );
         }
+        for (request, expected_sha256) in [
+            (GRADLE_ARCHIVE_REQUEST, &anchor.gradle_archive_sha256),
+            (JAVA_ARCHIVE_REQUEST, &anchor.java_archive_sha256),
+        ] {
+            let tool = self
+                .inputs
+                .iter()
+                .find(|input| input.request == request)
+                .ok_or_else(|| eyre::eyre!("external-input manifest omits {request}"))?;
+            ensure!(
+                tool.coordinate.is_none() && tool.sha256 == *expected_sha256,
+                "external-input manifest tool archive differs from producer anchor: {request}"
+            );
+        }
         Ok(())
     }
 
@@ -225,6 +241,12 @@ mod tests {
     )> {
         let root = tempfile::tempdir()?;
         fs::create_dir_all(root.path().join("maven/example"))?;
+        fs::create_dir_all(root.path().join("tools"))?;
+        fs::write(
+            root.path().join("tools/gradle.zip"),
+            b"verified gradle archive",
+        )?;
+        fs::write(root.path().join("tools/java.zip"), b"verified java archive")?;
         fs::write(
             root.path().join("maven/example/pinned.jar"),
             b"verified bytes",
@@ -234,11 +256,14 @@ mod tests {
             repository_url: "https://github.com/mekanism/Mekanism/".to_owned(),
             commit: "a".repeat(40),
             source_tree: "b".repeat(40),
-            gradle_archive_sha256: "2".repeat(64),
-            java_archive_sha256: "3".repeat(64),
+            gradle_archive_sha256: format!(
+                "{:x}",
+                sha2::Sha256::digest(b"verified gradle archive")
+            ),
+            java_archive_sha256: format!("{:x}", sha2::Sha256::digest(b"verified java archive")),
             tasks: vec!["jar".to_owned(), "apiJar".to_owned()],
         };
-        let manifest = ExternalInputManifest {
+        let mut manifest = ExternalInputManifest {
             schema: SCHEMA.to_owned(),
             historical_receipt_sha256: anchor.receipt_sha256.clone(),
             repository_url: anchor.repository_url.clone(),
@@ -257,6 +282,27 @@ mod tests {
                 sha256: format!("{:x}", sha2::Sha256::digest(b"verified bytes")),
             }],
         };
+        manifest.inputs.extend([
+            ExternalInput {
+                request: GRADLE_ARCHIVE_REQUEST.to_owned(),
+                coordinate: None,
+                source_url: "https://services.gradle.org/distributions/gradle-test-all.zip"
+                    .to_owned(),
+                variant: "distribution-archive".to_owned(),
+                relative_path: "tools/gradle.zip".to_owned(),
+                bytes: 23,
+                sha256: anchor.gradle_archive_sha256.clone(),
+            },
+            ExternalInput {
+                request: JAVA_ARCHIVE_REQUEST.to_owned(),
+                coordinate: None,
+                source_url: "https://example.invalid/java-sdk.zip".to_owned(),
+                variant: "sdk-archive".to_owned(),
+                relative_path: "tools/java.zip".to_owned(),
+                bytes: 21,
+                sha256: anchor.java_archive_sha256.clone(),
+            },
+        ]);
         let raw = facet_json::to_string(&manifest)?;
         let pin = format!("{:x}", sha2::Sha256::digest(raw.as_bytes()));
         fs::create_dir_all(root.path().join("producer-external-inputs"))?;
@@ -282,7 +328,7 @@ mod tests {
                 .verify_requested(root.path(), "example:unlisted:1@jar")
                 .is_err()
         );
-        assert_eq!(manifest.verify_all(root.path())?.len(), 1);
+        assert_eq!(manifest.verify_all(root.path())?.len(), 3);
         Ok(())
     }
 
@@ -301,6 +347,26 @@ mod tests {
         assert!(manifest.validate(&anchor).is_err());
         manifest.inputs.pop();
         manifest.inputs[0].relative_path = "../outside.jar".to_owned();
+        assert!(manifest.validate(&anchor).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn tool_archives_must_be_declared_and_match_historical_receipt() -> Result<()> {
+        let (_, anchor, mut manifest, _) = fixture()?;
+        manifest
+            .inputs
+            .retain(|input| input.request != GRADLE_ARCHIVE_REQUEST);
+        assert!(manifest.validate(&anchor).is_err());
+        manifest.inputs.push(ExternalInput {
+            request: GRADLE_ARCHIVE_REQUEST.to_owned(),
+            coordinate: None,
+            source_url: "https://services.gradle.org/distributions/gradle-test-all.zip".to_owned(),
+            variant: "distribution-archive".to_owned(),
+            relative_path: "tools/gradle.zip".to_owned(),
+            bytes: 23,
+            sha256: "f".repeat(64),
+        });
         assert!(manifest.validate(&anchor).is_err());
         Ok(())
     }
