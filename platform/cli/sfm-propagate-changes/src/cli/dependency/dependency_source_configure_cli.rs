@@ -336,6 +336,8 @@ fn configure_platform_pipeline_sources(
             derived_checks: PlatformPipelineSourceDerivedChecksV3 {
                 fingerprint,
                 tree_cache_path,
+                catalog_projection: None,
+                source_jar_sha256: None,
             },
         },
     ))

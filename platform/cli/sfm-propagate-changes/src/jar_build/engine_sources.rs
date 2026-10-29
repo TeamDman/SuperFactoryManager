@@ -14,6 +14,118 @@ fn write_source_outputs(plans: &[BuildPlan], layout: SourceOutputLayout) -> eyre
     Ok(())
 }
 
+fn publish_catalog_platform_source(
+    plans: &[BuildPlan],
+    tree: &Path,
+    expected_sha256: &str,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        plans.len() == 1,
+        "catalog platform source requires one projection"
+    );
+    let source = transformed_source_output_jar(&plans[0])?;
+    publish_checked_catalog_source_archive(source.as_path(), tree, expected_sha256)
+}
+
+fn publish_checked_catalog_source_archive(
+    source: &Path,
+    tree: &Path,
+    expected_sha256: &str,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        tree.extension()
+            .is_some_and(|extension| extension == "filetree"),
+        "catalog platform source destination must be a filetree"
+    );
+    let bytes = fs::read(source)?;
+    eyre::ensure!(
+        crate::source_projection::provenance::sha256(&bytes) == expected_sha256,
+        "catalog platform source JAR differs from its locked SHA-256"
+    );
+    let jar = tree.with_extension("jar");
+    let parent = jar
+        .parent()
+        .ok_or_else(|| eyre::eyre!("source destination has no parent"))?;
+    fs::create_dir_all(parent)?;
+    match fs::symlink_metadata(&jar) {
+        Ok(metadata) => eyre::ensure!(
+            metadata.is_file() && !metadata.file_type().is_symlink(),
+            "catalog platform source destination is not a plain file"
+        ),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            let mut pending = tempfile::NamedTempFile::new_in(parent)?;
+            pending.write_all(&bytes)?;
+            pending.as_file().sync_all()?;
+            match pending.persist_noclobber(&jar) {
+                Ok(_) => {}
+                Err(error) if error.error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => return Err(error.error.into()),
+            }
+        }
+        Err(error) => return Err(error.into()),
+    }
+    eyre::ensure!(
+        crate::source_projection::provenance::sha256(&fs::read(&jar)?) == expected_sha256,
+        "existing catalog platform source JAR differs from its locked SHA-256"
+    );
+    let materialized = super::source_output_filetree::materialize(
+        &SourceOutputCacheRoot::new(parent.to_path_buf()),
+        &SourceJarPath::new(jar),
+    )?;
+    eyre::ensure!(
+        materialized.as_path() == tree,
+        "catalog source filetree path changed"
+    );
+    Ok(())
+}
+
+#[cfg(test)]
+mod catalog_source_publication_tests {
+    use super::*;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
+
+    fn source_jar(path: &Path, entry: &str) -> eyre::Result<()> {
+        let mut archive = ZipWriter::new(fs::File::create(path)?);
+        archive.start_file(entry, SimpleFileOptions::default())?;
+        archive.write_all(b"class Example {}")?;
+        archive.finish()?;
+        Ok(())
+    }
+
+    #[test]
+    fn checks_source_archive_tree_and_missing_input() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let source = temporary.path().join("producer.jar");
+        let tree = temporary.path().join("shared/platform.filetree");
+        source_jar(&source, "src/Example.java")?;
+        let expected = crate::source_projection::provenance::sha256(&fs::read(&source)?);
+        publish_checked_catalog_source_archive(&source, &tree, &expected)?;
+        publish_checked_catalog_source_archive(&source, &tree, &expected)?;
+        assert!(crate::source_archive::extracted_tree_matches_archive(
+            &tree.with_extension("jar"),
+            &tree
+        )?);
+        fs::write(tree.join("src/Example.java"), b"tampered")?;
+        assert!(publish_checked_catalog_source_archive(&source, &tree, &expected).is_err());
+        assert_eq!(fs::read(tree.join("src/Example.java"))?, b"tampered");
+        fs::remove_file(&source)?;
+        assert!(publish_checked_catalog_source_archive(&source, &tree, &expected).is_err());
+
+        let unsafe_jar = temporary.path().join("unsafe.jar");
+        source_jar(&unsafe_jar, "../outside.java")?;
+        let unsafe_hash = crate::source_projection::provenance::sha256(&fs::read(&unsafe_jar)?);
+        let unsafe_tree = temporary.path().join("unsafe/platform.filetree");
+        assert!(
+            publish_checked_catalog_source_archive(&unsafe_jar, &unsafe_tree, &unsafe_hash)
+                .is_err()
+        );
+        assert!(!unsafe_tree.exists());
+        assert!(!temporary.path().join("outside.java").exists());
+        Ok(())
+    }
+}
+
 fn transformed_source_output_jar(plan: &BuildPlan) -> eyre::Result<SourceJarPath> {
     let path = match plan.loader_toolchain.kind {
         LoaderToolchainKind::NeoGradleUserdev => plan

@@ -145,12 +145,22 @@ impl<'a> SourceProviderView<'a> {
                     SourceStatus::Missing
                 }
             }
-            SourceProviderV3::PlatformPipeline(_) => {
+            SourceProviderV3::PlatformPipeline(provider) => {
                 let tree = self.tree_path();
                 let source_jar = tree.with_extension("jar");
-                if tree
-                    .extension()
-                    .is_some_and(|extension| extension == "filetree")
+                let archive_matches_lock = provider
+                    .derived_checks
+                    .source_jar_sha256
+                    .as_deref()
+                    .is_none_or(|expected| {
+                        std::fs::read(&source_jar).is_ok_and(|bytes| {
+                            crate::source_projection::provenance::sha256(&bytes) == expected
+                        })
+                    });
+                if archive_matches_lock
+                    && tree
+                        .extension()
+                        .is_some_and(|extension| extension == "filetree")
                     && extracted_tree_matches_archive(&source_jar, &tree).unwrap_or(false)
                 {
                     SourceStatus::Acquired
@@ -198,7 +208,9 @@ impl<'a> SourceProviderView<'a> {
                     (false, false) => Some("managed repository and materialized tree are missing"),
                     (false, true) => Some("managed repository is missing"),
                     (true, false) => Some("locked commit tree is not materialized"),
-                    (true, true) => Some("Git source tree differs from its locked commit or a configured root is missing"),
+                    (true, true) => Some(
+                        "Git source tree differs from its locked commit or a configured root is missing",
+                    ),
                 }
             }
             SourceProviderV3::Decompile(_) => {
@@ -279,6 +291,8 @@ mod tests {
             derived_checks: PlatformPipelineSourceDerivedChecksV3 {
                 fingerprint: "forgegradle-1.19.2-43.4.0".to_owned(),
                 tree_cache_path: relative.clone(),
+                catalog_projection: None,
+                source_jar_sha256: None,
             },
         });
         let shared_candidate =
@@ -311,6 +325,57 @@ mod tests {
         assert_eq!(view.status(), SourceStatus::Missing);
         std::fs::remove_file(historical.join("src/extra.java")).unwrap();
         std::fs::remove_file(source_jar).unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+    }
+
+    #[test]
+    fn catalog_platform_source_requires_locked_jar_and_exact_sealed_tree() {
+        let temporary = tempfile::tempdir().unwrap();
+        let inventory = fixture(CacheHome(temporary.path().join("cache")));
+        let portable = PathBuf::from(
+            "$sfm-cache/sources/platform/forge/1.19.2/fixture/combined-deobfuscated.filetree",
+        );
+        let tree = inventory.local_path(&portable);
+        assert_eq!(
+            tree,
+            temporary
+                .path()
+                .join("cache/minecraft-toolchain/sources/platform/forge/1.19.2/fixture/combined-deobfuscated.filetree")
+        );
+        std::fs::create_dir_all(tree.parent().unwrap()).unwrap();
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        writer
+            .start_file("src/Example.java", SimpleFileOptions::default())
+            .unwrap();
+        writer.write_all(b"class Example {}").unwrap();
+        let bytes = writer.finish().unwrap().into_inner();
+        let jar = tree.with_extension("jar");
+        let provider = SourceProviderV3::PlatformPipeline(PlatformPipelineSourceProviderV3 {
+            id: "minecraft-pipeline".to_owned(),
+            declaration: PlatformPipelineSourceDeclarationV3 {
+                kind: ToolchainComponentKindV3::Minecraft,
+                roots: Vec::new(),
+            },
+            derived_checks: PlatformPipelineSourceDerivedChecksV3 {
+                fingerprint: "fixture".to_owned(),
+                tree_cache_path: portable,
+                catalog_projection: Some("sfm-dev/mc-1.19.2".to_owned()),
+                source_jar_sha256: Some(crate::source_projection::provenance::sha256(&bytes)),
+            },
+        });
+        let view = SourceProviderView::new(&inventory, &provider, 0);
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::write(&jar, &bytes).unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        extract_zip_atomically(&jar, &tree).unwrap();
+        assert_eq!(view.status(), SourceStatus::Acquired);
+        std::fs::write(tree.join("src/Example.java"), b"tampered").unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::write(tree.join("src/Example.java"), b"class Example {}").unwrap();
+        assert_eq!(view.status(), SourceStatus::Acquired);
+        std::fs::write(&jar, b"changed archive").unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::remove_file(&jar).unwrap();
         assert_eq!(view.status(), SourceStatus::Missing);
     }
 
@@ -401,10 +466,11 @@ mod tests {
             std::fs::create_dir_all(root).expect("searchable root");
         }
         assert_eq!(view.status(), SourceStatus::Missing);
-        assert!(view
-            .unavailable_reason()
-            .unwrap()
-            .contains("differs from its locked commit"));
+        assert!(
+            view.unavailable_reason()
+                .unwrap()
+                .contains("differs from its locked commit")
+        );
     }
 
     #[test]

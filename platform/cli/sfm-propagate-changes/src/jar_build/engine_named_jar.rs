@@ -80,6 +80,15 @@ fn validate_named_jar_project(
 }
 
 fn validate_named_native_build_target(plan: &BuildPlan, target: BuildTarget) -> eyre::Result<()> {
+    // Development projections may prepare their platform sources for the
+    // checked source-index provider. Released catalog recipes retain the
+    // Compile/Jar-only guard and never enter a launch or JUnit path here.
+    if target == BuildTarget::SourceOutputs
+        && plan.identity.development_target().is_some()
+        && plan.loader_toolchain.kind == LoaderToolchainKind::ForgeGradleForge
+    {
+        return Ok(());
+    }
     if target == BuildTarget::Run && plan.identity.is_catalog_owned() {
         return ensure_projection_client_plan(plan);
     }

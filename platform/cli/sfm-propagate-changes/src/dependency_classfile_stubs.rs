@@ -106,6 +106,8 @@ pub(crate) fn attach_locked_minecraft_classfile_stub_source(
                 version_json_artifact.hash,
                 GENERATOR_FINGERPRINT,
             ),
+            catalog_projection: None,
+            source_jar_sha256: None,
         },
     };
     if !inventory.lockfile.dependencies[dependency_index]
@@ -292,6 +294,20 @@ fn materialization_fingerprint(base: &str, shadowed: &BTreeSet<String>) -> Strin
 fn completed_tree_matches(tree: &Path, fingerprint: &str) -> bool {
     tree.is_dir()
         && fs::read_to_string(tree.join(COMPLETION_FILE)).is_ok_and(|actual| actual == fingerprint)
+}
+
+/// Check the synthetic source using its own completion recipe. It is not a
+/// Forge source JAR, despite sharing the in-memory platform provider shape.
+pub(crate) fn materialized_classfile_stub_tree_matches(
+    inventory: &DependencyInventory,
+    source: &LockedMinecraftClassfileStubSource,
+    preflight: &SourcePreflight,
+) -> eyre::Result<bool> {
+    let shadowed = authoritative_top_level_types(preflight, &source.target)?;
+    let completion =
+        materialization_fingerprint(&source.provider.derived_checks.fingerprint, &shadowed);
+    let tree = inventory.local_path(&source.provider.derived_checks.tree_cache_path);
+    Ok(completed_tree_matches(&tree, &completion))
 }
 
 fn count_stub_types(tree: &Path) -> eyre::Result<usize> {

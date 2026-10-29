@@ -13,11 +13,11 @@ use std::path::Path;
 use std::path::PathBuf;
 
 #[derive(Default)]
-pub(super) struct DirectoryLeases {
+pub(crate) struct DirectoryLeases {
     directories: HashMap<PathBuf, (File, FileIdentity)>,
 }
 impl DirectoryLeases {
-    pub(super) fn prepare(&mut self, root: &Path, relative: &str) -> Result<PathBuf> {
+    pub(crate) fn prepare(&mut self, root: &Path, relative: &str) -> Result<PathBuf> {
         ensure!(root.is_absolute(), "core input lease root must be absolute");
         validate_relative_path(relative)?;
         for directory in root.ancestors().collect::<Vec<_>>().into_iter().rev() {

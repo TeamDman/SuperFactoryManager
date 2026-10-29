@@ -353,6 +353,16 @@ pub(crate) fn invoke_source_outputs(
             "dependency source acquire does not support --dry-run because it must materialize outputs"
         );
     }
+    if matches!(
+        options.build.selection,
+        super::BuildSelection::Projection { .. }
+    ) {
+        return invoke_projection_operation(
+            &options.build,
+            ProjectionOperation::SourceOutputs(options.layout),
+            cancellation_token,
+        );
+    }
 
     cancellation_token.bail_if_cancelled()?;
     let targets = resolve_build_targets(&options.build)?;
@@ -373,6 +383,25 @@ pub(crate) fn invoke_source_outputs(
         plans.len(),
         &failures,
         &reports,
+    )
+}
+
+pub(crate) fn invoke_catalog_platform_source_output(
+    options: &BuildOptions,
+    tree: &Path,
+    expected_sha256: &str,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        matches!(options.selection, super::BuildSelection::Projection { .. })
+            && matches!(options.mode, BuildMode::Build)
+            && !options.dry_run,
+        "catalog platform source publication requires one built projection"
+    );
+    invoke_projection_operation(
+        options,
+        ProjectionOperation::CatalogPlatformSources(tree, expected_sha256),
+        cancellation_token,
     )
 }
 

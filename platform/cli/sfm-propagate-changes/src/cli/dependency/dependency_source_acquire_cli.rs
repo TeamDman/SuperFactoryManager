@@ -31,6 +31,9 @@ pub struct DependencySourceAcquireArgs {
     /// Branch selector to read. Must match exactly one worktree.
     #[facet(args::named)]
     pub branch: BranchSelector,
+    /// Exact JDK for catalog-owned platform source production.
+    #[facet(default, args::named)]
+    pub java_home: Option<std::path::PathBuf>,
 }
 
 impl DependencySourceAcquireArgs {
@@ -46,6 +49,7 @@ impl DependencySourceAcquireArgs {
             provider_id,
             parallel,
             branch: selected_branch,
+            java_home,
         } = self;
         cancellation_token.bail_if_cancelled()?;
         let branch = selected_branch.clone();
@@ -58,6 +62,7 @@ impl DependencySourceAcquireArgs {
             &targets,
             &branch,
             parallelism,
+            java_home.as_deref(),
             cancellation_token,
         )?;
         for target in &targets {

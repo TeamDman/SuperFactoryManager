@@ -361,13 +361,37 @@ pub(crate) fn acquire_selected_sources(
     targets: &[SourceAcquisitionTarget<'_>],
     branch: &BranchSelector,
     parallelism: Parallelism,
+    java_home: Option<&std::path::Path>,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    let platform = targets
+        .iter()
+        .filter_map(|target| match target.provider {
+            SourceProviderV3::PlatformPipeline(provider) => Some(provider),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    if let Some(first) = platform.first() {
+        eyre::ensure!(
+            platform
+                .iter()
+                .all(|provider| provider.derived_checks == first.derived_checks),
+            "selected platform providers disagree on source recipe or output"
+        );
+    }
     coordinate_acquisition(
         targets,
         parallelism,
         cancellation_token,
-        |token| acquire_platform_sources(branch.clone(), token),
+        |token| {
+            acquire_platform_sources(
+                inventory,
+                branch.clone(),
+                platform.first().copied(),
+                java_home,
+                token,
+            )
+        },
         |target, token| acquire_independent_source(inventory, target, token),
     )
 }
@@ -488,18 +512,44 @@ fn execute_acquisition_tasks<T: Sync>(
 }
 
 fn acquire_platform_sources(
+    inventory: &DependencyInventory,
     branch: BranchSelector,
+    provider: Option<
+        &crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3,
+    >,
+    java_home: Option<&std::path::Path>,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<()> {
+    let catalog =
+        provider.and_then(|provider| provider.derived_checks.catalog_projection.as_deref());
+    let (selection, cache_root, java_home) = if let Some(projection) = catalog {
+        let home = java_home.ok_or_else(|| {
+            eyre::eyre!("catalog platform sources require an explicit --java-home")
+        })?;
+        (
+            crate::jar_build::BuildSelection::Projection {
+                selector: projection.to_owned(),
+                repo_root: Some(inventory.target.worktree_path.as_path().to_path_buf()),
+            },
+            Some(inventory.cache_home.0.clone()),
+            Some(home.to_path_buf()),
+        )
+    } else {
+        (
+            crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
+            None,
+            None,
+        )
+    };
     let build = crate::jar_build::BuildOptions {
-        selection: crate::jar_build::BuildSelection::Worktree(branch.into_query()?),
-        cache_root: None,
+        selection,
+        cache_root,
         refresh: false,
         skip_source_checks: false,
         explain_rebuild: false,
         plan_json: None,
         output_name: None,
-        java_home: None,
+        java_home,
         dry_run: false,
         allow_local_artifact_cache: false,
         artifact_sources: Vec::new(),
@@ -509,14 +559,44 @@ fn acquire_platform_sources(
         wait_for_build_lock: false,
         mode: BuildMode::Build,
     };
-    SourceOutputCommand::new(
-        SourceOutputOptions {
-            build,
-            layout: SourceOutputLayout::Filetree,
-        },
-        cancellation_token.clone(),
-    )
-    .invoke()
+    if let Some(provider) =
+        provider.filter(|provider| provider.derived_checks.catalog_projection.is_some())
+    {
+        let hash = provider
+            .derived_checks
+            .source_jar_sha256
+            .as_deref()
+            .ok_or_else(|| {
+                eyre::eyre!("catalog platform source is missing its locked source JAR hash")
+            })?;
+        let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
+        crate::jar_build::engine::invoke_catalog_platform_source_output(
+            &build,
+            &tree,
+            hash,
+            cancellation_token,
+        )?;
+        eyre::ensure!(
+            crate::source_provider::SourceProviderView::new(
+                inventory,
+                &SourceProviderV3::PlatformPipeline(provider.clone()),
+                0,
+            )
+            .status()
+                == crate::dependency_inventory::SourceStatus::Acquired,
+            "catalog platform output differs from the exact locked source JAR or filetree"
+        );
+    } else {
+        SourceOutputCommand::new(
+            SourceOutputOptions {
+                build,
+                layout: SourceOutputLayout::Filetree,
+            },
+            cancellation_token.clone(),
+        )
+        .invoke()?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -574,6 +654,7 @@ impl SourceAcquisitionRecommendation {
                         provider_id,
                         parallel: None,
                         branch: self.branch.clone(),
+                        java_home: None,
                     }),
                 }),
             }),

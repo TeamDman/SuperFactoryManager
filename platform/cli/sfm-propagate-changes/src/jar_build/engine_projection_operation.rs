@@ -6,6 +6,8 @@ enum ProjectionOperation<'a> {
     Run(RunKind, &'a RunOptions),
     Test(&'a RunTestOptions),
     Catalog(&'a SourceCatalogQuery),
+    SourceOutputs(SourceOutputLayout),
+    CatalogPlatformSources(&'a Path, &'a str),
 }
 
 fn checked_projection_identity(
@@ -81,7 +83,10 @@ fn invoke_projection_operation(
     preflight_projection_jar_output(options, operation, keys.len())?;
     preflight_projection_source_checks(&root, &keys, options.skip_source_checks)?;
     let mut effective = options.clone();
-    effective.cache_root = Some(catalog_native_cache_path(&root, options.cache_root.as_deref()));
+    effective.cache_root = Some(catalog_native_cache_path(
+        &root,
+        options.cache_root.as_deref(),
+    ));
     eyre::ensure!(
         matches!(operation, ProjectionOperation::Catalog(_)) || effective.java_home.is_some(),
         "catalog native operations require --java-home for the guarded checkout toolchain root"
@@ -132,6 +137,12 @@ fn invoke_projection_operation(
         "projection operations failed:\n{}",
         failures.join("\n")
     );
+    if let ProjectionOperation::SourceOutputs(layout) = operation {
+        write_source_outputs(&plans, layout)?;
+    }
+    if let ProjectionOperation::CatalogPlatformSources(tree, hash) = operation {
+        publish_catalog_platform_source(&plans, tree, hash)?;
+    }
     phase.complete();
     Ok(())
 }
@@ -322,14 +333,20 @@ fn execute_prepared_projection_operation(
     lock_phase.complete();
     // Retain destination ancestry while this invocation may build and publish.
     let _fresh_output_admission = prepare_fresh_jar_output(&plan)?;
-    let target = if matches!(operation, ProjectionOperation::Build) {
-        BuildTarget::Jar
-    } else {
-        BuildTarget::Run
+    let target = match operation {
+        ProjectionOperation::Build => BuildTarget::Jar,
+        ProjectionOperation::SourceOutputs(_)
+        | ProjectionOperation::CatalogPlatformSources(_, _) => BuildTarget::SourceOutputs,
+        ProjectionOperation::Run(_, _)
+        | ProjectionOperation::Test(_)
+        | ProjectionOperation::Catalog(_) => BuildTarget::Run,
     };
     let mut consume = |context: &ExecutionContext<'_>| -> eyre::Result<()> {
         match operation {
-            ProjectionOperation::Build | ProjectionOperation::Catalog(_) => Ok(()),
+            ProjectionOperation::Build
+            | ProjectionOperation::Catalog(_)
+            | ProjectionOperation::SourceOutputs(_)
+            | ProjectionOperation::CatalogPlatformSources(_, _) => Ok(()),
             ProjectionOperation::Run(kind, run_options) => {
                 if run_options.client_hotswap_port.is_some() {
                     crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;

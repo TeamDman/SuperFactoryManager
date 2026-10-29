@@ -285,6 +285,12 @@ pub(crate) struct PlatformPipelineSourceDerivedChecksV3 {
     pub(crate) fingerprint: String,
     #[facet(proxy = JsonPath)]
     pub(crate) tree_cache_path: PathBuf,
+    /// Current catalog-only source route. Historical branch providers omit it.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) catalog_projection: Option<String>,
+    /// SHA-256 of the exact catalog-produced source JAR beside the filetree.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) source_jar_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -871,6 +877,42 @@ impl SourceProviderV3 {
                     &provider.derived_checks.tree_cache_path,
                     "platform source tree path",
                 )?;
+                match (
+                    &provider.derived_checks.catalog_projection,
+                    &provider.derived_checks.source_jar_sha256,
+                ) {
+                    (None, None) => {}
+                    (Some(projection), Some(hash)) => {
+                        require_nonempty(projection, "catalog platform source projection")?;
+                        eyre::ensure!(
+                            hash.strip_prefix("sha256:").is_some_and(|hex| {
+                                hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
+                            }),
+                            "catalog platform source requires a full SHA-256 source JAR hash"
+                        );
+                        eyre::ensure!(
+                            provider
+                                .derived_checks
+                                .tree_cache_path
+                                .starts_with("$sfm-cache"),
+                            "catalog platform source tree must live in the selected shared cache"
+                        );
+                        let relative = provider
+                            .derived_checks
+                            .tree_cache_path
+                            .strip_prefix("$sfm-cache")?;
+                        eyre::ensure!(
+                            relative.components().all(|component| matches!(
+                                component,
+                                std::path::Component::Normal(_)
+                            )),
+                            "catalog platform source tree must not traverse out of the shared project cache"
+                        );
+                    }
+                    _ => eyre::bail!(
+                        "catalog platform source requires both projection and source JAR hash"
+                    ),
+                }
             }
         }
         Ok(())

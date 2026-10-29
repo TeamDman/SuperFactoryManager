@@ -822,7 +822,9 @@
                 },
                 "derived_checks": {
                   "fingerprint": "forgegradle-1.19.2-43.4.0",
-                  "tree_cache_path": "build\\sfm-toolchain\\forge\\1.19.2\\sources\\combined-deobfuscated.filetree"
+                  "tree_cache_path": "$sfm-cache\\sources\\platform\\forge\\1.19.2\\forgegradle-43.4.0\\combined-deobfuscated.filetree",
+                  "catalog_projection": "sfm-dev/mc-1.19.2",
+                  "source_jar_sha256": "sha256:368cd59c80043833090bd841ae2b1b8944e242c82786ac55676c244eadfe963c"
                 }
               }
             }
@@ -1505,7 +1507,9 @@
                 },
                 "derived_checks": {
                   "fingerprint": "forgegradle-1.19.2-43.4.0",
-                  "tree_cache_path": "build\\sfm-toolchain\\forge\\1.19.2\\sources\\combined-deobfuscated.filetree"
+                  "tree_cache_path": "$sfm-cache\\sources\\platform\\forge\\1.19.2\\forgegradle-43.4.0\\combined-deobfuscated.filetree",
+                  "catalog_projection": "sfm-dev/mc-1.19.2",
+                  "source_jar_sha256": "sha256:368cd59c80043833090bd841ae2b1b8944e242c82786ac55676c244eadfe963c"
                 }
               }
             }

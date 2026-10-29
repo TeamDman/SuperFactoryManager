@@ -9,12 +9,14 @@ use crate::dependency_classfile_stubs::LockedMinecraftClassfileStubSource;
 use crate::dependency_classfile_stubs::attach_locked_minecraft_classfile_stub_source;
 use crate::dependency_classfile_stubs::is_minecraft_classfile_stub_target;
 use crate::dependency_classfile_stubs::materialize_locked_minecraft_classfile_stubs;
+use crate::dependency_classfile_stubs::materialized_classfile_stub_tree_matches;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
 use crate::dependency_locked_sources::LockedArtifactSource;
 use crate::dependency_locked_sources::acquire_locked_artifact_sources;
 use crate::dependency_locked_sources::append_locked_artifact_source_preflight;
 use crate::dependency_locked_sources::derive_locked_loader_artifact_sources;
+use crate::dependency_sources::SearchableSourceRoot;
 use crate::dependency_sources::SourceAcquisitionRecommendation;
 use crate::dependency_sources::SourcePreflight;
 use crate::dependency_sources::SourceProviderFilter;
@@ -63,6 +65,8 @@ use crate::java_analysis::scan_dependency_java_symbol_index;
 use crate::java_analysis::scan_generated_dependency_symbol;
 use crate::paths::CacheHome;
 use crate::payload_fetcher::http_fetcher;
+use crate::source_projection::core_input_leases::DirectoryLeases;
+use crate::source_provider::SourceProviderKind;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
 use chrono::Utc;
@@ -117,6 +121,9 @@ pub struct SymbolIndexRefreshArgs {
     /// Branch selector whose effective dependency lock pins this index.
     #[facet(args::named)]
     pub branch: BranchSelector,
+    /// Exact JDK for catalog-owned platform source production.
+    #[facet(default, args::named)]
+    pub java_home: Option<PathBuf>,
 }
 
 #[derive(Facet, Clone, Debug)]
@@ -129,6 +136,54 @@ pub struct SymbolIndexShowArgs {
 #[cfg(test)]
 mod selected_cache_args_tests {
     use super::*;
+    use crate::dependency_sources::SourceProviderPreflight;
+
+    #[test]
+    fn materialized_classfile_stubs_do_not_request_legacy_platform_acquisition() {
+        let target = "minecraft/classpath-type-stubs";
+        let provider_id = "version-json-classfile-type-stubs";
+        let missing = SourceProviderPreflight {
+            id: provider_id.to_owned(),
+            kind: SourceProviderKind::PlatformPipeline,
+            priority: 0,
+            status: SourceStatus::Missing,
+            searchable_roots: Vec::new(),
+            unavailable_reason: Some("missing".to_owned()),
+        };
+        let mut preflight = SourcePreflight::default();
+        preflight
+            .components
+            .push(crate::dependency_sources::SourceComponentPreflight {
+                target: target.to_owned(),
+                status: SourceStatus::Missing,
+                preferred_provider: Some(missing.clone()),
+                providers: vec![missing],
+            });
+        preflight
+            .missing
+            .push(crate::dependency_sources::UnavailableSource {
+                target: target.to_owned(),
+                identity: format!("{target}/{provider_id}"),
+                reason: "missing".to_owned(),
+                acquirable: true,
+            });
+        let tree = PathBuf::from("stubs.filetree");
+        promote_materialized_classfile_stub_source(
+            &mut preflight,
+            target,
+            provider_id,
+            tree.clone(),
+        )
+        .unwrap();
+        assert!(preflight.missing.is_empty());
+        assert_eq!(preflight.components[0].status, SourceStatus::Acquired);
+        assert_eq!(
+            preflight.components[0].providers[0].status,
+            SourceStatus::Acquired
+        );
+        assert_eq!(preflight.roots[0].root, tree);
+        assert_eq!(preflight.roots[0].identity, target);
+    }
 
     #[test]
     fn parses_index_cache_override_without_changing_branch_selection() {
@@ -145,6 +200,55 @@ mod selected_cache_args_tests {
             panic!("expected index show");
         };
         assert_eq!(show.branch.as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn catalog_source_reader_holds_nested_directories_until_index_publication() {
+        let temporary = tempfile::tempdir().unwrap();
+        let tree = temporary.path().join("platform.filetree");
+        std::fs::create_dir_all(tree.join("src")).unwrap();
+        std::fs::write(tree.join("src/Example.java"), b"class Example {}").unwrap();
+        let selected = SourceProviderPreflight {
+            id: "minecraft-pipeline".to_owned(),
+            kind: SourceProviderKind::PlatformPipeline,
+            priority: 0,
+            status: SourceStatus::Acquired,
+            searchable_roots: vec![tree.clone()],
+            unavailable_reason: None,
+        };
+        let mut original = SourcePreflight::default();
+        original
+            .components
+            .push(crate::dependency_sources::SourceComponentPreflight {
+                target: "minecraft/client".to_owned(),
+                status: SourceStatus::Acquired,
+                preferred_provider: Some(selected.clone()),
+                providers: vec![selected],
+            });
+        let mut held = hold_platform_source_roots(&original).unwrap();
+        held.recheck().unwrap();
+        let moved = temporary.path().join("moved");
+        let rename = std::fs::rename(tree.join("src"), &moved);
+        #[cfg(windows)]
+        assert!(rename.is_err(), "nested source directory was not held");
+        #[cfg(unix)]
+        {
+            rename.unwrap();
+            assert!(held.recheck().is_err());
+        }
+        let mut stale = original.components[0].providers[0].clone();
+        stale.status = SourceStatus::Missing;
+        let mut changed = SourcePreflight::default();
+        changed
+            .components
+            .push(crate::dependency_sources::SourceComponentPreflight {
+                target: "minecraft/client".to_owned(),
+                status: SourceStatus::Missing,
+                preferred_provider: Some(stale.clone()),
+                providers: vec![stale],
+            });
+        assert!(ensure_platform_sources_unchanged(&original, &changed).is_err());
+        drop(held);
     }
 }
 
@@ -196,7 +300,9 @@ impl SymbolIndexRefreshArgs {
         let missing_targets = preflight
             .missing
             .iter()
-            .filter(|missing| missing.acquirable)
+            .filter(|missing| {
+                missing.acquirable && !is_minecraft_classfile_stub_target(&missing.target)
+            })
             .map(|missing| missing.target.clone())
             .collect::<BTreeSet<_>>();
         if !missing_targets.is_empty() {
@@ -214,12 +320,15 @@ impl SymbolIndexRefreshArgs {
                 &targets,
                 &self.branch,
                 Parallelism::default(),
+                self.java_home.as_deref(),
                 cancellation_token,
             )?;
             preflight = preflight_resolved_index_sources(&resolved, &filter)?;
         }
 
         cancellation_token.bail_if_cancelled()?;
+        let mut held_platform_roots = hold_platform_source_roots(&preflight)?;
+        held_platform_roots.recheck()?;
         let roots = preflight
             .roots
             .iter()
@@ -248,6 +357,9 @@ impl SymbolIndexRefreshArgs {
             build_dependency_index_sharded(&workspace, &resolved.identity, cancellation_token)?
         };
         cancellation_token.bail_if_cancelled()?;
+        held_platform_roots.recheck()?;
+        let current = preflight_resolved_index_sources(&resolved, &filter)?;
+        ensure_platform_sources_unchanged(&preflight, &current)?;
 
         let completeness = if preflight.missing.is_empty() {
             DependencySymbolIndexCompleteness::Complete
@@ -985,11 +1097,137 @@ fn preflight_resolved_index_sources(
     resolved: &ResolvedIndexContext,
     filter: &SourceProviderFilter,
 ) -> eyre::Result<SourcePreflight> {
-    preflight_index_sources(
+    let mut preflight = preflight_index_sources(
         &resolved.inventory,
         &resolved.locked_artifact_sources,
         filter,
-    )
+    )?;
+    let source = &resolved.minecraft_classfile_stub_source;
+    if materialized_classfile_stub_tree_matches(&resolved.inventory, source, &preflight)? {
+        let tree = resolved
+            .inventory
+            .local_path(&source.provider.derived_checks.tree_cache_path);
+        promote_materialized_classfile_stub_source(
+            &mut preflight,
+            &source.target,
+            &source.provider.id,
+            tree,
+        )?;
+    }
+    Ok(preflight)
+}
+
+fn promote_materialized_classfile_stub_source(
+    preflight: &mut SourcePreflight,
+    target: &str,
+    provider_id: &str,
+    tree: PathBuf,
+) -> eyre::Result<()> {
+    let component = preflight
+        .components
+        .iter_mut()
+        .find(|component| component.target == target)
+        .ok_or_else(|| eyre::eyre!("materialized classfile stub target {target} is absent"))?;
+    component.status = SourceStatus::Acquired;
+    if let Some(provider) = component.preferred_provider.as_mut() {
+        provider.status = SourceStatus::Acquired;
+        provider.unavailable_reason = None;
+    }
+    for provider in &mut component.providers {
+        provider.status = SourceStatus::Acquired;
+        provider.unavailable_reason = None;
+    }
+    preflight.missing.retain(|missing| missing.target != target);
+    preflight.roots.push(SearchableSourceRoot {
+        identity: target.to_owned(),
+        provider_id: provider_id.to_owned(),
+        root: tree,
+    });
+    Ok(())
+}
+
+/// Keep catalog-owned platform directory ancestry stable while the index reads
+/// it. A final sealed-archive check below rejects changed leaf bytes before
+/// publishing, including on Unix where an open directory cannot deny rename.
+#[derive(Default)]
+struct HeldPlatformSourceRoots {
+    leases: DirectoryLeases,
+    directories: Vec<PathBuf>,
+}
+
+impl HeldPlatformSourceRoots {
+    fn recheck(&mut self) -> eyre::Result<()> {
+        for directory in &self.directories {
+            self.leases.prepare(directory, "__sfm_source_reader__")?;
+        }
+        Ok(())
+    }
+}
+
+fn hold_platform_source_roots(
+    preflight: &SourcePreflight,
+) -> eyre::Result<HeldPlatformSourceRoots> {
+    let mut held = HeldPlatformSourceRoots::default();
+    let mut pending = preflight
+        .components
+        .iter()
+        .flat_map(|component| &component.providers)
+        .filter(|provider| {
+            provider.kind == SourceProviderKind::PlatformPipeline
+                && provider.status == SourceStatus::Acquired
+        })
+        .flat_map(|provider| provider.searchable_roots.iter().cloned())
+        .collect::<Vec<_>>();
+    let mut seen = BTreeSet::new();
+    while let Some(directory) = pending.pop() {
+        if !seen.insert(directory.clone()) {
+            continue;
+        }
+        held.leases.prepare(&directory, "__sfm_source_reader__")?;
+        for entry in std::fs::read_dir(&directory)? {
+            let entry = entry?;
+            let kind = entry.file_type()?;
+            eyre::ensure!(
+                !kind.is_symlink(),
+                "platform source tree contains a link: {}",
+                entry.path().display()
+            );
+            if kind.is_dir() {
+                pending.push(entry.path());
+            }
+        }
+        held.directories.push(directory);
+    }
+    Ok(held)
+}
+
+fn ensure_platform_sources_unchanged(
+    original: &SourcePreflight,
+    current: &SourcePreflight,
+) -> eyre::Result<()> {
+    for component in &original.components {
+        for provider in component.providers.iter().filter(|provider| {
+            provider.kind == SourceProviderKind::PlatformPipeline
+                && provider.status == SourceStatus::Acquired
+        }) {
+            let still_ready = current.components.iter().any(|candidate| {
+                candidate.target == component.target
+                    && candidate.providers.iter().any(|now| {
+                        now.id == provider.id
+                            && now.kind == SourceProviderKind::PlatformPipeline
+                            && now.status == SourceStatus::Acquired
+                            && now.searchable_roots == provider.searchable_roots
+                    })
+            });
+            eyre::ensure!(
+                still_ready,
+                "platform source changed while building the dependency index: {}/{}",
+                component.target,
+                provider.id
+            );
+        }
+    }
+    Ok(())
 }
 
 fn source_inputs(
@@ -1118,6 +1356,7 @@ fn render_refresh_command(branch: &BranchSelector) -> eyre::Result<String> {
                 cache_root: None,
                 command: SymbolIndexCommand::Refresh(SymbolIndexRefreshArgs {
                     branch: branch.clone(),
+                    java_home: None,
                 }),
             }),
         }),
