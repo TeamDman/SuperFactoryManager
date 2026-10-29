@@ -286,7 +286,14 @@ impl BuildSnapshotReceipt {
     }
 
     pub(crate) fn load(receipt_path: &Path, expected_minecraft_dir: &Path) -> Result<Self> {
-        let raw = read_bounded(receipt_path, MAX_FILE_BYTES)?;
+        let raw = if receipt_path
+            .file_name()
+            .is_some_and(|name| name == "latest-successful-build.json")
+        {
+            read_bounded_latest(receipt_path, MAX_FILE_BYTES)?
+        } else {
+            read_bounded(receipt_path, MAX_FILE_BYTES)?
+        };
         let receipt: Self = facet_json::from_slice(&raw)
             .wrap_err("cannot parse strict successful-build snapshot receipt")?;
         ensure!(
@@ -635,6 +642,38 @@ impl BuildSnapshotReceipt {
         temporary.as_file().sync_all()?;
         ensure_owned_directory(&self.cache_dir, &state)?;
         cancellation_token.bail_if_cancelled()?;
+        #[cfg(windows)]
+        {
+            // A concurrent path inspection can briefly hold the previous
+            // latest file without delete sharing. Retry only that transient
+            // Windows denial; never replace a link or nonregular target.
+            let mut pending = temporary;
+            for attempt in 0..32 {
+                cancellation_token.bail_if_cancelled()?;
+                ensure_owned_directory(&self.cache_dir, &state)?;
+                match fs::symlink_metadata(&latest) {
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    result => {
+                        let metadata = result?;
+                        ensure!(
+                            metadata.is_file() && !is_reparse(&metadata),
+                            "latest success is a link or nonregular file"
+                        );
+                    }
+                }
+                match pending.persist(&latest) {
+                    Ok(_) => break,
+                    Err(error) => {
+                        if error.error.raw_os_error() != Some(5) || attempt == 31 {
+                            return Err(error.error.into());
+                        }
+                        pending = error.file;
+                        std::thread::sleep(std::time::Duration::from_millis(2));
+                    }
+                }
+            }
+        }
+        #[cfg(not(windows))]
         temporary.persist(&latest).map_err(|error| error.error)?;
         Ok(())
     }
@@ -675,8 +714,20 @@ pub(crate) fn ensure_owned_directory(owner: &Path, path: &Path) -> Result<()> {
 
 /// Read a bounded, regular file without following a leaf link or Windows reparse point.
 pub(crate) fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
+    read_bounded_impl(path, limit, false)
+}
+
+fn read_bounded_latest(path: &Path, limit: u64) -> Result<Vec<u8>> {
+    read_bounded_impl(path, limit, true)
+}
+
+fn read_bounded_impl(path: &Path, limit: u64, latest: bool) -> Result<Vec<u8>> {
     let path = checked_file(path)?;
-    let mut file = open_read(&path)?;
+    let mut file = if latest {
+        open_latest_read(&path)?
+    } else {
+        open_read(&path)?
+    };
     let metadata = file.metadata()?;
     ensure!(
         metadata.is_file() && !is_reparse(&metadata),
@@ -704,8 +755,13 @@ pub(crate) fn read_bounded(path: &Path, limit: u64) -> Result<Vec<u8>> {
         "snapshot input changed while reading"
     );
     checked_file(&path)?;
+    let reopened = if latest {
+        open_latest_read(&path)?
+    } else {
+        open_read(&path)?
+    };
     ensure!(
-        crate::file_identity::file_identity(&open_read(&path)?)? == identity,
+        crate::file_identity::file_identity(&reopened)? == identity,
         "snapshot input path was replaced while reading"
     );
     Ok(raw)
@@ -990,6 +1046,24 @@ fn open_read(path: &Path) -> Result<fs::File> {
     Ok(options.open(path)?)
 }
 
+fn open_latest_read(path: &Path) -> Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
+    options.read(true);
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt as _;
+        // Only the latest pointer may be atomically replaced during a read.
+        // read_bounded_impl still rejects a changed path identity.
+        options.share_mode(1 | 4).custom_flags(0x0020_0000)
+    };
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.custom_flags(0o400_000);
+    }
+    Ok(options.open(path)?)
+}
+
 fn write_new(path: &Path, raw: &[u8]) -> Result<()> {
     let parent = path
         .parent()
@@ -1178,6 +1252,59 @@ mod tests {
             )
             .is_err()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn moved_projection_cannot_admit_path_bound_snapshot_receipt() -> Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let (minecraft, cache) = project(temporary.path(), "projection-original")?;
+        let receipt = publish(&minecraft, &cache)?;
+        let old_root = temporary.path().join("projection-original");
+        let moved_root = temporary.path().join("projection-moved");
+        fs::rename(&old_root, &moved_root)?;
+        let moved_receipt = moved_root
+            .join("build/sfm-toolchain/native-project/fixture/build-snapshots")
+            .join(&receipt.snapshot_id)
+            .join("receipt.json");
+        let moved_latest = moved_root
+            .join("build/sfm-toolchain/native-project/fixture/state/latest-successful-build.json");
+        assert!(BuildSnapshotReceipt::load(&moved_receipt, &moved_root).is_err());
+        assert!(BuildSnapshotReceipt::load(&moved_latest, &moved_root).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn concurrent_latest_reader_never_admits_partial_receipt() -> Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let (minecraft, cache) = project(temporary.path(), "projection-concurrent")?;
+        let receipt = publish(&minecraft, &cache)?;
+        let latest = cache.join("state/latest-successful-build.json");
+        let raw = receipt.json_bytes()?;
+        let barrier = std::sync::Barrier::new(2);
+        std::thread::scope(|scope| -> Result<()> {
+            let reader = scope.spawn(|| -> Result<()> {
+                barrier.wait();
+                let mut accepted = 0;
+                for _ in 0..32 {
+                    // A replacement between the checked read and path-identity
+                    // recheck may reject this attempt, but must never admit it.
+                    if let Ok(found) = BuildSnapshotReceipt::load(&latest, &minecraft) {
+                        assert_eq!(found.snapshot_id, receipt.snapshot_id);
+                        accepted += 1;
+                    }
+                    std::thread::yield_now();
+                }
+                assert!(accepted > 0, "no complete receipt was observed");
+                Ok(())
+            });
+            barrier.wait();
+            for _ in 0..32 {
+                receipt.publish_latest(&raw, &CancellationToken::new())?;
+            }
+            reader.join().expect("snapshot reader thread panicked")?;
+            Ok(())
+        })?;
         Ok(())
     }
 
