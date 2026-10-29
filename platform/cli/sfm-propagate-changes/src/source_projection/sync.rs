@@ -1228,7 +1228,18 @@ mod tests {
             assert!(error.contains(obsolete), "{error}");
         }
         assert_eq!(fs::read(destination.join(obsolete)).unwrap(), generated.as_bytes());
-        assert_eq!(fs::read(unowned).unwrap(), b"class Unowned {}\n");
+        assert_eq!(fs::read(&unowned).unwrap(), b"class Unowned {}\n");
+
+        let edited = format!("{}\n// contributor edit\n", super::super::inputs::GENERATED_BANNER);
+        fs::write(destination.join(obsolete), &edited).unwrap();
+        for mode in [SyncMode::Check, SyncMode::Apply] {
+            let error = sync_catalog_projection(&destination, &identity, &next, mode)
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains(obsolete), "{error}");
+        }
+        assert_eq!(fs::read(destination.join(obsolete)).unwrap(), edited.as_bytes());
+        assert_eq!(fs::read(&unowned).unwrap(), b"class Unowned {}\n");
     }
 
     #[test]
