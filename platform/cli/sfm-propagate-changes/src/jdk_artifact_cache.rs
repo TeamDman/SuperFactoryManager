@@ -25,6 +25,20 @@ const MAX_ARCHIVE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 const MAX_EXTRACTED_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 const MAX_ZIP_ENTRIES: usize = 100_000;
 const RECEIPT_NAME: &str = ".sfm-jbrsdk-receipt";
+// Windows java.exe loads bin/server/jvm.dll relative to its installation. A
+// full 128-digit SHA-512 directory can put that DLL beyond the legacy 260
+// character path limit in a normal checkout. The full SHA-512 still verifies
+// the archive and receipt; this 256-bit prefix only names the install slot.
+const INSTALL_KEY_HEX_CHARS: usize = 64;
+
+fn install_key(sha512: &str) -> String {
+    format!(
+        "v2-{}",
+        sha512
+            .get(..INSTALL_KEY_HEX_CHARS)
+            .expect("validated SHA-512 hex digest")
+    )
+}
 
 /// Acquire an exact ZIP artifact in a caller-selected cache root. This does not
 /// choose a pin, install a runtime into the user's JDK directory, or run Java.
@@ -92,7 +106,7 @@ fn acquire_pinned_jbrsdk_zip_with(
     // verification would allow replacement of the path between those steps.
     let mut verified_zip = open_verified_archive(&archive, &sha)?;
 
-    let installed = install_dir.join(&sha);
+    let installed = install_dir.join(install_key(&sha));
     let receipt = receipt(pin, artifact);
     match fs::symlink_metadata(&installed) {
         Ok(_) => {
@@ -687,6 +701,11 @@ mod tests {
             },
         )
         .unwrap();
+        assert_eq!(
+            home.file_name().expect("installation key"),
+            std::ffi::OsStr::new(&install_key(&pin.artifacts[0].sha512))
+        );
+        assert_eq!(home.file_name().unwrap().to_string_lossy().len(), 67);
         assert_eq!(fs::read(home.join("bin/java.exe")).unwrap(), b"java");
         let reused =
             acquire_pinned_jbrsdk_zip_with(&pin, &pin.artifacts[0], root.path(), true, |_, _| {
@@ -828,7 +847,7 @@ mod tests {
             !root
                 .path()
                 .join("installs")
-                .join(&pin.artifacts[0].sha512)
+                .join(install_key(&pin.artifacts[0].sha512))
                 .exists()
         );
     }
@@ -867,7 +886,7 @@ mod tests {
                 !root
                     .path()
                     .join("installs")
-                    .join(&pin.artifacts[0].sha512)
+                    .join(install_key(&pin.artifacts[0].sha512))
                     .exists()
             );
         }
