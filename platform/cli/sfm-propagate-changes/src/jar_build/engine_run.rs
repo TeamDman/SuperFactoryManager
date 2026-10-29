@@ -1100,11 +1100,11 @@ fn execute_run_with_context(
     // Snapshot only this new session's immutable inputs. A failed capture
     // disables optional retirement, never the launch itself.
     #[cfg(windows)]
-    let owned_inputs = if matches!(kind, RunKind::GameTestServer) {
+    let owned_inputs = if matches!(kind, RunKind::GameTestServer | RunKind::ClientSmoke) {
         match OwnedSessionInputs::capture(&session.receipt.session_dir) {
             Ok(inputs) => Some(inputs),
             Err(error) => {
-                tracing::warn!(%error, "Cannot track owned GameTest inputs; retaining this session");
+                tracing::warn!(%error, "Cannot track owned bounded-run inputs; retaining this session");
                 None
             }
         }
@@ -1308,13 +1308,13 @@ fn execute_run_with_context(
                 Ok((files, bytes)) => tracing::info!(
                     files,
                     bytes,
-                    "Retired private immutable inputs from completed GameTest session"
+                    "Retired private immutable inputs from completed bounded session"
                 ),
                 Err(error) => tracing::warn!(%error,
-                    "GameTest completed; private input retirement was incomplete or skipped"),
+                    "Bounded run completed; private input retirement was incomplete or skipped"),
             },
             Err(error) => tracing::warn!(%error,
-                "GameTest completed; session receipt could not close before retirement; retaining inputs"),
+                "Bounded run completed; session receipt could not close before retirement; retaining inputs"),
         }
     }
     Ok(())
