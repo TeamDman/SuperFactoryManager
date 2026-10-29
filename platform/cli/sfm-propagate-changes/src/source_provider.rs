@@ -247,10 +247,47 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceDeclarationV3;
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceDerivedChecksV3;
     use crate::toolchain_lockfile_schema::version::v3::MavenSourceProviderV3;
+    use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDeclarationV3;
+    use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceDerivedChecksV3;
+    use crate::toolchain_lockfile_schema::version::v3::PlatformPipelineSourceProviderV3;
+    use crate::toolchain_lockfile_schema::version::v3::ToolchainComponentKindV3;
     use std::io::Cursor;
     use std::io::Write;
-    use zip::write::SimpleFileOptions;
     use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
+
+    #[test]
+    fn historical_platform_source_path_does_not_adopt_a_shared_candidate() {
+        let temporary = tempfile::tempdir().expect("temporary roots");
+        let mut inventory = fixture(CacheHome(temporary.path().join("cache")));
+        inventory.target.worktree_path = WorktreePath::from(temporary.path().join("checkout"));
+        let relative = PathBuf::from(
+            "build/sfm-toolchain/forge/1.19.2/sources/combined-deobfuscated.filetree",
+        );
+        let provider = SourceProviderV3::PlatformPipeline(PlatformPipelineSourceProviderV3 {
+            id: "minecraft-pipeline".to_owned(),
+            declaration: PlatformPipelineSourceDeclarationV3 {
+                kind: ToolchainComponentKindV3::Minecraft,
+                roots: Vec::new(),
+            },
+            derived_checks: PlatformPipelineSourceDerivedChecksV3 {
+                fingerprint: "forgegradle-1.19.2-43.4.0".to_owned(),
+                tree_cache_path: relative.clone(),
+            },
+        });
+        let shared_candidate =
+            inventory.local_path(Path::new("$sfm-cache/sources/platform/forge/1.19.2/tree"));
+        std::fs::create_dir_all(&shared_candidate).expect("separate shared candidate");
+        let view = SourceProviderView::new(&inventory, &provider, 0);
+        let historical = temporary
+            .path()
+            .join("checkout/platform/minecraft")
+            .join(relative);
+        assert_eq!(view.tree_path(), historical);
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::create_dir_all(&historical).expect("historical branch output");
+        assert_eq!(view.status(), SourceStatus::Acquired);
+    }
 
     #[test]
     fn maven_provider_does_not_advertise_a_modified_extracted_tree() {
