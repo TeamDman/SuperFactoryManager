@@ -25,7 +25,7 @@ pub struct DependencySourceCacheArgs {
 pub enum DependencySourceCacheCommand {
     /// Report managed Git source-cache references and unreferenced entries without deleting anything.
     Audit(DependencySourceCacheAuditArgs),
-    /// Remove unreferenced managed Git cache entries after verifying every readable v3 lockfile.
+    /// Report candidate Git cache entries; deletion requires a verified owner union and reader check.
     Cleanup(DependencySourceCacheCleanupArgs),
 }
 
@@ -41,7 +41,7 @@ pub struct DependencySourceCacheCleanupArgs {
     /// Branch selector used to verify the current dependency workspace. Must match exactly one worktree.
     #[facet(args::named)]
     pub branch: BranchSelector,
-    /// Actually remove the audited entries. Without this flag cleanup only reports what is safe to remove.
+    /// Reserved for a future owner-aware cleanup; currently refuses deletion.
     #[facet(default = false, args::named)]
     pub confirm: bool,
 }
@@ -74,17 +74,8 @@ impl DependencySourceCacheCleanupArgs {
         let audit = audit_git_cache(&inventory, &references);
         render_git_cache_audit(&audit)?;
         ensure_cleanup_is_safe(&references)?;
-        if !self.confirm {
-            stdout_line(
-                "No cache entries were removed. Re-run with --confirm to remove the audited unreferenced entries.",
-            )?;
-            return Ok(());
-        }
-        let cleanup = remove_unreferenced_git_cache_entries(&inventory, &references.references)?;
-        stdout_line(format!(
-            "Removed {} unreferenced repositories and {} unreferenced trees.",
-            cleanup.repositories, cleanup.trees
-        ))?;
+        refuse_unproven_deletion(self.confirm)?;
+        stdout_line("No cache entries were removed. Entries absent from discovered lockfiles are candidates only; a shared cache may have other owners.")?;
         Ok(())
     }
 }
@@ -266,11 +257,11 @@ fn render_git_cache_audit(audit: &GitCacheAudit) -> eyre::Result<()> {
         audit.materialized_trees
     ))?;
     stdout_line(format!(
-        "  unreferenced repositories: {}",
+        "  repository candidates absent from discovered lockfiles: {}",
         audit.unreferenced_repositories
     ))?;
     stdout_line(format!(
-        "  unreferenced trees: {}",
+        "  tree candidates absent from discovered lockfiles: {}",
         audit.unreferenced_trees
     ))?;
     if !audit.unverified_lockfiles.is_empty() {
@@ -302,65 +293,13 @@ fn ensure_cleanup_is_safe(references: &DiscoveredGitCacheReferences) -> eyre::Re
     );
 }
 
-#[derive(Debug, Eq, PartialEq)]
-struct GitCacheCleanup {
-    repositories: usize,
-    trees: usize,
-}
-
-fn remove_unreferenced_git_cache_entries(
-    inventory: &DependencyInventory,
-    references: &GitCacheReferences,
-) -> eyre::Result<GitCacheCleanup> {
-    let git_root = inventory.local_path(Path::new("$sfm-cache/sources/git"));
-    let repositories_root = git_root.join("repositories");
-    let trees_root = git_root.join("trees");
-    let repositories =
-        remove_unreferenced_directories(&repositories_root, &references.repositories)?;
-    let trees = remove_unreferenced_tree_directories(&trees_root, &references.trees)?;
-    Ok(GitCacheCleanup {
-        repositories,
-        trees,
-    })
-}
-
-fn remove_unreferenced_directories(
-    root: &Path,
-    references: &BTreeSet<PathBuf>,
-) -> eyre::Result<usize> {
-    let mut removed = 0;
-    for path in child_directories(root) {
-        if references.contains(&path) {
-            continue;
-        }
-        if path.parent() != Some(root) {
-            eyre::bail!("Refusing to remove cache entry outside {}", root.display());
-        }
-        fs::remove_dir_all(&path)?;
-        removed += 1;
+fn refuse_unproven_deletion(confirmed: bool) -> eyre::Result<()> {
+    if confirmed {
+        eyre::bail!(
+            "Refusing cache deletion: this checkout cannot establish every shared-cache owner, active reader, or publisher. Audit results are candidates only."
+        );
     }
-    Ok(removed)
-}
-
-fn remove_unreferenced_tree_directories(
-    trees_root: &Path,
-    references: &BTreeSet<PathBuf>,
-) -> eyre::Result<usize> {
-    let mut removed = 0;
-    for path in git_tree_directories(trees_root) {
-        if references.contains(&path) {
-            continue;
-        }
-        if path.parent().and_then(Path::parent) != Some(trees_root) {
-            eyre::bail!(
-                "Refusing to remove cache tree outside {}",
-                trees_root.display()
-            );
-        }
-        fs::remove_dir_all(&path)?;
-        removed += 1;
-    }
-    Ok(removed)
+    Ok(())
 }
 
 fn git_tree_directories(root: &Path) -> Vec<PathBuf> {
@@ -400,7 +339,7 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
 
     #[test]
-    fn cleanup_removes_only_entries_not_referenced_by_any_verified_lockfile() {
+    fn cleanup_audits_candidates_without_establishing_global_orphans() {
         let cache = tempfile::tempdir().expect("temporary cache");
         let mut inventory = fixture(CacheHome(cache.path().to_path_buf()));
         let (repository, tree) = add_git_provider(&mut inventory);
@@ -420,14 +359,11 @@ mod tests {
         assert_eq!(audit.unreferenced_repositories, 1);
         assert_eq!(audit.unreferenced_trees, 1);
 
-        let removed = remove_unreferenced_git_cache_entries(&inventory, &references.references)
-            .expect("cache cleanup should succeed");
-        assert_eq!(removed.repositories, 1);
-        assert_eq!(removed.trees, 1);
+        // An offline checkout could still own either candidate. No deletion API is exposed.
         assert!(repository.is_dir());
         assert!(tree.is_dir());
-        assert!(!stale_repository.exists());
-        assert!(!stale_tree.exists());
+        assert!(stale_repository.is_dir());
+        assert!(stale_tree.is_dir());
     }
 
     #[test]
@@ -444,6 +380,13 @@ mod tests {
         let error = ensure_cleanup_is_safe(&references)
             .expect_err("cleanup must reject an unverified lockfile");
         assert!(error.to_string().contains("1.20.1"));
+    }
+
+    #[test]
+    fn cleanup_confirm_cannot_delete_an_offline_owners_candidate() {
+        assert!(refuse_unproven_deletion(false).is_ok());
+        let error = refuse_unproven_deletion(true).expect_err("owner union is not established");
+        assert!(error.to_string().contains("shared-cache owner"));
     }
 
     fn add_git_provider(inventory: &mut DependencyInventory) -> (PathBuf, PathBuf) {
