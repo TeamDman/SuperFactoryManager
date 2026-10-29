@@ -228,6 +228,11 @@ fn admit_directory(root: &Path, cancellation: &CancellationToken) -> Result<()> 
 fn text(bytes: &[u8]) -> Option<&str> {
     std::str::from_utf8(bytes).ok().filter(|s| !s.chars().any(|c| c.is_control() && !matches!(c, '\r'|'\n'|'\t')))
 }
+fn is_java_source(path: &str) -> bool {
+    Path::new(path).extension().and_then(|ext| ext.to_str()).is_some_and(|ext| ext.eq_ignore_ascii_case("java"))
+}
+#[expect(clippy::case_sensitive_file_extension_comparisons, reason = "JAR member names and class-evidence paths are case-sensitive; only lowercase .class is a Java class entry")]
+fn is_class_entry(path: &str) -> bool { path.ends_with(".class") }
 fn text_views(views: &mut Vec<Representation>, path: &str, before: Option<&str>, after: Option<&str>) -> Result<()> {
     let filename = Path::new(path).file_name().and_then(|n| n.to_str()).unwrap_or("source.txt");
     if let Some(s) = before { views.push(Representation::new("Old source", &format!("old-{filename}"), s)); }
@@ -237,7 +242,7 @@ fn text_views(views: &mut Vec<Representation>, path: &str, before: Option<&str>,
             "Binary or unsupported encoding. Inspect original bytes and hashes; no textual or semantic equivalence is inferred."));
         return Ok(());
     }
-    let language = if path.ends_with(".java") { "java" } else { "text" };
+    let language = if is_java_source(path) { "java" } else { "text" };
     let operation = if before.is_none() { ChangeOperationV1::Added } else if after.is_none() { ChangeOperationV1::Deleted } else { ChangeOperationV1::Modified };
     let pair = ReviewFilePairV1::new("inspection-pair", "inspection", operation, vec!["inspection-unit".into()],
         before.map(|s| ReviewSurfaceSourceV1::new("old", path, language, s)),
@@ -359,7 +364,7 @@ fn jar(label: &str, old: &str, new: &str, evidence_path: Option<&str>, cancellat
             "Class evidence belongs to different JAR bytes or schema");
         let mut seen = BTreeSet::new();
         for row in &e.classes {
-            ensure!(row.path.ends_with(".class") && seen.insert(&row.path), "Invalid or duplicate class evidence path");
+            ensure!(is_class_entry(&row.path) && seen.insert(&row.path), "Invalid or duplicate class evidence path");
             let before = a.get(&row.path); let after = b.get(&row.path);
             let membership_valid = match row.status.as_str() {
                 "added" => before.is_none() && after.is_some(),
@@ -423,7 +428,7 @@ fn jar(label: &str, old: &str, new: &str, evidence_path: Option<&str>, cancellat
                     for mut view in representations { view.label = format!("{name} · {}", view.label); views.push(view); }
                 }
             }
-        } else if path.ends_with(".class") && classification != "exact" {
+        } else if is_class_entry(path) && classification != "exact" {
             views.push(Representation::new("Instruction view unavailable", "unavailable.txt",
                 "No hash-bound class evidence supplied. Raw class differences are unclassified. Prepare evidence with release_report/scripts/prepare_class_evidence.py."));
         }
@@ -443,6 +448,14 @@ fn jar(label: &str, old: &str, new: &str, evidence_path: Option<&str>, cancellat
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn source_extensions_ignore_case_but_jar_class_entries_do_not() {
+        let mut views = Vec::new();
+        text_views(&mut views, "example/Fixture.JAVA", Some("class Fixture { int x; }\n"), Some("class Fixture { int y; }\n")).unwrap();
+        assert!(views.iter().any(|view| view.label == "Java structured diff"));
+        assert!(is_class_entry("example/Fixture.class"));
+        assert!(!is_class_entry("example/Fixture.CLASS"));
+    }
     #[test]
     fn instruction_strategy_excludes_declarations_but_keeps_switch_targets() {
         let a = "Compiled from \"A.java\"\npublic class A {\n  public void f();\n    descriptor: ()V\n    Code:\n       0: return\n}\n";
