@@ -581,7 +581,7 @@ The first post-commit live pair below reused an existing dependency entry; it di
 
 **Completion criteria:** Existing bad bytes fail closed or rebuild; correct same-key output is reusable without another large physical derivative.
 
-### [~] M3.7 Reuse snapshots only behind valid path-bound receipts
+### [x] M3.7 Reuse snapshots only behind valid path-bound receipts
 
 **Source-owner boundary checkpoint, 2026-10-28:** Commit `13b0c046ddfb8a526b806a6e266dc7a031d434b3` distinguishes the shared compiler source cache from the projection-owned runtime snapshot path. A focused snapshot test passed 1/1 under `source-stable-split-runtime-snapshot-test-20261028.json.run.json`, and both final 1.19.2 red/green GameTests launched through the new capture path. This repairs path admission; it does not deduplicate snapshot bytes or close M3.7. Free D: bytes fell by 219,033,600 during the green run and 187,351,040 during red, including session/snapshot work; those deltas are not an attribution or a savings claim.
 
@@ -596,6 +596,8 @@ The first post-commit live pair below reused an existing dependency entry; it di
 **Validation:** New snapshot reuse/relocation tests (created here) exercise unchanged build, changed source, moved root, stale absolute receipt and concurrent reader. Two unchanged builds record physical bytes by snapshot category.
 
 **Completion criteria:** Unchanged snapshots stop multiplying immutable bytes; path relocation cannot silently admit stale outputs.
+
+**Final-source snapshot acceptance, 2026-10-29:** Commit `d9907b206` adds moved-projection rejection for immutable and latest receipts and a concurrent latest-reader test. The race witness exposed Windows access denial during atomic replacement; latest-receipt reads now permit delete sharing while retaining path/file-identity checks, and publication retries only transient Windows denial with owned-directory and target-type rechecks. Immutable source-capture reads retain their original delete-denying sharing. The final focused snapshot suite passed 24/24 and a separate race repeat passed 1/1 with matching source identities (`snapshot-m37-bounded-publish-retry-20261029.run.json`, `snapshot-m37-race-repeat-20261029.run.json`). The rebuilt CLI SHA-256 `dd8276a72f633b04fcb9f0608364497b09c7be905658aed7f029a66150c15079` passed two identical `sfm-dev/mc-1.19.2 --solo --smoke` client builds in slot 42, each reaching the title screen and exiting 0. Both reused `snapshot-BPNKs9`; before, between and after those runs the snapshot count was one, with 4,962 files, 26,732,270 logical bytes and **36,058,152 NTFS allocated bytes** (no allocation-query failures), and its UTC directory write time was unchanged. Evidence: `snapshot-m37-final-{client,repeat}-20261029.{out,ndjson}`, `snapshot-dev1192-final-{after,repeat-after}-20261029.json`, and the session consoles. The focused changed-class test creates a distinct snapshot and corrupt-receipt tests reject reuse. This closes the bounded path-bound receipt and unchanged-build physical-growth criteria; old unused snapshots, cross-projection storage and retained sessions remain separate gates.
 
 ### [~] M3.8 Bound session growth without discarding user state
 
