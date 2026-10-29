@@ -228,14 +228,18 @@ impl ExternalInputManifest {
         })
     }
 
-    /// Gradle verifies every dependency it resolves, including plugin and
-    /// buildSrc metadata, against this allowlist. This does not constrain
-    /// arbitrary filesystem or HTTP reads performed by build task code.
+    /// Build strict Gradle dependency-verification metadata from declared Maven
+    /// artifacts. Gradle must actually load this XML before it verifies managed
+    /// dependencies; this does not constrain arbitrary task-time reads.
     pub(crate) fn gradle_verification_metadata(&self) -> Result<String> {
         let mut components: BTreeMap<(String, String, String), BTreeMap<String, String>> =
             BTreeMap::new();
         for input in &self.inputs {
             let Some(coordinate) = &input.coordinate else {
+                ensure!(
+                    !input.request.contains('@'),
+                    "Gradle-like external input has no Maven coordinate"
+                );
                 continue;
             };
             let (notation, extension) = input
@@ -477,6 +481,10 @@ mod tests {
         manifest.inputs[0].request = "example:pinned:1@jar".to_owned();
         manifest.inputs[0].source_url =
             "https://repo.example.invalid/example/pinned/1/other-1.jar".to_owned();
+        assert!(manifest.gradle_verification_metadata().is_err());
+        manifest.inputs[0].source_url =
+            "https://repo.example.invalid/example/pinned/1/pinned-1.jar".to_owned();
+        manifest.inputs[0].coordinate = None;
         assert!(manifest.gradle_verification_metadata().is_err());
         Ok(())
     }
