@@ -146,7 +146,13 @@ impl<'a> SourceProviderView<'a> {
                 }
             }
             SourceProviderV3::PlatformPipeline(_) => {
-                if self.tree_path().is_dir() {
+                let tree = self.tree_path();
+                let source_jar = tree.with_extension("jar");
+                if tree
+                    .extension()
+                    .is_some_and(|extension| extension == "filetree")
+                    && extracted_tree_matches_archive(&source_jar, &tree).unwrap_or(false)
+                {
                     SourceStatus::Acquired
                 } else {
                     SourceStatus::Missing
@@ -199,7 +205,7 @@ impl<'a> SourceProviderView<'a> {
                 Some("decompiled tree is missing or does not match its locked fingerprint")
             }
             SourceProviderV3::PlatformPipeline(_) => {
-                Some("platform source pipeline output is not materialized")
+                Some("platform source filetree is missing or differs from its source JAR")
             }
         }
     }
@@ -284,6 +290,27 @@ mod tests {
             .join("checkout/platform/minecraft")
             .join(relative);
         assert_eq!(view.tree_path(), historical);
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::create_dir_all(historical.parent().unwrap()).expect("pipeline source parent");
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        writer
+            .start_file("src/Example.java", SimpleFileOptions::default())
+            .unwrap();
+        writer.write_all(b"class Example {}").unwrap();
+        let source_jar = historical.with_extension("jar");
+        std::fs::write(&source_jar, writer.finish().unwrap().into_inner()).unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        extract_zip_atomically(&source_jar, &historical).unwrap();
+        assert_eq!(view.status(), SourceStatus::Acquired);
+        std::fs::write(historical.join("src/Example.java"), b"changed").unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        assert!(view.unavailable_reason().unwrap().contains("differs"));
+        std::fs::write(historical.join("src/Example.java"), b"class Example {}").unwrap();
+        assert_eq!(view.status(), SourceStatus::Acquired);
+        std::fs::write(historical.join("src/extra.java"), b"extra").unwrap();
+        assert_eq!(view.status(), SourceStatus::Missing);
+        std::fs::remove_file(historical.join("src/extra.java")).unwrap();
+        std::fs::remove_file(source_jar).unwrap();
         assert_eq!(view.status(), SourceStatus::Missing);
     }
 
