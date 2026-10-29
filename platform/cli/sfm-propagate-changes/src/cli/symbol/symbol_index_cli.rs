@@ -1,5 +1,4 @@
 use crate::artifact_lock::ArtifactLock;
-use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::cli::Cli;
 use crate::cli::Command as CliCommand;
@@ -163,9 +162,8 @@ impl SymbolIndexArgs {
             SymbolIndexCommand::Refresh(args) => &args.branch,
             SymbolIndexCommand::Show(args) => &args.branch,
         };
-        let target = select_single_worktree_target(&branch.clone().into_query()?)?;
-        let selected = crate::jar_build::engine::select_source_cache(
-            target.worktree_path.as_path(),
+        let selected = crate::jar_build::engine::select_branch_source_cache(
+            branch,
             self.cache_root.as_deref(),
             cancellation_token,
         )?;
@@ -571,10 +569,14 @@ pub(super) fn build_query_index(
             (project_root, query.exact_generated_selector())
             && !query.has_local_match(&index)
         {
-            let cache_home = CacheHome::resolve()?;
+            let selected = crate::jar_build::engine::select_project_source_cache(
+                project_root,
+                None,
+                cancellation_token,
+            )?;
             let scan = scan_generated_dependency_symbol(
                 project_root,
-                &cache_home.0,
+                &selected.home().0,
                 &selector,
                 cancellation_token,
             )?;
@@ -597,8 +599,17 @@ pub(super) fn build_query_index(
     }
 
     let mut timings = LiveQueryTimings::start(workspace.files.len());
+    let selected = if let Some(project_root) = project_root {
+        crate::jar_build::engine::select_project_source_cache(
+            project_root,
+            None,
+            cancellation_token,
+        )?
+    } else {
+        crate::jar_build::engine::select_branch_source_cache(branch, None, cancellation_token)?
+    };
     let resolved =
-        resolve_index_context_from_analysis(branch, &workspace.context, CacheHome::resolve()?)?;
+        resolve_index_context_from_analysis(branch, &workspace.context, selected.home().clone())?;
     timings.finish(LiveQueryStage::ResolveContext);
     let _live_query_lock = ArtifactLock::acquire_with_cancellation(
         resolved.store.live_query_lock_path(),
@@ -792,6 +803,7 @@ pub(super) fn build_query_index(
 pub(super) fn load_definition_at_position_dependencies(
     workspace: &JavaSourceWorkspace,
     branch: &BranchSelector,
+    project_root: Option<&Path>,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<(
     Option<DependencyJavaSymbolIndexBody>,
@@ -802,8 +814,17 @@ pub(super) fn load_definition_at_position_dependencies(
         return Ok((None, None, Vec::new()));
     }
 
+    let selected = if let Some(project_root) = project_root {
+        crate::jar_build::engine::select_project_source_cache(
+            project_root,
+            None,
+            cancellation_token,
+        )?
+    } else {
+        crate::jar_build::engine::select_branch_source_cache(branch, None, cancellation_token)?
+    };
     let resolved =
-        resolve_index_context_from_analysis(branch, &workspace.context, CacheHome::resolve()?)?;
+        resolve_index_context_from_analysis(branch, &workspace.context, selected.home().clone())?;
     let _live_query_lock = ArtifactLock::acquire_with_cancellation(
         resolved.store.live_query_lock_path(),
         "direct definition-at-position query",

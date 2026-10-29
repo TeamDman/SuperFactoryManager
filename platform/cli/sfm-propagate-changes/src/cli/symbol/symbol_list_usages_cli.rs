@@ -116,6 +116,7 @@ impl SymbolListUsagesArgs {
                     super::load_definition_at_position_dependencies(
                         &workspace,
                         &branch,
+                        project_root.as_deref(),
                         cancellation_token,
                     )?;
                 let dependency_index_identity = dependency_index

@@ -8,6 +8,7 @@ use super::DependencyRemoveArgs;
 use super::DependencyShowArgs;
 use super::DependencySourceArgs;
 use crate::cancellation::CancellationToken;
+use crate::cli::jar::BranchSelector;
 use crate::paths::CacheHome;
 use facet::Facet;
 use figue as args;
@@ -25,7 +26,15 @@ impl DependencyArgs {
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         match self.command {
             DependencyCommand::Source(args) => args.invoke(&cancellation_token),
-            other => other.invoke(cancellation_token, &CacheHome::resolve()?),
+            DependencyCommand::Migrate(args) => args.invoke(cancellation_token),
+            other => {
+                let selected = crate::jar_build::engine::select_branch_source_cache(
+                    other.branch(),
+                    None,
+                    &cancellation_token,
+                )?;
+                other.invoke(cancellation_token, selected.home())
+            }
         }
     }
 }
@@ -54,6 +63,29 @@ pub enum DependencyCommand {
 }
 
 impl DependencyCommand {
+    fn branch(&self) -> &BranchSelector {
+        match self {
+            Self::Add(args) => &args.branch,
+            Self::Artifact(args) => match &args.command {
+                super::dependency_artifact_cli::DependencyArtifactCommand::Accept(args) => {
+                    &args.branch
+                }
+            },
+            Self::Component(args) => match &args.command {
+                super::dependency_component_cli::DependencyComponentCommand::Add(args) => {
+                    &args.branch
+                }
+            },
+            Self::List(args) => &args.branch,
+            Self::Remove(args) => &args.branch,
+            Self::Refresh(args) => &args.branch,
+            Self::Show(args) => &args.branch,
+            Self::Migrate(_) | Self::Source(_) => {
+                unreachable!("migration and source commands select their own context")
+            }
+        }
+    }
+
     /// # Errors
     ///
     /// Returns an error if the selected dependency command fails.

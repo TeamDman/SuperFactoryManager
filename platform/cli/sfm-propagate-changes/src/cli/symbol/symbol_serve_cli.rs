@@ -39,6 +39,7 @@ impl SymbolServeArgs {
             super::load_definition_at_position_dependencies(
                 &workspace,
                 &branch,
+                None,
                 cancellation_token,
             )?;
         let served_workspace = SymbolServerWorkspaceOutput::from_workspace_with_dependency_sources(

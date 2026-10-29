@@ -28,7 +28,6 @@ use crate::jdk::resolve_exact_java;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
 use crate::jdk::select_jdk_source;
 use crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip;
-use crate::paths::CACHE_DIR;
 use crate::source_archive::extract_zip_atomically;
 use crate::source_cache::SourceCacheLayout;
 use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
@@ -218,6 +217,13 @@ impl JdkSourceDomainState {
         (domain.root_id == root_id).then_some(domain.report_prefix.as_str())
     }
 
+    pub(crate) fn canonical_tree_for_root(&self, root_id: &str) -> Option<&Path> {
+        let Self::Ready(domain) = self else {
+            return None;
+        };
+        (domain.root_id == root_id).then_some(domain.canonical_tree.as_path())
+    }
+
     /// Resolve one caller-addressed JDK document without admitting the JDK
     /// tree to the eager editable-workspace inventory.
     pub(crate) fn addressed_source_file(
@@ -355,12 +361,26 @@ impl JdkSourceDomain {
             minecraft_version,
             minecraft_dir,
         )?;
+        let repository = minecraft_dir
+            .parent()
+            .and_then(Path::parent)
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "Minecraft directory has no checkout root: {}",
+                    minecraft_dir.display()
+                )
+            })?;
+        let selected = crate::jar_build::engine::select_source_cache(
+            repository,
+            None,
+            &CancellationToken::new(),
+        )?;
         Self::from_archive(
             java_release,
             &provider.identity,
             &provider.source_archive,
             provider.source_hash,
-            &CACHE_DIR.0,
+            &selected.home().0,
         )
     }
 

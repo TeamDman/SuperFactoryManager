@@ -153,7 +153,12 @@ impl JavaSourceWorkspace {
         project_root: &Path,
         java_home: Option<&Path>,
     ) -> eyre::Result<Self> {
-        let source_cache_root = &crate::paths::CACHE_DIR.0;
+        let selected = crate::jar_build::engine::select_project_source_cache(
+            project_root,
+            None,
+            &crate::cancellation::CancellationToken::new(),
+        )?;
+        let source_cache_root = &selected.home().0;
         let jdk_cache_root = source_cache_root.join("minecraft-toolchain").join("jbrsdk");
         Self::resolve_generated_project_with_cache(
             project_root,

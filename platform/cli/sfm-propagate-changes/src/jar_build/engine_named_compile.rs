@@ -42,6 +42,26 @@ pub(crate) fn select_source_cache(
     })
 }
 
+pub(crate) fn select_branch_source_cache(
+    branch: &crate::cli::jar::BranchSelector,
+    explicit: Option<&Path>,
+    cancellation: &CancellationToken,
+) -> eyre::Result<SelectedSourceCache> {
+    let target =
+        crate::branch_targets::select_single_worktree_target(&branch.clone().into_query()?)?;
+    select_source_cache(target.worktree_path.as_path(), explicit, cancellation)
+}
+
+pub(crate) fn select_project_source_cache(
+    project_root: &Path,
+    explicit: Option<&Path>,
+    cancellation: &CancellationToken,
+) -> eyre::Result<SelectedSourceCache> {
+    let (catalog, _) =
+        crate::source_projection::core_catalog::CoreCatalog::for_project(project_root)?;
+    select_source_cache(&catalog.repo_root, explicit, cancellation)
+}
+
 #[cfg(test)]
 mod catalog_native_cache_path_tests {
     use super::*;

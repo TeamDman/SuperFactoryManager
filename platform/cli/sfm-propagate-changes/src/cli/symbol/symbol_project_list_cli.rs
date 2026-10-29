@@ -4,7 +4,6 @@ use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolGlob;
 use crate::java_analysis::JavaSymbolIndex;
 use crate::java_analysis::scan_generated_dependency_type;
-use crate::paths::CacheHome;
 use facet::Facet;
 use figue::{self as args};
 use std::path::Path;
@@ -71,10 +70,14 @@ impl SymbolProjectListArgs {
         if report.definitions.is_empty()
             && let Some(qualified_name) = exact_type
         {
-            let cache_home = CacheHome::resolve()?;
+            let selected = crate::jar_build::engine::select_project_source_cache(
+                &project_root,
+                None,
+                cancellation_token,
+            )?;
             let scanned = scan_generated_dependency_type(
                 &project_root,
-                &cache_home.0,
+                &selected.home().0,
                 &qualified_name,
                 cancellation_token,
             )?;

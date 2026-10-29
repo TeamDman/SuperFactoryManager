@@ -68,9 +68,15 @@ worktree's `<checkout>/sfm-toolchain-data` through the configured branch
 selector, even when invoked from another working directory. Each accepts an
 explicit `--cache-root` before its subcommand; the native-root marker and
 overlap checks apply to either selection. This does not import old source trees.
-Other dependency and branch-symbol query commands still have separate cache
-selection and require their own qualification before claiming a universal
-source-analysis default.
+Other branch dependency commands (except cache-independent lock migration),
+branch symbol queries, generated-project symbol queries, and the branch JDK
+source worker use the same guarded checkout selection. A ready symbol-server
+JDK root is projected from its resolved canonical source domain; unavailable
+roots are inert placeholders outside the cache. Explicit `--cache-root` exists for `dependency source` and
+`symbol index`; ordinary branch query commands select the branch checkout.
+The installed global executable and unrelated `cache`, `container`, and
+`gradle` commands retain their own contracts. Do not infer that all
+source-analysis providers or full symbol indexes have been acquired.
 
 Generated
 Gradle `gradle/repositories.gradle` uses the same logical root only with

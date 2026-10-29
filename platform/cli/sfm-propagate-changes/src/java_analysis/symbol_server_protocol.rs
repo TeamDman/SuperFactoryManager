@@ -8,7 +8,6 @@ use super::JavaSourceWorkspace;
 use super::UsageAtPositionRequest;
 use super::UsageAtPositionResult;
 use super::definition_workspace_fingerprint;
-use crate::paths::CACHE_DIR;
 use facet::Facet;
 use std::fmt;
 use std::io::Read;
@@ -410,7 +409,12 @@ fn project_workspace_roots(
                 root.id
             );
         }
-        let canonical = managed_source_path(&root.path, &root.id, root.exists)?;
+        let canonical = if let Some(tree) = workspace.jdk_sources.canonical_tree_for_root(&root.id)
+        {
+            dunce::canonicalize(tree)?
+        } else {
+            managed_source_path(&root.path, &root.id, root.exists)?
+        };
         let canonical_absolute_path = canonical
             .to_str()
             .ok_or_else(|| {
@@ -491,21 +495,15 @@ fn managed_source_path(
     require_existing: bool,
 ) -> eyre::Result<std::path::PathBuf> {
     let portable = Path::new(portable);
-    let local = if let Ok(relative) = portable.strip_prefix(Path::new("$sfm-cache")) {
-        CACHE_DIR.0.join(relative)
-    } else if portable.is_absolute() {
+    let local = if portable.is_absolute() {
         portable.to_path_buf()
     } else if !require_existing {
-        CACHE_DIR
-            .0
-            .join("sources")
+        std::env::temp_dir()
+            .join("sfm-unavailable-managed-source")
             .join("jdk")
-            .join("unavailable")
             .join(root_id)
     } else {
-        eyre::bail!(
-            "managed source root `{root_id}` path is neither absolute nor rooted at $sfm-cache"
-        );
+        eyre::bail!("managed source root `{root_id}` has no canonical domain path");
     };
     if require_existing {
         dunce::canonicalize(&local).map_err(|error| {
@@ -1659,6 +1657,32 @@ mod tests {
         );
         assert!(mapping.report_prefix.is_none());
         projected.validate().expect("projected workspace validates");
+
+        // A portable cache address must be projected from the resolved domain,
+        // never from a process-global cache path that can name another checkout.
+        let mut portable_workspace = workspace.clone();
+        portable_workspace
+            .context
+            .source_roots
+            .retain(|root| root.kind != JavaSourceRootKind::Jdk);
+        let ready = crate::java_analysis::JdkSourceDomainState::ready_from_tree("17", &jdk_root)
+            .expect("ready JDK source domain");
+        ready.apply_to_context(&mut portable_workspace.context);
+        let portable_root = portable_workspace
+            .context
+            .source_roots
+            .iter_mut()
+            .find(|root| root.kind == JavaSourceRootKind::Jdk)
+            .expect("JDK root");
+        portable_root.path = "$sfm-cache/sources/jdk/other-checkout".to_owned();
+        portable_workspace.jdk_sources = ready;
+        let portable_projection =
+            SymbolServerWorkspaceOutput::from_workspace(&portable_workspace, None, 5)
+                .expect("portable JDK source projection");
+        assert_eq!(
+            portable_projection.managed_source_roots[0].canonical_absolute_path,
+            canonical_jdk_text
+        );
     }
 
     #[test]

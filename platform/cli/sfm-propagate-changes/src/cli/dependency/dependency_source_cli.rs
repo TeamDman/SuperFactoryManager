@@ -3,7 +3,6 @@ use super::DependencySourceCacheArgs;
 use super::DependencySourceConfigureArgs;
 use super::DependencySourceProviderArgs;
 use super::DependencySourceSearchArgs;
-use crate::branch_targets::select_single_worktree_target;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use facet::Facet;
@@ -35,14 +34,10 @@ pub enum DependencySourceCommand {
 }
 
 impl DependencySourceArgs {
-    pub(crate) fn invoke(
-        self,
-        cancellation_token: &CancellationToken,
-    ) -> eyre::Result<()> {
+    pub(crate) fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<()> {
         let branch = self.command.branch();
-        let target = select_single_worktree_target(&branch.clone().into_query()?)?;
-        let selected = crate::jar_build::engine::select_source_cache(
-            target.worktree_path.as_path(),
+        let selected = crate::jar_build::engine::select_branch_source_cache(
+            branch,
             self.cache_root.as_deref(),
             cancellation_token,
         )?;
