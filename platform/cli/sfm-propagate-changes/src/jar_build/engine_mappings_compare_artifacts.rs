@@ -2116,6 +2116,7 @@ fn materialize_gradle_wrapper_source_build(
 
 /// Tool paths are deliberately private: production construction must first
 /// authenticate and extract the exact pinned Gradle and Java archives.
+#[cfg(test)]
 struct VerifiedProducerToolchain {
     gradle_executable: PathBuf,
     java_home: PathBuf,
@@ -2124,6 +2125,7 @@ struct VerifiedProducerToolchain {
 /// Run only after an invocation-owned Git tree has been materialized and the
 /// pinned manifest has staged strict verification metadata. Returning the
 /// lease keeps source and verified input handles alive through output copying.
+#[cfg(test)]
 fn run_verified_gradle_source_build(
     cancellation_token: &CancellationToken,
     source_build: &SourceBuildProvenance,
@@ -2157,7 +2159,6 @@ fn run_verified_gradle_source_build(
     cancellation_token.bail_if_cancelled()?;
     let mut command = Command::new(&tools.gradle_executable);
     command
-        .current_dir(staged.project_root())
         .env("GRADLE_USER_HOME", staged.gradle_home())
         .env("JAVA_HOME", &tools.java_home)
         .env_remove("GRADLE_OPTS")

@@ -16,13 +16,17 @@ use eyre::ensure;
 use facet::Facet;
 use sha2::Digest as _;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 use std::fs;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
+#[cfg(test)]
 use std::io::Write;
 use std::path::Path;
+#[cfg(test)]
 use std::path::PathBuf;
+#[cfg(test)]
 use std::process::Command;
 
 const SCHEMA: &str = "sfm:source_producer_external_inputs@1";
@@ -75,6 +79,7 @@ pub(crate) struct VerifiedExternalInput {
 }
 
 /// Verified files stay open until the staged Gradle consumer finishes.
+#[cfg(test)]
 pub(crate) struct VerifiedGradleInputs {
     held: Vec<VerifiedExternalInput>,
     verification_metadata: String,
@@ -82,6 +87,7 @@ pub(crate) struct VerifiedGradleInputs {
 
 /// Owns the source staging directory and verified inputs through Gradle exit
 /// and output publication. Dropping it retires only this invocation's scratch.
+#[cfg(test)]
 pub(crate) struct StagedGradleInputs {
     _checkout: tempfile::TempDir,
     project_root: PathBuf,
@@ -89,9 +95,10 @@ pub(crate) struct StagedGradleInputs {
     _held: Vec<VerifiedExternalInput>,
 }
 
+#[cfg(test)]
 impl VerifiedGradleInputs {
     /// The caller must populate `checkout/tree` from the pinned Git revision
-    /// before staging. A private TempDir prevents writes into shared Git trees.
+    /// before staging. A private `TempDir` prevents writes into shared Git trees.
     pub(crate) fn stage(self, checkout: tempfile::TempDir) -> Result<StagedGradleInputs> {
         let project = checked_directory(&checkout.path().join("tree"))?;
         let gradle = checked_directory(&project.join("gradle"))?;
@@ -111,6 +118,7 @@ impl VerifiedGradleInputs {
     }
 }
 
+#[cfg(test)]
 impl StagedGradleInputs {
     pub(crate) fn project_root(&self) -> &Path {
         &self.project_root
@@ -122,6 +130,7 @@ impl StagedGradleInputs {
 
     pub(crate) fn require_strict_offline(&self, command: &mut Command) {
         command
+            .current_dir(&self.project_root)
             .arg("--offline")
             .arg("--dependency-verification")
             .arg("strict");
@@ -269,7 +278,7 @@ impl ExternalInputManifest {
         );
         let mut hash = sha2::Sha256::new();
         let mut total = 0_u64;
-        let mut buffer = [0_u8; 64 * 1024];
+        let mut buffer = vec![0_u8; 64 * 1024];
         loop {
             let count = file.read(&mut buffer)?;
             if count == 0 {
@@ -363,13 +372,15 @@ impl ExternalInputManifest {
              \t<components>\n",
         );
         for ((group, name, version), artifacts) in components {
-            xml.push_str(&format!(
-                "\t\t<component group=\"{group}\" name=\"{name}\" version=\"{version}\">\n"
-            ));
+            writeln!(
+                &mut xml,
+                "\t\t<component group=\"{group}\" name=\"{name}\" version=\"{version}\">"
+            )?;
             for (file_name, sha256) in artifacts {
-                xml.push_str(&format!(
-                    "\t\t\t<artifact name=\"{file_name}\"><sha256 value=\"{sha256}\"/></artifact>\n"
-                ));
+                writeln!(
+                    &mut xml,
+                    "\t\t\t<artifact name=\"{file_name}\"><sha256 value=\"{sha256}\"/></artifact>"
+                )?;
             }
             xml.push_str("\t\t</component>\n");
         }
@@ -384,6 +395,7 @@ impl ExternalInputManifest {
             .collect()
     }
 
+    #[cfg(test)]
     pub(crate) fn verify_for_gradle(&self, cache: &Path) -> Result<VerifiedGradleInputs> {
         let held = self.verify_all(cache)?;
         let verification_metadata = self.gradle_verification_metadata()?;

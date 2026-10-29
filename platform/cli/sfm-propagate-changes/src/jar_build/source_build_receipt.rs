@@ -134,7 +134,8 @@ pub(crate) fn verify_recipe_without_output(
             // Validate that a strict Gradle dependency-verification file can be
             // derived. No file is staged or Gradle run here: the resolver still
             // refuses execution until the remaining boundary is implemented.
-            let _verified_gradle = manifest.verify_for_gradle(cache)?;
+            let _verified_files = manifest.verify_all(cache)?;
+            let _verification_metadata = manifest.gradle_verification_metadata()?;
         }
     }
     Ok(true)
