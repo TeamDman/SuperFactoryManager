@@ -633,7 +633,7 @@ The first post-commit live pair below reused an existing dependency entry; it di
 
 **Completion criteria:** The report is reproducible, labels its epistemic limit prominently, and feeds only a separately reviewed M6 exact-item proposal. It never deletes, traverses a logical link during cleanup, or treats missing owner evidence as permission.
 
-### [ ] M3.10 Make acquired source trees safe for shared readers
+### [~] M3.10 Make acquired source trees safe for shared readers
 
 **Work:** After G9, give Maven extracted sources, pinned Git trees and Vineflower decompiled trees explicit output inventories/digests or a verified immutable publication contract. Preserve locked archive/commit/decompiler/JDK provenance and readable source paths. Remove-before-rename refreshes must not erase a tree held by `dependency source search`, symbol queries or another linked worktree; use a held immutable generation or private materialization, and define Windows handle/cancellation/failure behavior. Keep upstream source JAR and generated decompile distinct; do not normalize ZIP timestamps without demonstrated need. Gate the existing `dependency source cache cleanup --confirm` against G8's complete owner/reader contract before any shared-root use.
 
@@ -641,7 +641,9 @@ The first post-commit live pair below reused an existing dependency entry; it di
 
 **Completion criteria:** G9 source archive/tree rows have authentic input and output identities, safe reader lifetime and separate ownership; source cleanup refuses uncertain shared ownership. Existing selected providers remain searchable with their exact roots.
 
-### [ ] M3.11 Preserve source mapping and symbol-index reuse
+**Concurrent publication and historical-path correction, 2026-10-30:** Local commit `50f59eac4` accepts a concurrently published source tree only after checking it against the selected authenticated archive, and otherwise preserves the winner. Two new concurrent same-key/conflicting-key tests plus traversal, tamper and held-reader tests passed 10/10. Adjacent source-provider tests caught and then verified a branch-relative path correction (5/5): historical branch locks continue resolving relative paths from `platform/minecraft`, while catalog project locks resolve them from the emitted project lock. Offline all-targets checking passed. This closes the selected archive publication race, not every Maven/Git/decompiler concurrency or shared cleanup gate in M3.10.
+
+### [~] M3.11 Preserve source mapping and symbol-index reuse
 
 **Work:** After M1.5/G9, classify Forge/NeoGradle transformed game source JARs, `.filetree` extraction, identifier-remapped source output, mapping namespace and dependency symbol-index shards separately from dependency source archives. Reuse only under complete relevant-input keys (MC/loader, ordered mappings/patches/tool/JDK and source archive where applicable), keeping project-specific outputs separate. Preserve `dependency_index_store.rs`'s validated manifest/payload and query-lock protocol; extend reader protection and integrity only where source trees/filetrees lack it. Source/text/index artifact reachability feeds M3.9 and cannot prune active analysis readers or retained evidence.
 
