@@ -428,6 +428,15 @@
     },
     {
       "coordinate": "net.neoforged:mergetool:2.0.7",
+      "file": "mergetool-2.0.7-api.jar",
+      "path": "net/neoforged/mergetool/2.0.7/mergetool-2.0.7-api.jar",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.7/mergetool-2.0.7-api.jar",
+      "sha256": "e78f586e085206e3b5699bf0a8de3ee94c59dd34d8cd5b4033e8c58e5ac9c2ec",
+      "bytes": 2550,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/net/neoforged/mergetool/2.0.7/mergetool-2.0.7-api.jar"
+    },
+    {
+      "coordinate": "net.neoforged:mergetool:2.0.7",
       "file": "mergetool-2.0.7.jar",
       "path": "net/neoforged/mergetool/2.0.7/mergetool-2.0.7.jar",
       "url": "https://maven.neoforged.net/releases/net/neoforged/mergetool/2.0.7/mergetool-2.0.7.jar",
