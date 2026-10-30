@@ -176,3 +176,127 @@ plugins {
 }
 
 rootProject.name = 'sfm-26.1.2'
+
+// Opt-in compatibility bridge for NeoGradle 7.1.27's v1 launcher metadata
+// reader. The selected SFM lock uses the same game version with a different
+// asset index; an arbitrary cached Mojang snapshot must not select its inputs.
+def lockedMinecraftMetadata = gradle.startParameter.projectProperties['sfmUseLockedMinecraftMetadata']
+if (lockedMinecraftMetadata != null && !(lockedMinecraftMetadata in ['true', 'false'])) {
+    throw new GradleException('sfmUseLockedMinecraftMetadata must be true or false')
+}
+if (lockedMinecraftMetadata == 'true') {
+    if (gradle.startParameter.projectProperties['sfmUseRepositoryToolchainData'] != 'true') {
+        throw new GradleException('Locked Minecraft metadata requires repository toolchain data')
+    }
+    // NeoGradle refreshes both cache files in online mode even when they
+    // already exist. Only its offline reader honors the checked snapshot.
+    if (!gradle.startParameter.offline) {
+        throw new GradleException('Locked Minecraft metadata requires Gradle --offline')
+    }
+    def checkout = settingsDir.toPath().toAbsolutePath().resolve('../../../../../').normalize()
+    if (!java.nio.file.Files.exists(checkout.resolve('.git')) ||
+            !settingsDir.toPath().toAbsolutePath().normalize().parent.parent.equals(
+                    checkout.resolve('platform/minecraft/projections'))) {
+        throw new GradleException('Locked Minecraft metadata requires a catalog project inside the SFM checkout')
+    }
+    def utf8 = java.nio.charset.StandardCharsets.UTF_8
+    def sha256 = { byte[] bytes ->
+        java.security.MessageDigest.getInstance('SHA-256').digest(bytes).collect {
+            String.format('%02x', it & 0xff)
+        }.join()
+    }
+    def lockPath = checkout.resolve(
+            'platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-4.json')
+    if (!java.nio.file.Files.isRegularFile(lockPath, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+        throw new GradleException('Missing selected 26.1.2 source lock')
+    }
+    def lockBytes = java.nio.file.Files.readAllBytes(lockPath)
+    if (sha256(lockBytes) != 'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835') {
+        throw new GradleException('Selected 26.1.2 source lock changed')
+    }
+    def lock = new groovy.json.JsonSlurper().parseText(new String(lockBytes, utf8))
+    def selectedUrl = 'https://piston-meta.mojang.com/v1/packages/' +
+            '978e6c0dd077d0f8d5d53887454928f1d3687ba8/26.1.2.json'
+    def matches = lock.artifacts.findAll {
+        it.url == selectedUrl &&
+                it.hash == 'blake3:6624f695775e8083367dca64a86952e5b61fe7d8' &&
+                it.cache_path.toString().replace('\\', '/') ==
+                        '$sfm-cache/minecraft/versions/26.1.2/version.json'
+    }
+    if (matches.size() != 1) {
+        throw new GradleException('Selected 26.1.2 Minecraft version pin is absent or ambiguous')
+    }
+    def selectedPath = checkout.resolve(
+            'sfm-toolchain-data/minecraft-toolchain/minecraft/versions/26.1.2/version.json')
+    if (!java.nio.file.Files.isRegularFile(selectedPath, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+        throw new GradleException('Missing selected locked 26.1.2 version metadata')
+    }
+    def selectedBytes = java.nio.file.Files.readAllBytes(selectedPath)
+    if (sha256(selectedBytes) != '1aee43f4486c9b6e0e03f7e0b0d04f7994e27de40bd1f7496ab6201363ad7b09') {
+        throw new GradleException('Selected locked 26.1.2 version metadata changed')
+    }
+    def version = new groovy.json.JsonSlurper().parseText(new String(selectedBytes, utf8))
+    if (version.id != '26.1.2' ||
+            version.assetIndex.sha1 != 'd30e47e96819a087aed5b65fdd6854f28ee02e19') {
+        throw new GradleException('Selected locked 26.1.2 version or asset index changed')
+    }
+    def launcherBytes = groovy.json.JsonOutput.toJson([
+            versions: [[id: '26.1.2', url: selectedUrl]]
+    ]).getBytes(utf8)
+    def home = gradle.gradleUserHomeDir.toPath().toAbsolutePath().normalize()
+    def cache = home.resolve('caches/minecraft')
+    def launcherTarget = cache.resolve('launcher_metadata.json')
+    def versionTarget = cache.resolve('versions/26.1.2/metadata.json')
+    def checkExisting = { path, byte[] expected ->
+        if (java.nio.file.Files.exists(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+            if (!java.nio.file.Files.isRegularFile(path, java.nio.file.LinkOption.NOFOLLOW_LINKS) ||
+                    sha256(java.nio.file.Files.readAllBytes(path)) != sha256(expected)) {
+                throw new GradleException('Conflicting NeoGradle metadata cache file: ' + path)
+            }
+        }
+    }
+    // Check both destinations before making even a lock file. The ordinary
+    // Gradle home may contain a different legitimate upstream snapshot.
+    checkExisting(launcherTarget, launcherBytes)
+    checkExisting(versionTarget, selectedBytes)
+    java.nio.file.Files.createDirectories(home)
+    def physicalHome = home.toRealPath()
+    java.nio.file.Files.createDirectories(cache)
+    if (!cache.toRealPath().startsWith(physicalHome)) {
+        throw new GradleException('NeoGradle cache parent escapes Gradle user home')
+    }
+    def adapterLockPath = cache.resolve('.sfm-locked-minecraft-metadata.lock')
+    def channel = java.nio.channels.FileChannel.open(adapterLockPath,
+            java.nio.file.StandardOpenOption.CREATE,
+            java.nio.file.StandardOpenOption.WRITE)
+    def adapterLock = channel.lock()
+    try {
+        def publish = { target, byte[] expected ->
+            java.nio.file.Files.createDirectories(target.parent)
+            if (!target.parent.toRealPath().startsWith(physicalHome)) {
+                throw new GradleException('NeoGradle metadata parent escapes Gradle user home')
+            }
+            checkExisting(target, expected)
+            if (!java.nio.file.Files.exists(target, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                def temporary = target.resolveSibling(target.fileName.toString() +
+                        '.partial-' + java.util.UUID.randomUUID())
+                try {
+                    java.nio.file.Files.write(temporary, expected,
+                            java.nio.file.StandardOpenOption.CREATE_NEW,
+                            java.nio.file.StandardOpenOption.WRITE)
+                    java.nio.file.Files.move(temporary, target,
+                            java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+                } finally {
+                    java.nio.file.Files.deleteIfExists(temporary)
+                }
+            }
+            checkExisting(target, expected)
+        }
+        publish(launcherTarget, launcherBytes)
+        publish(versionTarget, selectedBytes)
+    } finally {
+        adapterLock.close()
+        channel.close()
+    }
+    logger.lifecycle('SFM checked NeoGradle metadata adapter selected the locked 26.1.2 asset index')
+}
