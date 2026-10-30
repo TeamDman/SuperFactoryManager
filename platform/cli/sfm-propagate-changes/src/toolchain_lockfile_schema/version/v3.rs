@@ -291,6 +291,10 @@ pub(crate) struct PlatformPipelineSourceDerivedChecksV3 {
     /// SHA-256 of the exact catalog-produced source JAR beside the filetree.
     #[facet(default, skip_serializing_if = Option::is_none)]
     pub(crate) source_jar_sha256: Option<String>,
+    /// Alternative catalog pin for a producer whose ZIP container timestamps
+    /// vary while the complete named, decompressed source payload is stable.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) source_payload_sha256: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -880,15 +884,16 @@ impl SourceProviderV3 {
                 match (
                     &provider.derived_checks.catalog_projection,
                     &provider.derived_checks.source_jar_sha256,
+                    &provider.derived_checks.source_payload_sha256,
                 ) {
-                    (None, None) => {}
-                    (Some(projection), Some(hash)) => {
+                    (None, None, None) => {}
+                    (Some(projection), Some(hash), None) | (Some(projection), None, Some(hash)) => {
                         require_nonempty(projection, "catalog platform source projection")?;
                         eyre::ensure!(
                             hash.strip_prefix("sha256:").is_some_and(|hex| {
                                 hex.len() == 64 && hex.bytes().all(|byte| byte.is_ascii_hexdigit())
                             }),
-                            "catalog platform source requires a full SHA-256 source JAR hash"
+                            "catalog platform source requires a full SHA-256 source identity"
                         );
                         eyre::ensure!(
                             provider
@@ -910,7 +915,7 @@ impl SourceProviderV3 {
                         );
                     }
                     _ => eyre::bail!(
-                        "catalog platform source requires both projection and source JAR hash"
+                        "catalog platform source requires projection and exactly one source identity"
                     ),
                 }
             }

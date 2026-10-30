@@ -1,4 +1,6 @@
 use eyre::Context;
+use sha2::Digest;
+use sha2::Sha256;
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
@@ -11,6 +13,77 @@ use zip::ZipArchive;
 const MAX_ENTRIES: usize = 250_000;
 const MAX_ENTRY_BYTES: u64 = 512 * 1024 * 1024;
 const MAX_TOTAL_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+
+/// Stable source payload identity: entry names, lengths and decompressed bytes,
+/// independent of ZIP timestamps, ordering and compression. The full archive
+/// remains separately checksummed in the producer's immutable cache receipt.
+pub(crate) fn archive_payload_sha256(input: &Path) -> eyre::Result<String> {
+    let file = File::open(input)?;
+    let mut archive = ZipArchive::new(file)?;
+    eyre::ensure!(
+        archive.len() <= MAX_ENTRIES,
+        "source archive exceeds entry limit"
+    );
+    let mut entries = Vec::new();
+    let mut seen = HashSet::new();
+    let mut total_bytes = 0_u64;
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        let relative = safe_entry_path(entry.name())?;
+        reject_special_entry(entry.name(), entry.unix_mode())?;
+        if entry.is_dir() {
+            continue;
+        }
+        let name = relative.to_string_lossy().replace('\\', "/");
+        eyre::ensure!(
+            seen.insert(name.clone()),
+            "duplicate source archive entry {name}"
+        );
+        let size = entry.size();
+        eyre::ensure!(
+            size <= MAX_ENTRY_BYTES,
+            "source archive entry exceeds byte limit"
+        );
+        total_bytes = total_bytes
+            .checked_add(size)
+            .ok_or_else(|| eyre::eyre!("source archive size overflow"))?;
+        eyre::ensure!(
+            total_bytes <= MAX_TOTAL_BYTES,
+            "source archive exceeds byte limit"
+        );
+        let mut digest = Sha256::new();
+        let mut buffer = [0_u8; 16 * 1024];
+        let mut read_bytes = 0_u64;
+        loop {
+            let count = entry.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            read_bytes += count as u64;
+            digest.update(&buffer[..count]);
+        }
+        eyre::ensure!(read_bytes == size, "source archive entry length changed");
+        entries.push((name, size, digest.finalize()));
+    }
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let mut digest = Sha256::new();
+    digest.update(b"sfm:source-archive-payload@1\0");
+    for (name, size, entry_digest) in entries {
+        digest.update((name.len() as u64).to_be_bytes());
+        digest.update(name.as_bytes());
+        digest.update(size.to_be_bytes());
+        digest.update(entry_digest);
+    }
+    Ok(format!("sha256:{:x}", digest.finalize()))
+}
+
+pub(crate) fn matches_catalog_source_identity(input: &Path, expected: &str) -> eyre::Result<bool> {
+    if let Some(payload) = expected.strip_prefix("payload-") {
+        Ok(archive_payload_sha256(input)? == payload)
+    } else {
+        Ok(crate::source_projection::provenance::sha256(&fs::read(input)?) == expected)
+    }
+}
 
 /// Extracts a source ZIP through a temporary sibling directory and publishes the completed tree.
 ///
@@ -262,6 +335,32 @@ fn reject_special_entry(name: &str, unix_mode: Option<u32>) -> eyre::Result<()> 
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn payload_identity_ignores_container_order_but_detects_source_changes() {
+        let temp = tempfile::tempdir().expect("temporary directory");
+        let first = temp.path().join("first.jar");
+        let reordered = temp.path().join("reordered.jar");
+        let changed = temp.path().join("changed.jar");
+        write_zip(
+            &first,
+            &[("src/A.java", b"class A {}"), ("src/B.java", b"class B {}")],
+        );
+        write_zip(
+            &reordered,
+            &[("src/B.java", b"class B {}"), ("src/A.java", b"class A {}")],
+        );
+        write_zip(
+            &changed,
+            &[("src/A.java", b"class A {}"), ("src/B.java", b"class C {}")],
+        );
+        assert_ne!(fs::read(&first).unwrap(), fs::read(&reordered).unwrap());
+        let expected = archive_payload_sha256(&first).unwrap();
+        assert_eq!(archive_payload_sha256(&reordered).unwrap(), expected);
+        assert_ne!(archive_payload_sha256(&changed).unwrap(), expected);
+        assert!(
+            matches_catalog_source_identity(&reordered, &format!("payload-{expected}")).unwrap()
+        );
+    }
     use super::*;
     use std::io::Write;
     use zip::ZipWriter;

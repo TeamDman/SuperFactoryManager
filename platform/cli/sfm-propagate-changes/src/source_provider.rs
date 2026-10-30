@@ -156,7 +156,15 @@ impl<'a> SourceProviderView<'a> {
                         std::fs::read(&source_jar).is_ok_and(|bytes| {
                             crate::source_projection::provenance::sha256(&bytes) == expected
                         })
-                    });
+                    })
+                    && provider
+                        .derived_checks
+                        .source_payload_sha256
+                        .as_deref()
+                        .is_none_or(|expected| {
+                            crate::source_archive::archive_payload_sha256(&source_jar)
+                                .is_ok_and(|actual| actual == expected)
+                        });
                 if archive_matches_lock
                     && tree
                         .extension()
@@ -293,6 +301,7 @@ mod tests {
                 tree_cache_path: relative.clone(),
                 catalog_projection: None,
                 source_jar_sha256: None,
+                source_payload_sha256: None,
             },
         });
         let shared_candidate =
@@ -361,6 +370,7 @@ mod tests {
                 tree_cache_path: portable,
                 catalog_projection: Some("sfm-dev/mc-1.19.2".to_owned()),
                 source_jar_sha256: Some(crate::source_projection::provenance::sha256(&bytes)),
+                source_payload_sha256: None,
             },
         });
         let view = SourceProviderView::new(&inventory, &provider, 0);

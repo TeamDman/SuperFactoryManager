@@ -522,6 +522,12 @@ fn acquire_platform_sources(
 ) -> eyre::Result<()> {
     let catalog =
         provider.and_then(|provider| provider.derived_checks.catalog_projection.as_deref());
+    if let Some(selected_key) = inventory.target.branch.as_str().strip_prefix("project:") {
+        eyre::ensure!(
+            catalog == Some(selected_key),
+            "catalog project `{selected_key}` requires a matching locked catalog platform provider"
+        );
+    }
     let (selection, cache_root, java_home) = if let Some(projection) = catalog {
         let home = java_home.ok_or_else(|| {
             eyre::eyre!("catalog platform sources require an explicit --java-home")
@@ -562,18 +568,18 @@ fn acquire_platform_sources(
     if let Some(provider) =
         provider.filter(|provider| provider.derived_checks.catalog_projection.is_some())
     {
-        let hash = provider
-            .derived_checks
-            .source_jar_sha256
-            .as_deref()
-            .ok_or_else(|| {
-                eyre::eyre!("catalog platform source is missing its locked source JAR hash")
-            })?;
+        let identity = if let Some(hash) = &provider.derived_checks.source_jar_sha256 {
+            hash.clone()
+        } else if let Some(hash) = &provider.derived_checks.source_payload_sha256 {
+            format!("payload-{hash}")
+        } else {
+            eyre::bail!("catalog platform source is missing its locked source identity");
+        };
         let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
         crate::jar_build::engine::invoke_catalog_platform_source_output(
             &build,
             &tree,
-            hash,
+            &identity,
             cancellation_token,
         )?;
         eyre::ensure!(
@@ -653,7 +659,8 @@ impl SourceAcquisitionRecommendation {
                         provider,
                         provider_id,
                         parallel: None,
-                        branch: self.branch.clone(),
+                        branch: Some(self.branch.clone()),
+                        project_root: None,
                         java_home: None,
                     }),
                 }),
@@ -949,7 +956,7 @@ mod tests {
             else {
                 panic!("expected dependency source acquire command");
             };
-            assert_eq!(acquire.branch.as_ref(), "1.19.2");
+            assert_eq!(acquire.branch.as_ref().expect("branch").as_ref(), "1.19.2");
             assert_ne!(acquire.provider.is_some(), acquire.provider_id.is_some());
             match index {
                 0 => {

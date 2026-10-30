@@ -463,7 +463,7 @@ mod tests {
         else {
             panic!("expected symbol index refresh command");
         };
-        assert_eq!(refresh.branch.0, "1.19.2");
+        assert_eq!(refresh.branch.expect("branch").0, "1.19.2");
 
         let show = parse(&["symbol", "index", "show", "--branch", "1.19.2"]);
         let CliCommand::Symbol(SymbolArgs {
@@ -476,7 +476,7 @@ mod tests {
         else {
             panic!("expected symbol index show command");
         };
-        assert_eq!(show.branch.0, "1.19.2");
+        assert_eq!(show.branch.expect("branch").0, "1.19.2");
     }
 
     #[test]

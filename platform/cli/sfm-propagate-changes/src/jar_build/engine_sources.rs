@@ -34,7 +34,7 @@ fn publish_catalog_platform_source(
         // The held NeoForm producer published inside its reader lifetime.
         let source = tree.with_extension("jar");
         eyre::ensure!(
-            crate::source_projection::provenance::sha256(&fs::read(&source)?) == expected_sha256
+            crate::source_archive::matches_catalog_source_identity(&source, expected_sha256)?
                 && crate::source_archive::extracted_tree_matches_archive(&source, tree)?,
             "held NeoForm source publication changed after consumption"
         );
@@ -57,7 +57,7 @@ fn publish_checked_catalog_source_archive(
     );
     let bytes = fs::read(source)?;
     eyre::ensure!(
-        crate::source_projection::provenance::sha256(&bytes) == expected_sha256,
+        crate::source_archive::matches_catalog_source_identity(source, expected_sha256)?,
         "catalog platform source JAR differs from its locked SHA-256"
     );
     let jar = tree.with_extension("jar");
@@ -83,7 +83,7 @@ fn publish_checked_catalog_source_archive(
         Err(error) => return Err(error.into()),
     }
     eyre::ensure!(
-        crate::source_projection::provenance::sha256(&fs::read(&jar)?) == expected_sha256,
+        crate::source_archive::matches_catalog_source_identity(&jar, expected_sha256)?,
         "existing catalog platform source JAR differs from its locked SHA-256"
     );
     let materialized = super::source_output_filetree::materialize(

@@ -153,6 +153,11 @@ impl JavaSourceWorkspace {
         project_root: &Path,
         java_home: Option<&Path>,
     ) -> eyre::Result<Self> {
+        eyre::ensure!(
+            project_root.is_dir(),
+            "Failed to resolve generated project root {}",
+            project_root.display()
+        );
         let selected = crate::jar_build::engine::select_project_source_cache(
             project_root,
             None,
@@ -257,6 +262,41 @@ impl JavaSourceWorkspace {
         jdk_sources.apply_to_context(&mut workspace.context);
         workspace.diagnostics.extend(jdk_sources.diagnostics());
         workspace.jdk_sources = jdk_sources;
+        Ok(workspace)
+    }
+
+    /// Index locked dependency source roots in a generated projection's Java
+    /// context. This never consults a historical version branch or its lock.
+    pub(crate) fn resolve_generated_dependency_roots(
+        project_root: &Path,
+        source_roots: &[PathBuf],
+        source_cache_root: &Path,
+        java_home: Option<&Path>,
+    ) -> eyre::Result<Self> {
+        let jdk_cache = source_cache_root.join("minecraft-toolchain").join("jbrsdk");
+        let generated = Self::resolve_generated_project_with_cache(
+            project_root,
+            &jdk_cache,
+            source_cache_root,
+            java_home,
+        )?;
+        let mut workspace = collect_custom_workspace(
+            &generated.context.branch,
+            &generated.context.minecraft_version,
+            &generated.context.java_release,
+            source_roots,
+            project_root,
+            JavaClasspathMode::Isolated,
+            Vec::new(),
+            fingerprint(["isolated"]),
+        )?;
+        workspace.context.index_fingerprint = fingerprint([
+            generated.context.index_fingerprint.as_str(),
+            workspace.context.index_fingerprint.as_str(),
+        ]);
+        workspace.context.jdk.clone_from(&generated.context.jdk);
+        workspace.jdk_sources = generated.jdk_sources;
+        workspace.diagnostics = generated.diagnostics;
         Ok(workspace)
     }
 

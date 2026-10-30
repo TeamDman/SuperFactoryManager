@@ -1,6 +1,7 @@
 use super::dependency_context::load_inventory;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
+use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_sources::DependencySourceProviderSelector;
 use crate::dependency_sources::SourceProviderFilter;
 use crate::dependency_sources::acquire_selected_sources;
@@ -28,9 +29,12 @@ pub struct DependencySourceAcquireArgs {
     /// Run independent source acquisitions in parallel. Bare `--parallel` defaults to 10 workers.
     #[facet(default, args::named)]
     pub parallel: Option<Option<usize>>,
-    /// Branch selector to read. Must match exactly one worktree.
-    #[facet(args::named)]
-    pub branch: BranchSelector,
+    /// Historical branch selector; choose exactly one of this and --project-root.
+    #[facet(default, args::named)]
+    pub branch: Option<BranchSelector>,
+    /// Exact catalogued generated projection root.
+    #[facet(default, args::named)]
+    pub project_root: Option<std::path::PathBuf>,
     /// Exact JDK for catalog-owned platform source production.
     #[facet(default, args::named)]
     pub java_home: Option<std::path::PathBuf>,
@@ -49,11 +53,22 @@ impl DependencySourceAcquireArgs {
             provider_id,
             parallel,
             branch: selected_branch,
+            project_root,
             java_home,
         } = self;
         cancellation_token.bail_if_cancelled()?;
-        let branch = selected_branch.clone();
-        let inventory = load_inventory(selected_branch, cache_home)?;
+        eyre::ensure!(
+            selected_branch.is_some() != project_root.is_some(),
+            "source acquire requires exactly one of --branch and --project-root"
+        );
+        let (branch, inventory) = if let Some(project_root) = project_root {
+            let inventory = DependencyInventory::load_project(&project_root, cache_home.clone())?;
+            (BranchSelector(inventory.target.branch.0.clone()), inventory)
+        } else {
+            let branch = selected_branch.expect("one selection checked");
+            let inventory = load_inventory(branch.clone(), cache_home)?;
+            (branch, inventory)
+        };
         let filter = SourceProviderFilter::new(provider, provider_id)?;
         let parallelism = Parallelism::from_cli(parallel)?;
         let targets = acquisition_targets(&inventory, target.as_deref(), all, &filter)?;

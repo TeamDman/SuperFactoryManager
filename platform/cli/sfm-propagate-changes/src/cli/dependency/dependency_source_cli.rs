@@ -35,12 +35,36 @@ pub enum DependencySourceCommand {
 
 impl DependencySourceArgs {
     pub(crate) fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<()> {
-        let branch = self.command.branch();
-        let selected = crate::jar_build::engine::select_branch_source_cache(
-            branch,
-            self.cache_root.as_deref(),
-            cancellation_token,
-        )?;
+        let selected = if let DependencySourceCommand::Acquire(args) = &self.command {
+            if let Some(project_root) = &args.project_root {
+                eyre::ensure!(
+                    args.branch.is_none(),
+                    "select either --branch or --project-root"
+                );
+                crate::jar_build::engine::select_project_source_cache(
+                    project_root,
+                    self.cache_root.as_deref(),
+                    cancellation_token,
+                )?
+            } else {
+                let branch = args.branch.as_ref().ok_or_else(|| {
+                    eyre::eyre!("source acquire requires --branch or --project-root")
+                })?;
+                crate::jar_build::engine::select_branch_source_cache(
+                    branch,
+                    self.cache_root.as_deref(),
+                    cancellation_token,
+                )?
+            }
+        } else {
+            crate::jar_build::engine::select_branch_source_cache(
+                self.command
+                    .branch()
+                    .expect("non-acquire commands require a branch"),
+                self.cache_root.as_deref(),
+                cancellation_token,
+            )?
+        };
         let cache_home = selected.home();
         match self.command {
             DependencySourceCommand::Acquire(args) => args.invoke(cancellation_token, cache_home),
@@ -53,20 +77,20 @@ impl DependencySourceArgs {
 }
 
 impl DependencySourceCommand {
-    fn branch(&self) -> &BranchSelector {
+    fn branch(&self) -> Option<&BranchSelector> {
         match self {
-            Self::Acquire(args) => &args.branch,
-            Self::Configure(args) => &args.branch,
-            Self::Search(args) => &args.branch,
+            Self::Acquire(args) => args.branch.as_ref(),
+            Self::Configure(args) => Some(&args.branch),
+            Self::Search(args) => Some(&args.branch),
             Self::Provider(args) => match &args.command {
-                super::DependencySourceProviderCommand::List(args) => &args.branch,
+                super::DependencySourceProviderCommand::List(args) => Some(&args.branch),
             },
             Self::Cache(args) => match &args.command {
                 super::dependency_source_cache_cli::DependencySourceCacheCommand::Audit(args) => {
-                    &args.branch
+                    Some(&args.branch)
                 }
                 super::dependency_source_cache_cli::DependencySourceCacheCommand::Cleanup(args) => {
-                    &args.branch
+                    Some(&args.branch)
                 }
             },
         }
@@ -89,6 +113,25 @@ mod selected_cache_args_tests {
         ])
         .unwrap();
         assert_eq!(parsed.cache_root, Some(PathBuf::from("C:/selected/shared")));
-        assert_eq!(parsed.command.branch().as_ref(), "1.19.2");
+        assert_eq!(parsed.command.branch().expect("branch").as_ref(), "1.19.2");
+    }
+
+    #[test]
+    fn parses_catalog_source_acquisition_without_a_historical_branch() {
+        let parsed = figue::from_slice::<DependencySourceArgs>(&[
+            "acquire",
+            "minecraft/main",
+            "--project-root",
+            "D:/repo/projections/sfm-dev/mc-1.21.0",
+        ])
+        .unwrap();
+        let DependencySourceCommand::Acquire(acquire) = parsed.command else {
+            panic!("expected acquire");
+        };
+        assert!(acquire.branch.is_none());
+        assert_eq!(
+            acquire.project_root,
+            Some(PathBuf::from("D:/repo/projections/sfm-dev/mc-1.21.0"))
+        );
     }
 }

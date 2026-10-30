@@ -108,6 +108,7 @@ pub(crate) fn attach_locked_minecraft_classfile_stub_source(
             ),
             catalog_projection: None,
             source_jar_sha256: None,
+            source_payload_sha256: None,
         },
     };
     if !inventory.lockfile.dependencies[dependency_index]

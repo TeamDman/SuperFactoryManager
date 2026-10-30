@@ -197,7 +197,13 @@ mod tests {
             "package example; import dep.External; public class Use { External value; }",
         )
         .unwrap();
-        let cache_root = temporary.path().join("cache");
+        let cache_root = temporary.path().join("sfm-toolchain-data");
+        drop(crate::jar_build::engine::select_project_source_cache(
+            &project_root,
+            None,
+            &CancellationToken::new(),
+        )
+        .unwrap());
         let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
         std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
         let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
@@ -234,11 +240,11 @@ mod tests {
                 }
                 .invoke_in(&CancellationToken::new(), temporary.path())
                 .unwrap();
-                assert_eq!(definition.exit_code(), 0);
                 let json = definition
                     .render(Some(OutputFormat::Json), false)
                     .unwrap()
                     .unwrap();
+                assert_eq!(definition.exit_code(), 0, "{json}");
                 assert!(json.contains("dep.External"));
                 assert!(json.contains("External.class"));
 
@@ -270,7 +276,13 @@ mod tests {
         let project_root = temporary
             .path()
             .join("platform/minecraft/projections/1.19.2");
-        let cache_root = temporary.path().join("cache");
+        let cache_root = temporary.path().join("sfm-toolchain-data");
+        drop(crate::jar_build::engine::select_project_source_cache(
+            &project_root,
+            None,
+            &CancellationToken::new(),
+        )
+        .unwrap());
         let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
         std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
         let mut archive = ZipWriter::new(Cursor::new(Vec::new()));

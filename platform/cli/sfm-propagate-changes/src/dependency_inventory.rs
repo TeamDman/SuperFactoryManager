@@ -52,6 +52,37 @@ impl DependencyInventory {
         })
     }
 
+    /// Select the lock emitted for an exact catalogued projection. Historical
+    /// worktree source commands continue to use `load_target` above.
+    pub(crate) fn load_project(project_root: &Path, cache_home: CacheHome) -> eyre::Result<Self> {
+        let (catalog, key) =
+            crate::source_projection::core_catalog::CoreCatalog::for_project(project_root)?;
+        let projection = catalog.context(&key)?;
+        let lockfile_path = catalog
+            .repo_root
+            .join(catalog.catalog.project_dir(&key)?)
+            .join("sfm-toolchain.lock.json");
+        let input = std::fs::read_to_string(&lockfile_path)
+            .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
+        let lockfile = read_editable(&input)
+            .wrap_err_with(|| format!("Failed to load {}", lockfile_path.display()))?;
+        let target = WorktreeTarget {
+            branch: crate::branch_targets::BranchName::new(format!("project:{key}")),
+            worktree_path: crate::branch_targets::WorktreePath::new(catalog.repo_root),
+            core: false,
+            mc_version: Some(crate::branch_targets::MinecraftVersion::parse(
+                &projection.minecraft_version,
+            )?),
+        };
+        Ok(Self {
+            target,
+            lockfile_path,
+            cache_home,
+            original_input: input,
+            lockfile,
+        })
+    }
+
     pub fn dependencies(&self) -> impl Iterator<Item = &DependencyV3> {
         self.lockfile.dependencies.iter()
     }
@@ -106,10 +137,9 @@ impl DependencyInventory {
         if portable.is_absolute() {
             return portable.to_path_buf();
         }
-        self.target
-            .worktree_path
-            .join("platform")
-            .join("minecraft")
+        self.lockfile_path
+            .parent()
+            .expect("loaded lockfile has a parent")
             .join(portable)
     }
 
