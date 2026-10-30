@@ -39,6 +39,37 @@ pub(super) struct HeldForgeDevJar {
     _outputs: HeldForgePreparationOutputs,
 }
 
+/// A validated preparation entry whose immutable payload is consumed directly.
+/// Keep the open files and their ancestor leases until the build context exits.
+pub(super) struct HeldSharedPreparation {
+    kind: &'static str,
+    paths: Vec<(&'static str, PathBuf)>,
+    _outputs: HeldForgePreparationOutputs,
+}
+
+impl HeldSharedPreparation {
+    pub(super) fn path(&self, kind: &str, name: &str) -> Option<&Path> {
+        (self.kind == kind)
+            .then(|| self.paths.iter().find(|(candidate, _)| *candidate == name))
+            .flatten()
+            .map(|(_, path)| dunce::simplified(path))
+    }
+}
+
+fn record_shared_paths(context: &ExecutionContext<'_>, held: &HeldSharedPreparation) {
+    context
+        .held_shared_preparation
+        .lock()
+        .expect("Shared preparation hold poisoned")
+        .extend(held.paths.iter().map(|(name, path)| {
+            (
+                held.kind.to_owned(),
+                (*name).to_owned(),
+                held.path(held.kind, name).unwrap_or(path).to_path_buf(),
+            )
+        }));
+}
+
 /// A completed two-output remap entry held while its JAR is read directly.
 /// The file and every ancestor are opened before the receipt is checked.
 pub(super) struct HeldDependencyRemapJar {
@@ -111,6 +142,49 @@ pub(super) fn held_dependency_remap_entry(
     Ok(None)
 }
 
+fn hold_shared_preparation(
+    key_root: &Path,
+    fingerprint: &str,
+    kind: &'static str,
+    names: &[&'static str],
+    check: &impl Fn() -> eyre::Result<()>,
+) -> eyre::Result<Option<HeldSharedPreparation>> {
+    let Some(entries) = entry_directories(key_root)? else {
+        return Ok(None);
+    };
+    for entry in entries {
+        check()?;
+        let payload = entry.join("payload");
+        let paths = names
+            .iter()
+            .map(|name| (*name, payload.join(name)))
+            .collect::<Vec<_>>();
+        let outputs = match HeldForgePreparationOutputs::open_paths(&paths, check) {
+            Ok(Some(outputs)) => outputs,
+            Ok(None) => continue,
+            Err(error) => {
+                check()?;
+                tracing::debug!(%error, "Shared preparation reader admission miss");
+                continue;
+            }
+        };
+        if project_compilation_cache::matches(
+            &entry,
+            &entry.join("inputs.sha256"),
+            fingerprint,
+            &[("payload", &payload)],
+            check,
+        )? {
+            return Ok(Some(HeldSharedPreparation {
+                kind,
+                paths,
+                _outputs: outputs,
+            }));
+        }
+    }
+    Ok(None)
+}
+
 impl std::fmt::Debug for HeldForgeDevJar {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
@@ -155,15 +229,55 @@ pub(super) fn hold_dev_jar_for_run(
         .into_iter()
         .filter(|(name, _)| *name != "dev_compile.jar")
         .collect::<Vec<_>>();
+    let direct_mappings = context.forge_mapping_path("srg_to_official.tsrg")
+        != outputs.iter().find(|(name, _)| *name == "srg_to_official.tsrg")
+            .expect("Forge mapping output role").1;
+    let mappings = if direct_mappings { &[][..] } else { mappings.as_slice() };
     let held = restore_held_dev_jar(
         &base.join(key),
         fingerprint,
         &context.plan.cache_dir,
-        &mappings,
+        mappings,
         &|| context.bail_if_cancelled(),
     )?;
     inputs.recheck(context)?;
     Ok(held)
+}
+
+/// Runtime uses a new context. Re-admit both immutable entries and retain the
+/// thread-bound leases through the entire launch, including remap consumers.
+pub(super) fn hold_preparation_for_run(
+    context: &ExecutionContext<'_>,
+) -> eyre::Result<(Option<HeldSharedPreparation>, Option<HeldSharedPreparation>)> {
+    if !eligible(context) || context.plan.refresh {
+        return Ok((None, None));
+    }
+    let mut holds = Vec::new();
+    for (kind, names) in [
+        ("mcp", & ["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"][..]),
+        ("forge", & ["srg_to_official.tsrg", "official_to_srg.tsrg"][..]),
+    ] {
+        let Some(inputs) = ForgePreparationInputs::prepare(context, kind)? else {
+            break;
+        };
+        let Some((base, _ancestry)) = store_base(context, kind)? else {
+            break;
+        };
+        let key = inputs.fingerprint().trim_start_matches("sha256:");
+        let held = hold_shared_preparation(
+            &base.join(key),
+            inputs.fingerprint(),
+            kind,
+            names,
+            &|| context.bail_if_cancelled(),
+        )?;
+        inputs.recheck(context)?;
+        let Some(held) = held else { break };
+        record_shared_paths(context, &held);
+        holds.push(held);
+    }
+    let mut holds = holds.into_iter();
+    Ok((holds.next(), holds.next()))
 }
 
 pub(super) fn eligible(context: &ExecutionContext<'_>) -> bool {
@@ -178,7 +292,7 @@ pub(super) fn execute(
     materialize_sources: bool,
     legacy: impl FnOnce() -> eyre::Result<()>,
     fresh: impl FnOnce(Option<&Path>) -> eyre::Result<()>,
-) -> eyre::Result<Option<HeldForgeDevJar>> {
+) -> eyre::Result<(Option<HeldForgeDevJar>, Option<HeldSharedPreparation>)> {
     let inputs = NfrtPreparationPhase::run("forge_preparation.input_admission", || {
         ForgePreparationInputs::prepare(context, kind)
     })?;
@@ -189,7 +303,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok(None);
+        return Ok((None, None));
     };
     let Some((base, _base_ancestry)) = store_base(context, kind)? else {
         tracing::info!(
@@ -198,7 +312,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok(None);
+        return Ok((None, None));
     };
     let fingerprint = inputs.fingerprint();
     let key = fingerprint.trim_start_matches("sha256:");
@@ -219,7 +333,7 @@ pub(super) fn execute(
             "forge_preparation_cache_declined"
         );
         legacy()?;
-        return Ok(None);
+        return Ok((None, None));
     };
     let outputs = output_paths(context, kind)?;
     let hold_dev_jar = kind == "forge" && !materialize_sources;
@@ -233,18 +347,42 @@ pub(super) fn execute(
     } else {
         restore_outputs.clone()
     };
+    let mut shared = None;
     let (reused, held_dev_jar) = if context.plan.refresh {
         (false, None)
+    } else if kind == "mcp" && !materialize_sources {
+        shared = hold_shared_preparation(
+            &key_root,
+            fingerprint,
+            "mcp",
+            &["patched_sources.jar", "merged_mappings.tsrg", "renamed.jar"],
+            &|| context.bail_if_cancelled(),
+        )?;
+        (shared.is_some(), None)
     } else if hold_dev_jar {
-        let held = NfrtPreparationPhase::run("forge_preparation.reuse", || {
-            restore_held_dev_jar(
-                &key_root,
-                fingerprint,
-                &context.plan.cache_dir,
-                &materialized_outputs,
-                &|| context.bail_if_cancelled(),
-            )
-        })?;
+        shared = hold_shared_preparation(
+            &key_root,
+            fingerprint,
+            "forge",
+            &["srg_to_official.tsrg", "official_to_srg.tsrg"],
+            &|| context.bail_if_cancelled(),
+        )?;
+        let held = if shared.is_some() {
+            NfrtPreparationPhase::run("forge_preparation.reuse", || {
+                restore_held_dev_jar(
+                    &key_root,
+                    fingerprint,
+                    &context.plan.cache_dir,
+                    &[],
+                    &|| context.bail_if_cancelled(),
+                )
+            })?
+        } else {
+            None
+        };
+        if held.is_none() {
+            shared = None;
+        }
         (held.is_some(), held)
     } else {
         let reused = NfrtPreparationPhase::run("forge_preparation.reuse", || {
@@ -267,7 +405,14 @@ pub(super) fn execute(
             held_dev_jar = hold_dev_jar,
             "forge_dependency_preparation"
         );
-        let mut node_outputs = materialized_outputs;
+        let mut node_outputs = if let Some(held) = &shared {
+            held.paths.clone()
+        } else {
+            materialized_outputs
+        };
+        if let Some(held) = &shared {
+            record_shared_paths(context, held);
+        }
         if let Some(held) = &held_dev_jar {
             let path = held.path().to_path_buf();
             *context
@@ -277,7 +422,7 @@ pub(super) fn execute(
             node_outputs.push(("dev_compile.jar", path));
         }
         write_cached_node(context, kind, &node_outputs)?;
-        return Ok(held_dev_jar);
+        return Ok((held_dev_jar, shared));
     }
     // Never turn an old existence-only project hit into a new validated entry.
     // This route deliberately invokes the original producer with that hit disabled.
@@ -289,7 +434,7 @@ pub(super) fn execute(
                 "forge_preparation_cache_declined"
             );
             legacy()?;
-            return Ok(None);
+            return Ok((None, None));
         };
         Some(at)
     } else {
@@ -313,7 +458,7 @@ pub(super) fn execute(
         stored,
         "forge_dependency_preparation"
     );
-    Ok(None)
+    Ok((None, None))
 }
 
 fn restore_held_dev_jar(
@@ -347,16 +492,27 @@ fn restore_held_dev_jar(
         };
         // The reader hold precedes full-entry integrity validation and stays
         // live through later compile, package and run consumers.
-        if restore_completed(
-            &entry,
-            fingerprint,
-            project,
-            mappings,
-            check,
-            "forge_preparation.materialize",
-        )?
-        .is_some()
-        {
+        let valid = if mappings.is_empty() {
+            let payload = entry.join("payload");
+            project_compilation_cache::matches(
+                &entry,
+                &entry.join("inputs.sha256"),
+                fingerprint,
+                &[("payload", &payload)],
+                check,
+            )?
+        } else {
+            restore_completed(
+                &entry,
+                fingerprint,
+                project,
+                mappings,
+                check,
+                "forge_preparation.materialize",
+            )?
+            .is_some()
+        };
+        if valid {
             return Ok(Some(HeldForgeDevJar {
                 path,
                 _outputs: held,

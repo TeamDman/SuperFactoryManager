@@ -769,13 +769,7 @@ fn write_javac_argfile(
         .cache_dir
         .join("project")
         .join("compileJava-mappings.tsrg");
-    let reobf_tsrg = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings")
-        .join("official_to_srg.tsrg");
+    let reobf_tsrg = context.forge_mapping_path("official_to_srg.tsrg");
     if let Some(parent) = refmap.parent() {
         fs::create_dir_all(parent)?;
     }

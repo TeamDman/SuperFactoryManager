@@ -20,8 +20,12 @@ enum BuildTarget {
 
 #[cfg(windows)]
 type ForgeDevHold = Option<forge_preparation_cache::HeldForgeDevJar>;
+#[cfg(windows)]
+type McpHold = Option<forge_preparation_cache::HeldSharedPreparation>;
 #[cfg(not(windows))]
 type ForgeDevHold = ();
+#[cfg(not(windows))]
+type McpHold = ();
 
 #[tracing::instrument(
     level = "info",
@@ -85,8 +89,12 @@ fn execute_build(
         return execute_named_neoform_compile(&context, target, total_started);
     }
     let held_forge_dev_jar: ForgeDevHold;
+    let held_mcp: McpHold;
+    let held_forge_mappings: McpHold;
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         held_forge_dev_jar = ForgeDevHold::default();
+        held_mcp = McpHold::default();
+        held_forge_mappings = McpHold::default();
         let started = Instant::now();
         tracing::info!("Build node execute-neoform-userdev: start");
         context.bail_if_cancelled()?;
@@ -101,7 +109,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-mcp-config-joined: start");
         context.bail_if_cancelled()?;
-        execute_mcp_config_joined(&context)?;
+        held_mcp = execute_mcp_config_joined(&context)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-mcp-config-joined: done in {} ms",
@@ -111,7 +119,7 @@ fn execute_build(
         let started = Instant::now();
         tracing::info!("Build node execute-forge-userdev: start");
         context.bail_if_cancelled()?;
-        held_forge_dev_jar = execute_forge_userdev(&context, target)?;
+        (held_forge_dev_jar, held_forge_mappings) = execute_forge_userdev(&context, target)?;
         context.bail_if_cancelled()?;
         tracing::info!(
             "Build node execute-forge-userdev: done in {} ms",
@@ -127,6 +135,8 @@ fn execute_build(
     }
     let result = execute_project_build(&context, target, total_started);
     drop(held_forge_dev_jar);
+    drop(held_forge_mappings);
+    drop(held_mcp);
     result
 }
 
@@ -725,6 +735,9 @@ fn execute_run_with_context(
             "Dry run verified the successful compile snapshot; no runtime slot or persistent game data was allocated");
         return Ok(());
     }
+
+    #[cfg(windows)]
+    let _held_preparation = forge_preparation_cache::hold_preparation_for_run(context)?;
 
     retain_launch_preparation_lock(context, build_cache_lock)?;
     let roots = runtime_snapshot_roots(snapshot, kind, run_options);
@@ -6393,13 +6406,7 @@ fn ensure_client_extra_jar(context: &ExecutionContext<'_>) -> eyre::Result<PathB
 
 fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
     let _span = tracing::debug_span!("ensure_runtime_mcp_csv_mappings").entered();
-    let input = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings")
-        .join("srg_to_official.tsrg");
+    let input = context.forge_mapping_path("srg_to_official.tsrg");
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires SRG-to-named mappings first: {}",
@@ -6420,13 +6427,7 @@ fn ensure_runtime_mcp_csv_mappings(context: &ExecutionContext<'_>) -> eyre::Resu
 }
 
 fn ensure_run_refmap_remapping_file(context: &ExecutionContext<'_>) -> eyre::Result<PathBuf> {
-    let input = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings")
-        .join("srg_to_official.tsrg");
+    let input = context.forge_mapping_path("srg_to_official.tsrg");
     if !input.is_file() {
         eyre::bail!(
             "Forge userdev launch requires SRG-to-named mappings first: {}",
@@ -6499,13 +6500,7 @@ fn resolve_run_deobf_dependencies(
     let _span = tracing::debug_span!("resolve_run_deobf_dependencies", kind = %kind.command_name())
         .entered();
     let dependency_output = context.plan.cache_dir.join("dependencies");
-    let mapping_path = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings")
-        .join("srg_to_official.tsrg");
+    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg");
     if !mapping_path.is_file() {
         eyre::bail!(
             "{} requires generated dependency mappings first: {}",
@@ -7604,6 +7599,8 @@ struct ExecutionContext<'a> {
     minecraft_libraries_cache: Mutex<Option<Vec<PathBuf>>>,
     #[cfg(windows)]
     held_forge_dev_jar_path: Mutex<Option<PathBuf>>,
+    #[cfg(windows)]
+    held_shared_preparation: Mutex<Vec<(String, String, PathBuf)>>,
     // Exact deobfuscated classpath selected for this build. Its shared leaves
     // are held by execute_project_build through compile and package.
     selected_dependency_remaps: Mutex<Option<Vec<PathBuf>>>,

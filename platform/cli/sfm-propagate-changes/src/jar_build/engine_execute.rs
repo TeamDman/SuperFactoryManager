@@ -131,6 +131,8 @@ impl<'a> ExecutionContext<'a> {
             minecraft_libraries_cache: Mutex::new(None),
             #[cfg(windows)]
             held_forge_dev_jar_path: Mutex::new(None),
+            #[cfg(windows)]
+            held_shared_preparation: Mutex::new(Vec::new()),
             selected_dependency_remaps: Mutex::new(None),
             held_neoform_compile_jar: None,
             immutable_neoform_profile: false,
@@ -143,6 +145,54 @@ impl<'a> ExecutionContext<'a> {
 
     fn bail_if_cancelled(&self) -> eyre::Result<()> {
         self.cancellation_token.bail_if_cancelled()
+    }
+
+    fn preparation_read_path(&self, kind: &str, name: &str, local: PathBuf) -> PathBuf {
+        #[cfg(windows)]
+        if let Some(path) = self
+            .held_shared_preparation
+            .lock()
+            .expect("Shared preparation hold poisoned")
+            .iter()
+            .find(|(held_kind, held_name, _)| held_kind == kind && held_name == name)
+        {
+            return path.2.clone();
+        }
+        #[cfg(not(windows))]
+        let _ = (kind, name);
+        local
+    }
+
+    fn mcp_output_path(&self, relative: &str) -> PathBuf {
+        let name = match relative {
+            "patch/joined-patched-sources.jar" => "patched_sources.jar",
+            "mergeMappings/output.tsrg" => "merged_mappings.tsrg",
+            "rename/output.jar" => "renamed.jar",
+            _ => panic!("Unsupported MCP output role"),
+        };
+        let local = self
+            .plan
+            .cache_dir
+            .join("mcp")
+            .join(self.plan.minecraft_version.as_str())
+            .join("joined")
+            .join(relative);
+        self.preparation_read_path("mcp", name, local)
+    }
+
+    fn forge_mapping_path(&self, name: &str) -> PathBuf {
+        assert!(
+            matches!(name, "srg_to_official.tsrg" | "official_to_srg.tsrg"),
+            "Unsupported Forge mapping role"
+        );
+        let local = self
+            .plan
+            .cache_dir
+            .join("forge")
+            .join(self.plan.minecraft_version.as_str())
+            .join("mappings")
+            .join(name);
+        self.preparation_read_path("forge", name, local)
     }
 
     fn recheck_compiler_image(&self) -> eyre::Result<()> {
@@ -434,26 +484,27 @@ impl<'a> ExecutionContext<'a> {
 mod forge_preparation_cache;
 
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
-fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<()> {
+fn execute_mcp_config_joined(context: &ExecutionContext<'_>) -> eyre::Result<McpHold> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
-        forge_preparation_cache::execute(
+        let (_, held_mcp) = forge_preparation_cache::execute(
             context,
             "mcp",
-            true,
+            false,
             || execute_mcp_config_joined_uncached(context, true),
             |_| execute_mcp_config_joined_uncached(context, false),
         )?;
-        return Ok(());
+        return Ok(held_mcp);
     }
-    execute_mcp_config_joined_uncached(context, true)
+    execute_mcp_config_joined_uncached(context, true)?;
+    Ok(McpHold::default())
 }
 
 #[tracing::instrument(level = "info", skip_all, fields(mc = %context.plan.minecraft_version))]
 fn execute_forge_userdev(
     context: &ExecutionContext<'_>,
     target: BuildTarget,
-) -> eyre::Result<ForgeDevHold> {
+) -> eyre::Result<(ForgeDevHold, McpHold)> {
     #[cfg(windows)]
     if forge_preparation_cache::eligible(context) {
         return forge_preparation_cache::execute(
@@ -467,7 +518,7 @@ fn execute_forge_userdev(
     #[cfg(not(windows))]
     let _ = target;
     execute_forge_userdev_uncached(context, true, None)?;
-    Ok(ForgeDevHold::default())
+    Ok((ForgeDevHold::default(), McpHold::default()))
 }
 
 include!("forge_preparation_producers.rs");
@@ -728,12 +779,7 @@ fn execute_dependency_deobf(
         return Ok(Vec::new());
     }
 
-    let mapping_path = context
-        .plan
-        .cache_dir
-        .join("forge")
-        .join(context.plan.minecraft_version.as_str())
-        .join("mappings/srg_to_official.tsrg");
+    let mapping_path = context.forge_mapping_path("srg_to_official.tsrg");
     if !mapping_path.is_file() {
         eyre::bail!(
             "Dependency deobf requires generated mapping first: {}",
@@ -2337,12 +2383,13 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     let staged_resources_dir = project_root.join("staged-resources");
     let ProjectPackageInputPaths {
         development_jar,
-        reobf_mapping,
+        reobf_mapping: _local_reobf_mapping,
         mixin_reobf_mapping,
     } = project_package_input_paths(
         &context.plan.cache_dir,
         context.plan.minecraft_version.as_str(),
     );
+    let reobf_mapping = context.forge_mapping_path("official_to_srg.tsrg");
     tracing::info!(
         development_jar = %development_jar.display(),
         staged_resources_dir = %staged_resources_dir.display(),

@@ -177,10 +177,7 @@ impl ForgePreparationInputs {
             );
             return Ok(None);
         }
-        let expected = context
-            .plan
-            .cache_dir
-            .join("forge/1.19.2/mappings/srg_to_official.tsrg");
+        let expected = context.forge_mapping_path("srg_to_official.tsrg");
         if !crate::jar_build::build_snapshot_receipt::same_path_spelling(mapping_path, &expected) {
             return Ok(None);
         }
@@ -425,12 +422,6 @@ impl ForgePreparationInputs {
             if let Some(parchment) = context.maybe_artifact(ArtifactId::from("parchment-data")) {
                 requests.push(artifact_request(context, parchment)?);
             }
-            let mcp = context
-                .plan
-                .cache_dir
-                .join("mcp")
-                .join(context.plan.minecraft_version.as_str())
-                .join("joined");
             for relative in [
                 "patch/joined-patched-sources.jar",
                 "mergeMappings/output.tsrg",
@@ -438,7 +429,7 @@ impl ForgePreparationInputs {
             ] {
                 requests.push(ForgePreparationInputRequest::new(
                     format!("mcp-output:{relative}"),
-                    mcp.join(relative),
+                    context.mcp_output_path(relative),
                 ));
             }
         }

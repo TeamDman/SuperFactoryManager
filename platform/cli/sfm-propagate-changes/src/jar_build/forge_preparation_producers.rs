@@ -281,13 +281,7 @@ fn execute_forge_userdev_uncached(
         "forge_userdev cache miss"
     );
 
-    let mcp_root = context
-        .plan
-        .cache_dir
-        .join("mcp")
-        .join(context.plan.minecraft_version.as_str())
-        .join("joined");
-    let mcp_sources = mcp_root.join("patch").join("joined-patched-sources.jar");
+    let mcp_sources = context.mcp_output_path("patch/joined-patched-sources.jar");
     if !mcp_sources.is_file() {
         eyre::bail!(
             "Forge userdev requires MCP joined sources first: {}",
@@ -364,7 +358,7 @@ fn execute_forge_userdev_uncached(
         .map(|artifact| read_parchment_parameters(&artifact.cache_path))
         .transpose()?;
     generate_mojang_tsrg_mappings(
-        &mcp_root.join("mergeMappings").join("output.tsrg"),
+        &context.mcp_output_path("mergeMappings/output.tsrg"),
         &[client_mappings, server_mappings],
         parchment_parameters.as_ref(),
         &obf_to_official,
@@ -402,9 +396,7 @@ fn execute_forge_userdev_uncached(
         &[],
         &[
             "--clean".to_string(),
-            mcp_root
-                .join("rename")
-                .join("output.jar")
+            context.mcp_output_path("rename/output.jar")
                 .display()
                 .to_string(),
             "--output".to_string(),
@@ -424,7 +416,7 @@ fn execute_forge_userdev_uncached(
     let merged_output = forge_root
         .join("classes")
         .join("dev-compile-srg-untransformed.jar");
-    let clean_named_minecraft = mcp_root.join("rename").join("output.jar");
+    let clean_named_minecraft = context.mcp_output_path("rename/output.jar");
     merge_zip_archives(
         &[
             binpatched_minecraft,
