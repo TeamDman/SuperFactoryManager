@@ -70,7 +70,36 @@ public final class SFMFreshProducerBindingsTests {
         counterfeit.start();
         counterfeit.complete(Map.of("output", original), false);
         refuse(() -> counterfeitBindings.preflight(List.of(new ClasspathItem.NodeOutputItem(counterfeit.getRequiredOutput("output")))));
+        completedArchiveSelection(workspace.getParent().getParent());
         System.out.println("PASS producer binding: incomplete/foreign/stale/wrong-path/changed-action/cardinality refusal; duplicate order; no tools executed");
+    }
+
+    private static void completedArchiveSelection(Path root) {
+        var archives = new ExecutionNode("archives", Map.of(), Map.of(
+                "output", new NodeOutput("output", NodeOutputType.JAR, "fixture"),
+                "extra", new NodeOutput("extra", NodeOutputType.ZIP, "fixture"),
+                "text", new NodeOutput("text", NodeOutputType.TXT, "fixture")),
+                environment -> { throw new AssertionError("No graph action may run"); });
+        archives.start();
+        archives.complete(Map.of(
+                "output", root.resolve("work/archives/output.jar"),
+                "extra", root.resolve("work/archives/extra.zip"),
+                "text", root.resolve("work/archives/text.txt")), false);
+        var originalAlias = node();
+        originalAlias.start();
+        originalAlias.complete(Map.of("output", root.resolve("inputs/artifacts/0001.bin")), false);
+        var pending = node();
+        var alreadySealed = new ExecutionNode("recompile", Map.of(),
+                Map.of("output", new NodeOutput("output", NodeOutputType.JAR, "fixture")),
+                environment -> { throw new AssertionError("No graph action may run"); });
+        alreadySealed.start();
+        alreadySealed.complete(Map.of("output", root.resolve("work/recompile/output.jar")), false);
+        var selected = SFMNamedHostPreparationMain.completedWorkArchives(
+                List.of(pending, originalAlias, archives, alreadySealed), root);
+        if (!selected.equals(List.of(archives.getRequiredOutput("extra"),
+                archives.getRequiredOutput("output")))) {
+            throw new AssertionError("Intermediate archive selection changed ownership, order or type");
+        }
     }
 
     private static ExecutionNode node() {

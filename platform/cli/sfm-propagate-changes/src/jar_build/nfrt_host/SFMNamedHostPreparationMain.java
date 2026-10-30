@@ -4,11 +4,17 @@ import com.google.gson.JsonParser;
 import net.neoforged.neoform.runtime.cli.RunNeoFormCommand;
 import net.neoforged.neoform.runtime.config.neoforge.NeoForgeConfig;
 import net.neoforged.neoform.runtime.engine.NeoFormEngine;
+import net.neoforged.neoform.runtime.graph.ExecutionNode;
+import net.neoforged.neoform.runtime.graph.NodeOutput;
+import net.neoforged.neoform.runtime.graph.NodeOutputType;
+import net.neoforged.neoform.runtime.graph.NodeState;
 import net.neoforged.neoform.runtime.manifests.MinecraftVersionManifest;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.jar.JarFile;
 
@@ -189,6 +195,25 @@ public final class SFMNamedHostPreparationMain {
                                     bounded(sealed.getFirst(), 512 * 1024 * 1024))) {
                         throw new IllegalStateException("Recompile archive differs from its owned seal");
                     }
+                    // The graph has no later consumer for these intermediate
+                    // archives. Seal only its completed, declared work outputs;
+                    // Rust keeps producer handles and retires exact leaves only
+                    // after the two final results publish and javac exits.
+                    var intermediates = completedWorkArchives(nodes, root);
+                    var originals = intermediates.stream().map(NodeOutput::getResultPath).toList();
+                    var items = intermediates.stream()
+                            .map(net.neoforged.neoform.runtime.artifacts.ClasspathItem::of).toList();
+                    var snapshots = engine.getArtifactManager().resolveClasspath(items);
+                    if (snapshots.size() != originals.size()) {
+                        throw new IllegalStateException("Intermediate seal changed graph output cardinality");
+                    }
+                    for (int index = 0; index < originals.size(); index++) {
+                        if (snapshots.get(index).equals(originals.get(index))
+                                || !MessageDigest.isEqual(bounded(originals.get(index), 512 * 1024 * 1024),
+                                        bounded(snapshots.get(index), 512 * 1024 * 1024))) {
+                            throw new IllegalStateException("Intermediate archive differs from its owned seal");
+                        }
+                    }
                 }
             }
             String phase = compileProof ? "minecraft_compile_proof" : sourceTransformProof ? "source_transform_proof" : sourceRecipeProof ? "source_recipe_proof" : childToolProof ? "child_tool_proof" : producerProof ? "builtin_producer_proof" : "graph_prepared";
@@ -200,6 +225,26 @@ public final class SFMNamedHostPreparationMain {
                     + " workspaces; phase=" + phase + "; producer proof=" + producerProof
                     + "; exact child-tool proof=" + childToolProof);
         }
+    }
+
+    /** Select only completed archive leaves at their declared private work paths. */
+    static List<NodeOutput> completedWorkArchives(List<ExecutionNode> nodes, Path root) {
+        var selected = new ArrayList<NodeOutput>();
+        for (var node : nodes.stream().sorted(Comparator.comparing(ExecutionNode::id)).toList()) {
+            if (node.getState() != NodeState.COMPLETED
+                    || List.of("compiledWithNeoForge", "sourcesWithNeoForge", "recompile").contains(node.id())) {
+                continue; // Those three outputs are sealed explicitly above.
+            }
+            for (var entry : node.outputs().entrySet().stream().sorted(java.util.Map.Entry.comparingByKey()).toList()) {
+                var output = entry.getValue();
+                if (output.type() != NodeOutputType.JAR && output.type() != NodeOutputType.ZIP) continue;
+                var expected = root.resolve("work").resolve(node.id())
+                        .resolve(entry.getKey() + output.type().getExtension());
+                if (expected.equals(output.getResultPath())) selected.add(output);
+            }
+        }
+        if (selected.size() > 256) throw new IllegalStateException("Oversized completed archive set");
+        return List.copyOf(selected);
     }
 
     /**
