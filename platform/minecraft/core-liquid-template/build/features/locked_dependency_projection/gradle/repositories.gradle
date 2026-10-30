@@ -82,7 +82,38 @@ def sfmSourceBuildSha256ByLockedHash = [
         'blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c':
                 'be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062'
 ]
+// Each value was computed from a selected 26.1.2 remote JAR only after the
+// installed SFM hash command confirmed its frozen BLAKE3-20 lock identity.
+// Gradle can verify these bytes with the JDK alone. Only directly declared
+// mods use the artifact-only local route: Java tools such as ANTLR require
+// their original Maven metadata to obtain pinned transitive classpath JARs.
+// Unknown hashes keep the existing remote repository route.
+// Receipt: m22-verified-remote-gradle-artifacts-20261030.json.
+def sfmRemoteSha256ByLockedHash = [
+        'blake3:7a222484ba088298bdc3b4b26294420eb69c36d6': 'ce261dce69525839aa9fc5bd232ce1b813a7a40a75030713cc4a80ef8170f3d5',
+        'blake3:ee9769fc09bea7288037d4f210a5f0e0a8aa0b90': '54665d2838cc66458343468efc539e454fc95b46a8a04b13c6ac43fc9be63505',
+        'blake3:84581d5e930dcfd433a18a7aebe9b6c5d9b8a70f': '925b1a4b5262ba95d20fc8e1b8a5f34e1547a653e85c489efe8fc21495de90ad',
+        'blake3:18ed99db8cff76cda19016fa899029e96fd197ae': 'a121879b85e501d31191abef00bcb7bc453120d964f30a9180a8d6c017ceb2d7',
+        'blake3:d225caa46a800153b74ce0affdf49a8070ae1cbc': '286fcf28f77959471db04f1383a6df67f07e1632abe02e029a63f8ea84eb03e5',
+        'blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c': 'eeedd921e67af4f0f16b4e7f7bcfecac05f9ff328d7e75d3518e2007e118ed25',
+        'blake3:0d5cc8849a0cf91d1316ec38c80a0b2f1b942009': '3fbc2e98f05854c3df16df9abaa955b91b15b3ecac33623208ed6424640ef0f6',
+        'blake3:60bfc777bca98126998dec5493948a8344db8bf9': '77440e270b0bc9a249903c5a076c36a722c4886ca4f42675f2903a1c53ed61a5',
+        'blake3:ffc728120ab20fc9adc9b7f99024789815f6a1fd': '8a8f81cf9b359e3f6dfa691a1e776985c061ef2f223c9b2c80753e1b458e8064',
+        'blake3:cc4b7d4cf17be0ef0b92e4f6d1652975fb003e0d': 'b918c98a7e44dbe94ebd9fe3e40cddaadb5a93e6a78eb6008b42df237241e538',
+        'blake3:da36bd8c441894df9ffd285df80113b7a41681f7': '88241573467ddca44ffd4d74aa04c2bbfd11bf7c17e0c342c94c9de7a70a7c64',
+        'blake3:78f08004376ccb54aff91bf0c69c213baaa837a7': 'eba37290994b5e4868f3af98ff113f6244a6b099385d9ad46881307d3cb01aaf',
+        'blake3:f0d8d49877fa2594423ab164830d5658a8e03a0f': 'b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99',
+        'blake3:c106ad3e93268f6747f1e196d34c769f7fe218ac': '9da98baaafbd6bc753d9ecc25e7382e40ea84e12b46c31b7fa254c0fbc47edfb',
+        'blake3:74920027bb3f569af240fc283876568793baa2e8': '6a5604b5b804e0daca1145df1077609321687734a8b49387e49f10557c186c77',
+        'blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20': '619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09',
+        'blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15': 'dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3',
+        'blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa': 'ce3374a7efba605e2d2b69a3fef90134032bab3ecc3ed8579a4871b1c2c4729c',
+        'blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce': '4689bc902255a19fe98277683ba3231c094d107c54c8d35f2b6f9c97d226418e',
+        'blake3:738f602f34820afb35f70aea342bfc73c305b44d': '83a9ed68adcb76e60316a4d682fc48507865df2f0ab35f82695cc9995410e05e',
+        'blake3:b4839b346ffef67432425608e4363435dd9acbc6': '61fb74fc3f66315fae976d17192a532193ca613a5a04e0dc1b333f0fd4366226'
+]
 def sfmSourceBuildMavenModules = new LinkedHashSet<List<String>>()
+def sfmCheckedRemoteMavenModules = new LinkedHashSet<List<String>>()
 def sfmSourceBuildProducerRepositories = [:]
 def sfmPhysicalToolchainRoot = new File(sfmCacheRoot, 'minecraft-toolchain').canonicalFile.toPath()
 sfmSourceBuildArtifacts.each { artifact ->
@@ -132,7 +163,65 @@ sfmSourceBuildArtifacts.each { artifact ->
     }
 }
 
+if (sfmUseRepositoryToolchainData?.toString() == 'true') {
+    sfmEffectiveDependencies.each { dependency ->
+        if (dependency.kind?.toString() != 'mod') return
+        dependency.components.each { component ->
+            def artifactId = component.derived_checks?.artifact_id?.toString()
+            def artifact = sfmLockfile.artifacts.find { it.id.toString() == artifactId }
+            if (artifact == null) {
+                throw new GradleException("Missing locked Gradle artifact: ${artifactId}")
+            }
+            if (artifact.provenance?.toString() != 'remote-maven') return
+            def expectedSha256 = sfmRemoteSha256ByLockedHash[artifact.hash?.toString()]
+            if (expectedSha256 == null) return
+            def coordinate = component.derived_checks?.resolved_coordinate?.toString()
+            def parts = coordinate == null ? [] : coordinate.split(':') as List
+            if (parts.size() < 3 || coordinate != artifact.coordinate?.toString()) {
+                throw new GradleException("Checked remote artifact has a different coordinate: ${artifactId}")
+            }
+            def portablePath = artifact.cache_path?.toString()?.replace('\\', '/')
+            if (portablePath == null || !portablePath.startsWith('$sfm-cache/maven/')) {
+                throw new GradleException("Checked remote artifact has no Maven cache path: ${artifactId}")
+            }
+            def relativePath = portablePath.substring('$sfm-cache/'.length())
+            if (relativePath.split('/').any { it.isEmpty() || it == '.' || it == '..' }) {
+                throw new GradleException("Checked remote artifact has an unsafe cache path: ${artifactId}")
+            }
+            def lockedFile = new File(new File(sfmCacheRoot, 'minecraft-toolchain'), relativePath)
+            if (!lockedFile.isFile()
+                    || !lockedFile.canonicalFile.toPath().startsWith(sfmPhysicalToolchainRoot)) {
+                throw new GradleException("Missing or redirected checked remote artifact: ${artifactId}")
+            }
+            def digest = MessageDigest.getInstance('SHA-256')
+            lockedFile.withInputStream { stream ->
+                def buffer = new byte[65536]
+                int count
+                while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+            }
+            if (digest.digest().encodeHex().toString() != expectedSha256) {
+                throw new GradleException("Checked remote artifact differs from its SHA-256: ${artifactId}")
+            }
+            sfmCheckedRemoteMavenModules.add([parts[0], parts[1]])
+        }
+    }
+}
+
 repositories {
+    if (!sfmCheckedRemoteMavenModules.isEmpty()) {
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'sfm-checked-remote'
+                    url = uri(sfmLocalMavenRepository)
+                    metadataSources { artifact() }
+                }
+            }
+            filter {
+                sfmCheckedRemoteMavenModules.each { module -> includeModule(module[0], module[1]) }
+            }
+        }
+    }
     if (!sfmSourceBuildMavenModules.isEmpty()) {
         if (!sfmLocalMavenRepository.isDirectory()) {
             throw new GradleException(
