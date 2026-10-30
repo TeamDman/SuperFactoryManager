@@ -12,6 +12,17 @@ MODULE = runpy.run_path(str(Path(__file__).with_name("report-locked-cache-artifa
 
 
 class DirectClaimTests(unittest.TestCase):
+    def test_missing_catalog_lock_is_unknown_not_an_empty_claim(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            catalog = repo / "platform/minecraft/projections.json"
+            catalog.parent.mkdir(parents=True)
+            catalog.write_text(json.dumps({"red/mc-1.19.2": {}}), encoding="utf-8")
+            result = MODULE["report"](repo)
+            self.assertEqual(result["materialized_locks"], 0)
+            self.assertEqual(result["missing_locks"], ["red/mc-1.19.2"])
+            self.assertEqual(result["artifact_claims"], 0)
+
     def test_shared_path_and_conflicting_pin_are_reported_separately(self):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary)

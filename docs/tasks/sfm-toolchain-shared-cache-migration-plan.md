@@ -387,7 +387,7 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 
 **Completion criteria:** G6 contains every catalog key and operation with evidence-backed status and a recorded scope-freeze revision. Later route additions require explicit change control and capacity estimate.
 
-### [~] M1.4 Classify cache reachability for candidate reporting
+### [x] M1.4 Classify cache reachability for candidate reporting
 
 **Direct-artifact checkpoint, 2026-10-28:** `scripts/report-locked-cache-artifacts.py` reads the 74 catalog-selected lock paths without downloading, hashing cache payloads or deleting. The current checkout has 56 materialized generated locks and 18 absent portable issue-610 locks; this differs from the older 60-lock audit population and does not invalidate its historical receipt. Those 56 locks make 5,250 direct artifact claims against 414 distinct `$sfm-cache` relative paths, with zero same-path conflicting hash claims and zero noncache direct artifact paths. Two small tests prove shared-path grouping, conflicting hashes and unsafe path/key rejection. Receipt: task evidence `sfm-direct-cache-claims-20261028.json`. **Limit:** this is path declaration reachability only; it does not validate actual payloads, count download bytes, cover missing locks, asset-index children, source trees, derived outputs, lazy runtime inputs or other checkout owners. An existing-minus-these-paths set is not a safe prune set.
 
@@ -396,6 +396,8 @@ M0.2/G11 closes before any parallel source mutation or Cargo/native validation. 
 **Validation:** A source-backed expected-set table includes each producer, lock/recipe/receipt source, path and digest rule, exact/conservative/unknown status, and a missing-lock negative. Include Maven/Git/source-built archives, decompiled/platform/JDK/stub trees and symbol indexes as separate entries with active-reader exclusion. Compare one current checkout's expected paths with a bounded sample of existing entries without deleting or labeling any globally orphaned.
 
 **Completion criteria:** G8 defines what a report can prove, where it must say “candidate” or “unknown,” and what additional owner evidence is required before any shared-target reclamation.
+
+**M1.4 report-only classification closed, 2026-10-30:** The current 74/74-lock direct-claim run reports 7,015 claims over 414 distinct portable paths, with zero hash conflicts and zero non-cache artifact paths (`sfm-direct-cache-claims-current-20261030.json`, SHA-256 `2AC1CAD7106C296FD23E57B5EECE0500E6CD2611443951A9A2689ACB5DD06B8B`). Three focused Python tests include missing-lock unknown behavior. The expected-set table in `sfm-m1-bounds-and-locked-input-inventory-20261030.md` classifies binary/source/Git/derived/Minecraft/JBR/index/session resources as exact declarations, conservative roots or unknown, with explicit producer, digest and reader boundaries. The current owner-aware `cache report` keeps source/index and unclassified entries protected. This closes the **reporting rule**, not live payload verification, complete owner union, G9 integrity or any retirement authorization. M3.9's independent report implementation and M6's exact-list decision remain distinct.
 
 ### [~] M1.5 Complete source and build-JAR producer inventory
 
