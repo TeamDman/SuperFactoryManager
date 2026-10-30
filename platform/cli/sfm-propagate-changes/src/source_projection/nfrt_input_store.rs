@@ -667,6 +667,9 @@ impl NfrtInputStore {
 /// retirement preflight. Only exact file leaves are removed; directories and
 /// all failed/incomplete invocation work are retained.
 #[cfg(windows)]
+const MAX_RECOMPILE_CLASSES: usize = 16_384;
+
+#[cfg(windows)]
 fn verified_recompile_classes(
     root: &Path,
     leases: &mut DirectoryLeases,
@@ -674,7 +677,6 @@ fn verified_recompile_classes(
 ) -> Result<Vec<(PathBuf, usize, String)>> {
     use std::collections::BTreeMap;
 
-    const MAX_CLASSES: usize = 8192;
     const MAX_CLASS_BYTES: u64 = 512 * 1024 * 1024;
     let classes = root.join("work/recompile/classes");
     leases.prepare(&classes, "reserved-leaf")?;
@@ -694,7 +696,10 @@ fn verified_recompile_classes(
             continue;
         }
         super::promotion::validate_relative_path(entry.name())?;
-        ensure!(archived.len() < MAX_CLASSES, "Too many recompile classes");
+        ensure!(
+            archived.len() < MAX_RECOMPILE_CLASSES,
+            "Too many recompile classes"
+        );
         total = total
             .checked_add(entry.size())
             .ok_or_else(|| eyre::eyre!("Recompile archive size overflow"))?;
@@ -772,7 +777,7 @@ fn verified_recompile_classes(
                 .checked_add(bytes)
                 .ok_or_else(|| eyre::eyre!("Recompile class size overflow"))?;
             ensure!(
-                leaves.len() < MAX_CLASSES && seen_bytes <= MAX_CLASS_BYTES,
+                leaves.len() < MAX_RECOMPILE_CLASSES && seen_bytes <= MAX_CLASS_BYTES,
                 "Recompile class-tree budget exceeded"
             );
             let mut file = open_read(&path)?;
@@ -1175,6 +1180,74 @@ mod tests {
         assert_eq!(bytes, 14 + 2 * archive_bytes.len() as u64 + 5);
         assert!(!class.exists() && !output.exists());
         assert!(class_dir.is_dir());
+        Ok(())
+    }
+
+    #[test]
+    fn recompile_class_count_guard_refuses_oversized_archive_without_retirement() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let (root, mut leases) = create_owned_root(fixture.path(), "recompile-count")?;
+        let mut writer = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        for index in 0..=MAX_RECOMPILE_CLASSES {
+            writer.start_file(
+                format!("pkg/C{index:05}.class"),
+                zip::write::SimpleFileOptions::default(),
+            )?;
+            writer.write_all(b"class")?;
+        }
+        let bytes = writer.finish()?.into_inner();
+        let mut receipt = retirement_receipt(
+            &format!("sha256:{}", "b".repeat(64)),
+            "inputs/generated/0003.bin",
+            &bytes,
+        );
+        receipt.declaration.output_relative_path = "work/recompile/output.jar".to_owned();
+        fs::create_dir_all(root.join("work/recompile/classes"))?;
+        let original = root.join(&receipt.declaration.output_relative_path);
+        fs::write(&original, bytes)?;
+        let failure = verified_recompile_classes(&root, &mut leases, &receipt).unwrap_err();
+        assert!(failure.to_string().contains("Too many recompile classes"));
+        assert!(
+            original.is_file(),
+            "refusal must preserve the original archive"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn recompile_class_count_guard_accepts_observed_1211_size_with_exact_tree() -> Result<()> {
+        // The retained 1.21.1 producer has 8,276 classes, just above the old
+        // 8,192 limit. Exercise the new range without relaxing byte/path checks.
+        const OBSERVED_CLASSES: usize = 8_276;
+        let fixture = tempfile::tempdir()?;
+        let (root, mut leases) = create_owned_root(fixture.path(), "recompile-observed-count")?;
+        let class_dir = root.join("work/recompile/classes/pkg");
+        fs::create_dir_all(&class_dir)?;
+        let mut writer = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        for index in 0..OBSERVED_CLASSES {
+            let name = format!("C{index:05}.class");
+            writer.start_file(
+                format!("pkg/{name}"),
+                zip::write::SimpleFileOptions::default(),
+            )?;
+            writer.write_all(b"class")?;
+            fs::write(class_dir.join(name), b"class")?;
+        }
+        let bytes = writer.finish()?.into_inner();
+        let mut receipt = retirement_receipt(
+            &format!("sha256:{}", "b".repeat(64)),
+            "inputs/generated/0003.bin",
+            &bytes,
+        );
+        receipt.declaration.output_relative_path = "work/recompile/output.jar".to_owned();
+        let original = root.join(&receipt.declaration.output_relative_path);
+        fs::write(&original, bytes)?;
+        let leaves = verified_recompile_classes(&root, &mut leases, &receipt)?;
+        assert_eq!(leaves.len(), OBSERVED_CLASSES);
+        assert!(
+            original.is_file(),
+            "verification must not retire the archive"
+        );
         Ok(())
     }
 
