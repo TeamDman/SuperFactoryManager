@@ -1400,8 +1400,8 @@
                 "derived_checks": {
                   "binary_artifact_id": "mekanism-mekanism-1-19-2-10-3-8-477-api-ff405d14",
                   "decompiler_artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
-                  "fingerprint": "blake3:6e56247f0f40ce41b457c440130cde6d9c2b43da",
-                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\ff405d145a5d293f7dfd08f9823022512a770109\\blake3-6e56247f0f40ce41b457c440130cde6d9c2b43da-ec253f5672ff82f8\\tree"
+                  "fingerprint": "blake3:d116f66b0092cd51ffba07638525b8a13d50de55",
+                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\ff405d145a5d293f7dfd08f9823022512a770109\\blake3-d116f66b0092cd51ffba07638525b8a13d50de55-b85c28279b54303f\\tree"
                 }
               }
             }
@@ -1458,8 +1458,8 @@
                 "derived_checks": {
                   "binary_artifact_id": "curse-maven-mekanism-268560-4644795-76928376",
                   "decompiler_artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
-                  "fingerprint": "blake3:2a12697261d5ced051f4154839447afbe1ca3f3a",
-                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\76928376e435f374f99f724a1261b1964f582914\\blake3-2a12697261d5ced051f4154839447afbe1ca3f3a-60a38ebb54b4127e\\tree"
+                  "fingerprint": "blake3:dd2f5ba4036fc8a7a5425cc00a7b0691e86cd9c7",
+                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\76928376e435f374f99f724a1261b1964f582914\\blake3-dd2f5ba4036fc8a7a5425cc00a7b0691e86cd9c7-3bd166f0f29880ed\\tree"
                 }
               }
             }
