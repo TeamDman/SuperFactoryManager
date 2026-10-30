@@ -21,6 +21,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const MAX_MAVEN_ENTRIES: usize = 100_000;
+const MAX_SOURCE_ENTRIES: usize = 10_000;
 const ROOT_MARKER: &str = ".sfm-native-cache-root.json";
 
 #[derive(Facet, Debug)]
@@ -214,8 +215,55 @@ impl CacheReportArgs {
         for path in git_unclassified {
             stdout_line(format!("    unclassified Git: {}", path.display()))?;
         }
+        let source_trees = observed_source_trees(&physical.join("minecraft-toolchain/sources"))?;
+        let (source_other, source_unknown) = classify_observed(
+            &source_trees,
+            &selected_paths.derived,
+            &known_owners.derived,
+        );
+        stdout_line(format!(
+            "  observed non-Git source trees: {}",
+            source_trees.len()
+        ))?;
+        stdout_line(format!(
+            "  source trees held by known other locks: {}",
+            source_other.len()
+        ))?;
+        stdout_line(format!(
+            "  source trees without a readable lock claim, protected: {}",
+            source_unknown.len()
+        ))?;
+        for path in &source_unknown {
+            stdout_line(format!("    protected source: {}", path.display()))?;
+        }
+        let index_entries =
+            observed_index_entries(&physical.join("minecraft-toolchain/symbol-index"))?;
+        stdout_line(format!(
+            "  symbol-index entries, reader/owner status unverified and protected: {}",
+            index_entries.len()
+        ))?;
+        for path in &index_entries {
+            stdout_line(format!("    protected index: {}", path.display()))?;
+        }
+        // A source search can run ripgrep against an acquired tree, and index
+        // readers load validated payloads. This report does not acquire a
+        // cross-process reader lease or prove that every sharing owner is online.
+        let retirement_candidates = source_trees
+            .iter()
+            .chain(&index_entries)
+            .filter(|path| {
+                source_index_retirement_allowed(
+                    selected_paths.derived.contains(*path) || known_owners.derived.contains(*path),
+                    false,
+                    false,
+                )
+            })
+            .count();
+        stdout_line(format!(
+            "  source/index retirement candidates: {retirement_candidates}; owner union and idle readers are unverified"
+        ))?;
         stdout_line(
-            "  unknown classes: non-JAR Maven metadata, extracted/decompiled/platform source trees, derived preparation, Minecraft assets, symbol indexes, prior-schema derived resources, receipts and snapshots",
+            "  unknown classes: non-JAR Maven metadata, unobserved/descendant source data, derived preparation, Minecraft assets, index descendants, prior-schema derived resources, receipts and snapshots",
         )?;
         stdout_line(
             "  retirement blocked: producer recipes, other/offline owners and active readers/publishers are not fully known; report never deletes or follows descendants of a cache link for cleanup",
@@ -408,7 +456,11 @@ fn child_directories(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
     if !root.is_dir() {
         return Ok(paths);
     }
-    for entry in fs::read_dir(root)? {
+    for (count, entry) in fs::read_dir(root)?.enumerate() {
+        ensure!(
+            count < MAX_SOURCE_ENTRIES,
+            "directory report entry limit reached"
+        );
         let entry = entry?;
         let metadata = fs::symlink_metadata(entry.path())?;
         ensure!(
@@ -421,6 +473,60 @@ fn child_directories(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
         }
     }
     Ok(paths)
+}
+
+fn observed_source_trees(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
+    let mut trees = BTreeSet::new();
+    for class in ["maven", "decompiled", "platform", "jdk", "classfile-stubs"] {
+        let class_root = root.join(class);
+        if !class_root.is_dir() {
+            continue;
+        }
+        let mut walker = walkdir::WalkDir::new(&class_root)
+            .max_depth(7)
+            .follow_links(false)
+            .into_iter();
+        let mut count = 0;
+        while let Some(entry) = walker.next() {
+            ensure!(
+                count < MAX_SOURCE_ENTRIES,
+                "source report entry limit reached"
+            );
+            count += 1;
+            let entry = entry?;
+            let metadata = fs::symlink_metadata(entry.path())?;
+            ensure!(
+                !is_reparse(&metadata),
+                "source report encountered a link/reparse entry: {}",
+                entry.path().display()
+            );
+            if metadata.is_dir() && entry.file_name() == "tree" {
+                trees.insert(entry.path().to_path_buf());
+                walker.skip_current_dir();
+            }
+        }
+    }
+    Ok(trees)
+}
+
+fn observed_index_entries(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
+    let mut entries = BTreeSet::new();
+    for version in child_directories(root)? {
+        for entry in child_directories(&version)? {
+            if entry.file_name().is_some_and(|name| name != ".locks") {
+                entries.insert(entry);
+            }
+        }
+    }
+    Ok(entries)
+}
+
+fn source_index_retirement_allowed(
+    has_known_owner: bool,
+    owner_union_complete: bool,
+    idle_readers_verified: bool,
+) -> bool {
+    !has_known_owner && owner_union_complete && idle_readers_verified
 }
 
 fn classify_observed(
@@ -484,6 +590,35 @@ mod tests {
             paths
                 .iter()
                 .any(|path| path.ends_with("mixin-0.8.5-processor.jar"))
+        );
+    }
+
+    #[test]
+    fn source_and_index_entries_require_owner_union_and_idle_reader_proof() {
+        assert!(!source_index_retirement_allowed(false, false, true));
+        assert!(!source_index_retirement_allowed(false, true, false));
+        assert!(!source_index_retirement_allowed(true, true, true));
+        assert!(source_index_retirement_allowed(false, true, true));
+    }
+
+    #[test]
+    fn source_and_index_enumeration_stays_at_entry_roots() {
+        let temp = tempfile::tempdir().unwrap();
+        let sources = temp.path().join("sources");
+        let tree = sources.join("maven/coordinate/hash/tree");
+        fs::create_dir_all(tree.join("deep/inside")).unwrap();
+        fs::write(tree.join("deep/inside/Example.java"), "class Example {}").unwrap();
+        assert_eq!(
+            observed_source_trees(&sources).unwrap(),
+            BTreeSet::from([tree])
+        );
+
+        let indexes = temp.path().join("symbol-index");
+        fs::create_dir_all(indexes.join("v3/.locks")).unwrap();
+        fs::create_dir_all(indexes.join("v3/identity-a")).unwrap();
+        assert_eq!(
+            observed_index_entries(&indexes).unwrap(),
+            BTreeSet::from([indexes.join("v3/identity-a")])
         );
     }
 }
