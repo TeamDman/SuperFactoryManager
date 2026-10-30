@@ -206,6 +206,11 @@ fn create_plan_for_project(
         options.derived_cache_root.is_none() || target.is_catalog_owned(),
         "Derived cache override requires an exact catalog-owned compile"
     );
+    eyre::ensure!(
+        options.isolated_project_cache.is_none()
+            || (options.derived_cache_root.is_some() && target.development_target().is_some()),
+        "isolated project cache requires a guarded development projection"
+    );
     target.recheck()?;
     cancellation_token.bail_if_cancelled()?;
     let (worktree_path, minecraft_dir, properties_path) = {
@@ -580,6 +585,7 @@ fn create_plan_for_project(
                 &loader_toolchain,
                 minecraft_version,
             );
+            let key = isolated_project_cache_key(&key, options.isolated_project_cache.as_deref())?;
             cache_dir = root.prepare_directory(
                 &format!("projects/{}", key.trim_start_matches("sha256:")),
                 cancellation_token,
@@ -2163,6 +2169,44 @@ fn stable_overridden_project_namespace(
     Ok(crate::source_projection::provenance::sha256(
         facet_json::to_string(&descriptor)?.as_bytes(),
     ))
+}
+
+fn isolated_project_cache_key(base: &str, label: Option<&str>) -> eyre::Result<String> {
+    let Some(label) = label else {
+        return Ok(base.to_owned());
+    };
+    eyre::ensure!(
+        !label.is_empty()
+            && label.len() <= 64
+            && label
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_')),
+        "isolated project cache label must be 1-64 ASCII letters, digits, '-' or '_'"
+    );
+    Ok(crate::source_projection::provenance::sha256(
+        format!("sfm:isolated_project_cache@1\n{base}\n{label}\n").as_bytes(),
+    ))
+}
+
+#[test]
+fn isolated_project_cache_key_is_stable_and_separate() -> eyre::Result<()> {
+    let base = "sha256:0123456789abcdef";
+    assert_eq!(isolated_project_cache_key(base, None)?, base);
+    let first = isolated_project_cache_key(base, Some("empty_build_1"))?;
+    assert_eq!(
+        first,
+        isolated_project_cache_key(base, Some("empty_build_1"))?
+    );
+    assert_ne!(first, base);
+    assert_ne!(
+        first,
+        isolated_project_cache_key(base, Some("empty_build_2"))?
+    );
+    for invalid in ["", "../escape", "with space", "é"] {
+        assert!(isolated_project_cache_key(base, Some(invalid)).is_err());
+    }
+    assert!(isolated_project_cache_key(base, Some(&"x".repeat(65))).is_err());
+    Ok(())
 }
 #[test]
 fn derived_cache_namespace_survives_sfm_edits_but_changes_with_sdk_selection() -> eyre::Result<()> {

@@ -95,6 +95,10 @@ pub(crate) fn invoke_development_project(
     package: bool,
     cancellation: &CancellationToken,
 ) -> eyre::Result<DevelopmentBuildReport> {
+    eyre::ensure!(
+        !package || options.isolated_project_cache.is_none(),
+        "isolated project cache is compile-only"
+    );
     let identity = prepare_development_identity(project, profile)?;
     let preparation = identity
         .development_target()
@@ -117,6 +121,7 @@ pub(crate) fn invoke_development_project(
     let planning = NativePlanningOptions {
         output_name: None,
         derived_cache_root,
+        isolated_project_cache: options.isolated_project_cache.clone(),
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,

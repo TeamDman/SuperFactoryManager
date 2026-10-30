@@ -165,6 +165,10 @@ pub struct CoreProjectCompileArgs {
     /// Guarded native root override; defaults to this checkout's sfm-toolchain-data.
     #[facet(default, args::named)]
     pub cache_root: Option<PathBuf>,
+    /// Compile in a fresh mutable project cache under the same shared root.
+    /// Stable names can be reused for an unchanged reconstruction check.
+    #[facet(default, args::named)]
+    pub isolated_project_cache: Option<String>,
     #[facet(default = false, args::named)]
     pub explain_rebuild: bool,
     #[facet(default = false, args::named)]
@@ -290,6 +294,10 @@ fn invoke_native_compile(
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, false, cancellation, invocation_dir);
     }
+    ensure!(
+        args.isolated_project_cache.is_none(),
+        "--isolated-project-cache requires a development dependency profile"
+    );
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!(
             "native compile requires exactly one of --released-recipe or --dependency-profile"
@@ -344,6 +352,7 @@ fn invoke_native_compile(
         &crate::jar_build::NamedCompileOptions {
             java_home: home,
             cache_root,
+            isolated_project_cache: None,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -357,6 +366,10 @@ fn invoke_native_jar(
     cancellation: &CancellationToken,
     invocation_dir: &Path,
 ) -> Result<CliOutput> {
+    ensure!(
+        args.isolated_project_cache.is_none(),
+        "--isolated-project-cache is compile-only; packaging writes the projection JAR"
+    );
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, true, cancellation, invocation_dir);
     }
@@ -413,6 +426,7 @@ fn invoke_native_jar(
         &crate::jar_build::NamedCompileOptions {
             java_home: home,
             cache_root,
+            isolated_project_cache: None,
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
@@ -439,6 +453,17 @@ fn invoke_native_development(
         profile == crate::source_projection::native_project_target::NATIVE_DEPENDENCY_PROFILE,
         "native development build requires the declared rust-toolchain profile"
     );
+    if let Some(label) = args.isolated_project_cache.as_deref() {
+        ensure!(
+            !package
+                && !label.is_empty()
+                && label.len() <= 64
+                && label
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_')),
+            "--isolated-project-cache requires a compile and a 1-64 character ASCII label"
+        );
+    }
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
     let entry = initial.catalog.entry(&args.project.projection)?;
     ensure!(
@@ -481,6 +506,7 @@ fn invoke_native_development(
             &crate::jar_build::NamedCompileOptions {
                 java_home: home,
                 cache_root,
+                isolated_project_cache: args.isolated_project_cache.clone(),
                 explain_rebuild: args.explain_rebuild,
                 wait_for_build_lock: args.wait_for_build_lock,
             },
@@ -867,6 +893,7 @@ mod tests {
         ];
         let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
         assert!(default.cache_root.is_none());
+        assert!(default.isolated_project_cache.is_none());
         assert_eq!(
             crate::jar_build::engine::catalog_native_cache_path(
                 Path::new("C:/selected-checkout"),
@@ -888,6 +915,40 @@ mod tests {
             ),
             PathBuf::from("C:/sfm cache fixture")
         );
+        let mut isolated = base.to_vec();
+        isolated.extend(["--isolated-project-cache", "pinned_rebuild_1"]);
+        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&isolated).unwrap();
+        assert_eq!(
+            parsed.isolated_project_cache.as_deref(),
+            Some("pinned_rebuild_1")
+        );
+    }
+
+    #[test]
+    fn isolated_project_cache_rejects_unsafe_label_and_package_before_effects() {
+        let mut args = CoreProjectCompileArgs {
+            project: CoreProjectSelectionArgs {
+                repo_root: PathBuf::from("must-not-be-read"),
+                projection: "unused".to_owned(),
+            },
+            released_recipe: None,
+            dependency_profile: Some("rust-toolchain".to_owned()),
+            java_home: PathBuf::from("must-not-be-read"),
+            cache_root: None,
+            isolated_project_cache: Some("../escape".to_owned()),
+            explain_rebuild: false,
+            wait_for_build_lock: false,
+        };
+        let cancellation = CancellationToken::new();
+        let invalid = invoke_native_development(&args, false, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(invalid.contains("ASCII label"), "{invalid}");
+        args.isolated_project_cache = Some("pinned_rebuild_1".to_owned());
+        let package = invoke_native_jar(&args, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(package.contains("compile-only"), "{package}");
     }
 
     #[test]
@@ -901,6 +962,7 @@ mod tests {
             dependency_profile: Some("rust-toolchain".to_owned()),
             java_home: PathBuf::from("must-not-be-read"),
             cache_root: None,
+            isolated_project_cache: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
         };

@@ -799,6 +799,7 @@ impl TryFrom<JsonOptionalBranchName> for Option<BranchName> {
 struct NativePlanningOptions {
     output_name: Option<String>,
     derived_cache_root: Option<Arc<native_cache_root::NativeCacheRoot>>,
+    isolated_project_cache: Option<String>,
     mode: BuildMode,
     java_home: Option<PathBuf>,
     refresh: bool,
@@ -811,6 +812,7 @@ impl From<&BuildOptions> for NativePlanningOptions {
     fn from(value: &BuildOptions) -> Self {
         Self {
             derived_cache_root: None,
+            isolated_project_cache: None,
             output_name: value.output_name.clone(),
             mode: value.mode,
             java_home: value.java_home.clone(),
@@ -950,6 +952,7 @@ fn prepared_parsed_dependencies(
 pub(crate) struct NamedCompileOptions {
     pub(crate) java_home: PathBuf,
     pub(crate) cache_root: Option<PathBuf>,
+    pub(crate) isolated_project_cache: Option<String>,
     pub(crate) explain_rebuild: bool,
     pub(crate) wait_for_build_lock: bool,
 }
@@ -1058,6 +1061,7 @@ fn invoke_named_compile_attempt(
     let planning = NativePlanningOptions {
         output_name: None,
         derived_cache_root,
+        isolated_project_cache: None,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,

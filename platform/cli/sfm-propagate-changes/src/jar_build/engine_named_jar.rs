@@ -191,6 +191,7 @@ pub(crate) fn invoke_named_jar(
     let planning = NativePlanningOptions {
         output_name: None,
         derived_cache_root,
+        isolated_project_cache: None,
         mode: BuildMode::Build,
         java_home: Some(options.java_home.clone()),
         refresh: false,

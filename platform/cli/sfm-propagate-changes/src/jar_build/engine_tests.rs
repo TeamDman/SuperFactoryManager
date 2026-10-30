@@ -6093,6 +6093,7 @@ fn fresh_jar_output_worktree_external_cache_is_refused_before_planning() -> eyre
     let planning = super::NativePlanningOptions {
         output_name: Some("fresh.jar".to_owned()),
         derived_cache_root: Some(derived),
+        isolated_project_cache: None,
         mode: BuildMode::Plan,
         java_home: None,
         refresh: false,
