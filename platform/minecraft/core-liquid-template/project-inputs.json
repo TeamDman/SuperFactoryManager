@@ -33622,6 +33622,16 @@
           ],
           "all_features": [],
           "any_features": [],
+          "none_features": ["locked_dependency_projection"]
+        },
+        "template": false
+      },
+      {
+        "input": "build/features/locked_dependency_projection/26.1.2/gradle/wrapper/gradle-wrapper.properties",
+        "when": {
+          "targets": ["26.1.2"],
+          "all_features": ["locked_dependency_projection"],
+          "any_features": [],
           "none_features": []
         },
         "template": false
