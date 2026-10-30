@@ -37,11 +37,14 @@ def inspect(repo, evidence, family, key, receipt):
     if run.get("exit_code") != 0 or not run.get("source_stable"):
         raise ValueError(f"No completed source-stable compile: {receipt}")
     messages = []
+    tool_messages = []
     for line in log_path.open(encoding="utf-8"):
         event = json.loads(line)
         message = event.get("fields", {}).get("message", "")
         if message.startswith("javac main: start "):
             messages.append(message)
+        if message.startswith("Java tool ") and ": start main=" in message:
+            tool_messages.append(message)
     if len(messages) != 1:
         raise ValueError(f"Expected one main javac invocation: {receipt}")
     match = re.search(r"argfile=(.*)$", messages[0])
@@ -86,6 +89,39 @@ def inspect(repo, evidence, family, key, receipt):
         categories[category] += 1
         members.append({"ordinal": ordinal, "path": path_text, "category": category,
                         "current_lock_artifact_id": artifact_id})
+    tools = []
+    for message in tool_messages:
+        tool_match = re.fullmatch(
+            r"Java tool ([^:]+): start main=(\S+) argfile=(.+?) log=(.+)",
+            message,
+        )
+        if not tool_match:
+            raise ValueError(f"Malformed Java tool invocation: {message}")
+        tool_id, main_class, tool_argfile, _ = tool_match.groups()
+        tool_argfile = Path(tool_argfile)
+        tool_lines = tool_argfile.read_text(encoding="utf-8").splitlines()
+        classpath_flag = next((flag for flag in ("-cp", "-classpath")
+                               if flag in tool_lines), None)
+        if classpath_flag is None or tool_lines.count(classpath_flag) != 1:
+            raise ValueError(f"Missing unique Java tool classpath: {tool_argfile}")
+        classpath_index = tool_lines.index(classpath_flag)
+        if classpath_index + 1 >= len(tool_lines):
+            raise ValueError(f"Empty Java tool classpath: {tool_argfile}")
+        tool_paths = tool_lines[classpath_index + 1].split(";")
+        if len({normalized(path) for path in tool_paths}) != len(tool_paths):
+            raise ValueError(f"Duplicate Java tool classpath entry: {tool_argfile}")
+        tool_members = []
+        for ordinal, path_text in enumerate(tool_paths):
+            path = Path(path_text)
+            if not path.is_file():
+                raise ValueError(f"Missing retained Java tool input: {path}")
+            artifact_id = artifacts.get(normalized(path))
+            tool_members.append({"ordinal": ordinal, "path": path_text,
+                                 "current_lock_artifact_id": artifact_id})
+        tools.append({"tool_id": tool_id, "main_class": main_class,
+                      "retained_argfile": str(tool_argfile),
+                      "argfile_sha256": sha256(tool_argfile),
+                      "ordered_classpath": tool_members})
     return {
         "family": family, "projection": key, "receipt": receipt,
         "run_receipt_sha256": sha256(run_path), "log_sha256": sha256(log_path),
@@ -94,13 +130,14 @@ def inspect(repo, evidence, family, key, receipt):
         "source_before": run["source_before"], "cli_sha256": run["cli_sha256"],
         "classpath_entries": len(paths), "category_counts": dict(sorted(categories.items())),
         "ordered_members": members,
+        "java_tool_invocations": tools,
     }
 
 
 def report(repo, evidence):
     return {
         "schema": 1,
-        "scope": "Retained successful 2026-10-29 main-javac invocations; current lock path joins are not invocation-time hash verification",
+        "scope": "Retained successful 2026-10-29 main-javac and Forge Java-tool invocations; current lock path joins are not invocation-time hash verification",
         "samples": [inspect(repo, evidence, *sample) for sample in SAMPLES],
     }
 
