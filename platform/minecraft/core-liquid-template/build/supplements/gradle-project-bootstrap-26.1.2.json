@@ -912,6 +912,51 @@
       "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-parent/2.0.17/slf4j-parent-2.0.17.pom",
       "sha256": "95cd71e852dfdb29126e58b7b939d57ec2b2e6024391852e0b545dee082bbf3b",
       "bytes": 13366
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.5",
+      "file": "asm-9.5.pom",
+      "path": "org/ow2/asm/asm/9.5/asm-9.5.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.5/asm-9.5.pom",
+      "sha256": "2c9cceb951cc6586de8d9a16c672ad3e4c30b9c323028d7a3c3366560d5627b1",
+      "bytes": 2370,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/ow2/asm/asm/9.5/asm-9.5.pom"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-tree:9.5",
+      "file": "asm-tree-9.5.pom",
+      "path": "org/ow2/asm/asm-tree/9.5/asm-tree-9.5.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-tree/9.5/asm-tree-9.5.pom",
+      "sha256": "a72aaaf8dd051899fa089e783ec7d4827ac4d7d1876201c6deecbaa94a0dc956",
+      "bytes": 2592,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/ow2/asm/asm-tree/9.5/asm-tree-9.5.pom"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-util:9.5",
+      "file": "asm-util-9.5.pom",
+      "path": "org/ow2/asm/asm-util/9.5/asm-util-9.5.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-util/9.5/asm-util-9.5.pom",
+      "sha256": "ad7ef390a46f8be68fcfa8ea101c9d7391f198ca9be1b2cb151d083b5fc1292f",
+      "bytes": 2938,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/ow2/asm/asm-util/9.5/asm-util-9.5.pom"
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-analysis:9.5",
+      "file": "asm-analysis-9.5.pom",
+      "path": "org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.pom",
+      "sha256": "2a29950910f99df7b19a5037eb3dc39beace9ca3a07855a63791e6dab3eb43a3",
+      "bytes": 2621,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/ow2/asm/asm-analysis/9.5/asm-analysis-9.5.pom"
+    },
+    {
+      "coordinate": "org.spongepowered:mixin:0.8.5",
+      "file": "mixin-0.8.5.pom",
+      "path": "org/spongepowered/mixin/0.8.5/mixin-0.8.5.pom",
+      "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5.pom",
+      "sha256": "e025d1d85fe18ba8a9bdbf347e2a7cf033d579e2c9046cccab7a8e0deabfb6da",
+      "bytes": 1081,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/spongepowered/mixin/0.8.5/mixin-0.8.5.pom"
     }
   ]
 }
