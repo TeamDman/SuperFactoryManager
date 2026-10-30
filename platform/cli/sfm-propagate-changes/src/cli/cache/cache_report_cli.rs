@@ -16,6 +16,7 @@ use facet::Facet;
 use figue as args;
 use std::collections::BTreeSet;
 use std::fs;
+use std::path::Component;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -59,6 +60,7 @@ impl CacheReportArgs {
         let mut known_owners = ExpectedPaths::default();
         let mut unknown_owners = Vec::new();
         let mut known_owner_count = 0;
+        let mut prior_schema_direct_count = 0;
         for key in catalog.catalog.0.keys() {
             if key == &selected_key {
                 continue;
@@ -67,6 +69,14 @@ impl CacheReportArgs {
             let lock = project.join("sfm-toolchain.lock.json");
             if !lock.is_file() {
                 unknown_owners.push(format!("catalog {key}: lock unavailable"));
+                continue;
+            }
+            if let Some(paths) = prior_schema_direct_paths(&lock, &cache)? {
+                known_owners.direct.extend(paths);
+                prior_schema_direct_count += 1;
+                unknown_owners.push(format!(
+                    "catalog {key}: prior schema 2 direct paths counted; derived resources and consumers unknown"
+                ));
                 continue;
             }
             match DependencyInventory::load_project(&project, cache.clone()) {
@@ -110,6 +120,12 @@ impl CacheReportArgs {
                 Err(error) => unknown_owners.push(format!("worktree {}: {error}", target.branch)),
             }
         }
+        let producer_paths =
+            crate::source_projection::nfrt_child_identity_supplement::reviewed_producer_jar_paths(
+                &catalog.repo_root,
+                &physical.join("minecraft-toolchain/maven"),
+            )?;
+        known_owners.direct.extend(producer_paths.iter().cloned());
         let revision = checkout_revision(&catalog.repo_root)?;
         let schema = match parse_document(&selected.original_input)? {
             ToolchainLockfileDocument::V3(_) => 3,
@@ -135,6 +151,13 @@ impl CacheReportArgs {
             is_reparse(&fs::symlink_metadata(&logical)?)
         ))?;
         stdout_line(format!("  other readable owner locks: {known_owner_count}"))?;
+        stdout_line(format!(
+            "  prior-schema locks with exact direct paths only: {prior_schema_direct_count}"
+        ))?;
+        stdout_line(format!(
+            "  reviewed NeoForm producer recipe JAR paths: {}",
+            producer_paths.len()
+        ))?;
         for owner in &unknown_owners {
             stdout_line(format!("  unknown owner: {owner}"))?;
         }
@@ -192,7 +215,7 @@ impl CacheReportArgs {
             stdout_line(format!("    unclassified Git: {}", path.display()))?;
         }
         stdout_line(
-            "  unknown classes: non-JAR Maven metadata, extracted/decompiled/platform source trees, derived preparation, Minecraft assets, symbol indexes, prior schemas, receipts and snapshots",
+            "  unknown classes: non-JAR Maven metadata, extracted/decompiled/platform source trees, derived preparation, Minecraft assets, symbol indexes, prior-schema derived resources, receipts and snapshots",
         )?;
         stdout_line(
             "  retirement blocked: producer recipes, other/offline owners and active readers/publishers are not fully known; report never deletes or follows descendants of a cache link for cleanup",
@@ -258,6 +281,39 @@ fn unavailable_lock_reason(path: &Path, error: &eyre::Report) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(": ")
+}
+
+/// Schema-2 locks retain exact portable artifact paths, but not the current
+/// source-provider/derived-resource contract. Count only direct cache paths.
+fn prior_schema_direct_paths(
+    lock: &Path,
+    cache: &CacheHome,
+) -> eyre::Result<Option<BTreeSet<PathBuf>>> {
+    let input = fs::read_to_string(lock)?;
+    let ToolchainLockfileDocument::V2 { lockfile, .. } = parse_document(&input)? else {
+        return Ok(None);
+    };
+    let mut paths = BTreeSet::new();
+    for artifact in lockfile.artifacts {
+        let relative = artifact
+            .cache_path
+            .strip_prefix("$sfm-cache")
+            .wrap_err_with(|| {
+                format!(
+                    "prior-schema artifact is not cache-relative: {}",
+                    artifact.cache_path.display()
+                )
+            })?;
+        ensure!(
+            relative
+                .components()
+                .all(|component| matches!(component, Component::Normal(_))),
+            "prior-schema artifact has an unsafe cache path: {}",
+            artifact.cache_path.display()
+        );
+        paths.insert(cache.join("minecraft-toolchain").join(relative));
+    }
+    Ok(Some(paths))
 }
 
 fn expected_paths(inventory: &DependencyInventory) -> eyre::Result<ExpectedPaths> {
@@ -407,5 +463,27 @@ mod tests {
         )
         .unwrap();
         assert!(checked_existing_root(root.path()).is_err());
+    }
+
+    #[test]
+    fn historical_lock_contributes_only_exact_direct_cache_paths() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let lock =
+            root.join("../../minecraft/projections/sfm-4.34.0/mc-1.19.2/sfm-toolchain.lock.json");
+        let cache = CacheHome(PathBuf::from("cache-root"));
+        let paths = prior_schema_direct_paths(&lock, &cache)
+            .unwrap()
+            .expect("historical release uses schema 2");
+        assert!(!paths.is_empty());
+        assert!(
+            paths
+                .iter()
+                .all(|path| path.starts_with(cache.join("minecraft-toolchain")))
+        );
+        assert!(
+            paths
+                .iter()
+                .any(|path| path.ends_with("mixin-0.8.5-processor.jar"))
+        );
     }
 }

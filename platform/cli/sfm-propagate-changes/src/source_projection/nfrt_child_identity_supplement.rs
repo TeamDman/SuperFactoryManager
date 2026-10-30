@@ -20,6 +20,7 @@ use facet::Facet;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 const MANIFEST_PATH: &str =
@@ -588,6 +589,68 @@ impl NfrtChildIdentitySupplement {
     }
 }
 
+/// Direct Maven JAR paths declared by the separately pinned NeoForm child
+/// recipe. This is reachability evidence, not an acquisition or execution path.
+pub(crate) fn reviewed_producer_jar_paths(
+    repo_root: &Path,
+    maven_cache: &Path,
+) -> Result<BTreeSet<PathBuf>> {
+    let (tools, libraries) = read_configuration(repo_root)?;
+    tools
+        .artifacts
+        .iter()
+        .map(|artifact| artifact.coordinate.as_str())
+        .chain(
+            libraries
+                .artifacts
+                .iter()
+                .map(|artifact| artifact.coordinate.as_str()),
+        )
+        .map(|coordinate| producer_jar_path(maven_cache, coordinate))
+        .collect()
+}
+
+fn producer_jar_path(maven_cache: &Path, coordinate: &str) -> Result<PathBuf> {
+    let (notation, extension) = coordinate
+        .split_once('@')
+        .map_or((coordinate, "jar"), |(notation, extension)| {
+            (notation, extension)
+        });
+    ensure!(extension == "jar", "NeoForm producer entry is not a JAR");
+    let parts = notation.split(':').collect::<Vec<_>>();
+    let [group, artifact, version, classifier @ ..] = parts.as_slice() else {
+        eyre::bail!("invalid NeoForm producer coordinate: {coordinate}");
+    };
+    ensure!(classifier.len() <= 1, "invalid NeoForm producer classifier");
+    let mut path = maven_cache.to_path_buf();
+    for segment in group.split('.') {
+        ensure!(
+            !segment.is_empty()
+                && segment
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || ch == '-'),
+            "invalid NeoForm producer group"
+        );
+        path.push(segment);
+    }
+    for segment in [artifact, version].into_iter().chain(classifier.iter()) {
+        ensure!(
+            !segment.is_empty()
+                && segment
+                    .chars()
+                    .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '-' | '_')),
+            "invalid NeoForm producer coordinate segment"
+        );
+    }
+    let suffix = classifier
+        .first()
+        .map_or_else(String::new, |value| format!("-{value}"));
+    Ok(path
+        .join(artifact)
+        .join(version)
+        .join(format!("{artifact}-{version}{suffix}.jar")))
+}
+
 fn read_configuration(
     root: &std::path::Path,
 ) -> Result<(SupplementDocument, SourceLibraryDocument)> {
@@ -1059,7 +1122,21 @@ mod tests {
     use crate::source_projection::released_native_inputs::prepare_released_native_inputs;
     use std::cell::Cell;
     use std::collections::BTreeMap;
-    use std::path::Path;
+
+    #[test]
+    fn reviewed_producer_paths_use_the_shared_maven_layout() -> Result<()> {
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
+        let cache = Path::new("cache-root/maven");
+        let paths = reviewed_producer_jar_paths(&repo_root, cache)?;
+        assert_eq!(paths.len(), 19);
+        assert!(
+            paths.contains(
+                &cache.join("io/codechicken/DiffPatch/2.0.0.36/DiffPatch-2.0.0.36-all.jar")
+            )
+        );
+        assert!(producer_jar_path(cache, "../unsafe:tool:1").is_err());
+        Ok(())
+    }
 
     const RECIPE_REVIEW: &str =
         include_str!("../../../../../docs/tasks/sfm-core-released-native-adapter-review.json");
