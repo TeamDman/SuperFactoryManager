@@ -79,13 +79,23 @@ fn validate_named_jar_project(
     Ok(())
 }
 
+fn development_source_outputs_allowed(kind: &LoaderToolchainKind, development: bool) -> bool {
+    development
+        && matches!(
+            kind,
+            LoaderToolchainKind::ForgeGradleForge | LoaderToolchainKind::NeoGradleUserdev
+        )
+}
+
 fn validate_named_native_build_target(plan: &BuildPlan, target: BuildTarget) -> eyre::Result<()> {
     // Development projections may prepare their platform sources for the
-    // checked source-index provider. Released catalog recipes retain the
-    // Compile/Jar-only guard and never enter a launch or JUnit path here.
+    // checked source-index provider on either supported native loader. Released
+    // catalog recipes retain the Compile/Jar-only guard here.
     if target == BuildTarget::SourceOutputs
-        && plan.identity.development_target().is_some()
-        && plan.loader_toolchain.kind == LoaderToolchainKind::ForgeGradleForge
+        && development_source_outputs_allowed(
+            &plan.loader_toolchain.kind,
+            plan.identity.development_target().is_some(),
+        )
     {
         return Ok(());
     }
@@ -102,6 +112,34 @@ fn validate_named_native_build_target(plan: &BuildPlan, target: BuildTarget) -> 
         BuildTarget::Run | BuildTarget::SourceOutputs => eyre::bail!(
             "catalog-owned native route permits Compile or exact Jar only; NeoForm/JUnit/launch stay disabled"
         ),
+    }
+}
+
+#[cfg(test)]
+mod development_source_output_admission_tests {
+    use super::*;
+
+    #[test]
+    fn only_development_forge_and_neoform_source_outputs_are_admitted() {
+        for kind in [
+            LoaderToolchainKind::ForgeGradleForge,
+            LoaderToolchainKind::ForgeGradleNeoForgeGroup,
+            LoaderToolchainKind::NeoGradleUserdev,
+        ] {
+            assert!(!development_source_outputs_allowed(&kind, false));
+        }
+        assert!(development_source_outputs_allowed(
+            &LoaderToolchainKind::ForgeGradleForge,
+            true,
+        ));
+        assert!(development_source_outputs_allowed(
+            &LoaderToolchainKind::NeoGradleUserdev,
+            true,
+        ));
+        assert!(!development_source_outputs_allowed(
+            &LoaderToolchainKind::ForgeGradleNeoForgeGroup,
+            true,
+        ));
     }
 }
 
