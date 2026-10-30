@@ -3,6 +3,7 @@
 use crate::branch_targets::WorktreeTarget;
 use crate::dependency_inventory::DependencyInventory;
 use crate::paths::CacheHome;
+use crate::source_cache::SourceCacheLayout;
 use crate::source_projection::candidate_lock::is_reparse;
 use crate::source_projection::core_catalog::CoreCatalog;
 use crate::terminal_output::stdout_line;
@@ -54,7 +55,7 @@ impl CacheReportArgs {
         let physical = checked_existing_root(&logical)?;
         let cache = CacheHome(physical.clone());
         let selected = DependencyInventory::load_project(&self.project_root, cache.clone())?;
-        let selected_paths = expected_paths(&selected);
+        let selected_paths = expected_paths(&selected)?;
         let mut known_owners = ExpectedPaths::default();
         let mut unknown_owners = Vec::new();
         let mut known_owner_count = 0;
@@ -70,7 +71,7 @@ impl CacheReportArgs {
             }
             match DependencyInventory::load_project(&project, cache.clone()) {
                 Ok(inventory) => {
-                    known_owners.extend(expected_paths(&inventory));
+                    known_owners.extend(expected_paths(&inventory)?);
                     known_owner_count += 1;
                 }
                 Err(error) => unknown_owners.push(format!(
@@ -103,7 +104,7 @@ impl CacheReportArgs {
             }
             match DependencyInventory::load_target(target.clone(), cache.clone()) {
                 Ok(inventory) => {
-                    known_owners.extend(expected_paths(&inventory));
+                    known_owners.extend(expected_paths(&inventory)?);
                     known_owner_count += 1;
                 }
                 Err(error) => unknown_owners.push(format!("worktree {}: {error}", target.branch)),
@@ -168,8 +169,30 @@ impl CacheReportArgs {
         for path in unclassified {
             stdout_line(format!("    unclassified: {}", path.display()))?;
         }
+        let git_root = physical.join("minecraft-toolchain/sources/git");
+        let mut git_entries = child_directories(&git_root.join("repositories"))?;
+        for remote in child_directories(&git_root.join("trees"))? {
+            git_entries.extend(child_directories(&remote)?);
+        }
+        let (git_other, git_unclassified) =
+            classify_observed(&git_entries, &selected_paths.derived, &known_owners.derived);
+        stdout_line(format!(
+            "  observed Git repositories and trees: {}",
+            git_entries.len()
+        ))?;
+        stdout_line(format!(
+            "  Git entries held by known other locks: {}",
+            git_other.len()
+        ))?;
+        stdout_line(format!(
+            "  unclassified Git entries (not deletion candidates): {}",
+            git_unclassified.len()
+        ))?;
+        for path in git_unclassified {
+            stdout_line(format!("    unclassified Git: {}", path.display()))?;
+        }
         stdout_line(
-            "  unknown classes: non-JAR Maven metadata, Git repositories/trees, extracted/decompiled/platform source trees, derived preparation, Minecraft assets, symbol indexes, prior schemas, receipts and snapshots",
+            "  unknown classes: non-JAR Maven metadata, extracted/decompiled/platform source trees, derived preparation, Minecraft assets, symbol indexes, prior schemas, receipts and snapshots",
         )?;
         stdout_line(
             "  retirement blocked: producer recipes, other/offline owners and active readers/publishers are not fully known; report never deletes or follows descendants of a cache link for cleanup",
@@ -237,12 +260,22 @@ fn unavailable_lock_reason(path: &Path, error: &eyre::Report) -> String {
         .join(": ")
 }
 
-fn expected_paths(inventory: &DependencyInventory) -> ExpectedPaths {
+fn expected_paths(inventory: &DependencyInventory) -> eyre::Result<ExpectedPaths> {
     let mut paths = ExpectedPaths::default();
     for artifact in &inventory.lockfile.artifacts {
         paths
             .direct
             .insert(inventory.local_path(&artifact.cache_path));
+        if let Some(source_git) = &artifact.source_git {
+            if let Some(remote) = source_git.remote_url.as_deref() {
+                let remote = crate::source_git::canonical_https_remote(remote)?;
+                paths.derived.insert(
+                    inventory.local_path(
+                        &SourceCacheLayout::git(&remote, &source_git.commit).repository,
+                    ),
+                );
+            }
+        }
     }
     for dependency in &inventory.lockfile.dependencies {
         for component in &dependency.components {
@@ -278,7 +311,7 @@ fn expected_paths(inventory: &DependencyInventory) -> ExpectedPaths {
             }
         }
     }
-    paths
+    Ok(paths)
 }
 
 fn existing_maven_jars(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
@@ -309,6 +342,26 @@ fn existing_maven_jars(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
                 .is_some_and(|ext| ext.eq_ignore_ascii_case("jar"))
         {
             paths.insert(entry.path().to_path_buf());
+        }
+    }
+    Ok(paths)
+}
+
+fn child_directories(root: &Path) -> eyre::Result<BTreeSet<PathBuf>> {
+    let mut paths = BTreeSet::new();
+    if !root.is_dir() {
+        return Ok(paths);
+    }
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        let metadata = fs::symlink_metadata(entry.path())?;
+        ensure!(
+            !is_reparse(&metadata),
+            "Git report encountered a link/reparse entry: {}",
+            entry.path().display()
+        );
+        if metadata.is_dir() {
+            paths.insert(entry.path());
         }
     }
     Ok(paths)
