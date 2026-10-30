@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import java.security.MessageDigest
 
 if (project.ext.has('sfmRepositoriesConfigured')) {
     throw new GradleException("repositories.gradle must not be applied more than once")
@@ -70,18 +71,69 @@ if (!sfmCacheRoot) {
 }
 def sfmLocalMavenRepository = new File(sfmCacheRoot, 'minecraft-toolchain/maven')
 ext.sfmLogicalToolchainCacheRoot = sfmCacheRoot
-def sfmSourceBuildModules = sfmSourceBuildArtifacts.collect { artifact ->
+// Gradle's JDK supplies SHA-256, while the frozen SFM artifact lock uses BLAKE3.
+// These independently reviewed SHA-256 pins name the exact same three source-built
+// byte streams. An unknown lock hash fails closed instead of admitting a new JAR.
+def sfmSourceBuildSha256ByLockedHash = [
+        'blake3:b5e829e94223c179b4a196b8fc098213c10a242d':
+                '5c1039f15afb35100018b8bdaf44bfa7947aa734351648b8b3dfec30268f2d44',
+        'blake3:5dc6c6c6890e29e6cae2b38075cb111821361c62':
+                '333601e9f08a83fecb936727cd423ce7d6781478f475f1aaf1ab6d19d9452a15',
+        'blake3:4ecea4778148a5b04dd5e2c6c0e970bfbe97bc4c':
+                'be441a57e11d4981d283306fe471874e625bf2f423c83a91ce8f44dde623d062'
+]
+def sfmSourceBuildMavenModules = new LinkedHashSet<List<String>>()
+def sfmSourceBuildProducerRepositories = [:]
+def sfmPhysicalToolchainRoot = new File(sfmCacheRoot, 'minecraft-toolchain').canonicalFile.toPath()
+sfmSourceBuildArtifacts.each { artifact ->
     def coordinate = artifact.coordinate?.toString()
     def parts = coordinate == null ? [] : coordinate.split(':') as List
     if (parts.size() < 3) {
         throw new GradleException(
                 "Source-built artifact ${artifact.id} must declare a Maven coordinate")
     }
-    [parts[0], parts[1]]
-}.unique()
+    def lockedHash = artifact.hash?.toString()
+    def expectedSha256 = sfmSourceBuildSha256ByLockedHash[lockedHash]
+    if (expectedSha256 == null) {
+        throw new GradleException("No independently pinned Gradle SHA-256 for ${artifact.id}: ${lockedHash}")
+    }
+    def portablePath = artifact.cache_path?.toString()?.replace('\\', '/')
+    if (portablePath == null || !portablePath.startsWith('$sfm-cache/')) {
+        throw new GradleException("Source-built artifact ${artifact.id} has no guarded cache path")
+    }
+    def relativePath = portablePath.substring('$sfm-cache/'.length())
+    if (relativePath.split('/').any { it.isEmpty() || it == '.' || it == '..' }
+            || !(relativePath.startsWith('maven/')
+            || relativePath.startsWith('producer-outputs/'))) {
+        throw new GradleException("Source-built artifact ${artifact.id} has an unsafe cache path")
+    }
+    def lockedFile = new File(new File(sfmCacheRoot, 'minecraft-toolchain'), relativePath)
+    if (!lockedFile.isFile() || !lockedFile.canonicalFile.toPath().startsWith(sfmPhysicalToolchainRoot)) {
+        throw new GradleException("Missing or redirected source-built artifact ${artifact.id}: ${lockedFile}")
+    }
+    def digest = MessageDigest.getInstance('SHA-256')
+    lockedFile.withInputStream { stream ->
+        def buffer = new byte[65536]
+        int count
+        while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+    }
+    if (digest.digest().encodeHex().toString() != expectedSha256) {
+        throw new GradleException("Source-built artifact ${artifact.id} differs from its checked-in SHA-256")
+    }
+    def module = [parts[0], parts[1]]
+    if (relativePath.startsWith('maven/')) {
+        sfmSourceBuildMavenModules.add(module)
+    } else {
+        def directory = lockedFile.parentFile.canonicalPath
+        if (!sfmSourceBuildProducerRepositories.containsKey(directory)) {
+            sfmSourceBuildProducerRepositories[directory] = new LinkedHashSet<List<String>>()
+        }
+        sfmSourceBuildProducerRepositories[directory].add(module)
+    }
+}
 
 repositories {
-    if (!sfmSourceBuildModules.isEmpty()) {
+    if (!sfmSourceBuildMavenModules.isEmpty()) {
         if (!sfmLocalMavenRepository.isDirectory()) {
             throw new GradleException(
                     "Profile '${project.ext.sfmLockfileProfile}' requires source-built artifacts, "
@@ -100,7 +152,25 @@ repositories {
                 }
             }
             filter {
-                sfmSourceBuildModules.each { module -> includeModule(module[0], module[1]) }
+                sfmSourceBuildMavenModules.each { module -> includeModule(module[0], module[1]) }
+            }
+        }
+    }
+
+    sfmSourceBuildProducerRepositories.each { directory, modules ->
+        exclusiveContent {
+            forRepository {
+                ivy {
+                    name = 'sfm-source-build-producer'
+                    url = uri(directory)
+                    patternLayout {
+                        artifact '[artifact]-[revision](-[classifier]).[ext]'
+                    }
+                    metadataSources { artifact() }
+                }
+            }
+            filter {
+                modules.each { module -> includeModule(module[0], module[1]) }
             }
         }
     }
