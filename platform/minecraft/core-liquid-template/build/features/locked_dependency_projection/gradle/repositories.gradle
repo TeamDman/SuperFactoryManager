@@ -208,6 +208,29 @@ if (sfmUseRepositoryToolchainData?.toString() == 'true') {
 }
 
 repositories {
+    if (sfmUseRepositoryToolchainData?.toString() == 'true'
+            && project.findProperty('minecraft_version')?.toString() == '26.1.2') {
+        // settings.gradle checked and published this exact existing-recipe
+        // metadata/tool closure. Restrict it to complete modules so it
+        // cannot mask the separate checked routes for mod and source-built JARs.
+        exclusiveContent {
+            forRepository {
+                maven {
+                    name = 'sfm-checked-gradle-bootstrap'
+                    url = uri(new File(sfmCacheRoot, 'gradle/bootstrap-maven/26.1.2'))
+                    metadataSources {
+                        mavenPom()
+                        gradleMetadata()
+                    }
+                }
+            }
+            filter {
+                includeModule('net.neoforged', 'neoforge')
+                includeModule('net.neoforged', 'neoform')
+                includeModule('net.neoforged.jst', 'jst-cli-bundle')
+            }
+        }
+    }
     if (!sfmCheckedRemoteMavenModules.isEmpty()) {
         exclusiveContent {
             forRepository {
