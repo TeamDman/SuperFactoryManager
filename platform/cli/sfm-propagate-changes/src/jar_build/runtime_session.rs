@@ -570,4 +570,87 @@ mod tests {
         assert!(ended.session_dir.is_dir());
         Ok(())
     }
+
+    /// Manual bounded JVM witness. The source and both runtime slots live only
+    /// in this fixture; no projection source or saved Minecraft world is used.
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "requires SFM_LIVE_JAVA_HOME pointing at an installed JBR 17 SDK"]
+    fn changed_class_bytes_are_observed_by_two_live_session_classpaths() -> eyre::Result<()> {
+        let home = std::env::var_os("SFM_LIVE_JAVA_HOME")
+            .ok_or_else(|| eyre::eyre!("set SFM_LIVE_JAVA_HOME for the owned JVM fixture"))?;
+        let home = fs::canonicalize(PathBuf::from(home))?;
+        let java_executable = home.join("bin/java.exe");
+        let javac = home.join("bin/javac.exe");
+        ensure!(java_executable.is_file() && javac.is_file(), "fixture SDK is incomplete");
+        let temporary = tempfile::tempdir()?;
+        let minecraft = dunce::canonicalize(temporary.path())?;
+        let cache = minecraft.join("build/sfm-toolchain/native-project/fixture");
+        let project = cache.join("project");
+        let classes = project.join("classes");
+        fs::create_dir_all(&classes)?;
+        let source = minecraft.join("Main.java");
+        let java = ResolvedJava {
+            executable: java_executable.clone(),
+            home: Some(home),
+            version_output: "installed fixture JBR 17".to_owned(),
+            major_version: 17,
+            selection: "owned live fixture".to_owned(),
+            pin_url: None,
+            pin_sha512: None,
+        };
+        let compile = |marker: &str| -> eyre::Result<()> {
+            fs::write(
+                &source,
+                format!(
+                    "public class Main {{ public static void main(String[] args) {{ System.out.print(\"{marker}\"); }} }}"
+                ),
+            )?;
+            let output = std::process::Command::new(&javac)
+                .arg("-d")
+                .arg(&classes)
+                .arg(&source)
+                .output()?;
+            ensure!(output.status.success(), "owned javac failed: {}", String::from_utf8_lossy(&output.stderr));
+            Ok(())
+        };
+        let observe = |session: &RuntimeSession| -> eyre::Result<String> {
+            let output = std::process::Command::new(&java_executable)
+                .arg("-cp")
+                .arg(session.receipt.mod_root())
+                .arg("Main")
+                .output()?;
+            ensure!(output.status.success(), "owned JVM failed: {}", String::from_utf8_lossy(&output.stderr));
+            Ok(String::from_utf8(output.stdout)?)
+        };
+        let build_lock = cache.join(".locks/build-cache.lock");
+        let producer = ArtifactLock::acquire(&build_lock, "first owned fixture compile")?;
+        compile("first-class")?;
+        let first_hash = blake3::hash(&fs::read(classes.join("Main.class"))?);
+        let first = BuildSnapshotReceipt::publish(
+            &minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk",
+        )?;
+        let first_live = RuntimeSession::prepare(&first, "runGameTestServer", &["classes"], None, Some(1), false)?;
+        fs::write(first_live.slot.data_dir.join("options.txt"), b"owned options")?;
+        fs::create_dir(first_live.slot.data_dir.join("world"))?;
+        fs::write(first_live.slot.data_dir.join("world/level.dat"), b"owned world")?;
+        assert_eq!(observe(&first_live)?, "first-class");
+        drop(producer);
+        let _next_producer = ArtifactLock::try_acquire(&build_lock, "second owned fixture compile")?
+            .ok_or_else(|| eyre::eyre!("first runtime session retained the compile lock"))?;
+        compile("second-class")?;
+        let second_hash = blake3::hash(&fs::read(classes.join("Main.class"))?);
+        assert_ne!(first_hash, second_hash);
+        let second = BuildSnapshotReceipt::publish(
+            &minecraft, &cache, "1.19.2", &java, &project, "fixture-sdk",
+        )?;
+        assert_ne!(first.snapshot_dir, second.snapshot_dir);
+        let second_live = RuntimeSession::prepare(&second, "runGameTestServer", &["classes"], None, Some(2), false)?;
+        assert_eq!(observe(&first_live)?, "first-class");
+        assert_eq!(observe(&second_live)?, "second-class");
+        assert_eq!(fs::read(first_live.slot.data_dir.join("options.txt"))?, b"owned options");
+        assert_eq!(fs::read(first_live.slot.data_dir.join("world/level.dat"))?, b"owned world");
+        println!("live changed-class witness: first={first_hash} second={second_hash}; first session retained while second JVM observed its new class");
+        Ok(())
+    }
 }
