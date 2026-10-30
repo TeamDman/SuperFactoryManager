@@ -831,6 +831,231 @@
       "sha256": "e1e2415e7f78b34960402c4beddfc88e033d7842a23ecd132a8ec2eadd54f6bf",
       "bytes": 1856529,
       "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/vineflower/vineflower/1.11.2/vineflower-1.11.2.jar"
+    },
+    {
+      "coordinate": "com.mojang:jtracy:1.0.37",
+      "file": "jtracy-1.0.37-natives-windows.jar",
+      "path": "com/mojang/jtracy/1.0.37/jtracy-1.0.37-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/com/mojang/jtracy/1.0.37/jtracy-1.0.37-natives-windows.jar",
+      "sha256": "219c2aab0f1453901df8cd39886659dc5159a9c1139264c14f06baebf49b9730",
+      "bytes": 46763,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/minecraft/libraries/com/mojang/jtracy/1.0.37/jtracy-1.0.37-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl:3.4.1",
+      "file": "lwjgl-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-arm64.jar",
+      "sha256": "87cbeacc58dc4a77d7f6eb9929424a34cf34c3e09e4ad8344cdc4e9898366a40",
+      "bytes": 147895,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl:3.4.1",
+      "file": "lwjgl-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-x86.jar",
+      "sha256": "04238aa47ddde7789a44a1b9bfe2b88d80b900c1130a6ed9cc7b82a8ababf06d",
+      "bytes": 149548,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl:3.4.1",
+      "file": "lwjgl-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows.jar",
+      "sha256": "21872776b9be0a93c746d6f28797c12ac47a75e0f0188e5a4fad0c20c9a6a07e",
+      "bytes": 176521,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl/3.4.1/lwjgl-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-freetype:3.4.1",
+      "file": "lwjgl-freetype-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-arm64.jar",
+      "sha256": "dfd620b415a537eb452e8a16825cbd41ece2b5496794114305a8ddb1efb94dbb",
+      "bytes": 970159,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-freetype:3.4.1",
+      "file": "lwjgl-freetype-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-x86.jar",
+      "sha256": "3079ac0b1bc60be2893dbef788a2ca25255b0e91a997658a20da297298c7e88d",
+      "bytes": 934284,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-freetype:3.4.1",
+      "file": "lwjgl-freetype-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows.jar",
+      "sha256": "963c76cbc89f1c97c8448621f5f0e67da58a6bc43128e197b7fb616dc2395557",
+      "bytes": 1086613,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-freetype/3.4.1/lwjgl-freetype-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-glfw:3.4.1",
+      "file": "lwjgl-glfw-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-arm64.jar",
+      "sha256": "a4ba37d3ed241371c8e83f71acbea81d690e0784b22086d98486ec02363250a6",
+      "bytes": 153879,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-glfw:3.4.1",
+      "file": "lwjgl-glfw-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-x86.jar",
+      "sha256": "ca0270e9a6fb66f7877d5edcb1a7aa939d07a5bc1d781bfa7af38ffa47fe27ef",
+      "bytes": 166065,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-glfw:3.4.1",
+      "file": "lwjgl-glfw-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows.jar",
+      "sha256": "20adab06c8f5bf1e3515a7e64db261cd83ca8131d674dc5f0af93b514deedac8",
+      "bytes": 173265,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-glfw/3.4.1/lwjgl-glfw-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-jemalloc:3.4.1",
+      "file": "lwjgl-jemalloc-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-arm64.jar",
+      "sha256": "9da797a1957442e37b1eeba503a099a47c859cab17e0b3d222cfb03d0d3bfce9",
+      "bytes": 158939,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-jemalloc:3.4.1",
+      "file": "lwjgl-jemalloc-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-x86.jar",
+      "sha256": "710d97b446e88ca1ee5a1af8335f3c06b60cb49e29f2c9ce4c49bf1a49d4a4a1",
+      "bytes": 151189,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-jemalloc:3.4.1",
+      "file": "lwjgl-jemalloc-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows.jar",
+      "sha256": "71785f161a015a1a8941a1a3ed7bb007570bb0ef7d95d8725f6acb0634ec577e",
+      "bytes": 184339,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-jemalloc/3.4.1/lwjgl-jemalloc-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-openal:3.4.1",
+      "file": "lwjgl-openal-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-arm64.jar",
+      "sha256": "738145e659b5cd6353d7caa99f53af190ec430e0343db723e91204d3e3fef63e",
+      "bytes": 885200,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-openal:3.4.1",
+      "file": "lwjgl-openal-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-x86.jar",
+      "sha256": "30bbb758865b104a9079703eb87862318341e3b1f0c504e369f97e4ff7f675fd",
+      "bytes": 906799,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-openal:3.4.1",
+      "file": "lwjgl-openal-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows.jar",
+      "sha256": "28d4065b9c6be68454eb4d7c0da665bd4bc7cc77d854c1f67afbd2f38ff730a3",
+      "bytes": 978825,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-openal/3.4.1/lwjgl-openal-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-opengl:3.4.1",
+      "file": "lwjgl-opengl-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-arm64.jar",
+      "sha256": "976d4a24cceebfcf84ec3ba06ba2ab23aa077e4cd25f0aedb74d3b1828534b41",
+      "bytes": 84348,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-opengl:3.4.1",
+      "file": "lwjgl-opengl-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-x86.jar",
+      "sha256": "7f5b16207a9fc292ccf113f94b2b49bd5a4582b1b8a001498e6a2b4a2eddb0cb",
+      "bytes": 89816,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-opengl:3.4.1",
+      "file": "lwjgl-opengl-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows.jar",
+      "sha256": "e174a206709a91c89a840b5d935831bdb386f435ed224e570a0f15b063b4d9b4",
+      "bytes": 97635,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-opengl/3.4.1/lwjgl-opengl-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-stb:3.4.1",
+      "file": "lwjgl-stb-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-arm64.jar",
+      "sha256": "7e67e1d44580a212f59b46d9160e3a6671826d4ea612eb706a32a090a926a122",
+      "bytes": 241125,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-stb:3.4.1",
+      "file": "lwjgl-stb-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-x86.jar",
+      "sha256": "f24ea6265ff1a6996ca568fdc8f7ee3f10b34b71f16b30a91a01933465ced66b",
+      "bytes": 254284,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-stb:3.4.1",
+      "file": "lwjgl-stb-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows.jar",
+      "sha256": "f782d33034d90967e92d45633f4a5c11658802f083507d2323f78aede8752b04",
+      "bytes": 293099,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-stb/3.4.1/lwjgl-stb-3.4.1-natives-windows.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-tinyfd:3.4.1",
+      "file": "lwjgl-tinyfd-3.4.1-natives-windows-arm64.jar",
+      "path": "org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-arm64.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-arm64.jar",
+      "sha256": "8a08098521d0e3db27eb936f9d1352b48e795caf629f458d83cc7fa9a5528749",
+      "bytes": 114061,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-arm64.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-tinyfd:3.4.1",
+      "file": "lwjgl-tinyfd-3.4.1-natives-windows-x86.jar",
+      "path": "org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-x86.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-x86.jar",
+      "sha256": "bf801c166340aafab8ddfbf005111edff9b25dfa6fb3ef1728945e6e40a01fe1",
+      "bytes": 113387,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows-x86.jar"
+    },
+    {
+      "coordinate": "org.lwjgl:lwjgl-tinyfd:3.4.1",
+      "file": "lwjgl-tinyfd-3.4.1-natives-windows.jar",
+      "path": "org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows.jar",
+      "url": "https://libraries.minecraft.net/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows.jar",
+      "sha256": "1d459b70aa8b23d3a4f800e6eee5441792751112980df8f6c08572e7d21f15b6",
+      "bytes": 131192,
+      "source_cache_path": "sfm-toolchain-data/minecraft-toolchain/maven/org/lwjgl/lwjgl-tinyfd/3.4.1/lwjgl-tinyfd-3.4.1-natives-windows.jar"
     }
   ],
   "metadata_only_coordinates": [

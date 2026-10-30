@@ -115,7 +115,7 @@ def sfmRemoteSha256ByLockedHash = [
 def sfmSourceBuildMavenModules = new LinkedHashSet<List<String>>()
 def sfmCheckedRemoteMavenModules = new LinkedHashSet<List<String>>()
 def sfmCheckedGradleProjectModules = new LinkedHashSet<List<String>>()
-def sfmCheckedGradleProjectCoordinates = new HashSet<String>()
+def sfmCheckedGradleProjectPaths = new HashSet<String>()
 def sfmSourceBuildProducerRepositories = [:]
 def sfmPhysicalToolchainRoot = new File(sfmCacheRoot, 'minecraft-toolchain').canonicalFile.toPath()
 sfmSourceBuildArtifacts.each { artifact ->
@@ -218,7 +218,7 @@ if (sfmUseRepositoryToolchainData?.toString() == 'true'
         throw new GradleException("Missing checked Gradle project JAR manifest: ${jarManifestFile}")
     }
     def jarManifest = new JsonSlurper().parse(jarManifestFile.toFile())
-    if (jarManifest.schema_version != 1 || jarManifest.artifacts.size() != 93
+    if (jarManifest.schema_version != 1 || jarManifest.artifacts.size() != 118
             || jarManifest.metadata_only_coordinates.size() != 22
             || jarManifest.neoform_child_identity_sha256 !=
                     'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
@@ -237,7 +237,7 @@ if (sfmUseRepositoryToolchainData?.toString() == 'true'
         def module = [parts[0], parts[1]]
         if (sfmCheckedRemoteMavenModules.contains(module)
                 || sfmSourceBuildMavenModules.contains(module)
-                || !sfmCheckedGradleProjectCoordinates.add(pin.coordinate.toString())) {
+                || !sfmCheckedGradleProjectPaths.add(pin.path.toString())) {
             throw new GradleException("Overlapping checked Gradle project module: ${pin.coordinate}")
         }
         sfmCheckedGradleProjectModules.add(module)

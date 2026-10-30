@@ -59,7 +59,7 @@ pluginManagement {
                             'bedfd4c667d5f73d725fb9bdbf53efa13b8026b8c00e1eb1ab789c25ffbf5ca0'
                     || jarManifest.neoform_child_identity_sha256 !=
                             'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
-                    || jarManifest.artifacts.size() != 93
+                    || jarManifest.artifacts.size() != 118
                     || jarManifest.metadata_only_coordinates.size() != 22) {
                 throw new GradleException('Unexpected approved Gradle project JAR manifest identity')
             }
