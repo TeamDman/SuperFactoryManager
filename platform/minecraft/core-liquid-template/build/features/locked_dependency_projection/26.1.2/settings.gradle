@@ -1,0 +1,162 @@
+// The locked 26.1.2 projection can bootstrap its existing plugin closure
+// using only the JDK and the checked-in manifest. Plain releases keep their
+// historical settings input.
+pluginManagement {
+    def useShared = gradle.startParameter.projectProperties['sfmUseRepositoryToolchainData']
+    if (useShared != null && !(useShared in ['true', 'false'])) {
+        throw new GradleException('sfmUseRepositoryToolchainData must be true or false')
+    }
+    repositories {
+        if (useShared == 'true') {
+            def checkout = settingsDir.toPath().toAbsolutePath()
+                    .resolve('../../../../../').normalize()
+            def projectionParent = checkout.resolve('platform/minecraft/projections')
+            if (!checkout.resolve('.git').toFile().exists()
+                    || !settingsDir.toPath().toAbsolutePath().normalize()
+                            .parent.parent.equals(projectionParent)) {
+                throw new GradleException(
+                        'Repository toolchain data requires a catalog project inside the SFM checkout')
+            }
+            def manifestFile = checkout.resolve(
+                    'platform/minecraft/core-liquid-template/build/supplements/gradle-plugin-bootstrap-26.1.2.json')
+            if (!java.nio.file.Files.isRegularFile(manifestFile)) {
+                throw new GradleException('Missing approved Gradle bootstrap manifest: ' + manifestFile)
+            }
+            def manifest = new groovy.json.JsonSlurper().parse(manifestFile.toFile())
+            if (manifest.schema_version != 1
+                    || manifest.root_plugins != [
+                        'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:0.9.0',
+                        'net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.1.27'
+                    ]
+                    || manifest.artifacts.size() != 138) {
+                throw new GradleException('Unexpected approved Gradle bootstrap manifest identity')
+            }
+            def repository = checkout.resolve(
+                    'sfm-toolchain-data/gradle/bootstrap-maven/26.1.2').normalize()
+            java.nio.file.Files.createDirectories(repository)
+            def physicalRepository = repository.toRealPath()
+            def lockPath = repository.resolve('.publication.lock')
+            def channel = java.nio.channels.FileChannel.open(lockPath,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.WRITE)
+            def publicationLock = channel.lock()
+            try {
+                def seen = new HashSet<String>()
+                manifest.artifacts.each { pin ->
+                    def coordinate = pin.coordinate.toString().split(':', -1)
+                    if (coordinate.length != 3 || !pin.file || !pin.path
+                            || !pin.sha256?.toString()?.matches('[0-9a-f]{64}')
+                            || !(pin.bytes instanceof Number) || pin.bytes < 1
+                            || !seen.add(pin.path.toString())) {
+                        throw new GradleException('Invalid Gradle bootstrap pin: ' + pin.coordinate)
+                    }
+                    def expectedPath = coordinate[0].replace('.', '/') + '/' +
+                            coordinate[1] + '/' + coordinate[2] + '/' + pin.file
+                    def sourceUri = pin.url == null ? null : new URI(pin.url.toString())
+                    def officialRoots = [
+                        'repo.maven.apache.org': '/maven2/',
+                        'maven.neoforged.net': '/releases/',
+                        'plugins.gradle.org': '/m2/'
+                    ]
+                    if (pin.path != expectedPath || sourceUri?.scheme != 'https'
+                            || !officialRoots.containsKey(sourceUri.host)
+                            || sourceUri.rawPath != officialRoots[sourceUri.host] + pin.path
+                            || sourceUri.rawUserInfo != null || sourceUri.rawQuery != null
+                            || sourceUri.rawFragment != null) {
+                        throw new GradleException('Unsafe Gradle bootstrap pin path: ' + pin.path)
+                    }
+                    def target = repository.resolve(pin.path.toString()).normalize()
+                    if (!target.startsWith(repository)) {
+                        throw new GradleException('Gradle bootstrap path escapes shared root: ' + target)
+                    }
+                    def existingAncestor = target.parent
+                    while (!java.nio.file.Files.exists(existingAncestor,
+                            java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                        existingAncestor = existingAncestor.parent
+                    }
+                    if (!existingAncestor.toRealPath().startsWith(physicalRepository)) {
+                        throw new GradleException('Gradle bootstrap parent escapes shared root: ' + existingAncestor)
+                    }
+                    java.nio.file.Files.createDirectories(target.parent)
+                    if (!target.parent.toRealPath().startsWith(physicalRepository)
+                            || java.nio.file.Files.isSymbolicLink(target)) {
+                        throw new GradleException('Gradle bootstrap path escapes shared root: ' + target)
+                    }
+                    def verify = { path ->
+                        if (java.nio.file.Files.size(path) != pin.bytes.longValue()) {
+                            throw new GradleException('Gradle bootstrap size mismatch: ' + pin.coordinate + ' ' + pin.file)
+                        }
+                        def digest = java.security.MessageDigest.getInstance('SHA-256')
+                        java.nio.file.Files.newInputStream(path).withCloseable { stream ->
+                            byte[] block = new byte[65536]
+                            int count
+                            while ((count = stream.read(block)) != -1) {
+                                digest.update(block, 0, count)
+                            }
+                        }
+                        def actual = digest.digest().collect {
+                            String.format('%02x', it & 0xff)
+                        }.join()
+                        if (actual != pin.sha256) {
+                            throw new GradleException('Gradle bootstrap digest mismatch: ' + pin.coordinate + ' ' + pin.file)
+                        }
+                    }
+                    if (!java.nio.file.Files.exists(target)) {
+                        if (gradle.startParameter.offline) {
+                            throw new GradleException('Missing offline Gradle bootstrap pin: ' + pin.coordinate + ' ' + pin.file)
+                        }
+                        def temporary = target.resolveSibling(target.fileName.toString()
+                                + '.partial-' + java.util.UUID.randomUUID())
+                        try {
+                            def source = sourceUri.toURL().openConnection()
+                            source.connectTimeout = 30000
+                            source.readTimeout = 30000
+                            source.getInputStream().withCloseable { input ->
+                                java.nio.file.Files.newOutputStream(temporary,
+                                        java.nio.file.StandardOpenOption.CREATE_NEW,
+                                        java.nio.file.StandardOpenOption.WRITE).withCloseable { output ->
+                                    byte[] block = new byte[65536]
+                                    int count
+                                    long received = 0
+                                    while ((count = input.read(block)) != -1) {
+                                        received += count
+                                        if (received > pin.bytes.longValue()) {
+                                            throw new GradleException('Oversized Gradle bootstrap input: ' + pin.coordinate + ' ' + pin.file)
+                                        }
+                                        output.write(block, 0, count)
+                                    }
+                                }
+                            }
+                            verify(temporary)
+                            java.nio.file.Files.move(temporary, target,
+                                    java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+                        } finally {
+                            java.nio.file.Files.deleteIfExists(temporary)
+                        }
+                    }
+                    verify(target)
+                }
+            } finally {
+                publicationLock.close()
+                channel.close()
+            }
+            maven {
+                url = repository.toUri()
+                metadataSources {
+                    mavenPom()
+                    gradleMetadata()
+                }
+            }
+        } else {
+            gradlePluginPortal()
+            maven { url = 'https://maven.neoforged.net/releases' }
+            maven { url = 'https://maven.parchmentmc.org' }
+        }
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.9.0'
+}
+
+rootProject.name = 'sfm-26.1.2'

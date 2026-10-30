@@ -17,10 +17,27 @@ buildscript {
     }
 
     repositories {
-        gradlePluginPortal()
-        maven { url = 'https://maven.minecraftforge.net/' }
-        maven { url = 'https://maven.neoforged.net/releases' }
-        maven { url = 'https://maven.parchmentmc.org' }
+        if (sfmPluginVersion == '26.1.2'
+                && gradle.startParameter.projectProperties.get('sfmUseRepositoryToolchainData') == 'true') {
+            // settings.gradle has checked every pinned input before this buildscript
+            // resolves the same closure. Keep Gradle independent of the Rust CLI.
+            def checkout = projectDir.toPath().toAbsolutePath()
+                    .resolve('../../../../../').normalize()
+            def localBootstrap = checkout.resolve(
+                    'sfm-toolchain-data/gradle/bootstrap-maven/26.1.2')
+            maven {
+                url = localBootstrap.toUri()
+                metadataSources {
+                    mavenPom()
+                    gradleMetadata()
+                }
+            }
+        } else {
+            gradlePluginPortal()
+            maven { url = 'https://maven.minecraftforge.net/' }
+            maven { url = 'https://maven.neoforged.net/releases' }
+            maven { url = 'https://maven.parchmentmc.org' }
+        }
     }
     dependencies {
         sfmPluginClasspathFile

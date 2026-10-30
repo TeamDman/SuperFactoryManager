@@ -1,0 +1,1259 @@
+{
+  "schema_version": 1,
+  "purpose": "existing Gradle 9.5 / Foojay 0.9.0 / NeoGradle userdev 7.1.27 cold bootstrap for locked 26.1.2 projections",
+  "distribution": {
+    "url": "https://services.gradle.org/distributions/gradle-9.5.0-bin.zip",
+    "bytes": 140319124,
+    "sha256": "553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746"
+  },
+  "root_plugins": [
+    "org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:0.9.0",
+    "net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.1.27"
+  ],
+  "resolution_variant": "Gradle 9.5 Java runtime/external library configuration",
+  "verification_metadata_sha256": "c2978db5ea1226029b171e84b050ebc0e204ccdd408a9554be13b58bec791ce7",
+  "artifacts": [
+    {
+      "coordinate": "com.fasterxml:oss-parent:38",
+      "file": "oss-parent-38.pom",
+      "sha256": "c83f8f45dfdca8d0b6b3661c60b3f84780f671b12e06f91ad5d1c1a1d1f966e8",
+      "path": "com/fasterxml/oss-parent/38/oss-parent-38.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/oss-parent/38/oss-parent-38.pom",
+      "bytes": 23048
+    },
+    {
+      "coordinate": "com.fasterxml:oss-parent:50",
+      "file": "oss-parent-50.pom",
+      "sha256": "f5da55dd7b88fb170c46801d17774a652fb2f4581fb5b1d0a5fc86aa182b8577",
+      "path": "com/fasterxml/oss-parent/50/oss-parent-50.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/oss-parent/50/oss-parent-50.pom",
+      "bytes": 23614
+    },
+    {
+      "coordinate": "com.fasterxml.jackson:jackson-bom:2.15.2",
+      "file": "jackson-bom-2.15.2.pom",
+      "sha256": "1ead630255c488c51b5e0ab560c76c2371ad26ae36dadf0929c526572ea5b38b",
+      "path": "com/fasterxml/jackson/jackson-bom/2.15.2/jackson-bom-2.15.2.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-bom/2.15.2/jackson-bom-2.15.2.pom",
+      "bytes": 17995
+    },
+    {
+      "coordinate": "com.fasterxml.jackson:jackson-parent:2.15",
+      "file": "jackson-parent-2.15.pom",
+      "sha256": "6cdf97bc66f389f63e36850d2f552d1216688f8e5a58727d3f6a98edf8675cde",
+      "path": "com/fasterxml/jackson/jackson-parent/2.15/jackson-parent-2.15.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/jackson-parent/2.15/jackson-parent-2.15.pom",
+      "bytes": 6522
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-annotations:2.15.2",
+      "file": "jackson-annotations-2.15.2.jar",
+      "sha256": "04e21f94dcfee4b078fa5a5f53047b785aaba69d19de392f616e7a7fe5d3882f",
+      "path": "com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.jar",
+      "bytes": 75567
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-annotations:2.15.2",
+      "file": "jackson-annotations-2.15.2.module",
+      "sha256": "27da01679361ceb2fb68ced4d9052c6f066d2823040b39616ae245b269752f18",
+      "path": "com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-annotations/2.15.2/jackson-annotations-2.15.2.module",
+      "bytes": 2525
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-core:2.15.2",
+      "file": "jackson-core-2.15.2.jar",
+      "sha256": "303c99e82b1faa91a0bae5d8fbeb56f7e2adf9b526a900dd723bf140d62bd4b4",
+      "path": "com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.jar",
+      "bytes": 549207
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-core:2.15.2",
+      "file": "jackson-core-2.15.2.module",
+      "sha256": "92461779395fe2c44959f8d534ce8fd6a56ff4e713684437567c6d38108ed629",
+      "path": "com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-core/2.15.2/jackson-core-2.15.2.module",
+      "bytes": 2494
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-databind:2.15.2",
+      "file": "jackson-databind-2.15.2.jar",
+      "sha256": "0eb2fdad6e40ab8832a78c9b22f58196dd970594e8d3d5a26ead87847c4f3a96",
+      "path": "com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.jar",
+      "bytes": 1620088
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.core:jackson-databind:2.15.2",
+      "file": "jackson-databind-2.15.2.module",
+      "sha256": "f2cb2cb39d48859ff5de65957948a431fb1ae6f5d538e62ca893c3d4bbe20b54",
+      "path": "com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/core/jackson-databind/2.15.2/jackson-databind-2.15.2.module",
+      "bytes": 3224
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2",
+      "file": "jackson-dataformat-xml-2.15.2.jar",
+      "sha256": "dadc7526bb296c59fc0e1cd930293649fd9a035574d2593cb5d9e27af5f5f341",
+      "path": "com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.2/jackson-dataformat-xml-2.15.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.2/jackson-dataformat-xml-2.15.2.jar",
+      "bytes": 126137
+    },
+    {
+      "coordinate": "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2",
+      "file": "jackson-dataformat-xml-2.15.2.module",
+      "sha256": "4ca87ee2d6384972beeb1007bc0bdfd5d554045f3f2ba79c033c20d2d8980bde",
+      "path": "com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.2/jackson-dataformat-xml-2.15.2.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.2/jackson-dataformat-xml-2.15.2.module",
+      "bytes": 4856
+    },
+    {
+      "coordinate": "com.fasterxml.woodstox:woodstox-core:6.5.1",
+      "file": "woodstox-core-6.5.1.jar",
+      "sha256": "c928d60665c6415fb1c39775cf95cfc44f7f4580cf5ab01b1c380ebffd76887f",
+      "path": "com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar",
+      "bytes": 1586395
+    },
+    {
+      "coordinate": "com.fasterxml.woodstox:woodstox-core:6.5.1",
+      "file": "woodstox-core-6.5.1.pom",
+      "sha256": "4839654e16b1714e74f51abcb378d8356814ab8f4d5273d1dd2f1ce8a390addc",
+      "path": "com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.pom",
+      "bytes": 9595
+    },
+    {
+      "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
+      "file": "jsr305-3.0.2.jar",
+      "sha256": "766ad2a0783f2687962c8ad74ceecc38a28b9f72a2d085ee438b7813e928d0c7",
+      "path": "com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "bytes": 19936
+    },
+    {
+      "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
+      "file": "jsr305-3.0.2.pom",
+      "sha256": "19889dbdf1b254b2601a5ee645b8147a974644882297684c798afe5d63d78dfe",
+      "path": "com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.pom",
+      "bytes": 4286
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.10.1",
+      "file": "gson-2.10.1.jar",
+      "sha256": "4241c14a7727c34feea6507ec801318a3d4a90f070e4525681079fb94ee4c593",
+      "path": "com/google/code/gson/gson/2.10.1/gson-2.10.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.jar",
+      "bytes": 283367
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.10.1",
+      "file": "gson-2.10.1.pom",
+      "sha256": "d2b115634f5c085db4b9c9ffc2658e89e231fdbfbe2242121a1cd95d4d948dd7",
+      "path": "com/google/code/gson/gson/2.10.1/gson-2.10.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.10.1/gson-2.10.1.pom",
+      "bytes": 9365
+    },
+    {
+      "coordinate": "com.google.code.gson:gson-parent:2.10.1",
+      "file": "gson-parent-2.10.1.pom",
+      "sha256": "4248e0882426c615182385d6086c3ef3262e769957189e29306280b85482b833",
+      "path": "com/google/code/gson/gson-parent/2.10.1/gson-parent-2.10.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson-parent/2.10.1/gson-parent-2.10.1.pom",
+      "bytes": 12522
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_annotations:2.11.0",
+      "file": "error_prone_annotations-2.11.0.jar",
+      "sha256": "721cb91842b46fa056847d104d5225c8b8e1e8b62263b993051e1e5a0137b7ec",
+      "path": "com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.jar",
+      "bytes": 15979
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_annotations:2.11.0",
+      "file": "error_prone_annotations-2.11.0.pom",
+      "sha256": "0261ca01f2d2e9ac2ae2ece75d42c56323b385fb294b6bc943f62ef4e92ddf08",
+      "path": "com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_annotations/2.11.0/error_prone_annotations-2.11.0.pom",
+      "bytes": 2163
+    },
+    {
+      "coordinate": "com.google.errorprone:error_prone_parent:2.11.0",
+      "file": "error_prone_parent-2.11.0.pom",
+      "sha256": "8283f0cb44c624a79d330b6fd80b8b8a715a68b3685c9a951c3de837d4540551",
+      "path": "com/google/errorprone/error_prone_parent/2.11.0/error_prone_parent-2.11.0.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/errorprone/error_prone_parent/2.11.0/error_prone_parent-2.11.0.pom",
+      "bytes": 10734
+    },
+    {
+      "coordinate": "com.google.guava:failureaccess:1.0.1",
+      "file": "failureaccess-1.0.1.jar",
+      "sha256": "a171ee4c734dd2da837e4b16be9df4661afab72a41adaf31eb84dfdaf936ca26",
+      "path": "com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.jar",
+      "bytes": 4617
+    },
+    {
+      "coordinate": "com.google.guava:failureaccess:1.0.1",
+      "file": "failureaccess-1.0.1.pom",
+      "sha256": "e96042ce78fecba0da2be964522947c87b40a291b5fd3cd672a434924103c4b9",
+      "path": "com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/failureaccess/1.0.1/failureaccess-1.0.1.pom",
+      "bytes": 2413
+    },
+    {
+      "coordinate": "com.google.guava:guava:31.1-jre",
+      "file": "guava-31.1-jre.jar",
+      "sha256": "a42edc9cab792e39fe39bb94f3fca655ed157ff87a8af78e1d6ba5b07c4a00ab",
+      "path": "com/google/guava/guava/31.1-jre/guava-31.1-jre.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/31.1-jre/guava-31.1-jre.jar",
+      "bytes": 2959479
+    },
+    {
+      "coordinate": "com.google.guava:guava:31.1-jre",
+      "file": "guava-31.1-jre.pom",
+      "sha256": "9193d07bf4f660108d7358e58b27d21b44e34e80d6734e98e21916376f270de2",
+      "path": "com/google/guava/guava/31.1-jre/guava-31.1-jre.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava/31.1-jre/guava-31.1-jre.pom",
+      "bytes": 10981
+    },
+    {
+      "coordinate": "com.google.guava:guava-parent:26.0-android",
+      "file": "guava-parent-26.0-android.pom",
+      "sha256": "f8698ab46ca996ce889c1afc8ca4f25eb8ac6b034dc898d4583742360016cc04",
+      "path": "com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/26.0-android/guava-parent-26.0-android.pom",
+      "bytes": 10180
+    },
+    {
+      "coordinate": "com.google.guava:guava-parent:31.1-jre",
+      "file": "guava-parent-31.1-jre.pom",
+      "sha256": "4439626783b44ad25ef05ff07621dd4bb796cc4eb4f2966a4a461fea4130e0fc",
+      "path": "com/google/guava/guava-parent/31.1-jre/guava-parent-31.1-jre.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/guava-parent/31.1-jre/guava-parent-31.1-jre.pom",
+      "bytes": 14736
+    },
+    {
+      "coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+      "file": "listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "sha256": "b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99",
+      "path": "com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "bytes": 2199
+    },
+    {
+      "coordinate": "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava",
+      "file": "listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.pom",
+      "sha256": "18d4b1db26153d4e55079ce1f76bb1fe05cdb862ef9954a88cbcc4ff38b8679b",
+      "path": "com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.pom",
+      "bytes": 2278
+    },
+    {
+      "coordinate": "com.google.j2objc:j2objc-annotations:1.3",
+      "file": "j2objc-annotations-1.3.jar",
+      "sha256": "21af30c92267bd6122c0e0b4d20cccb6641a37eaf956c6540ec471d584e64a7b",
+      "path": "com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.jar",
+      "bytes": 8781
+    },
+    {
+      "coordinate": "com.google.j2objc:j2objc-annotations:1.3",
+      "file": "j2objc-annotations-1.3.pom",
+      "sha256": "5faca824ba115bee458730337dfdb2fcea46ba2fd774d4304edbf30fa6a3f055",
+      "path": "com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/google/j2objc/j2objc-annotations/1.3/j2objc-annotations-1.3.pom",
+      "bytes": 2762
+    },
+    {
+      "coordinate": "com.machinezoo.noexception:noexception:1.7.1",
+      "file": "noexception-1.7.1.jar",
+      "sha256": "3d70aaea3904918587a21bdf99ab6ade9ab1dd0eaf6119344ba513f60f575816",
+      "path": "com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.jar",
+      "bytes": 250861
+    },
+    {
+      "coordinate": "com.machinezoo.noexception:noexception:1.7.1",
+      "file": "noexception-1.7.1.pom",
+      "sha256": "54929708377b26d83271a38e91f9c07d4a992e0c83c1b567f1a2d2599795029d",
+      "path": "com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/com/machinezoo/noexception/noexception/1.7.1/noexception-1.7.1.pom",
+      "bytes": 5153
+    },
+    {
+      "coordinate": "commons-codec:commons-codec:1.15",
+      "file": "commons-codec-1.15.jar",
+      "sha256": "b3e9f6d63a790109bf0d056611fbed1cf69055826defeb9894a71369d246ed63",
+      "path": "commons-codec/commons-codec/1.15/commons-codec-1.15.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-codec/commons-codec/1.15/commons-codec-1.15.jar",
+      "bytes": 353793
+    },
+    {
+      "coordinate": "commons-codec:commons-codec:1.15",
+      "file": "commons-codec-1.15.pom",
+      "sha256": "c86ee198a35a3715487860f419cbf642e7e4d9e8714777947dbe6a4e3a20ab58",
+      "path": "commons-codec/commons-codec/1.15/commons-codec-1.15.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-codec/commons-codec/1.15/commons-codec-1.15.pom",
+      "bytes": 15443
+    },
+    {
+      "coordinate": "commons-io:commons-io:2.11.0",
+      "file": "commons-io-2.11.0.jar",
+      "sha256": "961b2f6d87dbacc5d54abf45ab7a6e2495f89b75598962d8c723cea9bc210908",
+      "path": "commons-io/commons-io/2.11.0/commons-io-2.11.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-io/commons-io/2.11.0/commons-io-2.11.0.jar",
+      "bytes": 327135
+    },
+    {
+      "coordinate": "commons-io:commons-io:2.11.0",
+      "file": "commons-io-2.11.0.pom",
+      "sha256": "2e016fd7e3244b5f2c20acad834d93aa4790486ee1e4564641361a3e831eef59",
+      "path": "commons-io/commons-io/2.11.0/commons-io-2.11.0.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-io/commons-io/2.11.0/commons-io-2.11.0.pom",
+      "bytes": 19729
+    },
+    {
+      "coordinate": "commons-logging:commons-logging:1.2",
+      "file": "commons-logging-1.2.jar",
+      "sha256": "daddea1ea0be0f56978ab3006b8ac92834afeefbd9b7e4e6316fca57df0fa636",
+      "path": "commons-logging/commons-logging/1.2/commons-logging-1.2.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.jar",
+      "bytes": 61829
+    },
+    {
+      "coordinate": "commons-logging:commons-logging:1.2",
+      "file": "commons-logging-1.2.pom",
+      "sha256": "c91ab5aa570d86f6fd07cc158ec6bc2c50080402972ee9179fe24100739fbb20",
+      "path": "commons-logging/commons-logging/1.2/commons-logging-1.2.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/commons-logging/commons-logging/1.2/commons-logging-1.2.pom",
+      "bytes": 19206
+    },
+    {
+      "coordinate": "de.siegmar:fastcsv:2.2.0",
+      "file": "fastcsv-2.2.0.jar",
+      "sha256": "af236af10939ed6a25fccf4e8266a5c90eec2e0b2e3354983cb2db3011a2ccd8",
+      "path": "de/siegmar/fastcsv/2.2.0/fastcsv-2.2.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/de/siegmar/fastcsv/2.2.0/fastcsv-2.2.0.jar",
+      "bytes": 32003
+    },
+    {
+      "coordinate": "de.siegmar:fastcsv:2.2.0",
+      "file": "fastcsv-2.2.0.module",
+      "sha256": "357e20366e0940c186a7badacac27aa7950f7044742dfc1409495187636b9229",
+      "path": "de/siegmar/fastcsv/2.2.0/fastcsv-2.2.0.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/de/siegmar/fastcsv/2.2.0/fastcsv-2.2.0.module",
+      "bytes": 3476
+    },
+    {
+      "coordinate": "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.3",
+      "file": "gradle-idea-ext-1.3.jar",
+      "sha256": "a50ba79776c223679c878af380f7b7efac5d8b6e0865c8d3d6207450e0135a30",
+      "path": "gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.3/gradle-idea-ext-1.3.jar",
+      "repository": "gradle-plugin-portal",
+      "url": "https://plugins.gradle.org/m2/gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.3/gradle-idea-ext-1.3.jar",
+      "bytes": 273218
+    },
+    {
+      "coordinate": "gradle.plugin.org.jetbrains.gradle.plugin.idea-ext:gradle-idea-ext:1.3",
+      "file": "gradle-idea-ext-1.3.pom",
+      "sha256": "d930f23a39107c8f18809dd732d2163e615e6e2a27ad9621c1b4f6e6703d4a11",
+      "path": "gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.3/gradle-idea-ext-1.3.pom",
+      "repository": "gradle-plugin-portal",
+      "url": "https://plugins.gradle.org/m2/gradle/plugin/org/jetbrains/gradle/plugin/idea-ext/gradle-idea-ext/1.3/gradle-idea-ext-1.3.pom",
+      "bytes": 734
+    },
+    {
+      "coordinate": "io.codechicken:DiffPatch:2.0.0.35",
+      "file": "DiffPatch-2.0.0.35.jar",
+      "sha256": "908d8ce97c54e0d4230e993fa4d6fd6b06552f6da1a8fe9d9aa625361e8ed2aa",
+      "path": "io/codechicken/DiffPatch/2.0.0.35/DiffPatch-2.0.0.35.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/io/codechicken/DiffPatch/2.0.0.35/DiffPatch-2.0.0.35.jar",
+      "bytes": 135737
+    },
+    {
+      "coordinate": "io.codechicken:DiffPatch:2.0.0.35",
+      "file": "DiffPatch-2.0.0.35.module",
+      "sha256": "077390c07ba297a2ed2a868419b9921816f2932606931f7850b456200ba19145",
+      "path": "io/codechicken/DiffPatch/2.0.0.35/DiffPatch-2.0.0.35.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/io/codechicken/DiffPatch/2.0.0.35/DiffPatch-2.0.0.35.module",
+      "bytes": 6246
+    },
+    {
+      "coordinate": "it.unimi.dsi:fastutil:8.3.1",
+      "file": "fastutil-8.3.1.jar",
+      "sha256": "1ee5da1ebfdc86ab9574be3cc290769f319df901ae95932a118889b7c63636b9",
+      "path": "it/unimi/dsi/fastutil/8.3.1/fastutil-8.3.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/it/unimi/dsi/fastutil/8.3.1/fastutil-8.3.1.jar",
+      "bytes": 19011744
+    },
+    {
+      "coordinate": "it.unimi.dsi:fastutil:8.3.1",
+      "file": "fastutil-8.3.1.pom",
+      "sha256": "7d795db0ceb8fe69f8acbfef65353e8530dcda52b52fb61080e40c98677f0db4",
+      "path": "it/unimi/dsi/fastutil/8.3.1/fastutil-8.3.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/it/unimi/dsi/fastutil/8.3.1/fastutil-8.3.1.pom",
+      "bytes": 1401
+    },
+    {
+      "coordinate": "net.covers1624:Quack:0.4.10.101",
+      "file": "Quack-0.4.10.101.jar",
+      "sha256": "22afc1694fd7ff99d71fce3544d54c3bd81df71ef1a83e96ced1daba19cf68e6",
+      "path": "net/covers1624/Quack/0.4.10.101/Quack-0.4.10.101.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/net/covers1624/Quack/0.4.10.101/Quack-0.4.10.101.jar",
+      "bytes": 417120
+    },
+    {
+      "coordinate": "net.covers1624:Quack:0.4.10.101",
+      "file": "Quack-0.4.10.101.pom",
+      "sha256": "8795c3416f0614d99163c49186a3372033a1f6721212fb4f5a61c890439ec7e8",
+      "path": "net/covers1624/Quack/0.4.10.101/Quack-0.4.10.101.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/net/covers1624/Quack/0.4.10.101/Quack-0.4.10.101.pom",
+      "bytes": 1096
+    },
+    {
+      "coordinate": "net.minecraftforge:srgutils:0.4.13",
+      "file": "srgutils-0.4.13.jar",
+      "sha256": "18d43f743ead47e511f3e3765dc1208d0929d1aed73b2e83d056a3e08f6dd223",
+      "path": "net/minecraftforge/srgutils/0.4.13/srgutils-0.4.13.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/minecraftforge/srgutils/0.4.13/srgutils-0.4.13.jar",
+      "bytes": 69297
+    },
+    {
+      "coordinate": "net.minecraftforge:srgutils:0.4.13",
+      "file": "srgutils-0.4.13.pom",
+      "sha256": "f0eddbb5d0671db2949fc1957cfaacf55503003d5fd7fdfdbd62e14fd16c172d",
+      "path": "net/minecraftforge/srgutils/0.4.13/srgutils-0.4.13.pom",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/minecraftforge/srgutils/0.4.13/srgutils-0.4.13.pom",
+      "bytes": 1239
+    },
+    {
+      "coordinate": "net.minecraftforge:unsafe:0.2.0",
+      "file": "unsafe-0.2.0.jar",
+      "sha256": "946937e182ab3b518b5b88264f367e1f35ac12bc83abed220490c60c717be239",
+      "path": "net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.jar",
+      "bytes": 2834
+    },
+    {
+      "coordinate": "net.minecraftforge:unsafe:0.2.0",
+      "file": "unsafe-0.2.0.pom",
+      "sha256": "c4b8ce2d2649dc0bfe03f581a0611b72db98ee7b62edaa08fd8439e1d22ed065",
+      "path": "net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.pom",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.pom",
+      "bytes": 1506
+    },
+    {
+      "coordinate": "net.neoforged:EclipseLaunchConfigs:0.1.3",
+      "file": "EclipseLaunchConfigs-0.1.3.jar",
+      "sha256": "959ff5eaf039e26e39cdbc7cbdc26680a6be6bb345f236656758571aac417998",
+      "path": "net/neoforged/EclipseLaunchConfigs/0.1.3/EclipseLaunchConfigs-0.1.3.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/EclipseLaunchConfigs/0.1.3/EclipseLaunchConfigs-0.1.3.jar",
+      "bytes": 36913
+    },
+    {
+      "coordinate": "net.neoforged:EclipseLaunchConfigs:0.1.3",
+      "file": "EclipseLaunchConfigs-0.1.3.module",
+      "sha256": "9ae9923405a1b8e9b0a2af20c6a29a2ebec5c47f58df36a258b2dc6929107b5b",
+      "path": "net/neoforged/EclipseLaunchConfigs/0.1.3/EclipseLaunchConfigs-0.1.3.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/EclipseLaunchConfigs/0.1.3/EclipseLaunchConfigs-0.1.3.module",
+      "bytes": 2379
+    },
+    {
+      "coordinate": "net.neoforged:JarJarMetadata:0.4.1",
+      "file": "JarJarMetadata-0.4.1.jar",
+      "sha256": "05d7b89f09c6de1a9b61d0e786c8fd808aed044babf321653e14abd6740d5546",
+      "path": "net/neoforged/JarJarMetadata/0.4.1/JarJarMetadata-0.4.1.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarMetadata/0.4.1/JarJarMetadata-0.4.1.jar",
+      "bytes": 15648
+    },
+    {
+      "coordinate": "net.neoforged:JarJarMetadata:0.4.1",
+      "file": "JarJarMetadata-0.4.1.module",
+      "sha256": "9d63e4446491b4cff6cb9032c48872de48820fb34086473d716e56fbbe8be81d",
+      "path": "net/neoforged/JarJarMetadata/0.4.1/JarJarMetadata-0.4.1.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarMetadata/0.4.1/JarJarMetadata-0.4.1.module",
+      "bytes": 4387
+    },
+    {
+      "coordinate": "net.neoforged:JarJarSelector:0.4.1",
+      "file": "JarJarSelector-0.4.1.jar",
+      "sha256": "f34bab02a5e967650dc52b7cb37a200051a7078f7d1868597699d78697da2400",
+      "path": "net/neoforged/JarJarSelector/0.4.1/JarJarSelector-0.4.1.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarSelector/0.4.1/JarJarSelector-0.4.1.jar",
+      "bytes": 17168
+    },
+    {
+      "coordinate": "net.neoforged:JarJarSelector:0.4.1",
+      "file": "JarJarSelector-0.4.1.module",
+      "sha256": "fe7f076ff5a2adae05cfc9429149f8c0203b49a3943f93955564ea439b7ae323",
+      "path": "net/neoforged/JarJarSelector/0.4.1/JarJarSelector-0.4.1.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/JarJarSelector/0.4.1/JarJarSelector-0.4.1.module",
+      "bytes": 4711
+    },
+    {
+      "coordinate": "net.neoforged:VscLaunchConfigs:1.0.8",
+      "file": "VscLaunchConfigs-1.0.8.jar",
+      "sha256": "0b98d083cee439b4b8d2f79dcc27e35e023b65ffabfa49b1cc6e1525e84336b8",
+      "path": "net/neoforged/VscLaunchConfigs/1.0.8/VscLaunchConfigs-1.0.8.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/VscLaunchConfigs/1.0.8/VscLaunchConfigs-1.0.8.jar",
+      "bytes": 31057
+    },
+    {
+      "coordinate": "net.neoforged:VscLaunchConfigs:1.0.8",
+      "file": "VscLaunchConfigs-1.0.8.module",
+      "sha256": "33140a981a7ab7b426fcac56b7db431a1f58331f7bd3bf781f8ddcede54aa1ae",
+      "path": "net/neoforged/VscLaunchConfigs/1.0.8/VscLaunchConfigs-1.0.8.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/VscLaunchConfigs/1.0.8/VscLaunchConfigs-1.0.8.module",
+      "bytes": 3705
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:2.0.0",
+      "file": "groovydslimprover-2.0.0-base.jar",
+      "sha256": "b5b74b4e43fa64a44dfbc4b139ca56796fdf284ac58d23df3f560978ad258cf3",
+      "path": "net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0-base.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0-base.jar",
+      "bytes": 6067
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:2.0.0",
+      "file": "groovydslimprover-2.0.0-runtime.jar",
+      "sha256": "f04c9be99ab6380bff94a3ba3364113b79db5774d267e47c208c591d6c870a11",
+      "path": "net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0-runtime.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0-runtime.jar",
+      "bytes": 4500
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:2.0.0",
+      "file": "groovydslimprover-2.0.0.jar",
+      "sha256": "4877d771b49b3e47f1df221152f8bb77dbbb649737aef5a09353e1c41487a6d8",
+      "path": "net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0.jar",
+      "bytes": 132660
+    },
+    {
+      "coordinate": "net.neoforged:groovydslimprover:2.0.0",
+      "file": "groovydslimprover-2.0.0.module",
+      "sha256": "9d870039c8e6869922b9036cc3c1bb29959548ac4a09aeae126d74da545cd56c",
+      "path": "net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/groovydslimprover/2.0.0/groovydslimprover-2.0.0.module",
+      "bytes": 12501
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.1.27",
+      "file": "common-7.1.27.jar",
+      "sha256": "d5ef235a4ea08df8966f8186a57317f15906c4918d5fec495112095d07a94046",
+      "path": "net/neoforged/gradle/common/7.1.27/common-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.1.27/common-7.1.27.jar",
+      "bytes": 529507
+    },
+    {
+      "coordinate": "net.neoforged.gradle:common:7.1.27",
+      "file": "common-7.1.27.module",
+      "sha256": "faf244b920a4c1b5a97cab71017b5a0d9b76979c47cfe05c1963bfa9d77ce875",
+      "path": "net/neoforged/gradle/common/7.1.27/common-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/common/7.1.27/common-7.1.27.module",
+      "bytes": 10830
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.1.27",
+      "file": "dsl-common-7.1.27.jar",
+      "sha256": "2b7fea1dec44e66b550ad3f53d40b3223a574f1a12a1fd9f5f950b3d225b1af4",
+      "path": "net/neoforged/gradle/dsl-common/7.1.27/dsl-common-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.1.27/dsl-common-7.1.27.jar",
+      "bytes": 374868
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-common:7.1.27",
+      "file": "dsl-common-7.1.27.module",
+      "sha256": "932f1ffaf43ed5370ee9a09aeb8bfe07b56e822abddbb09023b539834646907e",
+      "path": "net/neoforged/gradle/dsl-common/7.1.27/dsl-common-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-common/7.1.27/dsl-common-7.1.27.module",
+      "bytes": 5763
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.1.27",
+      "file": "dsl-neoform-7.1.27.jar",
+      "sha256": "ade425f94bf2f82081cb4c07c6c8fa4b76971606c77fca4b73836532711e4f15",
+      "path": "net/neoforged/gradle/dsl-neoform/7.1.27/dsl-neoform-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.1.27/dsl-neoform-7.1.27.jar",
+      "bytes": 15678
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-neoform:7.1.27",
+      "file": "dsl-neoform-7.1.27.module",
+      "sha256": "0a19baae4fb9166281f566de3b5e8fbeba21a8c0485f643d66c940cd1e2ba51c",
+      "path": "net/neoforged/gradle/dsl-neoform/7.1.27/dsl-neoform-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-neoform/7.1.27/dsl-neoform-7.1.27.module",
+      "bytes": 4479
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.1.27",
+      "file": "dsl-userdev-7.1.27.jar",
+      "sha256": "c8af31126bc7b21731f4c6f34de6fedf65cabb65b934149acc5b0a3413ed0c54",
+      "path": "net/neoforged/gradle/dsl-userdev/7.1.27/dsl-userdev-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.1.27/dsl-userdev-7.1.27.jar",
+      "bytes": 27739
+    },
+    {
+      "coordinate": "net.neoforged.gradle:dsl-userdev:7.1.27",
+      "file": "dsl-userdev-7.1.27.module",
+      "sha256": "93d4139e13019c0d8a533dadc45095898407251265ad3e6659259f7946c011e9",
+      "path": "net/neoforged/gradle/dsl-userdev/7.1.27/dsl-userdev-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/dsl-userdev/7.1.27/dsl-userdev-7.1.27.module",
+      "bytes": 3825
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.1.27",
+      "file": "neoform-7.1.27.jar",
+      "sha256": "0473c96e246b2a909b3466d324065a1a276b4c24ef69ee5a38ddbbaaabfa1233",
+      "path": "net/neoforged/gradle/neoform/7.1.27/neoform-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.1.27/neoform-7.1.27.jar",
+      "bytes": 92525
+    },
+    {
+      "coordinate": "net.neoforged.gradle:neoform:7.1.27",
+      "file": "neoform-7.1.27.module",
+      "sha256": "4bbbee388e137c07081be357adbd7b649e600046bd1c618f05a9e4649cf448ec",
+      "path": "net/neoforged/gradle/neoform/7.1.27/neoform-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/neoform/7.1.27/neoform-7.1.27.module",
+      "bytes": 4800
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.1.27",
+      "file": "userdev-7.1.27.jar",
+      "sha256": "3e56f7f90f53db501f0a3de3d56dc38266e49c3d9972af091ba2f60af2173088",
+      "path": "net/neoforged/gradle/userdev/7.1.27/userdev-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.1.27/userdev-7.1.27.jar",
+      "bytes": 46030
+    },
+    {
+      "coordinate": "net.neoforged.gradle:userdev:7.1.27",
+      "file": "userdev-7.1.27.module",
+      "sha256": "069fb9b48730ddbbe12d7bf625fd3208d0357c1e68b826b4d2c306c771066958",
+      "path": "net/neoforged/gradle/userdev/7.1.27/userdev-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/7.1.27/userdev-7.1.27.module",
+      "bytes": 4794
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.1.27",
+      "file": "utils-7.1.27.jar",
+      "sha256": "fa40c3609f156fef07bad35b68d3edfb5fd8dd5063c239ed7270a00934fef1c3",
+      "path": "net/neoforged/gradle/utils/7.1.27/utils-7.1.27.jar",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.1.27/utils-7.1.27.jar",
+      "bytes": 58100
+    },
+    {
+      "coordinate": "net.neoforged.gradle:utils:7.1.27",
+      "file": "utils-7.1.27.module",
+      "sha256": "3a9d8b4c08b79b4b884d2d4a5bbf6f181a6b9e4115becf2e51e4071c46d67804",
+      "path": "net/neoforged/gradle/utils/7.1.27/utils-7.1.27.module",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/utils/7.1.27/utils-7.1.27.module",
+      "bytes": 5620
+    },
+    {
+      "coordinate": "net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.1.27",
+      "file": "net.neoforged.gradle.userdev.gradle.plugin-7.1.27.pom",
+      "sha256": "03dba33e893e9bab30b28c43584d6f0a933e63778069c1bb674cb33059c77eab",
+      "path": "net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.1.27/net.neoforged.gradle.userdev.gradle.plugin-7.1.27.pom",
+      "repository": "neoforged",
+      "url": "https://maven.neoforged.net/releases/net/neoforged/gradle/userdev/net.neoforged.gradle.userdev.gradle.plugin/7.1.27/net.neoforged.gradle.userdev.gradle.plugin-7.1.27.pom",
+      "bytes": 859
+    },
+    {
+      "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
+      "file": "jopt-simple-5.0.4.jar",
+      "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28",
+      "path": "net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+      "bytes": 78146
+    },
+    {
+      "coordinate": "net.sf.jopt-simple:jopt-simple:5.0.4",
+      "file": "jopt-simple-5.0.4.pom",
+      "sha256": "6a67763b76afcd9c80b95e5c5e24782d18cc1b0e3d9b454ad3f8754c76b76815",
+      "path": "net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.pom",
+      "bytes": 13968
+    },
+    {
+      "coordinate": "org.apache:apache:13",
+      "file": "apache-13.pom",
+      "sha256": "ff513db0361fd41237bef4784968bc15aae478d4ec0a9496f811072ccaf3841d",
+      "path": "org/apache/apache/13/apache-13.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/13/apache-13.pom",
+      "bytes": 13974
+    },
+    {
+      "coordinate": "org.apache:apache:19",
+      "file": "apache-19.pom",
+      "sha256": "91f7a33096ea69bac2cbaf6d01feb934cac002c48d8c8cfa9c240b40f1ec21df",
+      "path": "org/apache/apache/19/apache-19.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/19/apache-19.pom",
+      "bytes": 15489
+    },
+    {
+      "coordinate": "org.apache:apache:21",
+      "file": "apache-21.pom",
+      "sha256": "af10c108da014f17cafac7b52b2b4b5a3a1c18265fa2af97a325d9143537b380",
+      "path": "org/apache/apache/21/apache-21.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/21/apache-21.pom",
+      "bytes": 17107
+    },
+    {
+      "coordinate": "org.apache:apache:23",
+      "file": "apache-23.pom",
+      "sha256": "bc10624e0623f36577fac5639ca2936d3240ed152fb6d8d533ab4d270543491c",
+      "path": "org/apache/apache/23/apache-23.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/23/apache-23.pom",
+      "bytes": 18422
+    },
+    {
+      "coordinate": "org.apache:apache:25",
+      "file": "apache-25.pom",
+      "sha256": "e68fc19a48cec582a6732fd0b10dbfe9feca25060963def89e547f8a3759d379",
+      "path": "org/apache/apache/25/apache-25.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/25/apache-25.pom",
+      "bytes": 20539
+    },
+    {
+      "coordinate": "org.apache:apache:7",
+      "file": "apache-7.pom",
+      "sha256": "1397ce1db433adc9f223dbf07496d133681448751f4ae29e58f68e78fb4b6c25",
+      "path": "org/apache/apache/7/apache-7.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/apache/7/apache-7.pom",
+      "bytes": 14430
+    },
+    {
+      "coordinate": "org.apache.commons:commons-compress:1.18",
+      "file": "commons-compress-1.18.jar",
+      "sha256": "5f2df1e467825e4cac5996d44890c4201c000b43c0b23cffc0782d28a0beb9b0",
+      "path": "org/apache/commons/commons-compress/1.18/commons-compress-1.18.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-compress/1.18/commons-compress-1.18.jar",
+      "bytes": 591748
+    },
+    {
+      "coordinate": "org.apache.commons:commons-compress:1.18",
+      "file": "commons-compress-1.18.pom",
+      "sha256": "672c5fe92bd3eab43e8d53338cad5ca073b6529de4eb2b38859a3eaa6c9e8119",
+      "path": "org/apache/commons/commons-compress/1.18/commons-compress-1.18.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-compress/1.18/commons-compress-1.18.pom",
+      "bytes": 18228
+    },
+    {
+      "coordinate": "org.apache.commons:commons-lang3:3.8.1",
+      "file": "commons-lang3-3.8.1.pom",
+      "sha256": "ec8e09f75411685205bd0d9d7872cc3622e67c76df44a0a227b278bea04458d5",
+      "path": "org/apache/commons/commons-lang3/3.8.1/commons-lang3-3.8.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-lang3/3.8.1/commons-lang3-3.8.1.pom",
+      "bytes": 27888
+    },
+    {
+      "coordinate": "org.apache.commons:commons-lang3:3.9",
+      "file": "commons-lang3-3.9.jar",
+      "sha256": "de2e1dcdcf3ef917a8ce858661a06726a9a944f28e33ad7f9e08bea44dc3c230",
+      "path": "org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.jar",
+      "bytes": 503880
+    },
+    {
+      "coordinate": "org.apache.commons:commons-lang3:3.9",
+      "file": "commons-lang3-3.9.pom",
+      "sha256": "a4022429b98425b430181915721279a52f610f34648bdac487d4cacbbe8dfeb5",
+      "path": "org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-lang3/3.9/commons-lang3-3.9.pom",
+      "bytes": 28379
+    },
+    {
+      "coordinate": "org.apache.commons:commons-parent:34",
+      "file": "commons-parent-34.pom",
+      "sha256": "3a2e69d06d641d1f3b293126dc9e2e4ea6563bf8c36c87e0ab6fa4292d04b79c",
+      "path": "org/apache/commons/commons-parent/34/commons-parent-34.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/34/commons-parent-34.pom",
+      "bytes": 55943
+    },
+    {
+      "coordinate": "org.apache.commons:commons-parent:47",
+      "file": "commons-parent-47.pom",
+      "sha256": "8a8ecb570553bf9f1ffae211a8d4ca9ee630c17afe59293368fba7bd9b42fcb7",
+      "path": "org/apache/commons/commons-parent/47/commons-parent-47.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/47/commons-parent-47.pom",
+      "bytes": 77562
+    },
+    {
+      "coordinate": "org.apache.commons:commons-parent:48",
+      "file": "commons-parent-48.pom",
+      "sha256": "1e1f7de9370a7b7901f128f1dacd1422be74e3f47f9558b0f79e04c0637ca0b4",
+      "path": "org/apache/commons/commons-parent/48/commons-parent-48.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/48/commons-parent-48.pom",
+      "bytes": 72034
+    },
+    {
+      "coordinate": "org.apache.commons:commons-parent:52",
+      "file": "commons-parent-52.pom",
+      "sha256": "75dbe8f34e98e4c3ff42daae4a2f9eb4cbcd3b5f1047d54460ace906dbb4502e",
+      "path": "org/apache/commons/commons-parent/52/commons-parent-52.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/commons/commons-parent/52/commons-parent-52.pom",
+      "bytes": 79273
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpclient:4.5.13",
+      "file": "httpclient-4.5.13.jar",
+      "sha256": "6fe9026a566c6a5001608cf3fc32196641f6c1e5e1986d1037ccdbd5f31ef743",
+      "path": "org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar",
+      "bytes": 780321
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpclient:4.5.13",
+      "file": "httpclient-4.5.13.pom",
+      "sha256": "78eb9ada74929fcd63d07adc4f49236841a45cc29d5f817bf45801f513fd7e6c",
+      "path": "org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.pom",
+      "bytes": 6609
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcomponents-client:4.5.13",
+      "file": "httpcomponents-client-4.5.13.pom",
+      "sha256": "9cba594c08db7271d0c20e9845d622bb39e69583910b45e7d5df82f6058d4dd9",
+      "path": "org/apache/httpcomponents/httpcomponents-client/4.5.13/httpcomponents-client-4.5.13.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-client/4.5.13/httpcomponents-client-4.5.13.pom",
+      "bytes": 16382
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcomponents-core:4.4.13",
+      "file": "httpcomponents-core-4.4.13.pom",
+      "sha256": "c554e7008e4517c7ef54e005cc8b74f4c87a54a0ea2c6f57be5d0569df51936b",
+      "path": "org/apache/httpcomponents/httpcomponents-core/4.4.13/httpcomponents-core-4.4.13.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-core/4.4.13/httpcomponents-core-4.4.13.pom",
+      "bytes": 13167
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcomponents-parent:11",
+      "file": "httpcomponents-parent-11.pom",
+      "sha256": "a901f87b115c55070c7ee43efff63e20e7b02d30af2443ae292bf1f4e532d3aa",
+      "path": "org/apache/httpcomponents/httpcomponents-parent/11/httpcomponents-parent-11.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcomponents-parent/11/httpcomponents-parent-11.pom",
+      "bytes": 34695
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcore:4.4.13",
+      "file": "httpcore-4.4.13.jar",
+      "sha256": "e06e89d40943245fcfa39ec537cdbfce3762aecde8f9c597780d2b00c2b43424",
+      "path": "org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.jar",
+      "bytes": 328593
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcore:4.4.13",
+      "file": "httpcore-4.4.13.pom",
+      "sha256": "8f812d9fa7b72a3d4aa7f825278932a5df344b42a6d8398905879431a1bf9a97",
+      "path": "org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/httpcomponents/httpcore/4.4.13/httpcore-4.4.13.pom",
+      "bytes": 4968
+    },
+    {
+      "coordinate": "org.apache.ivy:ivy:2.5.1",
+      "file": "ivy-2.5.1.jar",
+      "sha256": "793120f8c9058aede475b093651aa5307603c1518180772c104562a0ed2e9feb",
+      "path": "org/apache/ivy/ivy/2.5.1/ivy-2.5.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ivy/ivy/2.5.1/ivy-2.5.1.jar",
+      "bytes": 1398591
+    },
+    {
+      "coordinate": "org.apache.ivy:ivy:2.5.1",
+      "file": "ivy-2.5.1.pom",
+      "sha256": "6dcfe1506647219d2f378b917b51cdc508e83f367cbe509924204d18ce2d0ee3",
+      "path": "org/apache/ivy/ivy/2.5.1/ivy-2.5.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/ivy/ivy/2.5.1/ivy-2.5.1.pom",
+      "bytes": 6752
+    },
+    {
+      "coordinate": "org.apache.maven:maven:3.8.5",
+      "file": "maven-3.8.5.pom",
+      "sha256": "62cfa52d5364d21e7cfff6b5e0bff1b8ce264ed362b0a64abb162cff1dc19073",
+      "path": "org/apache/maven/maven/3.8.5/maven-3.8.5.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/maven/3.8.5/maven-3.8.5.pom",
+      "bytes": 26998
+    },
+    {
+      "coordinate": "org.apache.maven:maven-artifact:3.8.5",
+      "file": "maven-artifact-3.8.5.jar",
+      "sha256": "91172bc294d6eab02fc9f45f4ea01fd0e418962d128cf489abea7b6957d988ee",
+      "path": "org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
+      "bytes": 58077
+    },
+    {
+      "coordinate": "org.apache.maven:maven-artifact:3.8.5",
+      "file": "maven-artifact-3.8.5.pom",
+      "sha256": "176b9c417beb35fe5d815df91f62f1ac6cbe969a4423447caac8fc0bb9233d5e",
+      "path": "org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.pom",
+      "bytes": 2394
+    },
+    {
+      "coordinate": "org.apache.maven:maven-parent:35",
+      "file": "maven-parent-35.pom",
+      "sha256": "d2edd4077c0abc9cc8202883c459503180424636cb39a83031ec1112394b2576",
+      "path": "org/apache/maven/maven-parent/35/maven-parent-35.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/maven/maven-parent/35/maven-parent-35.pom",
+      "bytes": 45258
+    },
+    {
+      "coordinate": "org.checkerframework:checker-qual:3.12.0",
+      "file": "checker-qual-3.12.0.jar",
+      "sha256": "ff10785ac2a357ec5de9c293cb982a2cbb605c0309ea4cc1cb9b9bc6dbe7f3cb",
+      "path": "org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.jar",
+      "bytes": 208835
+    },
+    {
+      "coordinate": "org.checkerframework:checker-qual:3.12.0",
+      "file": "checker-qual-3.12.0.module",
+      "sha256": "d047949c1b81091c2c3913771fac2f32a2fa549ba3d5d548cc8c0b6dfa493777",
+      "path": "org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.module",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/checkerframework/checker-qual/3.12.0/checker-qual-3.12.0.module",
+      "bytes": 3546
+    },
+    {
+      "coordinate": "org.codehaus.plexus:plexus:5.1",
+      "file": "plexus-5.1.pom",
+      "sha256": "a343e44ff5796aed0ea60be11454c935ce20ab1c5f164acc8da574482dcbc7e9",
+      "path": "org/codehaus/plexus/plexus/5.1/plexus-5.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus/5.1/plexus-5.1.pom",
+      "bytes": 22504
+    },
+    {
+      "coordinate": "org.codehaus.plexus:plexus-utils:3.3.0",
+      "file": "plexus-utils-3.3.0.jar",
+      "sha256": "76d174792540e2775af94d03d10fb2d3c776e2cd0ac0ebf427d3e570072bb9ce",
+      "path": "org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.jar",
+      "bytes": 263253
+    },
+    {
+      "coordinate": "org.codehaus.plexus:plexus-utils:3.3.0",
+      "file": "plexus-utils-3.3.0.pom",
+      "sha256": "79c9792073fdee3cdbebd61a76ba8c2dd11624a9f85d128bae56bda19e20475c",
+      "path": "org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/plexus/plexus-utils/3.3.0/plexus-utils-3.3.0.pom",
+      "bytes": 5182
+    },
+    {
+      "coordinate": "org.codehaus.woodstox:stax2-api:4.2.1",
+      "file": "stax2-api-4.2.1.jar",
+      "sha256": "678567e48b51a42c65c699f266539ad3d676d4b1a5b0ad7d89ece8b9d5772579",
+      "path": "org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar",
+      "bytes": 195909
+    },
+    {
+      "coordinate": "org.codehaus.woodstox:stax2-api:4.2.1",
+      "file": "stax2-api-4.2.1.pom",
+      "sha256": "79da410c8c0f46a3f8e8adb30d6c24ccd6065b6ef6bfde87bd97e9881ea0a2e7",
+      "path": "org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.pom",
+      "bytes": 6287
+    },
+    {
+      "coordinate": "org.gradle.toolchains:foojay-resolver:0.9.0",
+      "file": "foojay-resolver-0.9.0.jar",
+      "sha256": "c284089a3f87557f76022d99f2df2836568aa48b3fe4e2922392d566ba814176",
+      "path": "org/gradle/toolchains/foojay-resolver/0.9.0/foojay-resolver-0.9.0.jar",
+      "repository": "gradle-plugin-portal",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver/0.9.0/foojay-resolver-0.9.0.jar",
+      "bytes": 44829
+    },
+    {
+      "coordinate": "org.gradle.toolchains:foojay-resolver:0.9.0",
+      "file": "foojay-resolver-0.9.0.module",
+      "sha256": "86e5e5d503162586c0956fd02a2a69b76da7c0720f4ae023f366d191aa97b4b8",
+      "path": "org/gradle/toolchains/foojay-resolver/0.9.0/foojay-resolver-0.9.0.module",
+      "repository": "gradle-plugin-portal",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver/0.9.0/foojay-resolver-0.9.0.module",
+      "bytes": 3916
+    },
+    {
+      "coordinate": "org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:0.9.0",
+      "file": "org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-0.9.0.pom",
+      "sha256": "db7cf11bee6884efb28904139f62c00f8b45853e60c0f41715cf69576b6bfdf0",
+      "path": "org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/0.9.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-0.9.0.pom",
+      "repository": "gradle-plugin-portal",
+      "url": "https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/0.9.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-0.9.0.pom",
+      "bytes": 715
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:23.0.0",
+      "file": "annotations-23.0.0.jar",
+      "sha256": "7b0f19724082cbfcbc66e5abea2b9bc92cf08a1ea11e191933ed43801eb3cd05",
+      "path": "org/jetbrains/annotations/23.0.0/annotations-23.0.0.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/23.0.0/annotations-23.0.0.jar",
+      "bytes": 29371
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:23.0.0",
+      "file": "annotations-23.0.0.pom",
+      "sha256": "c9490f655132328df2cfbcfdf743f53fc3916d6c1d10437175a6ca6e3a67771c",
+      "path": "org/jetbrains/annotations/23.0.0/annotations-23.0.0.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/23.0.0/annotations-23.0.0.pom",
+      "bytes": 1354
+    },
+    {
+      "coordinate": "org.junit:junit-bom:5.7.2",
+      "file": "junit-bom-5.7.2.pom",
+      "sha256": "cd14aaa869991f82021c585d570d31ff342bcba58bb44233b70193771b96487b",
+      "path": "org/junit/junit-bom/5.7.2/junit-bom-5.7.2.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/junit/junit-bom/5.7.2/junit-bom-5.7.2.pom",
+      "bytes": 5098
+    },
+    {
+      "coordinate": "org.ow2:ow2:1.5.1",
+      "file": "ow2-1.5.1.pom",
+      "sha256": "321ddbb7ee6fe4f53dea6b4cd6db74154d6bfa42391c1f763b361b9f485acf05",
+      "path": "org/ow2/ow2/1.5.1/ow2-1.5.1.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/ow2/1.5.1/ow2-1.5.1.pom",
+      "bytes": 11290
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.9",
+      "file": "asm-9.9.jar",
+      "sha256": "03d99a74ad1ee5c71334ef67437f4ef4fe3488caa7c96d8645abc73c8e2017d4",
+      "path": "org/ow2/asm/asm/9.9/asm-9.9.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.9/asm-9.9.jar",
+      "bytes": 126122
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.9",
+      "file": "asm-9.9.pom",
+      "sha256": "cf861ef1e745d57154af79ae14df340ed5341e5dcd0157cefcd2eb7f1aa05c57",
+      "path": "org/ow2/asm/asm/9.9/asm-9.9.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.9/asm-9.9.pom",
+      "bytes": 2370
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-commons:9.9",
+      "file": "asm-commons-9.9.jar",
+      "sha256": "db2f6f26150bbe7c126606b4a1151836bcc22a1e05a423b3585698bece995ff8",
+      "path": "org/ow2/asm/asm-commons/9.9/asm-commons-9.9.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-commons/9.9/asm-commons-9.9.jar",
+      "bytes": 74348
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-commons:9.9",
+      "file": "asm-commons-9.9.pom",
+      "sha256": "18a5d3ef1377e7544b3ca3210f261396b987f6010ef591d3872adae63119ee43",
+      "path": "org/ow2/asm/asm-commons/9.9/asm-commons-9.9.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-commons/9.9/asm-commons-9.9.pom",
+      "bytes": 2788
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-tree:9.9",
+      "file": "asm-tree-9.9.jar",
+      "sha256": "42178f3775c9c63f9e5e1446747d29b4eca4d91bd6e75e5c43cfa372a47d38c6",
+      "path": "org/ow2/asm/asm-tree/9.9/asm-tree-9.9.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-tree/9.9/asm-tree-9.9.jar",
+      "bytes": 51947
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-tree:9.9",
+      "file": "asm-tree-9.9.pom",
+      "sha256": "d01788ed8e6e8e24acaf6cb4a7bdcc2733416252faa00232959e3e2e9df1bf44",
+      "path": "org/ow2/asm/asm-tree/9.9/asm-tree-9.9.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-tree/9.9/asm-tree-9.9.pom",
+      "bytes": 2592
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:1.7.30",
+      "file": "slf4j-api-1.7.30.jar",
+      "sha256": "cdba07964d1bb40a0761485c6b1e8c2f8fd9eb1d19c53928ac0d7f9510105c57",
+      "path": "org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar",
+      "bytes": 41472
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:1.7.30",
+      "file": "slf4j-api-1.7.30.pom",
+      "sha256": "7e0747751e9b67e19dcb5206f04ea22cc03d250c422426402eadd03513f2c314",
+      "path": "org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.pom",
+      "bytes": 3835
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-parent:1.7.30",
+      "file": "slf4j-parent-1.7.30.pom",
+      "sha256": "11647956e48a0c5bfb3ac33f6da7e83f341002b6857efd335a505b687be34b75",
+      "path": "org/slf4j/slf4j-parent/1.7.30/slf4j-parent-1.7.30.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-parent/1.7.30/slf4j-parent-1.7.30.pom",
+      "bytes": 13806
+    },
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:7",
+      "file": "oss-parent-7.pom",
+      "sha256": "b51f8867c92b6a722499557fc3a1fdea77bdf9ef574722fe90ce436a29559454",
+      "path": "org/sonatype/oss/oss-parent/7/oss-parent-7.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/7/oss-parent-7.pom",
+      "bytes": 4824
+    },
+    {
+      "coordinate": "org.sonatype.oss:oss-parent:9",
+      "file": "oss-parent-9.pom",
+      "sha256": "fb40265f982548212ff82e362e59732b2187ec6f0d80182885c14ef1f982827a",
+      "path": "org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/sonatype/oss/oss-parent/9/oss-parent-9.pom",
+      "bytes": 6569
+    },
+    {
+      "coordinate": "org.tukaani:xz:1.8",
+      "file": "xz-1.8.jar",
+      "sha256": "8c7964b36fe3f0cbe644b04fcbff84e491ce81917db2f5bfa0cba8e9548aff5d",
+      "path": "org/tukaani/xz/1.8/xz-1.8.jar",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/tukaani/xz/1.8/xz-1.8.jar",
+      "bytes": 108555
+    },
+    {
+      "coordinate": "org.tukaani:xz:1.8",
+      "file": "xz-1.8.pom",
+      "sha256": "f29e75cb88eb4acbf7e5aa5c09ed55eac2cbae601d63a9f375231f45452c1013",
+      "path": "org/tukaani/xz/1.8/xz-1.8.pom",
+      "repository": "maven-central",
+      "url": "https://repo.maven.apache.org/maven2/org/tukaani/xz/1.8/xz-1.8.pom",
+      "bytes": 1907
+    }
+  ]
+}
