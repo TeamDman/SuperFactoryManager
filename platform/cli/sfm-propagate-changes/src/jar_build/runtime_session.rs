@@ -488,14 +488,30 @@ mod tests {
             &project,
             "fixture-sdk",
         )?;
-        let mut live =
-            RuntimeSession::prepare(&first, "runClient", &["classes"], Some(5005), None, false)?;
+        let mut live = RuntimeSession::prepare(
+            &first,
+            "runGameTestServer",
+            &["classes"],
+            Some(5005),
+            None,
+            false,
+        )?;
         fs::write(live.slot.data_dir.join("options.txt"), b"retained options")?;
         fs::create_dir(live.slot.data_dir.join("world"))?;
         fs::write(
             live.slot.data_dir.join("world/session.lock"),
             b"native world lock marker",
         )?;
+        fs::create_dir_all(live.receipt.session_dir.join("run"))?;
+        fs::write(
+            live.receipt.session_dir.join("run/console.log"),
+            b"test passed",
+        )?;
+        let retained_before = [
+            fs::read(live.slot.data_dir.join("options.txt"))?,
+            fs::read(live.slot.data_dir.join("world/session.lock"))?,
+            fs::read(live.receipt.session_dir.join("run/console.log"))?,
+        ];
         drop(producer);
         let _next_producer = ArtifactLock::try_acquire(&build_lock, "second fixture compile")?
             .ok_or_else(|| eyre::eyre!("live session incorrectly retains compiler lock"))?;
@@ -528,9 +544,24 @@ mod tests {
         assert!(live.receipt.check_active(&minecraft, 5006).is_err());
         #[cfg(windows)]
         {
+            let owned = OwnedSessionInputs::capture(&live.receipt.session_dir)?;
             live.close_for_retirement()?;
             assert!(live.receipt.check_active(&minecraft, 5005).is_err());
+            assert_eq!(owned.retire()?, (1, b"first successful class".len() as u64));
+            assert!(!live.receipt.mod_root().join("Main.class").exists());
         }
+        assert_eq!(
+            fs::read(live.slot.data_dir.join("options.txt"))?,
+            retained_before[0]
+        );
+        assert_eq!(
+            fs::read(live.slot.data_dir.join("world/session.lock"))?,
+            retained_before[1]
+        );
+        assert_eq!(
+            fs::read(live.receipt.session_dir.join("run/console.log"))?,
+            retained_before[2]
+        );
         let receipt_path = live.receipt.receipt_path();
         drop(live);
         let ended = RuntimeSessionReceipt::load(&receipt_path, &minecraft)?;
