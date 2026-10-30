@@ -129,6 +129,39 @@ use self::resolve::maven_cache_path_for;
 
 const VERSION_MANIFEST_URL: &str =
     "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
+
+// Version metadata and asset indexes can retain the same Minecraft id while
+// their authenticated bytes change. Keep both immutable snapshots available.
+fn frozen_version_metadata_path(cache: &Path, version: &str, url: &str) -> eyre::Result<PathBuf> {
+    let prefix = "https://piston-meta.mojang.com/v1/packages/";
+    let suffix = format!("/{version}.json");
+    let digest = url
+        .strip_prefix(prefix)
+        .and_then(|tail| tail.strip_suffix(&suffix))
+        .ok_or_else(|| eyre::eyre!("Minecraft version URL is not content addressed"))?;
+    eyre::ensure!(
+        digest.len() == 40
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()),
+        "Minecraft version URL has an invalid SHA-1 package identity"
+    );
+    Ok(cache
+        .join("versions")
+        .join(version)
+        .join("snapshots")
+        .join(format!("{digest}.json")))
+}
+
+fn frozen_asset_index_name(id: &str, hash: &ContentHash) -> eyre::Result<String> {
+    eyre::ensure!(
+        hash.algorithm == ContentHashAlgorithm::Sha1,
+        "Minecraft asset index requires a SHA-1 pin"
+    );
+    crate::source_projection::promotion::validate_relative_path(id)?;
+    eyre::ensure!(!id.contains('/'), "asset index id must be one component");
+    Ok(format!("{id}-{}", hash.hex()))
+}
 const NEOFORM_RUNTIME_COORDINATE: &str = "net.neoforged:neoform-runtime:2.0.19:all";
 const PROJECT_COMPILE_ANNOTATION_COORDINATES: [(&str, &str); 2] = [
     (

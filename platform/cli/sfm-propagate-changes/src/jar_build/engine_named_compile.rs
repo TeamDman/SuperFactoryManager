@@ -137,9 +137,15 @@ mod catalog_native_cache_path_tests {
         assert!(select_source_cache(&repository, Some(&unmarked), &cancel).is_err());
         let mismatched = temporary.path().join("mismatched");
         fs::create_dir(&mismatched)?;
-        fs::write(mismatched.join(".sfm-native-cache-root.json"), b"wrong owner")?;
+        fs::write(
+            mismatched.join(".sfm-native-cache-root.json"),
+            b"wrong owner",
+        )?;
         assert!(select_source_cache(&repository, Some(&mismatched), &cancel).is_err());
-        assert_eq!(fs::read(mismatched.join(".sfm-native-cache-root.json"))?, b"wrong owner");
+        assert_eq!(
+            fs::read(mismatched.join(".sfm-native-cache-root.json"))?,
+            b"wrong owner"
+        );
         Ok(())
     }
 }
@@ -1411,10 +1417,11 @@ fn resolve_frozen_minecraft_plan(
     let receipt = &project.receipt().released_inputs;
     let hash = ContentHash::parse(&receipt.direct_version_json_hash)
         .map_err(|error| eyre::eyre!(error))?;
-    let path = minecraft_cache
-        .join("versions")
-        .join(&receipt.minecraft_version)
-        .join("version.json");
+    let path = frozen_version_metadata_path(
+        minecraft_cache,
+        &receipt.minecraft_version,
+        &receipt.direct_version_json_url,
+    )?;
     let raw = acquire_named_frozen_download(
         cancellation,
         client,

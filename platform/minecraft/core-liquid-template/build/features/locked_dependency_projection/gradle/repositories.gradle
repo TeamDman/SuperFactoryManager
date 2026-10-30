@@ -223,7 +223,7 @@ if (sfmUseRepositoryToolchainData?.toString() == 'true'
             || jarManifest.neoform_child_identity_sha256 !=
                     'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
             || jarManifest.selected_source_lock_sha256 !=
-                    'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835') {
+                    '65a43c04b74680e5343b1bfbf504e0b592ed6b23b26e5bc437c97596a143e329') {
         throw new GradleException('Unexpected checked Gradle project JAR manifest identity')
     }
     jarManifest.artifacts.each { pin ->

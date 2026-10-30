@@ -170,10 +170,7 @@ fn resolve_development_minecraft_plan(
     let pin = source.dependencies.artifact_pin(&request)?;
     let url = pin.url.as_deref().expect("exact version JSON URL");
     let minecraft = &source.dependencies.receipt().minecraft_version;
-    let path = minecraft_cache
-        .join("versions")
-        .join(minecraft)
-        .join("version.json");
+    let path = frozen_version_metadata_path(minecraft_cache, minecraft, url)?;
     let raw = acquire_named_frozen_download(
         cancellation,
         client,

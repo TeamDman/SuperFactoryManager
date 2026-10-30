@@ -7273,7 +7273,10 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
         "Asset index id must be one component"
     );
     let assets_root = context.plan.minecraft_assets_dir.clone();
-    let index_path = assets_root.join("indexes").join(format!("{index_id}.json"));
+    let checked_index_name = frozen_asset_index_name(&index_id, &index_sha1)?;
+    let index_path = assets_root
+        .join("indexes")
+        .join(format!("{checked_index_name}.json"));
     let index_json = {
         let _span = tracing::debug_span!(
             "prepare_minecraft_assets_download_index",
@@ -7362,7 +7365,7 @@ fn prepare_minecraft_assets(context: &ExecutionContext<'_>) -> eyre::Result<Mine
 
     Ok(MinecraftAssets {
         root: assets_root,
-        index_id,
+        index_id: checked_index_name,
     })
 }
 
@@ -7401,6 +7404,46 @@ fn acquire_checked_asset_index(
 #[cfg(test)]
 mod asset_index_cache_tests {
     use super::*;
+
+    #[test]
+    fn changed_index_bytes_get_distinct_launch_names_and_shared_cache_paths() -> eyre::Result<()> {
+        let before = ContentHash::from_bytes(b"before", ContentHashAlgorithm::Sha1);
+        let after = ContentHash::from_bytes(b"after", ContentHashAlgorithm::Sha1);
+        let old_name = frozen_asset_index_name("30", &before)?;
+        let new_name = frozen_asset_index_name("30", &after)?;
+        assert_ne!(old_name, new_name);
+        assert!(old_name.starts_with("30-"));
+        assert!(new_name.starts_with("30-"));
+        assert!(frozen_asset_index_name("../30", &after).is_err());
+        assert!(
+            frozen_asset_index_name(
+                "30",
+                &ContentHash::from_bytes(b"after", ContentHashAlgorithm::Blake3)
+            )
+            .is_err()
+        );
+        let old_path = frozen_version_metadata_path(
+            Path::new("minecraft"),
+            "26.1.2",
+            "https://piston-meta.mojang.com/v1/packages/1111111111111111111111111111111111111111/26.1.2.json",
+        )?;
+        let new_path = frozen_version_metadata_path(
+            Path::new("minecraft"),
+            "26.1.2",
+            "https://piston-meta.mojang.com/v1/packages/2222222222222222222222222222222222222222/26.1.2.json",
+        )?;
+        assert_ne!(old_path, new_path);
+        assert_eq!(old_path.parent(), new_path.parent());
+        assert!(
+            frozen_version_metadata_path(
+                Path::new("minecraft"),
+                "26.1.2",
+                "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+            )
+            .is_err()
+        );
+        Ok(())
+    }
 
     #[test]
     fn asset_index_cache_requires_parent_hash_and_size_on_every_hit() -> eyre::Result<()> {

@@ -54,9 +54,9 @@ pluginManagement {
             def jarManifest = new groovy.json.JsonSlurper().parse(jarManifestFile.toFile())
             if (jarManifest.schema_version != 1
                     || jarManifest.selected_source_lock_sha256 !=
-                            'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835'
+                            '65a43c04b74680e5343b1bfbf504e0b592ed6b23b26e5bc437c97596a143e329'
                     || jarManifest.selected_version_sha256 !=
-                            '1aee43f4486c9b6e0e03f7e0b0d04f7994e27de40bd1f7496ab6201363ad7b09'
+                            'bedfd4c667d5f73d725fb9bdbf53efa13b8026b8c00e1eb1ab789c25ffbf5ca0'
                     || jarManifest.neoform_child_identity_sha256 !=
                             'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
                     || jarManifest.artifacts.size() != 93
@@ -257,33 +257,33 @@ if (lockedMinecraftMetadata == 'true') {
         throw new GradleException('Missing selected 26.1.2 source lock')
     }
     def lockBytes = java.nio.file.Files.readAllBytes(lockPath)
-    if (sha256(lockBytes) != 'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835') {
+    if (sha256(lockBytes) != '65a43c04b74680e5343b1bfbf504e0b592ed6b23b26e5bc437c97596a143e329') {
         throw new GradleException('Selected 26.1.2 source lock changed')
     }
     def lock = new groovy.json.JsonSlurper().parseText(new String(lockBytes, utf8))
     def selectedUrl = 'https://piston-meta.mojang.com/v1/packages/' +
-            '978e6c0dd077d0f8d5d53887454928f1d3687ba8/26.1.2.json'
+            'ee044d53f31fdcbfa31be3684ad321d44c81c3a5/26.1.2.json'
     def matches = lock.artifacts.findAll {
         it.url == selectedUrl &&
-                it.hash == 'blake3:6624f695775e8083367dca64a86952e5b61fe7d8' &&
+                it.hash == 'blake3:cd73ceb01e7560d692b718e6ab730afea044b1dd' &&
                 it.cache_path.toString().replace('\\', '/') ==
-                        '$sfm-cache/minecraft/versions/26.1.2/version.json'
+                        '$sfm-cache/minecraft/versions/26.1.2/snapshots/ee044d53f31fdcbfa31be3684ad321d44c81c3a5.json'
     }
     if (matches.size() != 1) {
         throw new GradleException('Selected 26.1.2 Minecraft version pin is absent or ambiguous')
     }
     def selectedPath = checkout.resolve(
-            'sfm-toolchain-data/minecraft-toolchain/minecraft/versions/26.1.2/version.json')
+            'sfm-toolchain-data/minecraft-toolchain/minecraft/versions/26.1.2/snapshots/ee044d53f31fdcbfa31be3684ad321d44c81c3a5.json')
     if (!java.nio.file.Files.isRegularFile(selectedPath, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
         throw new GradleException('Missing selected locked 26.1.2 version metadata')
     }
     def selectedBytes = java.nio.file.Files.readAllBytes(selectedPath)
-    if (sha256(selectedBytes) != '1aee43f4486c9b6e0e03f7e0b0d04f7994e27de40bd1f7496ab6201363ad7b09') {
+    if (sha256(selectedBytes) != 'bedfd4c667d5f73d725fb9bdbf53efa13b8026b8c00e1eb1ab789c25ffbf5ca0') {
         throw new GradleException('Selected locked 26.1.2 version metadata changed')
     }
     def version = new groovy.json.JsonSlurper().parseText(new String(selectedBytes, utf8))
     if (version.id != '26.1.2' ||
-            version.assetIndex.sha1 != 'd30e47e96819a087aed5b65fdd6854f28ee02e19') {
+            version.assetIndex.sha1 != '2c17565f9cd7dbb95294e71fe258d65d6a8f0360') {
         throw new GradleException('Selected locked 26.1.2 version or asset index changed')
     }
     def launcherBytes = groovy.json.JsonOutput.toJson([

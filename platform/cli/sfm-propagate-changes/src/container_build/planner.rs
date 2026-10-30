@@ -570,8 +570,11 @@ fn export_minecraft(
         !id.contains('/'),
         "asset index identity must be one component"
     );
-    let relative = format!("minecraft/assets/indexes/{id}.json");
-    let destination = format!("cache/minecraft-toolchain/{relative}");
+    let checked_name = format!("{id}-{}", index.sha1);
+    let relative = format!("minecraft/assets/indexes/{checked_name}.json");
+    // The staged runtime still receives the conventional id.json name;
+    // only the shared source cache needs to keep both snapshots distinct.
+    let destination = format!("cache/minecraft-toolchain/minecraft/assets/indexes/{id}.json");
     if copy_cached(
         cache,
         &relative,

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "selected_source_lock_sha256": "ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835",
-  "selected_version_sha256": "1aee43f4486c9b6e0e03f7e0b0d04f7994e27de40bd1f7496ab6201363ad7b09",
+  "selected_source_lock_sha256": "65a43c04b74680e5343b1bfbf504e0b592ed6b23b26e5bc437c97596a143e329",
+  "selected_version_sha256": "bedfd4c667d5f73d725fb9bdbf53efa13b8026b8c00e1eb1ab789c25ffbf5ca0",
   "artifacts": [
     {
       "coordinate": "at.yawk.lz4:lz4-java:1.10.1",

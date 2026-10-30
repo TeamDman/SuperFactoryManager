@@ -639,10 +639,10 @@
             "data_run_policy": "include"
           },
           "derived_checks": {
-            "artifact_id": "version-8dda6b0f",
+            "artifact_id": "version-fd2dc5a5",
             "resolved_coordinate": null,
-            "expected_hash": "blake3:8dda6b0f2398766aace07fd85f8f66a81ef012b4",
-            "cache_path": "$sfm-cache\\minecraft\\versions\\1.20.4\\version.json"
+            "expected_hash": "blake3:fd2dc5a5f839e883ccbebb742f5b827891994873",
+            "cache_path": "$sfm-cache\\minecraft\\versions\\1.20.4\\snapshots\\bff1278922bca138b7722385a81366f3077abffa.json"
           },
           "source_providers": [
             {
@@ -2490,7 +2490,7 @@
       "weak": null
     },
     {
-      "id": "version-8dda6b0f",
+      "id": "version-fd2dc5a5",
       "owner": {
         "dependency_id": "minecraft",
         "component_id": "main"
@@ -2501,9 +2501,9 @@
       ],
       "coordinate": null,
       "repository_id": null,
-      "url": "https://piston-meta.mojang.com/v1/packages/820d711d5cbd4799936eb114b94c0d3b3412048b/1.20.4.json",
-      "hash": "blake3:8dda6b0f2398766aace07fd85f8f66a81ef012b4",
-      "cache_path": "$sfm-cache\\minecraft\\versions\\1.20.4\\version.json",
+      "url": "https://piston-meta.mojang.com/v1/packages/bff1278922bca138b7722385a81366f3077abffa/1.20.4.json",
+      "hash": "blake3:fd2dc5a5f839e883ccbebb742f5b827891994873",
+      "cache_path": "$sfm-cache\\minecraft\\versions\\1.20.4\\snapshots\\bff1278922bca138b7722385a81366f3077abffa.json",
       "provenance": "remote-http",
       "source_git": null,
       "source_build": null,
