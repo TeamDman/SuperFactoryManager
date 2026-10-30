@@ -31,7 +31,11 @@ use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 
-const MAX_ENTRIES: usize = 32;
+const MAX_COMPLETED_ENTRIES: usize = 32;
+// Interrupted old publishers can leave entry-shaped directories without a
+// receipt. They must not permanently exhaust the completed-entry allowance,
+// but scanning an unbounded number of foreign/partial directories is unsafe.
+const MAX_ENTRY_DIRECTORIES: usize = 256;
 
 // A validated immutable Forge export held throughout all build consumers.
 pub(super) struct HeldForgeDevJar {
@@ -647,7 +651,7 @@ fn entry_directories(key_root: &Path) -> eyre::Result<Option<Vec<PathBuf>>> {
         let path = item.path();
         checked_directory(&path)?;
         entries.push(path);
-        if entries.len() > MAX_ENTRIES {
+        if entries.len() > MAX_ENTRY_DIRECTORIES {
             return Ok(None);
         }
     }
@@ -752,7 +756,14 @@ pub(super) fn publish_entry(
     let Some(entries) = entry_directories(key_root)? else {
         return Ok(None);
     };
-    if entries.len() >= MAX_ENTRIES {
+    let completed = entries.iter().try_fold(0_usize, |count, entry| {
+        match fs::symlink_metadata(entry.join("inputs.sha256")) {
+            Ok(_) => Ok(count + 1),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(count),
+            Err(error) => Err(error),
+        }
+    })?;
+    if entries.len() >= MAX_ENTRY_DIRECTORIES || completed >= MAX_COMPLETED_ENTRIES {
         return Ok(None);
     }
     let Some(held) = HeldForgePreparationOutputs::open_paths(outputs, &check)? else {

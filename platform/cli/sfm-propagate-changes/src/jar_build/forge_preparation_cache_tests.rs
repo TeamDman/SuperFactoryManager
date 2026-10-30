@@ -359,11 +359,53 @@ fn forge_preparation_store_bounds_history_without_erasing_or_refusing_original_o
     let temp = tempfile::tempdir()?;
     let original = fixture_outputs(&temp.path().join("source"), 1)?;
     let key = make_directory(&temp.path().join("store/key"))?;
-    for index in 0..MAX_ENTRIES {
+    for index in 0..MAX_COMPLETED_ENTRIES {
         make_directory(&key.join(format!("entry-{index}")))?;
+        fs::write(
+            key.join(format!("entry-{index}/inputs.sha256")),
+            b"retained-history",
+        )?;
     }
     publish(&key, "fixture-key", &original, || Ok(()))?;
-    assert_eq!(entry_directories(&key)?.unwrap().len(), MAX_ENTRIES);
+    assert_eq!(
+        entry_directories(&key)?.unwrap().len(),
+        MAX_COMPLETED_ENTRIES
+    );
+    assert_eq!(fs::read(&original[0].1)?, b"produced-0");
+    Ok(())
+}
+
+#[test]
+fn forge_preparation_store_partial_history_does_not_exhaust_completed_allowance() -> Result<()> {
+    let temp = tempfile::tempdir()?;
+    let original = fixture_outputs(&temp.path().join("source"), 1)?;
+    let key = make_directory(&temp.path().join("store/key"))?;
+    for index in 0..MAX_COMPLETED_ENTRIES {
+        make_directory(&key.join(format!("entry-orphan-{index}")))?;
+    }
+    let committed = publish_entry(&key, "fixture-key", &original, || Ok(()))?;
+    assert!(committed.is_some());
+    assert_eq!(
+        entry_directories(&key)?.unwrap().len(),
+        MAX_COMPLETED_ENTRIES + 1
+    );
+    assert_eq!(fs::read(&original[0].1)?, b"produced-0");
+    Ok(())
+}
+
+#[test]
+fn forge_preparation_store_bounds_unfinished_history_without_erasing_it() -> Result<()> {
+    let temp = tempfile::tempdir()?;
+    let original = fixture_outputs(&temp.path().join("source"), 1)?;
+    let key = make_directory(&temp.path().join("store/key"))?;
+    for index in 0..MAX_ENTRY_DIRECTORIES {
+        make_directory(&key.join(format!("entry-orphan-{index}")))?;
+    }
+    assert!(publish_entry(&key, "fixture-key", &original, || Ok(()))?.is_none());
+    assert_eq!(
+        entry_directories(&key)?.unwrap().len(),
+        MAX_ENTRY_DIRECTORIES
+    );
     assert_eq!(fs::read(&original[0].1)?, b"produced-0");
     Ok(())
 }
