@@ -137,10 +137,18 @@ impl DependencyInventory {
         if portable.is_absolute() {
             return portable.to_path_buf();
         }
-        self.lockfile_path
-            .parent()
-            .expect("loaded lockfile has a parent")
-            .join(portable)
+        if self.target.branch.0.starts_with("project:") {
+            self.lockfile_path
+                .parent()
+                .expect("loaded project lockfile has a parent")
+                .join(portable)
+        } else {
+            self.target
+                .worktree_path
+                .join("platform")
+                .join("minecraft")
+                .join(portable)
+        }
     }
 
     #[must_use]

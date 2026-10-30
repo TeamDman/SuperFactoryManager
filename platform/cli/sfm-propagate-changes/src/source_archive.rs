@@ -128,14 +128,17 @@ pub fn extract_zip_atomically(input: &Path, output: &Path) -> eyre::Result<()> {
             output.display()
         );
     }
-    fs::rename(&tree, output).wrap_err_with(|| {
-        format!(
-            "Failed to publish extracted source tree {} to {}",
-            tree.display(),
-            output.display()
-        )
-    })?;
-    Ok(())
+    match fs::rename(&tree, output) {
+        Ok(()) => Ok(()),
+        Err(_) if output.exists() && extracted_tree_matches_archive(input, output)? => Ok(()),
+        Err(error) => Err(error).wrap_err_with(|| {
+            format!(
+                "Failed to publish extracted source tree {} to {}",
+                tree.display(),
+                output.display()
+            )
+        }),
+    }
 }
 
 /// Check the complete extracted tree against an already authenticated source ZIP.
@@ -359,6 +362,71 @@ mod tests {
         assert_ne!(archive_payload_sha256(&changed).unwrap(), expected);
         assert!(
             matches_catalog_source_identity(&reordered, &format!("payload-{expected}")).unwrap()
+        );
+    }
+
+    #[test]
+    fn concurrent_identical_source_publishers_share_one_valid_tree() {
+        use std::sync::Arc;
+        use std::sync::Barrier;
+        let temp = tempfile::tempdir().unwrap();
+        let archive = temp.path().join("source.jar");
+        let tree = temp.path().join("source.filetree");
+        write_zip(&archive, &[("src/A.java", b"class A {}")]);
+        let barrier = Arc::new(Barrier::new(3));
+        let jobs = (0..2)
+            .map(|_| {
+                let archive = archive.clone();
+                let tree = tree.clone();
+                let barrier = Arc::clone(&barrier);
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    extract_zip_atomically(&archive, &tree)
+                })
+            })
+            .collect::<Vec<_>>();
+        barrier.wait();
+        for job in jobs {
+            job.join().unwrap().unwrap();
+        }
+        assert!(extracted_tree_matches_archive(&archive, &tree).unwrap());
+    }
+
+    #[test]
+    fn concurrent_conflicting_source_publishers_preserve_the_winning_tree() {
+        use std::sync::Arc;
+        use std::sync::Barrier;
+        let temp = tempfile::tempdir().unwrap();
+        let first = temp.path().join("first.jar");
+        let second = temp.path().join("second.jar");
+        let tree = temp.path().join("source.filetree");
+        write_zip(&first, &[("src/A.java", b"class A {}")]);
+        write_zip(&second, &[("src/A.java", b"class B {}")]);
+        let barrier = Arc::new(Barrier::new(3));
+        let jobs = [first.clone(), second.clone()]
+            .into_iter()
+            .map(|archive| {
+                let tree = tree.clone();
+                let barrier = Arc::clone(&barrier);
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    extract_zip_atomically(&archive, &tree)
+                })
+            })
+            .collect::<Vec<_>>();
+        barrier.wait();
+        let outcomes = jobs
+            .into_iter()
+            .map(|job| job.join().unwrap().is_ok())
+            .collect::<Vec<_>>();
+        assert_eq!(outcomes.iter().filter(|success| **success).count(), 1);
+        assert_eq!(
+            extracted_tree_matches_archive(&first, &tree).unwrap(),
+            outcomes[0]
+        );
+        assert_eq!(
+            extracted_tree_matches_archive(&second, &tree).unwrap(),
+            outcomes[1]
         );
     }
     use super::*;
