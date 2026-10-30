@@ -1,6 +1,7 @@
 use super::CacheCleanArgs;
 use super::CacheOpenArgs;
 use super::CachePathArgs;
+use super::CacheReportArgs;
 use super::CacheRootArgs;
 use facet::Facet;
 use figue as args;
@@ -30,6 +31,8 @@ pub enum CacheCommand {
     Path(CachePathArgs),
     /// Show or persist the shared toolchain cache root
     Root(CacheRootArgs),
+    /// Report checkout expectations and possible unused entries without deleting anything
+    Report(CacheReportArgs),
     /// Open the cache directory in the file explorer
     Open(CacheOpenArgs),
     /// Clean the cache directory
@@ -44,6 +47,7 @@ impl CacheCommand {
         match self {
             CacheCommand::Path(args) => args.invoke(),
             CacheCommand::Root(args) => args.invoke(),
+            CacheCommand::Report(args) => args.invoke(),
             CacheCommand::Open(args) => args.invoke(),
             CacheCommand::Clean(args) => args.invoke(),
         }
