@@ -208,6 +208,24 @@ impl NfrtInputStore {
             );
             retirement_payloads.push((path, receipt.bytes, receipt.full_sha256.clone()));
         }
+        // The pinned recompile action writes its class tree solely to archive
+        // work/recompile/output.jar. Admit those leaves only when every class
+        // is present byte-for-byte in that sealed graph output. Unknown files,
+        // links or an incomplete archive keep the whole tree for diagnosis.
+        if let Some(recompile) = sealed_graph_outputs
+            .iter()
+            .find(|receipt| receipt.declaration.output_relative_path == "work/recompile/output.jar")
+        {
+            for (path, bytes, hash) in
+                verified_recompile_classes(&self.root, &mut self.leases, recompile)?
+            {
+                ensure!(
+                    unique_paths.insert(path.clone()),
+                    "Duplicate recompile scratch path"
+                );
+                retirement_payloads.push((path, bytes, hash));
+            }
+        }
         let mut total = 0_u64;
         for (path, bytes, expected) in &retirement_payloads {
             let parent = path
@@ -645,6 +663,142 @@ impl NfrtInputStore {
     }
 }
 
+/// Verify each class against the sealed recompile archive before the common
+/// retirement preflight. Only exact file leaves are removed; directories and
+/// all failed/incomplete invocation work are retained.
+#[cfg(windows)]
+fn verified_recompile_classes(
+    root: &Path,
+    leases: &mut DirectoryLeases,
+    receipt: &super::nfrt_producer_output_receipt::NfrtProducerOutputReceipt,
+) -> Result<Vec<(PathBuf, usize, String)>> {
+    use std::collections::BTreeMap;
+
+    const MAX_CLASSES: usize = 8192;
+    const MAX_CLASS_BYTES: u64 = 512 * 1024 * 1024;
+    let classes = root.join("work/recompile/classes");
+    leases.prepare(&classes, "reserved-leaf")?;
+    let archive_path = root.join(&receipt.declaration.output_relative_path);
+    let archive_file = open_read(&archive_path)?;
+    ensure!(
+        regular(&archive_file.metadata()?)
+            && archive_file.metadata()?.len() == u64::try_from(receipt.bytes)?,
+        "Recompile archive changed before scratch retirement"
+    );
+    let mut archive = zip::ZipArchive::new(archive_file)?;
+    let mut archived = BTreeMap::new();
+    let mut total = 0_u64;
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index)?;
+        if !entry.name().ends_with(".class") || entry.is_dir() {
+            continue;
+        }
+        super::promotion::validate_relative_path(entry.name())?;
+        ensure!(archived.len() < MAX_CLASSES, "Too many recompile classes");
+        total = total
+            .checked_add(entry.size())
+            .ok_or_else(|| eyre::eyre!("Recompile archive size overflow"))?;
+        ensure!(total <= MAX_CLASS_BYTES, "Recompile class budget exceeded");
+        let mut digest = Sha256::new();
+        let mut buffer = [0_u8; 64 * 1024];
+        let mut read_bytes = 0_u64;
+        loop {
+            let count = entry.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            read_bytes += u64::try_from(count)?;
+            ensure!(read_bytes <= entry.size(), "Recompile archive entry grew");
+            digest.update(&buffer[..count]);
+        }
+        ensure!(
+            read_bytes == entry.size(),
+            "Recompile archive entry was truncated"
+        );
+        ensure!(
+            archived
+                .insert(
+                    entry.name().to_owned(),
+                    (read_bytes, format!("sha256:{:x}", digest.finalize()))
+                )
+                .is_none(),
+            "Duplicate recompile class in archive"
+        );
+    }
+    let mut pending = vec![classes.clone()];
+    let mut leaves = Vec::new();
+    let mut seen_bytes = 0_u64;
+    while let Some(directory) = pending.pop() {
+        leases.prepare(&directory, "reserved-leaf")?;
+        for entry in fs::read_dir(&directory)? {
+            let entry = entry?;
+            let path = entry.path();
+            let metadata = fs::symlink_metadata(&path)?;
+            ensure!(
+                !super::candidate_lock::is_reparse(&metadata),
+                "Recompile class tree contains a reparse point"
+            );
+            if metadata.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            ensure!(
+                regular(&metadata),
+                "Recompile class tree contains a non-file"
+            );
+            let name = path
+                .strip_prefix(&classes)?
+                .components()
+                .map(|part| {
+                    part.as_os_str()
+                        .to_str()
+                        .ok_or_else(|| eyre::eyre!("Non-UTF8 class path"))
+                })
+                .collect::<Result<Vec<_>>>()?
+                .join("/");
+            super::promotion::validate_relative_path(&name)?;
+            ensure!(
+                name.ends_with(".class"),
+                "Unexpected recompile class-tree file"
+            );
+            let (bytes, expected) = archived
+                .remove(&name)
+                .ok_or_else(|| eyre::eyre!("Class is absent from sealed recompile archive"))?;
+            ensure!(
+                metadata.len() == bytes,
+                "Recompile class length differs from archive"
+            );
+            seen_bytes = seen_bytes
+                .checked_add(bytes)
+                .ok_or_else(|| eyre::eyre!("Recompile class size overflow"))?;
+            ensure!(
+                leaves.len() < MAX_CLASSES && seen_bytes <= MAX_CLASS_BYTES,
+                "Recompile class-tree budget exceeded"
+            );
+            let mut file = open_read(&path)?;
+            let mut digest = Sha256::new();
+            let mut buffer = [0_u8; 64 * 1024];
+            loop {
+                let count = file.read(&mut buffer)?;
+                if count == 0 {
+                    break;
+                }
+                digest.update(&buffer[..count]);
+            }
+            ensure!(
+                format!("sha256:{:x}", digest.finalize()) == expected,
+                "Recompile class differs from sealed archive"
+            );
+            leaves.push((path, usize::try_from(bytes)?, expected));
+        }
+    }
+    ensure!(
+        !leaves.is_empty() && archived.is_empty(),
+        "Recompile class tree and sealed archive differ"
+    );
+    Ok(leaves)
+}
+
 fn validate_snapshots(prepared: &PreparedNfrtInvocationInput) -> Result<()> {
     let mut observation = NfrtPreparationPhase::start("input_store.validate_snapshots");
     let entries = &prepared.receipt().inputs;
@@ -932,6 +1086,95 @@ mod tests {
             fs::read(root.join("work/untracked.log"))?,
             b"retained diagnostic"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn recompile_class_tree_requires_sealed_archive_and_preserves_unknown_files() -> Result<()> {
+        let fixture = tempfile::tempdir()?;
+        let (root, leases) = create_owned_root(fixture.path(), "recompile-proof")?;
+        let contract = format!("sha256:{}", "b".repeat(64));
+        let mut archive = zip::ZipWriter::new(std::io::Cursor::new(Vec::new()));
+        archive.start_file(
+            "pkg/Example.class",
+            zip::write::SimpleFileOptions::default(),
+        )?;
+        archive.write_all(b"class")?;
+        archive.start_file("resource.txt", zip::write::SimpleFileOptions::default())?;
+        archive.write_all(b"resource")?;
+        let archive_bytes = archive.finish()?.into_inner();
+        let receipts = [
+            retirement_receipt(&contract, "inputs/generated/0001.bin", b"classes"),
+            retirement_receipt(&contract, "inputs/generated/0002.bin", b"sources"),
+        ];
+        let mut graph = retirement_receipt(&contract, "inputs/generated/0003.bin", &archive_bytes);
+        graph.declaration.output_relative_path = "work/recompile/output.jar".to_owned();
+        let mut store = NfrtInputStore {
+            root: root.clone(),
+            contract_identity: contract.clone(),
+            project_preparation_identity: "fixture".to_owned(),
+            workspaces_declared: false,
+            generated: std::collections::BTreeMap::new(),
+            files: Vec::new(),
+            owned_payloads: Vec::new(),
+            leases,
+        };
+        for (receipt, bytes) in [
+            (&receipts[0], b"classes".as_slice()),
+            (&receipts[1], b"sources".as_slice()),
+            (&graph, archive_bytes.as_slice()),
+        ] {
+            let path = store
+                .leases
+                .prepare(&root, &receipt.snapshot_relative_path)?;
+            store
+                .files
+                .push(write_and_hold(&path, bytes, &receipt.full_sha256)?);
+            store
+                .owned_payloads
+                .push((path, bytes.len(), receipt.full_sha256.clone()));
+            store.generated.insert(
+                receipt.snapshot_relative_path.clone(),
+                receipt.full_sha256.clone(),
+            );
+        }
+        store.create_workspaces(&["recompile".to_owned()])?;
+        let class_dir = root.join("work/recompile/classes/pkg");
+        fs::create_dir_all(&class_dir)?;
+        let class = class_dir.join("Example.class");
+        fs::write(&class, b"class")?;
+        let output = root.join(&graph.declaration.output_relative_path);
+        fs::write(&output, &archive_bytes)?;
+        let proof = VerifiedLocalDependencyPublication::fixture(
+            &contract,
+            [
+                receipts[0].full_sha256.clone(),
+                receipts[1].full_sha256.clone(),
+            ],
+        );
+        let refs = [&receipts[0], &receipts[1]];
+        let diagnostic = class_dir.join("diagnostic.txt");
+        fs::write(&diagnostic, b"unknown")?;
+        assert!(
+            store
+                .retire_published_payloads(&proof, &refs, &[graph.clone()])
+                .is_err()
+        );
+        assert!(class.exists() && output.exists() && diagnostic.exists());
+        fs::remove_file(&diagnostic)?;
+        fs::write(&class, b"wrong")?;
+        assert!(
+            store
+                .retire_published_payloads(&proof, &refs, &[graph.clone()])
+                .is_err()
+        );
+        assert!(class.exists() && output.exists());
+        fs::write(&class, b"class")?;
+        let (count, bytes) = store.retire_published_payloads(&proof, &refs, &[graph])?;
+        assert_eq!(count, 5);
+        assert_eq!(bytes, 14 + 2 * archive_bytes.len() as u64 + 5);
+        assert!(!class.exists() && !output.exists());
+        assert!(class_dir.is_dir());
         Ok(())
     }
 

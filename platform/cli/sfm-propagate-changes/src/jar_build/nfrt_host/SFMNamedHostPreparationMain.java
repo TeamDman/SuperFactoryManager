@@ -168,6 +168,28 @@ public final class SFMNamedHostPreparationMain {
                 }
                 System.err.println("PASS actual producer sealed into " + paths.getFirst());
                 }
+                if (compileProof) {
+                    // The compiler's class tree is private scratch. Seal its
+                    // archive explicitly even when no classpath consumer asks
+                    // for it, so Rust can verify exact class bytes before
+                    // post-consumer retirement of those leaves.
+                    var recompile = nodes.stream().filter(node -> node.id().equals("recompile"))
+                            .findFirst().orElseThrow();
+                    if (!(recompile.action() instanceof SFMHostRecompileAction)
+                            || recompile.getState() != net.neoforged.neoform.runtime.graph.NodeState.COMPLETED
+                            || !recompile.hasOutput("output")) {
+                        throw new IllegalStateException("Recompile scratch has no owned completed producer");
+                    }
+                    var original = recompile.getRequiredOutput("output").getResultPath();
+                    var sealed = engine.getArtifactManager().resolveClasspath(List.of(
+                            net.neoforged.neoform.runtime.artifacts.ClasspathItem.of(
+                                    recompile.getRequiredOutput("output"))));
+                    if (sealed.size() != 1 || sealed.getFirst().equals(original)
+                            || !MessageDigest.isEqual(bounded(original, 512 * 1024 * 1024),
+                                    bounded(sealed.getFirst(), 512 * 1024 * 1024))) {
+                        throw new IllegalStateException("Recompile archive differs from its owned seal");
+                    }
+                }
             }
             String phase = compileProof ? "minecraft_compile_proof" : sourceTransformProof ? "source_transform_proof" : sourceRecipeProof ? "source_recipe_proof" : childToolProof ? "child_tool_proof" : producerProof ? "builtin_producer_proof" : "graph_prepared";
             String complete = channel.exchange("complete", "{\"phase\":\"" + phase + "\"}");
