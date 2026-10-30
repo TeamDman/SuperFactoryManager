@@ -530,6 +530,22 @@
       "bytes": 3450
     },
     {
+      "coordinate": "org.antlr:antlr4-master:4.13.1",
+      "file": "antlr4-master-4.13.1.pom",
+      "path": "org/antlr/antlr4-master/4.13.1/antlr4-master-4.13.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/antlr/antlr4-master/4.13.1/antlr4-master-4.13.1.pom",
+      "sha256": "dbcfc979b80528fc0cb453fcb68dbc9d2b0603a7be2cdce99ab2fc6871469d18",
+      "bytes": 4818
+    },
+    {
+      "coordinate": "org.antlr:antlr4:4.13.1",
+      "file": "antlr4-4.13.1.pom",
+      "path": "org/antlr/antlr4/4.13.1/antlr4-4.13.1.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/antlr/antlr4/4.13.1/antlr4-4.13.1.pom",
+      "sha256": "6a159a12cfd6628aa736ec3ffd933fa9412e5cbcb7ce7ec5217a3ff420c66a99",
+      "bytes": 7584
+    },
+    {
       "coordinate": "org.apache:apache:33",
       "file": "apache-33.pom",
       "path": "org/apache/apache/33/apache-33.pom",
@@ -648,6 +664,14 @@
       "url": "https://repo.maven.apache.org/maven2/org/jcraft/jorbis/0.0.17/jorbis-0.0.17.pom",
       "sha256": "18de3b0d932af99832db4d832f683507fbdd5a0b0c24dd680e84ce6f57182e24",
       "bytes": 2923
+    },
+    {
+      "coordinate": "org.jetbrains:annotations:13.0",
+      "file": "annotations-13.0.pom",
+      "path": "org/jetbrains/annotations/13.0/annotations-13.0.pom",
+      "url": "https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.pom",
+      "sha256": "965aeb2bedff369819bdde1bf7a0b3b89b8247dd69c88b86375d76163bb8c397",
+      "bytes": 4930
     },
     {
       "coordinate": "org.jetbrains:annotations:26.0.2-1",

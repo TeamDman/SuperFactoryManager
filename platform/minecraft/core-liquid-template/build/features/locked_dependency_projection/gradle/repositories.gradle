@@ -114,6 +114,8 @@ def sfmRemoteSha256ByLockedHash = [
 ]
 def sfmSourceBuildMavenModules = new LinkedHashSet<List<String>>()
 def sfmCheckedRemoteMavenModules = new LinkedHashSet<List<String>>()
+def sfmCheckedGradleProjectModules = new LinkedHashSet<List<String>>()
+def sfmCheckedGradleProjectCoordinates = new HashSet<String>()
 def sfmSourceBuildProducerRepositories = [:]
 def sfmPhysicalToolchainRoot = new File(sfmCacheRoot, 'minecraft-toolchain').canonicalFile.toPath()
 sfmSourceBuildArtifacts.each { artifact ->
@@ -207,6 +209,91 @@ if (sfmUseRepositoryToolchainData?.toString() == 'true') {
     }
 }
 
+if (sfmUseRepositoryToolchainData?.toString() == 'true'
+        && project.findProperty('minecraft_version')?.toString() == '26.1.2') {
+    def checkout = project.projectDir.toPath().toAbsolutePath().resolve('../../../../../').normalize()
+    def jarManifestFile = checkout.resolve(
+            'platform/minecraft/core-liquid-template/build/supplements/gradle-project-jars-26.1.2.json')
+    if (!jarManifestFile.toFile().isFile()) {
+        throw new GradleException("Missing checked Gradle project JAR manifest: ${jarManifestFile}")
+    }
+    def jarManifest = new JsonSlurper().parse(jarManifestFile.toFile())
+    if (jarManifest.schema_version != 1 || jarManifest.artifacts.size() != 93
+            || jarManifest.metadata_only_coordinates.size() != 22
+            || jarManifest.neoform_child_identity_sha256 !=
+                    'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
+            || jarManifest.selected_source_lock_sha256 !=
+                    'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835') {
+        throw new GradleException('Unexpected checked Gradle project JAR manifest identity')
+    }
+    jarManifest.artifacts.each { pin ->
+        def parts = pin.coordinate?.toString()?.split(':', -1)
+        if (parts == null || parts.length != 3
+                || pin.path != parts[0].replace('.', '/') + '/' + parts[1] + '/' +
+                        parts[2] + '/' + pin.file
+                || !pin.file.toString().endsWith('.jar')) {
+            throw new GradleException("Invalid checked Gradle project JAR pin: ${pin.coordinate}")
+        }
+        def module = [parts[0], parts[1]]
+        if (sfmCheckedRemoteMavenModules.contains(module)
+                || sfmSourceBuildMavenModules.contains(module)
+                || !sfmCheckedGradleProjectCoordinates.add(pin.coordinate.toString())) {
+            throw new GradleException("Overlapping checked Gradle project module: ${pin.coordinate}")
+        }
+        sfmCheckedGradleProjectModules.add(module)
+    }
+    def projectMetadata = new JsonSlurper().parse(checkout.resolve(
+            'platform/minecraft/core-liquid-template/build/supplements/gradle-project-bootstrap-26.1.2.json').toFile())
+    jarManifest.metadata_only_coordinates.each { coordinate ->
+        def parts = coordinate.toString().split(':', -1)
+        if (parts.length != 3 || !projectMetadata.artifacts.any {
+                it.coordinate == coordinate && (it.file.endsWith('.pom') || it.file.endsWith('.module'))
+            } || projectMetadata.artifacts.any {
+                it.coordinate == coordinate && it.file.endsWith('.jar')
+            }) {
+            throw new GradleException("Incomplete checked Gradle metadata-only module: ${coordinate}")
+        }
+        def module = [parts[0], parts[1]]
+        if (sfmCheckedRemoteMavenModules.contains(module)
+                || sfmSourceBuildMavenModules.contains(module)) {
+            throw new GradleException("Overlapping checked Gradle metadata-only module: ${coordinate}")
+        }
+        sfmCheckedGradleProjectModules.add(module)
+    }
+    // This library is not in the direct-mod route. Its exact JAR and POM
+    // are already published by the checked plugin bootstrap manifest.
+    def bootstrapManifest = new JsonSlurper().parse(checkout.resolve(
+            'platform/minecraft/core-liquid-template/build/supplements/gradle-plugin-bootstrap-26.1.2.json').toFile())
+    [
+        'org.sonatype.oss:oss-parent:7',
+        'org.sonatype.oss:oss-parent:9',
+        'org.ow2:ow2:1.5.1'
+    ].each { coordinate ->
+        def variants = bootstrapManifest.artifacts.findAll { it.coordinate == coordinate }
+        def parts = coordinate.split(':', -1)
+        def module = [parts[0], parts[1]]
+        if (variants.size() != 1 || !variants[0].file.endsWith('.pom')
+                || sfmCheckedRemoteMavenModules.contains(module)
+                || sfmSourceBuildMavenModules.contains(module)) {
+            throw new GradleException("Incomplete or overlapping checked plugin parent: ${coordinate}")
+        }
+        sfmCheckedGradleProjectModules.add(module)
+    }
+    def listenablefuture = 'com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava'
+    def sharedVariants = bootstrapManifest.artifacts.findAll { it.coordinate == listenablefuture }
+    if (sharedVariants.size() != 2 || !sharedVariants.any {
+            it.file.endsWith('.jar') &&
+                    it.sha256 == 'b372a037d4230aa57fbeffdef30fd6123f9c0c2db85d0aced00c91b974f33f99'
+        } || !sharedVariants.any {
+            it.file.endsWith('.pom') &&
+                    it.sha256 == '18d4b1db26153d4e55079ce1f76bb1fe05cdb862ef9954a88cbcc4ff38b8679b'
+        } || sfmCheckedRemoteMavenModules.contains(['com.google.guava', 'listenablefuture'])
+            || sfmSourceBuildMavenModules.contains(['com.google.guava', 'listenablefuture'])) {
+        throw new GradleException('Incomplete or overlapping checked listenablefuture variants')
+    }
+    sfmCheckedGradleProjectModules.add(['com.google.guava', 'listenablefuture'])
+}
+
 repositories {
     if (sfmUseRepositoryToolchainData?.toString() == 'true'
             && project.findProperty('minecraft_version')?.toString() == '26.1.2') {
@@ -221,6 +308,7 @@ repositories {
                     metadataSources {
                         mavenPom()
                         gradleMetadata()
+                        artifact()
                     }
                 }
             }
@@ -228,6 +316,9 @@ repositories {
                 includeModule('net.neoforged', 'neoforge')
                 includeModule('net.neoforged', 'neoform')
                 includeModule('net.neoforged.jst', 'jst-cli-bundle')
+                sfmCheckedGradleProjectModules.each { module ->
+                    includeModule(module[0], module[1])
+                }
             }
         }
     }

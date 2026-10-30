@@ -40,11 +40,28 @@ pluginManagement {
             if (projectManifest.schema_version != 1
                     || projectManifest.configuration_inventory_sha256 !=
                             '14a2b690897f4302c78711d65fd4eb90500291052fbcfd87a0b305c626932bca'
-                    || projectManifest.artifacts.size() != 110
+                    || projectManifest.artifacts.size() != 113
                     || projectManifest.artifacts.count {
                         it.coordinate == 'net.neoforged.jst:jst-cli-bundle:2.0.1'
                     } != 3) {
                 throw new GradleException('Unexpected approved Gradle project manifest identity')
+            }
+            def jarManifestFile = checkout.resolve(
+                    'platform/minecraft/core-liquid-template/build/supplements/gradle-project-jars-26.1.2.json')
+            if (!java.nio.file.Files.isRegularFile(jarManifestFile)) {
+                throw new GradleException('Missing approved Gradle project JAR manifest: ' + jarManifestFile)
+            }
+            def jarManifest = new groovy.json.JsonSlurper().parse(jarManifestFile.toFile())
+            if (jarManifest.schema_version != 1
+                    || jarManifest.selected_source_lock_sha256 !=
+                            'ee0647bddae9dc368417c6ba53e9dc8a74f6da6a38c5cff583e923458dd9b835'
+                    || jarManifest.selected_version_sha256 !=
+                            '1aee43f4486c9b6e0e03f7e0b0d04f7994e27de40bd1f7496ab6201363ad7b09'
+                    || jarManifest.neoform_child_identity_sha256 !=
+                            'eabeb220e2cdfa3f3701e67a401472bd8a2f3adc696c9f300ef494a5ec4b81b2'
+                    || jarManifest.artifacts.size() != 93
+                    || jarManifest.metadata_only_coordinates.size() != 22) {
+                throw new GradleException('Unexpected approved Gradle project JAR manifest identity')
             }
             def repository = checkout.resolve(
                     'sfm-toolchain-data/gradle/bootstrap-maven/26.1.2').normalize()
@@ -56,20 +73,27 @@ pluginManagement {
                     java.nio.file.StandardOpenOption.WRITE)
             def publicationLock = channel.lock()
             try {
-                def seen = new HashSet<String>()
-                (manifest.artifacts + projectManifest.artifacts).each { pin ->
+                def seen = new HashMap<String, Object>()
+                (manifest.artifacts + projectManifest.artifacts + jarManifest.artifacts).each { pin ->
                     def coordinate = pin.coordinate.toString().split(':', -1)
                     if (coordinate.length != 3 || !pin.file || !pin.path
                             || !pin.sha256?.toString()?.matches('[0-9a-f]{64}')
-                            || !(pin.bytes instanceof Number) || pin.bytes < 1
-                            || !seen.add(pin.path.toString())) {
+                            || !(pin.bytes instanceof Number) || pin.bytes < 1) {
                         throw new GradleException('Invalid Gradle bootstrap pin: ' + pin.coordinate)
+                    }
+                    def earlier = seen.putIfAbsent(pin.path.toString(), pin)
+                    if (earlier != null && (earlier.coordinate != pin.coordinate
+                            || earlier.file != pin.file || earlier.sha256 != pin.sha256
+                            || earlier.bytes.longValue() != pin.bytes.longValue())) {
+                        throw new GradleException('Conflicting Gradle bootstrap pin: ' + pin.coordinate)
                     }
                     def expectedPath = coordinate[0].replace('.', '/') + '/' +
                             coordinate[1] + '/' + coordinate[2] + '/' + pin.file
                     def sourceUri = pin.url == null ? null : new URI(pin.url.toString())
                     def officialRoots = [
                         'repo.maven.apache.org': '/maven2/',
+                        'repo1.maven.org': '/maven2/',
+                        'maven.minecraftforge.net': '/',
                         'maven.neoforged.net': '/releases/',
                         'plugins.gradle.org': '/m2/',
                         'libraries.minecraft.net': '/'
@@ -117,17 +141,39 @@ pluginManagement {
                             throw new GradleException('Gradle bootstrap digest mismatch: ' + pin.coordinate + ' ' + pin.file)
                         }
                     }
+                    def cachedSource = null
+                    if (pin.source_cache_path != null) {
+                        def sourcePath = pin.source_cache_path.toString().replace('\\', '/')
+                        if (!sourcePath.startsWith('sfm-toolchain-data/minecraft-toolchain/')
+                                || sourcePath.split('/').any { it.isEmpty() || it == '.' || it == '..' }) {
+                            throw new GradleException('Unsafe checked Gradle source path: ' + sourcePath)
+                        }
+                        cachedSource = checkout.resolve(sourcePath).normalize()
+                        def physicalCache = checkout.resolve('sfm-toolchain-data').toRealPath()
+                        if (!java.nio.file.Files.isRegularFile(cachedSource,
+                                java.nio.file.LinkOption.NOFOLLOW_LINKS)
+                                || !cachedSource.toRealPath().startsWith(physicalCache)) {
+                            throw new GradleException('Missing or redirected checked Gradle source: ' + sourcePath)
+                        }
+                        verify(cachedSource)
+                    }
                     if (!java.nio.file.Files.exists(target)) {
-                        if (gradle.startParameter.offline) {
+                        if (cachedSource == null && gradle.startParameter.offline) {
                             throw new GradleException('Missing offline Gradle bootstrap pin: ' + pin.coordinate + ' ' + pin.file)
                         }
                         def temporary = target.resolveSibling(target.fileName.toString()
                                 + '.partial-' + java.util.UUID.randomUUID())
                         try {
-                            def source = sourceUri.toURL().openConnection()
-                            source.connectTimeout = 30000
-                            source.readTimeout = 30000
-                            source.getInputStream().withCloseable { input ->
+                            def readSource = {
+                                if (cachedSource != null) {
+                                    return java.nio.file.Files.newInputStream(cachedSource)
+                                }
+                                def source = sourceUri.toURL().openConnection()
+                                source.connectTimeout = 30000
+                                source.readTimeout = 30000
+                                source.getInputStream()
+                            }
+                            readSource().withCloseable { input ->
                                 java.nio.file.Files.newOutputStream(temporary,
                                         java.nio.file.StandardOpenOption.CREATE_NEW,
                                         java.nio.file.StandardOpenOption.WRITE).withCloseable { output ->
