@@ -39,7 +39,7 @@ struct Manifest {
 
 pub(super) struct ImmutableProfile {
     pub classes: PathBuf,
-    _sources: PathBuf,
+    pub sources: PathBuf,
     // Keep verified descriptors alive; paths are protected from runtime UID
     // replacement by every root-owned, non-writable ancestor, not by these FDs.
     _files: Vec<fs::File>,
@@ -249,7 +249,7 @@ fn read_profile(root: &Path, key: &str) -> Result<ImmutableProfile> {
     );
     Ok(ImmutableProfile {
         classes,
-        _sources: sources,
+        sources,
         _files: vec![manifest_file, class_file, source_file],
     })
 }

@@ -1,5 +1,12 @@
 fn write_source_outputs(plans: &[BuildPlan], layout: SourceOutputLayout) -> eyre::Result<()> {
     for plan in plans {
+        if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev
+            && plan.identity.is_catalog_owned()
+        {
+            // Printed and, for filetree layout, materialized while the native
+            // producer's verified source input was still held.
+            continue;
+        }
         let source_jar = transformed_source_output_jar(plan)?;
         let output = match layout {
             SourceOutputLayout::Jar => source_jar.into_path_buf(),
@@ -23,8 +30,19 @@ fn publish_catalog_platform_source(
         plans.len() == 1,
         "catalog platform source requires one projection"
     );
-    let source = transformed_source_output_jar(&plans[0])?;
-    publish_checked_catalog_source_archive(source.as_path(), tree, expected_sha256)
+    if plans[0].loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
+        // The held NeoForm producer published inside its reader lifetime.
+        let source = tree.with_extension("jar");
+        eyre::ensure!(
+            crate::source_projection::provenance::sha256(&fs::read(&source)?) == expected_sha256
+                && crate::source_archive::extracted_tree_matches_archive(&source, tree)?,
+            "held NeoForm source publication changed after consumption"
+        );
+        Ok(())
+    } else {
+        let source = transformed_source_output_jar(&plans[0])?;
+        publish_checked_catalog_source_archive(source.as_path(), tree, expected_sha256)
+    }
 }
 
 fn publish_checked_catalog_source_archive(

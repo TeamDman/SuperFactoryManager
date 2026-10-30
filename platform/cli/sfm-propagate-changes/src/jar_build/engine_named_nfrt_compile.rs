@@ -490,7 +490,7 @@ fn execute_named_neoform_compile(
     target: BuildTarget,
     started: Instant,
 ) -> eyre::Result<()> {
-    with_named_neoform_context(context, |consumer| {
+    with_named_neoform_context(context, |consumer, _sources| {
         execute_project_build(consumer, target, started)
     })
 }
@@ -502,7 +502,7 @@ fn execute_named_neoform_compile(
 )]
 fn with_named_neoform_context<T>(
     context: &ExecutionContext<'_>,
-    consume: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
+    consume: impl FnOnce(&ExecutionContext<'_>, &Path) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
     let source = NeoformCompileSource::from_plan(context.plan)?;
     let project = source.owner();
@@ -545,7 +545,7 @@ fn with_named_neoform_context<T>(
         let mut consumer = ExecutionContext::new(context.plan, context.cancellation_token.clone())?;
         consumer.held_neoform_compile_jar = Some(&profile.classes);
         consumer.immutable_neoform_profile = true;
-        let result = consume(&consumer);
+        let result = consume(&consumer, &profile.sources);
         project.recheck_source()?;
         sdk.recheck()?;
         return result;
@@ -605,7 +605,7 @@ fn with_named_neoform_context<T>(
     }
     if !context.plan.refresh
         && let Some(cache) = &mut cache
-        && let Some(classes) = cache.lookup(&prepared, &context.cancellation_token)?
+        && let Some((classes, sources)) = cache.lookup(&prepared, &context.cancellation_token)?
     {
         project.recheck_source()?;
         sdk.recheck()?;
@@ -622,7 +622,7 @@ fn with_named_neoform_context<T>(
             .as_ref()
             .map(|image| image.identity().to_owned());
         consumer.compiler_image = execution_image.as_ref();
-        let result = consume(&consumer);
+        let result = consume(&consumer, &sources);
         project.recheck_source()?;
         sdk.recheck()?;
         if let Some(image) = &execution_image {
@@ -682,7 +682,7 @@ fn with_named_neoform_context<T>(
                 .as_ref()
                 .map(|image| image.identity().to_owned());
             consumer.compiler_image = execution_image.as_ref();
-            let value = consume(&consumer)?;
+            let value = consume(&consumer, sources)?;
             if let Some(image) = &execution_image {
                 image.recheck(&context.cancellation_token)?;
             }
@@ -698,7 +698,7 @@ fn with_named_neoform_context<T>(
 #[cfg(not(any(windows, target_os = "linux")))]
 fn with_named_neoform_context<T>(
     _: &ExecutionContext<'_>,
-    _: impl FnOnce(&ExecutionContext<'_>) -> eyre::Result<T>,
+    _: impl FnOnce(&ExecutionContext<'_>, &Path) -> eyre::Result<T>,
 ) -> eyre::Result<T> {
     eyre::bail!("named NeoForm launch requires the Windows held-input adapter")
 }

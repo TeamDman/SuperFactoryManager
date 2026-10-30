@@ -392,8 +392,23 @@ fn execute_prepared_projection_operation(
     };
     if plan.loader_toolchain.kind == LoaderToolchainKind::NeoGradleUserdev {
         let context = ExecutionContext::new(&plan, cancellation.clone())?;
-        with_named_neoform_context(&context, |held| {
-            execute_project_build(held, target, Instant::now())?;
+        with_named_neoform_context(&context, |held, sources| {
+            match operation {
+                ProjectionOperation::CatalogPlatformSources(tree, hash) => {
+                    publish_checked_catalog_source_archive(sources, tree, hash)?;
+                }
+                ProjectionOperation::SourceOutputs(SourceOutputLayout::Jar) => {
+                    stdout_line(sources.display())?;
+                }
+                ProjectionOperation::SourceOutputs(SourceOutputLayout::Filetree) => {
+                    let tree = super::source_output_filetree::materialize(
+                        &SourceOutputCacheRoot::new(plan.cache_dir.clone()),
+                        &SourceJarPath::new(sources.to_path_buf()),
+                    )?;
+                    stdout_line(tree.as_path().display())?;
+                }
+                _ => execute_project_build(held, target, Instant::now())?,
+            }
             consume(held)
         })?;
     } else {

@@ -175,19 +175,24 @@ fn publish_fixture(
     Ok(())
 }
 
-fn consume_pair(cache: &mut LocalDependencyCache, classes: &Path, output: &Path) -> Result<()> {
+fn consume_pair(
+    cache: &mut LocalDependencyCache,
+    selected: &(PathBuf, PathBuf),
+    output: &Path,
+) -> Result<()> {
+    let (classes, sources) = selected;
     cache.release_producer();
     ensure!(
-        OpenOptions::new().write(true).open(classes).is_err(),
-        "Releasing the producer lock lost the retained consumer file protection"
+        OpenOptions::new().write(true).open(classes).is_err()
+            && OpenOptions::new().write(true).open(sources).is_err(),
+        "Releasing the producer lock lost retained class/source protection"
     );
-    let sources = classes.with_file_name("sources.jar");
     ensure!(
         fs::read(classes)? == b"classes",
         "Consumer selected wrong classes"
     );
     ensure!(
-        fs::read(&sources)? == b"sources",
+        fs::read(sources)? == b"sources",
         "Consumer selected wrong sources"
     );
     fs::create_dir_all(output)?;

@@ -152,7 +152,7 @@ impl LocalDependencyCache {
         &mut self,
         prepared: &PreparedNfrtInvocationInput,
         cancellation: &CancellationToken,
-    ) -> Result<Option<PathBuf>> {
+    ) -> Result<Option<(PathBuf, PathBuf)>> {
         cancellation.bail_if_cancelled()?;
         if !environment_allows_reuse() {
             return Ok(None);
@@ -184,7 +184,7 @@ impl LocalDependencyCache {
             historical_production = %manifest.production_contract_sha256,
             current_consumption = %prepared.contract_identity(), receipt = %record.display(),
             "Verified historical dependency reuse; no fresh NFRT execution claimed");
-        phase.finish(Ok(Some(entry.join("classes.jar"))))
+        phase.finish(Ok(Some((entry.join("classes.jar"), entry.join("sources.jar")))))
     }
 
     /// Must run inside the successful private fresh-host callback, not on a DTO.
