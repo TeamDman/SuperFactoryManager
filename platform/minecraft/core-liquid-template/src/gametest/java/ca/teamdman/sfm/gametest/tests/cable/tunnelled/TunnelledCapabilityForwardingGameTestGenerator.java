@@ -37,7 +37,7 @@ import java.util.function.Supplier;
  */
 @SFMGameTestGenerator
 public class TunnelledCapabilityForwardingGameTestGenerator extends SFMGameTestGeneratorBase {
-    private static final BlockPos TUNNEL = new BlockPos(3, 2, 3);
+    private static final BlockPos TUNNEL = new BlockPos(3, 3, 3);
 
     private record Variant(String name, Supplier<Block> block) {}
 
@@ -89,7 +89,7 @@ public class TunnelledCapabilityForwardingGameTestGenerator extends SFMGameTestG
 
         @Override
         public String template() {
-            return "7x4x7";
+            return "7x5x7";
         }
 
         @Override
@@ -158,7 +158,7 @@ public class TunnelledCapabilityForwardingGameTestGenerator extends SFMGameTestG
 
         @Override
         public String template() {
-            return "7x4x7";
+            return "7x5x7";
         }
 
         @Override

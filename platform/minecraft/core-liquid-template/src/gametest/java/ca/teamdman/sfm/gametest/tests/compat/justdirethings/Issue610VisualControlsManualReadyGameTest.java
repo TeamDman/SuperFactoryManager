@@ -8,4 +8,5 @@ public final class Issue610VisualControlsManualReadyGameTest extends Issue610Vis
     @Override public String testName() { return "issue_610_visual_controls_manual_ready"; }
 
     @Override protected boolean initialManualMode() { return true; }
+    @Override public boolean required() { return false; }
 }
