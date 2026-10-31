@@ -750,10 +750,22 @@ fn execute_run_with_context(
         run_options.share_runtime,
     )?;
     let run_state_dir = session.receipt.state_dir();
-    let working_dir = session.slot.data_dir.join(kind.working_dir_name());
-    super::build_snapshot_receipt::ensure_owned_directory(&session.slot.data_dir, &working_dir)?;
+    // A headless GameTest must not inherit a slot's mutable server world or
+    // server.properties. Its private session has a fresh, flat test world.
+    let private_game_test = !run_options.share_runtime && matches!(kind, RunKind::GameTestServer);
+    let working_dir = if private_game_test {
+        session.receipt.session_dir.join(kind.working_dir_name())
+    } else {
+        session.slot.data_dir.join(kind.working_dir_name())
+    };
+    let working_dir_owner = if private_game_test {
+        &session.receipt.session_dir
+    } else {
+        &session.slot.data_dir
+    };
+    super::build_snapshot_receipt::ensure_owned_directory(working_dir_owner, &working_dir)?;
     if !run_options.share_runtime && matches!(kind, RunKind::GameTestServer) {
-        clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
+        clean_gametest_server_world(&session.receipt.session_dir, &working_dir)?;
     }
     if !run_options.share_runtime
         && matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview)
@@ -1154,7 +1166,7 @@ fn execute_run_with_context(
     for attempt in 1..=max_launch_attempts {
         context.bail_if_cancelled()?;
         if !run_options.share_runtime && matches!(kind, RunKind::GameTestServer) {
-            clean_gametest_server_world(&plan.minecraft_dir, &working_dir)?;
+            clean_gametest_server_world(&session.receipt.session_dir, &working_dir)?;
             tracing::info!("Game-test server attempt {attempt}/{max_launch_attempts}");
         }
         if !run_options.share_runtime
@@ -1258,6 +1270,11 @@ fn execute_run_with_context(
             );
         }
         tracing::info!("Validated {pass_count} required game tests passed.");
+        if private_game_test {
+            // The owned JVM has exited. Keep failed worlds for diagnosis; a
+            // successful world's terrain has no value after its test receipt.
+            clean_gametest_server_world(&session.receipt.session_dir, &working_dir)?;
+        }
     }
     if matches!(kind, RunKind::ClientSmoke) {
         if !launch_output.combined.contains("SFM_CLIENT_SMOKE_READY") {
@@ -3168,21 +3185,39 @@ fn sanitize_filename_component(input: &str) -> String {
     }
 }
 
-fn clean_gametest_server_world(minecraft_dir: &Path, working_dir: &Path) -> eyre::Result<()> {
-    if working_dir.file_name().and_then(|name| name.to_str()) != Some("runGameTest")
-        || !working_dir.starts_with(minecraft_dir)
+fn clean_gametest_server_world(session_dir: &Path, working_dir: &Path) -> eyre::Result<()> {
+    if working_dir != session_dir.join("runGameTest")
+        || session_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_none_or(|name| !name.starts_with("session-"))
+        || session_dir
+            .parent()
+            .and_then(|path| path.file_name())
+            .and_then(|name| name.to_str())
+            != Some("launches")
     {
         eyre::bail!(
             "Refusing to clean unexpected game-test working directory: {}",
             working_dir.display()
         );
     }
-
+    super::build_snapshot_receipt::ensure_owned_directory(session_dir, working_dir)?;
     let world_dir = working_dir.join("gametestserver");
     if world_dir.exists() {
+        let metadata = fs::symlink_metadata(&world_dir)?;
+        eyre::ensure!(
+            metadata.is_dir() && !crate::source_projection::candidate_lock::is_reparse(&metadata),
+            "Refusing to clean linked or non-directory game-test world: {}",
+            world_dir.display()
+        );
         fs::remove_dir_all(&world_dir)
             .wrap_err_with(|| format!("Failed to remove {}", world_dir.display()))?;
     }
+    fs::write(
+        working_dir.join("server.properties"),
+        b"level-name=gametestserver\nlevel-type=minecraft\\:flat\n",
+    )?;
     Ok(())
 }
 

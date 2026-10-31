@@ -1,4 +1,5 @@
 use super::ArtifactAuditIssueKind;
+use super::clean_gametest_server_world;
 
 #[test]
 fn java_tool_diagnostics_are_debug_only_but_runtime_logs_remain_info() {
@@ -668,6 +669,51 @@ fn game_test_run_filter_sets_selection_property_for_game_test_runners() {
         },
     );
     assert!(!blank_properties.contains_key("sfm.gametestSelection"));
+}
+
+#[test]
+fn headless_game_test_world_is_private_flat_and_preserves_slot_world() -> eyre::Result<()> {
+    let temp = tempfile::tempdir()?;
+    let slot = temp.path().join("slots/1");
+    let old_world = slot.join("runGameTest/world");
+    std::fs::create_dir_all(&old_world)?;
+    std::fs::write(old_world.join("level.dat"), b"existing world")?;
+    let old_game_test_world = slot.join("runGameTest/gametestserver");
+    std::fs::create_dir(&old_game_test_world)?;
+    std::fs::write(old_game_test_world.join("level.dat"), b"existing test world")?;
+    let session = slot.join("launches/session-test");
+    let private_run = session.join("runGameTest");
+    std::fs::create_dir_all(&private_run)?;
+
+    clean_gametest_server_world(&session, &private_run)?;
+    assert_eq!(
+        std::fs::read(private_run.join("server.properties"))?,
+        b"level-name=gametestserver\nlevel-type=minecraft\\:flat\n"
+    );
+    assert_eq!(
+        std::fs::read(old_world.join("level.dat"))?,
+        b"existing world"
+    );
+    assert_eq!(
+        std::fs::read(old_game_test_world.join("level.dat"))?,
+        b"existing test world"
+    );
+
+    let private_world = private_run.join("gametestserver");
+    std::fs::create_dir(&private_world)?;
+    std::fs::write(private_world.join("level.dat"), b"new test world")?;
+    clean_gametest_server_world(&session, &private_run)?;
+    assert!(!private_world.exists());
+    assert_eq!(
+        std::fs::read(old_world.join("level.dat"))?,
+        b"existing world"
+    );
+    assert_eq!(
+        std::fs::read(old_game_test_world.join("level.dat"))?,
+        b"existing test world"
+    );
+    assert!(clean_gametest_server_world(&session, &slot.join("runGameTest")).is_err());
+    Ok(())
 }
 
 #[test]
