@@ -39,7 +39,8 @@ import java.util.UUID;
 /** Server-authoritative touch proof; does not use the arbitrary client insertion path. */
 @SFMGameTest(SFMDist.DEDICATED_SERVER)
 public class TouchDisplayPressServerGameTest extends SFMGameTestDefinition {
-    protected static final BlockPos DISPLAY = new BlockPos(2, 2, 2);
+    // The DOWN rear chest must remain above the canonical floor at relative Y=1.
+    protected static final BlockPos DISPLAY = new BlockPos(2, 3, 2);
 {% case minecraft_version %}
 {% when "1.19.4" %}
     private static final double INSET = 7.0 / 16.0;
