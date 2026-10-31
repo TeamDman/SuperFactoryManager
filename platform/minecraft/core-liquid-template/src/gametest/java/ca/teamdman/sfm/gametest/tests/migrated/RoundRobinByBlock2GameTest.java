@@ -30,22 +30,22 @@ public class RoundRobinByBlock2GameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
-        return "3x4x3";
+        return "3x5x3";
     }
 
     @Override
     public void run(SFMGameTestHelper helper) {
         for (int x = 0; x < 3; x++) {
             for (int z = 0; z < 3; z++) {
-                helper.setBlock(x, 1, z, SFMBlocks.CABLE.get());
+                helper.setBlock(x, 2, z, SFMBlocks.CABLE.get());
             }
         }
-        BlockPos managerPos = new BlockPos(0, 2, 2);
-        BlockPos sourcePos = new BlockPos(2, 2, 0);
-        BlockPos a1Pos = new BlockPos(0, 2, 0);
-        BlockPos a2Pos = new BlockPos(0, 2, 1);
-        BlockPos b1Pos = new BlockPos(1, 2, 2);
-        BlockPos b2Pos = new BlockPos(2, 2, 2);
+        BlockPos managerPos = new BlockPos(0, 3, 2);
+        BlockPos sourcePos = new BlockPos(2, 3, 0);
+        BlockPos a1Pos = new BlockPos(0, 3, 0);
+        BlockPos a2Pos = new BlockPos(0, 3, 1);
+        BlockPos b1Pos = new BlockPos(1, 3, 2);
+        BlockPos b2Pos = new BlockPos(2, 3, 2);
 
         // set up inventories
         helper.setBlock(sourcePos, SFMBlocks.TEST_BARREL.get());

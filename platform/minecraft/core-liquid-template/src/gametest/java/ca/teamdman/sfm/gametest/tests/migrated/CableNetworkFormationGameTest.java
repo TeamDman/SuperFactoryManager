@@ -30,7 +30,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
 
     @Override
     public String template() {
-        return "25x4x25";
+        return "25x5x25";
     }
 
     @Override
@@ -159,33 +159,33 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
 
 
         // create a new network in a plus shape
-        helper.setBlock(new BlockPos(15, 2, 15), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(15, 3, 15), SFMBlocks.CABLE.get());
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
-            helper.setBlock(new BlockPos(15, 2, 15).relative(value), SFMBlocks.CABLE.get());
+            helper.setBlock(new BlockPos(15, 3, 15).relative(value), SFMBlocks.CABLE.get());
         }
         // should all be on the same network
         net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 2, 15)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 3, 15)))
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+                                       helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
                                )
                                .get()
                        == net, "Plus cables should all be on the same network");
         }
 
         // break the block in the middle
-        helper.setBlock(new BlockPos(15, 2, 15), Blocks.AIR);
+        helper.setBlock(new BlockPos(15, 3, 15), Blocks.AIR);
         // the network should split
         helper.assertTrue(
                 CableNetworkManager
                            .getOrRegisterNetworkFromCablePosition(
                                    helper.getLevel(),
-                                   helper.absolutePos(new BlockPos(15, 2, 15))
+                                   helper.absolutePos(new BlockPos(15, 3, 15))
                            )
                            .isEmpty(), "Network should not be present where the cable was removed from");
         var networks = new ArrayList<CableNetwork>();
@@ -193,7 +193,7 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
             networks.add(CableNetworkManager
                                  .getOrRegisterNetworkFromCablePosition(
                                          helper.getLevel(),
-                                         helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+                                         helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
                                  )
                                  .get());
         }
@@ -214,17 +214,17 @@ public class CableNetworkFormationGameTest extends SFMGameTestDefinition {
         }
 
         // add the block back
-        helper.setBlock(new BlockPos(15, 2, 15), SFMBlocks.CABLE.get());
+        helper.setBlock(new BlockPos(15, 3, 15), SFMBlocks.CABLE.get());
         // the network should merge
         net = CableNetworkManager
-                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 2, 15)))
+                .getOrRegisterNetworkFromCablePosition(helper.getLevel(), helper.absolutePos(new BlockPos(15, 3, 15)))
                 .get();
         for (Direction value : SFMDirections.DIRECTIONS_WITHOUT_NULL) {
             helper.assertTrue(
                     CableNetworkManager
                                .getOrRegisterNetworkFromCablePosition(
                                        helper.getLevel(),
-                                       helper.absolutePos(new BlockPos(15, 2, 15).relative(value))
+                                       helper.absolutePos(new BlockPos(15, 3, 15).relative(value))
                                )
                                .get()
                        == net, "Plus networks did not merge after repairing");

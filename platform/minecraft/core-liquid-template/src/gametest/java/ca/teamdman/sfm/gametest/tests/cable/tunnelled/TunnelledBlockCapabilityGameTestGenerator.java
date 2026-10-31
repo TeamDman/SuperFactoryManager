@@ -87,7 +87,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         @Override
         public String template() {
 
-            return "3x3x3";
+            return "3x5x3";
         }
 
         @Override
@@ -106,7 +106,7 @@ public class TunnelledBlockCapabilityGameTestGenerator extends SFMGameTestGenera
         public void run(SFMGameTestHelper helper) {
 
             // Place the tunnelled block at the center of the test area
-            BlockPos tunnelledPos = new BlockPos(1, 2, 1);
+            BlockPos tunnelledPos = new BlockPos(1, 3, 1);
             // Place the barrel adjacent in the specified direction
             BlockPos barrelPos = tunnelledPos.relative(direction);
 
