@@ -1122,10 +1122,11 @@ fn execute_run_with_context(
         run_state_dir.join("launch.environment.json"),
         facet_json::to_string_pretty(&env)?,
     )?;
-    // Snapshot only this new session's immutable inputs. A failed capture
-    // disables optional retirement, never the launch itself.
+    // Snapshot only this new session's immutable inputs. The normal client
+    // keeps its mutable run directory in the slot, outside these roots. A
+    // failed capture disables optional retirement, never the launch itself.
     #[cfg(windows)]
-    let owned_inputs = if matches!(kind, RunKind::GameTestServer | RunKind::ClientSmoke) {
+    let owned_inputs = if retires_successful_session_inputs(kind) {
         match OwnedSessionInputs::capture(&session.receipt.session_dir) {
             Ok(inputs) => Some(inputs),
             Err(error) => {
@@ -1348,6 +1349,32 @@ fn execute_run_with_context(
         }
     }
     Ok(())
+}
+
+#[cfg(windows)]
+const fn retires_successful_session_inputs(kind: RunKind) -> bool {
+    matches!(kind, RunKind::Client | RunKind::GameTestServer | RunKind::ClientSmoke)
+}
+
+#[cfg(all(test, windows))]
+mod successful_session_retirement_tests {
+    use super::{RunKind, retires_successful_session_inputs};
+
+    #[test]
+    fn ordinary_client_joins_existing_successful_run_retirement() {
+        assert!(retires_successful_session_inputs(RunKind::Client));
+        assert!(retires_successful_session_inputs(RunKind::ClientSmoke));
+        assert!(retires_successful_session_inputs(RunKind::GameTestServer));
+        for kind in [
+            RunKind::ClientPuppet,
+            RunKind::GameTestPreview,
+            RunKind::Server,
+            RunKind::Data,
+            RunKind::Test,
+        ] {
+            assert!(!retires_successful_session_inputs(kind));
+        }
+    }
 }
 
 const JUNIT_EVENT_PREFIX: &str = "SFM_JUNIT\t";

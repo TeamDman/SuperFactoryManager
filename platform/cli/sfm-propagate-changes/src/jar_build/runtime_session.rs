@@ -103,7 +103,7 @@ impl Drop for RuntimeSession {
     }
 }
 
-/// Exact private launch bytes captured before a `GameTest` JVM starts. Directory
+/// Exact private launch bytes captured before an eligible JVM starts. Directory
 /// leases keep the session tree at the same paths through the final comparison
 /// and file unlink. Empty directories and all receipts/logs remain; a failed or
 /// changed run retains its inputs for diagnosis. This never visits old sessions.
@@ -130,13 +130,13 @@ impl OwnedSessionInputs {
         Ok(owned)
     }
 
-    /// Called only after the owned JVM has exited and a required `GameTest` pass
-    /// count has been validated. An inventory change retains all payloads.
+    /// Called only after the owned JVM has exited successfully and any required
+    /// run-specific result has been validated. An inventory change retains all payloads.
     pub(crate) fn retire(mut self) -> eyre::Result<(usize, u64)> {
         let (current_files, current_directories) = self.inventory()?;
         ensure!(
             current_files == self.files && current_directories == self.directories,
-            "owned GameTest inputs changed during launch; retaining private copies"
+            "owned session inputs changed during launch; retaining private copies"
         );
         let planned_files = self.files.len();
         let planned_bytes = self.files.values().map(|(size, _)| *size).sum::<u64>();
