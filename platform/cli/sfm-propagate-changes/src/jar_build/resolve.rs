@@ -46,6 +46,7 @@ use acquisition_policy::ResolverAcquisitionPolicy;
 use eyre::Context;
 use rayon::prelude::*;
 use reqwest::blocking::Client;
+use sha2::Digest as _;
 use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
@@ -107,6 +108,113 @@ mod immutable_catalog_tests {
             )?
             .require_immutable_catalog()
             .is_err()
+        );
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod historical_retained_consumer_tests {
+    use super::*;
+    use crate::source_projection::catalog_owned_project::tests::Fixture;
+    use crate::source_projection::frozen_recipe_project::tests::fixture_for_target;
+
+    #[test]
+    #[ignore = "requires the explicitly supplied retained historical Mekanism JARs"]
+    fn historical_retained_artifacts_reuse_only_exact_old_bytes() -> eyre::Result<()> {
+        let old_main = std::env::var_os("SFM_EXACT_RELEASED_MEKANISM_26_JAR")
+            .ok_or_else(|| eyre::eyre!("supply old Mekanism JAR explicitly"))?;
+        let old_main = PathBuf::from(old_main);
+        let old_api = old_main.with_file_name("Mekanism-26.1.2-10.8.0.86-api.jar");
+        let (mut fixture, slot, _) = fixture_for_target("26.1.2")?;
+        let key = Fixture::key(slot, "release");
+        fixture.set_project_file_for(
+            "26.1.2",
+            "sfm-toolchain.lock.json",
+            "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+            include_bytes!("../source_projection/fixtures/released-2612-original-schema2.json"),
+            false,
+        )?;
+        fixture.publish(&key);
+        let main_bytes = fs::read(&old_main)?;
+        let prepared = crate::source_projection::frozen_recipe_project::prepare_frozen_recipe_project_with_witness_loader(
+            fixture.collect(&key)?.check_current()?,
+            crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE,
+            false,
+            |requirements| {
+                eyre::ensure!(requirements.len() == 1, "historical witness scope changed");
+                Ok(std::collections::BTreeMap::from([(
+                    requirements[0].artifact_index,
+                    main_bytes.clone(),
+                )]))
+            },
+        )?;
+        let cache = tempfile::tempdir()?;
+        let root = cache.path().join("minecraft-toolchain");
+        let destination = root.join("maven/mekanism/Mekanism/26.1.2-10.8.0.86");
+        fs::create_dir_all(&destination)?;
+        for source in [&old_main, &old_api] {
+            let name = source
+                .file_name()
+                .ok_or_else(|| eyre::eyre!("old JAR has no filename"))?;
+            fs::copy(source, destination.join(name))?;
+            fs::copy(
+                format!("{}.sfm-provenance.json", source.display()),
+                destination.join(format!("{}.sfm-provenance.json", name.to_string_lossy())),
+            )?;
+        }
+        let resolver = Resolver::new_prepared(
+            root.join("maven"),
+            Arc::clone(prepared.dependencies()),
+            false,
+            CancellationToken::new(),
+        )?;
+        for notation in [
+            "mekanism:Mekanism:26.1.2-10.8.0.86",
+            "mekanism:Mekanism:26.1.2-10.8.0.86:api",
+        ] {
+            let coordinate = MavenCoordinate::parse(notation)?;
+            let plan = resolver.resolve_artifact(
+                ArtifactId::from("historical retained"),
+                &coordinate,
+                ArtifactPurpose::from("historical retained byte witness"),
+            )?;
+            assert!(plan.cache_path.starts_with(&root));
+            assert!(!plan.downloaded);
+        }
+        let api = destination.join("Mekanism-26.1.2-10.8.0.86-api.jar");
+        fs::write(&api, b"changed historical artifact")?;
+        assert!(
+            resolver
+                .resolve_artifact(
+                    ArtifactId::from("tampered historical retained"),
+                    &MavenCoordinate::parse("mekanism:Mekanism:26.1.2-10.8.0.86:api")?,
+                    ArtifactPurpose::from("tamper rejection"),
+                )
+                .is_err()
+        );
+        fs::copy(&old_api, &api)?;
+        let api_sidecar = destination.join("Mekanism-26.1.2-10.8.0.86-api.jar.sfm-provenance.json");
+        fs::write(&api_sidecar, b"changed historical provenance")?;
+        assert!(
+            resolver
+                .resolve_artifact(
+                    ArtifactId::from("tampered historical provenance"),
+                    &MavenCoordinate::parse("mekanism:Mekanism:26.1.2-10.8.0.86:api")?,
+                    ArtifactPurpose::from("provenance rejection"),
+                )
+                .is_err()
+        );
+        let main = destination.join("Mekanism-26.1.2-10.8.0.86.jar");
+        fs::remove_file(&main)?;
+        assert!(
+            resolver
+                .resolve_artifact(
+                    ArtifactId::from("missing historical retained"),
+                    &MavenCoordinate::parse("mekanism:Mekanism:26.1.2-10.8.0.86")?,
+                    ArtifactPurpose::from("missing-output rejection"),
+                )
+                .is_err()
         );
         Ok(())
     }
@@ -1147,10 +1255,6 @@ impl Resolver {
             !self.refresh,
             "producer-pinned input cannot be refreshed implicitly; create and approve a new producer receipt separately"
         );
-        eyre::ensure!(
-            locked.weak.is_none(),
-            "producer-pinned input cannot use weak artifact substitution"
-        );
         let expected_path = self
             .producer_cache_path(coordinate)?
             .expect("producer row checked above");
@@ -1162,6 +1266,13 @@ impl Resolver {
             .cache_dir
             .parent()
             .ok_or_else(|| eyre::eyre!("producer cache has no toolchain root"))?;
+        if self.verify_retained_historical_mekanism(cache, artifact, coordinate, locked)? {
+            return Ok(());
+        }
+        eyre::ensure!(
+            locked.weak.is_none(),
+            "producer-pinned input cannot use weak artifact substitution"
+        );
         if artifact.is_file() {
             crate::jar_build::source_build_receipt::verify(
                 cache,
@@ -1187,6 +1298,125 @@ impl Resolver {
             );
         }
         Ok(())
+    }
+
+    /// Consume only the two already retained historical 4.34.0 bytes. This is
+    /// deliberately not a source-production receipt or a cache-miss fallback.
+    fn verify_retained_historical_mekanism(
+        &self,
+        cache: &Path,
+        artifact: &Path,
+        coordinate: &MavenCoordinate,
+        locked: &ArtifactLockEntry,
+    ) -> eyre::Result<bool> {
+        let Some(prepared) = &self.prepared_inputs else {
+            return Ok(false);
+        };
+        let receipt = prepared.receipt();
+        if receipt.recipe_id
+            != crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
+        {
+            return Ok(false);
+        }
+        let notation = coordinate.to_string();
+        let (filename, bytes, sha256, sidecar_sha256, original_hash, task, original_weak) =
+            match notation.as_str() {
+                "mekanism:Mekanism:26.1.2-10.8.0.86" => (
+                    "Mekanism-26.1.2-10.8.0.86.jar",
+                    11_873_687,
+                    "3339ee942d1ea01b0ff20580509538270f8c3f750e4f9c3f94f832a3d6a162d3",
+                    "d45df14d610eb806063216b563214d786b2e0ecc9ef6c9a64e18e53de38834d1",
+                    "blake3:fa5d96536fb3195b1a113d1d9e30695927d76378",
+                    "jar",
+                    true,
+                ),
+                "mekanism:Mekanism:26.1.2-10.8.0.86:api" => (
+                    "Mekanism-26.1.2-10.8.0.86-api.jar",
+                    498_420,
+                    "8cb793bc674f14933027e2e84fdea9079c1ba687b6b7dc6595c61aaa211d25d8",
+                    "55114d351a66e931c485268542277007ea85734262f0ec7578ff7c98a58671e6",
+                    "blake3:512f02bc3ae5a9113511befb1b6d7ac306656801",
+                    "apiJar",
+                    false,
+                ),
+                _ => return Ok(false),
+            };
+        eyre::ensure!(
+            receipt.target_id == "26.1.2"
+                && receipt.minecraft_version == "26.1.2"
+                && receipt.source_lock_sha256
+                    == "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de"
+                && receipt.source_lock_bytes == 50153
+                && receipt.immutable_source_lock
+                && !receipt.live_pom_discovery,
+            "retained historical consumer lost its original lock identity"
+        );
+        let relative = format!("maven/mekanism/Mekanism/26.1.2-10.8.0.86/{filename}");
+        let build = locked
+            .source_build
+            .as_ref()
+            .ok_or_else(|| eyre::eyre!("retained historical artifact lost its build descriptor"))?;
+        let git = locked
+            .source_git
+            .as_ref()
+            .ok_or_else(|| eyre::eyre!("retained historical artifact lost its Git descriptor"))?;
+        let original_weak_matches = if original_weak {
+            locked.weak.as_ref().is_some_and(|weak| {
+                weak.metadata_path.to_string_lossy().replace('\\', "/")
+                    == "META-INF/neoforge.mods.toml"
+                    && weak.mod_id == "mekanism"
+                    && weak.version == "10.8.0"
+            })
+        } else {
+            locked.weak.is_none()
+        };
+        eyre::ensure!(
+            locked.coordinate.as_deref() == Some(notation.as_str())
+                && locked.source == ArtifactSource::SourceBuild
+                && locked.hash.to_string() == original_hash
+                && original_weak_matches
+                && locked.cache_path.to_string_lossy().replace('\\', "/")
+                    == format!("$sfm-cache/{relative}")
+                && locked.repository.as_deref() == Some("source-build")
+                && locked.url.as_deref() == Some("https://github.com/mekanism/Mekanism/")
+                && git.root.to_string_lossy().replace('\\', "/")
+                    == "$sfm-cache/source-builds/557dd8a088c05d5fb40abed165349ab01e256254"
+                && git.commit == "f33ff1f438caa55d58ef1f0a08091997353afcb8"
+                && git.branch == "26.1"
+                && !git.dirty
+                && git.remote_url.as_deref() == Some("https://github.com/mekanism/Mekanism/")
+                && build.build_system == SourceBuildSystem::GradleWrapper
+                && build.tasks == [task]
+                && build.environment.len() == 1
+                && build.environment.get("BUILD_NUMBER").map(String::as_str) == Some("86")
+                && build.output_path.to_string_lossy().replace('\\', "/")
+                    == format!("build/libs/{filename}")
+                && locked.source_relative_path.as_ref() == Some(&build.output_path),
+            "retained historical artifact differs from its reviewed original descriptor"
+        );
+        eyre::ensure!(
+            artifact == cache.join(&relative) && artifact.is_file(),
+            "retained historical artifact is missing from its exact shared-cache path"
+        );
+        let raw = fs::read(artifact)?;
+        eyre::ensure!(
+            raw.len() == bytes
+                && format!("{:x}", sha2::Sha256::digest(&raw)) == sha256
+                && ContentHash::from_path(artifact, locked.hash.algorithm)? == locked.hash,
+            "retained historical artifact bytes differ from both full SHA-256 and frozen BLAKE3 pins"
+        );
+        let sidecar_relative = format!("{relative}.sfm-provenance.json");
+        let sidecar =
+            crate::source_projection::candidate_lock::checked_file(cache, &sidecar_relative)?;
+        let sidecar_bytes = fs::read(&sidecar)?;
+        eyre::ensure!(
+            sidecar_bytes.len() <= 4096
+                && format!("{:x}", sha2::Sha256::digest(&sidecar_bytes)) == sidecar_sha256
+                && read_artifact_provenance(artifact)?
+                    == self.locked_artifact_provenance(coordinate, locked.hash),
+            "retained historical provenance sidecar differs from its reviewed original"
+        );
+        Ok(true)
     }
 
     fn locked_artifact_hash(&self, coordinate: &MavenCoordinate) -> Option<&ContentHash> {
@@ -2682,7 +2912,10 @@ mod producer_native_tests {
             }
             let coordinate = MavenCoordinate::parse(entry.coordinate.as_deref().unwrap())?;
             let resolved = resolver(root.path(), entry, false, false)?;
-            assert_eq!(resolved.producer_cache_path(&coordinate)?, Some(path.clone()));
+            assert_eq!(
+                resolved.producer_cache_path(&coordinate)?,
+                Some(path.clone())
+            );
             let error = resolved
                 .resolve_artifact(
                     ArtifactId::from("missing-producer"),
@@ -2691,7 +2924,10 @@ mod producer_native_tests {
                 )
                 .unwrap_err()
                 .to_string();
-            assert!(error.contains("external input closure is not sealed"), "{error}");
+            assert!(
+                error.contains("external input closure is not sealed"),
+                "{error}"
+            );
             assert!(!path.exists());
             assert!(!root.path().join("maven").exists());
             assert!(!root.path().join("source-builds-gix").exists());
