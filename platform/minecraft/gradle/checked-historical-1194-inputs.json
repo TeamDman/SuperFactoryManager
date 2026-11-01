@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "projection": "sfm-4.35.0/mc-1.19.4",
+  "selected_lock_sha256": "AB0AD620449F524FFEAAEE7DB21CA4F967E34A728A1A90C51823D5EB9D0C6616",
+  "historical_version_snapshot": {
+    "path": "minecraft/versions/1.19.4/snapshots/dbd2e0a5aaf8b05447833b5de6d368e28e8cc7f0.json",
+    "sha256": "3F13A8AD2A69B9835E746768FBBD8CC1FC0F51F8CD720182AA3183474774E5C9",
+    "pin_domain": "blake3:67a80a4a8aee41acada9402384cbddce75eab776"
+  },
+  "original_checked_jar_count": 37,
+  "official_module_count": 8,
+  "files": [
+    {
+      "coordinate": "net.minecraftforge:javafmllanguage:1.19.4-45.0.9",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/javafmllanguage/1.19.4-45.0.9/javafmllanguage-1.19.4-45.0.9.jar",
+      "bytes": 16352,
+      "sha256": "706EA4127BD202E63EB1D4529F8E707BFDA3296515B646105AB5D0997C2B465D",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:lowcodelanguage:1.19.4-45.0.9",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/lowcodelanguage/1.19.4-45.0.9/lowcodelanguage-1.19.4-45.0.9.jar",
+      "bytes": 7378,
+      "sha256": "AC7913E8807481C42BB534F820C060ED389B42797E979F05FF2350ADAA104DBF",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:mclanguage:1.19.4-45.0.9",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/mclanguage/1.19.4-45.0.9/mclanguage-1.19.4-45.0.9.jar",
+      "bytes": 4987,
+      "sha256": "DA4CB4B34F5E2987B0E073E72427E304D9CC94C1D3BBC915E2441A41BB3ACE06",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:fmlcore:1.19.4-45.0.9",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/fmlcore/1.19.4-45.0.9/fmlcore-1.19.4-45.0.9.jar",
+      "bytes": 113254,
+      "sha256": "0F076A559F5D4773B2CD479BAAD662A453091ABD4328F6BB7714FCFB6575645C",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:fmlloader:1.19.4-45.0.9",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/fmlloader/1.19.4-45.0.9/fmlloader-1.19.4-45.0.9.jar",
+      "bytes": 261271,
+      "sha256": "E7C9C48D35508DC76CD8EF58805856441583A47EC8151584CE7CF9D5DA30DBE2",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:JarJarSelector:0.3.19",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/JarJarSelector/0.3.19/JarJarSelector-0.3.19.jar",
+      "bytes": 17374,
+      "sha256": "F7ACFBAFC9A715EE7D7CE2D539815B3EBCCEBC5064E0A7252C4A6A1C71D1E740",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:JarJarMetadata:0.3.19",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/JarJarMetadata/0.3.19/JarJarMetadata-0.3.19.jar",
+      "bytes": 15895,
+      "sha256": "6141C710B5B7B673BD544740A31339F0754D7A794CC46B952B7EF7897B7CE265",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "cpw.mods:securejarhandler:2.1.6",
+      "kind": "jar",
+      "path": "maven/cpw/mods/securejarhandler/2.1.6/securejarhandler-2.1.6.jar",
+      "bytes": 87783,
+      "sha256": "8C76415D17ECA923D88F62354F2D41EE523759B24AD9BBAD55032188DFE0158C",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-commons:9.3",
+      "kind": "jar",
+      "path": "maven/org/ow2/asm/asm-commons/9.3/asm-commons-9.3.jar",
+      "bytes": 72716,
+      "sha256": "A347C24732DB2AEAD106B6E5996A015B06A3EF86E790A4F75B61761F0D2F7F39",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-util:9.3",
+      "kind": "jar",
+      "path": "maven/org/ow2/asm/asm-util/9.3/asm-util-9.3.jar",
+      "bytes": 85682,
+      "sha256": "70F78F291CA0298AFDB567FA85C5667869BC3DA3914784816413853994962192",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-analysis:9.3",
+      "kind": "jar",
+      "path": "maven/org/ow2/asm/asm-analysis/9.3/asm-analysis-9.3.jar",
+      "bytes": 34276,
+      "sha256": "37FD5392BB2CF4C15F202FFEFD46D0E92BB34FF848C549F30D426A60D6B29495",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.ow2.asm:asm-tree:9.3",
+      "kind": "jar",
+      "path": "maven/org/ow2/asm/asm-tree/9.3/asm-tree-9.3.jar",
+      "bytes": 52669,
+      "sha256": "AE629C2609F39681EF8D140A42A23800464A94F2D23E36D8F25CD10D5E4CAFF4",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.ow2.asm:asm:9.3",
+      "kind": "jar",
+      "path": "maven/org/ow2/asm/asm/9.3/asm-9.3.jar",
+      "bytes": 122176,
+      "sha256": "1263369B59E29C943918DE11D6D6152E2EC6085CE63E5710516F8C67D368E4BC",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.minecraftforge:JarJarFileSystems:0.3.19",
+      "kind": "jar",
+      "path": "maven/net/minecraftforge/JarJarFileSystems/0.3.19/JarJarFileSystems-0.3.19.jar",
+      "bytes": 32195,
+      "sha256": "BEAA1875DD433F2DD152395C3E3C52EF2BB99F20B74860A07D70F7C4626E56D4",
+      "pin_domain": "selected-lock-blake3",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.github.oshi:oshi-core:6.2.2",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/github/oshi/oshi-core/6.2.2/oshi-core-6.2.2.jar",
+      "bytes": 947865,
+      "sha256": "EFBCA93DF18F3EB16964A92D8342F0674DD5D90DA575EF8E04EF2E4EABEC6910",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.google.code.gson:gson:2.10",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/google/code/gson/gson/2.10/gson-2.10.jar",
+      "bytes": 286235,
+      "sha256": "0CDD163CE3598A20FC04EEE71B140B24F6F2A3B35F0A499DBBDD9852E83FBFAF",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.ibm.icu:icu4j:71.1",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/ibm/icu/icu4j/71.1/icu4j-71.1.jar",
+      "bytes": 13963762,
+      "sha256": "91C4F8EBF0CEB489547098FE9D5C09A65EB419CAEA6ED714867F5280800BCF1A",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.mojang:authlib:3.18.38",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/mojang/authlib/3.18.38/authlib-3.18.38.jar",
+      "bytes": 118354,
+      "sha256": "7EB3C3E09336C5A22D73EA33982693D3939C106913F2E465D764BC915572DEC0",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.mojang:datafixerupper:6.0.6",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/mojang/datafixerupper/6.0.6/datafixerupper-6.0.6.jar",
+      "bytes": 689986,
+      "sha256": "C5722083471A0F3245194B1EFCBE7BE8B2D3E42720006CAC31CF3E8C8B24F9A8",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "com.mojang:logging:1.1.1",
+      "kind": "jar",
+      "path": "minecraft/libraries/com/mojang/logging/1.1.1/logging-1.1.1.jar",
+      "bytes": 15343,
+      "sha256": "C1756EAF0685DA94142BACC84309BB7CCDDF65E004638C3299AB645710B5938C",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-handler:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-handler/4.1.82.Final/netty-handler-4.1.82.Final.jar",
+      "bytes": 538569,
+      "sha256": "31015505983DC57EEC491AD4873411BA51F0F3BEB24D22D509336C72511019CB",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-codec:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-codec/4.1.82.Final/netty-codec-4.1.82.Final.jar",
+      "bytes": 339155,
+      "sha256": "170C0CE091C2E1CC1D952D87A6A30DEB773922507BBC609B962B539F03F53407",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-transport-classes-epoll:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-transport-classes-epoll/4.1.82.Final/netty-transport-classes-epoll-4.1.82.Final.jar",
+      "bytes": 142066,
+      "sha256": "73F827FCA18870959B9581C6875130576E5DE684CFB4E6F346F8C1C266840BA3",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-transport-native-unix-common:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-transport-native-unix-common/4.1.82.Final/netty-transport-native-unix-common-4.1.82.Final.jar",
+      "bytes": 43684,
+      "sha256": "1096F16527A51DD5F44CED90636110A429CC7359A9A8A91DB25000B747793429",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-transport:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-transport/4.1.82.Final/netty-transport-4.1.82.Final.jar",
+      "bytes": 485752,
+      "sha256": "C210069BE4AB4120F5AC7CB5E4A126D3A007E78A64FD44C9971220E013DBAEF1",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-buffer:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-buffer/4.1.82.Final/netty-buffer-4.1.82.Final.jar",
+      "bytes": 304664,
+      "sha256": "A7CE7F6D8C1E82B044CD56765DAB4338251596416DE03B1F9A05D7402429C29D",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-resolver:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-resolver/4.1.82.Final/netty-resolver-4.1.82.Final.jar",
+      "bytes": 37776,
+      "sha256": "4CFEBA7EC535964A35722178AEECC87EC186DBA0203D04389A850E8E62575383",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "io.netty:netty-common:4.1.82.Final",
+      "kind": "jar",
+      "path": "minecraft/libraries/io/netty/netty-common/4.1.82.Final/netty-common-4.1.82.Final.jar",
+      "bytes": 653880,
+      "sha256": "D5923DB1CC68B26BAF5368F1F76EC2C6100D12DB8406C6DE00EB6DBC08052550",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "it.unimi.dsi:fastutil:8.5.9",
+      "kind": "jar",
+      "path": "minecraft/libraries/it/unimi/dsi/fastutil/8.5.9/fastutil-8.5.9.jar",
+      "bytes": 23376043,
+      "sha256": "9578BF2A1700CF20D21746A2EE89E57BA1ABBD37FA9FEDA68FF5E9A28473A7F9",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.java.dev.jna:jna-platform:5.12.1",
+      "kind": "jar",
+      "path": "minecraft/libraries/net/java/dev/jna/jna-platform/5.12.1/jna-platform-5.12.1.jar",
+      "bytes": 1356627,
+      "sha256": "8CE969116CAC95BD61B07A8D5E07174B352E63301473CAAC72C395E3C08488D2",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "net.java.dev.jna:jna:5.12.1",
+      "kind": "jar",
+      "path": "minecraft/libraries/net/java/dev/jna/jna/5.12.1/jna-5.12.1.jar",
+      "bytes": 1866196,
+      "sha256": "91A814AC4F40D60DEE91D842E1A8AD874C62197984403D0E3C30D39E55CF53B3",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.apache.httpcomponents:httpcore:4.4.15",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/apache/httpcomponents/httpcore/4.4.15/httpcore-4.4.15.jar",
+      "bytes": 328324,
+      "sha256": "3CBAED088C499A10F96DDE58F39DC0E7985171ABD88138CA1655A872011BB142",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-core:2.19.0",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/apache/logging/log4j/log4j-core/2.19.0/log4j-core-2.19.0.jar",
+      "bytes": 1864386,
+      "sha256": "B4A1796FAB7BFC36DF015C1B4052459147997E8D215A7199D71D05F9E747E4F4",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-slf4j2-impl:2.19.0",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/apache/logging/log4j/log4j-slf4j2-impl/2.19.0/log4j-slf4j2-impl-2.19.0.jar",
+      "bytes": 27721,
+      "sha256": "825605EACB2D5605B105C53D4108C18125E0F82F62960D0BE583278B9C524F3C",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.apache.logging.log4j:log4j-api:2.19.0",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/apache/logging/log4j/log4j-api/2.19.0/log4j-api-2.19.0.jar",
+      "bytes": 317566,
+      "sha256": "5CCB24AD9F92E768D0BC456D3061A737951262DF803E004D2CAD096B75A88D60",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.joml:joml:1.10.5",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/joml/joml/1.10.5/joml-1.10.5.jar",
+      "bytes": 712082,
+      "sha256": "CAC9F22F83A7AA33EEBDA73C16FF5261E3CB4911B6BAFCF4C79EA486099D0C9A",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "org.slf4j:slf4j-api:2.0.1",
+      "kind": "jar",
+      "path": "minecraft/libraries/org/slf4j/slf4j-api/2.0.1/slf4j-api-2.0.1.jar",
+      "bytes": 61388,
+      "sha256": "B36B99B8D99EA7857554D9B25DFDBD1FB25378C926F7B9E0249983C99335B2C4",
+      "pin_domain": "pinned-version-metadata-sha1",
+      "upstream_url": ""
+    },
+    {
+      "coordinate": "curse.maven:the-one-probe-245211:4442439",
+      "kind": "pom",
+      "path": "maven/curse/maven/the-one-probe-245211/4442439/the-one-probe-245211-4442439.pom",
+      "bytes": 433,
+      "sha256": "71792A8D66E3AD8412A239727B836735A35AE14E626780D11C49AFAA187D81CD",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://www.cursemaven.com/curse/maven/the-one-probe-245211/4442439/the-one-probe-245211-4442439.pom"
+    },
+    {
+      "coordinate": "curse.maven:the-one-probe-245211:4442439",
+      "kind": "jar",
+      "path": "maven/curse/maven/the-one-probe-245211/4442439/the-one-probe-245211-4442439.jar",
+      "bytes": 330242,
+      "sha256": "8950B40D5869CCD085458C2CED6278B1F3F0245DFB888E4F7CEA7D00E9FDAD98",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://www.cursemaven.com/curse/maven/the-one-probe-245211/4442439/the-one-probe-245211-4442439.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-forge:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-forge/13.1.0.16/jei-1.19.4-forge-13.1.0.16.pom",
+      "bytes": 1350,
+      "sha256": "8AE28CFEC382059B0856EFE6E208FFAA81D39688226FEE482C889E92174CCF7B",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-forge/13.1.0.16/jei-1.19.4-forge-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-forge:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-forge/13.1.0.16/jei-1.19.4-forge-13.1.0.16.jar",
+      "bytes": 1110365,
+      "sha256": "83EBB1AC8BDFF938956D0416CF39BE7F44FDF01D9CB589A98E72984FD0C35BF2",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-forge/13.1.0.16/jei-1.19.4-forge-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-core:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-core/13.1.0.16/jei-1.19.4-core-13.1.0.16.pom",
+      "bytes": 401,
+      "sha256": "D0410A5E80319CCF67AE9ECC1E19154BBDC6DF3D1D7565F684DFB5B2BC0D28C8",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-core/13.1.0.16/jei-1.19.4-core-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-core:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-core/13.1.0.16/jei-1.19.4-core-13.1.0.16.jar",
+      "bytes": 45170,
+      "sha256": "B23C17CB8B0921A0638D18A5825FB1EB6444B6FBEB61E6679885FC88C51A0C13",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-core/13.1.0.16/jei-1.19.4-core-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-common:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-common/13.1.0.16/jei-1.19.4-common-13.1.0.16.pom",
+      "bytes": 742,
+      "sha256": "DD46FDA910B2BDBE359D290E24A40D814629D9A46377F21933FBA22B42860953",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-common/13.1.0.16/jei-1.19.4-common-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-common:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-common/13.1.0.16/jei-1.19.4-common-13.1.0.16.jar",
+      "bytes": 291810,
+      "sha256": "5E1115B0EAA30D390FE18FF094D10221B1E4ECC1BA5431C17AFFACAB8203A275",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-common/13.1.0.16/jei-1.19.4-common-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-common-api:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-common-api/13.1.0.16/jei-1.19.4-common-api-13.1.0.16.pom",
+      "bytes": 407,
+      "sha256": "49D111BD007A8325073CB3D089CCAE2284D4E5B20D0358969A250A1965BC72A1",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-common-api/13.1.0.16/jei-1.19.4-common-api-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-common-api:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-common-api/13.1.0.16/jei-1.19.4-common-api-13.1.0.16.jar",
+      "bytes": 76295,
+      "sha256": "DB7EA1187F57A5EA4C5311E559CADE904E7EF927C188F75177BF69FE4E7BC54A",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-common-api/13.1.0.16/jei-1.19.4-common-api-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-lib:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-lib/13.1.0.16/jei-1.19.4-lib-13.1.0.16.pom",
+      "bytes": 400,
+      "sha256": "753952D520519FDB43083DB3B9CAA5F991A2C6C10DD1FACC96F45A9975B1D0BE",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-lib/13.1.0.16/jei-1.19.4-lib-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-lib:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-lib/13.1.0.16/jei-1.19.4-lib-13.1.0.16.jar",
+      "bytes": 373484,
+      "sha256": "26CDB4515BBE6290C6AB24610BE7C4D95F8745D19E3B19BEA2D12EE4E55D07B4",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-lib/13.1.0.16/jei-1.19.4-lib-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-gui:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-gui/13.1.0.16/jei-1.19.4-gui-13.1.0.16.pom",
+      "bytes": 400,
+      "sha256": "ABC76D0217ECD505F891281619F69E11C82CD5578DBFF698C26FB2A6FDD93E4F",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-gui/13.1.0.16/jei-1.19.4-gui-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-gui:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-gui/13.1.0.16/jei-1.19.4-gui-13.1.0.16.jar",
+      "bytes": 244664,
+      "sha256": "D8E71C94A42CC9E3E35C0EF5BCE5076C7ABE243C34A1EE45B508CB5899464952",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-gui/13.1.0.16/jei-1.19.4-gui-13.1.0.16.jar"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-forge-api:13.1.0.16",
+      "kind": "pom",
+      "path": "maven/mezz/jei/jei-1.19.4-forge-api/13.1.0.16/jei-1.19.4-forge-api-13.1.0.16.pom",
+      "bytes": 594,
+      "sha256": "58974F12C133DDBFD45147C54973720AFAE75EE07C22E830BB04C52A3495D7EC",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-forge-api/13.1.0.16/jei-1.19.4-forge-api-13.1.0.16.pom"
+    },
+    {
+      "coordinate": "mezz.jei:jei-1.19.4-forge-api:13.1.0.16",
+      "kind": "jar",
+      "path": "maven/mezz/jei/jei-1.19.4-forge-api/13.1.0.16/jei-1.19.4-forge-api-13.1.0.16.jar",
+      "bytes": 2926,
+      "sha256": "858CCF2373D8571A921E2F3A357FC18C80135AB6939F4435B163D97CDEE2BA54",
+      "pin_domain": "official-publisher-sha256",
+      "upstream_url": "https://maven.blamejared.com/mezz/jei/jei-1.19.4-forge-api/13.1.0.16/jei-1.19.4-forge-api-13.1.0.16.jar"
+    }
+  ]
+}

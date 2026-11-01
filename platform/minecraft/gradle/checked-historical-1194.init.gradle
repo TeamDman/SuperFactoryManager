@@ -1,0 +1,154 @@
+// Opt-in, repository-owned historical Gradle route. The released project and
+// schema-2 lock remain byte-identical. Gradle needs no Rust installation.
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+
+def expectedManifestSha256 = '641975CF7C079A06C013571A53298FCA7A301A2195BE57D2D3388D7FC5DA34C3'
+def sha256 = { File file ->
+    if (!file.isFile()) throw new GradleException("Missing SFM checked input: ${file}")
+    def digest = MessageDigest.getInstance('SHA-256')
+    file.withInputStream { stream ->
+        def buffer = new byte[65536]
+        int count
+        while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+    }
+    digest.digest().encodeHex().toString().toUpperCase(Locale.ROOT)
+}
+
+gradle.beforeSettings { settings ->
+    def projection = settings.settingsDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    if (projection.fileName.toString() != 'mc-1.19.4'
+            || projection.parent.fileName.toString() != 'sfm-4.35.0'
+            || projection.parent.parent != checkout.resolve('platform/minecraft/projections')
+            || !checkout.resolve('.git').toFile().exists()) {
+        throw new GradleException('SFM historical checked route requires the selected repository projection')
+    }
+}
+
+gradle.beforeProject { project ->
+    if (project != project.rootProject) return
+    def projection = project.projectDir.toPath().toAbsolutePath().normalize()
+    def checkout = projection.resolve('../../../../../').normalize()
+    if (projection.fileName.toString() != 'mc-1.19.4'
+            || projection.parent.fileName.toString() != 'sfm-4.35.0'
+            || projection.parent.parent != checkout.resolve('platform/minecraft/projections')
+            || !checkout.resolve('.git').toFile().exists()) {
+        throw new GradleException('SFM historical checked route requires the selected repository projection')
+    }
+    def manifestFile = checkout.resolve(
+            'platform/minecraft/gradle/checked-historical-1194-inputs.json').toFile()
+    if (sha256(manifestFile) != expectedManifestSha256) {
+        throw new GradleException('SFM historical checked manifest changed')
+    }
+    def manifest = new JsonSlurper().parse(manifestFile)
+    if (manifest.schema_version != 1 || manifest.projection != 'sfm-4.35.0/mc-1.19.4'
+            || manifest.original_checked_jar_count != 37 || manifest.official_module_count != 8
+            || manifest.files.size() != 53) {
+        throw new GradleException('SFM historical checked manifest selection changed')
+    }
+    def lock = projection.resolve('sfm-toolchain.lock.json').toFile()
+    if (sha256(lock) != manifest.selected_lock_sha256) {
+        throw new GradleException('SFM historical lock identity changed')
+    }
+    def logicalCache = checkout.resolve('sfm-toolchain-data')
+    if (!logicalCache.resolve('.sfm-native-cache-root.json').toFile().isFile()) {
+        throw new GradleException('SFM repository cache ownership marker is missing')
+    }
+    def physicalRoot = logicalCache.resolve('minecraft-toolchain').toRealPath()
+    def snapshot = manifest.historical_version_snapshot
+    if (snapshot.path != 'minecraft/versions/1.19.4/snapshots/dbd2e0a5aaf8b05447833b5de6d368e28e8cc7f0.json'
+            || snapshot.sha256 != '3F13A8AD2A69B9835E746768FBBD8CC1FC0F51F8CD720182AA3183474774E5C9'
+            || snapshot.pin_domain != 'blake3:67a80a4a8aee41acada9402384cbddce75eab776') {
+        throw new GradleException('SFM historical version snapshot selection changed')
+    }
+    def snapshotFile = physicalRoot.resolve(snapshot.path).toFile().canonicalFile
+    if (!snapshotFile.toPath().startsWith(physicalRoot) || sha256(snapshotFile) != snapshot.sha256) {
+        throw new GradleException('SFM historical version snapshot differs')
+    }
+    def seenPaths = new HashSet<String>()
+    def directMaven = new LinkedHashSet<String>()
+    def minecraftLibraries = new LinkedHashSet<String>()
+    def published = new LinkedHashMap<String, Set<String>>()
+    manifest.files.each { entry ->
+        def parts = entry.coordinate?.toString()?.split(':', -1)
+        def kind = entry.kind?.toString()
+        def relative = entry.path?.toString()
+        if (parts == null || parts.length != 3 || !(kind in ['jar', 'pom'])
+                || relative == null || !relative.matches('[A-Za-z0-9._/-]+')
+                || relative.split('/').any { it in ['', '.', '..'] }
+                || !(relative.startsWith('maven/') || relative.startsWith('minecraft/libraries/'))
+                || !seenPaths.add(relative)) {
+            throw new GradleException('Invalid or duplicate SFM checked module path')
+        }
+        def coordinatePath = parts[0].replace('.', '/') + '/' + parts[1] + '/' + parts[2] + '/'
+        def expectedName = parts[1] + '-' + parts[2]
+        def tail = relative.startsWith('maven/')
+                ? relative.substring('maven/'.length())
+                : relative.substring('minecraft/libraries/'.length())
+        if (!tail.startsWith(coordinatePath)
+                || !(kind == 'pom' ? tail == coordinatePath + expectedName + '.pom'
+                        : (tail.startsWith(coordinatePath + expectedName) && tail.endsWith('.jar')))
+                || !(entry.bytes instanceof Number) || entry.bytes <= 0
+                || !(entry.sha256?.toString() ==~ /[A-F0-9]{64}/)) {
+            throw new GradleException("Invalid SFM checked module identity: ${entry.coordinate}")
+        }
+        def file = physicalRoot.resolve(relative).toFile().canonicalFile
+        if (!file.toPath().startsWith(physicalRoot) || file.length() != entry.bytes
+                || sha256(file) != entry.sha256) {
+            throw new GradleException("SFM checked payload differs: ${entry.coordinate} ${kind}")
+        }
+        if (entry.pin_domain == 'official-publisher-sha256') {
+            if (!relative.startsWith('maven/')
+                    || !(parts[0] in ['curse.maven', 'mezz.jei'])
+                    || !(entry.upstream_url?.toString()?.startsWith(
+                            parts[0] == 'curse.maven' ? 'https://www.cursemaven.com/'
+                                    : 'https://maven.blamejared.com/'))) {
+                throw new GradleException("Invalid SFM published module provenance: ${entry.coordinate}")
+            }
+            published.computeIfAbsent(entry.coordinate.toString()) { new HashSet<String>() }.add(kind)
+        } else if (entry.pin_domain in ['selected-lock-blake3', 'pinned-version-metadata-sha1']) {
+            if (kind != 'jar') throw new GradleException('Historical direct input is not a JAR')
+            (relative.startsWith('maven/') ? directMaven : minecraftLibraries)
+                    .add(entry.coordinate.toString())
+        } else {
+            throw new GradleException("Unknown SFM checked pin domain: ${entry.pin_domain}")
+        }
+    }
+    if (seenPaths.size() != 53 || directMaven.size() != 14 || minecraftLibraries.size() != 23
+            || published.size() != 8 || published.values().any { it != (['jar', 'pom'] as Set) }
+            || (directMaven + minecraftLibraries).intersect(published.keySet())) {
+        throw new GradleException('SFM checked module closure is incomplete or overlapping')
+    }
+    def mavenRoot = physicalRoot.resolve('maven').toFile()
+    def libraryRoot = physicalRoot.resolve('minecraft/libraries').toFile()
+    def addExact = { filter, Collection<String> coordinates ->
+        coordinates.each { coordinate ->
+            def parts = coordinate.split(':', -1)
+            filter.includeVersionByRegex(parts[0], parts[1], java.util.regex.Pattern.quote(parts[2]))
+        }
+    }
+    def publishedRepo = project.repositories.maven {
+        name = 'SFM-checked-published-1194'
+        url = mavenRoot.toURI()
+        metadataSources { mavenPom() }
+    }
+    def directRepo = project.repositories.maven {
+        name = 'SFM-checked-direct-1194'
+        url = mavenRoot.toURI()
+        metadataSources { artifact() }
+    }
+    def librariesRepo = project.repositories.maven {
+        name = 'SFM-checked-minecraft-1194'
+        url = libraryRoot.toURI()
+        metadataSources { artifact() }
+    }
+    [[publishedRepo, published.keySet()], [directRepo, directMaven],
+            [librariesRepo, minecraftLibraries]].each { pair ->
+        project.repositories.exclusiveContent {
+            forRepositories(pair[0])
+            filter { addExact(delegate, pair[1]) }
+        }
+    }
+    println 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=14 minecraft=23'
+}
