@@ -326,6 +326,44 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
+    fn successful_client_retirement_leaves_live_and_failed_neighbors() -> eyre::Result<()> {
+        let temporary = tempfile::tempdir()?;
+        let completed = temporary.path().join("session-completed");
+        let live = temporary.path().join("session-live");
+        let failed = temporary.path().join("session-failed");
+        for session in [&completed, &live, &failed] {
+            fs::create_dir(session)?;
+            fs::create_dir(session.join("mod"))?;
+            fs::create_dir(session.join("launch-inputs"))?;
+            fs::create_dir(session.join("run"))?;
+            fs::write(session.join("mod/Main.class"), b"owned class")?;
+            fs::write(session.join("launch-inputs/runtime.jar"), b"owned jar")?;
+        }
+        fs::write(completed.join("run/console.log"), b"normal exit")?;
+        fs::write(live.join("run/console.log"), b"still running")?;
+        fs::write(failed.join("run/console.log"), b"failure diagnostics")?;
+        let completed_inputs = OwnedSessionInputs::capture(&completed)?;
+        let live_inputs = OwnedSessionInputs::capture(&live)?;
+        let failed_inputs = OwnedSessionInputs::capture(&failed)?;
+        assert_eq!(completed_inputs.retire()?, (2, 20));
+        assert!(!completed.join("mod/Main.class").exists());
+        assert!(!completed.join("launch-inputs/runtime.jar").exists());
+        assert_eq!(fs::read(completed.join("run/console.log"))?, b"normal exit");
+        assert_eq!(fs::read(live.join("mod/Main.class"))?, b"owned class");
+        assert_eq!(fs::read(live.join("launch-inputs/runtime.jar"))?, b"owned jar");
+        assert_eq!(fs::read(live.join("run/console.log"))?, b"still running");
+        assert_eq!(fs::read(failed.join("mod/Main.class"))?, b"owned class");
+        assert_eq!(fs::read(failed.join("launch-inputs/runtime.jar"))?, b"owned jar");
+        assert_eq!(fs::read(failed.join("run/console.log"))?, b"failure diagnostics");
+        assert!(!live.join("run/immutable-input-retirement.json").exists());
+        assert!(!failed.join("run/immutable-input-retirement.json").exists());
+        drop(live_inputs);
+        drop(failed_inputs);
+        Ok(())
+    }
+
+    #[cfg(windows)]
+    #[test]
     fn changed_or_failed_gametest_retains_private_inputs() -> eyre::Result<()> {
         let temporary = tempfile::tempdir()?;
         let session = temporary.path().join("session-new");
