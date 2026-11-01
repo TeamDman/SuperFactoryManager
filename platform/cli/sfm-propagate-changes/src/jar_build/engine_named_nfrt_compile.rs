@@ -56,6 +56,32 @@ const NAMED_NEOFORM_RECIPES: [NamedNeoformCompileRecipe; 6] = [
     },
 ];
 
+// Historical 4.34.0/26.1.2 consumes its unchanged schema-2 lock and retained
+// Mekanism bytes. Its NeoForm tool parents are checked separately by the child
+// supplement; this does not change the six current recipe identities.
+static HISTORICAL_2612_NEOFORM_RECIPE: NamedNeoformCompileRecipe = NamedNeoformCompileRecipe {
+    target: "26.1.2",
+    minecraft: "26.1.2",
+    loader: "net.neoforged:neoforge:26.1.2.72",
+    lock: "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+    compiler_and_tool: (25, 25),
+};
+
+fn named_neoform_recipe(target: &str, recipe: &str) -> Option<&'static NamedNeoformCompileRecipe> {
+    if target == "26.1.2"
+        && recipe
+            == crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
+    {
+        Some(&HISTORICAL_2612_NEOFORM_RECIPE)
+    } else if recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1") {
+        NAMED_NEOFORM_RECIPES
+            .iter()
+            .find(|row| row.target == target)
+    } else {
+        None
+    }
+}
+
 /// Pure CLI preflight. Full project admission still checks the raw lock,
 /// loader, compiler and tool identities after source ownership is established.
 pub(crate) fn preflight_named_neoform_recipe(
@@ -63,16 +89,13 @@ pub(crate) fn preflight_named_neoform_recipe(
     minecraft: &str,
     recipe: &str,
 ) -> eyre::Result<bool> {
-    let Some(expected) = NAMED_NEOFORM_RECIPES
-        .iter()
-        .find(|row| row.target == target)
-    else {
+    if !NAMED_NEOFORM_RECIPES.iter().any(|row| row.target == target) {
         return Ok(false);
-    };
+    }
     eyre::ensure!(
         cfg!(any(windows, target_os = "linux"))
-            && minecraft == expected.minecraft
-            && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1"),
+            && named_neoform_recipe(target, recipe)
+                .is_some_and(|expected| minecraft == expected.minecraft),
         "named NeoForm preflight requires its exact reviewed Windows/Linux recipe"
     );
     Ok(true)
@@ -85,14 +108,11 @@ fn require_named_neoform_recipe_identity(
     lock: &str,
     compiler_and_tool: (u32, u32),
 ) -> eyre::Result<&'static NamedNeoformCompileRecipe> {
-    let expected = NAMED_NEOFORM_RECIPES
-        .iter()
-        .find(|row| row.target == target)
+    let expected = named_neoform_recipe(target, recipe)
         .ok_or_else(|| eyre::eyre!("named NeoForm requires an exact reviewed recipe"))?;
     eyre::ensure!(
         cfg!(any(windows, target_os = "linux"))
             && minecraft == expected.minecraft
-            && recipe == format!("sfm:released-native-inputs/4.34.0/{target}@1")
             && lock == expected.lock
             && compiler_and_tool == expected.compiler_and_tool,
         "named NeoForm lost its original target/recipe/raw-lock/compiler/tool identity"
@@ -804,6 +824,45 @@ mod named_neoform_compile_tests {
                     selected_recipe,
                     selected_lock,
                     tools
+                )
+                .is_err()
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn historical_2612_compile_identity_is_separate_from_current_recipe() -> eyre::Result<()> {
+        let recipe =
+            crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE;
+        let old_lock = "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de";
+        let current_lock =
+            "sha256:2f4fbd00de200a7ba089d3dc5c19994de1ffb00b7b1a9ae56afc045a9de7f37f";
+        let admitted =
+            require_named_neoform_recipe_identity("26.1.2", "26.1.2", recipe, old_lock, (25, 25))?;
+        assert_eq!(admitted.loader, "net.neoforged:neoforge:26.1.2.72");
+        assert!(preflight_named_neoform_recipe("26.1.2", "26.1.2", recipe)?);
+        for (target, minecraft, selected_recipe, lock, tools) in [
+            ("26.1.2", "26.1.2", recipe, current_lock, (25, 25)),
+            (
+                "26.1.2",
+                "26.1.2",
+                "sfm:released-native-inputs/4.34.0/26.1.2@1",
+                old_lock,
+                (25, 25),
+            ),
+            ("26.1.2", "26.1.2", recipe, old_lock, (21, 25)),
+            ("26.1.2", "26.1.2", recipe, old_lock, (25, 21)),
+            ("1.21.1", "26.1.2", recipe, old_lock, (25, 25)),
+            ("26.1.2", "1.21.1", recipe, old_lock, (25, 25)),
+        ] {
+            assert!(
+                require_named_neoform_recipe_identity(
+                    target,
+                    minecraft,
+                    selected_recipe,
+                    lock,
+                    tools,
                 )
                 .is_err()
             );

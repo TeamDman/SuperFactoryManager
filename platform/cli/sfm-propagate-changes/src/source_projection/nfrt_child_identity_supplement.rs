@@ -14,6 +14,7 @@ use super::development_nfrt_dependencies::DevelopmentNfrtDependencies;
 use super::prepared_dependency_inputs::PreparedDependencyInputs;
 use super::prepared_dependency_inputs::PreparedDependencyReceipt;
 use super::provenance::sha256;
+use super::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE;
 use eyre::Result;
 use eyre::ensure;
 use facet::Facet;
@@ -987,11 +988,20 @@ fn bound_target(
         .position(|target| target.target_id == original.target_id)
         .ok_or_else(|| eyre::eyre!("original target has no authorized NFRT child supplement"))?;
     let target = &document.targets[index];
+    // The historical release uses the same three exact NeoForm parent pins
+    // and checked child bytes, but retains its original lock and Mekanism
+    // artifacts. Parent hashes are checked against that original below.
+    let current_binding = original.recipe_id == target.recipe_id
+        && original.source_lock_sha256 == format!("sha256:{}", target.source_lock_sha256)
+        && original.source_lock_bytes == target.source_lock_bytes;
+    let historical_binding = target.target_id == "26.1.2"
+        && original.recipe_id == HISTORICAL_2612_CONSUMER_RECIPE
+        && original.source_lock_sha256
+            == "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de"
+        && original.source_lock_bytes == 50153;
     ensure!(
         original.minecraft_version == target.minecraft_version
-            && original.recipe_id == target.recipe_id
-            && original.source_lock_sha256 == format!("sha256:{}", target.source_lock_sha256)
-            && original.source_lock_bytes == target.source_lock_bytes
+            && (current_binding || historical_binding)
             && original.immutable_source_lock
             && !original.live_pom_discovery,
         "NFRT supplement does not match the exact original recipe/raw-lock identity"
@@ -1553,11 +1563,42 @@ mod tests {
             bound_target(&document, &wrong).is_err(),
             "mutable lock accepted"
         );
-        wrong = receipt;
+        wrong = receipt.clone();
         wrong.live_pom_discovery = true;
         ensure!(
             bound_target(&document, &wrong).is_err(),
             "live discovery accepted"
+        );
+
+        let mut historical = receipt;
+        historical.recipe_id = HISTORICAL_2612_CONSUMER_RECIPE.to_owned();
+        historical.source_lock_sha256 =
+            "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de".to_owned();
+        historical.source_lock_bytes = 50153;
+        bound_target(&document, &historical)?;
+        let mut changed = historical.clone();
+        changed.source_lock_sha256 = format!("sha256:{}", target.source_lock_sha256);
+        ensure!(
+            bound_target(&document, &changed).is_err(),
+            "mixed lock accepted"
+        );
+        changed = historical.clone();
+        changed.source_lock_bytes = target.source_lock_bytes;
+        ensure!(
+            bound_target(&document, &changed).is_err(),
+            "mixed length accepted"
+        );
+        changed = historical.clone();
+        changed.recipe_id.push_str("-other");
+        ensure!(
+            bound_target(&document, &changed).is_err(),
+            "foreign recipe accepted"
+        );
+        changed = historical;
+        changed.target_id = "1.21.1".to_owned();
+        ensure!(
+            bound_target(&document, &changed).is_err(),
+            "foreign target accepted"
         );
         Ok(())
     }

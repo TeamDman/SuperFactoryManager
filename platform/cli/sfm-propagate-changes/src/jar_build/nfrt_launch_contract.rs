@@ -36,6 +36,10 @@ const INVENTORY_SHA256: &str =
     "sha256:8a309479fadc1f1580a98e9269263689efb4294fb98055d64ae8751c34e33e1d";
 const NFRT: &str = "net.neoforged:neoform-runtime:2.0.19:all";
 const BUILD_CONFIGURATION_PATH: &str = "platform/minecraft/build-configuration/nfrt.json";
+const HISTORICAL_2612_CONFIGURATION_PATH: &str =
+    "platform/minecraft/build-configuration/nfrt-historical-2612.json";
+const HISTORICAL_2612_CONFIGURATION_SHA256: &str =
+    "sha256:16ac2432916e33f32bc4f0038e06fabed9fec41bca4bd8e84961bd0c7f04b20b";
 const MAX_CONTRACT_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TOTAL_INPUT_BYTES: usize = 1024 * 1024 * 1024;
 const MAX_INPUTS: usize = 8192;
@@ -458,7 +462,11 @@ impl NfrtExportPlan {
                 && child.original_lock_immutable,
             "NFRT exporter lost the exact project/original/supplement binding"
         );
-        let target = configured_target(project.project().repo_root(), &child.target_id)?;
+        let target = configured_released_target(
+            project.project().repo_root(),
+            &child.target_id,
+            &child.recipe_id,
+        )?;
         ensure!(
             target.minecraft_version == child.minecraft_version
                 && target.recipe_id == child.recipe_id
@@ -1241,6 +1249,49 @@ fn configured_target(root: &std::path::Path, target: &str) -> Result<ReviewedTar
     Ok(selected)
 }
 
+fn configured_released_target(
+    root: &std::path::Path,
+    target: &str,
+    recipe_id: &str,
+) -> Result<ReviewedTarget> {
+    if recipe_id
+        != crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE
+    {
+        return configured_target(root, target);
+    }
+    let bytes = crate::source_projection::core_catalog::read_bounded_catalog_input(
+        root,
+        HISTORICAL_2612_CONFIGURATION_PATH,
+    )?;
+    ensure!(
+        sha256(&bytes) == HISTORICAL_2612_CONFIGURATION_SHA256,
+        "historical NFRT configuration changed"
+    );
+    let document: BuildConfiguration = facet_json::from_str(std::str::from_utf8(&bytes)?)?;
+    ensure!(
+        document.schema == "sfm:nfrt_historical_2612_build_configuration@1"
+            && document.targets.len() == 1,
+        "historical NFRT configuration changed shape"
+    );
+    let selected = document
+        .targets
+        .into_iter()
+        .next()
+        .ok_or_else(|| eyre::eyre!("historical NFRT target missing"))?;
+    ensure!(
+        target == "26.1.2"
+            && selected.target == target
+            && selected.minecraft_version == target
+            && selected.recipe_id == recipe_id
+            && selected.source_lock.sha256
+                == "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de"
+            && selected.compiler_release == 25
+            && selected.minimum_tool_jvm == 25,
+        "historical NFRT target differs from its original lock and tool boundary"
+    );
+    Ok(selected)
+}
+
 #[cfg(test)]
 mod configuration_tests {
     use super::*;
@@ -1278,6 +1329,37 @@ mod configuration_tests {
             "second"
         );
         assert!(configured_target(first.path(), "absent").is_err());
+    }
+
+    #[test]
+    fn historical_2612_nfrt_uses_the_same_sealed_tools_with_separate_lock() -> Result<()> {
+        let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .ok_or_else(|| eyre::eyre!("CLI repository missing"))?;
+        let root = tempfile::tempdir()?;
+        for relative in [BUILD_CONFIGURATION_PATH, HISTORICAL_2612_CONFIGURATION_PATH] {
+            let destination = root.path().join(relative);
+            std::fs::create_dir_all(destination.parent().expect("configuration has parent"))?;
+            std::fs::copy(repository.join(relative), destination)?;
+        }
+        let recipe =
+            crate::source_projection::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE;
+        let historical = configured_released_target(root.path(), "26.1.2", recipe)?;
+        let mut current = configured_target(root.path(), "26.1.2")?;
+        current.recipe_id = historical.recipe_id.clone();
+        current.source_lock.sha256 = historical.source_lock.sha256.clone();
+        assert_eq!(
+            facet_json::to_string(&current)?,
+            facet_json::to_string(&historical)?
+        );
+        assert!(configured_released_target(root.path(), "1.21.1", recipe).is_err());
+        let path = root.path().join(HISTORICAL_2612_CONFIGURATION_PATH);
+        let mut changed = std::fs::read(&path)?;
+        changed.push(b' ');
+        std::fs::write(path, changed)?;
+        assert!(configured_released_target(root.path(), "26.1.2", recipe).is_err());
+        Ok(())
     }
 
     #[test]

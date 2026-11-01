@@ -737,7 +737,10 @@ fn demo_instrumentation_and_project_search_require_explicit_features() -> Result
             if context.features["game_puppet_runtime"] {
                 let source = fixture.read_source(path)?;
                 let rendered = super::render_java_source(std::str::from_utf8(&source)?, &context)?;
-                assert!(rendered.contains("public final class Managed"), "{key}: {path}");
+                assert!(
+                    rendered.contains("public final class Managed"),
+                    "{key}: {path}"
+                );
             }
         }
     }
@@ -754,7 +757,10 @@ fn historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts() -> Resu
         sha256(&bytes),
         "sha256:475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de"
     );
-    assert_eq!(bytes, include_bytes!("fixtures/released-2612-original-schema2.json"));
+    assert_eq!(
+        bytes,
+        include_bytes!("fixtures/released-2612-original-schema2.json")
+    );
     let inventory = super::core_inputs::discover_core_source_files(&fixture.core)?;
     let mut historical_keys = Vec::new();
     for (key, entry) in &fixture.catalog.catalog.0 {
@@ -763,12 +769,24 @@ fn historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts() -> Resu
         let lock = &selection.inputs["sfm-toolchain.lock.json"];
         let expected = if key == "sfm-4.34.0/mc-26.1.2" {
             historical.to_owned()
+        } else if key == "sfm-dev/mc-1.21.0" {
+            "build/lockfiles/1.21.0/schema-4-dev-catalog-source.json".to_owned()
         } else {
-            let schema = if context.features["locked_dependency_projection"] { 4 } else { 2 };
-            format!("build/lockfiles/{}/schema-{schema}.json", entry.target_id()?)
+            let schema = if context.features["locked_dependency_projection"] {
+                4
+            } else {
+                2
+            };
+            format!(
+                "build/lockfiles/{}/schema-{schema}.json",
+                entry.target_id()?
+            )
         };
         assert_eq!(lock.input, expected, "{key}");
-        assert!(!lock.template, "historical locks must remain exact copies: {key}");
+        assert!(
+            !lock.template,
+            "historical locks must remain exact copies: {key}"
+        );
         if lock.input == historical {
             historical_keys.push(key.as_str());
         }
@@ -783,8 +801,12 @@ fn historical_2612_lock_is_isolated_from_all_runnable_catalog_contexts() -> Resu
         (true, true, "build/lockfiles/26.1.2/schema-4.json"),
     ] {
         let mut context = fixture.catalog.context("sfm-4.34.0/mc-26.1.2")?;
-        context.features.insert("locked_dependency_projection".into(), locked);
-        context.features.insert("release_version_4_35_0".into(), release);
+        context
+            .features
+            .insert("locked_dependency_projection".into(), locked);
+        context
+            .features
+            .insert("release_version_4_35_0".into(), release);
         let selection = fixture.selection_for_assertion(&context, &inventory)?;
         assert_eq!(selection.inputs["sfm-toolchain.lock.json"].input, expected);
     }

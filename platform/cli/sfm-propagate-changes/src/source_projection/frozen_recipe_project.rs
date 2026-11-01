@@ -1572,6 +1572,13 @@ pub(crate) mod tests {
             HISTORICAL_2612_CONSUMER_RECIPE
         );
         assert_eq!(prepared.receipt().native_compilation, "not_performed");
+        let child = super::super::nfrt_child_identity_supplement::NfrtChildIdentitySupplement::from_prepared_at(
+            repository()?,
+            Arc::clone(prepared.dependencies()),
+            false,
+        )?;
+        assert_eq!(child.receipt().recipe_id, HISTORICAL_2612_CONSUMER_RECIPE);
+        assert_eq!(child.receipt().source_lock_sha256, sha256(historical_lock));
         let configuration_path = fixture.repository().join(HISTORICAL_2612_CONSUMER_PATH);
         let mut changed_configuration = fs::read(&configuration_path)?;
         changed_configuration.push(b' ');

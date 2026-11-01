@@ -1,0 +1,179 @@
+{
+  "schema": "sfm:nfrt_historical_2612_build_configuration@1",
+  "targets": [
+    {
+      "target": "26.1.2",
+      "minecraft_version": "26.1.2",
+      "recipe_id": "sfm:released-native-inputs/4.34.0/26.1.2@historical-retained1",
+      "source_lock": {
+        "path": "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+        "sha256": "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+        "bytes": 50153,
+        "schema_version": 2,
+        "minecraft_version": "26.1.2",
+        "dependency_count": 8,
+        "artifact_count": 80,
+        "allow_local_artifact_cache": false,
+        "migration_hints_present": false
+      },
+      "compiler_release": 25,
+      "minimum_tool_jvm": 25,
+      "parents": [
+        {
+          "kind": "neoform",
+          "coordinate": "net.neoforged:neoform:26.1.2-1@zip",
+          "locked_hash": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda",
+          "cached_bytes": 103496,
+          "cached_sha256": "3eb9f8cc282badfbc210a27a8304f14cc58fa40401a94072874dfaded3c8cb52",
+          "entry": "config.json",
+          "entry_bytes": 2354,
+          "entry_sha256": "48e374b748a41985182aac160a0fdf625e037d85e8e12e482ef44b6ceaee4a59",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:fb5c2fa4bb49bfb116e58a0ed184ff0c3e035eda6f861480b337003f089e93d4",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "26.1.2",
+            "kind": "neoform",
+            "top_keys": [
+              "spec",
+              "version",
+              "java_target",
+              "encoding",
+              "data",
+              "steps",
+              "functions",
+              "libraries"
+            ],
+            "identity_key_paths": []
+          }
+        },
+        {
+          "kind": "userdev",
+          "coordinate": "net.neoforged:neoforge:26.1.2.72:userdev",
+          "locked_hash": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0f",
+          "cached_bytes": 4472859,
+          "cached_sha256": "4b43713ebc7316c94861221aac1473dbab4ebc9e2e41466347d0f42dd17c881c",
+          "entry": "config.json",
+          "entry_bytes": 7022,
+          "entry_sha256": "7b420b3d02a7c47381632f64f46f97fdc936a89f7524bb55cce61537a21cb701",
+          "original_content_hash_verification": {
+            "status": "passed_root_original_pin_verification",
+            "full_blake3": "blake3:b3b28103fbeb0d3619421efe26cebb15bf26ca0fedd0332f275f42e8b8245c57",
+            "proof_path": "docs/tasks/sfm-core-neoform-parent-identity-proof.json"
+          },
+          "embedded_identity_key_scan": {
+            "target": "26.1.2",
+            "kind": "userdev",
+            "top_keys": [
+              "spec",
+              "mcp",
+              "ats",
+              "binpatches",
+              "binpatcher",
+              "patches",
+              "sources",
+              "universal",
+              "libraries",
+              "testLibraries",
+              "runs",
+              "modules",
+              "features"
+            ],
+            "identity_key_paths": []
+          }
+        }
+      ],
+      "requested_functions_in_original_property_order": {
+        "preProcessJar": {
+          "classpath": [
+            "net.neoforged.installertools:installertools:4.0.16:fatjar"
+          ],
+          "args": [
+            "--task",
+            "PROCESS_MINECRAFT_JAR",
+            "--input",
+            "{inputClientJar}",
+            "--input",
+            "{inputServerJar}",
+            "--output",
+            "{output}",
+            "--no-mod-manifest"
+          ],
+          "jvmargs": [],
+          "java_version": 25
+        },
+        "decompile": {
+          "classpath": [
+            "org.vineflower:vineflower:1.11.2",
+            "net.neoforged:vineflower-plugins:0.1.5"
+          ],
+          "main_class": "org.jetbrains.java.decompiler.main.decompiler.ConsoleDecompiler",
+          "args": [
+            "--decompile-inner",
+            "--remove-bridge",
+            "--decompile-generics",
+            "--ascii-strings",
+            "--remove-synthetic",
+            "--include-classpath",
+            "--ignore-invalid-bytecode",
+            "--bytecode-source-mapping",
+            "--dump-code-lines",
+            "--indent-string=    ",
+            "--log-level=WARN",
+            "-cfg={inputLibraries}",
+            "{input}",
+            "{output}"
+          ],
+          "jvmargs": [
+            "-Xmx4g"
+          ],
+          "java_version": 25
+        }
+      },
+      "joined_steps_in_original_order": [
+        {
+          "type": "downloadManifest"
+        },
+        {
+          "type": "downloadJson",
+          "json": "{downloadManifestOutput}"
+        },
+        {
+          "type": "downloadClient",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "downloadServer",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "listLibraries",
+          "json": "{downloadJsonOutput}"
+        },
+        {
+          "type": "preProcessJar",
+          "inputServerJar": "{downloadServerOutput}",
+          "inputClientJar": "{downloadClientOutput}"
+        },
+        {
+          "type": "decompile",
+          "inputLibraries": "{listLibrariesOutput}",
+          "input": "{preProcessJarOutput}"
+        },
+        {
+          "type": "patch",
+          "input": "{decompileOutput}"
+        }
+      ],
+      "selected_source_tool_coordinates_in_inventory_order": [
+        "net.neoforged.jst:jst-cli-bundle:2.0.8",
+        "io.codechicken:DiffPatch:2.0.0.36:all",
+        "net.neoforged.installertools:installertools:4.0.16:fatjar",
+        "org.vineflower:vineflower:1.11.2",
+        "net.neoforged:vineflower-plugins:0.1.5"
+      ]
+    }
+  ]
+}
