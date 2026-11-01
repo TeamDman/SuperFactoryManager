@@ -16,6 +16,8 @@ use super::prepared_dependency_inputs::PreparedDependencyInputs;
 use super::prepared_dependency_inputs::PreparedDependencyReceipt;
 use super::provenance::sha256;
 use super::released_native_inputs::BUILD_CONFIGURATION_PATH;
+use super::released_native_inputs::HISTORICAL_2612_CONSUMER_PATH;
+use super::released_native_inputs::HISTORICAL_2612_CONSUMER_RECIPE;
 use super::released_native_inputs::ReleasedNativeReceipt;
 use super::released_native_inputs::ReleasedNativeRequest;
 use super::released_native_inputs::review_released_native_inputs_from_configuration;
@@ -250,8 +252,10 @@ impl FrozenRecipeProject {
     }
 
     fn recheck_recipe_authority(&self) -> Result<()> {
-        let configuration =
-            read_bounded_catalog_input(self.project.repo_root(), BUILD_CONFIGURATION_PATH)?;
+        let configuration = read_bounded_catalog_input(
+            self.project.repo_root(),
+            configuration_path_for_recipe(&self.receipt.released_inputs.recipe_id),
+        )?;
         ensure!(
             sha256(&configuration) == self.receipt.released_inputs.recipe_review_sha256,
             "released-native build configuration changed after preparation"
@@ -326,8 +330,8 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     ) -> Result<BTreeMap<usize, Vec<u8>>>,
 ) -> Result<FrozenRecipeProject> {
     refuse_refresh(refresh)?;
-    let configuration_bytes =
-        read_bounded_catalog_input(project.repo_root(), BUILD_CONFIGURATION_PATH)?;
+    let configuration_path = configuration_path_for_recipe(recipe_id);
+    let configuration_bytes = read_bounded_catalog_input(project.repo_root(), configuration_path)?;
     let configuration = std::str::from_utf8(&configuration_bytes)?;
     let recipe = recipe_index_from_configuration(configuration)?
         .targets
@@ -418,6 +422,14 @@ pub(crate) fn prepare_frozen_recipe_project_with_witness_loader(
     Ok(prepared)
 }
 
+fn configuration_path_for_recipe(recipe_id: &str) -> &'static str {
+    if recipe_id == HISTORICAL_2612_CONSUMER_RECIPE {
+        HISTORICAL_2612_CONSUMER_PATH
+    } else {
+        BUILD_CONFIGURATION_PATH
+    }
+}
+
 struct PreparedFrozenRoles {
     bytes: BTreeMap<String, Vec<u8>>,
     bindings: BTreeMap<String, FrozenRecipeInputBinding>,
@@ -456,12 +468,14 @@ pub(crate) fn select_frozen_recipe_for_project(project: &CatalogOwnedProject) ->
     use frozen_recipe_metadata::DependencyRecipeIdentity;
 
     project.recheck()?;
-    let bytes = read_bounded_catalog_input(project.repo_root(), BUILD_CONFIGURATION_PATH)?;
-    let index = recipe_index_from_configuration(std::str::from_utf8(&bytes)?)?;
+    let mut recipes = Vec::new();
+    for path in [BUILD_CONFIGURATION_PATH, HISTORICAL_2612_CONSUMER_PATH] {
+        let bytes = read_bounded_catalog_input(project.repo_root(), path)?;
+        recipes.extend(recipe_index_from_configuration(std::str::from_utf8(&bytes)?)?.targets);
+    }
     let lock = project.selected_input(LOCK_OUTPUT)?;
     let lock_sha256 = sha256(lock.require_exact_copy()?);
-    let reviewed = index
-        .targets
+    let reviewed = recipes
         .iter()
         .map(|recipe| {
             Ok(DependencyRecipeIdentity {
@@ -607,10 +621,28 @@ fn recipe_index_from_configuration(configuration: &str) -> Result<RecipeIndex> {
     );
     let index: RecipeIndex =
         facet_json::from_str(configuration).wrap_err("cannot parse recipe configuration")?;
-    ensure!(
-        index.schema == "sfm:released_native_build_configuration@1" && index.targets.len() == 10,
-        "frozen recipe index has an unexpected schema or target count"
-    );
+    match index.schema.as_str() {
+        "sfm:released_native_build_configuration@1" => {
+            ensure!(
+                index.targets.len() == 10,
+                "frozen recipe index has an unexpected target count"
+            );
+        }
+        "sfm:released_native_historical_consumer@1" => {
+            ensure!(
+                index.targets.len() == 1
+                    && index.targets[0].target == "26.1.2"
+                    && index.targets[0].minecraft_version == "26.1.2"
+                    && index.targets[0].recipe_id == HISTORICAL_2612_CONSUMER_RECIPE
+                    && index.targets[0].source_lock.path
+                        == "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2-historical-4.34.0.json"
+                    && index.targets[0].source_lock.sha256
+                        == "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+                "historical frozen recipe changed its selected original lock"
+            );
+        }
+        _ => eyre::bail!("frozen recipe index has an unexpected schema"),
+    }
     let mut ids = BTreeSet::new();
     let mut targets = BTreeSet::new();
     for recipe in &index.targets {
@@ -772,6 +804,12 @@ pub(crate) mod tests {
                 "sfm:core_released_native_adapter_review@1",
                 "sfm:released_native_build_configuration@1",
             ),
+        )?;
+        let historical_configuration_path =
+            fixture.repository().join(HISTORICAL_2612_CONSUMER_PATH);
+        fs::copy(
+            repository()?.join(HISTORICAL_2612_CONSUMER_PATH),
+            historical_configuration_path,
         )?;
         let mut roles = Vec::new();
         for source_path in std::iter::once(recipe.source_lock.path.as_str()).chain(
@@ -1436,15 +1474,115 @@ pub(crate) mod tests {
             false,
         )?;
         let production = fs::read(repository()?.join(BUILD_CONFIGURATION_PATH))?;
-        fs::write(fixture.repository().join(BUILD_CONFIGURATION_PATH), &production)?;
+        fs::write(
+            fixture.repository().join(BUILD_CONFIGURATION_PATH),
+            &production,
+        )?;
         let root = fixture.publish(&key);
         let error = prepare(&fixture, &key, &recipe).unwrap_err().to_string();
-        assert!(error.contains("not the selected reviewed authored input"), "{error}");
+        assert!(
+            error.contains("not the selected reviewed authored input"),
+            "{error}"
+        );
         assert_eq!(
             fs::read(root.join(LOCK_OUTPUT))?,
             include_bytes!("fixtures/released-2612-original-schema2.json")
         );
         assert!(!root.join("build").exists());
+        Ok(())
+    }
+
+    #[test]
+    fn historical_2612_selects_only_its_separate_retained_byte_recipe() -> Result<()> {
+        let recipe = recipe_index()?
+            .targets
+            .into_iter()
+            .find(|row| row.target == "26.1.2")
+            .ok_or_else(|| eyre::eyre!("missing 26.1.2 recipe"))?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.set_project_file_for(
+            &recipe.target,
+            LOCK_OUTPUT,
+            "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+            include_bytes!("fixtures/released-2612-original-schema2.json"),
+            false,
+        )?;
+        fixture.publish(&key);
+        let selected = fixture.collect(&key)?.check_current()?;
+        assert_eq!(
+            select_frozen_recipe_for_project(&selected)?,
+            HISTORICAL_2612_CONSUMER_RECIPE
+        );
+        let error = prepare_frozen_recipe_project(
+            selected,
+            HISTORICAL_2612_CONSUMER_RECIPE,
+            false,
+            &BTreeMap::new(),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("requires exact bytes"), "{error}");
+        Ok(())
+    }
+
+    #[test]
+    #[ignore = "requires the verified retained historical Mekanism JAR; never acquires or rebuilds it"]
+    fn historical_2612_retained_bytes_prepare_without_rewriting_lock() -> Result<()> {
+        let recipe = recipe_index()?
+            .targets
+            .into_iter()
+            .find(|row| row.target == "26.1.2")
+            .ok_or_else(|| eyre::eyre!("missing 26.1.2 recipe"))?;
+        let mut fixture = fixture_for(&recipe)?;
+        let key = Fixture::key(slot(&recipe)?, "release");
+        fixture.set_project_file_for(
+            &recipe.target,
+            LOCK_OUTPUT,
+            "build/lockfiles/26.1.2/schema-2-historical-4.34.0.json",
+            include_bytes!("fixtures/released-2612-original-schema2.json"),
+            false,
+        )?;
+        fixture.publish(&key);
+        let artifact_path = std::env::var_os("SFM_EXACT_RELEASED_MEKANISM_26_JAR")
+            .ok_or_else(|| eyre::eyre!("supply SFM_EXACT_RELEASED_MEKANISM_26_JAR explicitly"))?;
+        let artifact_bytes = read_bounded(Path::new(&artifact_path), 16 * 1024 * 1024)?;
+        let historical_lock = include_bytes!("fixtures/released-2612-original-schema2.json");
+        let prepared = prepare_frozen_recipe_project_with_witness_loader(
+            fixture.collect(&key)?.check_current()?,
+            HISTORICAL_2612_CONSUMER_RECIPE,
+            false,
+            |requirements| {
+                ensure!(
+                    requirements.len() == 1,
+                    "historical exact-byte scope changed"
+                );
+                Ok(BTreeMap::from([(
+                    requirements[0].artifact_index,
+                    artifact_bytes.clone(),
+                )]))
+            },
+        )?;
+        assert_eq!(
+            prepared.receipt().prepared_inputs.source_lock_sha256,
+            sha256(historical_lock)
+        );
+        assert_eq!(
+            prepared.receipt().released_inputs.recipe_id,
+            HISTORICAL_2612_CONSUMER_RECIPE
+        );
+        assert_eq!(prepared.receipt().native_compilation, "not_performed");
+        let configuration_path = fixture.repository().join(HISTORICAL_2612_CONSUMER_PATH);
+        let mut changed_configuration = fs::read(&configuration_path)?;
+        changed_configuration.push(b' ');
+        fs::write(configuration_path, changed_configuration)?;
+        assert!(
+            prepared
+                .recheck(false)
+                .unwrap_err()
+                .to_string()
+                .contains("released-native build configuration changed after preparation")
+        );
         Ok(())
     }
 

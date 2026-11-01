@@ -32,6 +32,10 @@ const MAX_ROLE_INPUT_BYTES: usize = 512 * 1024;
 const MAX_ROLE_INPUT_TOTAL_BYTES: usize = 4 * 1024 * 1024;
 pub(crate) const BUILD_CONFIGURATION_PATH: &str =
     "platform/minecraft/build-configuration/released-native.json";
+pub(crate) const HISTORICAL_2612_CONSUMER_PATH: &str =
+    "platform/minecraft/build-configuration/released-native-historical-2612.json";
+pub(crate) const HISTORICAL_2612_CONSUMER_RECIPE: &str =
+    "sfm:released-native-inputs/4.34.0/26.1.2@historical-retained1";
 const MAX_EXACT_WITNESS_BYTES: usize = 128 * 1024 * 1024;
 
 /// Logical context, not a branch, path or dependency profile.
@@ -465,20 +469,37 @@ fn parse_configuration(configuration: &str) -> Result<ReviewDocument> {
     );
     let document: ReviewDocument = facet_json::from_str(configuration)
         .wrap_err("invalid released-native build configuration")?;
-    ensure!(
-        document.schema == "sfm:released_native_build_configuration@1"
-            && document.targets.len() == 10,
-        "unsupported released-native build configuration"
-    );
-    let targets = document
-        .targets
-        .iter()
-        .map(|recipe| recipe.target.as_str())
-        .collect::<BTreeSet<_>>();
-    ensure!(
-        targets.len() == 10,
-        "duplicate compiled released recipe target"
-    );
+    match document.schema.as_str() {
+        "sfm:released_native_build_configuration@1" => {
+            ensure!(
+                document.targets.len() == 10,
+                "unsupported released-native build configuration"
+            );
+            let targets = document
+                .targets
+                .iter()
+                .map(|recipe| recipe.target.as_str())
+                .collect::<BTreeSet<_>>();
+            ensure!(
+                targets.len() == 10,
+                "duplicate compiled released recipe target"
+            );
+        }
+        "sfm:released_native_historical_consumer@1" => {
+            ensure!(
+                document.targets.len() == 1
+                    && document.targets[0].target == "26.1.2"
+                    && document.targets[0].minecraft_version == "26.1.2"
+                    && document.targets[0].recipe_id == HISTORICAL_2612_CONSUMER_RECIPE
+                    && document.targets[0].source_lock.path
+                        == "platform/minecraft/core-liquid-template/build/lockfiles/26.1.2/schema-2-historical-4.34.0.json"
+                    && document.targets[0].source_lock.sha256
+                        == "475d2e71d7d640d6520a62e109e647308f5fff309bc8d57b02b45ce0c1aac0de",
+                "historical 26.1.2 consumer recipe changed its selected original lock"
+            );
+        }
+        _ => eyre::bail!("unsupported released-native build configuration"),
+    }
     Ok(document)
 }
 
