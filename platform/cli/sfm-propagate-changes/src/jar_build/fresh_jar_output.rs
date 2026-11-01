@@ -113,6 +113,7 @@ pub(super) struct FreshJarOutput {
     owner: PathBuf,
     output: PathBuf,
     private_writer: Option<PathBuf>,
+    private_cache_owner: Option<PathBuf>,
     #[cfg(windows)]
     _output_ancestry: DirectoryLeases,
     #[cfg(windows)]
@@ -133,6 +134,7 @@ impl FreshJarOutput {
             owner: owner.to_path_buf(),
             output: output.to_path_buf(),
             private_writer: None,
+            private_cache_owner: None,
             #[cfg(windows)]
             _output_ancestry: output_ancestry,
             #[cfg(windows)]
@@ -173,39 +175,37 @@ impl FreshJarOutput {
     /// `TempDir` cleanup can run while final-parent leases remain retained.
     pub(super) fn private_output_directory(
         &mut self,
-        cache_project_root: &Path,
+        cache_root: &Path,
     ) -> Result<tempfile::TempDir> {
         self.recheck_absent()?;
         ensure!(
             self.private_writer.is_none(),
             "fresh JAR private writer was already selected"
         );
-        let relative = snapshot::checked_descendant(&self.owner, cache_project_root)?;
-        ensure!(
-            !relative.as_os_str().is_empty(),
-            "fresh JAR private output requires an owned cache project descendant"
-        );
-        existing_directory(cache_project_root)?;
+        existing_directory(cache_root)?;
+        let cache_project_root = cache_root.join("project");
+        snapshot::checked_descendant(cache_root, &cache_project_root)?;
+        existing_directory(&cache_project_root)?;
         #[cfg(windows)]
         let mut ancestry = {
             let mut ancestry = DirectoryLeases::default();
             let witness = cache_project_root.join(PRIVATE_WRITER);
-            ancestry.prepare(&self.owner, &portable_relative(&self.owner, &witness)?)?;
+            ancestry.prepare(cache_root, &portable_relative(cache_root, &witness)?)?;
             ancestry
         };
         let directory = tempfile::Builder::new()
             .prefix(PRIVATE_PREFIX)
-            .tempdir_in(cache_project_root)?;
+            .tempdir_in(&cache_project_root)?;
         existing_directory(directory.path())?;
         let writer = directory.path().join(PRIVATE_WRITER);
         #[cfg(windows)]
-        if let Err(error) = ancestry.prepare(&self.owner, &portable_relative(&self.owner, &writer)?)
-        {
+        if let Err(error) = ancestry.prepare(cache_root, &portable_relative(cache_root, &writer)?) {
             // Release the newly held private directory before TempDir cleanup.
             drop(ancestry);
             return Err(error);
         }
         self.private_writer = Some(writer);
+        self.private_cache_owner = Some(cache_root.to_owned());
         #[cfg(windows)]
         drop(self.private_ancestry.replace(ancestry));
         Ok(directory)
@@ -317,10 +317,16 @@ impl FreshJarOutput {
                     input == writer,
                     "fresh JAR input is not its exact private writer"
                 );
+                let cache_root = self
+                    .private_cache_owner
+                    .as_deref()
+                    .ok_or_else(|| eyre::eyre!("fresh JAR private writer lost its cache root"))?;
+                existing_directory(cache_root)?;
+                snapshot::checked_descendant(cache_root, writer)?;
                 #[cfg(windows)]
                 if self.private_ancestry.is_none() {
                     let mut ancestry = DirectoryLeases::default();
-                    ancestry.prepare(&self.owner, &portable_relative(&self.owner, writer)?)?;
+                    ancestry.prepare(cache_root, &portable_relative(cache_root, writer)?)?;
                     self.private_ancestry = Some(ancestry);
                 }
                 existing_directory(

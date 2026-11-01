@@ -727,6 +727,42 @@ fn project_package_writer_output<'a>(
     }
 }
 
+fn require_named_package_writer_absent(
+    plan: &BuildPlan,
+    writer: &Path,
+    fresh: Option<&fresh_jar_output::FreshJarOutput>,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        writer == project_package_writer_output(plan, fresh)?,
+        "named Jar writer authority changed"
+    );
+    if fresh.is_some() {
+        // The private SpecialSource output belongs to the selected shared
+        // cache. Its create-only final publication remains projection-owned.
+        require_named_jar_output_absent(&plan.cache_dir, writer)?;
+        require_named_jar_output_absent(&plan.minecraft_dir, &plan.rust_output_jar)
+    } else {
+        require_named_jar_output_absent(&plan.minecraft_dir, writer)
+    }
+}
+fn require_named_package_work_tree(cache_dir: &Path, relative: &str) -> eyre::Result<()> {
+    eyre::ensure!(
+        matches!(
+            relative,
+            "project/classes" | "project/resources" | "project/staged-resources"
+        ),
+        "named Jar work path is not a declared mutable project directory"
+    );
+    // Derived preparation belongs to the selected shared cache root. The
+    // final JAR is still checked separately against the projection owner.
+    crate::source_projection::native_project_target::inspect_cache_ancestors(cache_dir, relative)?;
+    let path = cache_dir.join(relative);
+    if path.exists() {
+        require_named_jar_cache_tree(&path)?;
+    }
+    Ok(())
+}
+
 impl ExecutionContext<'_> {
     fn require_named_package_paths(&self) -> eyre::Result<()> {
         let Some(project) = self.plan.named_project() else {
@@ -755,28 +791,17 @@ impl ExecutionContext<'_> {
             "project/resources",
             "project/staged-resources",
         ] {
-            let path = self.plan.cache_dir.join(relative);
-            let relative = path
-                .strip_prefix(&self.plan.minecraft_dir)?
-                .to_string_lossy()
-                .replace('\\', "/");
-            crate::source_projection::native_project_target::inspect_cache_ancestors(
-                &self.plan.minecraft_dir,
-                &relative,
-            )?;
-            if path.exists() {
-                require_named_jar_cache_tree(&path)?;
-            }
+            require_named_package_work_tree(&self.plan.cache_dir, relative)?;
         }
         let paths =
             project_package_input_paths(&self.plan.cache_dir, self.plan.minecraft_version.as_str());
+        require_named_jar_output_path(&self.plan.minecraft_dir, &expected)?;
         for path in [
-            &expected,
             &paths.development_jar,
             &paths.mixin_reobf_mapping,
             &paths.reobf_mapping,
         ] {
-            require_named_jar_output_path(&self.plan.minecraft_dir, path)?;
+            require_named_jar_output_path(&self.plan.cache_dir, path)?;
         }
         Ok(())
     }
@@ -1060,7 +1085,7 @@ impl ExecutionContext<'_> {
             "named Jar refuses changed diagnostic path"
         );
         require_named_jar_invocation(args, &input, writer_output, &official, &mixin)?;
-        require_named_jar_output_absent(&self.plan.minecraft_dir, writer_output)?;
+        require_named_package_writer_absent(self.plan, writer_output, fresh)?;
         let resolver = self.plan.resolver(&self.cancellation_token)?;
         eyre::ensure!(
             classpath == self.package_reobfuscation_classpath(&resolver)?
@@ -1190,7 +1215,7 @@ impl ExecutionContext<'_> {
                     && console_log.held.metadata()?.len() == 0,
                 "named Jar diagnostics changed before launch"
             );
-            require_named_jar_output_absent(&self.plan.minecraft_dir, writer_output)?;
+            require_named_package_writer_absent(self.plan, writer_output, fresh)?;
             if let Some(output) = fresh {
                 output.recheck_absent()?;
             }
@@ -1468,3 +1493,35 @@ impl NamedPackageLaunchReceipt {
 
 #[cfg(test)]
 include!("engine_named_jar_tests.rs");
+
+#[cfg(test)]
+mod named_jar_shared_cache_path_tests {
+    use super::*;
+
+    #[test]
+    fn preparation_under_shared_cache_is_independent_of_projection_directory() {
+        let fixture = tempfile::tempdir().unwrap();
+        let cache = fixture.path().join("sfm-toolchain-data/projects/key");
+        let classes = cache.join("project/classes");
+        fs::create_dir_all(&classes).unwrap();
+        fs::write(classes.join("Example.class"), b"class bytes").unwrap();
+        require_named_package_work_tree(&cache, "project/classes").unwrap();
+        require_named_package_work_tree(&cache, "project/resources").unwrap();
+        let shared_input = cache.join("project/development.jar");
+        require_named_jar_output_path(&cache, &shared_input).unwrap();
+        let projection = fixture.path().join("platform/minecraft/projections/plain");
+        fs::create_dir_all(&projection).unwrap();
+        assert!(require_named_jar_output_path(&projection, &shared_input).is_err());
+    }
+
+    #[test]
+    fn undeclared_mutable_work_path_is_rejected() {
+        let fixture = tempfile::tempdir().unwrap();
+        let error = require_named_package_work_tree(fixture.path(), "../outside").unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("not a declared mutable project directory")
+        );
+    }
+}

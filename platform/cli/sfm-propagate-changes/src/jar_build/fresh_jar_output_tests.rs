@@ -170,7 +170,11 @@ fn verified_copy_succeeds_once_and_preserves_prior_final_on_retry() -> Result<()
 #[test]
 fn private_writer_is_capability_bound_and_directory_can_be_cleaned_after_copy() -> Result<()> {
     let (_directory, owner, output) = fixture()?;
-    let project = owner.join("build/cache/project");
+    let cache_root = owner
+        .parent()
+        .expect("fixture owner parent")
+        .join("shared-cache");
+    let project = cache_root.join("project");
     fs::create_dir_all(&project)?;
     let mut capability = FreshJarOutput::prepare(&owner, &output)?;
     assert!(capability.private_output_path().is_err());
@@ -179,7 +183,7 @@ fn private_writer_is_capability_bound_and_directory_can_be_cleaned_after_copy() 
             .private_output_directory(owner.parent().expect("fixture owner parent"))
             .is_err()
     );
-    let private = capability.private_output_directory(&project)?;
+    let private = capability.private_output_directory(&cache_root)?;
     let private_path = private.path().to_path_buf();
     let writer = capability.private_output_path()?.to_path_buf();
     assert_eq!(writer, private_path.join("reobfuscated.jar"));
@@ -190,7 +194,7 @@ fn private_writer_is_capability_bound_and_directory_can_be_cleaned_after_copy() 
             .unwrap_or_default()
             .starts_with("fresh-jar-")
     );
-    assert!(capability.private_output_directory(&project).is_err());
+    assert!(capability.private_output_directory(&cache_root).is_err());
     let other = project.join("other.jar");
     fs::write(&other, b"other synthetic package")?;
     assert!(

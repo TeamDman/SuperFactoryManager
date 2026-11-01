@@ -2529,7 +2529,7 @@ fn execute_package_and_reobfuscate(context: &ExecutionContext<'_>) -> eyre::Resu
     let reobf_classpath = context.package_reobfuscation_classpath(&resolver)?;
     let private_output_directory = fresh_output
         .as_mut()
-        .map(|output| output.private_output_directory(&project_root))
+        .map(|output| output.private_output_directory(&context.plan.cache_dir))
         .transpose()?;
     let writer_output =
         project_package_writer_output(context.plan, fresh_output.as_ref())?.to_path_buf();

@@ -6083,8 +6083,8 @@ fn fresh_jar_output_writer_requires_its_exact_admitted_private_path() -> eyre::R
     let temporary = tempfile::tempdir()?;
     let owner = dunce::canonicalize(temporary.path())?;
     fs::create_dir_all(owner.join("build/libs"))?;
-    let cache = owner.join("build/cache/project");
-    fs::create_dir_all(&cache)?;
+    let cache_root = owner.join("build/cache");
+    fs::create_dir_all(cache_root.join("project"))?;
     let mut plan = minimal_plan_for_paths();
     plan.minecraft_dir = owner.clone();
     plan.output_name = Some("fresh.jar".to_owned());
@@ -6093,11 +6093,16 @@ fn fresh_jar_output_writer_requires_its_exact_admitted_private_path() -> eyre::R
     let mut admitted =
         super::fresh_jar_output::FreshJarOutput::prepare(&owner, &plan.rust_output_jar)?;
     assert!(super::project_package_writer_output(&plan, Some(&admitted)).is_err());
-    let private = admitted.private_output_directory(&cache)?;
+    let private = admitted.private_output_directory(&cache_root)?;
     assert_eq!(
         super::project_package_writer_output(&plan, Some(&admitted))?,
         private.path().join("reobfuscated.jar")
     );
+    plan.cache_dir = cache_root.clone();
+    let writer = admitted.private_output_path()?.to_path_buf();
+    super::require_named_package_writer_absent(&plan, &writer, Some(&admitted))?;
+    fs::write(&writer, b"unexpected existing private output")?;
+    assert!(super::require_named_package_writer_absent(&plan, &writer, Some(&admitted)).is_err());
     plan.rust_output_jar = owner.join("build/libs/changed.jar");
     assert!(super::project_package_writer_output(&plan, Some(&admitted)).is_err());
     // Release held private ancestry before the TempDir cleanup.
