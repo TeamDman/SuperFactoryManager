@@ -70,6 +70,12 @@ try {
     $testSource = $sourceInit.Replace($needle,$replacement)
     [IO.File]::WriteAllText($testInit,$testSource,[Text.UTF8Encoding]::new($false))
     Invoke-Case 'positive-fixture' $testInit $project 'SFM_CHECKED_HISTORICAL_1194 modules=8 direct=14 minecraft=23' $true
+    $snapshotFixture = Join-Path (Join-Path $fixture 'minecraft-toolchain') $manifest.historical_version_snapshot.path
+    $snapshotBytes = [IO.File]::ReadAllBytes($snapshotFixture)
+    $snapshotBytes[0] = $snapshotBytes[0] -bxor 1
+    [IO.File]::WriteAllBytes($snapshotFixture, $snapshotBytes)
+    Invoke-Case 'version-snapshot-hash-mismatch' $testInit $project 'SFM historical version snapshot differs' $false
+    Copy-Checked $manifest.historical_version_snapshot.path
     $selected = $manifest.files | Where-Object { $_.coordinate -eq 'net.minecraftforge:javafmllanguage:1.19.4-45.0.9' -and $_.kind -eq 'jar' } | Select-Object -First 1
     $mutant = Join-Path (Join-Path $fixture 'minecraft-toolchain') $selected.path
     $bytes = [IO.File]::ReadAllBytes($mutant); $bytes[0] = $bytes[0] -bxor 1; [IO.File]::WriteAllBytes($mutant,$bytes)
@@ -101,7 +107,7 @@ try {
 }
 $record = [ordered]@{schema='sfm:historical_1194_checked_route_negative_tests@1';head=$head;production_init_sha256=$expectedInit;manifest_sha256=(Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash;fixture_copied_files=54;results=@($results);fixture_removed=!(Test-Path -LiteralPath $fixture)}
 [IO.File]::WriteAllText($receipt,(ConvertTo-Json $record -Depth 7)+"`n",[Text.UTF8Encoding]::new($false))
-if ($results.Count -ne 6 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
+if ($results.Count -ne 7 -or @($results | Where-Object { !$_.accepted }).Count -ne 0) { exit 1 }
 $verifiedRun = [IO.Path]::GetFullPath($evidence)
 $tempBoundary = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
 if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase) -or
@@ -109,4 +115,4 @@ if (!$verifiedRun.StartsWith($tempBoundary,[StringComparison]::OrdinalIgnoreCase
     throw "Refusing to remove unexpected test scratch: $verifiedRun"
 }
 Remove-Item -LiteralPath $verifiedRun -Recurse -Force
-Write-Output 'Six checked historical Gradle route cases passed; owned fixture removed.'
+Write-Output 'Seven checked historical Gradle route cases passed; owned fixture removed.'
