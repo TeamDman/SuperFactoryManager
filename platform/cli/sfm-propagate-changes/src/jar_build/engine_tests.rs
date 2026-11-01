@@ -2,6 +2,39 @@ use super::ArtifactAuditIssueKind;
 use super::clean_gametest_server_world;
 
 #[test]
+fn legacy_dependency_remap_rejects_truncated_and_corrupt_cached_jars() -> eyre::Result<()> {
+    let dir = tempfile::tempdir()?;
+    let good = dir.path().join("good.jar");
+    let mut writer = zip::ZipWriter::new(std::fs::File::create(&good)?);
+    writer.start_file(
+        "payload.bin",
+        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
+    )?;
+    std::io::Write::write_all(&mut writer, b"known-payload")?;
+    writer.finish()?;
+    super::verify_complete_dependency_jar(&good)?;
+
+    let valid_bytes = std::fs::read(&good)?;
+    let truncated = dir.path().join("truncated.jar");
+    std::fs::write(&truncated, &valid_bytes[..20])?;
+    assert!(super::verify_complete_dependency_jar(&truncated).is_err());
+    assert_eq!(std::fs::read(&truncated)?, valid_bytes[..20]);
+
+    let mut corrupt_bytes = valid_bytes.clone();
+    let payload = b"known-payload";
+    let offset = corrupt_bytes
+        .windows(payload.len())
+        .position(|window| window == payload)
+        .ok_or_else(|| eyre::eyre!("test ZIP payload not found"))?;
+    corrupt_bytes[offset] ^= 1;
+    let corrupt = dir.path().join("corrupt.jar");
+    std::fs::write(&corrupt, &corrupt_bytes)?;
+    assert!(super::verify_complete_dependency_jar(&corrupt).is_err());
+    assert_eq!(std::fs::read(&corrupt)?, corrupt_bytes);
+    Ok(())
+}
+
+#[test]
 fn java_tool_diagnostics_are_debug_only_but_runtime_logs_remain_info() {
     struct Capture(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
     impl std::io::Write for Capture {

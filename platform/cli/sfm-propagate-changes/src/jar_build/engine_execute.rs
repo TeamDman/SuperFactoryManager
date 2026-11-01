@@ -994,6 +994,9 @@ fn execute_dependency_deobf_dependency(
         remapped.is_file()
     };
     if cache_hit {
+        let _read_lock =
+            acquire_artifact_path_read_lock_cancellable(remapped, &resolver.cancellation_token)?;
+        verify_complete_dependency_jar(remapped)?;
         tracing::debug!(
             coordinate = %coordinate,
             output = %remapped.display(),
@@ -1009,6 +1012,7 @@ fn execute_dependency_deobf_dependency(
             acquire_artifact_path_lock_cancellable(remapped, &resolver.cancellation_token)?
         };
         if remapped.is_file() {
+            verify_complete_dependency_jar(remapped)?;
             tracing::debug!(
                 coordinate = %coordinate,
                 output = %remapped.display(),
@@ -1021,6 +1025,13 @@ fn execute_dependency_deobf_dependency(
                 output = %remapped.display(),
             )
             .entered();
+            if let Some(parent) = specialsource_output.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            let _specialsource_lock = acquire_artifact_path_lock_cancellable(
+                specialsource_output,
+                &resolver.cancellation_token,
+            )?;
             let specialsource_cache_hit = {
                 let _span = tracing::debug_span!(
                     "dependency_deobf_check_specialsource_cache",
@@ -1030,20 +1041,13 @@ fn execute_dependency_deobf_dependency(
                 specialsource_output.is_file()
             };
             if specialsource_cache_hit {
+                verify_complete_dependency_jar(specialsource_output)?;
                 tracing::debug!(
                     coordinate = %coordinate,
                     output = %specialsource_output.display(),
                     "dependency_deobf specialsource cache hit"
                 );
             } else {
-                if let Some(parent) = specialsource_output.parent() {
-                    let _span = tracing::debug_span!(
-                        "dependency_deobf_create_specialsource_output_dir",
-                        output = %specialsource_output.display()
-                    )
-                    .entered();
-                    fs::create_dir_all(parent)?;
-                }
                 {
                     let _span = tracing::debug_span!(
                         "dependency_deobf_run_specialsource",
@@ -1064,6 +1068,7 @@ fn execute_dependency_deobf_dependency(
                             .join("remap-work")
                             .join(safe_path_segment(&coordinate.file_name())),
                     )?;
+                    verify_complete_dependency_jar(specialsource_output)?;
                 }
             }
             {
@@ -1078,6 +1083,7 @@ fn execute_dependency_deobf_dependency(
                     remapped,
                     member_mappings,
                 )?;
+                verify_complete_dependency_jar(remapped)?;
             }
         }
     }
@@ -1087,12 +1093,35 @@ fn execute_dependency_deobf_dependency(
             output = %remapped.display()
         )
         .entered();
-        if !remapped.is_file() {
-            eyre::bail!(
-                "SpecialSource completed without producing remapped dependency jar {}",
-                remapped.display()
-            );
-        }
+        verify_complete_dependency_jar(remapped)?;
+    }
+    Ok(())
+}
+
+// The legacy projection-local fallback predates sealed shared remap receipts.
+// Its old file-exists check could reuse a truncated JAR left by an interrupted
+// SpecialSource or ZIP writer. Keep those bytes for diagnosis, but never admit
+// them as a cache hit or as a completed producer result.
+fn verify_complete_dependency_jar(path: &Path) -> eyre::Result<()> {
+    eyre::ensure!(
+        fs::symlink_metadata(path)?.file_type().is_file(),
+        "dependency remap output is not a regular file: {}",
+        path.display()
+    );
+    let mut archive = ZipArchive::new(File::open(path)?)
+        .wrap_err_with(|| format!("incomplete dependency remap JAR: {}", path.display()))?;
+    eyre::ensure!(
+        !archive.is_empty(),
+        "empty dependency remap JAR: {}",
+        path.display()
+    );
+    for index in 0..archive.len() {
+        let mut entry = archive.by_index(index).wrap_err_with(|| {
+            format!("invalid dependency remap JAR entry #{index}: {}", path.display())
+        })?;
+        std::io::copy(&mut entry, &mut std::io::sink()).wrap_err_with(|| {
+            format!("corrupt dependency remap JAR entry #{index}: {}", path.display())
+        })?;
     }
     Ok(())
 }
