@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "purpose": "Additional checked Gradle bootstrap and mapping inputs for historical projection workflows; historical project files and schema-2 locks remain unchanged",
+  "cache_root": "sfm-toolchain-data",
+  "artifacts": [
+    {
+      "kind": "gradle-bin-distribution",
+      "version": "8.1.1",
+      "mc_versions": ["1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4"],
+      "file": "gradle-8.1.1-bin.zip",
+      "path": "gradle/distributions/gradle-8.1.1-bin.zip",
+      "url": "https://services.gradle.org/distributions/gradle-8.1.1-bin.zip",
+      "checksum_source": "https://gradle.org/release-checksums/",
+      "sha256": "e111cb9948407e26351227dabce49822fb88c37ee72f1d1582a69c68af2e702f",
+      "bytes": 124643981
+    },
+    {
+      "kind": "gradle-bin-distribution",
+      "version": "8.14.3",
+      "mc_versions": ["1.21.1"],
+      "file": "gradle-8.14.3-bin.zip",
+      "path": "gradle/distributions/gradle-8.14.3-bin.zip",
+      "url": "https://services.gradle.org/distributions/gradle-8.14.3-bin.zip",
+      "checksum_source": "https://gradle.org/release-checksums/",
+      "sha256": "bd71102213493060956ec229d946beee57158dbd89d0e62b91bca0fa2c5f3531",
+      "bytes": 137393837
+    },
+    {
+      "kind": "maven-classified-zip",
+      "coordinate": "org.parchmentmc.data:parchment-1.20.6:2024.05.01:checked@zip",
+      "mc_versions": ["1.21.0"],
+      "file": "parchment-1.20.6-2024.05.01-checked.zip",
+      "path": "minecraft-toolchain/maven/org/parchmentmc/data/parchment-1.20.6/2024.05.01/parchment-1.20.6-2024.05.01-checked.zip",
+      "url": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.20.6/2024.05.01/parchment-1.20.6-2024.05.01-checked.zip",
+      "checksum_source": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.20.6/2024.05.01/parchment-1.20.6-2024.05.01-checked.zip.sha256",
+      "sha1": "a86d33c601c5b5324cbd69bb9cc519f2925ee6b1",
+      "sha256": "b2a234286a74e64164e688c97dec1642d36960c0b9a707b95cb181a0bca08334",
+      "bytes": 785946
+    }
+  ]
+}
