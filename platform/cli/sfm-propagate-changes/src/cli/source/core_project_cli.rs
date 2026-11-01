@@ -169,6 +169,9 @@ pub struct CoreProjectCompileArgs {
     /// Stable names can be reused for an unchanged reconstruction check.
     #[facet(default, args::named)]
     pub isolated_project_cache: Option<String>,
+    /// Create-only alternate JAR basename for an exact released recipe; preserves an existing canonical output.
+    #[facet(default, args::named)]
+    pub output_name: Option<String>,
     #[facet(default = false, args::named)]
     pub explain_rebuild: bool,
     #[facet(default = false, args::named)]
@@ -291,6 +294,10 @@ fn invoke_native_compile(
     cancellation: &CancellationToken,
     invocation_dir: &Path,
 ) -> Result<CliOutput> {
+    ensure!(
+        args.output_name.is_none(),
+        "--output-name is only supported by source project jar with a released recipe"
+    );
     if args.dependency_profile.is_some() {
         return invoke_native_development(args, false, cancellation, invocation_dir);
     }
@@ -371,11 +378,16 @@ fn invoke_native_jar(
         "--isolated-project-cache is compile-only; packaging writes the projection JAR"
     );
     if args.dependency_profile.is_some() {
+        ensure!(
+            args.output_name.is_none(),
+            "--output-name requires a released recipe"
+        );
         return invoke_native_development(args, true, cancellation, invocation_dir);
     }
     let recipe = args.released_recipe.as_deref().ok_or_else(|| {
         eyre::eyre!("native jar requires exactly one of --released-recipe or --dependency-profile")
     })?;
+    crate::jar_build::engine::preflight_named_jar_output_name(args.output_name.as_deref())?;
     cancellation.bail_if_cancelled()?;
     // Refuse unsupported target/recipe before dev generation or external effects.
     let initial = CoreCatalog::load(&args.project.repo_root, invocation_dir)?;
@@ -430,6 +442,7 @@ fn invoke_native_jar(
             explain_rebuild: args.explain_rebuild,
             wait_for_build_lock: args.wait_for_build_lock,
         },
+        args.output_name.as_deref(),
         cancellation,
     )?;
     Ok(CliOutput::facet(result))
@@ -894,6 +907,7 @@ mod tests {
         let default = figue::from_slice::<CoreProjectCompileArgs>(&base).unwrap();
         assert!(default.cache_root.is_none());
         assert!(default.isolated_project_cache.is_none());
+        assert!(default.output_name.is_none());
         assert_eq!(
             crate::jar_build::engine::catalog_native_cache_path(
                 Path::new("C:/selected-checkout"),
@@ -922,6 +936,10 @@ mod tests {
             parsed.isolated_project_cache.as_deref(),
             Some("pinned_rebuild_1")
         );
+        let mut alternate_output = base.to_vec();
+        alternate_output.extend(["--output-name", "historical-check.jar"]);
+        let parsed = figue::from_slice::<CoreProjectCompileArgs>(&alternate_output).unwrap();
+        assert_eq!(parsed.output_name.as_deref(), Some("historical-check.jar"));
     }
 
     #[test]
@@ -936,6 +954,7 @@ mod tests {
             java_home: PathBuf::from("must-not-be-read"),
             cache_root: None,
             isolated_project_cache: Some("../escape".to_owned()),
+            output_name: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
         };
@@ -952,6 +971,45 @@ mod tests {
     }
 
     #[test]
+    fn alternate_named_jar_rejects_unsafe_or_unsupported_routes_before_effects() {
+        let mut args = CoreProjectCompileArgs {
+            project: CoreProjectSelectionArgs {
+                repo_root: PathBuf::from("must-not-be-read"),
+                projection: "unused".to_owned(),
+            },
+            released_recipe: Some("historical".to_owned()),
+            dependency_profile: None,
+            java_home: PathBuf::from("must-not-be-read"),
+            cache_root: None,
+            isolated_project_cache: None,
+            output_name: Some("../escape.jar".to_owned()),
+            explain_rebuild: false,
+            wait_for_build_lock: false,
+        };
+        let cancellation = CancellationToken::new();
+        let invalid = invoke_native_jar(&args, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(invalid.contains("fresh JAR name"), "{invalid}");
+
+        args.output_name = Some("historical-check.jar".to_owned());
+        let compile = invoke_native_compile(&args, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(compile.contains("only supported"), "{compile}");
+
+        args.released_recipe = None;
+        args.dependency_profile = Some("rust-toolchain".to_owned());
+        let development = invoke_native_jar(&args, &cancellation, Path::new("."))
+            .unwrap_err()
+            .to_string();
+        assert!(
+            development.contains("requires a released recipe"),
+            "{development}"
+        );
+    }
+
+    #[test]
     fn native_recipe_and_development_profile_are_exclusive_before_effects() {
         let args = CoreProjectCompileArgs {
             project: CoreProjectSelectionArgs {
@@ -963,6 +1021,7 @@ mod tests {
             java_home: PathBuf::from("must-not-be-read"),
             cache_root: None,
             isolated_project_cache: None,
+            output_name: None,
             explain_rebuild: false,
             wait_for_build_lock: false,
         };

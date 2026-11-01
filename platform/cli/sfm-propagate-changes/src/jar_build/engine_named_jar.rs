@@ -207,8 +207,10 @@ pub(crate) struct NamedJarReport {
 pub(crate) fn invoke_named_jar(
     project: crate::source_projection::frozen_recipe_project::FrozenRecipeProject,
     options: &NamedCompileOptions,
+    output_name: Option<&str>,
     cancellation: &CancellationToken,
 ) -> eyre::Result<NamedJarReport> {
+    preflight_named_jar_output_name(output_name)?;
     validate_named_package_project(&project)?;
     let identity = BuildProjectIdentity::Catalog {
         frozen: Arc::new(project),
@@ -227,7 +229,7 @@ pub(crate) fn invoke_named_jar(
         })
         .transpose()?;
     let planning = NativePlanningOptions {
-        output_name: None,
+        output_name: output_name.map(str::to_owned),
         derived_cache_root,
         isolated_project_cache: None,
         mode: BuildMode::Build,
@@ -276,6 +278,14 @@ pub(crate) fn invoke_named_jar(
         application_execution: "not_performed".to_owned(), runtime_compatibility: "not_performed".to_owned(),
         immutable_source_lock: true,
     })
+}
+
+/// Validate the requested basename before generation or SDK/cache effects.
+pub(crate) fn preflight_named_jar_output_name(output_name: Option<&str>) -> eyre::Result<()> {
+    if let Some(name) = output_name {
+        fresh_jar_output::validate_basename(name)?;
+    }
+    Ok(())
 }
 
 fn require_named_jar_path(path: &Path) -> eyre::Result<&str> {
